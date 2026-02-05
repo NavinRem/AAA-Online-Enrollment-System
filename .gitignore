@@ -1,0 +1,15 @@
+# Global
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Backend (Firebase & Functions)
+backend/firebase-debug.log
+backend/.firebase/
+backend/functions/node_modules/
+backend/functions/firebase-debug.log
+backend/functions/firebase-debug.*.log
+
+# Mobile & Web (Delegated to their own .gitignores, but redundancy is fine)
+# Note: They have their own .gitignore files, so we don't strictly need to repeat everything here.

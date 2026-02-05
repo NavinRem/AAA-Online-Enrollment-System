@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "214068739537",
+    "project_id": "aaa-online-registration-e3833",
+    "storage_bucket": "aaa-online-registration-e3833.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:214068739537:android:9d09f3185c06ea8dd5b4f0",
+        "android_client_info": {
+          "package_name": "com.example.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfWVL1KDHszJtsMy3PhKTOa35js6XN6OQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
