@@ -8,26 +8,30 @@ Full-stack online registration system using:
 
 ## Project Structure
 
-/web      - Web Application
-/mobile   - Mobile App
-/firebase - Firebase Config
-/docs     - Documentation
+aaa-online-registration-system/
+│
+├── web/ # Vue.js Web Application
+├── mobile/ # Flutter Mobile Application
+├── firebase/ # Firebase Configuration & Rules
+├── docs/ # Project Documentation
+├── scripts/ # Automation Scripts (Optional)
+└── README.md
 
 ## Setup
 
 ### Web
-cd web
-npm install
-npm run dev
+```cd web```
+```npm install```
+```npm run dev```
 
 ### Mobile
-cd mobile
-flutter pub get
-flutter run
+```cd mobile```
+```flutter pub get```
+```flutter run```
 
 ### Firebase
-firebase login
-firebase init
+```firebase login```
+```firebase init```
 
 ## Contributors
 - Rem Sonavin
