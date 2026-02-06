@@ -1,13 +1,4 @@
 rules_version = '2';
-<<<<<<< HEAD
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /{allPaths=**} {
-      allow read, write: if false;
-    }
-  }
-}
-=======
 
 // Craft rules based on data in your Firestore database
 // allow write: if firestore.get(
@@ -29,4 +20,3 @@ service firebase.storage {
     }
   }
 }
->>>>>>> d378767 (feat: Implement full stack registration system)

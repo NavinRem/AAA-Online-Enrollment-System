@@ -1,9 +1,4 @@
 {
-<<<<<<< HEAD
-  "indexes": [],
-  "fieldOverrides": []
-}
-=======
   // Example (Standard Edition):
   //
   // "indexes": [
@@ -54,4 +49,3 @@
   "indexes": [],
   "fieldOverrides": []
 }
->>>>>>> d378767 (feat: Implement full stack registration system)
