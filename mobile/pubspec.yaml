@@ -34,8 +34,11 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+<<<<<<< HEAD
   firebase_core: ^4.4.0
   cloud_firestore: ^6.1.2
+=======
+>>>>>>> d378767 (feat: Implement full stack registration system)
 
 dev_dependencies:
   flutter_test:
@@ -49,6 +52,20 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.3
 
+<<<<<<< HEAD
+=======
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/AAA_Student_Connect_logo.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  web:
+    generate: true
+    image_path: "assets/icons/AAA_Student_Connect_logo.png"
+    background_color: "#hex_code"
+    theme_color: "#hex_code"
+
+>>>>>>> d378767 (feat: Implement full stack registration system)
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -89,7 +106,10 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+<<<<<<< HEAD
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "/home/sonavin/Code/AAA-Online-Registration-System/mobile/assets/icon/applogo.png" # Path to your high-res icon file
+=======
+>>>>>>> d378767 (feat: Implement full stack registration system)

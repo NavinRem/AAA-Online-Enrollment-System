@@ -8,7 +8,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+<<<<<<< HEAD
 import 'package:mobile/main.dart';
+=======
+import 'package:aaa_student_connect/main.dart';
+>>>>>>> d378767 (feat: Implement full stack registration system)
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {

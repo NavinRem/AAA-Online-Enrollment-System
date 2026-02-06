@@ -1,10 +1,18 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
+<<<<<<< HEAD
 project(mobile LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
 set(BINARY_NAME "mobile")
+=======
+project(aaa_student_connect LANGUAGES CXX)
+
+# The name of the executable created for the application. Change this to change
+# the on-disk name of your application.
+set(BINARY_NAME "aaa_student_connect")
+>>>>>>> d378767 (feat: Implement full stack registration system)
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

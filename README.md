@@ -25,7 +25,11 @@ A robust, full-stack registration solution featuring a responsive Web dashboard 
 
 ```text
 AAA-Online-Registration-System/
+<<<<<<< HEAD
 ├── web/           # Vue.js frontend source code
+=======
+├── frontend/      # Vue.js frontend source code
+>>>>>>> d378767 (feat: Implement full stack registration system)
 ├── mobile/        # Flutter mobile application source code
 └── backend/       # Security rules, Cloud Functions, and config files
 ```
@@ -47,7 +51,11 @@ firebase init
 
 ```bash
 
+<<<<<<< HEAD
 cd web
+=======
+cd frontend
+>>>>>>> d378767 (feat: Implement full stack registration system)
 npm install
 npm run dev
 ```
