@@ -13,11 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-<<<<<<< HEAD
-	<string>AAA Student Connect</string>
-=======
 	<string>aaa_student_connect</string>
->>>>>>> d378767 (feat: Implement full stack registration system)
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# mobile
-=======
 # aaa_student_connect
->>>>>>> d378767 (feat: Implement full stack registration system)
 
 A new Flutter project.
 
