@@ -7,6 +7,8 @@ const admin = require("firebase-admin");
 
 // Import Routes
 const registrationRoutes = require("./src/routes/registrations");
+const userRoutes = require("./src/routes/users");
+const courseRoutes = require("./src/routes/courses");
 
 const app = express();
 
@@ -17,6 +19,8 @@ app.use(express.json());
 
 // Routes
 app.use("/registrations", registrationRoutes);
+app.use("/users", userRoutes);
+app.use("/courses", courseRoutes);
 
 // Root Endpoint
 app.get("/", (req, res) => {
