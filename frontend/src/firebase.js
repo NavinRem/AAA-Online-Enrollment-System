@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getStorage } from 'firebase/storage'
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { getAuth, connectAuthEmulator } from 'firebase/auth'
 
 // TODO: Replace the following with your app's Firebase project configuration
 // See: https://firebase.google.com/docs/web/learn-more#config-object
@@ -19,7 +20,8 @@ const app = initializeApp(firebaseConfig)
 
 // Initialize Cloud Storage and get a reference to the service
 const storage = getStorage(app)
-const db = getFirestore(app)
+const db = getFirestore(app, 'registration')
+const auth = getAuth(app)
 
 if (location.hostname === 'localhost') {
   // Connect to Emulators

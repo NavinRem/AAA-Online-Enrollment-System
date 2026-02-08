@@ -2,7 +2,7 @@ const { getFirestore } = require("firebase-admin/firestore");
 const { initializeApp } = require("firebase-admin/app");
 
 initializeApp();
-const db = getFirestore();
+const db = getFirestore("registration");
 
 exports.createRegistration = async (req, res) => {
   try {

@@ -3,6 +3,7 @@ const logger = require("firebase-functions/logger");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const admin = require("firebase-admin");
 
 // Import Routes
 const registrationRoutes = require("./src/routes/registrations");
