@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getStorage } from 'firebase/storage'
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
 
 // TODO: Replace the following with your app's Firebase project configuration
@@ -17,16 +17,17 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
+const firestore = initializeFirestore(app, {}, 'registration')
 
 // Initialize Cloud Storage and get a reference to the service
 const storage = getStorage(app)
-const db = getFirestore(app, 'registration')
 const auth = getAuth(app)
 
-if (location.hostname === 'localhost') {
-  // Connect to Emulators
-  connectFirestoreEmulator(db, 'localhost', 8080)
-  console.log('Running in development mode with Firebase Emulators')
-}
+// if (location.hostname === 'localhost') {
+//   // Connect to Emulators
+//   // connectFirestoreEmulator(firestore, 'localhost', 8080)
+//   // connectAuthEmulator(auth, 'http://localhost:9099')
+//   // console.log('Running in development mode with Firebase Emulators')
+// }
 
-export { storage, db, app }
+export { storage, firestore, auth, app }

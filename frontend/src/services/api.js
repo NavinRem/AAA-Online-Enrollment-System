@@ -1,8 +1,7 @@
 // Helper to switch between Local and Production
 // In Vite, import.meta.env.PROD is true during build
-const API_URL = import.meta.env.PROD
-  ? 'https://us-central1-aaa-online-registration-e3833.cloudfunctions.net/api'
-  : 'http://127.0.0.1:5001/aaa-online-registration-e3833/us-central1/api'
+const API_URL = 'https://api-tyweqke5oa-uc.a.run.app'
+// const API_URL = 'http://127.0.0.1:5001/aaa-online-registration-e3833/us-central1/api'
 
 // Helper function for making requests
 export async function request(endpoint, options = {}) {

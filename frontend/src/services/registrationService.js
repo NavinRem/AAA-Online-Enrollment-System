@@ -1,12 +1,17 @@
 import { request } from './api'
 
 export const registrationService = {
-  // Create a new registration
-  create(data) {
-    return request('/registrations', {
+  // Create Enrollment
+  createEnrollment(data) {
+    return request('/registrations/createEnrollment', {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  },
+
+  // Legacy alias
+  create(data) {
+    return this.createEnrollment(data)
   },
 
   // Get all registrations

@@ -1,18 +1,83 @@
-rules_version='2'
-
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 3, 8);
+    
+    // --- HELPER FUNCTIONS ---
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Retrieves the role of the authenticated user from the 'user' collection
+    function getRole() {
+      return get(/databases/$(database)/documents/user/$(request.auth.uid)).data.role;
+    }
+
+    // Checks if the user is the owner of the student record
+    function isParentOf(studentId) {
+      return get(/databases/$(database)/documents/student/$(studentId)).data.parentID == request.auth.uid;
+    }
+
+    // --- COLLECTION RULES ---
+
+    // 1. user: Everyone can see their own; Admins manage all roles
+    match /user/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || getRole() == 'Admin');
+      allow write: if isSignedIn() && getRole() == 'Admin';
+    }
+
+    // 2. student: Parents manage their kids; Instructors/Admins can view
+    match /student/{studentId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.parentID || 
+        getRole() in ['Instructor', 'Admin']
+      );
+      allow create: if isSignedIn() && request.resource.data.parentID == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        request.auth.uid == resource.data.parentID || 
+        getRole() == 'Admin'
+      );
+    }
+
+    // 3. course: Publicly readable; Only Admins can modify the curriculum
+    match /course/{courseId} {
+      allow read: if true; 
+      allow write: if isSignedIn() && getRole() == 'Admin';
+    }
+
+    // 4. session: Publicly readable (availability); Only Admins manage slots
+    match /session/{sessionId} {
+      allow read: if true;
+      allow write: if isSignedIn() && getRole() == 'Admin';
+    }
+
+    // 5. enrollment: Parents create and view their own; Admins verify status
+    match /enrollment/{enrollId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.parentID || 
+        getRole() == 'Admin'
+      );
+      allow create: if isSignedIn() && request.resource.data.parentID == request.auth.uid;
+      allow update: if isSignedIn() && getRole() == 'Admin'; 
+    }
+
+    // 6. attendance: Real-time visibility for Parents; Writing restricted to Staff
+    match /attendance/{attendanceId} {
+      allow read: if isSignedIn() && (
+        isParentOf(resource.data.studentID) || 
+        getRole() in ['Instructor', 'Admin']
+      );
+      allow create: if isSignedIn() && getRole() in ['Instructor', 'Admin'];
+    }
+
+    // 7. payment: Restricted; Only Parent and Admin can view
+    match /payment/{paymentId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.parentID || 
+        getRole() == 'Admin'
+      );
+      allow create: if isSignedIn() && request.resource.data.parentID == request.auth.uid;
+      allow update, delete: if false; // Financial records should be immutable
     }
   }
 }

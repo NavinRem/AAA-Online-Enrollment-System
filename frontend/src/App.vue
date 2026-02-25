@@ -1,13 +1,5 @@
 <script setup>
-import { ref } from 'vue'
-import RegistrationForm from './components/RegistrationForm.vue'
-import RegistrationList from './components/RegistrationList.vue'
-
-const refreshListTrigger = ref(0)
-
-const handleRegistrationCreated = () => {
-  refreshListTrigger.value++
-}
+import { RouterView } from 'vue-router'
 </script>
 
 <template>
@@ -17,8 +9,7 @@ const handleRegistrationCreated = () => {
     </header>
 
     <main>
-      <RegistrationForm @created="handleRegistrationCreated" />
-      <RegistrationList :refresh-trigger="refreshListTrigger" />
+      <RouterView />
     </main>
   </div>
 </template>

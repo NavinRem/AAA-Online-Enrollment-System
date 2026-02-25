@@ -2,13 +2,30 @@ const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
 
-// Create or Update User
-router.post("/", userController.createOrUpdateUser);
+// Register Parent Account (was createUser)
+router.post("/registerParentAccount", userController.registerParentAccount);
+
+// Get User Role
+router.get("/:uid/role", userController.getUserRole);
+
+// Register Student Profile (was addStudent)
+router.post(
+  "/:uid/registerStudentProfile",
+  userController.registerStudentProfile,
+);
+
+// Update Medical Info
+router.put("/students/:id/medical", userController.updateMedicalInfo);
+
+// --- Legacy / Utility Routes ---
 
 // Get All Users
 router.get("/", userController.getAllUsers);
 
 // Get User by ID
 router.get("/:uid", userController.getUser);
+
+// Get All Students for Parent
+router.get("/:uid/students", userController.getStudentsByParentID);
 
 module.exports = router;

@@ -5,10 +5,15 @@ const cors = require("cors");
 const helmet = require("helmet");
 const admin = require("firebase-admin");
 
+admin.initializeApp();
+// Force deploy trigger
+
 // Import Routes
 const registrationRoutes = require("./src/routes/registrations");
 const userRoutes = require("./src/routes/users");
 const courseRoutes = require("./src/routes/courses");
+const sessionRoutes = require("./src/routes/sessions");
+const studentRoutes = require("./src/routes/students");
 
 const app = express();
 
@@ -21,6 +26,11 @@ app.use(express.json());
 app.use("/registrations", registrationRoutes);
 app.use("/users", userRoutes);
 app.use("/courses", courseRoutes);
+app.use("/sessions", sessionRoutes);
+app.use("/students", studentRoutes);
+app.use("/payments", require("./src/routes/payments"));
+app.use("/attendance", require("./src/routes/attendance"));
+app.use("/progress", require("./src/routes/progress"));
 
 // Root Endpoint
 app.get("/", (req, res) => {
