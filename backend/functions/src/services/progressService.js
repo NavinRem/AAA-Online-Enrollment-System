@@ -20,11 +20,11 @@ class ProgressService {
     // In real app, we'd query a 'progress' or 'grades' collection.
 
     return {
-      studentId,
+      student_id: studentId,
       enrolledCourses: enrollments.length,
       overallProgress: "On Track",
       details: enrollments.map((e) => ({
-        courseId: e.course_id,
+        course_id: e.course_id,
         status: "In Progress",
         completion: "25%", // Mock
       })),

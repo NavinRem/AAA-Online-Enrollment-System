@@ -53,6 +53,13 @@ export const userService = {
     })
   },
 
+  // Get All Students (Admin)
+  async getAllStudents() {
+    return request('/users/allStudents', {
+      method: 'GET',
+    })
+  },
+
   // Aliases for backward compatibility in components
   async createUser(userData) {
     return this.registerParentAccount(userData)

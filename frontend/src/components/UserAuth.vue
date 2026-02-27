@@ -65,7 +65,21 @@ const handleSubmit = async () => {
 
     if (isLogin.value) {
       // Login Logic
-      await authService.login(email.value, password.value)
+      const user = await authService.login(email.value, password.value)
+
+      // Role check to block parents from accessing the admin portal
+      try {
+        const profile = await userService.getProfile(user.uid)
+        if (profile && profile.role === 'parent') {
+          await authService.logout()
+          error.value = 'Access Denied: Parents cannot log into the web admin dashboard.'
+          loading.value = false
+          return
+        }
+      } catch (profileError) {
+        console.error('Failed to fetch user profile for role check', profileError)
+      }
+
       message.value = 'Logged in successfully!'
     } else {
       // Register Logic
@@ -85,7 +99,7 @@ const handleSubmit = async () => {
       }
 
       // 3. Create Profile in 'registration' database via Backend API
-      await userService.createUser({
+      await userService.registerParentAccount({
         uid: user.uid,
         email: email.value,
         name: name.value,
@@ -93,6 +107,13 @@ const handleSubmit = async () => {
         role: role.value,
         profileURL: profileURL, // Pass the URL here
       })
+
+      if (role.value === 'parent') {
+        await authService.logout()
+        error.value = 'Account created! However, parents cannot access the web admin dashboard.'
+        loading.value = false
+        return
+      }
 
       message.value = 'Account created and profile saved!'
     }

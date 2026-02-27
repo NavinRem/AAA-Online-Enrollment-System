@@ -51,7 +51,7 @@ class UserService {
     const studentRef = db.collection("student").doc();
 
     const data = {
-      parentID: parentUid, // FK to User
+      parent_id: parentUid, // FK to User
       fullname,
       DoB: dob, // Storing as 'DoB' per schema
       medical_note: medical_note || "None",
@@ -87,16 +87,46 @@ class UserService {
 
   // Get Students by Parent ID
   async getStudentsByParentID(uid) {
-    // Query the ROOT 'student' collection where parent_id matches
+    const parentDoc = await db.collection("user").doc(uid).get();
+    const parentName = parentDoc.exists
+      ? parentDoc.data().name || "Parent"
+      : "Unknown Parent";
+
     const snapshot = await db
       .collection("student")
-      .where("parentID", "==", uid)
+      .where("parent_id", "==", uid)
       .get();
 
     return snapshot.docs.map((doc) => ({
       id: doc.id,
+      parentName, // Included from parent
       ...doc.data(),
     }));
+  }
+
+  // Get All Students (Admin)
+  async getAllStudents() {
+    const studentsSnapshot = await db.collection("student").get();
+    const usersSnapshot = await db.collection("user").get();
+
+    const usersMap = {};
+    usersSnapshot.forEach((doc) => {
+      usersMap[doc.id] = doc.data();
+    });
+
+    return studentsSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      const parent = usersMap[data.parent_id];
+      const parentName = parent
+        ? parent.name || "Unknown Parent"
+        : "Unknown Parent";
+
+      return {
+        id: doc.id,
+        parentName,
+        ...data,
+      };
+    });
   }
 
   // Get All Users

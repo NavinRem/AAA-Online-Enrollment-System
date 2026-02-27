@@ -3,14 +3,14 @@ const db = getFirestore("registration");
 
 class SessionService {
   async createSession(sessionData) {
-    const { courseID, instructors, schedule, capacity } = sessionData;
+    const { course_id, instructors, schedule, capacity } = sessionData;
 
-    if (!courseID) {
-      throw new Error("courseID is required");
+    if (!course_id) {
+      throw new Error("course_id is required");
     }
 
     const data = {
-      courseID,
+      course_id,
       instructors: instructors || [], // Array of { id, role }
       schedule: schedule || {}, // Map of { day, timeslot }
       capacity: parseInt(capacity) || 20,
@@ -22,10 +22,10 @@ class SessionService {
     return { id: docRef.id, message: "Session created successfully" };
   }
 
-  async getAvailableSessions(courseId) {
+  async getAvailableSessions(course_id) {
     const snapshot = await db
       .collection("session")
-      .where("courseID", "==", courseId)
+      .where("course_id", "==", course_id)
       .get();
 
     return snapshot.docs.map((doc) => ({
@@ -81,7 +81,7 @@ class SessionService {
     // Count enrollments
     const snapshot = await db
       .collection("enrollment")
-      .where("sessionID", "==", sessionId)
+      .where("session_id", "==", sessionId)
       .where("status", "in", ["confirmed", "pending"]) // Count active
       .count()
       .get();

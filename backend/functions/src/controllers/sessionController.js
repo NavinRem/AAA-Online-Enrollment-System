@@ -96,7 +96,7 @@ exports.getInstructorRoster = async (req, res) => {
  */
 exports.syncStudentCounts = async (req, res) => {
   try {
-    const result = await sessionService.syncStudentCounts(req.body.sessionId);
+    const result = await sessionService.syncStudentCounts(req.body.session_id);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -15,7 +15,7 @@ service cloud.firestore {
 
     // Checks if the user is the owner of the student record
     function isParentOf(studentId) {
-      return get(/databases/$(database)/documents/student/$(studentId)).data.parentID == request.auth.uid;
+      return get(/databases/$(database)/documents/student/$(studentId)).data.parent_id == request.auth.uid;
     }
 
     // --- COLLECTION RULES ---
@@ -29,12 +29,12 @@ service cloud.firestore {
     // 2. student: Parents manage their kids; Instructors/Admins can view
     match /student/{studentId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.parentID || 
+        request.auth.uid == resource.data.parent_id || 
         getRole() in ['Instructor', 'Admin']
       );
-      allow create: if isSignedIn() && request.resource.data.parentID == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.parent_id == request.auth.uid;
       allow update, delete: if isSignedIn() && (
-        request.auth.uid == resource.data.parentID || 
+        request.auth.uid == resource.data.parent_id || 
         getRole() == 'Admin'
       );
     }
@@ -54,17 +54,17 @@ service cloud.firestore {
     // 5. enrollment: Parents create and view their own; Admins verify status
     match /enrollment/{enrollId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.parentID || 
+        request.auth.uid == resource.data.parent_id || 
         getRole() == 'Admin'
       );
-      allow create: if isSignedIn() && request.resource.data.parentID == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.parent_id == request.auth.uid;
       allow update: if isSignedIn() && getRole() == 'Admin'; 
     }
 
     // 6. attendance: Real-time visibility for Parents; Writing restricted to Staff
     match /attendance/{attendanceId} {
       allow read: if isSignedIn() && (
-        isParentOf(resource.data.studentID) || 
+        isParentOf(resource.data.student_id) || 
         getRole() in ['Instructor', 'Admin']
       );
       allow create: if isSignedIn() && getRole() in ['Instructor', 'Admin'];
@@ -73,10 +73,10 @@ service cloud.firestore {
     // 7. payment: Restricted; Only Parent and Admin can view
     match /payment/{paymentId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.parentID || 
+        request.auth.uid == resource.data.parent_id || 
         getRole() == 'Admin'
       );
-      allow create: if isSignedIn() && request.resource.data.parentID == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.parent_id == request.auth.uid;
       allow update, delete: if false; // Financial records should be immutable
     }
   }

@@ -19,6 +19,12 @@ router.put("/students/:id/medical", userController.updateMedicalInfo);
 
 // --- Legacy / Utility Routes ---
 
+// Seed script (temp)
+router.get("/seed", userController.seedData);
+
+// Get All Students (Admin)
+router.get("/allStudents", userController.getAllStudents);
+
 // Get All Users
 router.get("/", userController.getAllUsers);
 

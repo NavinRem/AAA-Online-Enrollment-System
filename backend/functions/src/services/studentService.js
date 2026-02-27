@@ -4,9 +4,9 @@ const db = getFirestore("registration");
 class StudentService {
   // Create Student (previously registerStudentProfile)
   async createStudent(studentData) {
-    const { parentID, fullname, dob, medical_note } = studentData;
+    const { parent_id, fullname, dob, medical_note } = studentData;
 
-    if (!parentID || !fullname || !dob) {
+    if (!parent_id || !fullname || !dob) {
       throw new Error("Parent ID, Full Name, and Date of Birth are required");
     }
 
@@ -15,7 +15,7 @@ class StudentService {
 
     const studentRef = db.collection("student").doc();
     const data = {
-      parentID,
+      parent_id,
       fullname,
       DoB: dob,
       medical_note: medical_note || "None",
@@ -72,7 +72,7 @@ class StudentService {
   async getStudentsByParent(parentId) {
     const snapshot = await db
       .collection("student")
-      .where("parentID", "==", parentId)
+      .where("parent_id", "==", parentId)
       .get();
 
     return snapshot.docs.map((doc) => ({

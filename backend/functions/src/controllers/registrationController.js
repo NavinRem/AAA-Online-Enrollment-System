@@ -19,7 +19,7 @@ exports.createEnrollment = async (req, res) => {
     if (
       error.message === "Student already registered for this session" ||
       error.message === "Session is full" ||
-      error.message === "studentId, courseId, and sessionId are required"
+      error.message === "student_id, course_id, and session_id are required"
     ) {
       return res.status(400).json({ error: error.message });
     }
@@ -81,7 +81,7 @@ exports.getRegistration = async (req, res) => {
 exports.cancelRegistration = async (req, res) => {
   try {
     const result = await registrationService.cancelRegistration(
-      req.body.enrollmentId,
+      req.body.enrollment_id,
     );
     res.status(200).json(result);
   } catch (error) {

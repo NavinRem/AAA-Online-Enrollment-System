@@ -3,40 +3,46 @@ import { authService } from '../services/authService'
 import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
 import { registrationService } from '../services/registrationService'
-import { storageService } from '../services/storageService'
 import { useRouter } from 'vue-router'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import defaultProfileImg from '@/assets/images/profile-admin.png'
+// UI Components
+import DashboardLayout from '../components/DashboardLayout.vue'
+import SummaryCard from '../components/SummaryCard.vue'
+import MiniCard from '../components/MiniCard.vue'
+import RecentRegistrationTable from '../components/RecentRegistrationTable.vue'
 
 const router = useRouter()
 const user = ref(null)
 const userProfile = ref(null)
 const students = ref([])
 const courses = ref([])
-const sessions = ref([])
-const selectedCourse = ref(null)
+const registrations = ref([])
+const allUsers = ref([])
 const loading = ref(true)
 
-// Form Data - Add Student
-const showAddStudent = ref(false)
-const newStudent = ref({
-  fullname: '',
-  dob: '',
-  medical_note: '',
+// Stats
+const stats = ref({
+  today: { reg: 0, enroll: 0, pay: 0 },
+  week: { reg: 0, enroll: 0, pay: 0 },
+  totals: {
+    accounts: 0,
+    parents: 0,
+    guardians: 0,
+    students: 0,
+    programs: 0,
+    registrations: 0,
+    pay: 0,
+  },
 })
-
-// Enrollment Data
-const showEnrollModal = ref(false)
-const selectedSession = ref(null)
-const selectedStudentId = ref('')
-
-// Profile Image
-const isUploading = ref(false)
 
 onMounted(async () => {
   const currentUser = authService.getCurrentUser()
   if (currentUser) {
     user.value = currentUser
-    await Promise.all([fetchUserProfile(currentUser.uid), fetchStudents(), fetchCourses()])
+    await fetchUserProfile(currentUser.uid)
+    await Promise.all([fetchStudents(), fetchCourses(), fetchRegistrations(), fetchAllUsers()])
+    calculateStats()
   } else {
     router.push('/')
   }
@@ -52,37 +58,15 @@ const fetchUserProfile = async (uid) => {
   }
 }
 
-const handleFileUpload = async (event) => {
-  const file = event.target.files[0]
-  if (!file) return
-
-  isUploading.value = true
-  try {
-    const url = await storageService.uploadProfileImage(user.value.uid, file)
-
-    // Update Frontend State
-    if (!userProfile.value) userProfile.value = {}
-    userProfile.value.profileURL = url
-
-    // Update Backend
-    await userService.registerParentAccount({
-      uid: user.value.uid,
-      email: user.value.email,
-      profileURL: url,
-    })
-
-    alert('Profile image updated!')
-  } catch (error) {
-    console.error('Upload failed', error)
-    alert(error.message)
-  } finally {
-    isUploading.value = false
-  }
-}
-
 const fetchStudents = async () => {
   try {
-    students.value = await userService.getStudents(user.value.uid)
+    let data
+    if (userProfile.value?.role === 'admin') {
+      data = await userService.getAllStudents()
+    } else {
+      data = await userService.getStudents(user.value.uid)
+    }
+    students.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error('Failed to fetch students', error)
   }
@@ -90,362 +74,353 @@ const fetchStudents = async () => {
 
 const fetchCourses = async () => {
   try {
-    courses.value = await courseService.getAllCourses()
+    const data = await courseService.getAllCourses()
+    courses.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error('Failed to fetch courses', error)
   }
 }
 
-const handleCourseSelect = async (course) => {
-  selectedCourse.value = course
+const fetchRegistrations = async () => {
   try {
-    sessions.value = await courseService.getSessions(course.id)
+    const data = await registrationService.getAll()
+    registrations.value = Array.isArray(data) ? data : []
   } catch (error) {
-    console.error('Failed to fetch sessions', error)
-    sessions.value = []
+    console.error('Failed to fetch registrations', error)
   }
 }
 
-const openEnrollModal = (session) => {
-  selectedSession.value = session
-  showEnrollModal.value = true
-  // Default to first student if available
-  if (students.value.length > 0) {
-    selectedStudentId.value = students.value[0].id
-  }
-}
-
-const handleEnroll = async () => {
-  if (!selectedStudentId.value) {
-    alert('Please select a child to enroll')
-    return
-  }
-
+const fetchAllUsers = async () => {
   try {
-    await registrationService.create({
-      studentID: selectedStudentId.value,
-      courseID: selectedCourse.value.id,
-      sessionID: selectedSession.value.id,
+    const data = await userService.getAllUsers()
+    allUsers.value = Array.isArray(data) ? data : []
+  } catch (error) {
+    console.error('Failed to fetch users', error)
+  }
+}
+
+const calculateStats = () => {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
+
+  const dayOfWeek = now.getDay()
+  const daysSinceMonday = (dayOfWeek + 6) % 7 // Monday = 0, Sunday = 6
+  const startOfWeek = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - daysSinceMonday,
+  ).getTime()
+
+  // Helper to determine cost
+  const getExpectedAmount = (r) => {
+    if (r.amount) return parseFloat(r.amount)
+    if (r.totalAmount) return parseFloat(r.totalAmount)
+    const course = courses.value.find((c) => c.id === r.course_id)
+    return course ? parseFloat(course.price || 0) : 0
+  }
+
+  const isPaid = (r) => r.paymentStatus === 'paid' || r.status === 'confirmed'
+
+  // Today Summary
+  const todayRegistrationsList = allUsers.value.filter((u) => {
+    if (u.role !== 'parent' && u.role !== 'guardian') return false
+    const time = new Date(u.createdAt || u.created_at || u.updatedAt).getTime()
+    return time >= startOfToday && time <= endOfToday
+  })
+
+  const todayEnrollmentsList = registrations.value.filter((r) => {
+    const time = new Date(
+      r.enrollAt || r.createdAt || r.created_at || r.registrationDate || r.timestamp,
+    ).getTime()
+    return time >= startOfToday && time <= endOfToday
+  })
+
+  stats.value.today.reg = todayRegistrationsList.length
+  stats.value.today.enroll = todayEnrollmentsList.length
+  stats.value.today.pay = todayEnrollmentsList
+    .filter(isPaid)
+    .reduce((sum, r) => sum + getExpectedAmount(r), 0)
+
+  // Overall Summary (Total)
+  const totalRegistrationsList = allUsers.value.filter(
+    (u) => u.role === 'parent' || u.role === 'guardian',
+  )
+
+  const totalEnrollmentsList = registrations.value
+
+  stats.value.week.reg = totalRegistrationsList.length
+  stats.value.week.enroll = totalEnrollmentsList.length
+  stats.value.week.pay = totalEnrollmentsList
+    .filter(isPaid)
+    .reduce((sum, r) => sum + getExpectedAmount(r), 0)
+
+  // Mini Card Totals (Keep existing for sidebar)
+  const parents = allUsers.value.filter((u) => u.role === 'parent')
+  const guardians = allUsers.value.filter((u) => u.role === 'guardian')
+
+  stats.value.totals.accounts = parents.length + guardians.length
+  stats.value.totals.parents = parents.length
+  stats.value.totals.guardians = guardians.length
+  stats.value.totals.students = students.value.length
+  stats.value.totals.programs = courses.value.length
+  stats.value.totals.registrations = parents.length + guardians.length
+}
+
+const mappedRegistrations = computed(() => {
+  return [...registrations.value]
+    .sort((a, b) => {
+      const timeA = new Date(
+        a.enrollAt || a.createdAt || a.created_at || a.registrationDate || a.timestamp,
+      ).getTime()
+      const timeB = new Date(
+        b.enrollAt || b.createdAt || b.created_at || b.registrationDate || b.timestamp,
+      ).getTime()
+      return timeB - timeA // Descending (newest first)
     })
-    alert('Enrollment Successful!')
-    showEnrollModal.value = false
-    // Could refresh session capacity here if needed
-  } catch (error) {
-    console.error('Enrollment failed', error)
-    alert(error.message || 'Enrollment failed')
-  }
-}
+    .slice(0, 5)
+    .map((r, index) => {
+      const parent = allUsers.value.find((u) => u.uid === r.parent_id)
+      const parentName = parent
+        ? parent.name || parent.email
+        : r.parentName || r.parent_name || 'Parent'
 
-const handleAddStudent = async () => {
-  if (!newStudent.value.fullname || !newStudent.value.dob) {
-    alert('Please fill in Full Name and Date of Birth')
-    return
-  }
+      const student = students.value.find((s) => s.id === r.student_id)
+      const studentName = student
+        ? student.fullname || student.name
+        : r.studentName || r.student_name || 'Student'
 
-  try {
-    await userService.addStudent(user.value.uid, newStudent.value)
-    alert('Child added successfully!')
-    showAddStudent.value = false
-    newStudent.value = { fullname: '', dob: '', medical_note: '' }
-    await fetchStudents()
-  } catch (error) {
-    console.error('Failed to add student', error)
-    alert('Failed to add student')
-  }
-}
+      const course = courses.value.find((c) => c.id === r.course_id)
+      const courseName = course
+        ? course.title || course.name
+        : r.courseTitle || r.course_title || 'Course'
 
-const handleLogout = async () => {
-  await authService.logout()
-  router.push('/')
-}
+      return {
+        id: r.id,
+        no: index + 1,
+        parent: parentName,
+        child: studentName,
+        course: courseName,
+        status: r.status || 'Pending',
+        amount: `$${r.amount || r.totalAmount || (course ? course.price : 0) || 0}`,
+        date: r.enrollAt || r.createdAt || r.created_at || r.registrationDate || r.timestamp,
+      }
+    })
+})
 </script>
 
 <template>
-  <div class="dashboard">
-    <div v-if="loading">Loading...</div>
-    <div v-else>
-      <div class="profile-header">
-        <div class="profile-img-container">
-          <img
-            :src="userProfile?.profileURL || 'https://via.placeholder.com/100'"
-            alt="Profile"
-            class="profile-img"
-          />
-          <label for="file-upload" class="upload-icon"> 📷 </label>
-          <input
-            id="file-upload"
-            type="file"
-            @change="handleFileUpload"
-            accept="image/*"
-            style="display: none"
-          />
-        </div>
-        <h2>Welcome, {{ user?.email }}!</h2>
-        <span v-if="isUploading">Uploading...</span>
+  <DashboardLayout>
+    <div class="dashboard-grid">
+      <!-- Main Content Column -->
+      <div class="main-column">
+        <!-- Today Summary -->
+        <section class="summary-section">
+          <h2 class="section-title">Today Summary</h2>
+          <div class="cards-row">
+            <SummaryCard
+              title="New Accounts Today"
+              :value="stats.today.reg"
+              image="register.png"
+              color="#e1f5fe"
+            />
+            <SummaryCard
+              title="New Enrollments Today"
+              :value="stats.today.enroll"
+              image="enrollment.png"
+              color="#e1f5fe"
+            />
+            <SummaryCard
+              title="Today's Payments"
+              :value="`$${stats.today.pay}`"
+              image="payment.png"
+              color="#e1f5fe"
+            />
+          </div>
+        </section>
+
+        <!-- Total Summary -->
+        <section class="summary-section">
+          <h2 class="section-title">Total Summary</h2>
+          <div class="cards-row">
+            <SummaryCard
+              title="Total Parent Accounts"
+              :value="stats.week.reg"
+              image="register.png"
+              color="#e1f5fe"
+            />
+            <SummaryCard
+              title="Total Course Enrollments"
+              :value="stats.week.enroll"
+              image="enrollment.png"
+              color="#e1f5fe"
+            />
+            <SummaryCard
+              title="Total Payments"
+              :value="`$${stats.week.pay}`"
+              image="payment.png"
+              color="#e1f5fe"
+            />
+          </div>
+        </section>
+
+        <!-- Recent Enrollment Table -->
+        <RecentRegistrationTable :registrations="mappedRegistrations" />
       </div>
 
-      <div class="container">
-        <!-- Left Column: Children -->
-        <div class="column">
-          <div class="section">
-            <h3>My Children</h3>
-            <ul v-if="students.length > 0" class="student-list">
-              <li v-for="student in students" :key="student.id">
-                <strong>{{ student.fullname }}</strong> (Born: {{ student.DoB }})
-              </li>
-            </ul>
-            <p v-else>No children added yet.</p>
+      <!-- Right Overview Column -->
+      <div class="right-column">
+        <div class="profile-overview">
+          <div class="profile-card">
+            <div class="profile-image-large">
+              <img :src="userProfile?.profileURL || defaultProfileImg" alt="User" />
+            </div>
+            <h3 class="welcome-text">
+              Welcome Back!<br />{{ userProfile?.name || 'Sonavin Rem' }}
+            </h3>
+            <p class="sub-text">Here is the overview</p>
+          </div>
 
-            <button v-if="!showAddStudent" @click="showAddStudent = true" class="add-btn">
-              + Add Child
-            </button>
-
-            <div v-if="showAddStudent" class="add-student-form">
-              <h4>Add New Child</h4>
-              <input v-model="newStudent.fullname" placeholder="Full Name" required />
-              <label>Date of Birth:</label>
-              <input v-model="newStudent.dob" type="date" required />
-              <input v-model="newStudent.medical_note" placeholder="Medical Note (Optional)" />
-              <div class="form-actions">
-                <button @click="handleAddStudent" class="save-btn">Save</button>
-                <button @click="showAddStudent = false" class="cancel-btn">Cancel</button>
-              </div>
+          <div class="basic-info">
+            <h3 class="info-title">Basic Information</h3>
+            <div class="mini-cards-stack">
+              <MiniCard
+                title="Total Accounts"
+                :value="stats.totals.accounts"
+                image="user-online.png"
+              />
+              <MiniCard title="Total Parents" :value="stats.totals.parents" image="parent.png" />
+              <MiniCard
+                title="Total Guardians"
+                :value="stats.totals.guardians"
+                image="guardian.png"
+              />
+              <MiniCard title="Total Students" :value="stats.totals.students" image="student.png" />
+              <MiniCard title="Total Programs" :value="stats.totals.programs" image="program.png" />
             </div>
           </div>
         </div>
-
-        <!-- Right Column: Courses -->
-        <div class="column">
-          <div class="section">
-            <h3>Available Courses</h3>
-            <ul v-if="courses.length > 0" class="course-list">
-              <li
-                v-for="course in courses"
-                :key="course.id"
-                @click="handleCourseSelect(course)"
-                :class="{ active: selectedCourse?.id === course.id }"
-              >
-                <strong>{{ course.title }}</strong> - ${{ course.price }}
-                <div class="detail">{{ course.description }}</div>
-              </li>
-            </ul>
-            <p v-else>No courses available.</p>
-          </div>
-
-          <div v-if="selectedCourse" class="section sessions-section">
-            <h3>Sessions for {{ selectedCourse.title }}</h3>
-            <div v-if="sessions.length > 0">
-              <div v-for="session in sessions" :key="session.id" class="session-card">
-                <div>
-                  <strong>Days:</strong> {{ session.schedule?.day }}<br />
-                  <strong>Time:</strong> {{ session.schedule?.timeslot }}<br />
-                  <small>{{ session.num_student }} / {{ session.capacity }} Enrolled</small>
-                </div>
-                <button
-                  @click="openEnrollModal(session)"
-                  :disabled="session.num_student >= session.capacity"
-                  class="enroll-btn"
-                >
-                  {{ session.num_student >= session.capacity ? 'Full' : 'Enroll' }}
-                </button>
-              </div>
-            </div>
-            <p v-else>No sessions scheduled for this course.</p>
-          </div>
-        </div>
       </div>
-
-      <!-- Enrollment Modal -->
-      <div v-if="showEnrollModal" class="modal-overlay">
-        <div class="modal">
-          <h3>Enroll in {{ selectedCourse.title }}</h3>
-          <p>
-            For session: {{ selectedSession.schedule?.day }} at
-            {{ selectedSession.schedule?.timeslot }}
-          </p>
-
-          <label>Select Child:</label>
-          <select v-model="selectedStudentId">
-            <option v-for="student in students" :value="student.id" :key="student.id">
-              {{ student.fullname }}
-            </option>
-          </select>
-
-          <div class="modal-actions">
-            <button @click="handleEnroll" class="save-btn">Confirm Enrollment</button>
-            <button @click="showEnrollModal = false" class="cancel-btn">Cancel</button>
-          </div>
-        </div>
-      </div>
-
-      <button @click="handleLogout" class="logout-btn">Logout</button>
     </div>
-  </div>
+  </DashboardLayout>
 </template>
 
 <style scoped>
-.dashboard {
-  max-width: 900px;
-  margin: 50px auto;
-  padding: 20px;
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 30px;
+}
+
+.main-column {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.page-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: -10px;
+  margin-top: 0;
+}
+
+.summary-section {
+  background: white;
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.section-title::after {
+  content: '';
+  flex: 1;
+  margin-left: 20px;
+  height: 1px;
+  background-color: #eee;
+}
+
+.cards-row {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-overview {
+  background: white;
+  border-radius: 20px;
+  padding: 30px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  position: sticky;
+  top: 90px;
+}
+
+.profile-card {
   text-align: center;
 }
 
-/* Profile Header */
-.profile-header {
-  margin-bottom: 30px;
+.profile-image-large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin: 0 auto 20px;
 }
-.profile-img-container {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  margin: 0 auto 10px;
-}
-.profile-img {
+
+.profile-image-large img {
   width: 100%;
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid #fff;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-.upload-icon {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  background: #fff;
-  border-radius: 50%;
-  padding: 5px;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  font-size: 1.2em;
 }
 
-.container {
-  display: flex;
-  gap: 20px;
-}
-.column {
-  flex: 1;
+.welcome-text {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1.2;
 }
 
-/* Sections */
-.section {
+.sub-text {
+  font-size: 0.85rem;
+  color: #999;
+  margin-top: 5px;
+}
+
+.info-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a1a;
   margin-bottom: 20px;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: #fff;
-  text-align: left;
+  text-align: center;
 }
 
-/* Lists */
-.student-list,
-.course-list {
-  list-style: none;
-  padding: 0;
-}
-.student-list li,
-.course-list li {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-}
-.course-list li.active {
-  /** Highlight selected course */
-  background-color: #e3f2fd;
-  border-left: 4px solid #2196f3;
-}
-.detail {
-  font-size: 0.9em;
-  color: #666;
-}
-
-/* Forms */
-.add-student-form {
-  background: #f9f9f9;
-  padding: 15px;
-  margin-top: 15px;
-  border-radius: 8px;
-}
-.add-student-form input,
-select {
-  display: block;
-  width: 100%;
-  margin-bottom: 10px;
-  padding: 8px;
-  box-sizing: border-box;
-}
-
-/* Buttons */
-.add-btn,
-.enroll-btn {
-  background-color: #2196f3;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.save-btn {
-  background-color: #4caf50;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 10px;
-}
-.cancel-btn {
-  background-color: #9e9e9e;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.logout-btn {
-  background-color: #f44336;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-  margin-top: 20px;
-}
-
-/* Session Cards */
-.session-card {
-  border: 1px solid #eee;
-  padding: 10px;
-  margin-bottom: 10px;
-  border-radius: 4px;
+.mini-cards-stack {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 15px;
 }
 
-/* Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.modal {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 300px;
-  text-align: left;
-}
-.modal-actions {
-  margin-top: 15px;
-  text-align: right;
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

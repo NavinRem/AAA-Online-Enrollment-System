@@ -4,13 +4,13 @@ const db = getFirestore("registration");
 class PaymentService {
   // 10. Initiate Payment
   async initiatePayment(paymentData) {
-    const { enrollmentId, amount, method, parentID } = paymentData;
+    const { enrollment_id, amount, method, parent_id } = paymentData;
     // Placeholder: Integrate with Stripe/PayPal here
 
     const paymentRef = db.collection("payment").doc();
     const data = {
-      enrollmentId,
-      parentID, // Required by Security Rules
+      enrollment_id,
+      parent_id, // Required by Security Rules
       amount,
       method: method || "credit_card",
       status: "pending",
@@ -40,8 +40,8 @@ class PaymentService {
 
     // Update Enrollment Status
     const payment = doc.data();
-    if (payment.enrollmentId) {
-      await db.collection("enrollment").doc(payment.enrollmentId).update({
+    if (payment.enrollment_id) {
+      await db.collection("enrollment").doc(payment.enrollment_id).update({
         paymentStatus: "paid",
         status: "confirmed",
       });

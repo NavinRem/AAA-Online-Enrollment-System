@@ -4,26 +4,14 @@ import { RouterView } from 'vue-router'
 
 <template>
   <div class="app-container">
-    <header>
-      <h1>Online Registration System</h1>
-    </header>
-
-    <main>
-      <RouterView />
-    </main>
+    <RouterView />
   </div>
 </template>
 
-<style scoped>
+<style>
+/* Remove scoped to affect children if needed, or keep it clean */
 .app-container {
-  font-family: Arial, sans-serif;
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-header {
-  text-align: center;
-  margin-bottom: 30px;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
 }
 </style>

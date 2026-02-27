@@ -1,5 +1,6 @@
 {
   "firestore": {
+    "database": "registration",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
