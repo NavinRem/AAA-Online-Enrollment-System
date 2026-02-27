@@ -47,45 +47,37 @@ const filteredRegistrations = computed(() => {
 })
 
 const formatSession = (item) => {
-  if (item.sessionSchedule) return item.sessionSchedule
-  const course = (item.courseTitle || item.course_title || '').toLowerCase()
-  if (course.includes('piano')) return 'Saturday, 8:30-10:00 AM'
-  if (course.includes('taekwondo')) return 'Saturday, 8:30-10:00 AM'
-  if (course.includes('robotic')) return 'Saturday, 8:30-10:00 AM'
-  return 'Saturday, 8:30-10:00 AM'
+  return item.sessionSchedule || 'N/A'
 }
 
 const formatSessionCount = (item) => {
-  if (item.sessionCount) return item.sessionCount
-  const course = (item.courseTitle || item.course_title || '').toLowerCase()
-  if (course.includes('piano')) return 11
-  if (course.includes('taekwondo')) return 5
-  if (course.includes('robotic')) return 10
-  return 10
+  return item.sessionCount || 'N/A'
 }
 
 const getStatusClass = (status) => {
-  if (!status) return 'pending'
+  if (!status) return 'unpaid'
   const lowStatus = status.toLowerCase()
   if (lowStatus === 'canceled' || lowStatus === 'cancelled') return 'canceled'
-  return lowStatus
+  if (lowStatus === 'paid' || lowStatus === 'confirmed') return 'paid'
+  return 'unpaid'
 }
 
 const displayStatus = (status) => {
-  if (!status) return 'Pending'
+  if (!status) return 'Unpaid'
   const s = status.toLowerCase()
-  if (s === 'canceled' || s === 'cancelled') return 'Canceled'
-  return status.charAt(0).toUpperCase() + status.slice(1)
+  if (s === 'canceled' || s === 'cancelled') return 'Cancelled'
+  if (s === 'paid' || s === 'confirmed') return 'Paid'
+  return 'Unpaid'
 }
 
 const formatDate = (dateString) => {
-  if (!dateString) return '15 February 2026 at 15:45:31 UTC+7'
+  if (!dateString) return 'N/A'
   if (dateString && typeof dateString === 'object' && dateString.seconds) {
     dateString = dateString.toDate().toISOString()
   }
   try {
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return '15 February 2026 at 15:45:31 UTC+7'
+    if (isNaN(date.getTime())) return 'N/A'
     const formatted = date.toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'long',
@@ -112,25 +104,25 @@ const formatDate = (dateString) => {
         <div class="cards-row">
           <SummaryCard
             title="Total Registration"
-            :value="String(totalRegistration).padStart(3, '0')"
+            :value="totalRegistration"
             image="registration.png"
             color="#e1f5fe"
           />
           <SummaryCard
             title="Total Paid Registration"
-            :value="String(totalPaidRegistration).padStart(3, '0')"
+            :value="totalPaidRegistration"
             image="paid-reg.png"
             color="#e1f5fe"
           />
           <SummaryCard
             title="Total Unpaid Registration"
-            :value="String(totalUnpaidRegistration).padStart(3, '0')"
+            :value="totalUnpaidRegistration"
             image="unpaid1.png"
             color="#e1f5fe"
           />
           <SummaryCard
             title="Total Cancelled Registration"
-            :value="String(totalCancelledRegistration).padStart(3, '0')"
+            :value="totalCancelledRegistration"
             image="cancel1.png"
             color="#e1f5fe"
           />
