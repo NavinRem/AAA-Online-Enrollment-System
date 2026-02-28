@@ -98,30 +98,30 @@ const formatDate = (dateString) => {
 <template>
   <DashboardLayout>
     <div class="page-container">
-      <!-- Registration Overview Section -->
+      <!-- Enrollment Overview Section -->
       <section class="overview-section card-box">
-        <h2 class="section-title">Registration Overview</h2>
+        <h2 class="section-title">Enrollment Overview</h2>
         <div class="cards-row">
           <SummaryCard
-            title="Total Registration"
+            title="Total Enrollment"
             :value="totalRegistration"
             image="registration.png"
             color="#e1f5fe"
           />
           <SummaryCard
-            title="Total Paid Registration"
+            title="Total Paid Enrollment"
             :value="totalPaidRegistration"
             image="paid-reg.png"
             color="#e1f5fe"
           />
           <SummaryCard
-            title="Total Unpaid Registration"
+            title="Total Unpaid Enrollment"
             :value="totalUnpaidRegistration"
             image="unpaid1.png"
             color="#e1f5fe"
           />
           <SummaryCard
-            title="Total Cancelled Registration"
+            title="Total Cancelled Enrollment"
             :value="totalCancelledRegistration"
             image="cancel1.png"
             color="#e1f5fe"
