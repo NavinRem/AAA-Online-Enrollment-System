@@ -10,6 +10,7 @@ const registrations = ref([])
 const parents = ref([])
 const students = ref([])
 const courses = ref([])
+const sessions = ref([])
 const loading = ref(true)
 const searchQuery = ref('')
 const showModal = ref(false)
@@ -19,6 +20,7 @@ const formData = ref({
   parentId: '',
   studentId: '',
   courseId: '',
+  sessionId: '',
 })
 
 onMounted(async () => {
@@ -67,13 +69,34 @@ const selectedCoursePrice = computed(() => {
   return c ? c.price || 180 : 0
 })
 
+const handleCourseChange = async () => {
+  formData.value.sessionId = ''
+  if (!formData.value.courseId) {
+    sessions.value = []
+    return
+  }
+  try {
+    const data = await courseService.getSessions(formData.value.courseId)
+    sessions.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    console.error('Failed to load sessions', err)
+  }
+}
+
 const handleCreateEnrollment = async () => {
-  if (!formData.value.parentId || !formData.value.studentId || !formData.value.courseId) return
+  if (
+    !formData.value.parentId ||
+    !formData.value.studentId ||
+    !formData.value.courseId ||
+    !formData.value.sessionId
+  )
+    return
   submitting.value = true
   try {
     const parent = parents.value.find((p) => p.uid === formData.value.parentId)
     const student = students.value.find((s) => s.id === formData.value.studentId)
     const course = courses.value.find((c) => c.id === formData.value.courseId)
+    const session = sessions.value.find((s) => s.id === formData.value.sessionId)
 
     const payload = {
       parent_id: parent.uid,
@@ -82,6 +105,8 @@ const handleCreateEnrollment = async () => {
       studentName: student.fullname || student.name || 'Student',
       course_id: course.id,
       courseTitle: course.title || course.name || 'Course',
+      session_id: session.id,
+      sessionSchedule: session.schedule?.day + ' ' + session.schedule?.timeslot,
       amount: selectedCoursePrice.value,
       status: 'unpaid',
       paymentStatus: 'unpaid',
@@ -90,7 +115,7 @@ const handleCreateEnrollment = async () => {
 
     await registrationService.createEnrollment(payload)
     showModal.value = false
-    formData.value = { parentId: '', studentId: '', courseId: '' }
+    formData.value = { parentId: '', studentId: '', courseId: '', sessionId: '' }
     await fetchRegistrations() // Refresh table
   } catch (err) {
     console.error('Failed to create enrollment', err)
@@ -258,14 +283,31 @@ const formatDate = (dateString) => {
               </div>
               <div class="form-group">
                 <label>Select Course</label>
-                <select v-model="formData.courseId">
+                <select v-model="formData.courseId" @change="handleCourseChange">
                   <option value="" disabled>Choose a course</option>
                   <option v-for="c in courses" :key="c.id" :value="c.id">
                     {{ c.title || c.name }}
                   </option>
                 </select>
               </div>
-              <div v-if="selectedCoursePrice" class="price-preview">
+              <div class="form-group">
+                <label>Select Session</label>
+                <select
+                  v-model="formData.sessionId"
+                  :disabled="!formData.courseId || sessions.length === 0"
+                >
+                  <option value="" disabled>Choose a session time</option>
+                  <option v-for="s in sessions" :key="s.id" :value="s.id">
+                    {{ s.schedule?.day || 'TBD' }} @ {{ s.schedule?.timeslot || 'TBD' }} ({{
+                      s.num_student || 0
+                    }}/{{ s.capacity || 20 }} enrolled)
+                  </option>
+                </select>
+                <small v-if="formData.courseId && sessions.length === 0" class="warning-text">
+                  This course has no active sessions to join.
+                </small>
+              </div>
+              <div v-if="selectedCoursePrice && formData.courseId" class="price-preview">
                 Amount to be paid: <strong>${{ selectedCoursePrice }}</strong>
               </div>
             </div>
@@ -275,7 +317,11 @@ const formatDate = (dateString) => {
                 class="save-btn"
                 @click="handleCreateEnrollment"
                 :disabled="
-                  !formData.parentId || !formData.studentId || !formData.courseId || submitting
+                  !formData.parentId ||
+                  !formData.studentId ||
+                  !formData.courseId ||
+                  !formData.sessionId ||
+                  submitting
                 "
               >
                 {{ submitting ? 'Submitting...' : 'Confirm Enrollment' }}
