@@ -16,10 +16,10 @@ const router = createRouter({
       meta: { title: 'Dashboard' },
     },
     {
-      path: '/registrations',
-      name: 'registrations',
-      component: () => import('../views/Registrations.vue'),
-      meta: { title: 'Registrations' },
+      path: '/enrollments',
+      name: 'enrollments',
+      component: () => import('../views/Enrollments.vue'),
+      meta: { title: 'Enrollment' },
     },
     {
       path: '/parents',
