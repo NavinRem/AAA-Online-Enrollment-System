@@ -3,13 +3,32 @@ import { ref, onMounted, computed } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import { registrationService } from '../services/registrationService'
+import { userService } from '../services/userService'
+import { courseService } from '../services/courseService'
 
 const registrations = ref([])
+const parents = ref([])
+const students = ref([])
+const courses = ref([])
 const loading = ref(true)
 const searchQuery = ref('')
+const showModal = ref(false)
+const submitting = ref(false)
+
+const formData = ref({
+  parentId: '',
+  studentId: '',
+  courseId: '',
+})
 
 onMounted(async () => {
+  await fetchRegistrations()
+  await loadFormData()
+})
+
+const fetchRegistrations = async () => {
   try {
+    loading.value = true
     const data = await registrationService.getAll()
     registrations.value = Array.isArray(data) ? data : []
   } catch (error) {
@@ -17,7 +36,69 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+}
+
+const loadFormData = async () => {
+  try {
+    const [usersRes, coursesRes, studentsRes] = await Promise.all([
+      userService.getAllUsers(),
+      courseService.getAllCourses(),
+      userService.getAllStudents(),
+    ])
+    parents.value = Array.isArray(usersRes)
+      ? usersRes.filter((u) => u.role === 'parent' || u.role === 'guardian')
+      : []
+    courses.value = Array.isArray(coursesRes) ? coursesRes : []
+    students.value = Array.isArray(studentsRes) ? studentsRes : []
+  } catch (err) {
+    console.error('Failed to load form data', err)
+  }
+}
+
+const availableStudents = computed(() => {
+  if (!formData.value.parentId) return []
+  return students.value.filter(
+    (s) => s.parentId === formData.value.parentId || s.parent_id === formData.value.parentId,
+  )
 })
+
+const selectedCoursePrice = computed(() => {
+  const c = courses.value.find((c) => c.id === formData.value.courseId)
+  return c ? c.price || 180 : 0
+})
+
+const handleCreateEnrollment = async () => {
+  if (!formData.value.parentId || !formData.value.studentId || !formData.value.courseId) return
+  submitting.value = true
+  try {
+    const parent = parents.value.find((p) => p.uid === formData.value.parentId)
+    const student = students.value.find((s) => s.id === formData.value.studentId)
+    const course = courses.value.find((c) => c.id === formData.value.courseId)
+
+    const payload = {
+      parent_id: parent.uid,
+      parentName: parent.name || parent.email || 'Parent',
+      student_id: student.id,
+      studentName: student.fullname || student.name || 'Student',
+      course_id: course.id,
+      courseTitle: course.title || course.name || 'Course',
+      amount: selectedCoursePrice.value,
+      status: 'unpaid',
+      paymentStatus: 'unpaid',
+      enrollAt: new Date().toISOString(),
+    }
+
+    await registrationService.createEnrollment(payload)
+    showModal.value = false
+    formData.value = { parentId: '', studentId: '', courseId: '' }
+    await fetchRegistrations() // Refresh table
+  } catch (err) {
+    console.error('Failed to create enrollment', err)
+    alert('Failed to create enrollment. Please check the console.')
+  } finally {
+    submitting.value = false
+  }
+}
 
 const isPaid = (status) => status?.toLowerCase() === 'paid' || status?.toLowerCase() === 'confirmed'
 const isCancelled = (status) =>
@@ -136,9 +217,70 @@ const formatDate = (dateString) => {
           <div class="header-actions">
             <div class="search-box">
               <span class="search-icon">🔍</span>
-              <input v-model="searchQuery" type="text" placeholder="Search something" />
+              <input v-model="searchQuery" type="text" placeholder="Search Enrollments" />
             </div>
             <button class="filter-btn">Filter</button>
+            <button class="add-btn" @click="showModal = true">+ New Enrollment</button>
+          </div>
+        </div>
+
+        <!-- Add Enrollment Modal -->
+        <div v-if="showModal" class="modal-overlay">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Create New Enrollment</h3>
+              <button class="close-btn" @click="showModal = false">×</button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label>Select Parent / Guardian</label>
+                <select v-model="formData.parentId">
+                  <option value="" disabled>Choose a parent</option>
+                  <option v-for="p in parents" :key="p.uid" :value="p.uid">
+                    {{ p.name || p.email }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Select Student</label>
+                <select v-model="formData.studentId" :disabled="!formData.parentId">
+                  <option value="" disabled>Choose a student</option>
+                  <option v-for="s in availableStudents" :key="s.id" :value="s.id">
+                    {{ s.fullname || s.name }}
+                  </option>
+                </select>
+                <small
+                  v-if="formData.parentId && availableStudents.length === 0"
+                  class="warning-text"
+                >
+                  This parent has no registered students.
+                </small>
+              </div>
+              <div class="form-group">
+                <label>Select Course</label>
+                <select v-model="formData.courseId">
+                  <option value="" disabled>Choose a course</option>
+                  <option v-for="c in courses" :key="c.id" :value="c.id">
+                    {{ c.title || c.name }}
+                  </option>
+                </select>
+              </div>
+              <div v-if="selectedCoursePrice" class="price-preview">
+                Amount to be paid: <strong>${{ selectedCoursePrice }}</strong>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="cancel-btn" @click="showModal = false">Cancel</button>
+              <button
+                class="save-btn"
+                @click="handleCreateEnrollment"
+                :disabled="
+                  !formData.parentId || !formData.studentId || !formData.courseId || submitting
+                "
+              >
+                {{ submitting ? 'Submitting...' : 'Confirm Enrollment' }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -367,6 +509,145 @@ const formatDate = (dateString) => {
   text-align: center;
   padding: 40px;
   color: #999;
+}
+
+.add-btn {
+  background: #00aeef;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.add-btn:hover {
+  background: #0098d1;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  width: 500px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  padding: 20px 25px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #1a1a1a;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #999;
+}
+
+.modal-body {
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.form-group select {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fdfdfd;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: #00aeef;
+}
+
+.warning-text {
+  color: #e53935;
+  font-size: 0.8rem;
+}
+
+.price-preview {
+  background: #e1f5fe;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+  color: #00aeef;
+  font-size: 1.1rem;
+}
+
+.modal-footer {
+  padding: 20px 25px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+
+.cancel-btn {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-btn {
+  background: #00aeef;
+  color: white;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
 @media (max-width: 1200px) {
