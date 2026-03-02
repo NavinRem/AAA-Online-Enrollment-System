@@ -10,7 +10,7 @@ import defaultProfileImg from '@/assets/images/profile-admin.png'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import MiniCard from '../components/MiniCard.vue'
-import RecentRegistrationTable from '../components/RecentRegistrationTable.vue'
+import RecentEnrollmentTable from '../components/RecentEnrollmentTable.vue'
 
 const router = useRouter()
 const user = ref(null)
@@ -265,7 +265,7 @@ const mappedRegistrations = computed(() => {
         </section>
 
         <!-- Recent Enrollment Table -->
-        <RecentRegistrationTable :registrations="mappedRegistrations" />
+        <RecentEnrollmentTable :registrations="mappedRegistrations" />
       </div>
 
       <!-- Right Overview Column -->
