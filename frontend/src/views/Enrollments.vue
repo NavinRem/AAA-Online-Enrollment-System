@@ -462,12 +462,21 @@ const formatDate = (dateString) => {
                         {{ s.fullname || s.name }}
                       </option>
                     </select>
-                    <small
+                    <div
                       v-if="formData.parentId && availableStudents.length === 0"
-                      class="warning-text"
+                      style="margin-top: 5px"
                     >
-                      <span class="icon">ℹ️</span> This parent has not registered a child yet.
-                    </small>
+                      <small class="warning-text" style="margin-bottom: 8px">
+                        <span class="icon">ℹ️</span> This parent has not registered a child yet.
+                      </small>
+                      <button
+                        class="outline-btn small-btn"
+                        @click="$router.push('/dashboard/students')"
+                        style="padding: 6px 12px; font-size: 0.8rem"
+                      >
+                        + Go to Students Directory
+                      </button>
+                    </div>
                   </div>
                   <div class="form-group">
                     <label>Select Course</label>
@@ -1426,6 +1435,26 @@ const formatDate = (dateString) => {
   background: #f8f9fa;
   color: #1a1a1a;
   border-color: #ccc;
+}
+
+.outline-btn {
+  background: white;
+  border: 1px solid #00aeef;
+  color: #00aeef;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.outline-btn:hover {
+  background: #f0f9ff;
+}
+
+.small-btn {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  border-radius: 8px;
 }
 
 .save-btn {
