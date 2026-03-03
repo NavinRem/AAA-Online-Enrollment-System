@@ -83,28 +83,31 @@ button:active {
   cursor: pointer;
   font-size: 0.95rem;
   transition: all 0.2s;
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .btn-icon:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  filter: brightness(0.9);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  filter: brightness(0.95);
 }
 
 .btn-icon.edit {
-  background-color: #00aeef;
+  background-color: #e3f2fd;
+  color: #0d47a1;
 }
 
 .btn-icon.check {
-  background-color: #2e7d32;
+  background-color: #e6f8ea;
+  color: #2e7d32;
 }
 
 .btn-icon.cancel {
-  background-color: #f57c00;
+  background-color: #fff3e0;
+  color: #ef6c00;
 }
 
 .btn-icon.delete {
-  background-color: #d32f2f;
+  background-color: #fdeaea;
+  color: #c62828;
 }
