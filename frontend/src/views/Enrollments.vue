@@ -173,6 +173,7 @@ const actionModal = ref({
   amount: 0,
   proof: '',
   reason: '',
+  remark: '',
   deleteConfirm: '',
 })
 
@@ -186,6 +187,7 @@ const openActionModal = (type, item) => {
     amount: item.amount || item.totalAmount || 0,
     proof: '',
     reason: '',
+    remark: item.remark || '',
     deleteConfirm: '',
   }
 }
@@ -195,7 +197,7 @@ const closeActionModal = () => {
 }
 
 const submitActionModal = async () => {
-  const { type, enrollment, amount, proof, reason, deleteConfirm } = actionModal.value
+  const { type, enrollment, amount, proof, reason, remark, deleteConfirm } = actionModal.value
   submitting.value = true
   errorMessage.value = ''
 
@@ -224,9 +226,13 @@ const submitActionModal = async () => {
       if (amount < 0) throw new Error('Amount cannot be negative.')
       await registrationService.updateEnrollment(enrollment.id, {
         amount: Number(amount),
+        remark: remark.trim(),
       })
       const idx = registrations.value.findIndex((r) => r.id === enrollment.id)
-      if (idx !== -1) registrations.value[idx].amount = Number(amount)
+      if (idx !== -1) {
+        registrations.value[idx].amount = Number(amount)
+        registrations.value[idx].remark = remark.trim()
+      }
     }
 
     successMessage.value = 'Action completed successfully.'
@@ -538,6 +544,7 @@ const formatDate = (dateString) => {
               <th>#Session</th>
               <th>Status</th>
               <th>Amount</th>
+              <th>Remark</th>
               <th>Enrolled Date</th>
               <th>Actions</th>
             </tr>
@@ -570,6 +577,12 @@ const formatDate = (dateString) => {
               </td>
               <td>
                 <span class="amount-badge">${{ item.amount || item.totalAmount || 180 }}</span>
+              </td>
+              <td class="remark-cell">
+                <span v-if="item.remark" class="remark-text" :title="item.remark">{{
+                  item.remark
+                }}</span>
+                <span v-else class="text-muted">-</span>
               </td>
               <td>
                 {{
@@ -618,7 +631,7 @@ const formatDate = (dateString) => {
               </td>
             </tr>
             <tr v-if="filteredRegistrations.length === 0 && !loading">
-              <td colspan="10" class="empty-state">No enrollments found.</td>
+              <td colspan="11" class="empty-state">No enrollments found.</td>
             </tr>
           </tbody>
         </table>
@@ -653,13 +666,19 @@ const formatDate = (dateString) => {
                 <div class="info-block">
                   <span class="icon">ℹ️</span>
                   <p>
-                    <strong>Price Adjustment:</strong> You should only modify the price if there is
-                    an administrative discount applied, or if a refund/partial charge was agreed
-                    upon with the parent.
+                    <strong>Update Enrollment:</strong> Adjust the administrative price below or
+                    attach a special remark/note to this specific enrollment.
                   </p>
                 </div>
                 <label>Adjust Enrollment Amount ($)</label>
                 <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
+
+                <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
+                <input
+                  type="text"
+                  v-model="actionModal.remark"
+                  placeholder="e.g. VIP Student, Needs extra attention, Parent will pay next week..."
+                />
               </div>
 
               <!-- Mark Paid Form -->
@@ -874,6 +893,25 @@ const formatDate = (dateString) => {
   font-size: 0.8rem;
 }
 
+.remark-cell {
+  max-width: 150px;
+}
+
+.remark-text {
+  font-size: 0.8rem;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 6px 10px;
+  border-radius: 30px;
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+  font-weight: 500;
+}
+
 .empty-state {
   text-align: center;
   padding: 40px;
@@ -1035,7 +1073,9 @@ const formatDate = (dateString) => {
   letter-spacing: -0.2px;
 }
 
-.form-group select {
+.form-group select,
+.form-group input[type='text'],
+.form-group input[type='number'] {
   padding: 14px 16px;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
@@ -1043,8 +1083,11 @@ const formatDate = (dateString) => {
   font-family: inherit;
   background: #fcfcfc;
   color: #1a1a1a;
-  cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.form-group select {
+  cursor: pointer;
   appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
@@ -1052,18 +1095,23 @@ const formatDate = (dateString) => {
   background-size: 16px;
 }
 
-.form-group select:hover {
+.form-group select:hover,
+.form-group input[type='text']:hover,
+.form-group input[type='number']:hover {
   border-color: #b3b3b3;
 }
 
-.form-group select:focus {
+.form-group select:focus,
+.form-group input[type='text']:focus,
+.form-group input[type='number']:focus {
   outline: none;
   border-color: #00aeef;
   background: #ffffff;
   box-shadow: 0 0 0 4px rgba(0, 174, 239, 0.1);
 }
 
-.form-group select:disabled {
+.form-group select:disabled,
+.form-group input:disabled {
   background-color: #f5f5f5;
   color: #999;
   cursor: not-allowed;
