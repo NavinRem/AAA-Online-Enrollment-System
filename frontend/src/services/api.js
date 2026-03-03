@@ -1,3 +1,5 @@
+import { getCachedData, setCachedData, clearCachePrefix } from './cache'
+
 // Helper to switch between Local and Production
 // In Vite, import.meta.env.PROD is true during build
 const API_URL = 'https://api-tyweqke5oa-uc.a.run.app'
@@ -6,6 +8,14 @@ const API_URL = 'https://api-tyweqke5oa-uc.a.run.app'
 // Helper function for making requests
 export async function request(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`
+  const method = (options.method || 'GET').toUpperCase()
+
+  // 1. Return Cache early if applicable
+  const cacheKey = endpoint
+  if (method === 'GET' && !options.skipCache) {
+    const cached = getCachedData(cacheKey)
+    if (cached) return cached
+  }
 
   const defaultHeaders = {
     'Content-Type': 'application/json',
@@ -27,12 +37,10 @@ export async function request(endpoint, options = {}) {
   if (contentType && contentType.indexOf('application/json') !== -1) {
     responseData = await response.json()
   } else {
-    // If not JSON (e.g. HTML error page), read as text
     const text = await response.text()
     responseData = { message: text || response.statusText }
   }
 
-  // Check for HTTP errors
   if (!response.ok) {
     throw new Error(
       responseData.message ||
@@ -41,9 +49,20 @@ export async function request(endpoint, options = {}) {
     )
   }
 
-  // Check for logic errors even if status is 200
   if (responseData.error) {
     throw new Error(responseData.error.message || responseData.error || 'Unknown API Error')
+  }
+
+  // 2. Set Cache on success for GET
+  if (method === 'GET') {
+    setCachedData(cacheKey, responseData)
+  } else {
+    // 3. Clear cache aggressively if we mutate (POST, DELETE, PUT)
+    // E.g., if we POST to /registrations, we clear the '/registrations' cache.
+    const resourceBase = endpoint.split('/')[1]
+    if (resourceBase) {
+      clearCachePrefix(`/${resourceBase}`)
+    }
   }
 
   return responseData
