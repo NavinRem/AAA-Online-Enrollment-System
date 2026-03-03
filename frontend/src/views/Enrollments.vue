@@ -1261,9 +1261,9 @@ const formatDate = (dateString) => {
 }
 
 .preset-chip.active {
-  background: #e3f2fd;
-  border-color: #00aeef;
-  color: #0d47a1;
+  background: #f0f4f8;
+  border-color: #9cb2c6;
+  color: #3f5d7d;
 }
 
 /* Custom Dropdown Styles */
