@@ -3,6 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import SummaryCard from '../components/SummaryCard.vue'
+import Sidebar from '../components/Sidebar.vue'
+import AppBadge from '../components/AppBadge.vue'
 import { registrationService } from '../services/registrationService'
 import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
@@ -580,25 +582,30 @@ const formatDate = (dateString) => {
               <td>{{ formatSession(item) }}</td>
               <td>{{ formatSessionCount(item) }}</td>
               <td>
-                <span
-                  class="status-badge"
-                  :class="{
-                    danger: isCancelled(item.status),
-                    success: isPaid(item.paymentStatus) && !isCancelled(item.status),
-                    warning: !isPaid(item.paymentStatus) && !isCancelled(item.status),
-                  }"
-                >
-                  {{
+                <AppBadge
+                  :text="
                     isCancelled(item.status)
                       ? 'CANCELED'
                       : isPaid(item.paymentStatus)
                         ? 'PAID'
                         : 'UNPAID'
-                  }}
-                </span>
+                  "
+                  :type="
+                    isCancelled(item.status)
+                      ? 'danger'
+                      : isPaid(item.paymentStatus)
+                        ? 'success'
+                        : 'warning'
+                  "
+                  size="sm"
+                />
               </td>
               <td>
-                <span class="amount-badge">${{ item.amount || item.totalAmount || 180 }}</span>
+                <AppBadge
+                  :text="'$' + (item.amount || item.totalAmount || 180)"
+                  type="primary"
+                  size="sm"
+                />
               </td>
               <td>
                 {{
