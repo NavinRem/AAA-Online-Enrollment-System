@@ -730,34 +730,6 @@ const formatDate = (dateString) => {
   color: #1a1a1a;
 }
 
-.status-badge {
-  padding: 6px 16px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
-.status-badge.paid,
-.status-badge.confirmed {
-  background: #e6f8ea;
-  color: #4caf50;
-  border: 1px solid #c8e6c9;
-}
-
-.status-badge.unpaid,
-.status-badge.pending {
-  background: #fff9e6;
-  color: #fbc02d;
-  border: 1px solid #fff59d;
-}
-
-.status-badge.canceled,
-.status-badge.cancelled {
-  background: #fdeaea;
-  color: #e53935;
-  border: 1px solid #ef9a9a;
-}
-
 .amount-badge {
   background: #a2dbff;
   color: #1a1a1a;
@@ -1161,43 +1133,6 @@ const formatDate = (dateString) => {
   display: flex;
   gap: 8px;
   align-items: center;
-}
-
-.btn-icon {
-  border: 1px solid transparent;
-  border-radius: 6px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: all 0.2s;
-  color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.btn-icon:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  filter: brightness(0.9);
-}
-
-.btn-icon.edit {
-  background: #00aeef;
-}
-
-.btn-icon.check {
-  background: #2e7d32;
-}
-
-.btn-icon.cancel {
-  background: #f57c00;
-}
-
-.btn-icon.delete {
-  background: #d32f2f;
 }
 
 @media (max-width: 1200px) {
