@@ -33,7 +33,7 @@ const getIconPath = (icon) => {
   <aside class="sidebar">
     <div class="logo-section">
       <img src="@/assets/images/AAA-Logo.png" alt="Logo" class="sidebar-logo" />
-      <!-- <span class="brand-name">Authentic Advanced Academy</span> -->
+      <span class="brand-name">Authentic Advanced Academy</span>
     </div>
 
     <nav class="nav-menu">
@@ -73,6 +73,7 @@ const getIconPath = (icon) => {
   padding: 30px 20px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
 }
 

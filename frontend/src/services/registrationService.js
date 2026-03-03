@@ -22,6 +22,21 @@ export const registrationService = {
     })
   },
 
+  // Update Enrollment
+  updateEnrollment(enrollmentId, data) {
+    return request(`/registrations/${enrollmentId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+
+  // Delete Enrollment permanently
+  deleteEnrollment(enrollmentId) {
+    return request(`/registrations/${enrollmentId}`, {
+      method: 'DELETE',
+    })
+  },
+
   // Get all registrations
   getAll() {
     return request('/registrations', {
