@@ -509,7 +509,6 @@ const formatDate = (dateString) => {
               <th>Course</th>
               <th>Session</th>
               <th>#Session</th>
-              <th>Payment</th>
               <th>Status</th>
               <th>Amount</th>
               <th>Enrolled Date</th>
@@ -527,20 +526,19 @@ const formatDate = (dateString) => {
               <td>
                 <span
                   class="status-badge"
-                  :class="item.paymentStatus === 'paid' ? 'success' : 'warning'"
-                >
-                  {{ (item.paymentStatus || 'pending').toUpperCase() }}
-                </span>
-              </td>
-              <td>
-                <span
-                  class="status-badge"
                   :class="{
-                    success: item.status !== 'cancelled' && item.status !== 'canceled',
-                    danger: item.status === 'cancelled' || item.status === 'canceled',
+                    danger: isCancelled(item.status),
+                    success: isPaid(item.paymentStatus) && !isCancelled(item.status),
+                    warning: !isPaid(item.paymentStatus) && !isCancelled(item.status),
                   }"
                 >
-                  {{ (item.status || 'active').toUpperCase() }}
+                  {{
+                    isCancelled(item.status)
+                      ? 'CANCELED'
+                      : isPaid(item.paymentStatus)
+                        ? 'PAID'
+                        : 'UNPAID'
+                  }}
                 </span>
               </td>
               <td>
@@ -593,7 +591,7 @@ const formatDate = (dateString) => {
               </td>
             </tr>
             <tr v-if="filteredRegistrations.length === 0 && !loading">
-              <td colspan="11" class="empty-state">No enrollments found.</td>
+              <td colspan="10" class="empty-state">No enrollments found.</td>
             </tr>
           </tbody>
         </table>
