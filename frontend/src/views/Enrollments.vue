@@ -676,10 +676,7 @@ const formatDate = (dateString) => {
                 <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
                 <select
                   style="margin-bottom: 10px"
-                  @change="
-                    actionModal.remark = $event.target.value
-                    $event.target.value = ''
-                  "
+                  @change="((actionModal.remark = $event.target.value), ($event.target.value = ''))"
                 >
                   <option value="" disabled selected>
                     -- Choose a common preset or type below --
@@ -709,10 +706,7 @@ const formatDate = (dateString) => {
                 <label>Proof of Payment Reference <span class="required">*</span></label>
                 <select
                   style="margin-bottom: 10px"
-                  @change="
-                    actionModal.proof = $event.target.value
-                    $event.target.value = ''
-                  "
+                  @change="((actionModal.proof = $event.target.value), ($event.target.value = ''))"
                 >
                   <option value="" disabled selected>
                     -- Choose a common method or type below --
@@ -742,10 +736,7 @@ const formatDate = (dateString) => {
                 <label>Reason for Cancellation <span class="required">*</span></label>
                 <select
                   style="margin-bottom: 10px"
-                  @change="
-                    actionModal.reason = $event.target.value
-                    $event.target.value = ''
-                  "
+                  @change="((actionModal.reason = $event.target.value), ($event.target.value = ''))"
                 >
                   <option value="" disabled selected>
                     -- Choose a common reason or type below --
