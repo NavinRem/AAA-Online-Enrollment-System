@@ -1,10 +1,12 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import { registrationService } from '../services/registrationService'
 import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
+const router = useRouter()
 
 const registrations = ref([])
 const parents = ref([])
@@ -164,6 +166,12 @@ const openModal = () => {
 const isPaid = (status) => status?.toLowerCase() === 'paid' || status?.toLowerCase() === 'confirmed'
 const isCancelled = (status) =>
   status?.toLowerCase() === 'canceled' || status?.toLowerCase() === 'cancelled'
+
+const handleRowClick = (id) => {
+  if (id) {
+    router.push(`/enrollment/${id}`)
+  }
+}
 
 // --- Unified Action Modal State ---
 const actionModal = ref({
@@ -559,7 +567,12 @@ const formatDate = (dateString) => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, index) in filteredRegistrations" :key="item.id">
+            <tr
+              v-for="(item, index) in filteredRegistrations"
+              :key="item.id"
+              class="clickable-row"
+              @click="handleRowClick(item.id)"
+            >
               <td>{{ index + 1 }}</td>
               <td class="bold">{{ item.parentName || item.parent_name || 'Parent' }}</td>
               <td>{{ item.studentName || item.student_name || 'Student' }}</td>
@@ -604,7 +617,7 @@ const formatDate = (dateString) => {
                 }}</span>
                 <span v-else class="text-muted">-</span>
               </td>
-              <td class="action-cell">
+              <td class="action-cell" @click.stop>
                 <div class="inline-actions">
                   <button
                     class="btn-icon edit"
@@ -976,6 +989,17 @@ const formatDate = (dateString) => {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+}
+
+.clickable-row {
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.clickable-row:hover {
+  background-color: #f4fafe;
+  cursor: pointer;
 }
 
 .data-table th {
