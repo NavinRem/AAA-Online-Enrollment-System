@@ -183,22 +183,36 @@ const handleMarkAsPaid = async (enrollmentId) => {
   if (!confirm('Mark this enrollment as paid?')) return
 
   try {
-    alert('This feature requires the backend "mark as paid" API to be implemented.')
+    await registrationService.updateEnrollment(enrollmentId, {
+      paymentStatus: 'paid',
+    })
+    const index = registrations.value.findIndex((r) => r.id === enrollmentId)
+    if (index !== -1) {
+      registrations.value[index].paymentStatus = 'paid'
+    }
   } catch (err) {
-    alert('Failed to update payment status')
+    alert('Failed to update payment status: ' + err.message)
   }
 }
 
 const handleEditEnrollment = (enrollmentId) => {
-  alert('Edit feature: Coming soon')
+  alert(
+    'Edit feature currently under development. You will soon be able to edit amounts and statuses manually!',
+  )
 }
 
-const handleDeleteEnrollment = (enrollmentId) => {
+const handleDeleteEnrollment = async (enrollmentId) => {
   if (
     !confirm('Are you sure you want to PERMANENTLY delete this enrollment? This cannot be undone.')
   )
     return
-  alert('Delete feature requires backend DELETE API to be implemented.')
+
+  try {
+    await registrationService.deleteEnrollment(enrollmentId)
+    registrations.value = registrations.value.filter((r) => r.id !== enrollmentId)
+  } catch (err) {
+    alert('Failed to delete enrollment: ' + err.message)
+  }
 }
 
 const isUnpaid = (status) => status && !isPaid(status) && !isCancelled(status)
