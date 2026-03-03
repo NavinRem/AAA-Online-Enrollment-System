@@ -90,3 +90,28 @@ exports.cancelRegistration = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+exports.updateRegistration = async (req, res) => {
+  try {
+    const result = await registrationService.updateRegistration(
+      req.params.id,
+      req.body,
+    );
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message === "Registration not found")
+      return res.status(404).json({ error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.deleteRegistration = async (req, res) => {
+  try {
+    const result = await registrationService.deleteRegistration(req.params.id);
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message === "Registration not found")
+      return res.status(404).json({ error: error.message });
+    res.status(500).json({ error: error.message });
+  }
+};

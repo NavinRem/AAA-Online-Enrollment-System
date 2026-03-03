@@ -23,4 +23,10 @@ router.get("/:id", registrationController.getRegistration);
 // Cancel Registration
 router.post("/cancel", registrationController.cancelRegistration);
 
+// Update Registration properties (e.g., mark as paid)
+router.patch("/:id", registrationController.updateRegistration);
+
+// Permanently Delete Registration
+router.delete("/:id", registrationController.deleteRegistration);
+
 module.exports = router;
