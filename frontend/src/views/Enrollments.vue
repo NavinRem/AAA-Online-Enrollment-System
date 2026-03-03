@@ -119,7 +119,7 @@ const handleCreateEnrollment = async () => {
     await fetchRegistrations() // Refresh table
   } catch (err) {
     console.error('Failed to create enrollment', err)
-    alert('Failed to create enrollment. Please check the console.')
+    alert(err.message || 'Failed to create enrollment. Please check the console.')
   } finally {
     submitting.value = false
   }
@@ -250,85 +250,88 @@ const formatDate = (dateString) => {
         </div>
 
         <!-- Add Enrollment Modal -->
-        <div v-if="showModal" class="modal-overlay">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h3>Create New Enrollment</h3>
-              <button class="close-btn" @click="showModal = false">×</button>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
-                <label>Select Parent / Guardian</label>
-                <select v-model="formData.parentId">
-                  <option value="" disabled>Choose a parent</option>
-                  <option v-for="p in parents" :key="p.uid" :value="p.uid">
-                    {{ p.name || p.email }}
-                  </option>
-                </select>
+        <transition name="modal-fade">
+          <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h3>Create New Enrollment</h3>
+                <button class="close-btn" @click="showModal = false">×</button>
               </div>
-              <div class="form-group">
-                <label>Select Student</label>
-                <select v-model="formData.studentId" :disabled="!formData.parentId">
-                  <option value="" disabled>Choose a student</option>
-                  <option v-for="s in availableStudents" :key="s.id" :value="s.id">
-                    {{ s.fullname || s.name }}
-                  </option>
-                </select>
-                <small
-                  v-if="formData.parentId && availableStudents.length === 0"
-                  class="warning-text"
+              <div class="modal-body">
+                <div class="form-group">
+                  <label>Select Parent / Guardian</label>
+                  <select v-model="formData.parentId">
+                    <option value="" disabled>Choose a parent</option>
+                    <option v-for="p in parents" :key="p.uid" :value="p.uid">
+                      {{ p.name || p.email }}
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Select Student</label>
+                  <select v-model="formData.studentId" :disabled="!formData.parentId">
+                    <option value="" disabled>Choose a student</option>
+                    <option v-for="s in availableStudents" :key="s.id" :value="s.id">
+                      {{ s.fullname || s.name }}
+                    </option>
+                  </select>
+                  <small
+                    v-if="formData.parentId && availableStudents.length === 0"
+                    class="warning-text"
+                  >
+                    This parent has no registered students.
+                  </small>
+                </div>
+                <div class="form-group">
+                  <label>Select Course</label>
+                  <select v-model="formData.courseId" @change="handleCourseChange">
+                    <option value="" disabled>Choose a course</option>
+                    <option v-for="c in courses" :key="c.id" :value="c.id">
+                      {{ c.title || c.name }}
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Select Session</label>
+                  <select
+                    v-model="formData.sessionId"
+                    :disabled="!formData.courseId || sessions.length === 0"
+                  >
+                    <option value="" disabled>Choose a session time</option>
+                    <option v-for="s in sessions" :key="s.id" :value="s.id">
+                      {{ s.schedule?.day || 'TBD' }} @ {{ s.schedule?.timeslot || 'TBD' }} ({{
+                        s.num_student || 0
+                      }}/{{ s.capacity || 20 }} enrolled)
+                    </option>
+                  </select>
+                  <small v-if="formData.courseId && sessions.length === 0" class="warning-text">
+                    <span class="icon">⚠️</span> This course has no active sessions to join.
+                  </small>
+                </div>
+                <div v-if="selectedCoursePrice && formData.courseId" class="price-preview">
+                  <span class="price-label">Amount to be paid</span>
+                  <strong class="price-value">${{ selectedCoursePrice }}</strong>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button class="cancel-btn" @click="showModal = false">Cancel</button>
+                <button
+                  class="save-btn"
+                  @click="handleCreateEnrollment"
+                  :disabled="
+                    !formData.parentId ||
+                    !formData.studentId ||
+                    !formData.courseId ||
+                    !formData.sessionId ||
+                    submitting
+                  "
                 >
-                  This parent has no registered students.
-                </small>
+                  {{ submitting ? 'Submitting...' : 'Confirm Enrollment' }}
+                </button>
               </div>
-              <div class="form-group">
-                <label>Select Course</label>
-                <select v-model="formData.courseId" @change="handleCourseChange">
-                  <option value="" disabled>Choose a course</option>
-                  <option v-for="c in courses" :key="c.id" :value="c.id">
-                    {{ c.title || c.name }}
-                  </option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Select Session</label>
-                <select
-                  v-model="formData.sessionId"
-                  :disabled="!formData.courseId || sessions.length === 0"
-                >
-                  <option value="" disabled>Choose a session time</option>
-                  <option v-for="s in sessions" :key="s.id" :value="s.id">
-                    {{ s.schedule?.day || 'TBD' }} @ {{ s.schedule?.timeslot || 'TBD' }} ({{
-                      s.num_student || 0
-                    }}/{{ s.capacity || 20 }} enrolled)
-                  </option>
-                </select>
-                <small v-if="formData.courseId && sessions.length === 0" class="warning-text">
-                  This course has no active sessions to join.
-                </small>
-              </div>
-              <div v-if="selectedCoursePrice && formData.courseId" class="price-preview">
-                Amount to be paid: <strong>${{ selectedCoursePrice }}</strong>
-              </div>
-            </div>
-            <div class="modal-footer">
-              <button class="cancel-btn" @click="showModal = false">Cancel</button>
-              <button
-                class="save-btn"
-                @click="handleCreateEnrollment"
-                :disabled="
-                  !formData.parentId ||
-                  !formData.studentId ||
-                  !formData.courseId ||
-                  !formData.sessionId ||
-                  submitting
-                "
-              >
-                {{ submitting ? 'Submitting...' : 'Confirm Enrollment' }}
-              </button>
             </div>
           </div>
-        </div>
+        </transition>
 
         <div v-if="loading" class="loading-state">Loading enrollments...</div>
         <table v-else class="data-table">
@@ -573,14 +576,31 @@ const formatDate = (dateString) => {
   background: #0098d1;
 }
 
-/* Modal Styles */
+/* Modal Styles & Transitions */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-enter-active .modal-content {
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.modal-fade-enter-from .modal-content,
+.modal-fade-leave-to .modal-content {
+  transform: scale(0.95) translateY(10px);
+}
+
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -588,40 +608,59 @@ const formatDate = (dateString) => {
 }
 
 .modal-content {
-  background: white;
-  width: 500px;
-  border-radius: 20px;
+  background: #ffffff;
+  width: 520px;
+  border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
-  padding: 20px 25px;
-  border-bottom: 1px solid #eee;
+  padding: 25px 30px;
+  border-bottom: 1px solid #f0f0f0;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #fdfdfd;
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  font-weight: 800;
   color: #1a1a1a;
+  letter-spacing: -0.3px;
 }
 
 .close-btn {
-  background: none;
+  background: #f5f5f5;
   border: none;
-  font-size: 1.5rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
   cursor: pointer;
-  color: #999;
+  color: #666;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  background: #e0e0e0;
+  color: #1a1a1a;
+  transform: rotate(90deg);
 }
 
 .modal-body {
-  padding: 25px;
+  padding: 30px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
 }
 
 .form-group {
@@ -632,68 +671,130 @@ const formatDate = (dateString) => {
 
 .form-group label {
   font-size: 0.9rem;
-  font-weight: 600;
-  color: #333;
+  font-weight: 700;
+  color: #444;
+  letter-spacing: -0.2px;
 }
 
 .form-group select {
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
   font-size: 0.95rem;
   font-family: inherit;
-  background: #fdfdfd;
+  background: #fcfcfc;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
+}
+
+.form-group select:hover {
+  border-color: #b3b3b3;
 }
 
 .form-group select:focus {
   outline: none;
   border-color: #00aeef;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 174, 239, 0.1);
+}
+
+.form-group select:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+  border-color: #eee;
+  background-image: none;
 }
 
 .warning-text {
   color: #e53935;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
 }
 
 .price-preview {
-  background: #e1f5fe;
-  padding: 15px;
-  border-radius: 10px;
-  text-align: center;
+  background: linear-gradient(145deg, #f0f7ff, #e1f5fe);
+  padding: 20px;
+  border-radius: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(0, 174, 239, 0.1);
+  margin-top: 5px;
+}
+
+.price-label {
+  color: #555;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.price-value {
   color: #00aeef;
-  font-size: 1.1rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
 
 .modal-footer {
-  padding: 20px 25px;
-  border-top: 1px solid #eee;
+  padding: 20px 30px 30px;
   display: flex;
   justify-content: flex-end;
   gap: 15px;
+  background: transparent;
 }
 
 .cancel-btn {
   background: white;
   border: 1px solid #ddd;
-  padding: 10px 20px;
-  border-radius: 10px;
+  padding: 12px 24px;
+  border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
+  color: #555;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: #f8f9fa;
+  color: #1a1a1a;
+  border-color: #ccc;
 }
 
 .save-btn {
   background: #00aeef;
   color: white;
   border: none;
-  padding: 10px 25px;
-  border-radius: 10px;
-  font-weight: 600;
+  padding: 12px 28px;
+  border-radius: 12px;
+  font-weight: 700;
   cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 174, 239, 0.2);
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #0098d1;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 174, 239, 0.3);
 }
 
 .save-btn:disabled {
-  background: #ccc;
+  background: #e0e0e0;
+  color: #999;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 @media (max-width: 1200px) {
