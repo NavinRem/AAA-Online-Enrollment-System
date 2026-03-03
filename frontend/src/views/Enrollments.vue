@@ -164,6 +164,55 @@ const openModal = () => {
 const isPaid = (status) => status?.toLowerCase() === 'paid' || status?.toLowerCase() === 'confirmed'
 const isCancelled = (status) =>
   status?.toLowerCase() === 'canceled' || status?.toLowerCase() === 'cancelled'
+
+// Action Menu State
+const activeActionMenu = ref(null)
+
+const toggleActionMenu = (id) => {
+  if (activeActionMenu.value === id) {
+    activeActionMenu.value = null
+  } else {
+    activeActionMenu.value = id
+  }
+}
+
+// Close menu when clicking outside
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.action-cell')) {
+      activeActionMenu.value = null
+    }
+  })
+})
+
+const handleCancelEnrollment = async (enrollmentId) => {
+  if (!confirm('Are you sure you want to cancel this enrollment?')) return
+
+  try {
+    await registrationService.cancelEnrollment(enrollmentId)
+    // Optimistically update the local state to instantly reflect the cancellation
+    const index = registrations.value.findIndex((r) => r.id === enrollmentId)
+    if (index !== -1) {
+      registrations.value[index].status = 'cancelled'
+    }
+    activeActionMenu.value = null
+  } catch (err) {
+    alert(err.message || 'Failed to cancel enrollment')
+  }
+}
+
+const handleMarkAsPaid = async (enrollmentId) => {
+  if (!confirm('Mark this enrollment as paid?')) return
+
+  try {
+    // We would need a backend route for this. Assuming there is an update route:
+    // await registrationService.update(enrollmentId, { paymentStatus: 'paid', status: 'confirmed' })
+    alert('This feature requires the backend "mark as paid" API to be implemented.')
+    activeActionMenu.value = null
+  } catch (err) {
+    alert('Failed to update payment status')
+  }
+}
 const isUnpaid = (status) => status && !isPaid(status) && !isCancelled(status)
 
 const totalRegistration = computed(() => registrations.value.length)
@@ -458,9 +507,11 @@ const formatDate = (dateString) => {
               <th>Course</th>
               <th>Session</th>
               <th>#Session</th>
+              <th>Payment</th>
               <th>Status</th>
               <th>Amount</th>
               <th>Enrolled Date</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -474,9 +525,20 @@ const formatDate = (dateString) => {
               <td>
                 <span
                   class="status-badge"
-                  :class="getStatusClass(item.status || item.paymentStatus)"
+                  :class="item.paymentStatus === 'paid' ? 'success' : 'warning'"
                 >
-                  {{ displayStatus(item.status || item.paymentStatus) }}
+                  {{ (item.paymentStatus || 'pending').toUpperCase() }}
+                </span>
+              </td>
+              <td>
+                <span
+                  class="status-badge"
+                  :class="{
+                    success: item.status !== 'cancelled' && item.status !== 'canceled',
+                    danger: item.status === 'cancelled' || item.status === 'canceled',
+                  }"
+                >
+                  {{ (item.status || 'active').toUpperCase() }}
                 </span>
               </td>
               <td>
@@ -493,9 +555,30 @@ const formatDate = (dateString) => {
                   )
                 }}
               </td>
+              <td class="action-cell">
+                <button class="action-btn" @click.stop="toggleActionMenu(item.id)">⋮</button>
+                <transition name="dropdown-fade">
+                  <div v-if="activeActionMenu === item.id" class="action-menu">
+                    <button
+                      class="menu-btn success-text"
+                      @click="handleMarkAsPaid(item.id)"
+                      :disabled="item.paymentStatus === 'paid' || isCancelled(item.status)"
+                    >
+                      ✓ Mark Paid
+                    </button>
+                    <button
+                      class="menu-btn danger-text"
+                      @click="handleCancelEnrollment(item.id)"
+                      :disabled="isCancelled(item.status)"
+                    >
+                      × Cancel
+                    </button>
+                  </div>
+                </transition>
+              </td>
             </tr>
             <tr v-if="filteredRegistrations.length === 0 && !loading">
-              <td colspan="9" class="empty-state">No enrollments found.</td>
+              <td colspan="11" class="empty-state">No enrollments found.</td>
             </tr>
           </tbody>
         </table>
@@ -1052,6 +1135,84 @@ const formatDate = (dateString) => {
   color: #999;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* Action Menu Styles */
+.action-cell {
+  position: relative;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #999;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-weight: bold;
+}
+
+.action-btn:hover {
+  background: #f5f5f5;
+  color: #1a1a1a;
+}
+
+.action-menu {
+  position: absolute;
+  top: 100%;
+  right: 15px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #eee;
+  padding: 5px;
+  z-index: 50;
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-btn {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.menu-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+
+.menu-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.danger-text {
+  color: #d32f2f;
+}
+
+.success-text {
+  color: #2e7d32;
+}
+
+.dropdown-fade-enter-active,
+.dropdown-fade-leave-active {
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+.dropdown-fade-enter-from,
+.dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-5px);
 }
 
 @media (max-width: 1200px) {
