@@ -650,9 +650,16 @@ const formatDate = (dateString) => {
 
               <!-- Edit Amount Form -->
               <div v-if="actionModal.type === 'edit'" class="form-group full-width">
+                <div class="info-block">
+                  <span class="icon">ℹ️</span>
+                  <p>
+                    <strong>Price Adjustment:</strong> You should only modify the price if there is
+                    an administrative discount applied, or if a refund/partial charge was agreed
+                    upon with the parent.
+                  </p>
+                </div>
                 <label>Adjust Enrollment Amount ($)</label>
                 <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
-                <small class="help-text">Update the total amount charged to the parent.</small>
               </div>
 
               <!-- Mark Paid Form -->
@@ -675,25 +682,36 @@ const formatDate = (dateString) => {
 
               <!-- Cancel Form -->
               <div v-if="actionModal.type === 'cancel'" class="form-group full-width">
+                <div class="info-block warning">
+                  <span class="icon">⚠️</span>
+                  <p>
+                    <strong>Cancellation Policy:</strong> A cancellation stops this student from
+                    attending the course. You MUST provide the exact reason (e.g., Parent email
+                    request on [Date]).
+                  </p>
+                </div>
                 <label>Reason for Cancellation <span class="required">*</span></label>
                 <input
                   type="text"
                   v-model="actionModal.reason"
                   placeholder="e.g. Parent requested via email"
                 />
-                <small class="help-text warning-text"
-                  ><span class="icon">ℹ️</span> Only cancel if the parent explicitly asked, or if
-                  unauthorized.</small
-                >
               </div>
 
               <!-- Delete Form -->
               <div v-if="actionModal.type === 'delete'" class="form-group full-width">
+                <div class="info-block danger">
+                  <span class="icon">🛑</span>
+                  <p>
+                    <strong>Critical Warning:</strong> Deleting an enrollment removes the record
+                    entirely. It can never be recovered. This should only be used for accidental
+                    duplicate registrations.
+                  </p>
+                </div>
+                <label>Confirm Deletion <span class="required">*</span></label>
                 <p style="margin-bottom: 15px; color: #555; font-size: 0.95rem">
-                  Deleting this enrollment removes it permanently from the database. It cannot be
-                  recovered.<br /><br />
                   Please type <strong class="danger-text">DELETE</strong> below to confirm you have
-                  authorization.
+                  authorization to erase this record.
                 </p>
                 <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
               </div>
@@ -1305,6 +1323,22 @@ const formatDate = (dateString) => {
 .info-block p strong {
   display: block;
   margin-bottom: 10px;
+}
+
+.info-block.warning {
+  background: #fff9e6;
+}
+
+.info-block.warning p {
+  color: #b78a00;
+}
+
+.info-block.danger {
+  background: #fdeaea;
+}
+
+.info-block.danger p {
+  color: #c62828;
 }
 
 @media (max-width: 1200px) {
