@@ -15,6 +15,8 @@ const loading = ref(true)
 const searchQuery = ref('')
 const showModal = ref(false)
 const submitting = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
 
 const formData = ref({
   parentId: '',
@@ -108,21 +110,31 @@ const handleCreateEnrollment = async () => {
       session_id: session.id,
       sessionSchedule: session.schedule?.day + ' ' + session.schedule?.timeslot,
       amount: selectedCoursePrice.value,
-      status: 'unpaid',
+      status: 'pending',
       paymentStatus: 'unpaid',
       enrollAt: new Date().toISOString(),
     }
 
     await registrationService.createEnrollment(payload)
-    showModal.value = false
-    formData.value = { parentId: '', studentId: '', courseId: '', sessionId: '' }
+    successMessage.value = 'Successfully created enrollment!'
+    setTimeout(() => {
+      showModal.value = false
+      formData.value = { parentId: '', studentId: '', courseId: '', sessionId: '' }
+    }, 1500)
     await fetchRegistrations() // Refresh table
   } catch (err) {
     console.error('Failed to create enrollment', err)
-    alert(err.message || 'Failed to create enrollment. Please check the console.')
+    errorMessage.value = err.message || 'Failed to create enrollment. Please try again.'
   } finally {
     submitting.value = false
   }
+}
+
+const openModal = () => {
+  showModal.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+  formData.value = { parentId: '', studentId: '', courseId: '', sessionId: '' }
 }
 
 const isPaid = (status) => status?.toLowerCase() === 'paid' || status?.toLowerCase() === 'confirmed'
@@ -245,7 +257,7 @@ const formatDate = (dateString) => {
               <input v-model="searchQuery" type="text" placeholder="Search Enrollments" />
             </div>
             <button class="filter-btn">Filter</button>
-            <button class="add-btn" @click="showModal = true">+ New Enrollment</button>
+            <button class="add-btn" @click="openModal">+ New Enrollment</button>
           </div>
         </div>
 
@@ -258,56 +270,84 @@ const formatDate = (dateString) => {
                 <button class="close-btn" @click="showModal = false">×</button>
               </div>
               <div class="modal-body">
-                <div class="form-group">
-                  <label>Select Parent / Guardian</label>
-                  <select v-model="formData.parentId">
-                    <option value="" disabled>Choose a parent</option>
-                    <option v-for="p in parents" :key="p.uid" :value="p.uid">
-                      {{ p.name || p.email }}
-                    </option>
-                  </select>
+                <transition name="toast-fade">
+                  <div v-if="errorMessage" class="alert-box error">
+                    <span class="icon">⚠️</span> {{ errorMessage }}
+                  </div>
+                </transition>
+                <transition name="toast-fade">
+                  <div v-if="successMessage" class="alert-box success">
+                    <span class="icon">✅</span> {{ successMessage }}
+                  </div>
+                </transition>
+
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Select Parent / Guardian</label>
+                    <select v-model="formData.parentId" @change="errorMessage = ''">
+                      <option value="" disabled>Choose a parent</option>
+                      <option v-for="p in parents" :key="p.uid" :value="p.uid">
+                        {{ p.name || p.email }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Select Student</label>
+                    <select
+                      v-model="formData.studentId"
+                      :disabled="!formData.parentId"
+                      @change="errorMessage = ''"
+                    >
+                      <option value="" disabled>Choose a student</option>
+                      <option v-for="s in availableStudents" :key="s.id" :value="s.id">
+                        {{ s.fullname || s.name }}
+                      </option>
+                    </select>
+                    <small
+                      v-if="formData.parentId && availableStudents.length === 0"
+                      class="warning-text"
+                    >
+                      <span class="icon">ℹ️</span> This parent has no registered students.
+                    </small>
+                  </div>
+                  <div class="form-group">
+                    <label>Select Course</label>
+                    <select
+                      v-model="formData.courseId"
+                      @change="
+                        () => {
+                          handleCourseChange()
+                          errorMessage = ''
+                        }
+                      "
+                    >
+                      <option value="" disabled>Choose a course</option>
+                      <option v-for="c in courses" :key="c.id" :value="c.id">
+                        {{ c.title || c.name }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Select Session</label>
+                    <select
+                      v-model="formData.sessionId"
+                      :disabled="!formData.courseId || sessions.length === 0"
+                      @change="errorMessage = ''"
+                    >
+                      <option value="" disabled>Choose a session time</option>
+                      <option v-for="s in sessions" :key="s.id" :value="s.id">
+                        {{ s.schedule?.day || 'TBD' }} @ {{ s.schedule?.timeslot || 'TBD' }} ({{
+                          s.num_student || 0
+                        }}/{{ s.capacity || 20 }} enrolled)
+                      </option>
+                    </select>
+                    <small v-if="formData.courseId && sessions.length === 0" class="warning-text">
+                      <span class="icon">⚠️</span> This course has no active sessions to join.
+                    </small>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>Select Student</label>
-                  <select v-model="formData.studentId" :disabled="!formData.parentId">
-                    <option value="" disabled>Choose a student</option>
-                    <option v-for="s in availableStudents" :key="s.id" :value="s.id">
-                      {{ s.fullname || s.name }}
-                    </option>
-                  </select>
-                  <small
-                    v-if="formData.parentId && availableStudents.length === 0"
-                    class="warning-text"
-                  >
-                    This parent has no registered students.
-                  </small>
-                </div>
-                <div class="form-group">
-                  <label>Select Course</label>
-                  <select v-model="formData.courseId" @change="handleCourseChange">
-                    <option value="" disabled>Choose a course</option>
-                    <option v-for="c in courses" :key="c.id" :value="c.id">
-                      {{ c.title || c.name }}
-                    </option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Select Session</label>
-                  <select
-                    v-model="formData.sessionId"
-                    :disabled="!formData.courseId || sessions.length === 0"
-                  >
-                    <option value="" disabled>Choose a session time</option>
-                    <option v-for="s in sessions" :key="s.id" :value="s.id">
-                      {{ s.schedule?.day || 'TBD' }} @ {{ s.schedule?.timeslot || 'TBD' }} ({{
-                        s.num_student || 0
-                      }}/{{ s.capacity || 20 }} enrolled)
-                    </option>
-                  </select>
-                  <small v-if="formData.courseId && sessions.length === 0" class="warning-text">
-                    <span class="icon">⚠️</span> This course has no active sessions to join.
-                  </small>
-                </div>
+                <!-- End form-grid -->
+
                 <div v-if="selectedCoursePrice && formData.courseId" class="price-preview">
                   <span class="price-label">Amount to be paid</span>
                   <strong class="price-value">${{ selectedCoursePrice }}</strong>
@@ -657,10 +697,49 @@ const formatDate = (dateString) => {
 }
 
 .modal-body {
-  padding: 30px;
+  padding: 20px 30px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.alert-box {
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: -5px;
+}
+
+.alert-box.error {
+  background: #fdeaea;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+}
+
+.alert-box.success {
+  background: #e6f8ea;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 .form-group {
@@ -746,7 +825,7 @@ const formatDate = (dateString) => {
 }
 
 .modal-footer {
-  padding: 20px 30px 30px;
+  padding: 10px 30px 25px;
   display: flex;
   justify-content: flex-end;
   gap: 15px;
