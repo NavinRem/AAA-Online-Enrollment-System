@@ -657,15 +657,20 @@ const formatDate = (dateString) => {
 
               <!-- Mark Paid Form -->
               <div v-if="actionModal.type === 'pay'" class="form-group full-width">
-                <label>Proof of Payment <span class="required">*</span></label>
+                <div class="info-block">
+                  <span class="icon">💡</span>
+                  <p>
+                    <strong>How to provide proof:</strong> Please enter the transaction reference
+                    number provided by the bank, or type "Cash" followed by the receipt number you
+                    gave the parent.
+                  </p>
+                </div>
+                <label>Proof of Payment Reference <span class="required">*</span></label>
                 <input
                   type="text"
                   v-model="actionModal.proof"
-                  placeholder="e.g. Cash, Check #1024, Bank Transfer ID"
+                  placeholder="e.g. Bank Ref: 10934892, or Cash Receipt #1024"
                 />
-                <small class="help-text"
-                  >You must require proof of payment to authorize this change.</small
-                >
               </div>
 
               <!-- Cancel Form -->
@@ -1245,6 +1250,61 @@ const formatDate = (dateString) => {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+/* Action Modal Specific Styles */
+.action-modal {
+  max-width: 450px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.action-modal .modal-header {
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+  padding: 20px 25px;
+}
+
+.action-modal .modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1a1a1a;
+}
+
+.action-modal .modal-body {
+  padding: 25px;
+}
+
+.action-modal .modal-footer {
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+  padding: 15px 25px;
+}
+
+.info-block {
+  background: #e3f2fd;
+  border-radius: 8px;
+  padding: 15px;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: flex-start;
+}
+
+.info-block .icon {
+  font-size: 1.2rem;
+}
+
+.info-block p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #0d47a1;
+  line-height: 1.4;
+}
+
+.info-block p strong {
+  display: block;
+  margin-bottom: 10px;
 }
 
 @media (max-width: 1200px) {
