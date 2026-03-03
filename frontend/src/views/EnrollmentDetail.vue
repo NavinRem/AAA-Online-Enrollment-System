@@ -111,7 +111,11 @@ const calculateAge = (dob) => {
       <div v-else class="detail-container">
         <div class="header-section">
           <h1 class="page-title">Registration Details</h1>
-          <AppButton variant="light" size="sm" @click="router.push('/enrollments')">Back</AppButton>
+          <div class="header-right-tools">
+            <AppButton variant="light" size="sm" @click="router.push('/enrollments')">
+              Back
+            </AppButton>
+          </div>
         </div>
 
         <div class="content-grid">
@@ -183,9 +187,11 @@ const calculateAge = (dob) => {
 
           <div class="sidebar-cards">
             <DetailedSummaryCard title="Basic Information">
-              <div class="detail-row align-center"><strong>Registration Status</strong></div>
-              <div class="detail-row">
-                <span class="mr-2">Status:</span>
+              <div class="detail-row align-center mb-2">
+                <strong class="summary-header">Registration Status</strong>
+              </div>
+              <div class="detail-row mb-3">
+                <span class="summary-label mr-2">Status:</span>
                 <AppBadge
                   :text="
                     enrollment.status === 'cancelled'
@@ -219,7 +225,7 @@ const calculateAge = (dob) => {
 
             <DetailedSummaryCard title="Payment Summary">
               <div class="detail-row align-center">
-                <span class="bold">Total Amount:</span>
+                <span class="summary-header">Total Amount</span>
                 <AppBadge
                   :text="'$' + (enrollment.amount || enrollment.totalAmount || 180)"
                   type="primary"
@@ -252,7 +258,12 @@ const calculateAge = (dob) => {
                 <p class="summary-label">Schedule:</p>
                 <p class="summary-value">
                   {{ session?.schedule?.day || 'N/A' }},
-                  {{ session?.schedule?.timeslot || enrollment.sessionSchedule || 'N/A' }}
+                  {{
+                    session?.schedule?.timeslot ||
+                    session?.schedule?.startTime + '-' + session?.schedule?.endTime ||
+                    enrollment.sessionSchedule ||
+                    'N/A'
+                  }}
                 </p>
               </div>
               <div class="mt-3">
@@ -302,15 +313,19 @@ const calculateAge = (dob) => {
 .header-section {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 25px;
+  justify-content: space-between;
+  margin-bottom: 30px;
 }
 .page-title {
-  font-size: 1.8rem;
+  font-size: 2.2rem;
   font-weight: 800;
   color: #1a1a1a;
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
   margin: 0;
+}
+.header-right-tools {
+  display: flex;
+  gap: 12px;
 }
 .content-grid {
   display: grid;
@@ -361,12 +376,21 @@ const calculateAge = (dob) => {
 .mb-1 {
   margin-bottom: 5px;
 }
-.bold {
-  font-weight: 700;
+.mb-2 {
+  margin-bottom: 8px;
+}
+.mb-3 {
+  margin-bottom: 12px;
+}
+.summary-header {
+  font-weight: 800;
+  color: #1a1a1a;
+  font-size: 1rem;
 }
 .date-sub {
-  font-size: 0.85rem;
-  color: #444;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+  font-weight: 700;
 }
 
 @media (max-width: 1100px) {
