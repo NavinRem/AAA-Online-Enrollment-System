@@ -14,6 +14,14 @@ export const registrationService = {
     return this.createEnrollment(data)
   },
 
+  // Cancel Enrollment
+  cancelEnrollment(enrollmentId) {
+    return request('/registrations/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ enrollment_id: enrollmentId }),
+    })
+  },
+
   // Get all registrations
   getAll() {
     return request('/registrations', {

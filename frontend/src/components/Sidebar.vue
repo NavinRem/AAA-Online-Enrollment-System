@@ -33,7 +33,11 @@ const getIconPath = (icon) => {
   <aside class="sidebar">
     <div class="logo-section">
       <img src="@/assets/images/AAA-Logo.png" alt="Logo" class="sidebar-logo" />
-      <span class="brand-name">Authentic Advanced Academy</span>
+      <div style="display: flex; flex-direction: column">
+        <span class="brand-name">Authentic</span>
+        <span class="brand-name">Advanced</span>
+        <span class="brand-name">Academy</span>
+      </div>
     </div>
 
     <nav class="nav-menu">
@@ -82,7 +86,7 @@ const getIconPath = (icon) => {
 }
 
 .brand-name {
-  font-size: 0.8rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #1a1a1a;
   line-height: 1.2;
