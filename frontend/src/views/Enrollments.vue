@@ -1164,8 +1164,7 @@ const formatDate = (dateString) => {
 }
 
 .btn-icon {
-  background: white;
-  border: 1px solid #eee;
+  border: 1px solid transparent;
   border-radius: 6px;
   width: 32px;
   height: 32px;
@@ -1175,33 +1174,30 @@ const formatDate = (dateString) => {
   cursor: pointer;
   font-size: 0.95rem;
   transition: all 0.2s;
-  color: #555;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .btn-icon:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  filter: brightness(0.9);
 }
 
-.btn-icon.edit:hover {
-  border-color: #00aeef;
-  color: #00aeef;
+.btn-icon.edit {
+  background: #00aeef;
 }
 
-.btn-icon.check:hover {
-  border-color: #2e7d32;
-  color: #2e7d32;
+.btn-icon.check {
+  background: #2e7d32;
 }
 
-.btn-icon.cancel:hover {
-  border-color: #ef6c00;
-  color: #ef6c00;
+.btn-icon.cancel {
+  background: #f57c00;
 }
 
-.btn-icon.delete:hover {
-  border-color: #c62828;
-  color: #c62828;
+.btn-icon.delete {
+  background: #d32f2f;
 }
 
 @media (max-width: 1200px) {
