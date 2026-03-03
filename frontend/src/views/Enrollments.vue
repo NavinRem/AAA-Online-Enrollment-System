@@ -674,23 +674,44 @@ const formatDate = (dateString) => {
                 <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
 
                 <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
-                <select
-                  style="margin-bottom: 10px"
-                  @change="((actionModal.remark = $event.target.value), ($event.target.value = ''))"
-                >
-                  <option value="" disabled selected>
-                    -- Choose a common preset or type below --
-                  </option>
-                  <option value="VIP Student">VIP Student</option>
-                  <option value="Needs extra attention">Needs extra attention</option>
-                  <option value="Parent will pay next week">Parent will pay next week</option>
-                  <option value="Pending partial refund">Pending partial refund</option>
-                </select>
-                <input
-                  type="text"
+                <textarea
                   v-model="actionModal.remark"
-                  placeholder="Or type custom remark..."
-                />
+                  placeholder="Please write your remark here..."
+                ></textarea>
+                <div class="preset-chips">
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.remark === 'VIP Student' }"
+                    @click="actionModal.remark = 'VIP Student'"
+                  >
+                    VIP Student
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.remark === 'Needs extra attention' }"
+                    @click="actionModal.remark = 'Needs extra attention'"
+                  >
+                    Needs extra attention
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.remark === 'Parent will pay next week' }"
+                    @click="actionModal.remark = 'Parent will pay next week'"
+                  >
+                    Parent will pay next week
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.remark === 'Pending partial refund' }"
+                    @click="actionModal.remark = 'Pending partial refund'"
+                  >
+                    Pending partial refund
+                  </button>
+                </div>
               </div>
 
               <!-- Mark Paid Form -->
@@ -704,23 +725,44 @@ const formatDate = (dateString) => {
                   </p>
                 </div>
                 <label>Proof of Payment Reference <span class="required">*</span></label>
-                <select
-                  style="margin-bottom: 10px"
-                  @change="((actionModal.proof = $event.target.value), ($event.target.value = ''))"
-                >
-                  <option value="" disabled selected>
-                    -- Choose a common method or type below --
-                  </option>
-                  <option value="Paid in Cash">Paid in Cash</option>
-                  <option value="Paid via Check">Paid via Check</option>
-                  <option value="Paid via Bank Transfer">Paid via Bank Transfer</option>
-                  <option value="Paid via Credit Card">Paid via Credit Card</option>
-                </select>
-                <input
-                  type="text"
+                <textarea
                   v-model="actionModal.proof"
-                  placeholder="Or type bank reference number..."
-                />
+                  placeholder="Please write the bank reference number or method here..."
+                ></textarea>
+                <div class="preset-chips">
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.proof === 'Paid in Cash' }"
+                    @click="actionModal.proof = 'Paid in Cash'"
+                  >
+                    Paid in Cash
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.proof === 'Paid via Check' }"
+                    @click="actionModal.proof = 'Paid via Check'"
+                  >
+                    Paid via Check
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.proof === 'Paid via Bank Transfer' }"
+                    @click="actionModal.proof = 'Paid via Bank Transfer'"
+                  >
+                    Paid via Bank Transfer
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.proof === 'Paid via Credit Card' }"
+                    @click="actionModal.proof = 'Paid via Credit Card'"
+                  >
+                    Paid via Credit Card
+                  </button>
+                </div>
               </div>
 
               <!-- Cancel Form -->
@@ -734,24 +776,52 @@ const formatDate = (dateString) => {
                   </p>
                 </div>
                 <label>Reason for Cancellation <span class="required">*</span></label>
-                <select
-                  style="margin-bottom: 10px"
-                  @change="((actionModal.reason = $event.target.value), ($event.target.value = ''))"
-                >
-                  <option value="" disabled selected>
-                    -- Choose a common reason or type below --
-                  </option>
-                  <option value="Parent requested via email">Parent requested via email</option>
-                  <option value="Parent requested via phone">Parent requested via phone</option>
-                  <option value="Did not pay on time">Did not pay on time</option>
-                  <option value="Course schedule conflict">Course schedule conflict</option>
-                  <option value="Duplicate enrollment">Duplicate enrollment</option>
-                </select>
-                <input
-                  type="text"
+                <textarea
                   v-model="actionModal.reason"
-                  placeholder="Or type custom reason..."
-                />
+                  placeholder="Please write your reason here..."
+                ></textarea>
+                <div class="preset-chips">
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.reason === 'Parent requested via email' }"
+                    @click="actionModal.reason = 'Parent requested via email'"
+                  >
+                    Parent requested via email
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.reason === 'Parent requested via phone' }"
+                    @click="actionModal.reason = 'Parent requested via phone'"
+                  >
+                    Parent requested via phone
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.reason === 'Did not pay on time' }"
+                    @click="actionModal.reason = 'Did not pay on time'"
+                  >
+                    Did not pay on time
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.reason === 'Course schedule conflict' }"
+                    @click="actionModal.reason = 'Course schedule conflict'"
+                  >
+                    Course schedule conflict
+                  </button>
+                  <button
+                    type="button"
+                    class="preset-chip"
+                    :class="{ active: actionModal.reason === 'Duplicate enrollment' }"
+                    @click="actionModal.reason = 'Duplicate enrollment'"
+                  >
+                    Duplicate enrollment
+                  </button>
+                </div>
               </div>
 
               <!-- Delete Form -->
@@ -1112,7 +1182,8 @@ const formatDate = (dateString) => {
 
 .form-group select,
 .form-group input[type='text'],
-.form-group input[type='number'] {
+.form-group input[type='number'],
+.form-group textarea {
   padding: 14px 16px;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
@@ -1121,6 +1192,11 @@ const formatDate = (dateString) => {
   background: #fcfcfc;
   color: #1a1a1a;
   transition: all 0.2s ease;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 .form-group select {
@@ -1134,13 +1210,15 @@ const formatDate = (dateString) => {
 
 .form-group select:hover,
 .form-group input[type='text']:hover,
-.form-group input[type='number']:hover {
+.form-group input[type='number']:hover,
+.form-group textarea:hover {
   border-color: #b3b3b3;
 }
 
 .form-group select:focus,
 .form-group input[type='text']:focus,
-.form-group input[type='number']:focus {
+.form-group input[type='number']:focus,
+.form-group textarea:focus {
   outline: none;
   border-color: #00aeef;
   background: #ffffff;
@@ -1148,12 +1226,44 @@ const formatDate = (dateString) => {
 }
 
 .form-group select:disabled,
-.form-group input:disabled {
+.form-group input:disabled,
+.form-group textarea:disabled {
   background-color: #f5f5f5;
   color: #999;
   cursor: not-allowed;
   border-color: #eee;
   background-image: none;
+}
+
+.preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.preset-chip {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 16px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.preset-chip:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.preset-chip.active {
+  background: #e3f2fd;
+  border-color: #00aeef;
+  color: #0d47a1;
 }
 
 /* Custom Dropdown Styles */
