@@ -165,37 +165,15 @@ const isPaid = (status) => status?.toLowerCase() === 'paid' || status?.toLowerCa
 const isCancelled = (status) =>
   status?.toLowerCase() === 'canceled' || status?.toLowerCase() === 'cancelled'
 
-// Action Menu State
-const activeActionMenu = ref(null)
-
-const toggleActionMenu = (id) => {
-  if (activeActionMenu.value === id) {
-    activeActionMenu.value = null
-  } else {
-    activeActionMenu.value = id
-  }
-}
-
-// Close menu when clicking outside
-onMounted(() => {
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.action-cell')) {
-      activeActionMenu.value = null
-    }
-  })
-})
-
 const handleCancelEnrollment = async (enrollmentId) => {
   if (!confirm('Are you sure you want to cancel this enrollment?')) return
 
   try {
     await registrationService.cancelEnrollment(enrollmentId)
-    // Optimistically update the local state to instantly reflect the cancellation
     const index = registrations.value.findIndex((r) => r.id === enrollmentId)
     if (index !== -1) {
       registrations.value[index].status = 'cancelled'
     }
-    activeActionMenu.value = null
   } catch (err) {
     alert(err.message || 'Failed to cancel enrollment')
   }
@@ -205,14 +183,24 @@ const handleMarkAsPaid = async (enrollmentId) => {
   if (!confirm('Mark this enrollment as paid?')) return
 
   try {
-    // We would need a backend route for this. Assuming there is an update route:
-    // await registrationService.update(enrollmentId, { paymentStatus: 'paid', status: 'confirmed' })
     alert('This feature requires the backend "mark as paid" API to be implemented.')
-    activeActionMenu.value = null
   } catch (err) {
     alert('Failed to update payment status')
   }
 }
+
+const handleEditEnrollment = (enrollmentId) => {
+  alert('Edit feature: Coming soon')
+}
+
+const handleDeleteEnrollment = (enrollmentId) => {
+  if (
+    !confirm('Are you sure you want to PERMANENTLY delete this enrollment? This cannot be undone.')
+  )
+    return
+  alert('Delete feature requires backend DELETE API to be implemented.')
+}
+
 const isUnpaid = (status) => status && !isPaid(status) && !isCancelled(status)
 
 const totalRegistration = computed(() => registrations.value.length)
@@ -556,25 +544,38 @@ const formatDate = (dateString) => {
                 }}
               </td>
               <td class="action-cell">
-                <button class="action-btn" @click.stop="toggleActionMenu(item.id)">⋮</button>
-                <transition name="dropdown-fade">
-                  <div v-if="activeActionMenu === item.id" class="action-menu">
-                    <button
-                      class="menu-btn success-text"
-                      @click="handleMarkAsPaid(item.id)"
-                      :disabled="item.paymentStatus === 'paid' || isCancelled(item.status)"
-                    >
-                      ✓ Mark Paid
-                    </button>
-                    <button
-                      class="menu-btn danger-text"
-                      @click="handleCancelEnrollment(item.id)"
-                      :disabled="isCancelled(item.status)"
-                    >
-                      × Cancel
-                    </button>
-                  </div>
-                </transition>
+                <div class="inline-actions">
+                  <button
+                    class="btn-icon edit"
+                    title="Edit Enrollment"
+                    @click="handleEditEnrollment(item.id)"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    v-if="!isPaid(item.paymentStatus) && !isCancelled(item.status)"
+                    class="btn-icon check"
+                    title="Mark as Paid"
+                    @click="handleMarkAsPaid(item.id)"
+                  >
+                    ✓
+                  </button>
+                  <button
+                    v-if="!isCancelled(item.status)"
+                    class="btn-icon cancel"
+                    title="Cancel Enrollment"
+                    @click="handleCancelEnrollment(item.id)"
+                  >
+                    🚫
+                  </button>
+                  <button
+                    class="btn-icon delete"
+                    title="Delete Permanently"
+                    @click="handleDeleteEnrollment(item.id)"
+                  >
+                    🗑️
+                  </button>
+                </div>
               </td>
             </tr>
             <tr v-if="filteredRegistrations.length === 0 && !loading">
@@ -1137,82 +1138,56 @@ const formatDate = (dateString) => {
   box-shadow: none;
 }
 
-/* Action Menu Styles */
+/* Inline Actions */
 .action-cell {
-  position: relative;
+  vertical-align: middle;
 }
 
-.action-btn {
-  background: none;
-  border: none;
-  font-size: 1.2rem;
-  color: #999;
-  cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 6px;
-  transition: all 0.2s;
-  font-weight: bold;
-}
-
-.action-btn:hover {
-  background: #f5f5f5;
-  color: #1a1a1a;
-}
-
-.action-menu {
-  position: absolute;
-  top: 100%;
-  right: 15px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border: 1px solid #eee;
-  padding: 5px;
-  z-index: 50;
-  min-width: 130px;
+.inline-actions {
   display: flex;
-  flex-direction: column;
+  gap: 8px;
+  align-items: center;
 }
 
-.menu-btn {
-  background: none;
-  border: none;
-  padding: 8px 12px;
-  text-align: left;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
+.btn-icon {
+  background: white;
+  border: 1px solid #eee;
   border-radius: 6px;
-  transition: background 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  color: #555;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
-.menu-btn:hover:not(:disabled) {
-  background: #f5f5f5;
+.btn-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
-.menu-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.btn-icon.edit:hover {
+  border-color: #00aeef;
+  color: #00aeef;
 }
 
-.danger-text {
-  color: #d32f2f;
-}
-
-.success-text {
+.btn-icon.check:hover {
+  border-color: #2e7d32;
   color: #2e7d32;
 }
 
-.dropdown-fade-enter-active,
-.dropdown-fade-leave-active {
-  transition:
-    opacity 0.2s,
-    transform 0.2s;
+.btn-icon.cancel:hover {
+  border-color: #ef6c00;
+  color: #ef6c00;
 }
-.dropdown-fade-enter-from,
-.dropdown-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-5px);
+
+.btn-icon.delete:hover {
+  border-color: #c62828;
+  color: #c62828;
 }
 
 @media (max-width: 1200px) {
