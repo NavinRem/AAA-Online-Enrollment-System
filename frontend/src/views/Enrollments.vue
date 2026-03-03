@@ -165,53 +165,80 @@ const isPaid = (status) => status?.toLowerCase() === 'paid' || status?.toLowerCa
 const isCancelled = (status) =>
   status?.toLowerCase() === 'canceled' || status?.toLowerCase() === 'cancelled'
 
-const handleCancelEnrollment = async (enrollmentId) => {
-  if (!confirm('Are you sure you want to cancel this enrollment?')) return
+// --- Unified Action Modal State ---
+const actionModal = ref({
+  isOpen: false,
+  type: '', // 'edit', 'pay', 'cancel', 'delete'
+  enrollment: null,
+  amount: 0,
+  proof: '',
+  reason: '',
+  deleteConfirm: '',
+})
 
-  try {
-    await registrationService.cancelEnrollment(enrollmentId)
-    const index = registrations.value.findIndex((r) => r.id === enrollmentId)
-    if (index !== -1) {
-      registrations.value[index].status = 'cancelled'
-    }
-  } catch (err) {
-    alert(err.message || 'Failed to cancel enrollment')
+const openActionModal = (type, item) => {
+  errorMessage.value = ''
+  successMessage.value = ''
+  actionModal.value = {
+    isOpen: true,
+    type,
+    enrollment: item,
+    amount: item.amount || item.totalAmount || 0,
+    proof: '',
+    reason: '',
+    deleteConfirm: '',
   }
 }
 
-const handleMarkAsPaid = async (enrollmentId) => {
-  if (!confirm('Mark this enrollment as paid?')) return
+const closeActionModal = () => {
+  actionModal.value.isOpen = false
+}
+
+const submitActionModal = async () => {
+  const { type, enrollment, amount, proof, reason, deleteConfirm } = actionModal.value
+  submitting.value = true
+  errorMessage.value = ''
 
   try {
-    await registrationService.updateEnrollment(enrollmentId, {
-      paymentStatus: 'paid',
-    })
-    const index = registrations.value.findIndex((r) => r.id === enrollmentId)
-    if (index !== -1) {
-      registrations.value[index].paymentStatus = 'paid'
+    if (type === 'pay') {
+      if (!proof.trim()) throw new Error('Proof of payment (e.g. Receipt #) is required.')
+      await registrationService.updateEnrollment(enrollment.id, {
+        paymentStatus: 'paid',
+        paymentProof: proof,
+      })
+      const idx = registrations.value.findIndex((r) => r.id === enrollment.id)
+      if (idx !== -1) registrations.value[idx].paymentStatus = 'paid'
+    } else if (type === 'cancel') {
+      if (!reason.trim()) throw new Error('A reason for cancellation must be provided.')
+      // Call cancel API, but also update backend with the reason using update if supported, or just cancel API.
+      await registrationService.cancelEnrollment(enrollment.id)
+      await registrationService.updateEnrollment(enrollment.id, { cancelReason: reason })
+      const idx = registrations.value.findIndex((r) => r.id === enrollment.id)
+      if (idx !== -1) registrations.value[idx].status = 'cancelled'
+    } else if (type === 'delete') {
+      if (deleteConfirm !== 'DELETE')
+        throw new Error('You must type DELETE specifically to confirm.')
+      await registrationService.deleteEnrollment(enrollment.id)
+      registrations.value = registrations.value.filter((r) => r.id !== enrollment.id)
+    } else if (type === 'edit') {
+      if (amount < 0) throw new Error('Amount cannot be negative.')
+      await registrationService.updateEnrollment(enrollment.id, {
+        amount: Number(amount),
+      })
+      const idx = registrations.value.findIndex((r) => r.id === enrollment.id)
+      if (idx !== -1) registrations.value[idx].amount = Number(amount)
     }
+
+    successMessage.value = 'Action completed successfully.'
+    // Refetch to be safe, or just let local state handle it
+    setTimeout(() => {
+      closeActionModal()
+      successMessage.value = ''
+    }, 1500)
   } catch (err) {
-    alert('Failed to update payment status: ' + err.message)
-  }
-}
-
-const handleEditEnrollment = (enrollmentId) => {
-  alert(
-    'Edit feature currently under development. You will soon be able to edit amounts and statuses manually!',
-  )
-}
-
-const handleDeleteEnrollment = async (enrollmentId) => {
-  if (
-    !confirm('Are you sure you want to PERMANENTLY delete this enrollment? This cannot be undone.')
-  )
-    return
-
-  try {
-    await registrationService.deleteEnrollment(enrollmentId)
-    registrations.value = registrations.value.filter((r) => r.id !== enrollmentId)
-  } catch (err) {
-    alert('Failed to delete enrollment: ' + err.message)
+    errorMessage.value = err.message || 'Action failed.'
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -560,7 +587,7 @@ const formatDate = (dateString) => {
                   <button
                     class="btn-icon edit"
                     title="Edit Enrollment"
-                    @click="handleEditEnrollment(item.id)"
+                    @click="openActionModal('edit', item)"
                   >
                     ✏️
                   </button>
@@ -568,7 +595,7 @@ const formatDate = (dateString) => {
                     v-if="!isPaid(item.paymentStatus) && !isCancelled(item.status)"
                     class="btn-icon check"
                     title="Mark as Paid"
-                    @click="handleMarkAsPaid(item.id)"
+                    @click="openActionModal('pay', item)"
                   >
                     ✓
                   </button>
@@ -576,14 +603,14 @@ const formatDate = (dateString) => {
                     v-if="!isCancelled(item.status)"
                     class="btn-icon cancel"
                     title="Cancel Enrollment"
-                    @click="handleCancelEnrollment(item.id)"
+                    @click="openActionModal('cancel', item)"
                   >
                     🚫
                   </button>
                   <button
                     class="btn-icon delete"
                     title="Delete Permanently"
-                    @click="handleDeleteEnrollment(item.id)"
+                    @click="openActionModal('delete', item)"
                   >
                     🗑️
                   </button>
@@ -596,6 +623,93 @@ const formatDate = (dateString) => {
           </tbody>
         </table>
       </section>
+
+      <!-- Action Modals (Edit, Pay, Cancel, Delete) -->
+      <transition name="modal-fade">
+        <div v-if="actionModal.isOpen" class="modal-overlay" @click.self="closeActionModal">
+          <div class="modal-content action-modal">
+            <div class="modal-header">
+              <h3 v-if="actionModal.type === 'edit'">Edit Enrollment</h3>
+              <h3 v-if="actionModal.type === 'pay'">Mark as Paid</h3>
+              <h3 v-if="actionModal.type === 'cancel'">Cancel Enrollment</h3>
+              <h3 v-if="actionModal.type === 'delete'" class="danger-text">Delete Permanently</h3>
+              <button class="close-btn" @click="closeActionModal">×</button>
+            </div>
+
+            <div class="modal-body">
+              <transition name="toast-fade">
+                <div v-if="errorMessage" class="alert-box error">
+                  <span class="icon">⚠️</span> {{ errorMessage }}
+                </div>
+              </transition>
+              <transition name="toast-fade">
+                <div v-if="successMessage" class="alert-box success">
+                  <span class="icon">✅</span> {{ successMessage }}
+                </div>
+              </transition>
+
+              <!-- Edit Amount Form -->
+              <div v-if="actionModal.type === 'edit'" class="form-group full-width">
+                <label>Adjust Enrollment Amount ($)</label>
+                <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
+                <small class="help-text">Update the total amount charged to the parent.</small>
+              </div>
+
+              <!-- Mark Paid Form -->
+              <div v-if="actionModal.type === 'pay'" class="form-group full-width">
+                <label>Proof of Payment <span class="required">*</span></label>
+                <input
+                  type="text"
+                  v-model="actionModal.proof"
+                  placeholder="e.g. Cash, Check #1024, Bank Transfer ID"
+                />
+                <small class="help-text"
+                  >You must require proof of payment to authorize this change.</small
+                >
+              </div>
+
+              <!-- Cancel Form -->
+              <div v-if="actionModal.type === 'cancel'" class="form-group full-width">
+                <label>Reason for Cancellation <span class="required">*</span></label>
+                <input
+                  type="text"
+                  v-model="actionModal.reason"
+                  placeholder="e.g. Parent requested via email"
+                />
+                <small class="help-text warning-text"
+                  ><span class="icon">ℹ️</span> Only cancel if the parent explicitly asked, or if
+                  unauthorized.</small
+                >
+              </div>
+
+              <!-- Delete Form -->
+              <div v-if="actionModal.type === 'delete'" class="form-group full-width">
+                <p style="margin-bottom: 15px; color: #555; font-size: 0.95rem">
+                  Deleting this enrollment removes it permanently from the database. It cannot be
+                  recovered.<br /><br />
+                  Please type <strong class="danger-text">DELETE</strong> below to confirm you have
+                  authorization.
+                </p>
+                <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button class="cancel-btn" @click="closeActionModal">Nevermind</button>
+              <button
+                class="save-btn"
+                :class="{
+                  'danger-btn': actionModal.type === 'delete' || actionModal.type === 'cancel',
+                }"
+                @click="submitActionModal"
+                :disabled="submitting"
+              >
+                {{ submitting ? 'Processing...' : 'Confirm Action' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
     </div>
   </DashboardLayout>
 </template>
