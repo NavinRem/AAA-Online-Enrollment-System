@@ -471,7 +471,7 @@ const formatDate = (dateString) => {
                       </small>
                       <button
                         class="outline-btn small-btn"
-                        @click="$router.push('/dashboard/students')"
+                        @click="$router.push('/students')"
                         style="padding: 6px 12px; font-size: 0.8rem"
                       >
                         + Go to Students Directory
