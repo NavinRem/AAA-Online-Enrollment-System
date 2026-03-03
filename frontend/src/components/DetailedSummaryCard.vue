@@ -37,7 +37,7 @@ defineProps({
 .summary-content {
   background: #eef6fc;
   padding: 20px;
-  margin: 20px;
+  margin: 0 20px 20px;
   border-radius: 12px;
 }
 
@@ -51,17 +51,19 @@ defineProps({
 }
 
 :deep(.summary-label) {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #555;
-  margin: 0 0 4px;
+  color: #7d8ea3;
+  margin: 0 0 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 :deep(.summary-value) {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: #1a1a1a;
   margin: 0;
-  font-weight: 500;
+  font-weight: 700;
   line-height: 1.4;
 }
 

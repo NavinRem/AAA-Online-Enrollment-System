@@ -85,18 +85,21 @@ const props = defineProps({
 }
 
 :deep(.info-block-light p) {
-  margin: 0 0 10px;
-  font-size: 0.9rem;
+  margin: 0 0 12px;
+  font-size: 0.95rem;
   color: #333;
   line-height: 1.4;
 }
+
 :deep(.info-block-light p:last-child) {
   margin-bottom: 0;
 }
+
 :deep(.info-block-light p strong) {
   color: #1a1a1a;
   font-weight: 700;
-  margin-right: 5px;
+  margin-right: 8px;
+  display: inline-block;
 }
 
 .loading-shimmer {
