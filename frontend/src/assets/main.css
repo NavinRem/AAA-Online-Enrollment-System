@@ -39,3 +39,72 @@ button {
 button:active {
   transform: scale(0.98);
 }
+
+/* Global Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-align: center;
+}
+
+.status-badge.success {
+  background-color: #e6f8ea !important;
+  color: #2e7d32 !important;
+}
+
+.status-badge.warning {
+  background-color: #fff3e0 !important;
+  color: #ef6c00 !important;
+}
+
+.status-badge.danger {
+  background-color: #fdeaea !important;
+  color: #c62828 !important;
+}
+
+.status-badge.active {
+  background-color: #e3f2fd !important;
+  color: #0d47a1 !important;
+}
+
+/* Global Action Icon Buttons */
+.btn-icon {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.btn-icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  filter: brightness(0.9);
+}
+
+.btn-icon.edit {
+  background-color: #00aeef;
+}
+
+.btn-icon.check {
+  background-color: #2e7d32;
+}
+
+.btn-icon.cancel {
+  background-color: #f57c00;
+}
+
+.btn-icon.delete {
+  background-color: #d32f2f;
+}
