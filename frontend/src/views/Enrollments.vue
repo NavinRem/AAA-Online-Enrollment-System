@@ -544,8 +544,8 @@ const formatDate = (dateString) => {
               <th>#Session</th>
               <th>Status</th>
               <th>Amount</th>
-              <th class="even-col">Enrolled Date</th>
-              <th class="even-col">Remark</th>
+              <th>Enrolled Date</th>
+              <th>Remark</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -578,7 +578,7 @@ const formatDate = (dateString) => {
               <td>
                 <span class="amount-badge">${{ item.amount || item.totalAmount || 180 }}</span>
               </td>
-              <td class="even-col">
+              <td>
                 {{
                   formatDate(
                     item.enrollAt ||
@@ -589,7 +589,7 @@ const formatDate = (dateString) => {
                   )
                 }}
               </td>
-              <td class="even-col remark-cell">
+              <td class="remark-cell">
                 <span v-if="item.remark" class="remark-text" :title="item.remark">{{
                   item.remark
                 }}</span>
@@ -674,18 +674,26 @@ const formatDate = (dateString) => {
                 <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
 
                 <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
+                <select
+                  style="margin-bottom: 10px"
+                  @change="
+                    actionModal.remark = $event.target.value
+                    $event.target.value = ''
+                  "
+                >
+                  <option value="" disabled selected>
+                    -- Choose a common preset or type below --
+                  </option>
+                  <option value="VIP Student">VIP Student</option>
+                  <option value="Needs extra attention">Needs extra attention</option>
+                  <option value="Parent will pay next week">Parent will pay next week</option>
+                  <option value="Pending partial refund">Pending partial refund</option>
+                </select>
                 <input
                   type="text"
                   v-model="actionModal.remark"
-                  list="remark-options"
-                  placeholder="e.g. VIP Student, Needs extra attention, Parent will pay next week..."
+                  placeholder="Or type custom remark..."
                 />
-                <datalist id="remark-options">
-                  <option value="VIP Student"></option>
-                  <option value="Needs extra attention"></option>
-                  <option value="Parent will pay next week"></option>
-                  <option value="Pending partial refund"></option>
-                </datalist>
               </div>
 
               <!-- Mark Paid Form -->
@@ -699,18 +707,26 @@ const formatDate = (dateString) => {
                   </p>
                 </div>
                 <label>Proof of Payment Reference <span class="required">*</span></label>
+                <select
+                  style="margin-bottom: 10px"
+                  @change="
+                    actionModal.proof = $event.target.value
+                    $event.target.value = ''
+                  "
+                >
+                  <option value="" disabled selected>
+                    -- Choose a common method or type below --
+                  </option>
+                  <option value="Paid in Cash">Paid in Cash</option>
+                  <option value="Paid via Check">Paid via Check</option>
+                  <option value="Paid via Bank Transfer">Paid via Bank Transfer</option>
+                  <option value="Paid via Credit Card">Paid via Credit Card</option>
+                </select>
                 <input
                   type="text"
                   v-model="actionModal.proof"
-                  list="proof-options"
-                  placeholder="e.g. Bank Ref: 10934892, or Cash Receipt #1024"
+                  placeholder="Or type bank reference number..."
                 />
-                <datalist id="proof-options">
-                  <option value="Paid in Cash"></option>
-                  <option value="Paid via Check"></option>
-                  <option value="Paid via Bank Transfer"></option>
-                  <option value="Paid via Credit Card"></option>
-                </datalist>
               </div>
 
               <!-- Cancel Form -->
@@ -724,19 +740,27 @@ const formatDate = (dateString) => {
                   </p>
                 </div>
                 <label>Reason for Cancellation <span class="required">*</span></label>
+                <select
+                  style="margin-bottom: 10px"
+                  @change="
+                    actionModal.reason = $event.target.value
+                    $event.target.value = ''
+                  "
+                >
+                  <option value="" disabled selected>
+                    -- Choose a common reason or type below --
+                  </option>
+                  <option value="Parent requested via email">Parent requested via email</option>
+                  <option value="Parent requested via phone">Parent requested via phone</option>
+                  <option value="Did not pay on time">Did not pay on time</option>
+                  <option value="Course schedule conflict">Course schedule conflict</option>
+                  <option value="Duplicate enrollment">Duplicate enrollment</option>
+                </select>
                 <input
                   type="text"
                   v-model="actionModal.reason"
-                  list="reason-options"
-                  placeholder="e.g. Parent requested via email"
+                  placeholder="Or type custom reason..."
                 />
-                <datalist id="reason-options">
-                  <option value="Parent requested via email"></option>
-                  <option value="Parent requested via phone"></option>
-                  <option value="Did not pay on time"></option>
-                  <option value="Course schedule conflict"></option>
-                  <option value="Duplicate enrollment"></option>
-                </datalist>
               </div>
 
               <!-- Delete Form -->
@@ -917,11 +941,6 @@ const formatDate = (dateString) => {
 
 .remark-cell {
   max-width: 150px;
-}
-
-.even-col {
-  width: 15%;
-  min-width: 130px;
 }
 
 .remark-text {
