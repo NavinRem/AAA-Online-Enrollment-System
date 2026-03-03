@@ -168,6 +168,53 @@ class RegistrationService {
 
     return { message: "Registration cancelled successfully" };
   }
+
+  // 10. Update Registration
+  async updateRegistration(enrollmentId, updateData) {
+    const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
+    const doc = await enrollmentRef.get();
+
+    if (!doc.exists) throw new Error("Registration not found");
+
+    // Clean data safely
+    const safeData = { ...updateData, updatedAt: new Date().toISOString() };
+    delete safeData.id;
+
+    await enrollmentRef.update(safeData);
+
+    return { id: enrollmentId, ...safeData };
+  }
+
+  // 11. Delete Registration Permanently
+  async deleteRegistration(enrollmentId) {
+    const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
+    const doc = await enrollmentRef.get();
+
+    if (!doc.exists) throw new Error("Registration not found");
+
+    const data = doc.data();
+
+    // If active/pending, we must reduce session count before deleting
+    if (data.status !== "cancelled" && data.status !== "canceled") {
+      await db.runTransaction(async (transaction) => {
+        const sessionRef = db.collection("session").doc(data.session_id);
+        const sessionDoc = await transaction.get(sessionRef);
+
+        if (sessionDoc.exists) {
+          const currentCount = sessionDoc.data().num_student || 0;
+          if (currentCount > 0) {
+            transaction.update(sessionRef, { num_student: currentCount - 1 });
+          }
+        }
+        transaction.delete(enrollmentRef);
+      });
+    } else {
+      // It was already cancelled, just delete it
+      await enrollmentRef.delete();
+    }
+
+    return { message: "Registration deleted permanently" };
+  }
 }
 
 module.exports = new RegistrationService();
