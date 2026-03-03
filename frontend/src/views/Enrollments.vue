@@ -536,17 +536,17 @@ const formatDate = (dateString) => {
         <table v-else class="data-table">
           <thead>
             <tr>
-              <th>No</th>
-              <th>Parent/Guardian</th>
-              <th>Child</th>
-              <th>Course</th>
-              <th>Session</th>
-              <th>#Session</th>
-              <th>Status</th>
-              <th>Amount</th>
-              <th>Remark</th>
-              <th>Enrolled Date</th>
-              <th>Actions</th>
+              <th style="width: 4%">No</th>
+              <th style="width: 14%">Parent/Guardian</th>
+              <th style="width: 12%">Child</th>
+              <th style="width: 18%">Course</th>
+              <th style="width: 10%">Session</th>
+              <th style="width: 8%">#Session</th>
+              <th style="width: 8%">Status</th>
+              <th style="width: 8%">Amount</th>
+              <th style="width: 8%">Date</th>
+              <th style="width: 10%">Remark</th>
+              <th style="width: 120px">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -578,12 +578,6 @@ const formatDate = (dateString) => {
               <td>
                 <span class="amount-badge">${{ item.amount || item.totalAmount || 180 }}</span>
               </td>
-              <td class="remark-cell">
-                <span v-if="item.remark" class="remark-text" :title="item.remark">{{
-                  item.remark
-                }}</span>
-                <span v-else class="text-muted">-</span>
-              </td>
               <td>
                 {{
                   formatDate(
@@ -594,6 +588,12 @@ const formatDate = (dateString) => {
                       item.timestamp,
                   )
                 }}
+              </td>
+              <td class="remark-cell">
+                <span v-if="item.remark" class="remark-text" :title="item.remark">{{
+                  item.remark
+                }}</span>
+                <span v-else class="text-muted">-</span>
               </td>
               <td class="action-cell">
                 <div class="inline-actions">
@@ -687,15 +687,21 @@ const formatDate = (dateString) => {
                   <span class="icon">💡</span>
                   <p>
                     <strong>How to provide proof:</strong> Please enter the transaction reference
-                    number provided by the bank, or type "Cash" followed by the receipt number you
-                    gave the parent.
+                    number provided by the bank, or select a common payment method below.
                   </p>
                 </div>
                 <label>Proof of Payment Reference <span class="required">*</span></label>
+                <select v-model="actionModal.proof">
+                  <option value="" disabled>-- Select common method or type below --</option>
+                  <option value="Paid in Cash">Paid in Cash</option>
+                  <option value="Paid via Check">Paid via Check</option>
+                  <option value="Paid via Bank Transfer">Paid via Bank Transfer</option>
+                </select>
                 <input
                   type="text"
                   v-model="actionModal.proof"
-                  placeholder="e.g. Bank Ref: 10934892, or Cash Receipt #1024"
+                  placeholder="Or type bank reference number..."
+                  style="margin-top: 10px"
                 />
               </div>
 
@@ -705,15 +711,23 @@ const formatDate = (dateString) => {
                   <span class="icon">⚠️</span>
                   <p>
                     <strong>Cancellation Policy:</strong> A cancellation stops this student from
-                    attending the course. You MUST provide the exact reason (e.g., Parent email
-                    request on [Date]).
+                    attending the course. You MUST provide the exact reason.
                   </p>
                 </div>
                 <label>Reason for Cancellation <span class="required">*</span></label>
+                <select v-model="actionModal.reason">
+                  <option value="" disabled>-- Select or Type Custom Reason --</option>
+                  <option value="Parent requested via email">Parent requested via email</option>
+                  <option value="Parent requested via phone">Parent requested via phone</option>
+                  <option value="Did not pay on time">Did not pay on time</option>
+                  <option value="Course schedule conflict">Course schedule conflict</option>
+                  <option value="Duplicate enrollment">Duplicate enrollment</option>
+                </select>
                 <input
                   type="text"
                   v-model="actionModal.reason"
-                  placeholder="e.g. Parent requested via email"
+                  placeholder="Or type custom reason here..."
+                  style="margin-top: 10px"
                 />
               </div>
 
