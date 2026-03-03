@@ -22,6 +22,12 @@ const router = createRouter({
       meta: { title: 'Enrollment' },
     },
     {
+      path: '/enrollment/:id',
+      name: 'enrollment-detail',
+      component: () => import('../views/EnrollmentDetail.vue'),
+      meta: { title: 'Registration Detail' },
+    },
+    {
       path: '/parents',
       name: 'parents',
       component: () => import('../views/Parents.vue'),
