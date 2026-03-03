@@ -59,6 +59,30 @@ const loadFormData = async () => {
   }
 }
 
+const parentSearchQuery = ref('')
+const isParentDropdownOpen = ref(false)
+
+const filteredParents = computed(() => {
+  if (!parentSearchQuery.value) return parents.value
+  const q = parentSearchQuery.value.toLowerCase()
+  return parents.value.filter(
+    (p) => (p.name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q),
+  )
+})
+
+const selectedParentLabel = computed(() => {
+  if (!formData.value.parentId) return 'Choose a parent'
+  const p = parents.value.find((p) => p.uid === formData.value.parentId)
+  return p ? p.name || p.email : 'Choose a parent'
+})
+
+const selectParent = (uid) => {
+  formData.value.parentId = uid
+  isParentDropdownOpen.value = false
+  errorMessage.value = ''
+  formData.value.studentId = ''
+}
+
 const availableStudents = computed(() => {
   if (!formData.value.parentId) return []
   return students.value.filter(
@@ -154,14 +178,33 @@ const totalUnpaidRegistration = computed(
 )
 
 const filteredRegistrations = computed(() => {
-  if (!searchQuery.value) return registrations.value
-  const query = searchQuery.value.toLowerCase()
-  return registrations.value.filter(
-    (r) =>
-      (r.parentName || r.parent_name || '').toLowerCase().includes(query) ||
-      (r.studentName || r.student_name || '').toLowerCase().includes(query) ||
-      (r.courseTitle || r.course_title || '').toLowerCase().includes(query),
-  )
+  let list = [...registrations.value]
+
+  // Sort descending by date (newest enrollment first)
+  list.sort((a, b) => {
+    const aDate =
+      new Date(
+        a.enrollAt || a.createdAt || a.created_at || a.registrationDate || a.timestamp,
+      ).getTime() || 0
+    const bDate =
+      new Date(
+        b.enrollAt || b.createdAt || b.created_at || b.registrationDate || b.timestamp,
+      ).getTime() || 0
+    return bDate - aDate
+  })
+
+  // Filter list by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    list = list.filter(
+      (r) =>
+        (r.parentName || r.parent_name || '').toLowerCase().includes(query) ||
+        (r.studentName || r.student_name || '').toLowerCase().includes(query) ||
+        (r.courseTitle || r.course_title || '').toLowerCase().includes(query),
+    )
+  }
+
+  return list
 })
 
 const formatSession = (item) => {
@@ -282,14 +325,46 @@ const formatDate = (dateString) => {
                 </transition>
 
                 <div class="form-grid">
-                  <div class="form-group">
+                  <div class="form-group custom-dropdown-container">
                     <label>Select Parent / Guardian</label>
-                    <select v-model="formData.parentId" @change="errorMessage = ''">
-                      <option value="" disabled>Choose a parent</option>
-                      <option v-for="p in parents" :key="p.uid" :value="p.uid">
-                        {{ p.name || p.email }}
-                      </option>
-                    </select>
+                    <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
+                      <div
+                        class="dropdown-header"
+                        @click="isParentDropdownOpen = !isParentDropdownOpen"
+                      >
+                        {{ selectedParentLabel }}
+                        <span class="chevron"></span>
+                      </div>
+                      <transition name="toast-fade">
+                        <div class="dropdown-menu" v-if="isParentDropdownOpen">
+                          <div class="dropdown-search">
+                            <input
+                              type="text"
+                              v-model="parentSearchQuery"
+                              placeholder="Search name or email..."
+                              autofocus
+                            />
+                          </div>
+                          <ul class="dropdown-list">
+                            <li
+                              v-for="p in filteredParents"
+                              :key="p.uid"
+                              class="dropdown-item"
+                              :class="{ active: formData.parentId === p.uid }"
+                              @click="selectParent(p.uid)"
+                            >
+                              {{ p.name || p.email }}
+                            </li>
+                            <li
+                              v-if="filteredParents.length === 0"
+                              class="dropdown-item no-results"
+                            >
+                              No matches found.
+                            </li>
+                          </ul>
+                        </div>
+                      </transition>
+                    </div>
                   </div>
                   <div class="form-group">
                     <label>Select Student</label>
@@ -307,7 +382,7 @@ const formatDate = (dateString) => {
                       v-if="formData.parentId && availableStudents.length === 0"
                       class="warning-text"
                     >
-                      <span class="icon">ℹ️</span> This parent has no registered students.
+                      <span class="icon">ℹ️</span> This parent has not registered a child yet.
                     </small>
                   </div>
                   <div class="form-group">
@@ -789,6 +864,109 @@ const formatDate = (dateString) => {
   cursor: not-allowed;
   border-color: #eee;
   background-image: none;
+}
+
+/* Custom Dropdown Styles */
+.custom-dropdown-container {
+  position: relative;
+}
+.custom-dropdown {
+  position: relative;
+  width: 100%;
+}
+.dropdown-header {
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  background: #fcfcfc;
+  color: #1a1a1a;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+.dropdown-header:hover {
+  border-color: #b3b3b3;
+}
+.custom-dropdown.open .dropdown-header {
+  border-color: #00aeef;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(0, 174, 239, 0.1);
+}
+.chevron {
+  width: 16px;
+  height: 16px;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: transform 0.2s;
+}
+.custom-dropdown.open .chevron {
+  transform: rotate(180deg);
+}
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e0e0e0;
+  z-index: 100;
+  overflow: hidden;
+  max-height: 250px;
+  display: flex;
+  flex-direction: column;
+}
+.dropdown-search {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  background: #fdfdfd;
+}
+.dropdown-search input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.dropdown-search input:focus {
+  outline: none;
+  border-color: #00aeef;
+}
+.dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+.dropdown-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #333;
+  transition: background 0.2s;
+}
+.dropdown-item:hover {
+  background: #f5f5f5;
+}
+.dropdown-item.active {
+  background: #e1f5fe;
+  color: #00aeef;
+  font-weight: 700;
+}
+.dropdown-item.no-results {
+  color: #999;
+  cursor: default;
+  text-align: center;
+}
+.dropdown-item.no-results:hover {
+  background: white;
 }
 
 .warning-text {
