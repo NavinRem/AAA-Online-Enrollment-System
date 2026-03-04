@@ -31,6 +31,56 @@
           placeholder="e.g. Nut allergy, Asthma, or 'None'"
           rows="3"
         ></textarea>
+        <div class="preset-chips">
+          <button
+            type="button"
+            class="preset-chip"
+            :class="{ active: formData.medical_note === 'None' }"
+            @click="formData.medical_note = 'None'"
+          >
+            None
+          </button>
+          <button
+            type="button"
+            class="preset-chip"
+            :class="{ active: formData.medical_note === 'G6PD Deficiency' }"
+            @click="formData.medical_note = 'G6PD Deficiency'"
+          >
+            G6PD Deficiency
+          </button>
+          <button
+            type="button"
+            class="preset-chip"
+            :class="{ active: formData.medical_note === 'ADHD' }"
+            @click="formData.medical_note = 'ADHD'"
+          >
+            ADHD
+          </button>
+          <button
+            type="button"
+            class="preset-chip"
+            :class="{ active: formData.medical_note === 'Dyslexia' }"
+            @click="formData.medical_note = 'Dyslexia'"
+          >
+            Dyslexia
+          </button>
+          <button
+            type="button"
+            class="preset-chip"
+            :class="{ active: formData.medical_note === 'Asthma' }"
+            @click="formData.medical_note = 'Asthma'"
+          >
+            Asthma
+          </button>
+          <button
+            type="button"
+            class="preset-chip"
+            :class="{ active: formData.medical_note === 'Vision Impairment' }"
+            @click="formData.medical_note = 'Vision Impairment'"
+          >
+            Vision Impairment
+          </button>
+        </div>
       </div>
     </div>
 
@@ -90,5 +140,36 @@ const handleSubmit = () => {
 <style scoped>
 .required {
   color: #ef4444;
+}
+
+/* Preset Chips */
+.preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.preset-chip {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 100px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.preset-chip:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.preset-chip.active {
+  background: #eff6ff;
+  border-color: #00aeef;
+  color: #00aeef;
+  font-weight: 600;
 }
 </style>
