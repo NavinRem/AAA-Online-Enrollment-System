@@ -15,7 +15,7 @@
 .data-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 8px; /* This creates the gap between rows! */
+  border-spacing: 0 5px; /* This creates the gap between rows! */
   text-align: left;
 }
 
@@ -56,6 +56,14 @@
   background-color: #ffffff; /* Explicit background for gaps */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02); /* Slight shadow to make rows pop */
   border-radius: 8px; /* Rounded corners for rows */
+}
+
+/* Add specialized styling for columns that tend to have long text, like the Remark column */
+.data-table td.remark-cell {
+  max-width: 250px;
+  min-width: 150px;
+  white-space: normal; /* Allow text to wrap naturally if it's very long */
+  word-wrap: break-word; /* Ensure it doesn't break the layout */
 }
 
 .data-table tbody tr:hover {
