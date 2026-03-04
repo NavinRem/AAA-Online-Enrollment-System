@@ -60,6 +60,21 @@ export const userService = {
     })
   },
 
+  // Update User Profile (Admin)
+  async updateUser(uid, updateData) {
+    return request(`/users/${uid}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    })
+  },
+
+  // Delete User Account (Admin)
+  async deleteUser(uid) {
+    return request(`/users/${uid}`, {
+      method: 'DELETE',
+    })
+  },
+
   // Aliases for backward compatibility in components
   async createUser(userData) {
     return this.registerParentAccount(userData)
