@@ -150,6 +150,11 @@ const submitActionModal = async (formData) => {
   } catch (err) {
     console.error(`Failed to handle ${type} parent`, err)
     errorMessage.value = err.message || `Failed to ${type} parent. Please try again.`
+  } finally {
+    submitting.value = false
+  }
+}
+
 const submitNewParent = async (data) => {
   submitting.value = true
   errorMessage.value = ''
@@ -166,7 +171,7 @@ const submitNewParent = async (data) => {
       ...data,
       status: 'Active',
       createdAt: new Date().toISOString(),
-      studentProfiles: []
+      studentProfiles: [],
     }
     allUsers.value.unshift(newUser)
 
@@ -178,7 +183,6 @@ const submitNewParent = async (data) => {
     setTimeout(() => {
       showNewParentModal.value = false
     }, 1500)
-
   } catch (err) {
     console.error('Failed to create parent account', err)
     errorMessage.value = err.message || 'Error occurred while creating the account'
