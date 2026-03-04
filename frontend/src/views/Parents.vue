@@ -100,7 +100,6 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
             'Child',
             'Phone Number',
             'Email',
-            'Address',
             'Joined Date',
             'Role',
             'Status',
@@ -114,14 +113,37 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
 
           <tr v-for="(item, index) in filteredParents" :key="item.uid || item.id">
             <td>{{ index + 1 }}</td>
-            <td class="bold">{{ item.name || 'Anonymous' }}</td>
+            <td class="bold">
+              <div class="user-info">
+                <div class="avatar-mini">
+                  <img
+                    :src="item.profileURL || '/src/assets/images/female-profile-parent.jpg'"
+                    alt="avatar"
+                  />
+                </div>
+                {{ item.name || 'Anonymous' }}
+              </div>
+            </td>
             <td>
-              <span v-if="!item.children || item.children.length === 0">N/A</span>
-              <span v-else>👦👧</span>
+              <div class="children-stack">
+                <span v-if="!item.children || item.children.length === 0" class="text-muted"
+                  >None</span
+                >
+                <template v-else>
+                  <div
+                    v-for="(childId, i) in item.children"
+                    :key="i"
+                    class="avatar-mini child-avatar"
+                    :title="'Child ' + (i + 1)"
+                    :style="{ zIndex: item.children.length - i }"
+                  >
+                    <img src="/src/assets/images/child-profile.png" alt="child" />
+                  </div>
+                </template>
+              </div>
             </td>
             <td>{{ item.phone || 'N/A' }}</td>
             <td>{{ item.email }}</td>
-            <td>{{ item.address || 'Not Provided' }}</td>
             <td>
               {{
                 new Date(
@@ -149,9 +171,50 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
 </template>
 
 <style scoped>
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
+  border: 2px solid white;
+}
+
+.avatar-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.children-stack {
+  display: flex;
+  align-items: center;
+}
+
+.child-avatar {
+  margin-left: -10px;
+  width: 28px;
+  height: 28px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.child-avatar:first-child {
+  margin-left: 0;
+}
+
 .bold {
   font-weight: 600;
   color: #1a1a1a;
+}
+
+.text-muted {
+  color: #888;
 }
 
 .actions-wrapper {
