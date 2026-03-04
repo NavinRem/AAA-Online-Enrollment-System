@@ -61,9 +61,86 @@ onMounted(async () => {
 
 const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, parentSearchMapper)
 
-const openEditParent = (parent) => {
-  // We can open a modal to change their name, phone, email, or add a child!
-  alert(`Edit mode for ${parent.name || parent.email} triggered. Under construction!`)
+const submitting = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+
+// Unified Action Modal State
+const actionModal = ref({
+  isOpen: false,
+  type: '', // 'edit', 'deactivate', 'delete'
+  user: null,
+  name: '',
+  phone: '',
+  email: '',
+  role: 'parent',
+  deleteConfirm: '',
+})
+
+const openActionModal = (type, item) => {
+  errorMessage.value = ''
+  successMessage.value = ''
+  actionModal.value = {
+    isOpen: true,
+    type,
+    user: item,
+    name: item.name || '',
+    phone: item.phone || '',
+    email: item.email || '',
+    role: item.role || 'parent',
+    deleteConfirm: '',
+  }
+}
+
+const closeActionModal = () => {
+  actionModal.value.isOpen = false
+}
+
+const submitActionModal = async () => {
+  const { type, user, name, phone, email, role, deleteConfirm } = actionModal.value
+  submitting.value = true
+  errorMessage.value = ''
+
+  try {
+    if (type === 'edit') {
+      // Mock API call for updating user info
+      // await userService.updateUser(user.uid || user.id, { name, phone, email, role })
+
+      const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
+      if (idx !== -1) {
+        allUsers.value[idx].name = name
+        allUsers.value[idx].phone = phone
+        allUsers.value[idx].email = email
+        allUsers.value[idx].role = role
+      }
+      successMessage.value = 'User updated successfully! (Mocked)'
+    } else if (type === 'deactivate') {
+      // Mock API call for deactivation
+      // await userService.updateUser(user.uid || user.id, { status: 'Inactive' })
+      const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
+      if (idx !== -1) {
+        allUsers.value[idx].status = 'Inactive'
+      }
+      successMessage.value = 'User deactivated successfully! (Mocked)'
+    } else if (type === 'delete') {
+      if (deleteConfirm !== 'DELETE') {
+        throw new Error('You must type DELETE specifically to confirm.')
+      }
+      // Mock API call for deletion
+      // await userService.deleteUser(user.uid || user.id)
+      allUsers.value = allUsers.value.filter((u) => (u.uid || u.id) !== (user.uid || user.id))
+      successMessage.value = 'User deleted successfully! (Mocked)'
+    }
+
+    setTimeout(() => {
+      closeActionModal()
+    }, 1500)
+  } catch (err) {
+    console.error(`Failed to handle ${type} parent`, err)
+    errorMessage.value = err.message || `Failed to ${type} parent. Please try again.`
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -175,18 +252,117 @@ const openEditParent = (parent) => {
                 <button
                   class="btn-icon edit"
                   title="Edit Parent"
-                  @click.stop="openEditParent(item)"
+                  @click.stop="openActionModal('edit', item)"
                 >
                   ✏️
                 </button>
-                <button class="btn-icon check">🚫</button>
-                <button class="btn-icon delete">🗑️</button>
+                <button
+                  class="btn-icon check"
+                  title="Deactivate Account"
+                  @click.stop="openActionModal('deactivate', item)"
+                >
+                  🚫
+                </button>
+                <button
+                  class="btn-icon delete"
+                  title="Delete Account"
+                  @click.stop="openActionModal('delete', item)"
+                >
+                  🗑️
+                </button>
               </div>
             </td>
           </tr>
         </AppTable>
       </template>
     </DataPageLayout>
+
+    <!-- Unified Action Modal -->
+    <transition name="modal">
+      <div v-if="actionModal.isOpen" class="modal-overlay" @click.self="closeActionModal">
+        <div class="modal-container action-modal">
+          <div class="modal-header">
+            <h3>
+              {{ actionModal.type === 'edit' ? 'Edit User' : '' }}
+              {{ actionModal.type === 'deactivate' ? 'Deactivate User' : '' }}
+              {{ actionModal.type === 'delete' ? 'Delete User' : '' }}
+            </h3>
+            <button class="close-btn" @click="closeActionModal">&times;</button>
+          </div>
+
+          <div class="modal-body">
+            <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
+            <div v-if="successMessage" class="success-banner">{{ successMessage }}</div>
+
+            <div class="target-summary" v-if="actionModal.user">
+              Executing action on:
+              <strong>{{ actionModal.user.name || actionModal.user.email }}</strong>
+            </div>
+
+            <!-- Edit Form -->
+            <div v-if="actionModal.type === 'edit'" class="form-group full-width">
+              <label>Full Name</label>
+              <input type="text" v-model="actionModal.name" placeholder="Enter full name" />
+
+              <label style="margin-top: 15px">Email Address</label>
+              <input type="email" v-model="actionModal.email" placeholder="Enter email" />
+
+              <label style="margin-top: 15px">Phone Number</label>
+              <input type="tel" v-model="actionModal.phone" placeholder="Enter phone number" />
+
+              <label style="margin-top: 15px">Role</label>
+              <select v-model="actionModal.role" class="form-select">
+                <option value="parent">Parent</option>
+                <option value="guardian">Guardian</option>
+              </select>
+            </div>
+
+            <!-- Deactivate Form -->
+            <div v-if="actionModal.type === 'deactivate'" class="form-group full-width">
+              <div class="info-block warning">
+                <span class="icon">⚠️</span>
+                <p>
+                  <strong>Deactivation:</strong> Deactivating an account will prevent the user from
+                  logging in and accessing their child's records. You can reactivate them later.
+                </p>
+              </div>
+            </div>
+
+            <!-- Delete Form -->
+            <div v-if="actionModal.type === 'delete'" class="form-group full-width">
+              <div class="info-block danger">
+                <span class="icon">🛑</span>
+                <p>
+                  <strong>Critical Warning:</strong> Deleting an account removes the record
+                  entirely, along with associated child records. It can never be recovered.
+                </p>
+              </div>
+              <label>Confirm Deletion <span class="required">*</span></label>
+              <p style="margin-bottom: 15px; color: #555; font-size: 0.95rem">
+                Please type <strong class="danger-text">DELETE</strong> below to confirm.
+              </p>
+              <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <AppButton variant="cancel" @click="closeActionModal">Nevermind</AppButton>
+            <AppButton
+              :variant="
+                actionModal.type === 'delete' || actionModal.type === 'deactivate'
+                  ? 'danger'
+                  : 'primary'
+              "
+              @click="submitActionModal"
+              :loading="submitting"
+              :disabled="submitting"
+            >
+              Confirm Action
+            </AppButton>
+          </div>
+        </div>
+      </div>
+    </transition>
   </DashboardLayout>
 </template>
 
