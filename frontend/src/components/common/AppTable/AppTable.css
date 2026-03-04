@@ -14,7 +14,8 @@
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 12px; /* This creates the gap between rows! */
   text-align: left;
 }
 
@@ -29,20 +30,35 @@
 }
 
 .data-table td {
-  padding: 18px 12px;
+  padding: 18px 16px; /* Added some horizontal padding so text isn't flush */
   font-size: 0.85rem;
   color: #444;
-  border-bottom: 1px solid #f8f8f8;
   vertical-align: middle;
+  border-top: 1px solid #f8f8f8;
+  border-bottom: 1px solid #f8f8f8;
 }
 
-.data-table tr {
+/* Add left and right borders to the first and last cells to complete the row styling */
+.data-table td:first-child {
+  border-left: 1px solid #f8f8f8;
+  border-radius: 8px 0 0 8px;
+}
+
+.data-table td:last-child {
+  border-right: 1px solid #f8f8f8;
+  border-radius: 0 8px 8px 0;
+}
+
+.data-table tbody tr {
   transition:
     background-color 0.2s ease,
     transform 0.1s ease;
+  background-color: #ffffff; /* Explicit background for gaps */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02); /* Slight shadow to make rows pop */
+  border-radius: 8px; /* Rounded corners for rows */
 }
 
-.data-table tr:hover {
+.data-table tbody tr:hover {
   background-color: #f4fafe;
   cursor: pointer;
 }
