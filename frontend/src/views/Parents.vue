@@ -7,6 +7,8 @@ import TableToolbar from '../components/common/TableToolbar/TableToolbar.vue'
 import AppButton from '../components/common/AppButton/AppButton.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
+import ParentActionModal from '../components/parents/ParentActionModal.vue'
+import NewParentModal from '../components/parents/NewParentModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
 
@@ -77,6 +79,9 @@ const actionModal = ref({
   deleteConfirm: '',
 })
 
+// New Parent Modal State
+const showNewParentModal = ref(false)
+
 const openActionModal = (type, item) => {
   errorMessage.value = ''
   successMessage.value = ''
@@ -96,8 +101,9 @@ const closeActionModal = () => {
   actionModal.value.isOpen = false
 }
 
-const submitActionModal = async () => {
-  const { type, user, name, phone, email, role, deleteConfirm } = actionModal.value
+const submitActionModal = async (formData) => {
+  const { type, user } = actionModal.value
+  const { name, phone, email, role, deleteConfirm } = formData
   submitting.value = true
   errorMessage.value = ''
 
@@ -122,6 +128,12 @@ const submitActionModal = async () => {
         allUsers.value[idx].status = 'Inactive'
       }
       successMessage.value = 'User deactivated successfully! (Mocked)'
+    } else if (type === 'activate') {
+      const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
+      if (idx !== -1) {
+        allUsers.value[idx].status = 'Active'
+      }
+      successMessage.value = 'User reactivated successfully! (Mocked)'
     } else if (type === 'delete') {
       if (deleteConfirm !== 'DELETE') {
         throw new Error('You must type DELETE specifically to confirm.')
@@ -138,6 +150,38 @@ const submitActionModal = async () => {
   } catch (err) {
     console.error(`Failed to handle ${type} parent`, err)
     errorMessage.value = err.message || `Failed to ${type} parent. Please try again.`
+const submitNewParent = async (data) => {
+  submitting.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    // Real dynamic registration logic
+    // const result = await userService.registerParentAccount(data)
+
+    // Mock for now
+    const newId = 'MOCK_' + Math.random().toString(36).substr(2, 9)
+    const newUser = {
+      uid: newId,
+      ...data,
+      status: 'Active',
+      createdAt: new Date().toISOString(),
+      studentProfiles: []
+    }
+    allUsers.value.unshift(newUser)
+
+    // Update parents/guardians lists
+    if (data.role === 'parent') parents.value.unshift(newUser)
+    else guardians.value.unshift(newUser)
+
+    successMessage.value = 'New account created successfully!'
+    setTimeout(() => {
+      showNewParentModal.value = false
+    }, 1500)
+
+  } catch (err) {
+    console.error('Failed to create parent account', err)
+    errorMessage.value = err.message || 'Error occurred while creating the account'
   } finally {
     submitting.value = false
   }
@@ -190,7 +234,9 @@ const submitActionModal = async () => {
           ]"
         >
           <template #actions>
-            <AppButton variant="primary">+ New Parent</AppButton>
+            <AppButton variant="primary" @click="showNewParentModal = true">
+              + New Parent
+            </AppButton>
           </template>
         </TableToolbar>
       </template>
@@ -257,6 +303,15 @@ const submitActionModal = async () => {
                   ✏️
                 </button>
                 <button
+                  v-if="item.status === 'Inactive'"
+                  class="btn-icon check active-btn"
+                  title="Reactivate Account"
+                  @click.stop="openActionModal('activate', item)"
+                >
+                  ✅
+                </button>
+                <button
+                  v-else
                   class="btn-icon check"
                   title="Deactivate Account"
                   @click.stop="openActionModal('deactivate', item)"
@@ -277,92 +332,27 @@ const submitActionModal = async () => {
       </template>
     </DataPageLayout>
 
-    <!-- Unified Action Modal -->
-    <transition name="modal">
-      <div v-if="actionModal.isOpen" class="modal-overlay" @click.self="closeActionModal">
-        <div class="modal-container action-modal">
-          <div class="modal-header">
-            <h3>
-              {{ actionModal.type === 'edit' ? 'Edit User' : '' }}
-              {{ actionModal.type === 'deactivate' ? 'Deactivate User' : '' }}
-              {{ actionModal.type === 'delete' ? 'Delete User' : '' }}
-            </h3>
-            <button class="close-btn" @click="closeActionModal">&times;</button>
-          </div>
+    <!-- Unified Action Modal (Reusable Page-Specific Component) -->
+    <ParentActionModal
+      :isOpen="actionModal.isOpen"
+      :type="actionModal.type"
+      :user="actionModal.user"
+      :loading="submitting"
+      :error="errorMessage"
+      :success="successMessage"
+      @close="closeActionModal"
+      @submit="submitActionModal"
+    />
 
-          <div class="modal-body">
-            <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
-            <div v-if="successMessage" class="success-banner">{{ successMessage }}</div>
-
-            <div class="target-summary" v-if="actionModal.user">
-              Executing action on:
-              <strong>{{ actionModal.user.name || actionModal.user.email }}</strong>
-            </div>
-
-            <!-- Edit Form -->
-            <div v-if="actionModal.type === 'edit'" class="form-group full-width">
-              <label>Full Name</label>
-              <input type="text" v-model="actionModal.name" placeholder="Enter full name" />
-
-              <label style="margin-top: 15px">Email Address</label>
-              <input type="email" v-model="actionModal.email" placeholder="Enter email" />
-
-              <label style="margin-top: 15px">Phone Number</label>
-              <input type="tel" v-model="actionModal.phone" placeholder="Enter phone number" />
-
-              <label style="margin-top: 15px">Role</label>
-              <select v-model="actionModal.role" class="form-select">
-                <option value="parent">Parent</option>
-                <option value="guardian">Guardian</option>
-              </select>
-            </div>
-
-            <!-- Deactivate Form -->
-            <div v-if="actionModal.type === 'deactivate'" class="form-group full-width">
-              <div class="info-block warning">
-                <span class="icon">⚠️</span>
-                <p>
-                  <strong>Deactivation:</strong> Deactivating an account will prevent the user from
-                  logging in and accessing their child's records. You can reactivate them later.
-                </p>
-              </div>
-            </div>
-
-            <!-- Delete Form -->
-            <div v-if="actionModal.type === 'delete'" class="form-group full-width">
-              <div class="info-block danger">
-                <span class="icon">🛑</span>
-                <p>
-                  <strong>Critical Warning:</strong> Deleting an account removes the record
-                  entirely, along with associated child records. It can never be recovered.
-                </p>
-              </div>
-              <label>Confirm Deletion <span class="required">*</span></label>
-              <p style="margin-bottom: 15px; color: #555; font-size: 0.95rem">
-                Please type <strong class="danger-text">DELETE</strong> below to confirm.
-              </p>
-              <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <AppButton variant="cancel" @click="closeActionModal">Nevermind</AppButton>
-            <AppButton
-              :variant="
-                actionModal.type === 'delete' || actionModal.type === 'deactivate'
-                  ? 'danger'
-                  : 'primary'
-              "
-              @click="submitActionModal"
-              :loading="submitting"
-              :disabled="submitting"
-            >
-              Confirm Action
-            </AppButton>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <!-- Create New Parent Modal -->
+    <NewParentModal
+      :isOpen="showNewParentModal"
+      :loading="submitting"
+      :error="errorMessage"
+      :success="successMessage"
+      @close="showNewParentModal = false"
+      @submit="submitNewParent"
+    />
   </DashboardLayout>
 </template>
 
@@ -411,27 +401,8 @@ const submitActionModal = async () => {
   display: flex;
   gap: 6px;
 }
-.btn-icon {
-  background: white;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 14px;
-}
-
-.btn-icon:hover {
-  background: #f5f5f5;
-  transform: translateY(-2px);
-}
-
-.btn-icon.edit:hover {
-  border-color: #2196f3;
-  color: #2196f3;
+.btn-icon.active-btn:hover {
+  border-color: #4caf50;
+  color: #4caf50;
 }
 </style>
