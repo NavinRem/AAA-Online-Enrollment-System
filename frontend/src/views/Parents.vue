@@ -60,6 +60,11 @@ onMounted(async () => {
 })
 
 const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, parentSearchMapper)
+
+const openEditParent = (parent) => {
+  // We can open a modal to change their name, phone, email, or add a child!
+  alert(`Edit mode for ${parent.name || parent.email} triggered. Under construction!`)
+}
 </script>
 
 <template>
@@ -167,6 +172,13 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
             </td>
             <td>
               <div class="actions-wrapper">
+                <button
+                  class="btn-icon edit"
+                  title="Edit Parent"
+                  @click.stop="openEditParent(item)"
+                >
+                  ✏️
+                </button>
                 <button class="btn-icon check">🚫</button>
                 <button class="btn-icon delete">🗑️</button>
               </div>
@@ -222,5 +234,28 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
 .actions-wrapper {
   display: flex;
   gap: 6px;
+}
+.btn-icon {
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.btn-icon:hover {
+  background: #f5f5f5;
+  transform: translateY(-2px);
+}
+
+.btn-icon.edit:hover {
+  border-color: #2196f3;
+  color: #2196f3;
 }
 </style>
