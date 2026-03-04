@@ -2,11 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import DataPageLayout from '../components/common/DataPageLayout.vue'
 import AppButton from '../components/common/AppButton/AppButton.vue'
 import AppTable from '../components/common/AppTable/AppTable.vue'
+import TableToolbar from '../components/common/TableToolbar/TableToolbar.vue'
 import { userService } from '../services/userService'
 import { authService } from '../services/authService'
-import SearchBox from '../components/common/SearchBox/SearchBox.vue'
 import { useSearch, studentSearchMapper } from '../composables/useSearch'
 
 const router = useRouter()
@@ -66,15 +67,22 @@ const calculateAge = (dateString) => {
 
 <template>
   <DashboardLayout>
-    <div class="page-container">
-      <div class="page-header">
-        <div class="header-actions">
-          <SearchBox v-model="searchQuery" placeholder="Search students..." />
-          <AppButton variant="primary">+ Add Student</AppButton>
-        </div>
-      </div>
+    <DataPageLayout listTitle="Students List">
+      <template #actions>
+        <TableToolbar
+          :hasSearch="true"
+          :searchQuery="searchQuery"
+          @update:searchQuery="searchQuery = $event"
+          searchPlaceholder="Search students..."
+          :hasFilter="false"
+        >
+          <template #actions>
+            <AppButton variant="primary">+ Add Student</AppButton>
+          </template>
+        </TableToolbar>
+      </template>
 
-      <div class="table-card">
+      <template #table>
         <AppTable
           :headers="[
             'No',
@@ -113,29 +121,12 @@ const calculateAge = (dateString) => {
             </td>
           </tr>
         </AppTable>
-      </div>
-    </div>
+      </template>
+    </DataPageLayout>
   </DashboardLayout>
 </template>
+
 <style scoped>
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-actions {
-  display: flex;
-  gap: 15px;
-}
-
-.table-card {
-  background: white;
-  border-radius: 20px;
-  padding: 25px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-}
-
 .user-info {
   display: flex;
   align-items: center;

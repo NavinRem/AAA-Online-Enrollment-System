@@ -8,6 +8,7 @@ defineProps({
 
 import StatusBadge from './common/StatusBadge/StatusBadge.vue'
 import AppTable from './common/AppTable/AppTable.vue'
+import TableToolbar from './common/TableToolbar/TableToolbar.vue'
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
@@ -41,13 +42,12 @@ const formatDate = (dateString) => {
       <div class="header-left">
         <h3 class="section-title">Recent Enrollment</h3>
       </div>
-      <div class="header-right">
-        <div class="search-mini">
-          <input type="text" placeholder="Search something" />
-          <img src="../assets/icons/search-svgrepo.svg" />
-        </div>
-        <button class="filter-btn">Filter</button>
-      </div>
+      <TableToolbar
+        :hasSearch="true"
+        searchPlaceholder="Search something..."
+        :hasFilter="true"
+        :filterOptions="[{ label: 'All', value: 'all' }]"
+      />
     </div>
 
     <AppTable
@@ -106,44 +106,6 @@ const formatDate = (dateString) => {
   height: 1px;
   background-color: #eee;
   margin-right: 20px;
-}
-
-.header-right {
-  display: flex;
-  gap: 15px;
-}
-
-.search-mini {
-  position: relative;
-}
-
-.search-mini input {
-  background: #f8f9fa;
-  border: 1px solid #eee;
-  padding: 8px 12px 8px 35px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  width: 250px;
-}
-
-.search-mini img {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 14px;
-  opacity: 0.4;
-}
-
-.filter-btn {
-  background: #00aeef;
-  color: white;
-  border: none;
-  padding: 8px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
 }
 
 .bold {

@@ -1,10 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import DataPageLayout from '../components/common/DataPageLayout.vue'
 import AppButton from '../components/common/AppButton/AppButton.vue'
-import SearchBox from '../components/common/SearchBox/SearchBox.vue'
-import { useSearch, programSearchMapper } from '../composables/useSearch'
+import TableToolbar from '../components/common/TableToolbar/TableToolbar.vue'
 import { courseService } from '../services/courseService'
+import { useSearch, programSearchMapper } from '../composables/useSearch'
 
 const programs = ref([])
 const loading = ref(true)
@@ -25,47 +26,45 @@ const { searchQuery, searchResults: filteredPrograms } = useSearch(programs, pro
 
 <template>
   <DashboardLayout>
-    <div class="page-container">
-      <div class="page-header">
-        <div class="header-actions">
-          <SearchBox v-model="searchQuery" placeholder="Search programs..." />
-          <AppButton variant="primary">+ Add Program</AppButton>
-        </div>
-      </div>
+    <DataPageLayout listTitle="Programs">
+      <template #actions>
+        <TableToolbar
+          :hasSearch="true"
+          :searchQuery="searchQuery"
+          @update:searchQuery="searchQuery = $event"
+          searchPlaceholder="Search programs..."
+          :hasFilter="false"
+        >
+          <template #actions>
+            <AppButton variant="primary">+ Add Program</AppButton>
+          </template>
+        </TableToolbar>
+      </template>
 
-      <div class="grid-container">
-        <div v-if="loading" class="loading-state">Loading programs...</div>
-        <div v-else v-for="program in filteredPrograms" :key="program.id" class="program-card">
-          <div class="card-image">
-            <img :src="program.imageURL || '/src/assets/images/program.png'" alt="Program" />
-            <span class="program-type">{{ program.category || 'General' }}</span>
-          </div>
-          <div class="card-body">
-            <h3 class="program-name">{{ program.title || program.name }}</h3>
-            <p class="program-desc">{{ program.description || 'No description provided.' }}</p>
-            <div class="card-footer">
-              <span class="price">${{ program.price || '0' }}</span>
-              <AppButton variant="outline" size="sm">Manage</AppButton>
+      <template #table>
+        <div class="grid-container">
+          <div v-if="loading" class="loading-state">Loading programs...</div>
+          <div v-else v-for="program in filteredPrograms" :key="program.id" class="program-card">
+            <div class="card-image">
+              <img :src="program.imageURL || '/src/assets/images/program.png'" alt="Program" />
+              <span class="program-type">{{ program.category || 'General' }}</span>
+            </div>
+            <div class="card-body">
+              <h3 class="program-name">{{ program.title || program.name }}</h3>
+              <p class="program-desc">{{ program.description || 'No description provided.' }}</p>
+              <div class="card-footer">
+                <span class="price">${{ program.price || '0' }}</span>
+                <AppButton variant="outline" size="sm">Manage</AppButton>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </template>
+    </DataPageLayout>
   </DashboardLayout>
 </template>
 
 <style scoped>
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-actions {
-  display: flex;
-  gap: 15px;
-}
-
 .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

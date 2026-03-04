@@ -2,11 +2,10 @@
 import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import DataPageLayout from '../components/common/DataPageLayout.vue'
-import AppButton from '../components/common/AppButton/AppButton.vue'
 import AppTable from '../components/common/AppTable/AppTable.vue'
+import TableToolbar from '../components/common/TableToolbar/TableToolbar.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
-import SearchBox from '../components/common/SearchBox/SearchBox.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
 
@@ -74,8 +73,18 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
       </template>
 
       <template #actions>
-        <SearchBox v-model="searchQuery" placeholder="Search parameters..." />
-        <AppButton variant="secondary" icon="tune" @click="console.log('filter')">Filter</AppButton>
+        <TableToolbar
+          :hasSearch="true"
+          :searchQuery="searchQuery"
+          @update:searchQuery="searchQuery = $event"
+          searchPlaceholder="Search parameters..."
+          :hasFilter="true"
+          :filterOptions="[
+            { label: 'All', value: 'all' },
+            { label: 'Active Only', value: 'active' },
+            { label: 'Inactive Only', value: 'inactive' },
+          ]"
+        />
       </template>
 
       <template #table>
