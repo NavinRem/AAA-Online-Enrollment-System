@@ -23,4 +23,4 @@
 </template>
 
 <script src="./AppTable.js"></script>
-<style src="./AppTable.css" scoped></style>
+<style src="./AppTable.css"></style>
