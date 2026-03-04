@@ -1,7 +1,6 @@
 import { getCachedData, setCachedData, clearCachePrefix } from './cache'
 
 // Helper to switch between Local and Production
-// In Vite, import.meta.env.PROD is true during build
 const API_URL = 'https://api-tyweqke5oa-uc.a.run.app'
 // const API_URL = 'http://127.0.0.1:5001/aaa-online-registration-e3833/us-central1/api'
 
