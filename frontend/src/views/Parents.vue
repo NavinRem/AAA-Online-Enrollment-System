@@ -4,6 +4,7 @@ import DashboardLayout from '../components/DashboardLayout.vue'
 import DataPageLayout from '../components/common/DataPageLayout.vue'
 import AppTable from '../components/common/AppTable/AppTable.vue'
 import TableToolbar from '../components/common/TableToolbar/TableToolbar.vue'
+import AppButton from '../components/common/AppButton/AppButton.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
@@ -84,7 +85,11 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
             { label: 'Active Only', value: 'active' },
             { label: 'Inactive Only', value: 'inactive' },
           ]"
-        />
+        >
+          <template #actions>
+            <AppButton variant="primary">+ New Parent</AppButton>
+          </template>
+        </TableToolbar>
       </template>
 
       <template #table>
@@ -95,6 +100,8 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
             'Child',
             'Phone Number',
             'Email',
+            'Address',
+            'Joined Date',
             'Role',
             'Status',
             'Action',
@@ -114,6 +121,14 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
             </td>
             <td>{{ item.phone || 'N/A' }}</td>
             <td>{{ item.email }}</td>
+            <td>{{ item.address || 'Not Provided' }}</td>
+            <td>
+              {{
+                new Date(
+                  item.createdAt || item.created_at || item.updatedAt || new Date(),
+                ).toLocaleDateString()
+              }}
+            </td>
             <td>
               <StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" />
             </td>
