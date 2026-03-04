@@ -18,9 +18,30 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    const data = await userService.getAllUsers()
+    const [data, allStudents] = await Promise.all([
+      userService.getAllUsers(),
+      userService.getAllStudents(),
+    ])
+
     if (Array.isArray(data)) {
-      allUsers.value = data.filter((u) => u.role === 'parent' || u.role === 'guardian')
+      // Create a map of parentId -> array of student items for fast lookup
+      const studentsByParent = {}
+      if (Array.isArray(allStudents)) {
+        allStudents.forEach((student) => {
+          const pId = student.parentId || student.parent_id
+          if (pId) {
+            if (!studentsByParent[pId]) studentsByParent[pId] = []
+            studentsByParent[pId].push(student)
+          }
+        })
+      }
+
+      allUsers.value = data
+        .filter((u) => u.role === 'parent' || u.role === 'guardian')
+        .map((u) => ({
+          ...u,
+          studentProfiles: studentsByParent[u.uid || u.id] || [], // Attach actual student profiles!
+        }))
       parents.value = allUsers.value.filter((u) => u.role === 'parent')
       guardians.value = allUsers.value.filter((u) => u.role === 'guardian')
 
@@ -100,7 +121,6 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
             'Child',
             'Phone Number',
             'Email',
-            'Joined Date',
             'Role',
             'Status',
             'Action',
@@ -113,44 +133,32 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
 
           <tr v-for="(item, index) in filteredParents" :key="item.uid || item.id">
             <td>{{ index + 1 }}</td>
-            <td class="bold">
-              <div class="user-info">
-                <div class="avatar-mini">
-                  <img
-                    :src="item.profileURL || '/src/assets/images/female-profile-parent.jpg'"
-                    alt="avatar"
-                  />
-                </div>
-                {{ item.name || 'Anonymous' }}
-              </div>
-            </td>
+            <td class="bold">{{ item.name || 'Anonymous' }}</td>
             <td>
               <div class="children-stack">
-                <span v-if="!item.children || item.children.length === 0" class="text-muted"
+                <span
+                  v-if="!item.studentProfiles || item.studentProfiles.length === 0"
+                  class="text-muted"
                   >None</span
                 >
                 <template v-else>
                   <div
-                    v-for="(childId, i) in item.children"
-                    :key="i"
+                    v-for="(child, i) in item.studentProfiles"
+                    :key="child.id || i"
                     class="avatar-mini child-avatar"
-                    :title="'Child ' + (i + 1)"
-                    :style="{ zIndex: item.children.length - i }"
+                    :title="child.fullname || child.name || 'Child ' + (i + 1)"
+                    :style="{ zIndex: item.studentProfiles.length - i }"
                   >
-                    <img src="/src/assets/images/child-profile.png" alt="child" />
+                    <img
+                      :src="child.profileURL || '/src/assets/images/child-profile.png'"
+                      alt="child"
+                    />
                   </div>
                 </template>
               </div>
             </td>
             <td>{{ item.phone || 'N/A' }}</td>
             <td>{{ item.email }}</td>
-            <td>
-              {{
-                new Date(
-                  item.createdAt || item.created_at || item.updatedAt || new Date(),
-                ).toLocaleDateString()
-              }}
-            </td>
             <td>
               <StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" />
             </td>
@@ -171,10 +179,9 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
 </template>
 
 <style scoped>
-.user-info {
+.children-stack {
   display: flex;
   align-items: center;
-  gap: 10px;
 }
 
 .avatar-mini {
@@ -192,11 +199,6 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
   object-fit: cover;
 }
 
-.children-stack {
-  display: flex;
-  align-items: center;
-}
-
 .child-avatar {
   margin-left: -10px;
   width: 28px;
@@ -208,13 +210,13 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
   margin-left: 0;
 }
 
+.text-muted {
+  color: #888;
+}
+
 .bold {
   font-weight: 600;
   color: #1a1a1a;
-}
-
-.text-muted {
-  color: #888;
 }
 
 .actions-wrapper {
