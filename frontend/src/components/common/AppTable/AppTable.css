@@ -36,18 +36,17 @@
   vertical-align: middle;
 }
 
-.data-table tr:last-child td {
-  border-bottom: none;
-}
-
-/* Optional clickable row style for lists that route to detail views */
-.clickable-row {
+.data-table tr {
   transition:
     background-color 0.2s ease,
     transform 0.1s ease;
 }
 
-.clickable-row:hover {
+.data-table tr:hover {
   background-color: #f4fafe;
   cursor: pointer;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
 }

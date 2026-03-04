@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/DashboardLayout.vue'
-import AppButton from '@/components/common/AppButton/AppButton.vue'
+import DetailPageLayout from '@/components/common/DetailPageLayout/DetailPageLayout.vue'
 import StatusBadge from '@/components/common/StatusBadge/StatusBadge.vue'
 import DetailCard from '@/components/DetailCard.vue'
 import DetailedSummaryCard from '@/components/DetailedSummaryCard.vue'
@@ -183,433 +183,406 @@ const calculateAge = (dob) => {
 
 <template>
   <DashboardLayout>
-    <div class="dashboard-content detail-page">
-      <div v-if="loading" class="loading-state">Loading details...</div>
-      <div v-else-if="errorMessage" class="error-state">
-        <p>⚠️ {{ errorMessage }}</p>
-        <AppButton variant="subtle" @click="router.push('/enrollments')">Go Back</AppButton>
-      </div>
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments">
+      <template #header-actions>
+        <button class="btn-icon edit" title="Edit Enrollment" @click="openActionModal('edit')">
+          ✏️
+        </button>
+        <button
+          v-if="!isPaid(enrollment?.paymentStatus) && !isCancelled(enrollment?.status)"
+          class="btn-icon check"
+          title="Mark as Paid"
+          @click="openActionModal('pay')"
+        >
+          ✓
+        </button>
+        <button
+          v-if="!isCancelled(enrollment?.status)"
+          class="btn-icon cancel"
+          title="Cancel Enrollment"
+          @click="openActionModal('cancel')"
+        >
+          🚫
+        </button>
+        <button
+          class="btn-icon delete"
+          title="Delete Permanently"
+          @click="openActionModal('delete')"
+        >
+          🗑️
+        </button>
+      </template>
 
-      <div v-else class="detail-container">
-        <div class="content-grid main-layout-grid">
-          <div class="left-content-area">
-            <div class="header-section">
-              <AppButton variant="light" size="sm" @click="router.push('/enrollments')">
-                Back
-              </AppButton>
-              <div class="header-actions">
+      <template #left-content>
+        <DetailCard title="Parent/Guardian Information" :avatarUrl="parentAvatar">
+          <p><strong>Fullname:</strong> {{ parent?.name || enrollment.parentName || 'N/A' }}</p>
+          <p><strong>Email:</strong> {{ parent?.email || 'N/A' }}</p>
+          <p><strong>Phone Number:</strong> {{ parent?.phone || 'N/A' }}</p>
+          <p>
+            <strong>Role:</strong>
+            {{ parent?.role === 'parent' ? 'Parent' : parent?.role || 'Guardian' }}
+          </p>
+        </DetailCard>
+
+        <DetailCard title="Student Information" :avatarUrl="childAvatar">
+          <p>
+            <strong>Fullname:</strong>
+            {{ student?.fullname || student?.name || enrollment.studentName || 'N/A' }}
+          </p>
+          <p><strong>Date of birth:</strong> {{ student?.dob || 'N/A' }}</p>
+          <p><strong>Age:</strong> {{ calculateAge(student?.dob) }}</p>
+          <p>
+            <strong>Medical Note:</strong>
+            {{ student?.medicalNotes || student?.medical_note || 'None given' }}
+          </p>
+        </DetailCard>
+
+        <DetailCard title="Enrollment Information" :avatarUrl="courseAvatar">
+          <p>
+            <strong>Course title:</strong>
+            {{ course?.title || enrollment.courseTitle || 'N/A' }}
+          </p>
+          <p>
+            <strong>Session:</strong> {{ session?.schedule?.day || 'N/A' }},
+            {{
+              session?.schedule?.timeslot ||
+              session?.schedule?.startTime + '-' + session?.schedule?.endTime ||
+              enrollment.sessionSchedule ||
+              'N/A'
+            }}
+          </p>
+          <p>
+            <strong>Number Session Enrolled:</strong>
+            {{ session?.totalSessions || 'Not specified' }}
+          </p>
+          <p>
+            <strong>Date:</strong>
+            {{ formatDate(enrollment.enrollAt || enrollment.createdAt || enrollment.timestamp) }}
+          </p>
+        </DetailCard>
+
+        <DetailCard title="Session Information" :avatarUrl="sessionAvatar">
+          <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle || 'N/A' }}</p>
+          <p>
+            <strong>Instructor Name:</strong>
+            {{ session?.instructorName || session?.instructor_name || 'Not assigned' }}
+          </p>
+          <p><strong>Total Student:</strong> {{ session?.capacity || 'N/A' }}</p>
+          <p>
+            <strong>Time Slot:</strong> {{ session?.schedule?.day || 'N/A' }},
+            {{
+              session?.schedule?.timeslot ||
+              session?.schedule?.startTime + '-' + session?.schedule?.endTime ||
+              enrollment.sessionSchedule ||
+              'N/A'
+            }}
+          </p>
+        </DetailCard>
+      </template>
+
+      <template #right-content>
+        <DetailedSummaryCard title="Basic Information" subtitle="Registration Status">
+          <div class="detail-row align-center mb-2">
+            <span class="summary-label">Status</span>
+            <StatusBadge
+              :status="
+                enrollment.status === 'cancelled'
+                  ? 'Canceled'
+                  : enrollment.paymentStatus?.toLowerCase() === 'paid'
+                    ? 'Paid'
+                    : 'Unpaid'
+              "
+            />
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Registration ID</span>
+            <span class="summary-value">{{ enrollment.id }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Registration Date</span>
+            <span class="summary-value">{{
+              formatDate(enrollment.enrollAt || enrollment.createdAt || enrollment.timestamp)
+            }}</span>
+          </div>
+        </DetailedSummaryCard>
+
+        <DetailedSummaryCard subtitle="Payment Summary">
+          <div class="detail-row align-center">
+            <span class="summary-label">Total Amount</span>
+            <StatusBadge :status="'$' + (enrollment.amount || enrollment.totalAmount || 0)" />
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Transaction ID</span>
+            <span class="summary-value">{{ enrollment.paymentProof || 'N/A' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Payment Date</span>
+            <span class="summary-value">
+              {{
+                enrollment.paymentStatus?.toLowerCase() === 'paid' && enrollment.updatedAt
+                  ? formatDate(enrollment.updatedAt)
+                  : 'Pending'
+              }}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Admin Remark</span>
+            <span class="summary-value">{{ enrollment.remark || 'None' }}</span>
+          </div>
+        </DetailedSummaryCard>
+
+        <DetailedSummaryCard subtitle="Program Summary">
+          <div class="detail-row">
+            <span class="summary-label">Course</span>
+            <span class="summary-value">{{
+              course?.title || enrollment.courseTitle || 'N/A'
+            }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Schedule</span>
+            <span class="summary-value">
+              {{ session?.schedule?.day ? `${session?.schedule?.day}, ` : '' }}
+              {{ session?.schedule?.timeslot || 'N/A' }}
+            </span>
+          </div>
+          <div class="mt-3">
+            <StatusBadge status="Start Date" />
+            <p class="summary-value">
+              {{ session?.startDate ? formatDate(session.startDate) : 'N/A' }}
+            </p>
+          </div>
+          <div class="mt-3">
+            <StatusBadge status="End Date" />
+            <p class="summary-value">
+              {{ session?.endDate ? formatDate(session.endDate) : 'N/A' }}
+            </p>
+          </div>
+        </DetailedSummaryCard>
+      </template>
+    </DetailPageLayout>
+
+    <!-- Action Modals (Edit, Pay, Cancel, Delete) -->
+    <transition name="modal-fade">
+      <div v-if="actionModal.isOpen" class="modal-overlay" @click.self="closeActionModal">
+        <div class="modal-content action-modal">
+          <div class="modal-header">
+            <h3 v-if="actionModal.type === 'edit'">Edit Enrollment</h3>
+            <h3 v-if="actionModal.type === 'pay'">Mark as Paid</h3>
+            <h3 v-if="actionModal.type === 'cancel'">Cancel Enrollment</h3>
+            <h3 v-if="actionModal.type === 'delete'" class="danger-text">Delete Permanently</h3>
+            <button class="close-btn" @click="closeActionModal">×</button>
+          </div>
+
+          <div class="modal-body">
+            <transition name="toast-fade">
+              <div v-if="modalError" class="alert-box error">
+                <span class="icon">⚠️</span> {{ modalError }}
+              </div>
+            </transition>
+            <transition name="toast-fade">
+              <div v-if="modalSuccess" class="alert-box success">
+                <span class="icon">✅</span> {{ modalSuccess }}
+              </div>
+            </transition>
+
+            <!-- Edit Amount Form -->
+            <div v-if="actionModal.type === 'edit'" class="form-group full-width">
+              <div class="info-block">
+                <span class="icon">ℹ️</span>
+                <p>
+                  <strong>Update Enrollment:</strong> Adjust the administrative price below or
+                  attach a special remark/note to this specific enrollment.
+                </p>
+              </div>
+              <label>Adjust Enrollment Amount ($)</label>
+              <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
+
+              <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
+              <textarea
+                v-model="actionModal.remark"
+                placeholder="Please write your remark here..."
+              ></textarea>
+              <div class="preset-chips">
                 <button
-                  class="btn-icon edit"
-                  title="Edit Enrollment"
-                  @click="openActionModal('edit')"
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.remark === 'VIP Student' }"
+                  @click="actionModal.remark = 'VIP Student'"
                 >
-                  ✏️
+                  VIP Student
                 </button>
                 <button
-                  v-if="!isPaid(enrollment?.paymentStatus) && !isCancelled(enrollment?.status)"
-                  class="btn-icon check"
-                  title="Mark as Paid"
-                  @click="openActionModal('pay')"
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.remark === 'Needs extra attention' }"
+                  @click="actionModal.remark = 'Needs extra attention'"
                 >
-                  ✓
+                  Needs extra attention
                 </button>
                 <button
-                  v-if="!isCancelled(enrollment?.status)"
-                  class="btn-icon cancel"
-                  title="Cancel Enrollment"
-                  @click="openActionModal('cancel')"
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.remark === 'Parent will pay next week' }"
+                  @click="actionModal.remark = 'Parent will pay next week'"
                 >
-                  🚫
+                  Parent will pay next week
                 </button>
                 <button
-                  class="btn-icon delete"
-                  title="Delete Permanently"
-                  @click="openActionModal('delete')"
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.remark === 'Pending partial refund' }"
+                  @click="actionModal.remark = 'Pending partial refund'"
                 >
-                  🗑️
+                  Pending partial refund
                 </button>
               </div>
             </div>
 
-            <div class="main-cards-grid">
-              <DetailCard title="Parent/Guardian Information" :avatarUrl="parentAvatar">
+            <!-- Mark Paid Form -->
+            <div v-if="actionModal.type === 'pay'" class="form-group full-width">
+              <div class="info-block">
+                <span class="icon">💡</span>
                 <p>
-                  <strong>Fullname:</strong> {{ parent?.name || enrollment.parentName || 'N/A' }}
+                  <strong>How to provide proof:</strong> Please enter the transaction reference
+                  number provided by the bank, or type "Cash" followed by the receipt number you
+                  gave the parent.
                 </p>
-                <p><strong>Email:</strong> {{ parent?.email || 'N/A' }}</p>
-                <p><strong>Phone Number:</strong> {{ parent?.phone || 'N/A' }}</p>
-                <p>
-                  <strong>Role:</strong>
-                  {{ parent?.role === 'parent' ? 'Parent' : parent?.role || 'Guardian' }}
-                </p>
-              </DetailCard>
+              </div>
+              <label>Proof of Payment Reference <span class="required">*</span></label>
+              <textarea
+                v-model="actionModal.proof"
+                placeholder="Please write the bank reference number or method here..."
+              ></textarea>
+              <div class="preset-chips">
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.proof === 'Paid in Cash' }"
+                  @click="actionModal.proof = 'Paid in Cash'"
+                >
+                  Paid in Cash
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.proof === 'Paid via Check' }"
+                  @click="actionModal.proof = 'Paid via Check'"
+                >
+                  Paid via Check
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.proof === 'Paid via Bank Transfer' }"
+                  @click="actionModal.proof = 'Paid via Bank Transfer'"
+                >
+                  Paid via Bank Transfer
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.proof === 'Paid via Credit Card' }"
+                  @click="actionModal.proof = 'Paid via Credit Card'"
+                >
+                  Paid via Credit Card
+                </button>
+              </div>
+            </div>
 
-              <DetailCard title="Student Information" :avatarUrl="childAvatar">
+            <!-- Cancel Form -->
+            <div v-if="actionModal.type === 'cancel'" class="form-group full-width">
+              <div class="info-block warning">
+                <span class="icon">⚠️</span>
                 <p>
-                  <strong>Fullname:</strong>
-                  {{ student?.fullname || student?.name || enrollment.studentName || 'N/A' }}
+                  <strong>Cancellation Policy:</strong> A cancellation stops this student from
+                  attending the course. You MUST provide the exact reason (e.g., Parent email
+                  request on [Date]).
                 </p>
-                <p><strong>Date of birth:</strong> {{ student?.dob || 'N/A' }}</p>
-                <p><strong>Age:</strong> {{ calculateAge(student?.dob) }}</p>
-                <p>
-                  <strong>Medical Note:</strong>
-                  {{ student?.medicalNotes || student?.medical_note || 'None given' }}
-                </p>
-              </DetailCard>
+              </div>
+              <label>Reason for Cancellation <span class="required">*</span></label>
+              <textarea
+                v-model="actionModal.reason"
+                placeholder="Please write your reason here..."
+              ></textarea>
+              <div class="preset-chips">
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.reason === 'Parent requested via email' }"
+                  @click="actionModal.reason = 'Parent requested via email'"
+                >
+                  Parent requested via email
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.reason === 'Parent requested via phone' }"
+                  @click="actionModal.reason = 'Parent requested via phone'"
+                >
+                  Parent requested via phone
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.reason === 'Did not pay on time' }"
+                  @click="actionModal.reason = 'Did not pay on time'"
+                >
+                  Did not pay on time
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.reason === 'Course schedule conflict' }"
+                  @click="actionModal.reason = 'Course schedule conflict'"
+                >
+                  Course schedule conflict
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.reason === 'Duplicate enrollment' }"
+                  @click="actionModal.reason = 'Duplicate enrollment'"
+                >
+                  Duplicate enrollment
+                </button>
+              </div>
+            </div>
 
-              <DetailCard title="Enrollment Information" :avatarUrl="courseAvatar">
+            <!-- Delete Form -->
+            <div v-if="actionModal.type === 'delete'" class="form-group full-width">
+              <div class="info-block danger">
+                <span class="icon">🛑</span>
                 <p>
-                  <strong>Course title:</strong>
-                  {{ course?.title || enrollment.courseTitle || 'N/A' }}
+                  <strong>Critical Warning:</strong> Deleting an enrollment removes the record
+                  entirely. It can never be recovered. This should only be used for accidental
+                  duplicate registrations.
                 </p>
-                <p>
-                  <strong>Session:</strong> {{ session?.schedule?.day || 'N/A' }},
-                  {{
-                    session?.schedule?.timeslot ||
-                    session?.schedule?.startTime + '-' + session?.schedule?.endTime ||
-                    enrollment.sessionSchedule ||
-                    'N/A'
-                  }}
-                </p>
-                <p>
-                  <strong>Number Session Enrolled:</strong>
-                  {{ session?.totalSessions || 'Not specified' }}
-                </p>
-                <p>
-                  <strong>Date:</strong>
-                  {{
-                    formatDate(enrollment.enrollAt || enrollment.createdAt || enrollment.timestamp)
-                  }}
-                </p>
-              </DetailCard>
-
-              <DetailCard title="Session Information" :avatarUrl="sessionAvatar">
-                <p>
-                  <strong>Course:</strong> {{ course?.title || enrollment.courseTitle || 'N/A' }}
-                </p>
-                <p>
-                  <strong>Instructor Name:</strong>
-                  {{ session?.instructorName || session?.instructor_name || 'Not assigned' }}
-                </p>
-                <p><strong>Total Student:</strong> {{ session?.capacity || 'N/A' }}</p>
-                <p>
-                  <strong>Time Slot:</strong> {{ session?.schedule?.day || 'N/A' }},
-                  {{
-                    session?.schedule?.timeslot ||
-                    session?.schedule?.startTime + '-' + session?.schedule?.endTime ||
-                    enrollment.sessionSchedule ||
-                    'N/A'
-                  }}
-                </p>
-              </DetailCard>
+              </div>
+              <label>Confirm Deletion <span class="required">*</span></label>
+              <p style="margin-bottom: 15px; color: #555; font-size: 0.95rem">
+                Please type <strong class="danger-text">DELETE</strong> below to confirm you have
+                authorization to erase this record.
+              </p>
+              <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
             </div>
           </div>
 
-          <div class="sidebar-cards">
-            <DetailedSummaryCard title="Basic Information" subtitle="Registration Status">
-              <div class="detail-row align-center mb-2">
-                <span class="summary-label">Status</span>
-                <StatusBadge
-                  :status="
-                    enrollment.status === 'cancelled'
-                      ? 'Canceled'
-                      : enrollment.paymentStatus?.toLowerCase() === 'paid'
-                        ? 'Paid'
-                        : 'Unpaid'
-                  "
-                />
-              </div>
-              <div class="detail-row">
-                <span class="summary-label">Registration ID</span>
-                <span class="summary-value">{{ enrollment.id }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="summary-label">Registration Date</span>
-                <span class="summary-value">{{
-                  formatDate(enrollment.enrollAt || enrollment.createdAt || enrollment.timestamp)
-                }}</span>
-              </div>
-            </DetailedSummaryCard>
-
-            <DetailedSummaryCard subtitle="Payment Summary">
-              <div class="detail-row align-center">
-                <span class="summary-label">Total Amount</span>
-                <StatusBadge :status="'$' + (enrollment.amount || enrollment.totalAmount || 0)" />
-              </div>
-              <div class="detail-row">
-                <span class="summary-label">Transaction ID</span>
-                <span class="summary-value">{{ enrollment.paymentProof || 'N/A' }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="summary-label">Payment Date</span>
-                <span class="summary-value">
-                  {{
-                    enrollment.paymentStatus?.toLowerCase() === 'paid' && enrollment.updatedAt
-                      ? formatDate(enrollment.updatedAt)
-                      : 'Pending'
-                  }}
-                </span>
-              </div>
-              <div class="detail-row">
-                <span class="summary-label">Admin Remark</span>
-                <span class="summary-value">{{ enrollment.remark || 'None' }}</span>
-              </div>
-            </DetailedSummaryCard>
-
-            <DetailedSummaryCard subtitle="Program Summary">
-              <div class="detail-row">
-                <span class="summary-label">Course</span>
-                <span class="summary-value">{{
-                  course?.title || enrollment.courseTitle || 'N/A'
-                }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="summary-label">Schedule</span>
-                <span class="summary-value">
-                  {{ session?.schedule?.day ? `${session?.schedule?.day}, ` : '' }}
-                  {{ session?.schedule?.timeslot || 'N/A' }}
-                </span>
-              </div>
-              <div class="mt-3">
-                <StatusBadge status="Start Date" />
-                <p class="summary-value">
-                  {{ session?.startDate ? formatDate(session.startDate) : 'N/A' }}
-                </p>
-              </div>
-              <div class="mt-3">
-                <StatusBadge status="End Date" />
-                <p class="summary-value">
-                  {{ session?.endDate ? formatDate(session.endDate) : 'N/A' }}
-                </p>
-              </div>
-            </DetailedSummaryCard>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action Modals (Edit, Pay, Cancel, Delete) -->
-      <transition name="modal-fade">
-        <div v-if="actionModal.isOpen" class="modal-overlay" @click.self="closeActionModal">
-          <div class="modal-content action-modal">
-            <div class="modal-header">
-              <h3 v-if="actionModal.type === 'edit'">Edit Enrollment</h3>
-              <h3 v-if="actionModal.type === 'pay'">Mark as Paid</h3>
-              <h3 v-if="actionModal.type === 'cancel'">Cancel Enrollment</h3>
-              <h3 v-if="actionModal.type === 'delete'" class="danger-text">Delete Permanently</h3>
-              <button class="close-btn" @click="closeActionModal">×</button>
-            </div>
-
-            <div class="modal-body">
-              <transition name="toast-fade">
-                <div v-if="modalError" class="alert-box error">
-                  <span class="icon">⚠️</span> {{ modalError }}
-                </div>
-              </transition>
-              <transition name="toast-fade">
-                <div v-if="modalSuccess" class="alert-box success">
-                  <span class="icon">✅</span> {{ modalSuccess }}
-                </div>
-              </transition>
-
-              <!-- Edit Amount Form -->
-              <div v-if="actionModal.type === 'edit'" class="form-group full-width">
-                <div class="info-block">
-                  <span class="icon">ℹ️</span>
-                  <p>
-                    <strong>Update Enrollment:</strong> Adjust the administrative price below or
-                    attach a special remark/note to this specific enrollment.
-                  </p>
-                </div>
-                <label>Adjust Enrollment Amount ($)</label>
-                <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
-
-                <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
-                <textarea
-                  v-model="actionModal.remark"
-                  placeholder="Please write your remark here..."
-                ></textarea>
-                <div class="preset-chips">
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.remark === 'VIP Student' }"
-                    @click="actionModal.remark = 'VIP Student'"
-                  >
-                    VIP Student
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.remark === 'Needs extra attention' }"
-                    @click="actionModal.remark = 'Needs extra attention'"
-                  >
-                    Needs extra attention
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.remark === 'Parent will pay next week' }"
-                    @click="actionModal.remark = 'Parent will pay next week'"
-                  >
-                    Parent will pay next week
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.remark === 'Pending partial refund' }"
-                    @click="actionModal.remark = 'Pending partial refund'"
-                  >
-                    Pending partial refund
-                  </button>
-                </div>
-              </div>
-
-              <!-- Mark Paid Form -->
-              <div v-if="actionModal.type === 'pay'" class="form-group full-width">
-                <div class="info-block">
-                  <span class="icon">💡</span>
-                  <p>
-                    <strong>How to provide proof:</strong> Please enter the transaction reference
-                    number provided by the bank, or type "Cash" followed by the receipt number you
-                    gave the parent.
-                  </p>
-                </div>
-                <label>Proof of Payment Reference <span class="required">*</span></label>
-                <textarea
-                  v-model="actionModal.proof"
-                  placeholder="Please write the bank reference number or method here..."
-                ></textarea>
-                <div class="preset-chips">
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.proof === 'Paid in Cash' }"
-                    @click="actionModal.proof = 'Paid in Cash'"
-                  >
-                    Paid in Cash
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.proof === 'Paid via Check' }"
-                    @click="actionModal.proof = 'Paid via Check'"
-                  >
-                    Paid via Check
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.proof === 'Paid via Bank Transfer' }"
-                    @click="actionModal.proof = 'Paid via Bank Transfer'"
-                  >
-                    Paid via Bank Transfer
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.proof === 'Paid via Credit Card' }"
-                    @click="actionModal.proof = 'Paid via Credit Card'"
-                  >
-                    Paid via Credit Card
-                  </button>
-                </div>
-              </div>
-
-              <!-- Cancel Form -->
-              <div v-if="actionModal.type === 'cancel'" class="form-group full-width">
-                <div class="info-block warning">
-                  <span class="icon">⚠️</span>
-                  <p>
-                    <strong>Cancellation Policy:</strong> A cancellation stops this student from
-                    attending the course. You MUST provide the exact reason (e.g., Parent email
-                    request on [Date]).
-                  </p>
-                </div>
-                <label>Reason for Cancellation <span class="required">*</span></label>
-                <textarea
-                  v-model="actionModal.reason"
-                  placeholder="Please write your reason here..."
-                ></textarea>
-                <div class="preset-chips">
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.reason === 'Parent requested via email' }"
-                    @click="actionModal.reason = 'Parent requested via email'"
-                  >
-                    Parent requested via email
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.reason === 'Parent requested via phone' }"
-                    @click="actionModal.reason = 'Parent requested via phone'"
-                  >
-                    Parent requested via phone
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.reason === 'Did not pay on time' }"
-                    @click="actionModal.reason = 'Did not pay on time'"
-                  >
-                    Did not pay on time
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.reason === 'Course schedule conflict' }"
-                    @click="actionModal.reason = 'Course schedule conflict'"
-                  >
-                    Course schedule conflict
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.reason === 'Duplicate enrollment' }"
-                    @click="actionModal.reason = 'Duplicate enrollment'"
-                  >
-                    Duplicate enrollment
-                  </button>
-                </div>
-              </div>
-
-              <!-- Delete Form -->
-              <div v-if="actionModal.type === 'delete'" class="form-group full-width">
-                <div class="info-block danger">
-                  <span class="icon">🛑</span>
-                  <p>
-                    <strong>Critical Warning:</strong> Deleting an enrollment removes the record
-                    entirely. It can never be recovered. This should only be used for accidental
-                    duplicate registrations.
-                  </p>
-                </div>
-                <label>Confirm Deletion <span class="required">*</span></label>
-                <p style="margin-bottom: 15px; color: #555; font-size: 0.95rem">
-                  Please type <strong class="danger-text">DELETE</strong> below to confirm you have
-                  authorization to erase this record.
-                </p>
-                <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
-              </div>
-            </div>
-
-            <div class="modal-footer">
-              <button class="cancel-btn" @click="closeActionModal">Nevermind</button>
-              <button
-                class="save-btn"
-                :class="{
-                  'danger-btn': actionModal.type === 'delete' || actionModal.type === 'cancel',
-                }"
-                @click="submitActionModal"
-                :disabled="submitting"
-              >
-                {{ submitting ? 'Processing...' : 'Confirm Action' }}
-              </button>
-            </div>
+          <div class="modal-footer">
+            <button class="cancel-btn" @click="closeActionModal">Nevermind</button>
+            <button
+              class="save-btn"
+              :class="{
+                'danger-btn': actionModal.type === 'delete' || actionModal.type === 'cancel',
+              }"
+              @click="submitActionModal"
+              :disabled="submitting"
+            >
+              {{ submitting ? 'Processing...' : 'Confirm Action' }}
+            </button>
           </div>
         </div>
-      </transition>
-    </div>
+      </div>
+    </transition>
   </DashboardLayout>
 </template>
 
@@ -698,17 +671,6 @@ const calculateAge = (dob) => {
   font-size: 1.05rem;
   color: #1a1a1a;
   font-weight: 700;
-}
-
-@media (max-width: 1100px) {
-  .content-grid {
-    grid-template-columns: 1fr;
-  }
-}
-@media (max-width: 768px) {
-  .main-cards-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Modal and Transitions styling */
