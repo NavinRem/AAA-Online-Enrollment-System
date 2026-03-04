@@ -1,15 +1,16 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import DashboardLayout from '../components/DashboardLayout.vue'
 import DataPageLayout from '../components/common/DataPageLayout.vue'
 import AppButton from '../components/common/AppButton/AppButton.vue'
 import AppTable from '../components/common/AppTable/AppTable.vue'
+import TableToolbar from '../components/common/TableToolbar/TableToolbar.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
 import { registrationService } from '../services/registrationService'
 import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
-import SearchBox from '../components/common/SearchBox/SearchBox.vue'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 const router = useRouter()
 
@@ -383,50 +384,25 @@ const formatDate = (dateString) => {
       </template>
 
       <template #actions>
-        <SearchBox v-model="searchQuery" placeholder="Search Enrollments" />
-        <div class="filter-dropdown-container">
-          <AppButton
-            variant="secondary"
-            :class="{ active: currentFilter !== 'all' }"
-            @click="isFilterDropdownOpen = !isFilterDropdownOpen"
-            @blur="setTimeout(() => (isFilterDropdownOpen = false), 200)"
-          >
-            <span style="margin-right: 6px">⚙️</span> Filter
-          </AppButton>
-          <transition name="toast-fade">
-            <div v-if="isFilterDropdownOpen" class="filter-dropdown-menu">
-              <div
-                class="filter-option"
-                :class="{ active: currentFilter === 'all' }"
-                @click.stop="setFilter('all')"
-              >
-                All Enrollments
-              </div>
-              <div
-                class="filter-option"
-                :class="{ active: currentFilter === 'paid' }"
-                @click.stop="setFilter('paid')"
-              >
-                Paid Only
-              </div>
-              <div
-                class="filter-option"
-                :class="{ active: currentFilter === 'unpaid' }"
-                @click.stop="setFilter('unpaid')"
-              >
-                Unpaid Only
-              </div>
-              <div
-                class="filter-option"
-                :class="{ active: currentFilter === 'cancelled' }"
-                @click.stop="setFilter('cancelled')"
-              >
-                Cancelled Only
-              </div>
-            </div>
-          </transition>
-        </div>
-        <AppButton variant="primary" @click="openModal">+ New Enrollment</AppButton>
+        <TableToolbar
+          :hasSearch="true"
+          :searchQuery="searchQuery"
+          @update:searchQuery="searchQuery = $event"
+          searchPlaceholder="Search Enrollments"
+          :hasFilter="true"
+          :currentFilter="currentFilter"
+          @update:currentFilter="setFilter($event)"
+          :filterOptions="[
+            { label: 'All Enrollments', value: 'all' },
+            { label: 'Paid Only', value: 'paid' },
+            { label: 'Unpaid Only', value: 'unpaid' },
+            { label: 'Cancelled Only', value: 'cancelled' },
+          ]"
+        >
+          <template #actions>
+            <AppButton variant="primary" @click="openModal">+ New Enrollment</AppButton>
+          </template>
+        </TableToolbar>
       </template>
 
       <template #table>

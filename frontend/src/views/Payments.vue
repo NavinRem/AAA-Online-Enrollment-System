@@ -1,7 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import DataPageLayout from '../components/common/DataPageLayout.vue'
 import AppTable from '../components/common/AppTable/AppTable.vue'
+import TableToolbar from '../components/common/TableToolbar/TableToolbar.vue'
 import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
 
 const payments = ref([
@@ -26,8 +28,21 @@ const payments = ref([
 
 <template>
   <DashboardLayout>
-    <div class="page-container">
-      <div class="table-card">
+    <DataPageLayout listTitle="Payment Lists">
+      <template #actions>
+        <TableToolbar
+          :hasSearch="true"
+          searchPlaceholder="Search payments..."
+          :hasFilter="true"
+          :filterOptions="[
+            { label: 'All', value: 'all' },
+            { label: 'Paid', value: 'paid' },
+            { label: 'Pending', value: 'pending' },
+          ]"
+        />
+      </template>
+
+      <template #table>
         <AppTable :headers="['ID', 'Parent', 'Amount', 'Method', 'Status', 'Date']">
           <tr v-for="item in payments" :key="item.id">
             <td>#{{ item.id }}</td>
@@ -40,19 +55,12 @@ const payments = ref([
             <td>{{ item.date }}</td>
           </tr>
         </AppTable>
-      </div>
-    </div>
+      </template>
+    </DataPageLayout>
   </DashboardLayout>
 </template>
 
 <style scoped>
-.table-card {
-  background: white;
-  border-radius: 20px;
-  padding: 25px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-}
-
 .bold {
   font-weight: 600;
 }

@@ -1,0 +1,50 @@
+.table-toolbar {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.filter-dropdown-container {
+  position: relative;
+}
+
+.filter-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e0e0e0;
+  z-index: 100;
+  overflow: hidden;
+  min-width: 180px;
+}
+
+.filter-option {
+  padding: 12px 18px;
+  font-size: 0.9rem;
+  color: #444;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.filter-option:hover {
+  background: #f4fafe;
+}
+
+.filter-option.active {
+  background: #e1f5fe;
+  color: #00aeef;
+  font-weight: 700;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: all 0.3s ease;
+}
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
