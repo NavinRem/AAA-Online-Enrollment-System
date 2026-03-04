@@ -7,6 +7,7 @@ defineProps({
 })
 
 import StatusBadge from './common/StatusBadge/StatusBadge.vue'
+import AppTable from './common/AppTable/AppTable.vue'
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
@@ -49,34 +50,23 @@ const formatDate = (dateString) => {
       </div>
     </div>
 
-    <table class="recent-table">
-      <thead>
-        <tr>
-          <th>No</th>
-          <th>Parent/Guardian</th>
-          <th>Child</th>
-          <th>Course</th>
-          <th>Status</th>
-          <th>Amount</th>
-          <th>Enrolled Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in registrations" :key="item.no">
-          <td>{{ item.no }}</td>
-          <td class="bold">{{ item.parent }}</td>
-          <td>{{ item.child }}</td>
-          <td>{{ item.course }}</td>
-          <td>
-            <StatusBadge :status="item.status" />
-          </td>
-          <td>
-            <StatusBadge :status="item.amount" />
-          </td>
-          <td class="date-cell">{{ formatDate(item.date) }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <AppTable
+      :headers="['No', 'Parent/Guardian', 'Child', 'Course', 'Status', 'Amount', 'Enrolled Date']"
+    >
+      <tr v-for="item in registrations" :key="item.no">
+        <td>{{ item.no }}</td>
+        <td class="bold">{{ item.parent }}</td>
+        <td>{{ item.child }}</td>
+        <td>{{ item.course }}</td>
+        <td>
+          <StatusBadge :status="item.status" />
+        </td>
+        <td>
+          <StatusBadge :status="item.amount" />
+        </td>
+        <td class="date-cell">{{ formatDate(item.date) }}</td>
+      </tr>
+    </AppTable>
   </div>
 </template>
 
@@ -154,27 +144,6 @@ const formatDate = (dateString) => {
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-}
-
-.recent-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.recent-table th {
-  font-size: 0.8rem;
-  color: #999;
-  font-weight: 600;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.recent-table td {
-  padding: 15px 0;
-  font-size: 0.85rem;
-  color: #444;
-  border-bottom: 1px solid #f8f8f8;
 }
 
 .bold {

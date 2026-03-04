@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import DashboardLayout from '../components/DashboardLayout.vue'
 import DataPageLayout from '../components/common/DataPageLayout.vue'
 import AppButton from '../components/common/AppButton/AppButton.vue'
+import AppTable from '../components/common/AppTable/AppTable.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
 import { registrationService } from '../services/registrationService'
@@ -430,107 +430,105 @@ const formatDate = (dateString) => {
       </template>
 
       <template #table>
-        <div v-if="loading" class="loading-state">Loading enrollments...</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Parent/Guardian</th>
-              <th>Child</th>
-              <th>Course</th>
-              <th>Session</th>
-              <th>#Session</th>
-              <th>Status</th>
-              <th>Amount</th>
-              <th>Enrolled Date</th>
-              <th>Remark</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="(item, index) in filteredRegistrations"
-              :key="item.id"
-              class="clickable-row"
-              @click="handleRowClick(item.id)"
-            >
-              <td>{{ index + 1 }}</td>
-              <td class="bold">{{ item.parentName || item.parent_name || 'Parent' }}</td>
-              <td>{{ item.studentName || item.student_name || 'Student' }}</td>
-              <td>{{ item.courseTitle || item.course_title || 'Course' }}</td>
-              <td>{{ formatSession(item) }}</td>
-              <td>{{ formatSessionCount(item) }}</td>
-              <td>
-                <StatusBadge
-                  :status="
-                    isCancelled(item.status)
-                      ? 'Canceled'
-                      : isPaid(item.paymentStatus)
-                        ? 'Paid'
-                        : 'Unpaid'
-                  "
-                />
-              </td>
-              <td>
-                <StatusBadge :status="'$' + (item.amount || item.totalAmount || 180)" />
-              </td>
-              <td>
-                {{
-                  formatDate(
-                    item.enrollAt ||
-                      item.createdAt ||
-                      item.created_at ||
-                      item.registrationDate ||
-                      item.timestamp,
-                  )
-                }}
-              </td>
-              <td class="remark-cell">
-                <span v-if="item.remark" class="remark-text" :title="item.remark">{{
-                  item.remark
-                }}</span>
-                <span v-else class="text-muted">-</span>
-              </td>
-              <td class="action-cell" @click.stop>
-                <div class="inline-actions">
-                  <button
-                    class="btn-icon edit"
-                    title="Edit Enrollment"
-                    @click="openActionModal('edit', item)"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    v-if="!isPaid(item.paymentStatus) && !isCancelled(item.status)"
-                    class="btn-icon check"
-                    title="Mark as Paid"
-                    @click="openActionModal('pay', item)"
-                  >
-                    ✓
-                  </button>
-                  <button
-                    v-if="!isCancelled(item.status)"
-                    class="btn-icon cancel"
-                    title="Cancel Enrollment"
-                    @click="openActionModal('cancel', item)"
-                  >
-                    🚫
-                  </button>
-                  <button
-                    class="btn-icon delete"
-                    title="Delete Permanently"
-                    @click="openActionModal('delete', item)"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </td>
-            </tr>
-            <tr v-if="filteredRegistrations.length === 0 && !loading">
-              <td colspan="11" class="empty-state">No enrollments found.</td>
-            </tr>
-          </tbody>
-        </table>
+        <AppTable
+          :headers="[
+            'No',
+            'Parent/Guardian',
+            'Child',
+            'Course',
+            'Session',
+            '#Session',
+            'Status',
+            'Amount',
+            'Enrolled Date',
+            'Remark',
+            'Actions',
+          ]"
+          :loading="loading"
+          :empty="filteredRegistrations.length === 0"
+        >
+          <template #loading>Loading enrollments...</template>
+          <template #empty>No enrollments found.</template>
+
+          <tr
+            v-for="(item, index) in filteredRegistrations"
+            :key="item.id"
+            class="clickable-row"
+            @click="handleRowClick(item.id)"
+          >
+            <td>{{ index + 1 }}</td>
+            <td class="bold">{{ item.parentName || item.parent_name || 'Parent' }}</td>
+            <td>{{ item.studentName || item.student_name || 'Student' }}</td>
+            <td>{{ item.courseTitle || item.course_title || 'Course' }}</td>
+            <td>{{ formatSession(item) }}</td>
+            <td>{{ formatSessionCount(item) }}</td>
+            <td>
+              <StatusBadge
+                :status="
+                  isCancelled(item.status)
+                    ? 'Canceled'
+                    : isPaid(item.paymentStatus)
+                      ? 'Paid'
+                      : 'Unpaid'
+                "
+              />
+            </td>
+            <td>
+              <StatusBadge :status="'$' + (item.amount || item.totalAmount || 180)" />
+            </td>
+            <td>
+              {{
+                formatDate(
+                  item.enrollAt ||
+                    item.createdAt ||
+                    item.created_at ||
+                    item.registrationDate ||
+                    item.timestamp,
+                )
+              }}
+            </td>
+            <td class="remark-cell">
+              <span v-if="item.remark" class="remark-text" :title="item.remark">{{
+                item.remark
+              }}</span>
+              <span v-else class="text-muted">-</span>
+            </td>
+            <td class="action-cell" @click.stop>
+              <div class="inline-actions">
+                <button
+                  class="btn-icon edit"
+                  title="Edit Enrollment"
+                  @click="openActionModal('edit', item)"
+                >
+                  ✏️
+                </button>
+                <button
+                  v-if="!isPaid(item.paymentStatus) && !isCancelled(item.status)"
+                  class="btn-icon check"
+                  title="Mark as Paid"
+                  @click="openActionModal('pay', item)"
+                >
+                  ✓
+                </button>
+                <button
+                  v-if="!isCancelled(item.status)"
+                  class="btn-icon cancel"
+                  title="Cancel Enrollment"
+                  @click="openActionModal('cancel', item)"
+                >
+                  🚫
+                </button>
+                <button
+                  class="btn-icon delete"
+                  title="Delete Permanently"
+                  @click="openActionModal('delete', item)"
+                >
+                  🗑️
+                </button>
+              </div>
+            </td>
+          </tr>
+        </AppTable>
       </template>
     </DataPageLayout>
 
@@ -969,40 +967,6 @@ const formatDate = (dateString) => {
   font-weight: 600;
 }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.clickable-row {
-  transition:
-    background-color 0.2s ease,
-    transform 0.1s ease;
-}
-
-.clickable-row:hover {
-  background-color: #f4fafe;
-  cursor: pointer;
-}
-
-.data-table th {
-  padding-bottom: 15px;
-  padding-top: 0;
-  color: #1a1a1a;
-  font-size: 0.85rem;
-  font-weight: 700;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.data-table td {
-  padding: 20px 0;
-  font-size: 0.85rem;
-  color: #444;
-  border-bottom: 1px solid #f8f8f8;
-  vertical-align: middle;
-}
-
 .bold {
   font-weight: 600;
   color: #1a1a1a;
@@ -1034,12 +998,6 @@ const formatDate = (dateString) => {
   text-overflow: ellipsis;
   cursor: default;
   font-weight: 500;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #999;
 }
 
 .add-btn {
