@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import DataPageLayout from '../components/common/DataPageLayout.vue'
 import AppTable from '../components/common/AppTable/AppTable.vue'
@@ -9,14 +9,26 @@ import SummaryCard from '../components/SummaryCard.vue'
 import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import NewParentModal from '../components/parents/NewParentModal.vue'
+import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
 
-const parents = ref([])
-const guardians = ref([])
-const recentlyRegistered = ref([])
 const allUsers = ref([])
 const loading = ref(true)
+
+const parents = computed(() => allUsers.value.filter((u) => u.role === 'parent'))
+const guardians = computed(() => allUsers.value.filter((u) => u.role === 'guardian'))
+const recentlyRegistered = computed(() => {
+  const today = new Date().toISOString().split('T')[0]
+  return allUsers.value.filter((u) => {
+    const createdDate = (u.createdAt || u.created_at || u.updatedAt || '').split('T')[0]
+    return createdDate === today
+  })
+})
+
+const activeNow = computed(() => {
+  return allUsers.value.filter((u) => (u.status || 'Active').toLowerCase() === 'active')
+})
 
 onMounted(async () => {
   try {
@@ -44,15 +56,6 @@ onMounted(async () => {
           ...u,
           studentProfiles: studentsByParent[u.uid || u.id] || [], // Attach actual student profiles!
         }))
-      parents.value = allUsers.value.filter((u) => u.role === 'parent')
-      guardians.value = allUsers.value.filter((u) => u.role === 'guardian')
-
-      const oneWeekAgo = new Date()
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-      recentlyRegistered.value = allUsers.value.filter((u) => {
-        const time = new Date(u.createdAt || u.created_at || u.updatedAt).getTime()
-        return time >= oneWeekAgo.getTime()
-      })
     }
   } catch (error) {
     console.error('Failed to fetch parents', error)
@@ -81,6 +84,12 @@ const actionModal = ref({
 
 // New Parent Modal State
 const showNewParentModal = ref(false)
+
+// Add Child Modal State
+const addChildModal = ref({
+  isOpen: false,
+  parent: null,
+})
 
 const openActionModal = (type, item) => {
   errorMessage.value = ''
@@ -173,10 +182,6 @@ const submitNewParent = async (data) => {
     }
     allUsers.value.unshift(newUser)
 
-    // Update parents/guardians lists
-    if (data.role === 'parent') parents.value.unshift(newUser)
-    else guardians.value.unshift(newUser)
-
     successMessage.value = 'New account created successfully!'
     setTimeout(() => {
       showNewParentModal.value = false
@@ -184,6 +189,50 @@ const submitNewParent = async (data) => {
   } catch (err) {
     console.error('Failed to create parent account', err)
     errorMessage.value = err.message || 'Error occurred while creating the account'
+  } finally {
+    submitting.value = false
+  }
+}
+
+const openAddChildModal = (parent) => {
+  errorMessage.value = ''
+  successMessage.value = ''
+  addChildModal.value = {
+    isOpen: true,
+    parent,
+  }
+}
+
+const submitAddChild = async (childData) => {
+  const { parent } = addChildModal.value
+  submitting.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    const parentId = parent.uid || parent.id
+    const result = await userService.registerStudentProfile(parentId, childData)
+
+    // Update local state to reflect the new child immediately
+    const userIdx = allUsers.value.findIndex((u) => (u.uid || u.id) === parentId)
+    if (userIdx !== -1) {
+      if (!allUsers.value[userIdx].studentProfiles) {
+        allUsers.value[userIdx].studentProfiles = []
+      }
+      allUsers.value[userIdx].studentProfiles.push({
+        id: result.id,
+        ...childData,
+        parent_id: parentId,
+      })
+    }
+
+    successMessage.value = 'Child registered successfully!'
+    setTimeout(() => {
+      addChildModal.value.isOpen = false
+    }, 1500)
+  } catch (err) {
+    console.error('Failed to register child', err)
+    errorMessage.value = err.message || 'Error occurred while registering the child'
   } finally {
     submitting.value = false
   }
@@ -207,16 +256,14 @@ const submitNewParent = async (data) => {
           color="#e1f5fe"
         />
         <SummaryCard
-          title="Recently Registered"
+          title="Registered Today"
           :value="recentlyRegistered.length"
           image="register.png"
           color="#e1f5fe"
         />
         <SummaryCard
           title="Active Now"
-          :value="
-            allUsers.filter((u) => u.status !== 'inactive' && u.status !== 'deactivated').length
-          "
+          :value="activeNow.length"
           image="register.png"
           color="#e1f5fe"
         />
@@ -298,6 +345,13 @@ const submitNewParent = async (data) => {
             <td>
               <div class="actions-wrapper">
                 <button
+                  class="btn-icon add-child"
+                  title="Register Child"
+                  @click.stop="openAddChildModal(item)"
+                >
+                  👶
+                </button>
+                <button
                   class="btn-icon edit"
                   title="Edit Parent"
                   @click.stop="openActionModal('edit', item)"
@@ -354,6 +408,16 @@ const submitNewParent = async (data) => {
       :success="successMessage"
       @close="showNewParentModal = false"
       @submit="submitNewParent"
+    />
+
+    <RegisterChildModal
+      :isOpen="addChildModal.isOpen"
+      :parent="addChildModal.parent"
+      :loading="submitting"
+      :error="errorMessage"
+      :success="successMessage"
+      @close="addChildModal.isOpen = false"
+      @submit="submitAddChild"
     />
   </DashboardLayout>
 </template>
