@@ -33,10 +33,6 @@ onMounted(() => {
     }
   })
 })
-
-const getIconPath = (icon) => {
-  return new URL(`../assets/icons/${icon}`, import.meta.url).href
-}
 </script>
 
 <template>

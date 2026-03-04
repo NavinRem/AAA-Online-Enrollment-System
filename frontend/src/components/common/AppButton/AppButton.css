@@ -1,0 +1,168 @@
+.app-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+/* Base states */
+.app-btn.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.app-btn.is-loading {
+  opacity: 0.8;
+  cursor: wait;
+}
+
+/* ---------------
+   Size Variations
+   --------------- */
+.size-sm {
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  border-radius: 10px;
+}
+.size-md {
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  border-radius: 12px;
+}
+.size-lg {
+  padding: 14px 28px;
+  font-size: 1rem;
+  border-radius: 14px;
+}
+
+.app-btn.has-icon-only {
+  padding: 8px;
+  border-radius: 50%; /* or circular if appropriate */
+}
+
+/* ------------------
+   Color Variations
+   ------------------ */
+
+/* Primary: Default blue buttons (e.g. Save, Add, Login) */
+.variant-primary {
+  background: #00aeef;
+  color: #ffffff;
+}
+.variant-primary:hover {
+  background: #0098d1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 174, 239, 0.25);
+}
+
+/* Secondary (Info): Light blue (e.g. Filter button) */
+.variant-secondary {
+  background: #81d4fa;
+  color: #1a1a1a;
+}
+.variant-secondary:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+.variant-secondary.active {
+  background: #00aeef;
+  color: white;
+}
+
+/* Danger / Delete: Light red background with red text */
+.variant-danger {
+  background: #ffebee;
+  color: #c62828;
+}
+.variant-danger:hover {
+  background: #ffcdd2;
+}
+
+/* Logout / Critical: Solid red */
+.variant-logout {
+  background: #d32f2f;
+  color: white;
+}
+.variant-logout:hover {
+  background: #b71c1c;
+  transform: scale(0.98);
+}
+
+/* Cancel / Subtle: Light gray (e.g. 'Nevermind' or 'Close') */
+.variant-cancel {
+  background: #f1f3f5;
+  color: #555;
+}
+.variant-cancel:hover {
+  background: #e2e6ea;
+  color: #333;
+}
+
+/* Outline: Transparent with blue border */
+.variant-outline {
+  background: transparent;
+  border-color: #00aeef;
+  color: #00aeef;
+}
+.variant-outline:hover {
+  background: #f0f9ff;
+}
+
+/* Light: Very soft blue with blue text */
+.variant-light {
+  background: #e6f6fd;
+  color: #00aeef;
+}
+.variant-light:hover {
+  background: #d4effc;
+}
+
+/* Ghost / Transparent */
+.variant-ghost {
+  background: transparent;
+  color: #444;
+}
+.variant-ghost:hover {
+  background: #f8f9fa;
+  color: #1a1a1a;
+}
+
+/* ------------------
+   Elements
+   ------------------ */
+.btn-text {
+  transition: opacity 0.2s;
+}
+.hidden-text {
+  opacity: 0.3;
+}
+.icon-span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Loading Spinner */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spinner-spin 0.8s linear infinite;
+  display: inline-block;
+  margin-right: -4px;
+}
+
+@keyframes spinner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

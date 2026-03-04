@@ -1,16 +1,35 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import DataPageLayout from '../components/common/DataPageLayout.vue'
+import AppButton from '../components/common/AppButton/AppButton.vue'
+import SummaryCard from '../components/SummaryCard.vue'
+import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
+import SearchBox from '../components/common/SearchBox/SearchBox.vue'
+import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
 
 const parents = ref([])
+const guardians = ref([])
+const recentlyRegistered = ref([])
+const allUsers = ref([])
 const loading = ref(true)
-const searchQuery = ref('')
 
 onMounted(async () => {
   try {
     const data = await userService.getAllUsers()
-    parents.value = Array.isArray(data) ? data.filter((u) => u.role === 'parent') : []
+    if (Array.isArray(data)) {
+      allUsers.value = data.filter((u) => u.role === 'parent' || u.role === 'guardian')
+      parents.value = allUsers.value.filter((u) => u.role === 'parent')
+      guardians.value = allUsers.value.filter((u) => u.role === 'guardian')
+
+      const oneWeekAgo = new Date()
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+      recentlyRegistered.value = allUsers.value.filter((u) => {
+        const time = new Date(u.createdAt || u.created_at || u.updatedAt).getTime()
+        return time >= oneWeekAgo.getTime()
+      })
+    }
   } catch (error) {
     console.error('Failed to fetch parents', error)
   } finally {
@@ -18,102 +37,92 @@ onMounted(async () => {
   }
 })
 
-const filteredParents = computed(() => {
-  if (!searchQuery.value) return parents.value
-  const query = searchQuery.value.toLowerCase()
-  return parents.value.filter(
-    (p) =>
-      (p.name || '').toLowerCase().includes(query) || (p.email || '').toLowerCase().includes(query),
-  )
-})
+const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, parentSearchMapper)
 </script>
 
 <template>
   <DashboardLayout>
-    <div class="page-container">
-      <div class="page-header">
-        <div class="header-actions">
-          <div class="search-box">
-            <input v-model="searchQuery" type="text" placeholder="Search parents..." />
-          </div>
-          <button class="add-btn">+ Add Parent</button>
-        </div>
-      </div>
+    <DataPageLayout overviewTitle="Parent / Guardian Overview" listTitle="Parents/Guardians List">
+      <template #overview>
+        <SummaryCard
+          title="Total Parents"
+          :value="parents.length"
+          image="register.png"
+          color="#e1f5fe"
+        />
+        <SummaryCard
+          title="Total Guardians"
+          :value="guardians.length"
+          image="register.png"
+          color="#e1f5fe"
+        />
+        <SummaryCard
+          title="Recently Registered"
+          :value="recentlyRegistered.length"
+          image="register.png"
+          color="#e1f5fe"
+        />
+        <SummaryCard
+          title="Active Now"
+          :value="
+            allUsers.filter((u) => u.status !== 'inactive' && u.status !== 'deactivated').length
+          "
+          image="register.png"
+          color="#e1f5fe"
+        />
+      </template>
 
-      <div class="table-card">
+      <template #actions>
+        <SearchBox v-model="searchQuery" placeholder="Search parameters..." />
+        <AppButton variant="secondary" icon="tune" @click="console.log('filter')">Filter</AppButton>
+      </template>
+
+      <template #table>
         <div v-if="loading" class="loading-state">Loading parents...</div>
         <table v-else class="data-table">
           <thead>
             <tr>
               <th>No</th>
-              <th>Name</th>
+              <th>Fullname</th>
+              <th>Child</th>
+              <th>Phone Number</th>
               <th>Email</th>
-              <th>Phone</th>
-              <th>Address</th>
-              <th>Actions</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, index) in filteredParents" :key="item.id">
+            <tr v-for="(item, index) in filteredParents" :key="item.uid || item.id">
               <td>{{ index + 1 }}</td>
               <td class="bold">{{ item.name || 'Anonymous' }}</td>
-              <td>{{ item.email }}</td>
-              <td>{{ item.phone || 'N/A' }}</td>
-              <td>{{ item.address || 'N/A' }}</td>
               <td>
-                <button class="view-btn">View</button>
+                <span v-if="!item.children || item.children.length === 0">N/A</span>
+                <span v-else>👦👧</span>
+              </td>
+              <td>{{ item.phone || 'N/A' }}</td>
+              <td>{{ item.email }}</td>
+              <td>
+                <StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" />
+              </td>
+              <td>
+                <StatusBadge :status="item.status || 'Active'" />
+              </td>
+              <td>
+                <div class="actions-wrapper">
+                  <button class="btn-icon check">🚫</button>
+                  <button class="btn-icon delete">🗑️</button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
+      </template>
+    </DataPageLayout>
   </DashboardLayout>
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-}
-
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-actions {
-  display: flex;
-  gap: 15px;
-}
-
-.search-box input {
-  padding: 10px 15px;
-  border-radius: 10px;
-  border: 1px solid #eee;
-  width: 280px;
-  background: white;
-}
-
-.add-btn {
-  background: #00aeef;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.table-card {
-  background: white;
-  border-radius: 20px;
-  padding: 25px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-}
-
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -139,13 +148,9 @@ const filteredParents = computed(() => {
   color: #1a1a1a;
 }
 
-.view-btn {
-  background: #f8f9fa;
-  border: 1px solid #eee;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  cursor: pointer;
+.actions-wrapper {
+  display: flex;
+  gap: 6px;
 }
 
 .loading-state {

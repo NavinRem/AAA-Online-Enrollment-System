@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getStorage } from 'firebase/storage'
-import { getFirestore, connectFirestoreEmulator, initializeFirestore } from 'firebase/firestore'
-import { getAuth, connectAuthEmulator } from 'firebase/auth'
+import { initializeFirestore } from 'firebase/firestore'
+import { getAuth } from 'firebase/auth'
 
 // TODO: Replace the following with your app's Firebase project configuration
 // See: https://firebase.google.com/docs/web/learn-more#config-object

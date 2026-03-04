@@ -25,7 +25,7 @@ const router = createRouter({
       path: '/enrollment/:id',
       name: 'enrollment-detail',
       component: () => import('../views/EnrollmentDetail.vue'),
-      meta: { title: 'Registration Detail' },
+      meta: { title: 'Enrollment Detail' },
     },
     {
       path: '/parents',

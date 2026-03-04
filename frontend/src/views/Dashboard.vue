@@ -104,14 +104,6 @@ const calculateStats = () => {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
 
-  const dayOfWeek = now.getDay()
-  const daysSinceMonday = (dayOfWeek + 6) % 7 // Monday = 0, Sunday = 6
-  const startOfWeek = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() - daysSinceMonday,
-  ).getTime()
-
   // Helper to determine cost
   const getExpectedAmount = (r) => {
     if (r.amount) return parseFloat(r.amount)
@@ -195,13 +187,22 @@ const mappedRegistrations = computed(() => {
         ? course.title || course.name
         : r.courseTitle || r.course_title || 'Course'
 
+      const isCanceled =
+        (r.status || '').toLowerCase() === 'canceled' ||
+        (r.status || '').toLowerCase() === 'cancelled'
+      const isPaid = (r.paymentStatus || '').toLowerCase() === 'paid'
+
+      let finalStatus = 'Unpaid'
+      if (isCanceled) finalStatus = 'Canceled'
+      else if (isPaid) finalStatus = 'Paid'
+
       return {
         id: r.id,
         no: index + 1,
         parent: parentName,
         child: studentName,
         course: courseName,
-        status: r.status || 'Pending',
+        status: finalStatus,
         amount: `$${r.amount || r.totalAmount || (course ? course.price : 0) || 0}`,
         date: r.enrollAt || r.createdAt || r.created_at || r.registrationDate || r.timestamp,
       }
@@ -310,6 +311,7 @@ const mappedRegistrations = computed(() => {
   display: grid;
   grid-template-columns: 1fr 320px;
   gap: 30px;
+  padding: 0 30px 30px 30px;
 }
 
 .main-column {

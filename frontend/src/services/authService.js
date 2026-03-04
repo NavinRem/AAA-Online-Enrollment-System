@@ -10,31 +10,19 @@ import {
 export const authService = {
   // Sign up with email and password
   async register(email, password) {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-      return userCredential.user
-    } catch (error) {
-      throw error
-    }
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    return userCredential.user
   },
 
   // Login with email and password
   async login(email, password) {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password)
-      return userCredential.user
-    } catch (error) {
-      throw error
-    }
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    return userCredential.user
   },
 
   // Logout
   async logout() {
-    try {
-      await signOut(auth)
-    } catch (error) {
-      throw error
-    }
+    await signOut(auth)
   },
 
   // Observe user state changes
@@ -49,10 +37,6 @@ export const authService = {
 
   // Reset Password
   async resetPassword(email) {
-    try {
-      await sendPasswordResetEmail(auth, email)
-    } catch (error) {
-      throw error
-    }
+    await sendPasswordResetEmail(auth, email)
   },
 }

@@ -1,11 +1,13 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import AppButton from '../components/common/AppButton/AppButton.vue'
+import SearchBox from '../components/common/SearchBox/SearchBox.vue'
+import { useSearch, programSearchMapper } from '../composables/useSearch'
 import { courseService } from '../services/courseService'
 
 const programs = ref([])
 const loading = ref(true)
-const searchQuery = ref('')
 
 onMounted(async () => {
   try {
@@ -18,15 +20,7 @@ onMounted(async () => {
   }
 })
 
-const filteredPrograms = computed(() => {
-  if (!searchQuery.value) return programs.value
-  const query = searchQuery.value.toLowerCase()
-  return programs.value.filter(
-    (p) =>
-      (p.title || p.name || '').toLowerCase().includes(query) ||
-      (p.code || '').toLowerCase().includes(query),
-  )
-})
+const { searchQuery, searchResults: filteredPrograms } = useSearch(programs, programSearchMapper)
 </script>
 
 <template>
@@ -34,10 +28,8 @@ const filteredPrograms = computed(() => {
     <div class="page-container">
       <div class="page-header">
         <div class="header-actions">
-          <div class="search-box">
-            <input v-model="searchQuery" type="text" placeholder="Search programs..." />
-          </div>
-          <button class="add-btn">+ Add Program</button>
+          <SearchBox v-model="searchQuery" placeholder="Search programs..." />
+          <AppButton variant="primary">+ Add Program</AppButton>
         </div>
       </div>
 
@@ -53,7 +45,7 @@ const filteredPrograms = computed(() => {
             <p class="program-desc">{{ program.description || 'No description provided.' }}</p>
             <div class="card-footer">
               <span class="price">${{ program.price || '0' }}</span>
-              <button class="manage-btn">Manage</button>
+              <AppButton variant="outline" size="sm">Manage</AppButton>
             </div>
           </div>
         </div>
@@ -63,12 +55,6 @@ const filteredPrograms = computed(() => {
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-}
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -78,24 +64,6 @@ const filteredPrograms = computed(() => {
 .header-actions {
   display: flex;
   gap: 15px;
-}
-
-.search-box input {
-  padding: 10px 15px;
-  border-radius: 10px;
-  border: 1px solid #eee;
-  width: 280px;
-  background: white;
-}
-
-.add-btn {
-  background: #00aeef;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
 }
 
 .grid-container {
@@ -171,16 +139,6 @@ const filteredPrograms = computed(() => {
   font-size: 1.2rem;
   font-weight: 800;
   color: #00aeef;
-}
-
-.manage-btn {
-  background: #f8f9fa;
-  border: 1px solid #eee;
-  padding: 8px 15px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
 }
 
 .loading-state {

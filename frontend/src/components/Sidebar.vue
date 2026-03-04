@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
 import { authService } from '../services/authService'
+import AppButton from './common/AppButton/AppButton.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -50,7 +51,7 @@ const getIconPath = (icon) => {
     </nav>
 
     <div class="sidebar-footer">
-      <button @click="handleLogout" class="logout-btn">Log Out</button>
+      <AppButton variant="logout" style="width: 100%" @click="handleLogout">Log Out</AppButton>
     </div>
   </aside>
 </template>
@@ -132,21 +133,5 @@ const getIconPath = (icon) => {
 
 .sidebar-footer {
   padding: 20px;
-}
-
-.logout-btn {
-  width: 100%;
-  padding: 12px;
-  background-color: #c00;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: background 0.2s;
-}
-
-.logout-btn:hover {
-  background-color: #a00;
 }
 </style>

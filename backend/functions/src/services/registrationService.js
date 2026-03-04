@@ -150,13 +150,13 @@ class RegistrationService {
 
     // Transaction to update enrollment and decrease session count
     await db.runTransaction(async (transaction) => {
+      const sessionRef = db.collection("session").doc(data.session_id);
+      const sessionDoc = await transaction.get(sessionRef);
+
       transaction.update(enrollmentRef, {
         status: "cancelled",
         updatedAt: new Date().toISOString(),
       });
-
-      const sessionRef = db.collection("session").doc(data.session_id);
-      const sessionDoc = await transaction.get(sessionRef);
 
       if (sessionDoc.exists) {
         const currentCount = sessionDoc.data().num_student || 0;
@@ -198,7 +198,7 @@ class RegistrationService {
     if (data.status !== "cancelled" && data.status !== "canceled") {
       await db.runTransaction(async (transaction) => {
         const sessionRef = db.collection("session").doc(data.session_id);
-        const sessionDoc = await transaction.get(sessionRef);
+        const sessionDoc = await transaction.get(sessionRef); // ALL READS FIRST
 
         if (sessionDoc.exists) {
           const currentCount = sessionDoc.data().num_student || 0;
@@ -206,7 +206,7 @@ class RegistrationService {
             transaction.update(sessionRef, { num_student: currentCount - 1 });
           }
         }
-        transaction.delete(enrollmentRef);
+        transaction.delete(enrollmentRef); // WRITES SECOND
       });
     } else {
       // It was already cancelled, just delete it

@@ -3,7 +3,8 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/authService'
 import { userService } from '../services/userService'
-import { storageService } from '../services/storageService'
+
+import AppButton from './common/AppButton/AppButton.vue'
 
 const router = useRouter()
 
@@ -19,9 +20,6 @@ const error = ref('')
 const message = ref('')
 const loading = ref(false)
 
-// File Upload
-const selectedFile = ref(null)
-
 const toggleMode = () => {
   isLogin.value = !isLogin.value
   isResetMode.value = false
@@ -33,7 +31,6 @@ const toggleMode = () => {
   role.value = 'parent'
   error.value = ''
   message.value = ''
-  selectedFile.value = null
 }
 
 const toggleResetMode = () => {
@@ -43,10 +40,6 @@ const toggleResetMode = () => {
   password.value = ''
   error.value = ''
   message.value = ''
-}
-
-const handleFileChange = (event) => {
-  selectedFile.value = event.target.files[0]
 }
 
 const handleSubmit = async () => {
@@ -86,18 +79,6 @@ const handleSubmit = async () => {
       // 1. Create Auth User
       const user = await authService.register(email.value, password.value)
 
-      let profileURL = null
-
-      // 2. Upload Profile Image (if selected)
-      if (selectedFile.value) {
-        try {
-          profileURL = await storageService.uploadProfileImage(user.uid, selectedFile.value)
-        } catch (uploadError) {
-          console.error('Failed to upload image during registration', uploadError)
-          // Continue registration even if upload fails
-        }
-      }
-
       // 3. Create Profile in 'registration' database via Backend API
       await userService.registerParentAccount({
         uid: user.uid,
@@ -105,7 +86,6 @@ const handleSubmit = async () => {
         name: name.value,
         phone: phone.value,
         role: role.value,
-        profileURL: profileURL, // Pass the URL here
       })
 
       if (role.value === 'parent') {
@@ -197,30 +177,34 @@ const handleSubmit = async () => {
             <label for="terms">I accept <a href="#">Terms and Conditions</a></label>
           </div>
 
-          <button :disabled="loading" type="submit" class="submit-btn">
-            {{
-              loading
-                ? 'Processing...'
-                : isResetMode
-                  ? 'Send Reset Link'
-                  : isLogin
-                    ? 'Sign in'
-                    : 'Continue'
-            }}
-          </button>
+          <AppButton
+            :loading="loading"
+            :disabled="loading"
+            type="submit"
+            variant="primary"
+            style="width: 100%; border-radius: 8px"
+          >
+            {{ isResetMode ? 'Send Reset Link' : isLogin ? 'Sign in' : 'Continue' }}
+          </AppButton>
         </form>
 
         <div v-if="isLogin && !isResetMode" class="separator">
           <span>OR</span>
         </div>
 
-        <button v-if="isLogin && !isResetMode" class="google-btn" type="button">
+        <AppButton
+          v-if="isLogin && !isResetMode"
+          variant="subtle"
+          style="width: 100%; justify-content: center; margin-bottom: 20px; border-radius: 8px"
+          type="button"
+        >
           <img
             src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/pwa/google.svg"
             alt="Google"
+            style="width: 20px"
           />
           Continue with Google
-        </button>
+        </AppButton>
 
         <p class="toggle-text">
           <template v-if="isResetMode">
@@ -366,22 +350,6 @@ select:focus {
   width: auto;
 }
 
-.submit-btn {
-  width: 100%;
-  padding: 14px;
-  background-color: #00aeef;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
-  margin-top: 10px;
-}
-
-.submit-btn:hover {
-  background-color: #0098d3;
-}
-
 .separator {
   margin: 25px 0;
   position: relative;
@@ -403,25 +371,6 @@ select:focus {
   font-size: 0.75rem;
   font-weight: 700;
   color: #999;
-}
-
-.google-btn {
-  width: 100%;
-  padding: 12px;
-  background: #f8f9fa;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  font-weight: 600;
-  color: #444;
-  margin-bottom: 20px;
-}
-
-.google-btn img {
-  width: 20px;
 }
 
 .toggle-text {

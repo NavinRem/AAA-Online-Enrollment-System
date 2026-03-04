@@ -7,13 +7,13 @@ export const getCachedData = (key, ttlMinutes = 5) => {
   try {
     const { data, timestamp } = JSON.parse(cached)
     const now = new Date().getTime()
-    
+
     if (now - timestamp > ttlMinutes * 60 * 1000) {
       localStorage.removeItem(`${CACHE_PREFIX}${key}`)
       return null
     }
     return data
-  } catch (e) {
+  } catch {
     return null
   }
 }
@@ -21,13 +21,13 @@ export const getCachedData = (key, ttlMinutes = 5) => {
 export const setCachedData = (key, data) => {
   const cacheObj = {
     data,
-    timestamp: new Date().getTime()
+    timestamp: new Date().getTime(),
   }
   localStorage.setItem(`${CACHE_PREFIX}${key}`, JSON.stringify(cacheObj))
 }
 
 export const clearCachePrefix = (prefix) => {
-  Object.keys(localStorage).forEach(key => {
+  Object.keys(localStorage).forEach((key) => {
     if (key.startsWith(`${CACHE_PREFIX}${prefix}`)) {
       localStorage.removeItem(key)
     }

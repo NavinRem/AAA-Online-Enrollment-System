@@ -43,21 +43,23 @@ const props = defineProps({
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-  text-align: center;
+  text-align: left;
   display: flex;
   flex-direction: column;
 }
 
 .card-caption {
-  font-weight: 700;
-  color: #1a1a1a;
+  font-weight: 850;
+  color: #000;
   margin: 0 0 20px;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
+  letter-spacing: -0.3px;
+  text-align: center;
 }
 
 .avatar-wrapper {
-  width: 80px;
-  height: 80px;
+  width: 90px;
+  height: 90px;
   margin: 0 auto 20px;
   border-radius: 50%;
   border: 2px solid #e1f5fe;
@@ -79,27 +81,31 @@ const props = defineProps({
 .info-block-light {
   background: #eef6fc;
   border-radius: 12px;
-  padding: 16px;
+  padding: 18px 20px;
   text-align: left;
   flex-grow: 1;
 }
 
-:deep(.info-block-light p) {
+:deep(p) {
   margin: 0 0 12px;
-  font-size: 0.95rem;
-  color: #333;
-  line-height: 1.4;
+  font-size: 1rem;
+  color: #1a1a1a;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-:deep(.info-block-light p:last-child) {
+:deep(p:last-child) {
   margin-bottom: 0;
 }
 
-:deep(.info-block-light p strong) {
-  color: #1a1a1a;
-  font-weight: 700;
-  margin-right: 8px;
-  display: inline-block;
+:deep(strong) {
+  color: #000;
+  font-weight: 800;
+  font-size: 1.05rem;
 }
 
 .loading-shimmer {

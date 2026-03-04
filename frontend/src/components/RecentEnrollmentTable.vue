@@ -1,27 +1,12 @@
 <script setup>
-const props = defineProps({
+defineProps({
   registrations: {
     type: Array,
     default: () => [],
   },
 })
 
-const getStatusClass = (status) => {
-  if (!status) return ''
-  status = status.toLowerCase()
-  if (status === 'confirmed') return 'paid'
-  if (status === 'pending') return 'unpaid'
-  return status
-}
-
-const getDisplayStatus = (status) => {
-  if (!status) return 'Pending'
-  status = status.toLowerCase()
-  if (status === 'confirmed' || status === 'paid') return 'Paid'
-  if (status === 'pending' || status === 'unpaid') return 'Unpaid'
-  if (status === 'canceled' || status === 'cancelled') return 'Canceled'
-  return status.charAt(0).toUpperCase() + status.slice(1)
-}
+import StatusBadge from './common/StatusBadge/StatusBadge.vue'
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
@@ -43,7 +28,7 @@ const formatDate = (dateString) => {
       hour12: false,
     })
     return `${formattedDate} at ${formattedTime}`
-  } catch (e) {
+  } catch {
     return dateString
   }
 }
@@ -83,12 +68,10 @@ const formatDate = (dateString) => {
           <td>{{ item.child }}</td>
           <td>{{ item.course }}</td>
           <td>
-            <span class="status-badge" :class="getStatusClass(item.status)">
-              {{ getDisplayStatus(item.status) }}
-            </span>
+            <StatusBadge :status="item.status" />
           </td>
           <td>
-            <span class="amount-cell">{{ item.amount }}</span>
+            <StatusBadge :status="item.amount" />
           </td>
           <td class="date-cell">{{ formatDate(item.date) }}</td>
         </tr>
@@ -197,37 +180,6 @@ const formatDate = (dateString) => {
 .bold {
   font-weight: 600;
   color: #1a1a1a;
-}
-
-.status-badge {
-  padding: 5px 15px;
-  border-radius: 15px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.status-badge.paid {
-  background: #e1f5fe;
-  color: #4caf50;
-}
-
-.status-badge.unpaid {
-  background: #fffde7;
-  color: #fbc02d;
-}
-
-.status-badge.canceled {
-  background: #ffebee;
-  color: #f44336;
-}
-
-.amount-cell {
-  background: #e1f5fe;
-  color: #00aeef;
-  font-weight: 700;
-  padding: 5px 12px;
-  border-radius: 8px;
-  display: inline-block;
 }
 
 .date-cell {
