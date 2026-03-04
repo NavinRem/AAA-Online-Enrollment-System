@@ -20,8 +20,7 @@
 }
 
 .data-table th {
-  padding-bottom: 15px;
-  padding-top: 0;
+  padding: 0 16px 15px 16px; /* Exactly match the 16px horizontal padding of td */
   color: #1a1a1a;
   font-size: 0.85rem;
   font-weight: 700;
