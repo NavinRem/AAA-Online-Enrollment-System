@@ -2,12 +2,15 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import DataPageLayout from '../components/common/DataPageLayout.vue'
+import AppButton from '../components/common/AppButton/AppButton.vue'
 import SummaryCard from '../components/SummaryCard.vue'
-import Sidebar from '../components/Sidebar.vue'
-import AppBadge from '../components/AppBadge.vue'
+import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
 import { registrationService } from '../services/registrationService'
 import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
+import SearchBox from '../components/common/SearchBox/SearchBox.vue'
+import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 const router = useRouter()
 
 const registrations = ref([])
@@ -16,7 +19,6 @@ const students = ref([])
 const courses = ref([])
 const sessions = ref([])
 const loading = ref(true)
-const searchQuery = ref('')
 const showModal = ref(false)
 const submitting = ref(false)
 const errorMessage = ref('')
@@ -65,6 +67,8 @@ const loadFormData = async () => {
 
 const parentSearchQuery = ref('')
 const isParentDropdownOpen = ref(false)
+
+const isFilterDropdownOpen = ref(false)
 
 const filteredParents = computed(() => {
   if (!parentSearchQuery.value) return parents.value
@@ -271,8 +275,26 @@ const totalUnpaidRegistration = computed(
   () => registrations.value.filter((r) => isUnpaid(r.status || r.paymentStatus)).length,
 )
 
-const filteredRegistrations = computed(() => {
+const currentFilter = ref('all')
+
+const setFilter = (filterValue) => {
+  currentFilter.value = filterValue
+  isFilterDropdownOpen.value = false
+}
+
+const statusFilteredRegistrations = computed(() => {
   let list = [...registrations.value]
+
+  // Filter list by selected status
+  if (currentFilter.value !== 'all') {
+    if (currentFilter.value === 'paid') {
+      list = list.filter((r) => isPaid(r.status || r.paymentStatus))
+    } else if (currentFilter.value === 'unpaid') {
+      list = list.filter((r) => isUnpaid(r.status || r.paymentStatus))
+    } else if (currentFilter.value === 'cancelled') {
+      list = list.filter((r) => isCancelled(r.status || r.paymentStatus))
+    }
+  }
 
   // Sort descending by date (newest enrollment first)
   list.sort((a, b) => {
@@ -287,19 +309,13 @@ const filteredRegistrations = computed(() => {
     return bDate - aDate
   })
 
-  // Filter list by search query
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    list = list.filter(
-      (r) =>
-        (r.parentName || r.parent_name || '').toLowerCase().includes(query) ||
-        (r.studentName || r.student_name || '').toLowerCase().includes(query) ||
-        (r.courseTitle || r.course_title || '').toLowerCase().includes(query),
-    )
-  }
-
   return list
 })
+
+const { searchQuery, searchResults: filteredRegistrations } = useSearch(
+  statusFilteredRegistrations,
+  enrollmentSearchMapper,
+)
 
 const formatSession = (item) => {
   return item.sessionSchedule || 'N/A'
@@ -309,21 +325,7 @@ const formatSessionCount = (item) => {
   return item.sessionCount || 'N/A'
 }
 
-const getStatusClass = (status) => {
-  if (!status) return 'unpaid'
-  const lowStatus = status.toLowerCase()
-  if (lowStatus === 'canceled' || lowStatus === 'cancelled') return 'canceled'
-  if (lowStatus === 'paid' || lowStatus === 'confirmed') return 'paid'
-  return 'unpaid'
-}
-
-const displayStatus = (status) => {
-  if (!status) return 'Unpaid'
-  const s = status.toLowerCase()
-  if (s === 'canceled' || s === 'cancelled') return 'Cancelled'
-  if (s === 'paid' || s === 'confirmed') return 'Paid'
-  return 'Unpaid'
-}
+// Removed older status helpers
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
@@ -344,7 +346,7 @@ const formatDate = (dateString) => {
       second: '2-digit',
     })
     return `${formatted} at ${time} UTC+7`
-  } catch (e) {
+  } catch {
     return dateString
   }
 }
@@ -352,205 +354,82 @@ const formatDate = (dateString) => {
 
 <template>
   <DashboardLayout>
-    <div class="page-container">
-      <!-- Enrollment Overview Section -->
-      <section class="overview-section card-box">
-        <h2 class="section-title">Enrollment Overview</h2>
-        <div class="cards-row">
-          <SummaryCard
-            title="Total Enrollment"
-            :value="totalRegistration"
-            image="registration.png"
-            color="#e1f5fe"
-          />
-          <SummaryCard
-            title="Total Paid Enrollment"
-            :value="totalPaidRegistration"
-            image="paid-reg.png"
-            color="#e1f5fe"
-          />
-          <SummaryCard
-            title="Total Unpaid Enrollment"
-            :value="totalUnpaidRegistration"
-            image="unpaid1.png"
-            color="#e1f5fe"
-          />
-          <SummaryCard
-            title="Total Cancelled Enrollment"
-            :value="totalCancelledRegistration"
-            image="cancel1.png"
-            color="#e1f5fe"
-          />
-        </div>
-      </section>
+    <DataPageLayout overviewTitle="Enrollment Overview" listTitle="Enrollment Lists">
+      <template #overview>
+        <SummaryCard
+          title="Total Enrollment"
+          :value="totalRegistration"
+          image="registration.png"
+          color="#e1f5fe"
+        />
+        <SummaryCard
+          title="Total Paid Enrollment"
+          :value="totalPaidRegistration"
+          image="paid-reg.png"
+          color="#e1f5fe"
+        />
+        <SummaryCard
+          title="Total Unpaid Enrollment"
+          :value="totalUnpaidRegistration"
+          image="unpaid1.png"
+          color="#e1f5fe"
+        />
+        <SummaryCard
+          title="Total Cancelled Enrollment"
+          :value="totalCancelledRegistration"
+          image="cancel1.png"
+          color="#e1f5fe"
+        />
+      </template>
 
-      <!-- Enrollment Lists Section -->
-      <section class="table-section card-box">
-        <div class="table-header">
-          <h2 class="section-title">Enrollment Lists</h2>
-          <div class="header-actions">
-            <div class="search-box">
-              <span class="search-icon">🔍</span>
-              <input v-model="searchQuery" type="text" placeholder="Search Enrollments" />
-            </div>
-            <button class="filter-btn">Filter</button>
-            <button class="add-btn" @click="openModal">+ New Enrollment</button>
-          </div>
-        </div>
-
-        <!-- Add Enrollment Modal -->
-        <transition name="modal-fade">
-          <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
-            <div class="modal-content">
-              <div class="modal-header">
-                <h3>Create New Enrollment</h3>
-                <button class="close-btn" @click="showModal = false">×</button>
+      <template #actions>
+        <SearchBox v-model="searchQuery" placeholder="Search Enrollments" />
+        <div class="filter-dropdown-container">
+          <AppButton
+            variant="secondary"
+            :class="{ active: currentFilter !== 'all' }"
+            @click="isFilterDropdownOpen = !isFilterDropdownOpen"
+            @blur="setTimeout(() => (isFilterDropdownOpen = false), 200)"
+          >
+            <span style="margin-right: 6px">⚙️</span> Filter
+          </AppButton>
+          <transition name="toast-fade">
+            <div v-if="isFilterDropdownOpen" class="filter-dropdown-menu">
+              <div
+                class="filter-option"
+                :class="{ active: currentFilter === 'all' }"
+                @click.stop="setFilter('all')"
+              >
+                All Enrollments
               </div>
-              <div class="modal-body">
-                <transition name="toast-fade">
-                  <div v-if="errorMessage" class="alert-box error">
-                    <span class="icon">⚠️</span> {{ errorMessage }}
-                  </div>
-                </transition>
-                <transition name="toast-fade">
-                  <div v-if="successMessage" class="alert-box success">
-                    <span class="icon">✅</span> {{ successMessage }}
-                  </div>
-                </transition>
-
-                <div class="form-grid">
-                  <div class="form-group custom-dropdown-container">
-                    <label>Select Parent / Guardian</label>
-                    <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
-                      <div
-                        class="dropdown-header"
-                        @click="isParentDropdownOpen = !isParentDropdownOpen"
-                      >
-                        {{ selectedParentLabel }}
-                        <span class="chevron"></span>
-                      </div>
-                      <transition name="toast-fade">
-                        <div class="dropdown-menu" v-if="isParentDropdownOpen">
-                          <div class="dropdown-search">
-                            <input
-                              type="text"
-                              v-model="parentSearchQuery"
-                              placeholder="Search name or email..."
-                              autofocus
-                            />
-                          </div>
-                          <ul class="dropdown-list">
-                            <li
-                              v-for="p in filteredParents"
-                              :key="p.uid"
-                              class="dropdown-item"
-                              :class="{ active: formData.parentId === p.uid }"
-                              @click="selectParent(p.uid)"
-                            >
-                              {{ p.name || p.email }}
-                            </li>
-                            <li
-                              v-if="filteredParents.length === 0"
-                              class="dropdown-item no-results"
-                            >
-                              No matches found.
-                            </li>
-                          </ul>
-                        </div>
-                      </transition>
-                    </div>
-                  </div>
-                  <div class="form-group">
-                    <label>Select Student</label>
-                    <select
-                      v-model="formData.studentId"
-                      :disabled="!formData.parentId"
-                      @change="errorMessage = ''"
-                    >
-                      <option value="" disabled>Choose a student</option>
-                      <option v-for="s in availableStudents" :key="s.id" :value="s.id">
-                        {{ s.fullname || s.name }}
-                      </option>
-                    </select>
-                    <div
-                      v-if="formData.parentId && availableStudents.length === 0"
-                      style="margin-top: 5px"
-                    >
-                      <small class="warning-text" style="margin-bottom: 8px">
-                        <span class="icon">ℹ️</span> This parent has not registered a child yet.
-                      </small>
-                      <button
-                        class="outline-btn small-btn"
-                        @click="$router.push('/students')"
-                        style="padding: 6px 12px; font-size: 0.8rem"
-                      >
-                        + Go to Students Directory
-                      </button>
-                    </div>
-                  </div>
-                  <div class="form-group">
-                    <label>Select Course</label>
-                    <select
-                      v-model="formData.courseId"
-                      @change="
-                        () => {
-                          handleCourseChange()
-                          errorMessage = ''
-                        }
-                      "
-                    >
-                      <option value="" disabled>Choose a course</option>
-                      <option v-for="c in courses" :key="c.id" :value="c.id">
-                        {{ c.title || c.name }}
-                      </option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label>Select Session</label>
-                    <select
-                      v-model="formData.sessionId"
-                      :disabled="!formData.courseId || sessions.length === 0"
-                      @change="errorMessage = ''"
-                    >
-                      <option value="" disabled>Choose a session time</option>
-                      <option v-for="s in sessions" :key="s.id" :value="s.id">
-                        {{ s.schedule?.day || 'TBD' }} @ {{ s.schedule?.timeslot || 'TBD' }} ({{
-                          s.num_student || 0
-                        }}/{{ s.capacity || 20 }} enrolled)
-                      </option>
-                    </select>
-                    <small v-if="formData.courseId && sessions.length === 0" class="warning-text">
-                      <span class="icon">⚠️</span> This course has no active sessions to join.
-                    </small>
-                  </div>
-                </div>
-                <!-- End form-grid -->
-
-                <div v-if="selectedCoursePrice && formData.courseId" class="price-preview">
-                  <span class="price-label">Amount to be paid</span>
-                  <strong class="price-value">${{ selectedCoursePrice }}</strong>
-                </div>
+              <div
+                class="filter-option"
+                :class="{ active: currentFilter === 'paid' }"
+                @click.stop="setFilter('paid')"
+              >
+                Paid Only
               </div>
-              <div class="modal-footer">
-                <button class="cancel-btn" @click="showModal = false">Cancel</button>
-                <button
-                  class="save-btn"
-                  @click="handleCreateEnrollment"
-                  :disabled="
-                    !formData.parentId ||
-                    !formData.studentId ||
-                    !formData.courseId ||
-                    !formData.sessionId ||
-                    submitting
-                  "
-                >
-                  {{ submitting ? 'Submitting...' : 'Confirm Enrollment' }}
-                </button>
+              <div
+                class="filter-option"
+                :class="{ active: currentFilter === 'unpaid' }"
+                @click.stop="setFilter('unpaid')"
+              >
+                Unpaid Only
+              </div>
+              <div
+                class="filter-option"
+                :class="{ active: currentFilter === 'cancelled' }"
+                @click.stop="setFilter('cancelled')"
+              >
+                Cancelled Only
               </div>
             </div>
-          </div>
-        </transition>
+          </transition>
+        </div>
+        <AppButton variant="primary" @click="openModal">+ New Enrollment</AppButton>
+      </template>
 
+      <template #table>
         <div v-if="loading" class="loading-state">Loading enrollments...</div>
         <table v-else class="data-table">
           <thead>
@@ -582,30 +461,18 @@ const formatDate = (dateString) => {
               <td>{{ formatSession(item) }}</td>
               <td>{{ formatSessionCount(item) }}</td>
               <td>
-                <AppBadge
-                  :text="
+                <StatusBadge
+                  :status="
                     isCancelled(item.status)
-                      ? 'CANCELED'
+                      ? 'Canceled'
                       : isPaid(item.paymentStatus)
-                        ? 'PAID'
-                        : 'UNPAID'
+                        ? 'Paid'
+                        : 'Unpaid'
                   "
-                  :type="
-                    isCancelled(item.status)
-                      ? 'danger'
-                      : isPaid(item.paymentStatus)
-                        ? 'success'
-                        : 'warning'
-                  "
-                  size="sm"
                 />
               </td>
               <td>
-                <AppBadge
-                  :text="'$' + (item.amount || item.totalAmount || 180)"
-                  type="primary"
-                  size="sm"
-                />
+                <StatusBadge :status="'$' + (item.amount || item.totalAmount || 180)" />
               </td>
               <td>
                 {{
@@ -664,318 +531,388 @@ const formatDate = (dateString) => {
             </tr>
           </tbody>
         </table>
-      </section>
+      </template>
+    </DataPageLayout>
 
-      <!-- Action Modals (Edit, Pay, Cancel, Delete) -->
-      <transition name="modal-fade">
-        <div v-if="actionModal.isOpen" class="modal-overlay" @click.self="closeActionModal">
-          <div class="modal-content action-modal">
-            <div class="modal-header">
-              <h3 v-if="actionModal.type === 'edit'">Edit Enrollment</h3>
-              <h3 v-if="actionModal.type === 'pay'">Mark as Paid</h3>
-              <h3 v-if="actionModal.type === 'cancel'">Cancel Enrollment</h3>
-              <h3 v-if="actionModal.type === 'delete'" class="danger-text">Delete Permanently</h3>
-              <button class="close-btn" @click="closeActionModal">×</button>
-            </div>
+    <!-- Add Enrollment Modal -->
+    <transition name="modal-fade">
+      <div v-if="showModal" class="modal-overlay" @click.self="showModal = false">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Create New Enrollment</h3>
+            <button class="close-btn" @click="showModal = false">×</button>
+          </div>
+          <div class="modal-body">
+            <transition name="toast-fade">
+              <div v-if="errorMessage" class="alert-box error">
+                <span class="icon">⚠️</span> {{ errorMessage }}
+              </div>
+            </transition>
+            <transition name="toast-fade">
+              <div v-if="successMessage" class="alert-box success">
+                <span class="icon">✅</span> {{ successMessage }}
+              </div>
+            </transition>
 
-            <div class="modal-body">
-              <transition name="toast-fade">
-                <div v-if="errorMessage" class="alert-box error">
-                  <span class="icon">⚠️</span> {{ errorMessage }}
+            <div class="form-grid">
+              <div class="form-group custom-dropdown-container">
+                <label>Select Parent / Guardian</label>
+                <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
+                  <div
+                    class="dropdown-header"
+                    @click="isParentDropdownOpen = !isParentDropdownOpen"
+                  >
+                    {{ selectedParentLabel }}
+                    <span class="chevron"></span>
+                  </div>
+                  <transition name="toast-fade">
+                    <div class="dropdown-menu" v-if="isParentDropdownOpen">
+                      <div class="dropdown-search">
+                        <input
+                          type="text"
+                          v-model="parentSearchQuery"
+                          placeholder="Search name or email..."
+                          autofocus
+                        />
+                      </div>
+                      <ul class="dropdown-list">
+                        <li
+                          v-for="p in filteredParents"
+                          :key="p.uid"
+                          class="dropdown-item"
+                          :class="{ active: formData.parentId === p.uid }"
+                          @click="selectParent(p.uid)"
+                        >
+                          {{ p.name || p.email }}
+                        </li>
+                        <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
+                          No matches found.
+                        </li>
+                      </ul>
+                    </div>
+                  </transition>
                 </div>
-              </transition>
-              <transition name="toast-fade">
-                <div v-if="successMessage" class="alert-box success">
-                  <span class="icon">✅</span> {{ successMessage }}
-                </div>
-              </transition>
-
-              <!-- Edit Amount Form -->
-              <div v-if="actionModal.type === 'edit'" class="form-group full-width">
-                <div class="info-block">
-                  <span class="icon">ℹ️</span>
-                  <p>
-                    <strong>Update Enrollment:</strong> Adjust the administrative price below or
-                    attach a special remark/note to this specific enrollment.
-                  </p>
-                </div>
-                <label>Adjust Enrollment Amount ($)</label>
-                <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
-
-                <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
-                <textarea
-                  v-model="actionModal.remark"
-                  placeholder="Please write your remark here..."
-                ></textarea>
-                <div class="preset-chips">
+              </div>
+              <div class="form-group">
+                <label>Select Student</label>
+                <select
+                  v-model="formData.studentId"
+                  :disabled="!formData.parentId"
+                  @change="errorMessage = ''"
+                >
+                  <option value="" disabled>Choose a student</option>
+                  <option v-for="s in availableStudents" :key="s.id" :value="s.id">
+                    {{ s.fullname || s.name }}
+                  </option>
+                </select>
+                <div
+                  v-if="formData.parentId && availableStudents.length === 0"
+                  style="margin-top: 5px"
+                >
+                  <small class="warning-text" style="margin-bottom: 8px">
+                    <span class="icon">ℹ️</span> This parent has not registered a child yet.
+                  </small>
                   <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.remark === 'VIP Student' }"
-                    @click="actionModal.remark = 'VIP Student'"
+                    class="outline-btn small-btn"
+                    @click="$router.push('/students')"
+                    style="padding: 6px 12px; font-size: 0.8rem"
                   >
-                    VIP Student
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.remark === 'Needs extra attention' }"
-                    @click="actionModal.remark = 'Needs extra attention'"
-                  >
-                    Needs extra attention
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.remark === 'Parent will pay next week' }"
-                    @click="actionModal.remark = 'Parent will pay next week'"
-                  >
-                    Parent will pay next week
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.remark === 'Pending partial refund' }"
-                    @click="actionModal.remark = 'Pending partial refund'"
-                  >
-                    Pending partial refund
+                    + Go to Students Directory
                   </button>
                 </div>
               </div>
-
-              <!-- Mark Paid Form -->
-              <div v-if="actionModal.type === 'pay'" class="form-group full-width">
-                <div class="info-block">
-                  <span class="icon">💡</span>
-                  <p>
-                    <strong>How to provide proof:</strong> Please enter the transaction reference
-                    number provided by the bank, or type "Cash" followed by the receipt number you
-                    gave the parent.
-                  </p>
-                </div>
-                <label>Proof of Payment Reference <span class="required">*</span></label>
-                <textarea
-                  v-model="actionModal.proof"
-                  placeholder="Please write the bank reference number or method here..."
-                ></textarea>
-                <div class="preset-chips">
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.proof === 'Paid in Cash' }"
-                    @click="actionModal.proof = 'Paid in Cash'"
-                  >
-                    Paid in Cash
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.proof === 'Paid via Check' }"
-                    @click="actionModal.proof = 'Paid via Check'"
-                  >
-                    Paid via Check
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.proof === 'Paid via Bank Transfer' }"
-                    @click="actionModal.proof = 'Paid via Bank Transfer'"
-                  >
-                    Paid via Bank Transfer
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.proof === 'Paid via Credit Card' }"
-                    @click="actionModal.proof = 'Paid via Credit Card'"
-                  >
-                    Paid via Credit Card
-                  </button>
-                </div>
+              <div class="form-group">
+                <label>Select Course</label>
+                <select
+                  v-model="formData.courseId"
+                  @change="
+                    () => {
+                      handleCourseChange()
+                      errorMessage = ''
+                    }
+                  "
+                >
+                  <option value="" disabled>Choose a course</option>
+                  <option v-for="c in courses" :key="c.id" :value="c.id">
+                    {{ c.title || c.name }}
+                  </option>
+                </select>
               </div>
-
-              <!-- Cancel Form -->
-              <div v-if="actionModal.type === 'cancel'" class="form-group full-width">
-                <div class="info-block warning">
-                  <span class="icon">⚠️</span>
-                  <p>
-                    <strong>Cancellation Policy:</strong> A cancellation stops this student from
-                    attending the course. You MUST provide the exact reason (e.g., Parent email
-                    request on [Date]).
-                  </p>
-                </div>
-                <label>Reason for Cancellation <span class="required">*</span></label>
-                <textarea
-                  v-model="actionModal.reason"
-                  placeholder="Please write your reason here..."
-                ></textarea>
-                <div class="preset-chips">
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.reason === 'Parent requested via email' }"
-                    @click="actionModal.reason = 'Parent requested via email'"
-                  >
-                    Parent requested via email
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.reason === 'Parent requested via phone' }"
-                    @click="actionModal.reason = 'Parent requested via phone'"
-                  >
-                    Parent requested via phone
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.reason === 'Did not pay on time' }"
-                    @click="actionModal.reason = 'Did not pay on time'"
-                  >
-                    Did not pay on time
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.reason === 'Course schedule conflict' }"
-                    @click="actionModal.reason = 'Course schedule conflict'"
-                  >
-                    Course schedule conflict
-                  </button>
-                  <button
-                    type="button"
-                    class="preset-chip"
-                    :class="{ active: actionModal.reason === 'Duplicate enrollment' }"
-                    @click="actionModal.reason = 'Duplicate enrollment'"
-                  >
-                    Duplicate enrollment
-                  </button>
-                </div>
-              </div>
-
-              <!-- Delete Form -->
-              <div v-if="actionModal.type === 'delete'" class="form-group full-width">
-                <div class="info-block danger">
-                  <span class="icon">🛑</span>
-                  <p>
-                    <strong>Critical Warning:</strong> Deleting an enrollment removes the record
-                    entirely. It can never be recovered. This should only be used for accidental
-                    duplicate registrations.
-                  </p>
-                </div>
-                <label>Confirm Deletion <span class="required">*</span></label>
-                <p style="margin-bottom: 15px; color: #555; font-size: 0.95rem">
-                  Please type <strong class="danger-text">DELETE</strong> below to confirm you have
-                  authorization to erase this record.
-                </p>
-                <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
+              <div class="form-group">
+                <label>Select Session</label>
+                <select
+                  v-model="formData.sessionId"
+                  :disabled="!formData.courseId || sessions.length === 0"
+                  @change="errorMessage = ''"
+                >
+                  <option value="" disabled>Choose a session time</option>
+                  <option v-for="s in sessions" :key="s.id" :value="s.id">
+                    {{ s.schedule?.day || 'TBD' }} @ {{ s.schedule?.timeslot || 'TBD' }} ({{
+                      s.num_student || 0
+                    }}/{{ s.capacity || 20 }} enrolled)
+                  </option>
+                </select>
+                <small v-if="formData.courseId && sessions.length === 0" class="warning-text">
+                  <span class="icon">⚠️</span> This course has no active sessions to join.
+                </small>
               </div>
             </div>
+            <!-- End form-grid -->
 
-            <div class="modal-footer">
-              <button class="cancel-btn" @click="closeActionModal">Nevermind</button>
-              <button
-                class="save-btn"
-                :class="{
-                  'danger-btn': actionModal.type === 'delete' || actionModal.type === 'cancel',
-                }"
-                @click="submitActionModal"
-                :disabled="submitting"
-              >
-                {{ submitting ? 'Processing...' : 'Confirm Action' }}
-              </button>
+            <div v-if="selectedCoursePrice && formData.courseId" class="price-preview">
+              <span class="price-label">Amount to be paid</span>
+              <strong class="price-value">${{ selectedCoursePrice }}</strong>
             </div>
           </div>
+          <div class="modal-footer">
+            <AppButton variant="cancel" @click="showModal = false">Cancel</AppButton>
+            <AppButton
+              variant="primary"
+              @click="handleCreateEnrollment"
+              :disabled="
+                !formData.parentId ||
+                !formData.studentId ||
+                !formData.courseId ||
+                !formData.sessionId ||
+                submitting
+              "
+              :loading="submitting"
+            >
+              Confirm Enrollment
+            </AppButton>
+          </div>
         </div>
-      </transition>
-    </div>
+      </div>
+    </transition>
+
+    <!-- Action Modals (Edit, Pay, Cancel, Delete) -->
+    <transition name="modal-fade">
+      <div v-if="actionModal.isOpen" class="modal-overlay" @click.self="closeActionModal">
+        <div class="modal-content action-modal">
+          <div class="modal-header">
+            <h3 v-if="actionModal.type === 'edit'">Edit Enrollment</h3>
+            <h3 v-if="actionModal.type === 'pay'">Mark as Paid</h3>
+            <h3 v-if="actionModal.type === 'cancel'">Cancel Enrollment</h3>
+            <h3 v-if="actionModal.type === 'delete'" class="danger-text">Delete Permanently</h3>
+            <button class="close-btn" @click="closeActionModal">×</button>
+          </div>
+
+          <div class="modal-body">
+            <transition name="toast-fade">
+              <div v-if="errorMessage" class="alert-box error">
+                <span class="icon">⚠️</span> {{ errorMessage }}
+              </div>
+            </transition>
+            <transition name="toast-fade">
+              <div v-if="successMessage" class="alert-box success">
+                <span class="icon">✅</span> {{ successMessage }}
+              </div>
+            </transition>
+
+            <!-- Edit Amount Form -->
+            <div v-if="actionModal.type === 'edit'" class="form-group full-width">
+              <div class="info-block">
+                <span class="icon">ℹ️</span>
+                <p>
+                  <strong>Update Enrollment:</strong> Adjust the administrative price below or
+                  attach a special remark/note to this specific enrollment.
+                </p>
+              </div>
+              <label>Adjust Enrollment Amount ($)</label>
+              <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
+
+              <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
+              <textarea
+                v-model="actionModal.remark"
+                placeholder="Please write your remark here..."
+              ></textarea>
+              <div class="preset-chips">
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.remark === 'VIP Student' }"
+                  @click="actionModal.remark = 'VIP Student'"
+                >
+                  VIP Student
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.remark === 'Needs extra attention' }"
+                  @click="actionModal.remark = 'Needs extra attention'"
+                >
+                  Needs extra attention
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.remark === 'Parent will pay next week' }"
+                  @click="actionModal.remark = 'Parent will pay next week'"
+                >
+                  Parent will pay next week
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.remark === 'Pending partial refund' }"
+                  @click="actionModal.remark = 'Pending partial refund'"
+                >
+                  Pending partial refund
+                </button>
+              </div>
+            </div>
+
+            <!-- Mark Paid Form -->
+            <div v-if="actionModal.type === 'pay'" class="form-group full-width">
+              <div class="info-block">
+                <span class="icon">💡</span>
+                <p>
+                  <strong>How to provide proof:</strong> Please enter the transaction reference
+                  number provided by the bank, or type "Cash" followed by the receipt number you
+                  gave the parent.
+                </p>
+              </div>
+              <label>Proof of Payment Reference <span class="required">*</span></label>
+              <textarea
+                v-model="actionModal.proof"
+                placeholder="Please write the bank reference number or method here..."
+              ></textarea>
+              <div class="preset-chips">
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.proof === 'Paid in Cash' }"
+                  @click="actionModal.proof = 'Paid in Cash'"
+                >
+                  Paid in Cash
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.proof === 'Paid via Check' }"
+                  @click="actionModal.proof = 'Paid via Check'"
+                >
+                  Paid via Check
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.proof === 'Paid via Bank Transfer' }"
+                  @click="actionModal.proof = 'Paid via Bank Transfer'"
+                >
+                  Paid via Bank Transfer
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.proof === 'Paid via Credit Card' }"
+                  @click="actionModal.proof = 'Paid via Credit Card'"
+                >
+                  Paid via Credit Card
+                </button>
+              </div>
+            </div>
+
+            <!-- Cancel Form -->
+            <div v-if="actionModal.type === 'cancel'" class="form-group full-width">
+              <div class="info-block warning">
+                <span class="icon">⚠️</span>
+                <p>
+                  <strong>Cancellation Policy:</strong> A cancellation stops this student from
+                  attending the course. You MUST provide the exact reason (e.g., Parent email
+                  request on [Date]).
+                </p>
+              </div>
+              <label>Reason for Cancellation <span class="required">*</span></label>
+              <textarea
+                v-model="actionModal.reason"
+                placeholder="Please write your reason here..."
+              ></textarea>
+              <div class="preset-chips">
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.reason === 'Parent requested via email' }"
+                  @click="actionModal.reason = 'Parent requested via email'"
+                >
+                  Parent requested via email
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.reason === 'Parent requested via phone' }"
+                  @click="actionModal.reason = 'Parent requested via phone'"
+                >
+                  Parent requested via phone
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.reason === 'Did not pay on time' }"
+                  @click="actionModal.reason = 'Did not pay on time'"
+                >
+                  Did not pay on time
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.reason === 'Course schedule conflict' }"
+                  @click="actionModal.reason = 'Course schedule conflict'"
+                >
+                  Course schedule conflict
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  :class="{ active: actionModal.reason === 'Duplicate enrollment' }"
+                  @click="actionModal.reason = 'Duplicate enrollment'"
+                >
+                  Duplicate enrollment
+                </button>
+              </div>
+            </div>
+
+            <!-- Delete Form -->
+            <div v-if="actionModal.type === 'delete'" class="form-group full-width">
+              <div class="info-block danger">
+                <span class="icon">🛑</span>
+                <p>
+                  <strong>Critical Warning:</strong> Deleting an enrollment removes the record
+                  entirely. It can never be recovered. This should only be used for accidental
+                  duplicate registrations.
+                </p>
+              </div>
+              <label>Confirm Deletion <span class="required">*</span></label>
+              <p style="margin-bottom: 15px; color: #555; font-size: 0.95rem">
+                Please type <strong class="danger-text">DELETE</strong> below to confirm you have
+                authorization to erase this record.
+              </p>
+              <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <AppButton variant="cancel" @click="closeActionModal">Nevermind</AppButton>
+            <AppButton
+              :variant="
+                actionModal.type === 'delete' || actionModal.type === 'cancel'
+                  ? 'danger'
+                  : 'primary'
+              "
+              @click="submitActionModal"
+              :loading="submitting"
+              :disabled="submitting"
+            >
+              Confirm Action
+            </AppButton>
+          </div>
+        </div>
+      </div>
+    </transition>
   </DashboardLayout>
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-}
-
-.card-box {
-  background: white;
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-}
-
-.section-title {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #333;
-  margin-top: 0;
-  margin-bottom: 25px;
-  display: flex;
-  align-items: center;
-}
-
-.overview-section .section-title::after,
-.table-header .section-title::after {
-  content: '';
-  flex: 1;
-  margin-left: 20px;
-  height: 1px;
-  background-color: #eee;
-}
-
-.table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-}
-
-.table-header .section-title {
-  margin-bottom: 0;
-  flex: 1;
-}
-
-.header-actions {
-  display: flex;
-  gap: 15px;
-  margin-left: 20px;
-}
-
-.cards-row {
-  display: flex;
-  gap: 20px;
-  width: 100%;
-}
-
-.search-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon {
-  position: absolute;
-  left: 15px;
-  color: #999;
-  font-size: 0.9rem;
-}
-
-.search-box input {
-  padding: 10px 15px 10px 40px;
-  border-radius: 20px;
-  border: 1px solid #eee;
-  background: #f8f9fa;
-  width: 250px;
-  font-size: 0.9rem;
-}
-
-.search-box input:focus {
-  outline: none;
-  border-color: #00aeef;
-}
-
 .filter-btn {
   background: #81d4fa;
   color: #1a1a1a;
@@ -990,6 +927,46 @@ const formatDate = (dateString) => {
 
 .filter-btn:hover {
   opacity: 0.8;
+}
+.filter-btn.active-filter {
+  background: #00aeef;
+  color: white;
+}
+
+.filter-dropdown-container {
+  position: relative;
+}
+
+.filter-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+  min-width: 180px;
+  z-index: 1000;
+  overflow: hidden;
+  border: 1px solid #f0f0f0;
+}
+
+.filter-option {
+  padding: 12px 20px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #444;
+  transition: all 0.2s ease;
+}
+
+.filter-option:hover {
+  background: #f8f9fa;
+  color: #00aeef;
+}
+
+.filter-option.active {
+  background: #e1f5fe;
+  color: #00aeef;
+  font-weight: 600;
 }
 
 .data-table {
@@ -1450,70 +1427,6 @@ const formatDate = (dateString) => {
   background: transparent;
 }
 
-.cancel-btn {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 12px 24px;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  color: #555;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-}
-
-.cancel-btn:hover {
-  background: #f8f9fa;
-  color: #1a1a1a;
-  border-color: #ccc;
-}
-
-.outline-btn {
-  background: white;
-  border: 1px solid #00aeef;
-  color: #00aeef;
-  border-radius: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.outline-btn:hover {
-  background: #f0f9ff;
-}
-
-.small-btn {
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  border-radius: 8px;
-}
-
-.save-btn {
-  background: #00aeef;
-  color: white;
-  border: none;
-  padding: 12px 28px;
-  border-radius: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(0, 174, 239, 0.2);
-}
-
-.save-btn:hover:not(:disabled) {
-  background: #0098d1;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 174, 239, 0.3);
-}
-
-.save-btn:disabled {
-  background: #e0e0e0;
-  color: #999;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
 /* Inline Actions */
 .action-cell {
   vertical-align: middle;
@@ -1597,8 +1510,5 @@ const formatDate = (dateString) => {
 }
 
 @media (max-width: 1200px) {
-  .cards-row {
-    flex-wrap: wrap;
-  }
 }
 </style>

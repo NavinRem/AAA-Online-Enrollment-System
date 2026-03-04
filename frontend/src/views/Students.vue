@@ -1,14 +1,16 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import AppButton from '../components/common/AppButton/AppButton.vue'
 import { userService } from '../services/userService'
 import { authService } from '../services/authService'
+import SearchBox from '../components/common/SearchBox/SearchBox.vue'
+import { useSearch, studentSearchMapper } from '../composables/useSearch'
 
 const router = useRouter()
 const students = ref([])
 const loading = ref(true)
-const searchQuery = ref('')
 
 onMounted(async () => {
   const currentUser = authService.getCurrentUser()
@@ -35,16 +37,7 @@ onMounted(async () => {
   }
 })
 
-const filteredStudents = computed(() => {
-  if (!searchQuery.value) return students.value
-  const query = searchQuery.value.toLowerCase()
-  return students.value.filter(
-    (s) =>
-      (s.name || s.fullName || '').toLowerCase().includes(query) ||
-      (s.parentName || '').toLowerCase().includes(query) ||
-      (s.studentId || '').toLowerCase().includes(query),
-  )
-})
+const { searchQuery, searchResults: filteredStudents } = useSearch(students, studentSearchMapper)
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
@@ -55,7 +48,7 @@ const formatDate = (dateString) => {
       month: 'long',
       year: 'numeric',
     })
-  } catch (e) {
+  } catch {
     return dateString
   }
 }
@@ -75,10 +68,8 @@ const calculateAge = (dateString) => {
     <div class="page-container">
       <div class="page-header">
         <div class="header-actions">
-          <div class="search-box">
-            <input v-model="searchQuery" type="text" placeholder="Search students..." />
-          </div>
-          <button class="add-btn">+ Add Student</button>
+          <SearchBox v-model="searchQuery" placeholder="Search students..." />
+          <AppButton variant="primary">+ Add Student</AppButton>
         </div>
       </div>
 
@@ -124,14 +115,7 @@ const calculateAge = (dateString) => {
     </div>
   </DashboardLayout>
 </template>
-
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-}
-
 .page-header {
   display: flex;
   justify-content: space-between;
@@ -141,24 +125,6 @@ const calculateAge = (dateString) => {
 .header-actions {
   display: flex;
   gap: 15px;
-}
-
-.search-box input {
-  padding: 10px 15px;
-  border-radius: 10px;
-  border: 1px solid #eee;
-  width: 280px;
-  background: white;
-}
-
-.add-btn {
-  background: #00aeef;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
 }
 
 .table-card {

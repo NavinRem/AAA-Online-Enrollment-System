@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
 
 const payments = ref([
   {
@@ -44,9 +45,7 @@ const payments = ref([
               <td class="amount">${{ item.amount }}</td>
               <td>{{ item.method }}</td>
               <td>
-                <span class="status-badge" :class="item.status.toLowerCase()">{{
-                  item.status
-                }}</span>
+                <StatusBadge :status="item.status" />
               </td>
               <td>{{ item.date }}</td>
             </tr>
@@ -58,12 +57,6 @@ const payments = ref([
 </template>
 
 <style scoped>
-.page-container {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-}
-
 .table-card {
   background: white;
   border-radius: 20px;
@@ -94,21 +87,5 @@ const payments = ref([
 .amount {
   font-weight: 700;
   color: #00aeef;
-}
-
-.status-badge {
-  padding: 5px 12px;
-  border-radius: 15px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.status-badge.paid {
-  background: #e1f5fe;
-  color: #4caf50;
-}
-.status-badge.pending {
-  background: #fffde7;
-  color: #fbc02d;
 }
 </style>

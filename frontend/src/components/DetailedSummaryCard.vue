@@ -2,69 +2,90 @@
 defineProps({
   title: {
     type: String,
-    required: true,
+    default: '',
   },
+  subtitle: String,
 })
 </script>
 
 <template>
   <div class="summary-card">
-    <h3 class="summary-title">{{ title }}</h3>
+    <h3 v-if="title" class="summary-title">{{ title }}</h3>
     <div class="summary-content">
-      <slot></slot>
+      <h4 v-if="subtitle" class="content-subtitle">{{ subtitle }}</h4>
+      <div class="internal-details-card">
+        <slot></slot>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .summary-card {
-  background: white;
-  border-radius: 16px;
+  background: transparent;
   padding: 0;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-  overflow: hidden;
+  margin-bottom: 30px;
 }
 
 .summary-title {
-  padding: 20px 20px 15px;
+  padding: 0 0 16px 0;
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-size: 1.6rem;
+  font-weight: 850;
   color: #1a1a1a;
-  border-bottom: 1px solid #f0f0f0;
+  letter-spacing: -0.5px;
+  text-align: left;
 }
 
 .summary-content {
   background: #eef6fc;
-  padding: 20px;
-  margin: 0 20px 20px;
+  padding: 16px;
   border-radius: 12px;
+}
+
+.content-subtitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 16px 4px;
+  letter-spacing: -0.3px;
+  text-align: left;
+}
+
+.internal-details-card {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  text-align: left;
 }
 
 :deep(.detail-row) {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  margin-bottom: 16px;
+  align-items: flex-start;
 }
 
 :deep(.detail-row.align-center) {
+  flex-direction: row;
   justify-content: space-between;
+  align-items: center;
 }
 
 :deep(.summary-label) {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #7d8ea3;
-  margin: 0 0 2px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 6px;
 }
 
 :deep(.summary-value) {
-  font-size: 0.95rem;
-  color: #1a1a1a;
+  font-size: 1.05rem;
+  color: #4a5568;
   margin: 0;
-  font-weight: 700;
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 :deep(.summary-value.inline) {

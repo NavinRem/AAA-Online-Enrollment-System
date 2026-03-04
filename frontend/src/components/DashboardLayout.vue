@@ -30,7 +30,7 @@ import Topbar from './Topbar.vue'
 }
 
 .content-area {
-  padding: 0 30px 30px 30px;
+  padding: 0;
   flex: 1;
 }
 
