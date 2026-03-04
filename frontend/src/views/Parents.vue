@@ -109,8 +109,7 @@ const submitActionModal = async (formData) => {
 
   try {
     if (type === 'edit') {
-      // Mock API call for updating user info
-      // await userService.updateUser(user.uid || user.id, { name, phone, email, role })
+      await userService.updateUser(user.uid || user.id, { name, phone, email, role })
 
       const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
       if (idx !== -1) {
@@ -119,29 +118,28 @@ const submitActionModal = async (formData) => {
         allUsers.value[idx].email = email
         allUsers.value[idx].role = role
       }
-      successMessage.value = 'User updated successfully! (Mocked)'
+      successMessage.value = 'User updated successfully!'
     } else if (type === 'deactivate') {
-      // Mock API call for deactivation
-      // await userService.updateUser(user.uid || user.id, { status: 'Inactive' })
+      await userService.updateUser(user.uid || user.id, { status: 'Inactive' })
       const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
       if (idx !== -1) {
         allUsers.value[idx].status = 'Inactive'
       }
-      successMessage.value = 'User deactivated successfully! (Mocked)'
+      successMessage.value = 'User deactivated successfully!'
     } else if (type === 'activate') {
+      await userService.updateUser(user.uid || user.id, { status: 'Active' })
       const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
       if (idx !== -1) {
         allUsers.value[idx].status = 'Active'
       }
-      successMessage.value = 'User reactivated successfully! (Mocked)'
+      successMessage.value = 'User reactivated successfully!'
     } else if (type === 'delete') {
       if (deleteConfirm !== 'DELETE') {
         throw new Error('You must type DELETE specifically to confirm.')
       }
-      // Mock API call for deletion
-      // await userService.deleteUser(user.uid || user.id)
+      await userService.deleteUser(user.uid || user.id)
       allUsers.value = allUsers.value.filter((u) => (u.uid || u.id) !== (user.uid || user.id))
-      successMessage.value = 'User deleted successfully! (Mocked)'
+      successMessage.value = 'User deleted successfully!'
     }
 
     setTimeout(() => {
@@ -161,13 +159,13 @@ const submitNewParent = async (data) => {
   successMessage.value = ''
 
   try {
-    // Real dynamic registration logic
-    // const result = await userService.registerParentAccount(data)
+    const tempUid = 'PA_' + Date.now()
+    const payload = { ...data, uid: tempUid }
 
-    // Mock for now
-    const newId = 'MOCK_' + Math.random().toString(36).substr(2, 9)
+    await userService.registerParentAccount(payload)
+
     const newUser = {
-      uid: newId,
+      uid: tempUid,
       ...data,
       status: 'Active',
       createdAt: new Date().toISOString(),
