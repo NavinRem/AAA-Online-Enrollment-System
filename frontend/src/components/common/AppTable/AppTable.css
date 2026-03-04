@@ -1,0 +1,53 @@
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.data-table th {
+  padding-bottom: 15px;
+  padding-top: 0;
+  color: #1a1a1a;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-bottom: 1px solid #f0f0f0;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 20px 0;
+  font-size: 0.85rem;
+  color: #444;
+  border-bottom: 1px solid #f8f8f8;
+  vertical-align: middle;
+}
+
+.data-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Optional clickable row style for lists that route to detail views */
+.clickable-row {
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.clickable-row:hover {
+  background-color: #f4fafe;
+  cursor: pointer;
+}

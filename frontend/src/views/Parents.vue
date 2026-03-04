@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import DataPageLayout from '../components/common/DataPageLayout.vue'
 import AppButton from '../components/common/AppButton/AppButton.vue'
+import AppTable from '../components/common/AppTable/AppTable.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
 import SearchBox from '../components/common/SearchBox/SearchBox.vue'
@@ -78,71 +79,52 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
       </template>
 
       <template #table>
-        <div v-if="loading" class="loading-state">Loading parents...</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Fullname</th>
-              <th>Child</th>
-              <th>Phone Number</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, index) in filteredParents" :key="item.uid || item.id">
-              <td>{{ index + 1 }}</td>
-              <td class="bold">{{ item.name || 'Anonymous' }}</td>
-              <td>
-                <span v-if="!item.children || item.children.length === 0">N/A</span>
-                <span v-else>👦👧</span>
-              </td>
-              <td>{{ item.phone || 'N/A' }}</td>
-              <td>{{ item.email }}</td>
-              <td>
-                <StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" />
-              </td>
-              <td>
-                <StatusBadge :status="item.status || 'Active'" />
-              </td>
-              <td>
-                <div class="actions-wrapper">
-                  <button class="btn-icon check">🚫</button>
-                  <button class="btn-icon delete">🗑️</button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <AppTable
+          :headers="[
+            'No',
+            'Fullname',
+            'Child',
+            'Phone Number',
+            'Email',
+            'Role',
+            'Status',
+            'Action',
+          ]"
+          :loading="loading"
+          :empty="filteredParents.length === 0"
+        >
+          <template #loading>Loading parents...</template>
+          <template #empty>No parents or guardians found.</template>
+
+          <tr v-for="(item, index) in filteredParents" :key="item.uid || item.id">
+            <td>{{ index + 1 }}</td>
+            <td class="bold">{{ item.name || 'Anonymous' }}</td>
+            <td>
+              <span v-if="!item.children || item.children.length === 0">N/A</span>
+              <span v-else>👦👧</span>
+            </td>
+            <td>{{ item.phone || 'N/A' }}</td>
+            <td>{{ item.email }}</td>
+            <td>
+              <StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" />
+            </td>
+            <td>
+              <StatusBadge :status="item.status || 'Active'" />
+            </td>
+            <td>
+              <div class="actions-wrapper">
+                <button class="btn-icon check">🚫</button>
+                <button class="btn-icon delete">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        </AppTable>
       </template>
     </DataPageLayout>
   </DashboardLayout>
 </template>
 
 <style scoped>
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.data-table th {
-  padding-bottom: 15px;
-  color: #999;
-  font-size: 0.85rem;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.data-table td {
-  padding: 15px 0;
-  font-size: 0.9rem;
-  color: #444;
-  border-bottom: 1px solid #f8f8f8;
-}
-
 .bold {
   font-weight: 600;
   color: #1a1a1a;
@@ -151,11 +133,5 @@ const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, pare
 .actions-wrapper {
   display: flex;
   gap: 6px;
-}
-
-.loading-state {
-  text-align: center;
-  padding: 40px;
-  color: #999;
 }
 </style>

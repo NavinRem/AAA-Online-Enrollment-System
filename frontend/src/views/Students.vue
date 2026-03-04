@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import AppButton from '../components/common/AppButton/AppButton.vue'
+import AppTable from '../components/common/AppTable/AppTable.vue'
 import { userService } from '../services/userService'
 import { authService } from '../services/authService'
 import SearchBox from '../components/common/SearchBox/SearchBox.vue'
@@ -74,43 +75,44 @@ const calculateAge = (dateString) => {
       </div>
 
       <div class="table-card">
-        <div v-if="loading" class="loading-state">Loading students...</div>
-        <table v-else class="data-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Student Name</th>
-              <th>Parent/Guardian</th>
-              <th>Gender</th>
-              <th>Age</th>
-              <th>Enrolled Date</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, index) in filteredStudents" :key="item.id">
-              <td>{{ index + 1 }}</td>
-              <td class="bold">
-                <div class="user-info">
-                  <div class="avatar-mini">
-                    <img
-                      :src="item.profileURL || '/src/assets/images/child-profile.png'"
-                      alt="avatar"
-                    />
-                  </div>
-                  {{ item.name || item.fullName || item.fullname || 'Student' }}
+        <AppTable
+          :headers="[
+            'No',
+            'Student Name',
+            'Parent/Guardian',
+            'Gender',
+            'Age',
+            'Enrolled Date',
+            'Actions',
+          ]"
+          :loading="loading"
+          :empty="filteredStudents.length === 0"
+        >
+          <template #loading>Loading students...</template>
+          <template #empty>No students found.</template>
+
+          <tr v-for="(item, index) in filteredStudents" :key="item.id">
+            <td>{{ index + 1 }}</td>
+            <td class="bold">
+              <div class="user-info">
+                <div class="avatar-mini">
+                  <img
+                    :src="item.profileURL || '/src/assets/images/child-profile.png'"
+                    alt="avatar"
+                  />
                 </div>
-              </td>
-              <td>{{ item.parentName || 'Parent' }}</td>
-              <td>{{ item.gender || 'N/A' }}</td>
-              <td>{{ calculateAge(item.DoB || item.dob || item.dateOfBirth) }}</td>
-              <td>{{ formatDate(item.created_at || item.createdAt) }}</td>
-              <td>
-                <button class="view-btn">Edit</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                {{ item.name || item.fullName || item.fullname || 'Student' }}
+              </div>
+            </td>
+            <td>{{ item.parentName || 'Parent' }}</td>
+            <td>{{ item.gender || 'N/A' }}</td>
+            <td>{{ calculateAge(item.DoB || item.dob || item.dateOfBirth) }}</td>
+            <td>{{ formatDate(item.created_at || item.createdAt) }}</td>
+            <td>
+              <AppButton variant="outline" size="sm">Edit</AppButton>
+            </td>
+          </tr>
+        </AppTable>
       </div>
     </div>
   </DashboardLayout>
@@ -132,26 +134,6 @@ const calculateAge = (dateString) => {
   border-radius: 20px;
   padding: 25px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.data-table th {
-  padding-bottom: 15px;
-  color: #999;
-  font-size: 0.85rem;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.data-table td {
-  padding: 15px 0;
-  font-size: 0.9rem;
-  color: #444;
-  border-bottom: 1px solid #f8f8f8;
 }
 
 .user-info {
@@ -177,20 +159,5 @@ const calculateAge = (dateString) => {
 .bold {
   font-weight: 600;
   color: #1a1a1a;
-}
-
-.view-btn {
-  background: #f8f9fa;
-  border: 1px solid #eee;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.loading-state {
-  text-align: center;
-  padding: 40px;
-  color: #999;
 }
 </style>

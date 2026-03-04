@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import DashboardLayout from '../components/DashboardLayout.vue'
+import AppTable from '../components/common/AppTable/AppTable.vue'
 import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
 
 const payments = ref([
@@ -27,30 +28,18 @@ const payments = ref([
   <DashboardLayout>
     <div class="page-container">
       <div class="table-card">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Parent</th>
-              <th>Amount</th>
-              <th>Method</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in payments" :key="item.id">
-              <td>#{{ item.id }}</td>
-              <td class="bold">{{ item.parent }}</td>
-              <td class="amount">${{ item.amount }}</td>
-              <td>{{ item.method }}</td>
-              <td>
-                <StatusBadge :status="item.status" />
-              </td>
-              <td>{{ item.date }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <AppTable :headers="['ID', 'Parent', 'Amount', 'Method', 'Status', 'Date']">
+          <tr v-for="item in payments" :key="item.id">
+            <td>#{{ item.id }}</td>
+            <td class="bold">{{ item.parent }}</td>
+            <td class="amount">${{ item.amount }}</td>
+            <td>{{ item.method }}</td>
+            <td>
+              <StatusBadge :status="item.status" />
+            </td>
+            <td>{{ item.date }}</td>
+          </tr>
+        </AppTable>
       </div>
     </div>
   </DashboardLayout>
@@ -62,23 +51,6 @@ const payments = ref([
   border-radius: 20px;
   padding: 25px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.data-table th {
-  padding-bottom: 15px;
-  color: #999;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.data-table td {
-  padding: 15px 0;
-  border-bottom: 1px solid #f8f8f8;
 }
 
 .bold {
