@@ -587,70 +587,12 @@ const calculateAge = (dob) => {
 </template>
 
 <style scoped>
-.detail-page {
-  padding: 0;
-  width: 100%;
-  max-width: 100%;
-  margin: 0;
-  min-height: calc(100vh - 80px);
-  display: flex;
-  flex-direction: column;
-}
-.detail-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-.loading-state,
-.error-state {
-  text-align: center;
-  padding: 50px;
-  font-size: 1.1rem;
-  color: #666;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-}
-.header-section {
-  display: flex;
-  align-items: center;
-  margin-bottom: 24px;
-}
-.header-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-left: auto;
-  background: white;
-  padding: 8px;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
-}
-.content-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 450px;
-  gap: 30px;
-  align-items: stretch;
-  flex: 1;
-}
-.left-content-area {
-  padding-right: 0;
-}
-.main-cards-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
 .sidebar-cards {
-  background: white;
-  border-radius: 20px 0 0 20px; /* Sharp right edge, rounded left */
-  padding: 30px 30px;
+  padding-right: 20px;
   display: flex;
   flex-direction: column;
   gap: 25px;
   height: 100%;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.03);
 }
 .mt-3 {
   margin-top: 15px;
