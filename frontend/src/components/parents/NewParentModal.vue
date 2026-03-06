@@ -1,9 +1,5 @@
 <template>
-  <AppModal
-    :show="isOpen"
-    title="Register New Parent / Guardian"
-    @close="$emit('close')"
-  >
+  <AppModal :show="isOpen" title="Register New Parent / Guardian" @close="$emit('close')">
     <div v-if="error" class="error-banner">{{ error }}</div>
     <div v-if="success" class="success-banner">{{ success }}</div>
 
@@ -20,7 +16,7 @@
 
       <div class="form-group full-width">
         <label>Phone Number</label>
-        <input type="tel" v-model="formData.phone" placeholder="e.g. +66..." />
+        <input type="tel" v-model="formData.phone" placeholder="e.g. +855..." />
       </div>
 
       <div class="form-group full-width">
@@ -33,18 +29,22 @@
 
       <div class="form-group full-width">
         <label>Password (Temporary)</label>
-        <input type="text" v-model="formData.password" placeholder="Leave blank for auto-generated" />
+        <input
+          type="text"
+          v-model="formData.password"
+          placeholder="Leave blank for auto-generated"
+        />
         <small class="text-muted">The parent will be asked to change this on first login.</small>
       </div>
     </div>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-      <AppButton 
-        variant="primary" 
+      <AppButton
+        variant="primary"
         @click="handleSubmit"
         :loading="loading"
-        :disabled="loading || !formData.name || !formData.email"
+        :disabled="loading || !isFormValid"
       >
         Create Account
       </AppButton>
@@ -53,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import AppModal from '../common/AppModal/AppModal.vue'
 import AppButton from '../common/AppButton/AppButton.vue'
 
@@ -61,7 +61,7 @@ const props = defineProps({
   isOpen: Boolean,
   loading: Boolean,
   error: String,
-  success: String
+  success: String,
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -71,22 +71,30 @@ const formData = ref({
   email: '',
   phone: '',
   role: 'parent',
-  password: ''
+  password: '',
 })
 
-watch(() => props.isOpen, (newVal) => {
-  if (newVal) {
-    formData.value = {
-      name: '',
-      email: '',
-      phone: '',
-      role: 'parent',
-      password: ''
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    if (newVal) {
+      formData.value = {
+        name: '',
+        email: '',
+        phone: '',
+        role: 'parent',
+        password: '',
+      }
     }
-  }
+  },
+)
+
+const isFormValid = computed(() => {
+  return formData.value.name.trim() && formData.value.email.includes('@') && formData.value.role
 })
 
 const handleSubmit = () => {
+  if (!isFormValid.value) return
   emit('submit', { ...formData.value })
 }
 </script>

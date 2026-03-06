@@ -9,31 +9,7 @@ defineProps({
 import StatusBadge from './common/StatusBadge/StatusBadge.vue'
 import AppTable from './common/AppTable/AppTable.vue'
 import TableToolbar from './common/TableToolbar/TableToolbar.vue'
-
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  // Handle Firestore Timestamp objects if they leaked through
-  if (dateString && typeof dateString === 'object' && dateString.seconds) {
-    dateString = dateString.toDate().toISOString()
-  }
-  try {
-    const date = new Date(dateString)
-    const formattedDate = date.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-    const formattedTime = date.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    })
-    return `${formattedDate} at ${formattedTime}`
-  } catch {
-    return dateString
-  }
-}
+import { formatDate } from '../utils/dateFormatter'
 </script>
 
 <template>

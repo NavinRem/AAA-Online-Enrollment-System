@@ -24,6 +24,12 @@
   color: #c49000;
 }
 
+/* Orange: Inactive, Potential */
+.badge-orange {
+  background-color: #fff3e0;
+  color: #e65100;
+}
+
 /* Red: Canceled, Failed, Stopped, etc */
 .badge-red {
   background-color: #ffebee;

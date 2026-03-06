@@ -34,10 +34,22 @@ const router = createRouter({
       meta: { title: 'Parent / Guardian' },
     },
     {
+      path: '/parents/:id',
+      name: 'parent-detail',
+      component: () => import('../views/ParentDetail.vue'),
+      meta: { title: 'Parent Detail' },
+    },
+    {
       path: '/students',
       name: 'students',
       component: () => import('../views/Students.vue'),
       meta: { title: 'Students' },
+    },
+    {
+      path: '/students/:id',
+      name: 'student-detail',
+      component: () => import('../views/StudentDetail.vue'),
+      meta: { title: 'Student Detail' },
     },
     {
       path: '/programs',

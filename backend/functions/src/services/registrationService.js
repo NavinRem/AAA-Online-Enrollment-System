@@ -84,11 +84,12 @@ class RegistrationService {
   }
 
   async getAllRegistrations() {
-    const [snapshot, usersSnap, studentsSnap, coursesSnap] = await Promise.all([
+    const [snapshot, usersSnap, studentsSnap, coursesSnap, sessionsSnap] = await Promise.all([
       db.collection("enrollment").get(),
       db.collection("user").get(),
       db.collection("student").get(),
       db.collection("course").get(),
+      db.collection("session").get(),
     ]);
 
     const usersMap = {};
@@ -99,6 +100,22 @@ class RegistrationService {
 
     const coursesMap = {};
     coursesSnap.forEach((doc) => (coursesMap[doc.id] = doc.data()));
+
+    const sessionsMap = {};
+    sessionsSnap.forEach((doc) => {
+      const s = doc.data();
+      // Format schedule string
+      const scheduleLines = [];
+      if (s.schedule) {
+        Object.keys(s.schedule).forEach((day) => {
+          scheduleLines.push(`${day}: ${s.schedule[day]}`);
+        });
+      }
+      sessionsMap[doc.id] = {
+        ...s,
+        scheduleString: scheduleLines.join(", ") || "N/A",
+      };
+    });
 
     return snapshot.docs.map((doc) => {
       const data = doc.data();
@@ -115,12 +132,17 @@ class RegistrationService {
         coursesMap[data.course_id]?.name ||
         "Unknown Course";
 
+      const session = sessionsMap[data.session_id];
+
       return {
         id: doc.id,
         ...data,
         parentName,
         studentName,
         courseTitle,
+        sessionSchedule: session?.scheduleString || "N/A",
+        sessionCount:
+          session?.totalSessions || session?.total_sessions || session?.sessionCount || 10, // Default to 10 if not found
         amount:
           data.amount ||
           data.totalAmount ||
@@ -135,7 +157,64 @@ class RegistrationService {
     if (!doc.exists) {
       throw new Error("Registration not found");
     }
-    return { id: doc.id, ...doc.data() };
+
+    // Fetch related documents in parallel with robust checks
+    const [userDoc, studentDoc, courseDoc, sessionDoc] = await Promise.all([
+      data.parent_id ? db.collection("user").doc(data.parent_id).get() : Promise.resolve({ exists: false }),
+      data.student_id ? db.collection("student").doc(data.student_id).get() : Promise.resolve({ exists: false }),
+      data.course_id ? db.collection("course").doc(data.course_id).get() : Promise.resolve({ exists: false }),
+      data.session_id ? db.collection("session").doc(data.session_id).get() : Promise.resolve({ exists: false }),
+    ]);
+
+    const userData = userDoc.exists ? userDoc.data() : null;
+    const studentData = studentDoc.exists ? studentDoc.data() : null;
+    const courseData = courseDoc.exists ? courseDoc.data() : null;
+    const sessionData = sessionDoc.exists ? sessionDoc.data() : null;
+
+    // Format schedule for consistency
+    let sessionSchedule = data.sessionSchedule || "N/A";
+    if (sessionData && sessionData.schedule) {
+      const scheduleLines = [];
+      Object.keys(sessionData.schedule).forEach((day) => {
+        scheduleLines.push(`${day}: ${sessionData.schedule[day]}`);
+      });
+      sessionSchedule = scheduleLines.join(", ");
+    }
+
+    // Robust instructor name resolution
+    let instructorName = "Not Assigned";
+    if (sessionData && sessionData.instructors && sessionData.instructors.length > 0) {
+      const first = sessionData.instructors[0];
+      if (first.name) {
+        instructorName = first.name;
+      } else if (first.id) {
+        const instDoc = await db.collection("user").doc(first.id).get();
+        if (instDoc.exists) {
+          instructorName = instDoc.data().name || instDoc.data().email || "Assigned";
+        }
+      }
+    }
+
+    return {
+      id: doc.id,
+      ...data,
+      parentName: userData?.name || userData?.email || data.parentName || "N/A",
+      parentEmail: userData?.email || "N/A",
+      parentPhone: userData?.phone || "N/A",
+      parentRole: userData?.role ? (userData.role === 'parent' ? 'Parent' : userData.role.charAt(0).toUpperCase() + userData.role.slice(1)) : "Guardian",
+      parentCreatedAt: userData?.createdAt || userData?.created_at || null,
+      studentName: studentData?.fullname || studentData?.name || data.studentName || "N/A",
+      studentDob: studentData?.dob || studentData?.DoB || null,
+      medicalNote: studentData?.medicalNotes || studentData?.medical_note || "None",
+      courseTitle: courseData?.title || courseData?.name || data.courseTitle || "N/A",
+      sessionSchedule: sessionSchedule,
+      instructorName,
+      capacity: sessionData?.capacity || 0,
+      num_student: sessionData?.num_student || 0,
+      totalSessions: sessionData?.totalSessions || sessionData?.total_sessions || 10,
+      startDate: sessionData?.startDate || null,
+      endDate: sessionData?.endDate || null,
+    };
   }
 
   // 9. Cancel Registration

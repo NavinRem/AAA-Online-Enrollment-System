@@ -99,30 +99,6 @@ onMounted(() => {
   margin: 0 40px;
 }
 
-.search-wrapper {
-  position: relative;
-  width: 100%;
-}
-
-.search-input {
-  width: 100%;
-  padding: 12px 15px 12px 45px;
-  border-radius: 25px;
-  border: none;
-  background: white;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
-  font-size: 0.95rem;
-}
-
-.search-icon {
-  position: absolute;
-  left: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px;
-  opacity: 0.4;
-}
-
 .header-right {
   display: flex;
   align-items: center;

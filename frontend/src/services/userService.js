@@ -46,7 +46,22 @@ export const userService = {
     })
   },
 
-  // Get Students
+  // Update Student Profile Details or Status
+  async updateStudent(studentId, updateData) {
+    return request(`/students/${studentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+    })
+  },
+
+  // Get Individual Student
+  async getStudent(studentId) {
+    return request(`/students/${studentId}`, {
+      method: 'GET',
+    })
+  },
+
+  // Get Students by Parent
   async getStudents(uid) {
     return request(`/users/${uid}/students`, {
       method: 'GET',

@@ -11,7 +11,13 @@ defineProps({
 <template>
   <div class="summary-card">
     <h3 v-if="title" class="summary-title">{{ title }}</h3>
+    <div class="summary-top-slot">
+      <slot name="outside"></slot>
+    </div>
     <div class="summary-content">
+      <div class="summary-header-slot">
+        <slot name="header"></slot>
+      </div>
       <h4 v-if="subtitle" class="content-subtitle">{{ subtitle }}</h4>
       <div class="internal-details-card">
         <slot></slot>
@@ -24,39 +30,47 @@ defineProps({
 .summary-card {
   background: transparent;
   padding: 0;
-  margin-bottom: 30px;
+  width: 100%;
 }
 
 .summary-title {
-  padding: 0 0 16px 0;
+  padding: 0 0 20px 0;
   margin: 0;
   font-size: 1.6rem;
   font-weight: 850;
   color: #1a1a1a;
-  letter-spacing: -0.5px;
-  text-align: left;
+  letter-spacing: -0.6px;
+  text-align: center;
+}
+
+.summary-top-slot {
+  width: 100%;
 }
 
 .summary-content {
   background: #eef6fc;
-  padding: 16px;
-  border-radius: 12px;
+  padding: 12px 20px 20px 20px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .content-subtitle {
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: #1a1a1a;
-  margin: 0 0 16px 4px;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
   text-align: left;
+  margin: 0 0 0 4px;
 }
 
 .internal-details-card {
   background: white;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   text-align: left;
 }
 

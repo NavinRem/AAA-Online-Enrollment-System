@@ -9,6 +9,7 @@ import DetailedSummaryCard from '@/components/DetailedSummaryCard.vue'
 import { registrationService } from '@/services/registrationService'
 import { userService } from '@/services/userService'
 import { courseService } from '@/services/courseService'
+import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 
 // Images
 import parentAvatar from '@/assets/images/female-profile-parent.jpg'
@@ -36,9 +37,11 @@ const actionModal = ref({
   isOpen: false,
   type: '',
   amount: 0,
+  originalAmount: 0,
   proof: '',
   reason: '',
   remark: '',
+  originalRemark: '',
   deleteConfirm: '',
 })
 
@@ -53,9 +56,11 @@ const openActionModal = (type) => {
     isOpen: true,
     type,
     amount: enrollment.value.amount || enrollment.value.totalAmount || 0,
+    originalAmount: enrollment.value.amount || enrollment.value.totalAmount || 0,
     proof: '',
     reason: '',
     remark: enrollment.value.remark || '',
+    originalRemark: enrollment.value.remark || '',
     deleteConfirm: '',
   }
 }
@@ -110,47 +115,55 @@ const submitActionModal = async () => {
   }
 }
 
+const togglePreset = (field, chipValue) => {
+  const currentText = actionModal.value[field] || ''
+  let values = currentText
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+
+  if (values.includes(chipValue)) {
+    // Remove it
+    values = values.filter((v) => v !== chipValue)
+  } else {
+    // Add it
+    values.push(chipValue)
+  }
+  actionModal.value[field] = values.join(', ')
+}
+
+const isPresetActive = (field, chipValue) => {
+  const currentText = actionModal.value[field] || ''
+  const values = currentText
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+  return values.includes(chipValue)
+}
+
 onMounted(async () => {
   try {
     const id = route.params.id
     if (!id) throw new Error('No Enrollment ID provided')
 
+    // 1. Fetch the primary enrollment data (now enriched from backend)
     const data = await registrationService.get(id)
     if (!data) throw new Error('Enrollment not found')
     enrollment.value = data
 
-    const [userRes, allUsersRes, allStudentsRes, courseRes, sessionsRes] = await Promise.allSettled(
-      [
-        userService.getProfile(data.parent_id),
-        userService.getAllUsers(),
-        userService.getAllStudents(),
-        courseService.getCourse(data.course_id),
-        courseService.getSessions(data.course_id),
-      ],
-    )
+    // 2. Fetch full related objects in parallel to ensure "real" data in cards
+    const [userRes, studentRes, courseRes, sessionsRes] = await Promise.allSettled([
+      userService.getProfile(data.parent_id),
+      userService.getStudent(data.student_id),
+      courseService.getCourse(data.course_id),
+      courseService.getSessions(data.course_id),
+    ])
 
-    if (userRes.status === 'fulfilled' && userRes.value) parent.value = userRes.value
-    else if (allUsersRes.status === 'fulfilled') {
-      parent.value = (allUsersRes.value || []).find((u) => u.uid === data.parent_id) || {
-        name: data.parentName || 'N/A',
-        email: 'N/A',
-        role: 'Parent',
-      }
-    }
-
-    if (allStudentsRes.status === 'fulfilled') {
-      student.value = (allStudentsRes.value || []).find((s) => s.id === data.student_id) || {
-        fullname: data.studentName || 'N/A',
-      }
-    }
-
-    if (courseRes.status === 'fulfilled')
-      course.value = courseRes.value || { title: data.courseTitle || 'N/A' }
-
+    if (userRes.status === 'fulfilled') parent.value = userRes.value
+    if (studentRes.status === 'fulfilled') student.value = studentRes.value
+    if (courseRes.status === 'fulfilled') course.value = courseRes.value
     if (sessionsRes.status === 'fulfilled') {
-      session.value = (sessionsRes.value || []).find((s) => s.id === data.session_id) || {
-        schedule: { day: 'N/A', timeslot: data.sessionSchedule || 'N/A' },
-      }
+      session.value = (sessionsRes.value || []).find((s) => s.id === data.session_id)
     }
   } catch (error) {
     errorMessage.value = error.message || 'Failed to load details'
@@ -160,25 +173,6 @@ onMounted(async () => {
 })
 
 // Helpers
-const formatDate = (dateStr) => {
-  if (!dateStr) return '-'
-  const d = new Date(dateStr)
-  return (
-    d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) +
-    ' at ' +
-    d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-  )
-}
-
-const calculateAge = (dob) => {
-  if (!dob) return 'N/A'
-  const birthDate = new Date(dob)
-  const today = new Date()
-  let age = today.getFullYear() - birthDate.getFullYear()
-  const m = today.getMonth() - birthDate.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--
-  return age
-}
 </script>
 
 <template>
@@ -216,72 +210,78 @@ const calculateAge = (dob) => {
       <template #left-content>
         <DetailCard title="Parent/Guardian Information" :avatarUrl="parentAvatar">
           <p><strong>Fullname:</strong> {{ parent?.name || enrollment.parentName || 'N/A' }}</p>
-          <p><strong>Email:</strong> {{ parent?.email || 'N/A' }}</p>
-          <p><strong>Phone Number:</strong> {{ parent?.phone || 'N/A' }}</p>
+          <p><strong>Email:</strong> {{ parent?.email || enrollment.parentEmail || 'N/A' }}</p>
+          <p><strong>Phone Number:</strong> {{ parent?.phone || enrollment.parentPhone || 'N/A' }}</p>
           <p>
             <strong>Role:</strong>
-            {{ parent?.role === 'parent' ? 'Parent' : parent?.role || 'Guardian' }}
+            <StatusBadge :status="parent?.role
+                ? parent.role === 'parent'
+                ? 'Parent'
+                : parent.role.charAt(0).toUpperCase() + parent.role.slice(1)
+                : enrollment.parentRole">
+              </StatusBadge>
           </p>
         </DetailCard>
 
         <DetailCard title="Student Information" :avatarUrl="childAvatar">
           <p>
             <strong>Fullname:</strong>
-            {{ student?.fullname || student?.name || enrollment.studentName || 'N/A' }}
+            {{ student?.fullname || student?.name || enrollment.studentName }}
           </p>
-          <p><strong>Date of birth:</strong> {{ student?.dob || 'N/A' }}</p>
-          <p><strong>Age:</strong> {{ calculateAge(student?.dob) }}</p>
+          <p>
+            <strong>Date of birth:</strong>
+            {{ formatDateOnly(student?.dob || student?.DoB || enrollment.studentDob) }}
+          </p>
+          <p><strong>Age:</strong> {{ calculateAge(student?.dob || student?.DoB || enrollment.studentDob) }}</p>
           <p>
             <strong>Medical Note:</strong>
-            {{ student?.medicalNotes || student?.medical_note || 'None given' }}
+            {{ student?.medicalNotes || student?.medical_note || enrollment.medicalNote || 'None'}}
           </p>
         </DetailCard>
 
         <DetailCard title="Enrollment Information" :avatarUrl="courseAvatar">
           <p>
             <strong>Course title:</strong>
-            {{ course?.title || enrollment.courseTitle || 'N/A' }}
+            {{ course?.title || enrollment.courseTitle }}
           </p>
           <p>
-            <strong>Session:</strong> {{ session?.schedule?.day || 'N/A' }},
-            {{
-              session?.schedule?.timeslot ||
-              session?.schedule?.startTime + '-' + session?.schedule?.endTime ||
-              enrollment.sessionSchedule ||
-              'N/A'
-            }}
+            <strong>Session:</strong> {{ enrollment.sessionSchedule || 'N/A' }}
           </p>
           <p>
             <strong>Number Session Enrolled:</strong>
-            {{ session?.totalSessions || 'Not specified' }}
+            {{ session?.totalSessions || session?.total_sessions || enrollment.totalSessions || '00' }} Sessions
           </p>
           <p>
             <strong>Date:</strong>
-            {{ formatDate(enrollment.enrollAt || enrollment.createdAt || enrollment.timestamp) }}
+            {{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}
           </p>
         </DetailCard>
 
         <DetailCard title="Session Information" :avatarUrl="sessionAvatar">
-          <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle || 'N/A' }}</p>
+          <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle }}</p>
           <p>
             <strong>Instructor Name:</strong>
-            {{ session?.instructorName || session?.instructor_name || 'Not assigned' }}
-          </p>
-          <p><strong>Total Student:</strong> {{ session?.capacity || 'N/A' }}</p>
-          <p>
-            <strong>Time Slot:</strong> {{ session?.schedule?.day || 'N/A' }},
             {{
-              session?.schedule?.timeslot ||
-              session?.schedule?.startTime + '-' + session?.schedule?.endTime ||
-              enrollment.sessionSchedule ||
-              'N/A'
+              session?.instructorName ||
+              (session?.instructors?.length > 0 ? session.instructors[0].name : enrollment.instructorName)
+              || 'N/A'
+            }}
+          </p>
+          <p><strong>Total Student:</strong> {{ session?.capacity || enrollment.capacity }}</p>
+          <p>
+            <strong>Session Schedule:</strong>
+            {{
+              session?.schedule
+                ? (session.schedule.day ? session.schedule.day + ', ' : '') + (session.schedule.timeslot || session.schedule.startTime + '-' + session.schedule.endTime)
+                : enrollment.sessionSchedule
+                || 'N/A'
             }}
           </p>
         </DetailCard>
       </template>
 
       <template #right-content>
-        <DetailedSummaryCard title="Basic Information" subtitle="Registration Status">
+        <DetailedSummaryCard title="Basic Information" subtitle="Enrollment Status">
           <div class="detail-row align-center mb-2">
             <span class="summary-label">Status</span>
             <StatusBadge
@@ -295,11 +295,28 @@ const calculateAge = (dob) => {
             />
           </div>
           <div class="detail-row">
-            <span class="summary-label">Registration ID</span>
+            <span class="summary-label">Last Updated</span>
+            <span class="summary-value">{{
+              enrollment.updatedAt ? formatDate(enrollment.updatedAt) : 'Never'
+            }}</span>
+          </div>
+          <div
+            v-if="
+              enrollment.status === 'cancelled' && (enrollment.cancelReason || enrollment.reason)
+            "
+            class="detail-row mb-3"
+          >
+            <span class="summary-label">Cancel Reason</span>
+            <span class="summary-value" style="color: #ef4444; font-weight: 600">
+              {{ enrollment.cancelReason || enrollment.reason }}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Enrollment ID</span>
             <span class="summary-value">{{ enrollment.id }}</span>
           </div>
           <div class="detail-row">
-            <span class="summary-label">Registration Date</span>
+            <span class="summary-label">Enrollment Date</span>
             <span class="summary-value">{{
               formatDate(enrollment.enrollAt || enrollment.createdAt || enrollment.timestamp)
             }}</span>
@@ -312,49 +329,47 @@ const calculateAge = (dob) => {
             <StatusBadge :status="'$' + (enrollment.amount || enrollment.totalAmount || 0)" />
           </div>
           <div class="detail-row">
-            <span class="summary-label">Transaction ID</span>
-            <span class="summary-value">{{ enrollment.paymentProof || 'N/A' }}</span>
+            <span class="summary-label">Payment Method</span>
+            <span class="summary-value">
+              {{ enrollment.paymentMethod || 'Not Specified' }}
+            </span>
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Transaction ID / Proof</span>
+            <span class="summary-value" style="word-break: break-all">
+              {{ enrollment.paymentProof || 'N/A' }}
+            </span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Payment Date</span>
             <span class="summary-value">
-              {{
-                enrollment.paymentStatus?.toLowerCase() === 'paid' && enrollment.updatedAt
-                  ? formatDate(enrollment.updatedAt)
-                  : 'Pending'
-              }}
+              {{ enrollment.paymentDate ? formatDate(enrollment.paymentDate) : 'Not Paid' }}
             </span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Admin Remark</span>
-            <span class="summary-value">{{ enrollment.remark || 'None' }}</span>
+            <span class="summary-value">{{ enrollment.remark || 'N/A' }}</span>
           </div>
         </DetailedSummaryCard>
 
         <DetailedSummaryCard subtitle="Program Summary">
           <div class="detail-row">
             <span class="summary-label">Course</span>
-            <span class="summary-value">{{
-              course?.title || enrollment.courseTitle || 'N/A'
-            }}</span>
+            <span class="summary-value">{{ course?.title || enrollment.courseTitle }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Instructor</span>
+            <span class="summary-value">{{ course?.instructor?.name || enrollment.instructorName || 'N/A' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Schedule</span>
-            <span class="summary-value">
-              {{ session?.schedule?.day ? `${session?.schedule?.day}, ` : '' }}
-              {{ session?.schedule?.timeslot || 'N/A' }}
-            </span>
+            <span class="summary-value">{{ session?.schedule || enrollment.sessionSchedule || 'N/A' }}</span>
           </div>
           <div class="mt-3">
-            <StatusBadge status="Start Date" />
-            <p class="summary-value">
-              {{ session?.startDate ? formatDate(session.startDate) : 'N/A' }}
-            </p>
-          </div>
-          <div class="mt-3">
-            <StatusBadge status="End Date" />
-            <p class="summary-value">
-              {{ session?.endDate ? formatDate(session.endDate) : 'N/A' }}
+            <span class="summary-label">Term Dates</span>
+            <p class="summary-value" style="font-size: 0.9rem; margin-top: 5px">
+              <strong>Start:</strong> {{ enrollment.startDate ? formatDate(enrollment.startDate) : 'N/A' }}<br />
+              <strong>End:</strong> {{ enrollment.endDate ? formatDate(enrollment.endDate) : 'N/A' }}
             </p>
           </div>
         </DetailedSummaryCard>
@@ -395,9 +410,11 @@ const calculateAge = (dob) => {
                 </p>
               </div>
               <label>Adjust Enrollment Amount ($)</label>
+              <span class="original-value" v-if="actionModal.originalAmount">Original: ${{ actionModal.originalAmount }}</span>
               <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
 
               <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
+              <span class="original-value" v-if="actionModal.originalRemark">Original: {{ actionModal.originalRemark }}</span>
               <textarea
                 v-model="actionModal.remark"
                 placeholder="Please write your remark here..."
@@ -406,32 +423,32 @@ const calculateAge = (dob) => {
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.remark === 'VIP Student' }"
-                  @click="actionModal.remark = 'VIP Student'"
+                  :class="{ active: isPresetActive('remark', 'VIP Student') }"
+                  @click="togglePreset('remark', 'VIP Student')"
                 >
                   VIP Student
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.remark === 'Needs extra attention' }"
-                  @click="actionModal.remark = 'Needs extra attention'"
+                  :class="{ active: isPresetActive('remark', 'Needs extra attention') }"
+                  @click="togglePreset('remark', 'Needs extra attention')"
                 >
                   Needs extra attention
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.remark === 'Parent will pay next week' }"
-                  @click="actionModal.remark = 'Parent will pay next week'"
+                  :class="{ active: isPresetActive('remark', 'Parent will pay next week') }"
+                  @click="togglePreset('remark', 'Parent will pay next week')"
                 >
                   Parent will pay next week
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.remark === 'Pending partial refund' }"
-                  @click="actionModal.remark = 'Pending partial refund'"
+                  :class="{ active: isPresetActive('remark', 'Pending partial refund') }"
+                  @click="togglePreset('remark', 'Pending partial refund')"
                 >
                   Pending partial refund
                 </button>
@@ -457,32 +474,32 @@ const calculateAge = (dob) => {
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.proof === 'Paid in Cash' }"
-                  @click="actionModal.proof = 'Paid in Cash'"
+                  :class="{ active: isPresetActive('proof', 'Paid in Cash') }"
+                  @click="togglePreset('proof', 'Paid in Cash')"
                 >
                   Paid in Cash
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.proof === 'Paid via Check' }"
-                  @click="actionModal.proof = 'Paid via Check'"
+                  :class="{ active: isPresetActive('proof', 'Paid via Check') }"
+                  @click="togglePreset('proof', 'Paid via Check')"
                 >
                   Paid via Check
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.proof === 'Paid via Bank Transfer' }"
-                  @click="actionModal.proof = 'Paid via Bank Transfer'"
+                  :class="{ active: isPresetActive('proof', 'Paid via Bank Transfer') }"
+                  @click="togglePreset('proof', 'Paid via Bank Transfer')"
                 >
                   Paid via Bank Transfer
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.proof === 'Paid via Credit Card' }"
-                  @click="actionModal.proof = 'Paid via Credit Card'"
+                  :class="{ active: isPresetActive('proof', 'Paid via Credit Card') }"
+                  @click="togglePreset('proof', 'Paid via Credit Card')"
                 >
                   Paid via Credit Card
                 </button>
@@ -508,40 +525,40 @@ const calculateAge = (dob) => {
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.reason === 'Parent requested via email' }"
-                  @click="actionModal.reason = 'Parent requested via email'"
+                  :class="{ active: isPresetActive('reason', 'Parent requested via email') }"
+                  @click="togglePreset('reason', 'Parent requested via email')"
                 >
                   Parent requested via email
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.reason === 'Parent requested via phone' }"
-                  @click="actionModal.reason = 'Parent requested via phone'"
+                  :class="{ active: isPresetActive('reason', 'Parent requested via phone') }"
+                  @click="togglePreset('reason', 'Parent requested via phone')"
                 >
                   Parent requested via phone
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.reason === 'Did not pay on time' }"
-                  @click="actionModal.reason = 'Did not pay on time'"
+                  :class="{ active: isPresetActive('reason', 'Did not pay on time') }"
+                  @click="togglePreset('reason', 'Did not pay on time')"
                 >
                   Did not pay on time
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.reason === 'Course schedule conflict' }"
-                  @click="actionModal.reason = 'Course schedule conflict'"
+                  :class="{ active: isPresetActive('reason', 'Course schedule conflict') }"
+                  @click="togglePreset('reason', 'Course schedule conflict')"
                 >
                   Course schedule conflict
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.reason === 'Duplicate enrollment' }"
-                  @click="actionModal.reason = 'Duplicate enrollment'"
+                  :class="{ active: isPresetActive('reason', 'Duplicate enrollment') }"
+                  @click="togglePreset('reason', 'Duplicate enrollment')"
                 >
                   Duplicate enrollment
                 </button>
@@ -732,6 +749,15 @@ const calculateAge = (dob) => {
   gap: 15px;
   background: #f8f9fa;
   border-top: 1px solid #eee;
+}
+
+.original-value {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: -4px;
+  margin-bottom: 4px;
+  font-style: italic;
 }
 
 .preset-chips {

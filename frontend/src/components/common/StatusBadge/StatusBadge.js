@@ -7,7 +7,7 @@ export default defineComponent({
       type: [String, Number],
       required: true,
     },
-    // Optional override for the color category ('green', 'yellow', 'red', 'blue', 'purple', 'magenta')
+    // Optional override for the color category ('green', 'yellow', 'orange', 'red', 'blue', 'purple', 'magenta')
     type: {
       type: String,
       default: '',
@@ -72,7 +72,6 @@ export default defineComponent({
         'canceled',
         'cancelled',
         'failed',
-        'inactive',
         'stopped',
         'absent',
         'serious',
@@ -80,6 +79,7 @@ export default defineComponent({
         'end date',
         'stopped at',
       ]
+      const orangeSet = ['inactive']
       const blueSet = [
         'graduated',
         'late',
@@ -96,6 +96,7 @@ export default defineComponent({
 
       if (greenSet.includes(s)) return 'green'
       if (yellowSet.includes(s)) return 'yellow'
+      if (orangeSet.includes(s)) return 'orange'
       if (redSet.includes(s)) return 'red'
       if (blueSet.includes(s)) return 'blue'
       if (purpleSet.includes(s)) return 'purple'
