@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { formatDate } from '../utils/dateFormatter'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import DataPageLayout from '../components/common/DataPageLayout.vue'
 import AppTable from '../components/common/AppTable/AppTable.vue'
@@ -52,7 +53,7 @@ const payments = ref([
             <td>
               <StatusBadge :status="item.status" />
             </td>
-            <td>{{ item.date }}</td>
+            <td>{{ formatDate(item.date) }}</td>
           </tr>
         </AppTable>
       </template>

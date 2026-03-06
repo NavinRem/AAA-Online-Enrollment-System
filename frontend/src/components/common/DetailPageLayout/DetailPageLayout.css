@@ -1,13 +1,14 @@
 .dashboard-content {
-  padding: 20px 40px;
+  padding: 0; /* Changed to handle internal scrolling */
   background-color: #f4fafe;
   flex: 1;
-  min-height: calc(100vh - 80px); /* Account for Topbar */
+  height: calc(100vh - 80px); /* Fixed height to enable internal scrolling */
+  overflow: hidden;
   border-radius: 40px 0 0 0;
 }
 
 .detail-page {
-  padding: 40px;
+  height: 100%;
 }
 
 .loading-state,
@@ -29,10 +30,10 @@
 
 .main-layout-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 450px;
-  gap: 30px;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 0; /* Removed gap here to let sidebar sit flush if needed */
   align-items: stretch;
-  flex: 1;
+  height: 100%;
 }
 
 .header-section {
@@ -55,7 +56,9 @@
 }
 
 .left-content-area {
-  padding-right: 0;
+  padding: 30px 40px;
+  overflow-y: auto;
+  height: 100%;
 }
 
 .main-cards-grid {
@@ -66,13 +69,14 @@
 
 .sticky-sidebar {
   background: white;
-  border-radius: 20px 0 0 20px; /* Sharp right edge, rounded left */
-  padding: 30px 30px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: 16px;
   height: 100%;
+  overflow-y: auto;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.03);
+  border-left: 1px solid #f1f5f9;
 }
 
 @media (max-width: 1100px) {

@@ -11,21 +11,25 @@
     <div v-if="type === 'edit'" class="form-grid">
       <div class="form-group full-width">
         <label>Full Name</label>
+        <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
         <input type="text" v-model="localData.name" placeholder="Enter full name" />
       </div>
 
       <div class="form-group full-width">
         <label>Email Address</label>
+        <span class="original-value" v-if="originalData.email">Original: {{ originalData.email }}</span>
         <input type="email" v-model="localData.email" placeholder="Enter email" />
       </div>
 
       <div class="form-group full-width">
         <label>Phone Number</label>
+        <span class="original-value" v-if="originalData.phone">Original: {{ originalData.phone }}</span>
         <input type="tel" v-model="localData.phone" placeholder="Enter phone number" />
       </div>
 
       <div class="form-group full-width">
         <label>Role</label>
+        <span class="original-value" v-if="originalData.role">Original: {{ originalData.role }}</span>
         <select v-model="localData.role" class="form-select">
           <option value="parent">Parent</option>
           <option value="guardian">Guardian</option>
@@ -78,12 +82,12 @@
     </div>
 
     <template #footer>
-      <AppButton variant="cancel" @click="$emit('close')">Nevermind</AppButton>
+      <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
       <AppButton
         :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
         @click="handleSubmit"
         :loading="loading"
-        :disabled="loading"
+        :disabled="loading || !isFormValid"
       >
         Confirm Action
       </AppButton>
@@ -115,18 +119,27 @@ const localData = ref({
   deleteConfirm: '',
 })
 
+const originalData = ref({
+  name: '',
+  phone: '',
+  email: '',
+  role: '',
+})
+
 // Sync local data with prop when modal opens
 watch(
   () => props.isOpen,
   (newVal) => {
     if (newVal && props.user) {
-      localData.value = {
+      const initial = {
         name: props.user.name || '',
         phone: props.user.phone || '',
         email: props.user.email || '',
         role: props.user.role || 'parent',
         deleteConfirm: '',
       }
+      localData.value = { ...initial }
+      originalData.value = { ...initial }
     }
   },
 )
@@ -139,7 +152,34 @@ const modalTitle = computed(() => {
   return 'Action Modal'
 })
 
+const isFormValid = computed(() => {
+  if (props.type === 'edit') {
+    return (
+      localData.value.name.trim() &&
+      localData.value.email.trim() &&
+      localData.value.phone.trim() &&
+      localData.value.role
+    )
+  }
+  if (props.type === 'delete') {
+    return localData.value.deleteConfirm === 'DELETE'
+  }
+  return true
+})
+
 const handleSubmit = () => {
+  if (!isFormValid.value) return
   emit('submit', { ...localData.value })
 }
 </script>
+
+<style scoped>
+.original-value {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: -4px;
+  margin-bottom: 4px;
+  font-style: italic;
+}
+</style>

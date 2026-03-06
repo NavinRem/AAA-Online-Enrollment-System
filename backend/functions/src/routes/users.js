@@ -31,6 +31,12 @@ router.get("/", userController.getAllUsers);
 // Get User by ID
 router.get("/:uid", userController.getUser);
 
+// Update User
+router.put("/:uid", userController.updateUser);
+
+// Delete User
+router.delete("/:uid", userController.deleteUser);
+
 // Get All Students for Parent
 router.get("/:uid/students", userController.getStudentsByParentID);
 

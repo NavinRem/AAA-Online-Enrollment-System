@@ -1,6 +1,7 @@
 <template>
   <div class="search-box">
-    <span class="search-icon">🔍</span>
+    <!-- <span class="search-icon">🔍</span> -->
+    <img src="../../../assets/icons/search-svgrepo.svg" class="search-icon" />
     <input
       :value="modelValue"
       @input="$emit('update:modelValue', $event.target.value)"

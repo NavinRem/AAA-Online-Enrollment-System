@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import DataPageLayout from '../components/common/DataPageLayout.vue'
 import AppTable from '../components/common/AppTable/AppTable.vue'
@@ -13,8 +14,57 @@ import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
 
+const router = useRouter()
+
 const allUsers = ref([])
 const loading = ref(true)
+const activeMenuId = ref(null)
+const isMenuAbove = ref(false)
+const menuStyles = ref({})
+
+const toggleMenu = (event, id) => {
+  if (activeMenuId.value === id) {
+    activeMenuId.value = null
+    return
+  }
+
+  const rect = event.currentTarget.getBoundingClientRect()
+  const spaceBelow = window.innerHeight - rect.bottom
+  isMenuAbove.value = spaceBelow < 280
+
+  if (isMenuAbove.value) {
+    menuStyles.value = {
+      bottom: `${window.innerHeight - rect.top + 8}px`,
+      right: `${window.innerWidth - rect.right}px`,
+    }
+  } else {
+    menuStyles.value = {
+      top: `${rect.bottom + 8}px`,
+      right: `${window.innerWidth - rect.right}px`,
+    }
+  }
+
+  activeMenuId.value = id
+}
+
+const closeMenu = () => {
+  activeMenuId.value = null
+}
+
+const handleAction = (type, item) => {
+  openActionModal(type, item)
+  closeMenu()
+}
+
+const handleGlobalClick = (event) => {
+  if (activeMenuId.value) {
+    const isTrigger = event.target.closest('.btn-dots')
+    const isMenu = event.target.closest('.action-dropdown')
+    if (!isTrigger && !isMenu) {
+      closeMenu()
+    }
+  }
+}
 
 const parents = computed(() => allUsers.value.filter((u) => u.role === 'parent'))
 const guardians = computed(() => allUsers.value.filter((u) => u.role === 'guardian'))
@@ -62,6 +112,12 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+
+  window.addEventListener('click', handleGlobalClick)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleGlobalClick)
 })
 
 const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, parentSearchMapper)
@@ -168,13 +224,13 @@ const submitNewParent = async (data) => {
   successMessage.value = ''
 
   try {
-    const tempUid = 'PA_' + Date.now()
-    const payload = { ...data, uid: tempUid }
+    const payload = { ...data, status: 'Active' }
+    const result = await userService.registerParentAccount(payload)
 
-    await userService.registerParentAccount(payload)
-
+    // Use the actual UID from the backend response
+    const actualUid = result.uid || result.id || result.UID
     const newUser = {
-      uid: tempUid,
+      uid: actualUid,
       ...data,
       status: 'Active',
       createdAt: new Date().toISOString(),
@@ -211,7 +267,10 @@ const submitAddChild = async (childData) => {
 
   try {
     const parentId = parent.uid || parent.id
-    const result = await userService.registerStudentProfile(parentId, childData)
+    const result = await userService.registerStudentProfile(parentId, {
+      ...childData,
+      status: 'Studying', // Explicitly set status for new student
+    })
 
     // Update local state to reflect the new child immediately
     const userIdx = allUsers.value.findIndex((u) => (u.uid || u.id) === parentId)
@@ -220,8 +279,9 @@ const submitAddChild = async (childData) => {
         allUsers.value[userIdx].studentProfiles = []
       }
       allUsers.value[userIdx].studentProfiles.push({
-        id: result.id,
+        id: result.id || result.UID,
         ...childData,
+        status: 'Studying',
         parent_id: parentId,
       })
     }
@@ -236,6 +296,10 @@ const submitAddChild = async (childData) => {
   } finally {
     submitting.value = false
   }
+}
+
+const navigateToDetail = (item) => {
+  router.push(`/parents/${item.uid || item.id}`)
 }
 </script>
 
@@ -308,9 +372,24 @@ const submitAddChild = async (childData) => {
           <template #loading>Loading parents...</template>
           <template #empty>No parents or guardians found.</template>
 
-          <tr v-for="(item, index) in filteredParents" :key="item.uid || item.id">
+          <tr
+            v-for="(item, index) in filteredParents"
+            :key="item.uid || item.id"
+            class="clickable-row"
+            @click="navigateToDetail(item)"
+          >
             <td>{{ index + 1 }}</td>
-            <td class="bold">{{ item.name || 'Anonymous' }}</td>
+            <td class="bold">
+              <div class="user-info">
+                <div class="avatar-mini">
+                  <img
+                    :src="item.profileURL || '/src/assets/images/female-profile-parent.jpg'"
+                    alt="parent avatar"
+                  />
+                </div>
+                {{ item.name || 'Anonymous' }}
+              </div>
+            </td>
             <td>
               <div class="children-stack">
                 <span
@@ -342,45 +421,47 @@ const submitAddChild = async (childData) => {
             <td>
               <StatusBadge :status="item.status || 'Active'" />
             </td>
-            <td>
-              <div class="actions-wrapper">
-                <button
-                  class="btn-icon add-child"
-                  title="Register Child"
-                  @click.stop="openAddChildModal(item)"
-                >
-                  👶
+            <td class="action-cell">
+              <div class="menu-container">
+                <button class="btn-dots" @click.stop="toggleMenu($event, item.uid || item.id)">
+                  <span class="dots-icon">⋮</span>
                 </button>
-                <button
-                  class="btn-icon edit"
-                  title="Edit Parent"
-                  @click.stop="openActionModal('edit', item)"
-                >
-                  ✏️
-                </button>
-                <button
-                  v-if="item.status === 'Inactive'"
-                  class="btn-icon check active-btn"
-                  title="Reactivate Account"
-                  @click.stop="openActionModal('activate', item)"
-                >
-                  ✅
-                </button>
-                <button
-                  v-else
-                  class="btn-icon check"
-                  title="Deactivate Account"
-                  @click.stop="openActionModal('deactivate', item)"
-                >
-                  🚫
-                </button>
-                <button
-                  class="btn-icon delete"
-                  title="Delete Account"
-                  @click.stop="openActionModal('delete', item)"
-                >
-                  🗑️
-                </button>
+                <Teleport to="body">
+                  <transition name="fade">
+                    <div
+                      v-if="activeMenuId === (item.uid || item.id)"
+                      class="action-dropdown"
+                      :class="{ 'open-up': isMenuAbove }"
+                      :style="menuStyles"
+                      @click.stop
+                    >
+                      <button
+                        @click="
+                          () => {
+                            openAddChildModal(item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        👶 Register Child
+                      </button>
+                      <button @click="handleAction('edit', item)">✏️ Edit Profile</button>
+                      <button
+                        v-if="item.status === 'Inactive'"
+                        @click="handleAction('activate', item)"
+                      >
+                        ✅ Reactivate
+                      </button>
+                      <button v-else @click="handleAction('deactivate', item)">
+                        🚫 Deactivate
+                      </button>
+                      <div class="menu-divider"></div>
+                      <button class="delete-btn" @click="handleAction('delete', item)">
+                        🗑️ Delete Account
+                      </button>
+                    </div>
+                  </transition>
+                </Teleport>
               </div>
             </td>
           </tr>
@@ -463,12 +544,146 @@ const submitAddChild = async (childData) => {
   color: #1a1a1a;
 }
 
-.actions-wrapper {
+.user-info {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 12px;
 }
-.btn-icon.active-btn:hover {
-  border-color: #4caf50;
-  color: #4caf50;
+
+.action-cell {
+  position: relative;
+  width: 60px;
+}
+
+.menu-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-dots {
+  background: none;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-dots:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  transform: rotate(90deg);
+}
+
+.action-dropdown {
+  position: fixed;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 14px;
+  box-shadow:
+    0 15px 35px -5px rgba(0, 0, 0, 0.15),
+    0 5px 15px -5px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  z-index: 1000;
+  padding: 8px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  animation: slideDropdown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+}
+
+.action-dropdown.open-up {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 8px;
+  transform-origin: bottom right;
+  box-shadow:
+    0 -15px 35px -5px rgba(0, 0, 0, 0.15),
+    0 -5px 15px -5px rgba(0, 0, 0, 0.08);
+}
+
+@keyframes slideDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.action-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-dropdown button:hover {
+  background: #f8fafc;
+  color: #00aeef;
+  padding-left: 18px;
+}
+
+.action-dropdown .delete-btn {
+  color: #ef4444;
+}
+
+.action-dropdown .delete-btn:hover {
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.menu-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 6px;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+  background-color: #f8fafc;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(-10px);
+}
+
+.action-dropdown.open-up.fade-enter-from,
+.action-dropdown.open-up.fade-leave-to {
+  transform: scale(0.9) translateY(10px);
 }
 </style>

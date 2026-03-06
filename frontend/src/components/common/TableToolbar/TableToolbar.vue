@@ -14,7 +14,7 @@
         @click="toggleFilter"
         @blur="closeFilter"
       >
-        <span style="margin-right: 6px">⚙️</span> Filter
+        <span style="margin-right: 6px"></span> Filter
       </AppButton>
       <transition name="toast-fade">
         <div v-if="isFilterOpen" class="filter-dropdown-menu">

@@ -9,6 +9,16 @@
     </div>
 
     <div class="form-grid">
+      <!-- Show dropdown if multiple parents are provided to select from -->
+      <div class="form-group full-width" v-if="selectableParents && selectableParents.length > 0">
+        <label>Select Parent / Guardian <span class="required">*</span></label>
+        <select v-model="formData.parentId" required class="form-select">
+          <option disabled value="">-- Choose a parent/guardian --</option>
+          <option v-for="p in selectableParents" :key="p.uid || p.id" :value="p.uid || p.id">
+            {{ p.name || p.email }} ({{ p.phone || 'No phone' }})
+          </option>
+        </select>
+      </div>
       <div class="form-group full-width">
         <label>Full Name <span class="required">*</span></label>
         <input
@@ -35,48 +45,48 @@
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: formData.medical_note === 'None' }"
-            @click="formData.medical_note = 'None'"
+            :class="{ active: isPresetActive('medical_note', 'None') }"
+            @click="togglePreset('medical_note', 'None')"
           >
             None
           </button>
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: formData.medical_note === 'G6PD Deficiency' }"
-            @click="formData.medical_note = 'G6PD Deficiency'"
+            :class="{ active: isPresetActive('medical_note', 'G6PD Deficiency') }"
+            @click="togglePreset('medical_note', 'G6PD Deficiency')"
           >
             G6PD Deficiency
           </button>
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: formData.medical_note === 'ADHD' }"
-            @click="formData.medical_note = 'ADHD'"
+            :class="{ active: isPresetActive('medical_note', 'ADHD') }"
+            @click="togglePreset('medical_note', 'ADHD')"
           >
             ADHD
           </button>
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: formData.medical_note === 'Dyslexia' }"
-            @click="formData.medical_note = 'Dyslexia'"
+            :class="{ active: isPresetActive('medical_note', 'Dyslexia') }"
+            @click="togglePreset('medical_note', 'Dyslexia')"
           >
             Dyslexia
           </button>
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: formData.medical_note === 'Asthma' }"
-            @click="formData.medical_note = 'Asthma'"
+            :class="{ active: isPresetActive('medical_note', 'Asthma') }"
+            @click="togglePreset('medical_note', 'Asthma')"
           >
             Asthma
           </button>
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: formData.medical_note === 'Vision Impairment' }"
-            @click="formData.medical_note = 'Vision Impairment'"
+            :class="{ active: isPresetActive('medical_note', 'Vision Impairment') }"
+            @click="togglePreset('medical_note', 'Vision Impairment')"
           >
             Vision Impairment
           </button>
@@ -90,7 +100,7 @@
         variant="primary"
         @click="handleSubmit"
         :loading="loading"
-        :disabled="loading || !formData.fullname || !formData.dob"
+        :disabled="loading || !isFormValid"
       >
         Register Child
       </AppButton>
@@ -99,13 +109,17 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import AppModal from '../common/AppModal/AppModal.vue'
 import AppButton from '../common/AppButton/AppButton.vue'
 
 const props = defineProps({
   isOpen: Boolean,
   parent: Object,
+  selectableParents: {
+    type: Array,
+    default: () => [],
+  },
   loading: Boolean,
   error: String,
   success: String,
@@ -114,6 +128,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit'])
 
 const formData = ref({
+  parentId: '',
   fullname: '',
   dob: '',
   medical_note: 'None',
@@ -124,6 +139,7 @@ watch(
   (newVal) => {
     if (newVal) {
       formData.value = {
+        parentId: '',
         fullname: '',
         dob: '',
         medical_note: 'None',
@@ -132,14 +148,68 @@ watch(
   },
 )
 
+const isFormValid = computed(() => {
+  const basicFields = formData.value.fullname.trim() && formData.value.dob
+  const parentSelected =
+    props.selectableParents && props.selectableParents.length > 0 ? formData.value.parentId : true
+  return basicFields && parentSelected
+})
+
 const handleSubmit = () => {
+  if (!isFormValid.value) return
   emit('submit', { ...formData.value })
+}
+
+const togglePreset = (field, chipValue) => {
+  const currentText = formData.value[field] || ''
+  let values = currentText
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+
+  if (values.includes(chipValue)) {
+    values = values.filter((v) => v !== chipValue)
+  } else {
+    // If 'None' is picked, clear others. If others picked, remove 'None'.
+    if (chipValue === 'None') {
+      values = ['None']
+    } else {
+      values = values.filter((v) => v !== 'None')
+      values.push(chipValue)
+    }
+  }
+  formData.value[field] = values.join(', ')
+}
+
+const isPresetActive = (field, chipValue) => {
+  const currentText = formData.value[field] || ''
+  const values = currentText
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+  return values.includes(chipValue)
 }
 </script>
 
 <style scoped>
 .required {
   color: #ef4444;
+}
+
+.form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background-color: #f8fafc;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.form-select:focus {
+  border-color: #00aeef;
+  background-color: #ffffff;
 }
 
 /* Preset Chips */

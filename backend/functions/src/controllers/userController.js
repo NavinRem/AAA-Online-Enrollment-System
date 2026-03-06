@@ -117,6 +117,38 @@ exports.getStudentsByParentID = async (req, res) => {
 };
 
 /**
+ * @route PUT /users/:uid
+ * @description Update user profile
+ */
+exports.updateUser = async (req, res) => {
+  try {
+    const result = await userService.updateUser(req.params.uid, req.body);
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message === "User not found") {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * @route DELETE /users/:uid
+ * @description Delete user account
+ */
+exports.deleteUser = async (req, res) => {
+  try {
+    const result = await userService.deleteUser(req.params.uid);
+    res.status(200).json(result);
+  } catch (error) {
+    if (error.message === "User not found") {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
  * @route GET /users/allStudents
  * @description Get all students (admin only in UI logic usually)
  */
@@ -198,27 +230,21 @@ exports.seedData = async (req, res) => {
 
     // 4. Create Courses & Sessions
     const c1_id = "course_biology_101";
-    await db
-      .collection("course")
-      .doc(c1_id)
-      .set({
-        title: "Biology 101",
-        description: "Intro to Biology",
-        price: 200,
-        category: "Science",
-        createdAt: new Date().toISOString(),
-      });
+    await db.collection("course").doc(c1_id).set({
+      title: "Biology 101",
+      description: "Intro to Biology",
+      price: 200,
+      category: "Science",
+      createdAt: new Date().toISOString(),
+    });
     const sess1_id = "sess_biology_1_spring";
-    await db
-      .collection("session")
-      .doc(sess1_id)
-      .set({
-        course_id: c1_id,
-        capacity: 20,
-        num_student: 0,
-        start_date: "2026-03-01",
-        end_date: "2026-06-01",
-      });
+    await db.collection("session").doc(sess1_id).set({
+      course_id: c1_id,
+      capacity: 20,
+      num_student: 0,
+      start_date: "2026-03-01",
+      end_date: "2026-06-01",
+    });
 
     // 5. Enrollments - One today, one earlier this week, one last week
     const now = new Date();

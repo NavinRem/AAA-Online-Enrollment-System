@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/DashboardLayout.vue'
 import DataPageLayout from '../components/common/DataPageLayout.vue'
@@ -8,11 +8,12 @@ import AppTable from '../components/common/AppTable/AppTable.vue'
 import TableToolbar from '../components/common/TableToolbar/TableToolbar.vue'
 import SummaryCard from '../components/SummaryCard.vue'
 import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
-import AppModal from '../components/common/AppModal/AppModal.vue'
 import { registrationService } from '../services/registrationService'
 import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
+import { getCourseIcon } from '../utils/courseHelper'
+import { formatDate } from '../utils/dateFormatter'
 const router = useRouter()
 
 const registrations = ref([])
@@ -25,6 +26,43 @@ const showModal = ref(false)
 const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const activeMenuId = ref(null)
+const isMenuAbove = ref(false)
+const menuStyles = ref({})
+
+const toggleMenu = (event, id) => {
+  if (activeMenuId.value === id) {
+    activeMenuId.value = null
+    return
+  }
+
+  const rect = event.currentTarget.getBoundingClientRect()
+  const spaceBelow = window.innerHeight - rect.bottom
+  isMenuAbove.value = spaceBelow < 280
+
+  if (isMenuAbove.value) {
+    menuStyles.value = {
+      bottom: `${window.innerHeight - rect.top + 8}px`,
+      right: `${window.innerWidth - rect.right}px`,
+    }
+  } else {
+    menuStyles.value = {
+      top: `${rect.bottom + 8}px`,
+      right: `${window.innerWidth - rect.right}px`,
+    }
+  }
+
+  activeMenuId.value = id
+}
+
+const closeMenu = () => {
+  activeMenuId.value = null
+}
+
+const handleAction = (type, item) => {
+  openActionModal(type, item)
+  closeMenu()
+}
 
 const formData = ref({
   parentId: '',
@@ -33,9 +71,24 @@ const formData = ref({
   sessionId: '',
 })
 
+const handleGlobalClick = (event) => {
+  if (activeMenuId.value) {
+    const isTrigger = event.target.closest('.btn-dots')
+    const isMenu = event.target.closest('.action-dropdown')
+    if (!isTrigger && !isMenu) {
+      closeMenu()
+    }
+  }
+}
+
 onMounted(async () => {
   await fetchRegistrations()
   await loadFormData()
+  window.addEventListener('click', handleGlobalClick)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleGlobalClick)
 })
 
 const fetchRegistrations = async () => {
@@ -151,11 +204,15 @@ const handleCreateEnrollment = async () => {
 
     await registrationService.createEnrollment(payload)
     successMessage.value = 'Successfully created enrollment!'
+
+    // Explicitly refresh from DB
+    await fetchRegistrations()
+
     setTimeout(() => {
       showModal.value = false
       formData.value = { parentId: '', studentId: '', courseId: '', sessionId: '' }
+      successMessage.value = ''
     }, 1500)
-    await fetchRegistrations() // Refresh table
   } catch (err) {
     console.error('Failed to create enrollment', err)
     errorMessage.value = err.message || 'Failed to create enrollment. Please try again.'
@@ -187,9 +244,11 @@ const actionModal = ref({
   type: '', // 'edit', 'pay', 'cancel', 'delete'
   enrollment: null,
   amount: 0,
+  originalAmount: 0,
   proof: '',
   reason: '',
   remark: '',
+  originalRemark: '',
   deleteConfirm: '',
 })
 
@@ -201,9 +260,11 @@ const openActionModal = (type, item) => {
     type,
     enrollment: item,
     amount: item.amount || item.totalAmount || 0,
+    originalAmount: item.amount || item.totalAmount || 0,
     proof: '',
     reason: '',
     remark: item.remark || '',
+    originalRemark: item.remark || '',
     deleteConfirm: '',
   }
 }
@@ -264,6 +325,32 @@ const submitActionModal = async () => {
   }
 }
 
+const togglePreset = (field, chipValue) => {
+  const currentText = actionModal.value[field] || ''
+  let values = currentText
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+
+  if (values.includes(chipValue)) {
+    // Remove it
+    values = values.filter((v) => v !== chipValue)
+  } else {
+    // Add it
+    values.push(chipValue)
+  }
+  actionModal.value[field] = values.join(', ')
+}
+
+const isPresetActive = (field, chipValue) => {
+  const currentText = actionModal.value[field] || ''
+  const values = currentText
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+  return values.includes(chipValue)
+}
+
 const isUnpaid = (status) => status && !isPaid(status) && !isCancelled(status)
 
 const totalRegistration = computed(() => registrations.value.length)
@@ -285,7 +372,17 @@ const setFilter = (filterValue) => {
 }
 
 const statusFilteredRegistrations = computed(() => {
-  let list = [...registrations.value]
+  let list = registrations.value.map((r) => {
+    const parent = parents.value.find((p) => (p.uid || p.id) === (r.parent_id || r.parentId))
+    const student = students.value.find((s) => (s.uid || s.id) === (r.student_id || r.studentId))
+
+    return {
+      ...r,
+      parentProfileURL: parent?.profileURL || null,
+      studentProfileURL: student?.profileURL || null,
+      courseIcon: getCourseIcon(r.courseTitle || r.course_title),
+    }
+  })
 
   // Filter list by selected status
   if (currentFilter.value !== 'all') {
@@ -328,30 +425,6 @@ const formatSessionCount = (item) => {
 }
 
 // Removed older status helpers
-
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A'
-  if (dateString && typeof dateString === 'object' && dateString.seconds) {
-    dateString = dateString.toDate().toISOString()
-  }
-  try {
-    const date = new Date(dateString)
-    if (isNaN(date.getTime())) return 'N/A'
-    const formatted = date.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-    const time = date.toLocaleTimeString('en-GB', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-    return `${formatted} at ${time} UTC+7`
-  } catch {
-    return dateString
-  }
-}
 </script>
 
 <template>
@@ -409,17 +482,16 @@ const formatDate = (dateString) => {
       <template #table>
         <AppTable
           :headers="[
-            'No',
-            'Parent/Guardian',
+            '#',
+            'Parent',
             'Child',
             'Course',
-            'Session',
-            '#Session',
+            'Schedule',
+            'Sessions',
             'Status',
             'Amount',
             'Enrolled Date',
-            'Remark',
-            'Actions',
+            'Action',
           ]"
           :loading="loading"
           :empty="filteredRegistrations.length === 0"
@@ -434,11 +506,42 @@ const formatDate = (dateString) => {
             @click="handleRowClick(item.id)"
           >
             <td>{{ index + 1 }}</td>
-            <td class="bold">{{ item.parentName || item.parent_name || 'Parent' }}</td>
-            <td>{{ item.studentName || item.student_name || 'Student' }}</td>
-            <td>{{ item.courseTitle || item.course_title || 'Course' }}</td>
-            <td>{{ formatSession(item) }}</td>
-            <td>{{ formatSessionCount(item) }}</td>
+            <td class="bold">
+              <div class="user-info">
+                <div class="avatar-mini">
+                  <img
+                    :src="item.parentProfileURL || '/src/assets/images/female-profile-parent.jpg'"
+                    alt="parent"
+                  />
+                </div>
+                {{ item.parentName || item.parent_name || 'Parent' }}
+              </div>
+            </td>
+            <td>
+              <div class="user-info">
+                <div class="avatar-mini">
+                  <img
+                    :src="item.studentProfileURL || '/src/assets/images/child-profile.png'"
+                    alt="student"
+                  />
+                </div>
+                {{ item.studentName || item.student_name || 'Student' }}
+              </div>
+            </td>
+            <td>
+              <div class="user-info">
+                <div class="program-icon-mini" style="margin-right: 8px">
+                  <img :src="item.courseIcon" alt="course" style="width: 20px; height: 20px" />
+                </div>
+                {{ item.courseTitle || item.course_title || 'Course' }}
+              </div>
+            </td>
+            <td>
+              <div class="schedule-text">{{ formatSession(item) }}</div>
+            </td>
+            <td class="text-center">
+              <span class="session-badge">{{ formatSessionCount(item) }}</span>
+            </td>
             <td>
               <StatusBadge
                 :status="
@@ -464,44 +567,41 @@ const formatDate = (dateString) => {
                 )
               }}
             </td>
-            <td class="remark-cell">
-              <span v-if="item.remark" class="remark-text" :title="item.remark">{{
-                item.remark
-              }}</span>
-              <span v-else class="text-muted">-</span>
-            </td>
             <td class="action-cell" @click.stop>
-              <div class="inline-actions">
-                <button
-                  class="btn-icon edit"
-                  title="Edit Enrollment"
-                  @click="openActionModal('edit', item)"
-                >
-                  ✏️
+              <div class="menu-container">
+                <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
+                  <span class="dots-icon">⋮</span>
                 </button>
-                <button
-                  v-if="!isPaid(item.paymentStatus) && !isCancelled(item.status)"
-                  class="btn-icon check"
-                  title="Mark as Paid"
-                  @click="openActionModal('pay', item)"
-                >
-                  ✓
-                </button>
-                <button
-                  v-if="!isCancelled(item.status)"
-                  class="btn-icon cancel"
-                  title="Cancel Enrollment"
-                  @click="openActionModal('cancel', item)"
-                >
-                  🚫
-                </button>
-                <button
-                  class="btn-icon delete"
-                  title="Delete Permanently"
-                  @click="openActionModal('delete', item)"
-                >
-                  🗑️
-                </button>
+
+                <Teleport to="body">
+                  <transition name="fade">
+                    <div
+                      v-if="activeMenuId === item.id"
+                      class="action-dropdown"
+                      :class="{ 'open-up': isMenuAbove }"
+                      :style="menuStyles"
+                      @click.stop
+                    >
+                      <button @click="handleAction('edit', item)">✏️ Edit</button>
+                      <button
+                        v-if="!isPaid(item.paymentStatus) && !isCancelled(item.status)"
+                        @click="handleAction('pay', item)"
+                      >
+                        ✓ Mark Paid
+                      </button>
+                      <button
+                        v-if="!isCancelled(item.status)"
+                        @click="handleAction('cancel', item)"
+                      >
+                        🚫 Cancel
+                      </button>
+                      <div class="menu-divider"></div>
+                      <button class="delete-btn" @click="handleAction('delete', item)">
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  </transition>
+                </Teleport>
               </div>
             </td>
           </tr>
@@ -694,9 +794,11 @@ const formatDate = (dateString) => {
                 </p>
               </div>
               <label>Adjust Enrollment Amount ($)</label>
+              <span class="original-value" v-if="actionModal.originalAmount">Original: ${{ actionModal.originalAmount }}</span>
               <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
 
               <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
+              <span class="original-value" v-if="actionModal.originalRemark">Original: {{ actionModal.originalRemark }}</span>
               <textarea
                 v-model="actionModal.remark"
                 placeholder="Please write your remark here..."
@@ -705,32 +807,32 @@ const formatDate = (dateString) => {
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.remark === 'VIP Student' }"
-                  @click="actionModal.remark = 'VIP Student'"
+                  :class="{ active: isPresetActive('remark', 'VIP Student') }"
+                  @click="togglePreset('remark', 'VIP Student')"
                 >
                   VIP Student
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.remark === 'Needs extra attention' }"
-                  @click="actionModal.remark = 'Needs extra attention'"
+                  :class="{ active: isPresetActive('remark', 'Needs extra attention') }"
+                  @click="togglePreset('remark', 'Needs extra attention')"
                 >
                   Needs extra attention
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.remark === 'Parent will pay next week' }"
-                  @click="actionModal.remark = 'Parent will pay next week'"
+                  :class="{ active: isPresetActive('remark', 'Parent will pay next week') }"
+                  @click="togglePreset('remark', 'Parent will pay next week')"
                 >
                   Parent will pay next week
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.remark === 'Pending partial refund' }"
-                  @click="actionModal.remark = 'Pending partial refund'"
+                  :class="{ active: isPresetActive('remark', 'Pending partial refund') }"
+                  @click="togglePreset('remark', 'Pending partial refund')"
                 >
                   Pending partial refund
                 </button>
@@ -756,32 +858,32 @@ const formatDate = (dateString) => {
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.proof === 'Paid in Cash' }"
-                  @click="actionModal.proof = 'Paid in Cash'"
+                  :class="{ active: isPresetActive('proof', 'Paid in Cash') }"
+                  @click="togglePreset('proof', 'Paid in Cash')"
                 >
                   Paid in Cash
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.proof === 'Paid via Check' }"
-                  @click="actionModal.proof = 'Paid via Check'"
+                  :class="{ active: isPresetActive('proof', 'Paid via Check') }"
+                  @click="togglePreset('proof', 'Paid via Check')"
                 >
                   Paid via Check
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.proof === 'Paid via Bank Transfer' }"
-                  @click="actionModal.proof = 'Paid via Bank Transfer'"
+                  :class="{ active: isPresetActive('proof', 'Paid via Bank Transfer') }"
+                  @click="togglePreset('proof', 'Paid via Bank Transfer')"
                 >
                   Paid via Bank Transfer
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.proof === 'Paid via Credit Card' }"
-                  @click="actionModal.proof = 'Paid via Credit Card'"
+                  :class="{ active: isPresetActive('proof', 'Paid via Credit Card') }"
+                  @click="togglePreset('proof', 'Paid via Credit Card')"
                 >
                   Paid via Credit Card
                 </button>
@@ -807,40 +909,40 @@ const formatDate = (dateString) => {
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.reason === 'Parent requested via email' }"
-                  @click="actionModal.reason = 'Parent requested via email'"
+                  :class="{ active: isPresetActive('reason', 'Parent requested via email') }"
+                  @click="togglePreset('reason', 'Parent requested via email')"
                 >
                   Parent requested via email
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.reason === 'Parent requested via phone' }"
-                  @click="actionModal.reason = 'Parent requested via phone'"
+                  :class="{ active: isPresetActive('reason', 'Parent requested via phone') }"
+                  @click="togglePreset('reason', 'Parent requested via phone')"
                 >
                   Parent requested via phone
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.reason === 'Did not pay on time' }"
-                  @click="actionModal.reason = 'Did not pay on time'"
+                  :class="{ active: isPresetActive('reason', 'Did not pay on time') }"
+                  @click="togglePreset('reason', 'Did not pay on time')"
                 >
                   Did not pay on time
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.reason === 'Course schedule conflict' }"
-                  @click="actionModal.reason = 'Course schedule conflict'"
+                  :class="{ active: isPresetActive('reason', 'Course schedule conflict') }"
+                  @click="togglePreset('reason', 'Course schedule conflict')"
                 >
                   Course schedule conflict
                 </button>
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: actionModal.reason === 'Duplicate enrollment' }"
-                  @click="actionModal.reason = 'Duplicate enrollment'"
+                  :class="{ active: isPresetActive('reason', 'Duplicate enrollment') }"
+                  @click="togglePreset('reason', 'Duplicate enrollment')"
                 >
                   Duplicate enrollment
                 </button>
@@ -867,7 +969,7 @@ const formatDate = (dateString) => {
           </div>
 
           <div class="modal-footer">
-            <AppButton variant="cancel" @click="closeActionModal">Nevermind</AppButton>
+            <AppButton variant="cancel" @click="closeActionModal">Cancel</AppButton>
             <AppButton
               :variant="
                 actionModal.type === 'delete' || actionModal.type === 'cancel'
@@ -1355,11 +1457,21 @@ const formatDate = (dateString) => {
 }
 
 .modal-footer {
-  padding: 10px 30px 25px;
+  padding: 15px 25px;
   display: flex;
   justify-content: flex-end;
   gap: 15px;
-  background: transparent;
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+}
+
+.original-value {
+  display: block;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: -4px;
+  margin-bottom: 4px;
+  font-style: italic;
 }
 
 /* Inline Actions */
@@ -1444,6 +1556,180 @@ const formatDate = (dateString) => {
   color: #c62828;
 }
 
-@media (max-width: 1200px) {
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
+  border: 2px solid white;
+  flex-shrink: 0;
+}
+
+.avatar-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.program-icon-mini {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.menu-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-dots {
+  background: none;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-dots:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  transform: rotate(90deg);
+}
+
+.action-dropdown {
+  position: fixed;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 14px;
+  box-shadow:
+    0 15px 35px -5px rgba(0, 0, 0, 0.15),
+    0 5px 15px -5px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  z-index: 1000;
+  padding: 8px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  animation: slideDropdown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+}
+
+.action-dropdown.open-up {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 8px;
+  transform-origin: bottom right;
+  box-shadow:
+    0 -15px 35px -5px rgba(0, 0, 0, 0.15),
+    0 -5px 15px -5px rgba(0, 0, 0, 0.08);
+}
+
+@keyframes slideDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.action-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.action-dropdown button:hover {
+  background: #f8fafc;
+  color: #00aeef;
+  padding-left: 18px;
+}
+
+.action-dropdown .delete-btn {
+  color: #ef4444;
+}
+
+.action-dropdown .delete-btn:hover {
+  background: #fff1f2;
+  color: #dc2626;
+}
+
+.menu-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 6px;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: scale(0.9) translateY(-10px);
+}
+
+.action-dropdown.open-up.fade-enter-from,
+.action-dropdown.open-up.fade-leave-to {
+  transform: scale(0.9) translateY(10px);
+}
+.schedule-text {
+  font-size: 0.85rem;
+  color: #475569;
+  max-width: 150px;
+  line-height: 1.3;
+}
+
+.session-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.text-center {
+  text-align: center;
 }
 </style>

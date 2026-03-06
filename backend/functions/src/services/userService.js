@@ -17,6 +17,7 @@ class UserService {
       name: name || null,
       profileURL: profileURL || null,
       phone: phone || null,
+      status: userData.status || "Active",
       updatedAt: new Date().toISOString(),
     };
 
@@ -55,6 +56,7 @@ class UserService {
       fullname,
       DoB: dob, // Storing as 'DoB' per schema
       medical_note: medical_note || "None",
+      status: "Studying",
       createdAt: new Date().toISOString(),
     };
 
@@ -145,6 +147,42 @@ class UserService {
       throw new Error("User not found");
     }
     return { uid: doc.id, ...doc.data() };
+  }
+
+  // Update User
+  async updateUser(uid, updateData) {
+    if (!uid) {
+      throw new Error("User ID (uid) is required");
+    }
+    const userRef = db.collection("user").doc(uid);
+    const doc = await userRef.get();
+    if (!doc.exists) {
+      throw new Error("User not found");
+    }
+
+    const cleanData = { ...updateData };
+    delete cleanData.uid; // Don't update ID
+    cleanData.updatedAt = new Date().toISOString();
+
+    await userRef.update(cleanData);
+    return { uid, message: "User updated successfully" };
+  }
+
+  // Delete User (Critical)
+  async deleteUser(uid) {
+    if (!uid) {
+      throw new Error("User ID (uid) is required");
+    }
+    const userRef = db.collection("user").doc(uid);
+    const doc = await userRef.get();
+    if (!doc.exists) {
+      throw new Error("User not found");
+    }
+
+    // Optional: Delete associated students?
+    // For now, just delete the user.
+    await userRef.delete();
+    return { uid, message: "User deleted successfully" };
   }
 }
 
