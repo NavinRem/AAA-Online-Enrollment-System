@@ -2,23 +2,19 @@ const { getFirestore } = require("firebase-admin/firestore");
 const db = getFirestore("registration");
 
 class StudentService {
-  // Create Student (previously registerStudentProfile)
   async createStudent(studentData) {
-    const { parent_id, fullname, dob, medical_note } = studentData;
+    const { parentId, fullName, dob, medicalNote } = studentData;
 
-    if (!parent_id || !fullname || !dob) {
+    if (!parentId || !fullName || !dob) {
       throw new Error("Parent ID, Full Name, and Date of Birth are required");
     }
 
-    // Check if parent exists? Optional but good practice.
-    // const parentRef = db.collection("user").doc(parentID); ...
-
     const studentRef = db.collection("student").doc();
     const data = {
-      parent_id,
-      fullname,
-      DoB: dob,
-      medical_note: medical_note || "None",
+      parentId,
+      fullName,
+      dob,
+      medicalNote: medicalNote || "None",
       status: "Studying",
       createdAt: new Date().toISOString(),
     };
@@ -27,7 +23,6 @@ class StudentService {
     return { id: studentRef.id, message: "Student created successfully" };
   }
 
-  // Get Student by ID
   async getStudent(id) {
     const doc = await db.collection("student").doc(id).get();
     if (!doc.exists) {
@@ -36,7 +31,6 @@ class StudentService {
     return { id: doc.id, ...doc.data() };
   }
 
-  // Update Student (General)
   async updateStudent(id, updateData) {
     const studentRef = db.collection("student").doc(id);
     const doc = await studentRef.get();
@@ -45,8 +39,6 @@ class StudentService {
       throw new Error("Student not found");
     }
 
-    // Prevent overwriting immutable fields if necessary (like id, createdAt)
-    // For now, accept all updates but set updatedAt
     const data = {
       ...updateData,
       updatedAt: new Date().toISOString(),
@@ -61,19 +53,10 @@ class StudentService {
     return { message: "Student updated successfully" };
   }
 
-  // Update Medical Info (Specific helper, can just use updateStudent but nice to have explicit)
-  async updateMedicalInfo(id, medical_note) {
-    if (!medical_note) {
-      throw new Error("Medical note is required");
-    }
-    return this.updateStudent(id, { medical_note });
-  }
-
-  // Get Students by Parent ID
   async getStudentsByParent(parentId) {
     const snapshot = await db
       .collection("student")
-      .where("parent_id", "==", parentId)
+      .where("parentId", "==", parentId)
       .get();
 
     return snapshot.docs.map((doc) => ({
@@ -82,13 +65,24 @@ class StudentService {
     }));
   }
 
-  // Get All Students (for Admin/Instructor)
   async getAllStudents() {
-    const snapshot = await db.collection("student").get();
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    // Fetch all students and enrich with parent names
+    const studentsSnapshot = await db.collection("student").get();
+    const usersSnapshot = await db.collection("user").where("role", "in", ["parent", "guardian"]).get();
+
+    const parentsMap = {};
+    usersSnapshot.forEach((doc) => {
+      parentsMap[doc.id] = doc.data().name || "Unknown Parent";
+    });
+
+    return studentsSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        parentName: parentsMap[data.parentId] || "Unknown Parent",
+        ...data,
+      };
+    });
   }
 }
 

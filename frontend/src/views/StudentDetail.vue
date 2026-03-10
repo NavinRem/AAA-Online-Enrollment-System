@@ -1,21 +1,19 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import DashboardLayout from '@/components/DashboardLayout.vue'
-import DetailPageLayout from '@/components/common/DetailPageLayout/DetailPageLayout.vue'
-import StatusBadge from '@/components/common/StatusBadge/StatusBadge.vue'
-import AppButton from '@/components/common/AppButton/AppButton.vue'
-import TableToolbar from '@/components/common/TableToolbar/TableToolbar.vue'
-import DetailedSummaryCard from '@/components/DetailedSummaryCard.vue'
+import DashboardLayout from '@/components/layout/DashboardLayout.vue'
+import DetailPageLayout from '@/components/layout/DetailPageLayout/DetailPageLayout.vue'
+import StatusBadge from '@/components/common/ui/StatusBadge/StatusBadge.vue'
+import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
+import TableToolbar from '@/components/common/data/TableToolbar/TableToolbar.vue'
+import DetailedSummaryCard from '@/components/cards/DetailedSummaryCard.vue'
 import { userService } from '@/services/userService'
 import { registrationService } from '@/services/registrationService'
 import { formatDate, formatDateOnly } from '@/utils/dateFormatter'
 import { calculateStudentStatus, isEnrollmentActive } from '@/utils/studentStatusHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 
-// Images
-import childAvatarUrl from '@/assets/images/child-profile.png'
-import parentAvatarUrl from '@/assets/images/female-profile-parent.jpg'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,7 +69,7 @@ const submitActionModal = async (formData) => {
   globalError.value = ''
 
   try {
-    const sid = currentStudent.id || currentStudent.uid
+    const sid = String(currentStudent.id || currentStudent.uid || '')
     if (type === 'edit') {
       await userService.updateStudent(sid, formData)
       globalSuccess.value = 'Student profile updated!'
@@ -278,8 +276,8 @@ const fetchData = async (id) => {
     // 3. Fetch Registrations
     const allRegistrations = (await registrationService.getAll()) || []
     registrations.value = allRegistrations.filter((r) => {
-      const sId = r.student_id || r.studentId
-      return sId === id
+      const sId = String(r.student_id || r.studentId || '')
+      return sId === String(id)
     })
   } catch (error) {
     console.error('Failed to load student details', error)
@@ -309,7 +307,7 @@ watch(
       backRoute="/students"
       title="Student Details"
     >
-      <template #header-actions>
+      <template #header-actions v-if="student">
         <div class="actions-wrapper">
           <button class="btn-icon edit" title="Edit Profile" @click="openActionModal('edit')">
             ✏️
@@ -547,12 +545,12 @@ watch(
         </div>
       </template>
 
-      <template #right-content>
+      <template #right-content v-if="student">
         <DetailedSummaryCard title="Basic Information" subtitle="Student Information">
           <template #outside>
             <div class="profile-header">
               <div class="profile-preview">
-                <img :src="student?.profileURL || childAvatarUrl" alt="Student Profile" />
+                <img :src="student?.profileURL || getImageUrl('profiles', 'child-profile.png')" alt="Student Profile" />
               </div>
             </div>
           </template>
@@ -572,7 +570,7 @@ watch(
 
             <div class="info-item vertical">
               <span>MEDICAL NOTE:</span>
-              <strong>{{ student?.medical_note || 'None' }}</strong>
+              <strong>{{ student?.medicalNote || student?.medical_note || 'None' }}</strong>
             </div>
 
             <div class="info-item status-inline">
@@ -599,7 +597,7 @@ watch(
               <span class="category-title">Parent</span>
               <div class="relationship-item" v-if="primaryParent">
                 <img
-                  :src="primaryParent.profileURL || parentAvatarUrl"
+                  :src="primaryParent.profileURL || getImageUrl('profiles', 'female-profile-parent.jpg')"
                   alt="Parent Avatar"
                   class="small-avatar"
                 />
@@ -622,7 +620,7 @@ watch(
               <span class="category-title">Guardian</span>
               <div class="relationship-item" v-if="primaryGuardian">
                 <img
-                  :src="primaryGuardian.profileURL || parentAvatarUrl"
+                  :src="primaryGuardian.profileURL || getImageUrl('profiles', 'female-profile-parent.jpg')"
                   alt="Guardian Avatar"
                   class="small-avatar"
                 />

@@ -4,7 +4,8 @@ import { authService } from './services/authService'
 
 import App from './App.vue'
 import router from './router'
-import './assets/main.css'
+import './assets/styles/main.css'
+import './assets/styles/responsive.css'
 
 let app
 

@@ -1,21 +1,17 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import DashboardLayout from '@/components/DashboardLayout.vue'
-import DetailPageLayout from '@/components/common/DetailPageLayout/DetailPageLayout.vue'
-import StatusBadge from '@/components/common/StatusBadge/StatusBadge.vue'
-import DetailCard from '@/components/DetailCard.vue'
-import DetailedSummaryCard from '@/components/DetailedSummaryCard.vue'
+import DashboardLayout from '@/components/layout/DashboardLayout.vue'
+import DetailPageLayout from '@/components/layout/DetailPageLayout/DetailPageLayout.vue'
+import StatusBadge from '@/components/common/ui/StatusBadge/StatusBadge.vue'
+import DetailCard from '@/components/cards/DetailCard.vue'
+import DetailedSummaryCard from '@/components/cards/DetailedSummaryCard.vue'
 import { registrationService } from '@/services/registrationService'
 import { userService } from '@/services/userService'
 import { courseService } from '@/services/courseService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 
-// Images
-import parentAvatar from '@/assets/images/female-profile-parent.jpg'
-import childAvatar from '@/assets/images/child-profile.png'
-import courseAvatar from '@/assets/images/robotic-class.png'
-import sessionAvatar from '@/assets/images/program.png'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -178,12 +174,12 @@ onMounted(async () => {
 <template>
   <DashboardLayout>
     <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments">
-      <template #header-actions>
+      <template #header-actions v-if="enrollment">
         <button class="btn-icon edit" title="Edit Enrollment" @click="openActionModal('edit')">
           ✏️
         </button>
         <button
-          v-if="!isPaid(enrollment?.paymentStatus) && !isCancelled(enrollment?.status)"
+          v-if="!isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
           class="btn-icon check"
           title="Mark as Paid"
           @click="openActionModal('pay')"
@@ -191,7 +187,7 @@ onMounted(async () => {
           ✓
         </button>
         <button
-          v-if="!isCancelled(enrollment?.status)"
+          v-if="!isCancelled(enrollment.status)"
           class="btn-icon cancel"
           title="Cancel Enrollment"
           @click="openActionModal('cancel')"
@@ -207,9 +203,9 @@ onMounted(async () => {
         </button>
       </template>
 
-      <template #left-content>
-        <DetailCard title="Parent/Guardian Information" :avatarUrl="parentAvatar">
-          <p><strong>Fullname:</strong> {{ parent?.name || enrollment.parentName || 'N/A' }}</p>
+      <template #left-content v-if="enrollment">
+        <DetailCard title="Parent/Guardian Information" :avatarUrl="getImageUrl('profiles', 'female-profile-parent.jpg')">
+          <p><strong>Fullname:</strong> {{ parent?.name || parent?.fullname || enrollment.parentName || 'N/A' }}</p>
           <p><strong>Email:</strong> {{ parent?.email || enrollment.parentEmail || 'N/A' }}</p>
           <p><strong>Phone Number:</strong> {{ parent?.phone || enrollment.parentPhone || 'N/A' }}</p>
           <p>
@@ -223,10 +219,10 @@ onMounted(async () => {
           </p>
         </DetailCard>
 
-        <DetailCard title="Student Information" :avatarUrl="childAvatar">
+        <DetailCard title="Student Information" :avatarUrl="getImageUrl('profiles', 'child-profile.png')">
           <p>
             <strong>Fullname:</strong>
-            {{ student?.fullname || student?.name || enrollment.studentName }}
+            {{ student?.fullname || student?.name || enrollment.studentName || 'N/A' }}
           </p>
           <p>
             <strong>Date of birth:</strong>
@@ -235,21 +231,21 @@ onMounted(async () => {
           <p><strong>Age:</strong> {{ calculateAge(student?.dob || student?.DoB || enrollment.studentDob) }}</p>
           <p>
             <strong>Medical Note:</strong>
-            {{ student?.medicalNotes || student?.medical_note || enrollment.medicalNote || 'None'}}
+            {{ student?.medicalNote || student?.medical_note || enrollment.medicalNote || 'None'}}
           </p>
         </DetailCard>
 
-        <DetailCard title="Enrollment Information" :avatarUrl="courseAvatar">
+        <DetailCard title="Enrollment Information" :avatarUrl="getImageUrl('classes', 'robotic-class.png')">
           <p>
             <strong>Course title:</strong>
-            {{ course?.title || enrollment.courseTitle }}
+            {{ course?.title || enrollment.courseTitle || 'N/A' }}
           </p>
           <p>
             <strong>Session:</strong> {{ enrollment.sessionSchedule || 'N/A' }}
           </p>
           <p>
             <strong>Number Session Enrolled:</strong>
-            {{ session?.totalSessions || session?.total_sessions || enrollment.totalSessions || '00' }} Sessions
+            {{ session?.totalSessions || session?.total_sessions || enrollment.totalSessions || '0' }} Sessions
           </p>
           <p>
             <strong>Date:</strong>
@@ -257,8 +253,8 @@ onMounted(async () => {
           </p>
         </DetailCard>
 
-        <DetailCard title="Session Information" :avatarUrl="sessionAvatar">
-          <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle }}</p>
+        <DetailCard title="Session Information" :avatarUrl="getImageUrl('programs', 'program.png')">
+          <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle || 'N/A' }}</p>
           <p>
             <strong>Instructor Name:</strong>
             {{
@@ -267,7 +263,7 @@ onMounted(async () => {
               || 'N/A'
             }}
           </p>
-          <p><strong>Total Student:</strong> {{ session?.capacity || enrollment.capacity }}</p>
+          <p><strong>Total Student:</strong> {{ session?.capacity || enrollment.capacity || 'N/A' }}</p>
           <p>
             <strong>Session Schedule:</strong>
             {{
@@ -280,7 +276,7 @@ onMounted(async () => {
         </DetailCard>
       </template>
 
-      <template #right-content>
+      <template #right-content v-if="enrollment">
         <DetailedSummaryCard title="Basic Information" subtitle="Enrollment Status">
           <div class="detail-row align-center mb-2">
             <span class="summary-label">Status</span>
@@ -355,11 +351,11 @@ onMounted(async () => {
         <DetailedSummaryCard subtitle="Program Summary">
           <div class="detail-row">
             <span class="summary-label">Course</span>
-            <span class="summary-value">{{ course?.title || enrollment.courseTitle }}</span>
+            <span class="summary-value">{{ course?.title || enrollment.courseTitle || 'N/A' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Instructor</span>
-            <span class="summary-value">{{ course?.instructor?.name || enrollment.instructorName || 'N/A' }}</span>
+            <span class="summary-value">{{ session?.instructorName || course?.instructor?.name || enrollment.instructorName || 'N/A' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Schedule</span>
@@ -368,8 +364,8 @@ onMounted(async () => {
           <div class="mt-3">
             <span class="summary-label">Term Dates</span>
             <p class="summary-value" style="font-size: 0.9rem; margin-top: 5px">
-              <strong>Start:</strong> {{ enrollment.startDate ? formatDate(enrollment.startDate) : 'N/A' }}<br />
-              <strong>End:</strong> {{ enrollment.endDate ? formatDate(enrollment.endDate) : 'N/A' }}
+              <strong>Start:</strong> {{ enrollment.startDate || course?.startDate ? formatDate(enrollment.startDate || course?.startDate) : 'N/A' }}<br />
+              <strong>End:</strong> {{ enrollment.endDate || course?.endDate ? formatDate(enrollment.endDate || course?.endDate) : 'N/A' }}
             </p>
           </div>
         </DetailedSummaryCard>

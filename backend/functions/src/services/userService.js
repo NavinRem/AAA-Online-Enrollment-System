@@ -2,7 +2,6 @@ const { getFirestore } = require("firebase-admin/firestore");
 const db = getFirestore("registration");
 
 class UserService {
-  // Register Parent Account
   async registerParentAccount(userData) {
     const { uid, email, role, name, profileURL, phone } = userData;
 
@@ -13,7 +12,7 @@ class UserService {
     const userRef = db.collection("user").doc(uid);
     const data = {
       email,
-      role: role || "parent", // Default to parent
+      role: role || "parent",
       name: name || null,
       profileURL: profileURL || null,
       phone: phone || null,
@@ -21,7 +20,6 @@ class UserService {
       updatedAt: new Date().toISOString(),
     };
 
-    // If creating new, add createdAt
     const doc = await userRef.get();
     if (!doc.exists) {
       data.createdAt = new Date().toISOString();
@@ -31,7 +29,6 @@ class UserService {
     return { uid, message: "Parent account registered successfully" };
   }
 
-  // Get User Role
   async getUserRole(uid) {
     const doc = await db.collection("user").doc(uid).get();
     if (!doc.exists) {
@@ -40,98 +37,6 @@ class UserService {
     return { uid: doc.id, role: doc.data().role || "parent" };
   }
 
-  // Register Student Profile
-  async registerStudentProfile(parentUid, studentData) {
-    const { fullname, dob, medical_note } = studentData;
-
-    if (!fullname || !dob) {
-      throw new Error("Full Name and Date of Birth are required");
-    }
-
-    // Creating a new document in the ROOT 'student' collection
-    const studentRef = db.collection("student").doc();
-
-    const data = {
-      parent_id: parentUid, // FK to User
-      fullname,
-      DoB: dob, // Storing as 'DoB' per schema
-      medical_note: medical_note || "None",
-      status: "Studying",
-      createdAt: new Date().toISOString(),
-    };
-
-    await studentRef.set(data);
-    return {
-      id: studentRef.id,
-      message: "Student profile registered successfully",
-    };
-  }
-
-  // Update Medical Info
-  async updateMedicalInfo(studentId, medical_note) {
-    if (!medical_note) {
-      throw new Error("Medical note is required");
-    }
-
-    const studentRef = db.collection("student").doc(studentId);
-    const doc = await studentRef.get();
-
-    if (!doc.exists) {
-      throw new Error("Student not found");
-    }
-
-    await studentRef.update({
-      medical_note,
-      updatedAt: new Date().toISOString(),
-    });
-    return { message: "Medical info updated successfully" };
-  }
-
-  // Get Students by Parent ID
-  async getStudentsByParentID(uid) {
-    const parentDoc = await db.collection("user").doc(uid).get();
-    const parentName = parentDoc.exists
-      ? parentDoc.data().name || "Parent"
-      : "Unknown Parent";
-
-    const snapshot = await db
-      .collection("student")
-      .where("parent_id", "==", uid)
-      .get();
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      parentName, // Included from parent
-      ...doc.data(),
-    }));
-  }
-
-  // Get All Students (Admin)
-  async getAllStudents() {
-    const studentsSnapshot = await db.collection("student").get();
-    const usersSnapshot = await db.collection("user").get();
-
-    const usersMap = {};
-    usersSnapshot.forEach((doc) => {
-      usersMap[doc.id] = doc.data();
-    });
-
-    return studentsSnapshot.docs.map((doc) => {
-      const data = doc.data();
-      const parent = usersMap[data.parent_id];
-      const parentName = parent
-        ? parent.name || "Unknown Parent"
-        : "Unknown Parent";
-
-      return {
-        id: doc.id,
-        parentName,
-        ...data,
-      };
-    });
-  }
-
-  // Get All Users
   async getAllUsers() {
     const snapshot = await db.collection("user").get();
     return snapshot.docs.map((doc) => ({
@@ -140,7 +45,6 @@ class UserService {
     }));
   }
 
-  // Get User by ID
   async getUser(uid) {
     const doc = await db.collection("user").doc(uid).get();
     if (!doc.exists) {
@@ -149,7 +53,6 @@ class UserService {
     return { uid: doc.id, ...doc.data() };
   }
 
-  // Update User
   async updateUser(uid, updateData) {
     if (!uid) {
       throw new Error("User ID (uid) is required");
@@ -161,14 +64,13 @@ class UserService {
     }
 
     const cleanData = { ...updateData };
-    delete cleanData.uid; // Don't update ID
+    delete cleanData.uid;
     cleanData.updatedAt = new Date().toISOString();
 
     await userRef.update(cleanData);
     return { uid, message: "User updated successfully" };
   }
 
-  // Delete User (Critical)
   async deleteUser(uid) {
     if (!uid) {
       throw new Error("User ID (uid) is required");
@@ -179,8 +81,6 @@ class UserService {
       throw new Error("User not found");
     }
 
-    // Optional: Delete associated students?
-    // For now, just delete the user.
     await userRef.delete();
     return { uid, message: "User deleted successfully" };
   }

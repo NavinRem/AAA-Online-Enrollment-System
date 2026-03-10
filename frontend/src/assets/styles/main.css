@@ -1,0 +1,406 @@
+/* ==========================================================================
+   CSS RESET & VARIABLES
+   ========================================================================== */
+
+:root {
+  /* Brand Colors */
+  --primary-color: #00aeef;
+  --primary-hover: #0096d1;
+  --secondary-color: #64748b;
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --error-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #3b82f6;
+
+  /* Neutrals */
+  --bg-light: #f8fafc;
+  --white: #ffffff;
+  --border-color: #e2e8f0;
+  --text-dark: #1e293b;
+  --text-muted: #64748b;
+  
+  /* Shared Defaults */
+  --border-radius: 12px;
+  --border-radius-sm: 8px;
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+
+  /* Responsive Breakpoints */
+  --mobile: 640px;
+  --tablet: 768px;
+  --laptop: 1024px;
+  --desktop: 1280px;
+
+  /* Z-index layers */
+  --z-sidebar: 100;
+  --z-topbar: 50;
+  --z-modal: 2000;
+  --z-dropdown: 1000;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   TYPOGRAPHY
+   ========================================================================== */
+
+h1, h2, h3, h4 {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.bold { font-weight: 600; }
+.capitalize { text-transform: capitalize; }
+.text-muted { color: var(--text-muted); }
+.danger-text { color: var(--error-color); margin-bottom: 8px; }
+
+.mono {
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Fluid Typography */
+h1 { font-size: clamp(1.5rem, 5vw, 2.2rem); }
+h2 { font-size: clamp(1.25rem, 4vw, 1.8rem); }
+h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
+
+
+
+/* ==========================================================================
+   LAYOUT UTILITIES
+   ========================================================================== */
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
+  padding: 0 30px 30px 30px;
+}
+
+/* Layout Responsiveness */
+
+
+.mobile-only { display: none !important; }
+.desktop-only { display: block !important; }
+
+
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.price {
+  font-weight: 800;
+  color: var(--text-dark);
+  font-size: 1rem;
+}
+
+/* ==========================================================================
+   COMMON COMPONENTS
+   ========================================================================== */
+
+/* Avatars & Icons */
+.avatar-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: #fff;
+}
+
+.avatar-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.program-icon-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.program-icon-mini img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   FORMS & ALERTS
+   ========================================================================== */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-dark);
+}
+
+.form-group input, 
+.form-group textarea, 
+.form-group select {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  background: #fff;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus, 
+.form-group textarea:focus, 
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.alert-box {
+  padding: 12px 16px;
+  border-radius: var(--border-radius-sm);
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+.alert-box.error {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.alert-box.success {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+/* ==========================================================================
+   SEARCH SYSTEM
+   ========================================================================== */
+
+.search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 15px 12px 45px;
+  border-radius: 25px;
+  border: 1px solid transparent;
+  background: white;
+  box-shadow: var(--shadow-sm);
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  opacity: 0.4;
+}
+
+/* ==========================================================================
+   MODALS & OVERLAYS
+   ========================================================================== */
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: var(--border-radius);
+  width: 90%;
+  max-width: 600px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.close-btn:hover {
+  background: #f1f5f9;
+  color: var(--text-dark);
+}
+
+/* ==========================================================================
+   TABLE ACTIONS & DROPDOWNS
+   ========================================================================== */
+
+.action-cell {
+  position: relative;
+  width: 60px;
+}
+
+.menu-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-dots {
+  background: none;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-dots:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.action-dropdown {
+  position: fixed;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(15px);
+  border-radius: 14px;
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  z-index: 1000;
+  padding: 8px;
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+}
+
+.action-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #475569;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+.action-dropdown button:hover {
+  background: #f8fafc;
+  color: var(--primary-color);
+}
+
+.action-dropdown .delete-btn { color: var(--error-color); }
+.action-dropdown .delete-btn:hover { background: #fff1f2; color: #dc2626; }
+.menu-divider { height: 1px; background: var(--border-color); margin: 4px 6px; }
+
+/* ==========================================================================
+   ANIMATIONS
+   ========================================================================== */
+
+@keyframes slideDropdown {
+  from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+}

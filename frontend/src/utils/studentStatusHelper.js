@@ -47,12 +47,13 @@ export const calculateStudentStatus = (student, allRegistrations = []) => {
   }
 
   // Get only this student's registrations
-  const studentId = student.id || student.uid
+  const studentId = String(student.id || student.uid || '')
   if (!studentId) return 'Inactive'
-
-  const studentRegs = allRegistrations.filter(
-    (r) => r.student_id === studentId || r.studentId === studentId,
-  )
+  
+  const studentRegs = allRegistrations.filter((r) => {
+    const rStudentId = String(r.student_id || r.studentId || '')
+    return rStudentId === studentId
+  })
 
   if (studentRegs.length === 0) {
     return 'Inactive'

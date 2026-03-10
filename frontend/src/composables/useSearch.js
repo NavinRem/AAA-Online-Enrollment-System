@@ -9,6 +9,7 @@ export function useSearch(listRef, customMapper = null) {
   const searchQuery = ref('')
 
   const searchResults = computed(() => {
+    if (!listRef.value) return []
     if (!searchQuery.value) return listRef.value
 
     const query = searchQuery.value.toLowerCase().trim()

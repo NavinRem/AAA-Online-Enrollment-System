@@ -1,0 +1,202 @@
+/* ==========================================================================
+   GLOBAL RESPONSIVE STYLES
+   ========================================================================== */
+
+/* 
+   Breakpoint Definitions (Aligned with main.css variables):
+   Mobile: 640px
+   Tablet: 768px
+   Laptop: 1024px
+   Desktop: 1280px
+*/
+
+/* Base Font Size Adjustment */
+@media (max-width: 768px) {
+  body { font-size: 14px; }
+}
+
+/* Page Container Responsiveness */
+@media (max-width: 1024px) {
+  .page-container {
+    padding: 0 20px 20px 20px;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-container {
+    padding: 0 15px 15px 15px;
+    gap: 15px;
+  }
+}
+
+/* Visibility Utilities */
+.mobile-only { display: none !important; }
+.desktop-only { display: block !important; }
+
+@media (max-width: 768px) {
+  .mobile-only { display: block !important; }
+  .desktop-only { display: none !important; }
+  .hide-on-mobile { display: none !important; }
+}
+
+@media (max-width: 1024px) {
+  .hide-on-tablet { display: none !important; }
+}
+
+/* Detail Page Layout Responsiveness */
+@media (max-width: 1024px) {
+  .dashboard-content {
+    border-radius: 0;
+    height: auto;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 1280px) {
+  .main-layout-grid {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+  }
+  
+  .sticky-sidebar {
+    height: auto !important;
+    border-left: none !important;
+    border-top: 1px solid #f1f5f9 !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.03) !important;
+    order: -1 !important;
+  }
+}
+
+@media (max-width: 1100px) {
+  .main-layout-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .left-content-area {
+    padding: 20px 15px !important;
+  }
+  
+  .main-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* UserAuth Responsiveness */
+@media (max-width: 768px) {
+  .split-screen .image-panel {
+    display: none !important;
+  }
+}
+
+/* Sidebar Responsiveness */
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%) !important;
+  }
+  
+  .sidebar.sidebar-mobile-open {
+    transform: translateX(0) !important;
+  }
+  
+  .mobile-close-btn {
+    display: block !important;
+  }
+  
+  .brand-name {
+    padding-right: 30px !important;
+  }
+}
+
+/* Topbar Responsiveness */
+@media (max-width: 1024px) {
+  .topbar {
+    padding: 15px 20px !important;
+  }
+  
+  .menu-toggle {
+    display: block !important;
+  }
+  
+  .header-center {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar .user-info {
+    display: none !important;
+  }
+  
+  .topbar .icon-btn:not(:last-child) {
+    display: none !important;
+  }
+  
+  .topbar .page-title {
+    font-size: 1.2rem !important;
+  }
+}
+
+/* Dashboard Responsiveness */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ParentDetail Responsiveness */
+@media (max-width: 1024px) {
+  .children-layout {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+  
+  .child-selector {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    padding-right: 0 !important;
+    padding-bottom: 20px !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+  }
+}
+
+/* DataPageLayout Responsiveness */
+@media (max-width: 640px) {
+  .card-box {
+    padding: 15px !important;
+    border-radius: 12px !important;
+  }
+  
+  .table-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .cards-row {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+    gap: 15px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .cards-row {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* DashboardLayout Responsiveness */
+@media (max-width: 1024px) {
+  .app-layout .main-wrapper {
+    margin-left: 0 !important;
+  }
+  
+  .app-layout.sidebar-open .sidebar-overlay {
+    display: block !important;
+  }
+}
