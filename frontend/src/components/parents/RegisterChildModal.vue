@@ -192,9 +192,6 @@ const isPresetActive = (field, chipValue) => {
 </script>
 
 <style scoped>
-.required {
-  color: #ef4444;
-}
 
 .form-select {
   width: 100%;

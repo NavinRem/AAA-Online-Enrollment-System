@@ -30,6 +30,19 @@ exports.getAvailableSessions = async (req, res) => {
 };
 
 /**
+ * @route GET /sessions
+ * @description Get all sessions across all courses
+ */
+exports.getAllSessions = async (req, res) => {
+  try {
+    const sessions = await sessionService.getAllSessions();
+    res.status(200).json(sessions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
  * @route GET /sessions/:id/validateCapacity
  * @description Check if a session has space
  */

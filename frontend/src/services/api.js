@@ -20,12 +20,18 @@ export async function request(endpoint, options = {}) {
     'Content-Type': 'application/json',
   }
 
+  const headers = {
+    ...defaultHeaders,
+    ...options.headers,
+  }
+
+  if (headers['Content-Type'] === undefined) {
+    delete headers['Content-Type']
+  }
+
   const config = {
     ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
+    headers,
   }
 
   const response = await fetch(url, config)

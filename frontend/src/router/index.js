@@ -8,6 +8,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: UserAuth,
+      meta: { title: 'Login' },
     },
     {
       path: '/dashboard',
@@ -70,6 +71,11 @@ const router = createRouter({
       meta: { title: 'Settings' },
     },
   ],
+})
+
+router.beforeEach((to) => {
+  const pageTitle = to.meta.title || 'AAA'
+  document.title = `${pageTitle} - AAA Online Registration`
 })
 
 export default router
