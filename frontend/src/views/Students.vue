@@ -1,13 +1,14 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import DashboardLayout from '../components/DashboardLayout.vue'
-import DataPageLayout from '../components/common/DataPageLayout.vue'
-import AppButton from '../components/common/AppButton/AppButton.vue'
-import AppTable from '../components/common/AppTable/AppTable.vue'
-import TableToolbar from '../components/common/TableToolbar/TableToolbar.vue'
-import SummaryCard from '../components/SummaryCard.vue'
-import StatusBadge from '../components/common/StatusBadge/StatusBadge.vue'
+
+// UI Components
+import DashboardLayout from '../components/layout/DashboardLayout.vue'
+import DataPageLayout from '../components/layout/DataPageLayout/DataPageLayout.vue'
+import AppButton from '../components/common/ui/AppButton/AppButton.vue'
+import DataMetrics from '../components/common/data/DataMetrics/DataMetrics.vue'
+import DataTable from '../components/common/data/DataTable/DataTable.vue'
+import StatusBadge from '../components/common/ui/StatusBadge/StatusBadge.vue'
 import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
 import StudentActionModal from '../components/students/StudentActionModal.vue'
 import { userService } from '../services/userService'
@@ -17,56 +18,25 @@ import { useSearch, studentSearchMapper } from '../composables/useSearch'
 import { formatDate } from '../utils/dateFormatter'
 import { getCourseIcon } from '../utils/courseHelper'
 import { calculateStudentStatus, isEnrollmentActive } from '../utils/studentStatusHelper'
+import { useTableActions } from '../composables/useTableActions'
+
+import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
 const router = useRouter()
 const students = ref([])
 const loading = ref(true)
-const activeMenuId = ref(null)
-const isMenuAbove = ref(false)
-const menuStyles = ref({})
-
-const toggleMenu = (event, id) => {
-  if (activeMenuId.value === id) {
-    activeMenuId.value = null
-    return
-  }
-
-  const rect = event.currentTarget.getBoundingClientRect()
-  const spaceBelow = window.innerHeight - rect.bottom
-  isMenuAbove.value = spaceBelow < 280
-
-  if (isMenuAbove.value) {
-    menuStyles.value = {
-      bottom: `${window.innerHeight - rect.top + 8}px`,
-      right: `${window.innerWidth - rect.right}px`,
-    }
-  } else {
-    menuStyles.value = {
-      top: `${rect.bottom + 8}px`,
-      right: `${window.innerWidth - rect.right}px`,
-    }
-  }
-
-  activeMenuId.value = id
-}
-
-const closeMenu = () => {
-  activeMenuId.value = null
-}
+const {
+  activeMenuId,
+  isMenuAbove,
+  menuStyles,
+  toggleMenu,
+  closeMenu,
+  handleGlobalClick,
+} = useTableActions()
 
 const handleAction = (type, item) => {
   openActionModal(type, item)
   closeMenu()
-}
-
-const handleGlobalClick = (event) => {
-  if (activeMenuId.value) {
-    const isTrigger = event.target.closest('.btn-dots')
-    const isMenu = event.target.closest('.action-dropdown')
-    if (!isTrigger && !isMenu) {
-      closeMenu()
-    }
-  }
 }
 
 onMounted(async () => {
@@ -90,31 +60,36 @@ onMounted(async () => {
       studentsData = sData
       allRegistrations = rData || []
       const allUsers = uData || []
+      const oneWeekAgo = new Date()
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
 
       if (Array.isArray(studentsData)) {
         students.value = studentsData.map((student) => {
-          const studentId = student.id || student.uid
-          const studentRegs = allRegistrations.filter(
-            (r) => (r.student_id || r.studentId) === studentId,
-          )
+          const studentId = String(student.id || student.uid || '')
+          const studentRegs = allRegistrations.filter((r) => {
+            const rStudentId = String(r.student_id || r.studentId || '')
+            return rStudentId === studentId
+          })
 
           // Find parent profile for avatar mapping
-          const pId = student.parentId || student.parent_id
-          const parentProfile = allUsers.find((u) => (u.uid || u.id) === pId)
+          const pId = String(student.parentId || student.parent_id || '')
+          const parentProfile = allUsers.find((u) => String(u.uid || u.id || '') === pId)
 
           // 2. Identify Studying Programs (For UI program icons only)
           const activePrograms = studentRegs.filter((r) => isEnrollmentActive(r))
 
           return {
             ...student,
-            status: calculateStudentStatus(student, allRegistrations),
+            id: studentId, // Ensure canonical ID
+            status: calculateStudentStatus(student, studentRegs),
             programs: activePrograms,
             parentProfileURL: parentProfile?.profileURL || null,
+            dob: student.dob || student.DoB, // Normalize dob
+            fullName: student.fullname || student.name,
           }
         })
       }
     } else {
-      // Logic for non-admin mapping (simplified as they only see their own students)
       const sData = await userService.getStudents(currentUser.uid)
       studentsData = sData
       if (Array.isArray(studentsData)) {
@@ -146,41 +121,57 @@ const filteredStudents = computed(() => {
   return list
 })
 
-const computedStatusCounts = computed(() => {
-  const counts = { studying: 0, inactive: 0, suspended: 0, stopped: 0, graduated: 0 }
-  students.value.forEach((s) => {
-    const status = (s.status || '').toLowerCase()
-    if (counts[status] !== undefined) counts[status]++
-    else if (status === 'studying') counts.studying++
-  })
-  return counts
+const oneWeekAgo = computed(() => {
+  const date = new Date()
+  date.setDate(date.getDate() - 7)
+  return date
 })
 
-const enrolledCount = computed(() => computedStatusCounts.value.studying)
-
-const inactiveOrStoppedCount = computed(() => {
-  return (
-    computedStatusCounts.value.inactive +
-    computedStatusCounts.value.stopped +
-    computedStatusCounts.value.suspended +
-    computedStatusCounts.value.graduated
-  )
+const activeStudents = computed(() => {
+  return students.value.filter((s) => (s.status || '').toLowerCase() === 'studying')
 })
 
-const newlyEnrolledCount = computed(() => {
-  const today = new Date().toISOString().split('T')[0]
+const newThisWeek = computed(() => {
   return students.value.filter((s) => {
-    const createdDate = (s.createdAt || s.created_at || '').split('T')[0]
-    return createdDate === today
+    const time = new Date(s.createdAt || s.created_at).getTime()
+    return time >= oneWeekAgo.value.getTime()
   }).length
 })
 
-// === Registration Modal Logic ===
+const inactiveOrStoppedCount = computed(() => {
+  return students.value.filter((s) => {
+    const status = (s.status || '').toLowerCase()
+    return status === 'inactive' || status === 'stopped'
+  }).length
+})
+
+const pendingPayment = computed(() => {
+  return students.value.filter((s) => (s.paymentStatus || '').toLowerCase() === 'pending').length
+})
+
+const studentStats = computed(() => [
+  { label: 'Total Students', value: students.value.length, image: getImageUrl('student'), color: '#e1f5fe' },
+  { label: 'Active Today', value: (activeStudents.value || []).length, image: getIconUrl('on-time'), color: '#e1f5fe' },
+  { label: 'New This Week', value: newThisWeek.value, image: getIconUrl('register'), color: '#e1f5fe' },
+  { label: 'Pending Payment', value: pendingPayment.value, image: getIconUrl('pending-payment'), color: '#e1f5fe' }
+])
+
+const studentHeaders = [
+  { label: 'No', width: '60px', class: 'hide-on-mobile' },
+  { label: 'Fullname' },
+  { label: 'Parent / Guardian', class: 'hide-on-mobile' },
+  { label: 'Current Course', class: 'hide-on-tablet' },
+  { label: 'Joined Date', class: 'hide-on-tablet' },
+  { label: 'Status' },
+  { label: 'Medical Notes', class: 'hide-on-mobile' },
+  { label: 'Action', width: '60px' }
+]
+
 const showRegisterChildModal = ref(false)
 const modalLoading = ref(false)
 const modalError = ref('')
 const modalSuccess = ref('')
-const parentsList = ref([]) // To let admin select which parent this student belongs to
+const parentsList = ref([])
 const selectedParentForModal = ref(null)
 
 const handleOpenAddStudent = async () => {
@@ -190,7 +181,6 @@ const handleOpenAddStudent = async () => {
   showRegisterChildModal.value = true
 
   try {
-    // Fetch all available parents/guardians so admin can choose correctly
     const allUsers = await userService.getAllUsers()
     parentsList.value = allUsers.filter((u) => u.role === 'parent' || u.role === 'guardian')
   } catch (err) {
@@ -213,18 +203,16 @@ const handleRegisterStudent = async (childData) => {
 
     const result = await userService.registerStudentProfile(parentId, childData)
 
-    // Lookup the parent to get the parent's actual name for the live-table preview
     const chosenParent = parentsList.value.find((p) => (p.uid || p.id) === parentId)
 
-    // Add to local state manually so table updates instantly
     const newStudent = {
       id: result.id,
       ...childData,
-      parent_id: parentId,
+      parentId: parentId,
       parentName: chosenParent ? chosenParent.name || chosenParent.email : 'Parent',
       status: 'Studying',
       createdAt: new Date().toISOString(),
-      programs: [], // Start with 0 programs
+      programs: [],
     }
 
     students.value.unshift(newStudent)
@@ -241,15 +229,13 @@ const handleRegisterStudent = async (childData) => {
   }
 }
 
-// Navigate to detail view
 const navigateToDetail = (item) => {
-  const studentId = item.id || item.uid
+  const studentId = item?.id || item?.uid
   if (studentId) {
     router.push(`/students/${studentId}`)
   }
 }
 
-// === Action Modal Logic ===
 const actionModal = ref({
   isOpen: false,
   type: 'edit',
@@ -263,7 +249,6 @@ const openActionModal = async (type, studentItem) => {
     student: studentItem,
   }
 
-  // Pre-fetch parent list if we haven't already so admin can change parent mapping
   if (parentsList.value.length === 0) {
     try {
       const allUsers = await userService.getAllUsers()
@@ -276,50 +261,45 @@ const openActionModal = async (type, studentItem) => {
 
 const submitActionModal = async (formData) => {
   const { type, student } = actionModal.value
-  const { name, medical_note, status, parentId, dob } = formData
+  const { fullName, name, medicalNote, medical_note, status, parentId, dob } = formData
   modalLoading.value = true
   modalError.value = ''
   modalSuccess.value = ''
 
   try {
     if (type === 'edit') {
-      await userService.updateMedicalInfo(student.id || student.uid, medical_note)
-      // Call generic update for name/status/DOB/parent
+      await userService.updateMedicalInfo(student.id || student.uid, medicalNote || medical_note)
       await userService.updateStudent(student.id || student.uid, {
         name,
         status,
         dob,
-        parent_id: parentId,
+        parentId: parentId,
       })
 
       const idx = students.value.findIndex((s) => s.id === student.id || s.uid === student.uid)
       if (idx !== -1) {
-        // Find new parent name if parent was changed
         const chosenParent = parentsList.value.find((p) => (p.uid || p.id) === parentId)
 
-        students.value[idx].name = name
-        students.value[idx].medical_note = medical_note
+        students.value[idx].fullName = fullName || name
+        students.value[idx].medicalNote = medicalNote || medical_note
         students.value[idx].status = status
         if (dob) students.value[idx].dob = dob
         if (chosenParent) {
-          students.value[idx].parent_id = parentId
+          students.value[idx].parentId = parentId
           students.value[idx].parentName = chosenParent.name || chosenParent.email
         }
       }
       modalSuccess.value = 'Student profile updated successfully!'
     } else if (type === 'delete') {
-      // Call generic delete mechanism
-      // await userService.deleteUser(student.id || student.uid)
       students.value = students.value.filter((s) => (s.id || s.uid) !== (student.id || student.uid))
       modalSuccess.value = 'Student record permanently deleted.'
     } else if (type === 'override') {
       const { overrideReason, overrideRemark } = formData
-      // Call service to persist manual override
       await userService.updateStudent(student.id || student.uid, {
         status,
         overrideReason,
         overrideRemark,
-        manualStatus: true, // flag to indicate this shouldn't be auto-recalculated
+        manualStatus: true,
       })
 
       const idx = students.value.findIndex((s) => s.id === student.id || s.uid === student.uid)
@@ -347,41 +327,18 @@ const submitActionModal = async (formData) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Student Overview" listTitle="Student List">
       <template #overview>
-        <SummaryCard
-          title="Total Students"
-          :value="students.length"
-          image="student.png"
-          color="#e1f5fe"
-        />
-        <SummaryCard
-          title="Newly Enrolled"
-          :value="newlyEnrolledCount"
-          image="register.png"
-          color="#e1f5fe"
-        />
-        <SummaryCard
-          title="Currently Enrolled"
-          :value="enrolledCount"
-          image="student_enrolled.png"
-          color="#e1f5fe"
-        />
-        <SummaryCard
-          title="Currently Not Studying"
-          :value="inactiveOrStoppedCount"
-          image="leaving_school.png"
-          color="#e1f5fe"
-        />
+        <DataMetrics :stats="studentStats" />
       </template>
 
-      <template #actions>
-        <TableToolbar
-          :hasSearch="true"
-          :searchQuery="searchQuery"
-          @update:searchQuery="searchQuery = $event"
+      <template #table>
+        <DataTable
+          :headers="studentHeaders"
+          :items="filteredStudents"
+          :loading="loading"
+          v-model:searchQuery="searchQuery"
           searchPlaceholder="Search students..."
           :hasFilter="true"
-          :currentFilter="currentFilter"
-          @update:currentFilter="currentFilter = $event"
+          v-model:currentFilter="currentFilter"
           :filterOptions="[
             { label: 'All Status', value: 'all' },
             { label: 'Studying', value: 'studying' },
@@ -390,91 +347,44 @@ const submitActionModal = async (formData) => {
             { label: 'Suspended', value: 'suspended' },
             { label: 'Stopped', value: 'stopped' },
           ]"
+          @row-click="navigateToDetail"
+          @action="({ type, item }) => openActionModal(type, item)"
         >
-          <template #actions>
+          <template #toolbar-actions>
             <AppButton variant="primary" @click="handleOpenAddStudent">+ Add Student</AppButton>
           </template>
-        </TableToolbar>
-      </template>
 
-      <template #table>
-        <AppTable
-          :headers="[
-            'No',
-            'Fullname',
-            'Parent / Guardian',
-            'Current Course',
-            'Joined Date',
-            'Status',
-            'Medical Notes',
-            'Action',
-          ]"
-          :loading="loading"
-          :empty="filteredStudents.length === 0"
-        >
-          <template #loading>Loading students...</template>
-          <template #empty>
-            <span v-if="currentFilter === 'all'">No students found.</span>
-            <span v-else class="empty-state-message">
-              No <StatusBadge :status="currentFilter" /> students found.
-            </span>
-          </template>
-
-          <tr
-            v-for="(item, index) in filteredStudents"
-            :key="item.id"
-            class="clickable-row"
-            @click="navigateToDetail(item)"
-          >
-            <td>{{ index + 1 }}</td>
+          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
+            <td class="hide-on-mobile">{{ index + 1 }}</td>
             <td class="bold">
               <div class="user-info">
                 <div class="avatar-mini">
-                  <img
-                    :src="item.profileURL || '/src/assets/images/child-profile.png'"
-                    alt="avatar"
-                  />
+                  <img :src="item.profileURL || getImageUrl('profiles', 'child-profile.png')" alt="avatar" />
                 </div>
-                {{ item.name || item.fullName || item.fullname || 'Student' }}
+                {{ item.fullName || 'Student' }}
               </div>
             </td>
             <td>
               <div class="user-info">
                 <div class="avatar-mini">
-                  <img
-                    :src="item.parentProfileURL || '/src/assets/images/female-profile-parent.jpg'"
-                    alt="parent avatar"
-                  />
+                  <img :src="item.parentProfileURL || getImageUrl('profiles', 'female-profile-parent.jpg')" alt="parent avatar" />
                 </div>
                 {{ item.parentName || 'Parent' }}
               </div>
             </td>
-            <td>
+            <td class="hide-on-tablet">
               <div class="course-icons">
-                <div
-                  v-for="(program, pIdx) in item.programs"
-                  :key="pIdx"
-                  class="program-icon-mini"
-                  :title="program.courseTitle || 'Program'"
-                >
+                <div v-for="(program, pIdx) in item.programs" :key="pIdx" class="program-icon-mini" :title="program.courseTitle || 'Program'">
                   <img :src="getCourseIcon(program.courseTitle)" :alt="program.courseTitle" />
                 </div>
-                <span v-if="!item.programs || item.programs.length === 0" class="text-muted">
-                  None
-                </span>
+                <span v-if="!item.programs || item.programs.length === 0" class="text-muted">None</span>
               </div>
             </td>
-            <td>
-              {{ formatDate(item.created_at || item.createdAt || new Date().toISOString()) }}
-            </td>
+            <td class="hide-on-tablet">{{ formatDate(item.createdAt || new Date().toISOString()) }}</td>
             <td><StatusBadge :status="item.status || 'Studying'" /></td>
-            <td>
-              <span
-                :class="{
-                  'text-muted': !item.medical_note || item.medical_note.toLowerCase() === 'none',
-                }"
-              >
-                {{ item.medical_note || 'None' }}
+            <td class="hide-on-mobile">
+              <span :class="{ 'text-muted': !item.medicalNote || item.medicalNote.toLowerCase() === 'none' }">
+                {{ item.medicalNote || 'None' }}
               </span>
             </td>
             <td class="action-cell">
@@ -484,26 +394,18 @@ const submitActionModal = async (formData) => {
                 </button>
                 <Teleport to="body">
                   <transition name="fade">
-                    <div
-                      v-if="activeMenuId === item.id"
-                      class="action-dropdown"
-                      :class="{ 'open-up': isMenuAbove }"
-                      :style="menuStyles"
-                      @click.stop
-                    >
+                    <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }" :style="menuStyles" @click.stop>
                       <button @click="handleAction('edit', item)">✏️ Edit</button>
                       <button @click="handleAction('override', item)">⏸️ Override</button>
                       <div class="menu-divider"></div>
-                      <button class="delete-btn" @click="handleAction('delete', item)">
-                        🗑️ Delete
-                      </button>
+                      <button class="delete-btn" @click="handleAction('delete', item)">🗑️ Delete</button>
                     </div>
                   </transition>
                 </Teleport>
               </div>
             </td>
-          </tr>
-        </AppTable>
+          </template>
+        </DataTable>
       </template>
     </DataPageLayout>
 
@@ -539,194 +441,8 @@ const submitActionModal = async (formData) => {
   font-size: 0.9rem;
 }
 
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.avatar-mini {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: #f0f0f0;
-}
-
-.avatar-mini img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.bold {
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.course-icons {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-}
-
-.program-icon-mini {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-  background: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.program-icon-mini img {
-  width: 80%;
-  height: 80%;
-  object-fit: contain;
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.clickable-row:hover {
-  background-color: #f8fafc;
-}
-
 .actions-wrapper {
   display: flex;
   gap: 6px;
-}
-.action-cell {
-  position: relative;
-  width: 60px;
-}
-
-.menu-container {
-  position: relative;
-  display: flex;
-  justify-content: center;
-}
-
-.btn-dots {
-  background: none;
-  border: none;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  color: #64748b;
-  cursor: pointer;
-  border-radius: 50%;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-dots:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-  transform: rotate(90deg);
-}
-
-.action-dropdown {
-  position: fixed;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-radius: 14px;
-  box-shadow:
-    0 15px 35px -5px rgba(0, 0, 0, 0.15),
-    0 5px 15px -5px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  z-index: 1000;
-  padding: 8px;
-  min-width: 170px;
-  display: flex;
-  flex-direction: column;
-  animation: slideDropdown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: top right;
-}
-
-.action-dropdown.open-up {
-  top: auto;
-  bottom: 100%;
-  margin-top: 0;
-  margin-bottom: 8px;
-  transform-origin: bottom right;
-  box-shadow:
-    0 -15px 35px -5px rgba(0, 0, 0, 0.15),
-    0 -5px 15px -5px rgba(0, 0, 0, 0.08);
-}
-
-@keyframes slideDropdown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.action-dropdown button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #475569;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.action-dropdown button:hover {
-  background: #f8fafc;
-  color: #00aeef;
-  padding-left: 18px;
-}
-
-.action-dropdown .delete-btn {
-  color: #ef4444;
-}
-
-.action-dropdown .delete-btn:hover {
-  background: #fff1f2;
-  color: #dc2626;
-}
-
-.menu-divider {
-  height: 1px;
-  background: #f1f5f9;
-  margin: 4px 6px;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition:
-    opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: scale(0.9) translateY(-10px);
-}
-
-.action-dropdown.open-up.fade-enter-from,
-.action-dropdown.open-up.fade-leave-to {
-  transform: scale(0.9) translateY(10px);
 }
 </style>

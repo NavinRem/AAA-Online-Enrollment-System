@@ -3,24 +3,22 @@ const db = getFirestore("registration");
 
 class RegistrationService {
   async createEnrollment(enrollmentData) {
-    const { student_id, course_id, session_id } = enrollmentData;
+    const { studentId, courseId, sessionId } = enrollmentData;
 
-    if (!student_id || !course_id || !session_id) {
-      throw new Error("student_id, course_id, and session_id are required");
+    if (!studentId || !courseId || !sessionId) {
+      throw new Error("studentId, courseId, and sessionId are required");
     }
 
     let enrollmentId;
     await db.runTransaction(async (transaction) => {
-      // 1. Get References
-      const sessionRef = db.collection("session").doc(session_id);
-      const studentRef = db.collection("student").doc(student_id);
-      const courseRef = db.collection("courses").doc(course_id);
+      const sessionRef = db.collection("session").doc(sessionId);
+      const studentRef = db.collection("student").doc(studentId);
+      const courseRef = db.collection("courses").doc(courseId);
 
-      // Check for existing enrollment
       const existingEnrollmentQuery = db
         .collection("enrollment")
-        .where("student_id", "==", student_id)
-        .where("session_id", "==", session_id);
+        .where("studentId", "==", studentId)
+        .where("sessionId", "==", sessionId);
 
       const [sessionDoc, studentDoc, courseDoc, existingEnrollmentSnapshot] =
         await Promise.all([
@@ -30,7 +28,6 @@ class RegistrationService {
           transaction.get(existingEnrollmentQuery),
         ]);
 
-      // 2. Validations
       if (!sessionDoc.exists) throw new Error("Session not found");
       if (!studentDoc.exists) throw new Error("Student not found");
       if (!courseDoc.exists) throw new Error("Course not found");
@@ -41,18 +38,17 @@ class RegistrationService {
 
       const sessionData = sessionDoc.data();
       const courseData = courseDoc.data();
-      if ((sessionData.num_student || 0) >= sessionData.capacity) {
+      if ((sessionData.numStudent || 0) >= sessionData.capacity) {
         throw new Error("Session is full");
       }
 
-      // 3. Create Enrollment Document
       const enrollmentRef = db.collection("enrollment").doc();
       enrollmentId = enrollmentRef.id;
       const data = {
-        student_id,
-        session_id,
-        course_id,
-        parent_id: studentDoc.data().parent_id, // Fetch from student doc
+        studentId,
+        sessionId,
+        courseId,
+        parentId: studentDoc.data().parentId, 
         status: "pending",
         paymentStatus: "unpaid",
         amount: courseData.price || 0,
@@ -62,25 +58,12 @@ class RegistrationService {
 
       transaction.set(enrollmentRef, data);
 
-      // 4. Update Session Enrollment Count
       transaction.update(sessionRef, {
-        num_student: (sessionData.num_student || 0) + 1,
+        numStudent: (sessionData.numStudent || 0) + 1,
       });
     });
 
     return { id: enrollmentId, message: "Enrollment created successfully" };
-  }
-
-  async getStudentEligibility(studentId, courseId) {
-    const studentDoc = await db.collection("student").doc(studentId).get();
-    const courseDoc = await db.collection("courses").doc(courseId).get();
-
-    if (!studentDoc.exists || !courseDoc.exists) {
-      throw new Error("Student or Course not found");
-    }
-
-    // Placeholder logic
-    return { eligible: true, reason: "Met requirements" };
   }
 
   async getAllRegistrations() {
@@ -104,7 +87,6 @@ class RegistrationService {
     const sessionsMap = {};
     sessionsSnap.forEach((doc) => {
       const s = doc.data();
-      // Format schedule string
       const scheduleLines = [];
       if (s.schedule) {
         Object.keys(s.schedule).forEach((day) => {
@@ -120,19 +102,19 @@ class RegistrationService {
     return snapshot.docs.map((doc) => {
       const data = doc.data();
       const parentName =
-        usersMap[data.parent_id]?.name ||
-        usersMap[data.parent_id]?.email ||
+        usersMap[data.parentId]?.name ||
+        usersMap[data.parentId]?.email ||
         "Unknown Parent";
       const studentName =
-        studentsMap[data.student_id]?.fullname ||
-        studentsMap[data.student_id]?.name ||
+        studentsMap[data.studentId]?.fullName ||
+        studentsMap[data.studentId]?.name ||
         "Unknown Student";
       const courseTitle =
-        coursesMap[data.course_id]?.title ||
-        coursesMap[data.course_id]?.name ||
+        coursesMap[data.courseId]?.title ||
+        coursesMap[data.courseId]?.name ||
         "Unknown Course";
 
-      const session = sessionsMap[data.session_id];
+      const session = sessionsMap[data.sessionId];
 
       return {
         id: doc.id,
@@ -142,46 +124,15 @@ class RegistrationService {
         courseTitle,
         sessionSchedule: session?.scheduleString || "N/A",
         sessionCount:
-          session?.totalSessions || session?.total_sessions || session?.sessionCount || 10, // Default to 10 if not found
+          session?.totalSessions || session?.sessionCount || 10,
+        dob: studentsMap[data.studentId]?.dob || null,
         amount:
           data.amount ||
           data.totalAmount ||
-          coursesMap[data.course_id]?.price ||
+          coursesMap[data.courseId]?.price ||
           0,
       };
     });
-  }
-
-  async getCourseDetails(courseId) {
-    const courseDoc = await db.collection("courses").doc(courseId).get();
-    if (!courseDoc.exists) throw new Error("Course not found");
-
-    const [sessionsSnapshot, registrationsSnapshot] = await Promise.all([
-      db.collection("session").where("courseId", "==", courseId).get(),
-      db.collection("enrollment").where("course_id", "==", courseId).get(), // Changed to enrollment and course_id
-    ]);
-
-    const sessions = sessionsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    const enrollments = registrationsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-
-    return {
-      ...courseDoc.data(),
-      id: courseDoc.id,
-      sessions,
-      enrollments,
-    };
-  }
-
-  async getAllCourseSelection() {
-    const [coursesSnapshot, sessionsSnapshot] = await Promise.all([
-      db.collection("courses").get(),
-      db.collection("session").get(),
-    ]);
-
-    const courses = coursesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    const sessions = sessionsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-
-    return { courses, sessions };
   }
 
   async getRegistration(id) {
@@ -192,12 +143,11 @@ class RegistrationService {
 
     const data = doc.data();
 
-    // Fetch related documents in parallel with robust checks
     const [userDoc, studentDoc, courseDoc, sessionDoc] = await Promise.all([
-      data.parent_id ? db.collection("user").doc(data.parent_id).get() : Promise.resolve({ exists: false }),
-      data.student_id ? db.collection("student").doc(data.student_id).get() : Promise.resolve({ exists: false }),
-      data.course_id ? db.collection("courses").doc(data.course_id).get() : Promise.resolve({ exists: false }),
-      data.session_id ? db.collection("session").doc(data.session_id).get() : Promise.resolve({ exists: false }),
+      data.parentId ? db.collection("user").doc(data.parentId).get() : Promise.resolve({ exists: false }),
+      data.studentId ? db.collection("student").doc(data.studentId).get() : Promise.resolve({ exists: false }),
+      data.courseId ? db.collection("courses").doc(data.courseId).get() : Promise.resolve({ exists: false }),
+      data.sessionId ? db.collection("session").doc(data.sessionId).get() : Promise.resolve({ exists: false }),
     ]);
 
     const userData = userDoc.exists ? userDoc.data() : null;
@@ -205,7 +155,6 @@ class RegistrationService {
     const courseData = courseDoc.exists ? courseDoc.data() : null;
     const sessionData = sessionDoc.exists ? sessionDoc.data() : null;
 
-    // Format schedule for consistency
     let sessionSchedule = data.sessionSchedule || "N/A";
     if (sessionData && sessionData.schedule) {
       const scheduleLines = [];
@@ -215,7 +164,6 @@ class RegistrationService {
       sessionSchedule = scheduleLines.join(", ");
     }
 
-    // Robust instructor name resolution
     let instructorName = "Not Assigned";
     if (sessionData && sessionData.instructors && sessionData.instructors.length > 0) {
       const first = sessionData.instructors[0];
@@ -236,22 +184,18 @@ class RegistrationService {
       parentEmail: userData?.email || "N/A",
       parentPhone: userData?.phone || "N/A",
       parentRole: userData?.role ? (userData.role === 'parent' ? 'Parent' : userData.role.charAt(0).toUpperCase() + userData.role.slice(1)) : "Guardian",
-      parentCreatedAt: userData?.createdAt || userData?.created_at || null,
-      studentName: studentData?.fullname || studentData?.name || data.studentName || "N/A",
-      studentDob: studentData?.dob || studentData?.DoB || null,
-      medicalNote: studentData?.medicalNotes || studentData?.medical_note || "None",
+      studentName: studentData?.fullName || studentData?.name || data.studentName || "N/A",
+      studentDob: studentData?.dob || null,
+      medicalNote: studentData?.medicalNote || "None",
       courseTitle: courseData?.title || courseData?.name || data.courseTitle || "N/A",
       sessionSchedule: sessionSchedule,
       instructorName,
       capacity: sessionData?.capacity || 0,
-      num_student: sessionData?.num_student || 0,
-      totalSessions: sessionData?.totalSessions || sessionData?.total_sessions || 10,
-      startDate: sessionData?.startDate || null,
-      endDate: sessionData?.endDate || null,
+      numStudent: sessionData?.numStudent || 0,
+      totalSessions: sessionData?.totalSessions || 10,
     };
   }
 
-  // 9. Cancel Registration
   async cancelRegistration(enrollmentId) {
     const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
     const doc = await enrollmentRef.get();
@@ -261,9 +205,8 @@ class RegistrationService {
     const data = doc.data();
     if (data.status === "cancelled") throw new Error("Already cancelled");
 
-    // Transaction to update enrollment and decrease session count
     await db.runTransaction(async (transaction) => {
-      const sessionRef = db.collection("session").doc(data.session_id);
+      const sessionRef = db.collection("session").doc(data.sessionId);
       const sessionDoc = await transaction.get(sessionRef);
 
       transaction.update(enrollmentRef, {
@@ -272,9 +215,9 @@ class RegistrationService {
       });
 
       if (sessionDoc.exists) {
-        const currentCount = sessionDoc.data().num_student || 0;
+        const currentCount = sessionDoc.data().numStudent || 0;
         if (currentCount > 0) {
-          transaction.update(sessionRef, { num_student: currentCount - 1 });
+          transaction.update(sessionRef, { numStudent: currentCount - 1 });
         }
       }
     });
@@ -282,14 +225,12 @@ class RegistrationService {
     return { message: "Registration cancelled successfully" };
   }
 
-  // 10. Update Registration
   async updateRegistration(enrollmentId, updateData) {
     const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
     const doc = await enrollmentRef.get();
 
     if (!doc.exists) throw new Error("Registration not found");
 
-    // Clean data safely
     const safeData = { ...updateData, updatedAt: new Date().toISOString() };
     delete safeData.id;
 
@@ -298,7 +239,6 @@ class RegistrationService {
     return { id: enrollmentId, ...safeData };
   }
 
-  // 11. Delete Registration Permanently
   async deleteRegistration(enrollmentId) {
     const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
     const doc = await enrollmentRef.get();
@@ -307,22 +247,20 @@ class RegistrationService {
 
     const data = doc.data();
 
-    // If active/pending, we must reduce session count before deleting
     if (data.status !== "cancelled" && data.status !== "canceled") {
       await db.runTransaction(async (transaction) => {
-        const sessionRef = db.collection("session").doc(data.session_id);
-        const sessionDoc = await transaction.get(sessionRef); // ALL READS FIRST
+        const sessionRef = db.collection("session").doc(data.sessionId);
+        const sessionDoc = await transaction.get(sessionRef);
 
         if (sessionDoc.exists) {
-          const currentCount = sessionDoc.data().num_student || 0;
+          const currentCount = sessionDoc.data().numStudent || 0;
           if (currentCount > 0) {
-            transaction.update(sessionRef, { num_student: currentCount - 1 });
+            transaction.update(sessionRef, { numStudent: currentCount - 1 });
           }
         }
-        transaction.delete(enrollmentRef); // WRITES SECOND
+        transaction.delete(enrollmentRef);
       });
     } else {
-      // It was already cancelled, just delete it
       await enrollmentRef.delete();
     }
 

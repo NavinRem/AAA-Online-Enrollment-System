@@ -37,7 +37,7 @@
       <div class="form-group full-width">
         <label>Medical Notes / Allergies</label>
         <textarea
-          v-model="formData.medical_note"
+          v-model="formData.medicalNote"
           placeholder="e.g. Nut allergy, Asthma, or 'None'"
           rows="3"
         ></textarea>
@@ -45,48 +45,48 @@
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'None') }"
-            @click="togglePreset('medical_note', 'None')"
+            :class="{ active: isPresetActive('medicalNote', 'None') }"
+            @click="togglePreset('medicalNote', 'None')"
           >
             None
           </button>
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'G6PD Deficiency') }"
-            @click="togglePreset('medical_note', 'G6PD Deficiency')"
+            :class="{ active: isPresetActive('medicalNote', 'G6PD Deficiency') }"
+            @click="togglePreset('medicalNote', 'G6PD Deficiency')"
           >
             G6PD Deficiency
           </button>
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'ADHD') }"
-            @click="togglePreset('medical_note', 'ADHD')"
+            :class="{ active: isPresetActive('medicalNote', 'ADHD') }"
+            @click="togglePreset('medicalNote', 'ADHD')"
           >
             ADHD
           </button>
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'Dyslexia') }"
-            @click="togglePreset('medical_note', 'Dyslexia')"
+            :class="{ active: isPresetActive('medicalNote', 'Dyslexia') }"
+            @click="togglePreset('medicalNote', 'Dyslexia')"
           >
             Dyslexia
           </button>
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'Asthma') }"
-            @click="togglePreset('medical_note', 'Asthma')"
+            :class="{ active: isPresetActive('medicalNote', 'Asthma') }"
+            @click="togglePreset('medicalNote', 'Asthma')"
           >
             Asthma
           </button>
           <button
             type="button"
             class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'Vision Impairment') }"
-            @click="togglePreset('medical_note', 'Vision Impairment')"
+            :class="{ active: isPresetActive('medicalNote', 'Vision Impairment') }"
+            @click="togglePreset('medicalNote', 'Vision Impairment')"
           >
             Vision Impairment
           </button>
@@ -110,8 +110,8 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import AppModal from '../common/AppModal/AppModal.vue'
-import AppButton from '../common/AppButton/AppButton.vue'
+import AppModal from '@/components/common/ui/AppModal/AppModal.vue'
+import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -131,7 +131,7 @@ const formData = ref({
   parentId: '',
   fullname: '',
   dob: '',
-  medical_note: 'None',
+  medicalNote: 'None',
 })
 
 watch(
@@ -142,7 +142,7 @@ watch(
         parentId: '',
         fullname: '',
         dob: '',
-        medical_note: 'None',
+        medicalNote: 'None',
       }
     }
   },

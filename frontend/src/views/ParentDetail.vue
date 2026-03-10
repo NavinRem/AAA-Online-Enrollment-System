@@ -1,21 +1,19 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import DashboardLayout from '@/components/DashboardLayout.vue'
-import DetailPageLayout from '@/components/common/DetailPageLayout/DetailPageLayout.vue'
-import StatusBadge from '@/components/common/StatusBadge/StatusBadge.vue'
-import AppButton from '@/components/common/AppButton/AppButton.vue'
-import TableToolbar from '@/components/common/TableToolbar/TableToolbar.vue'
-import DetailedSummaryCard from '@/components/DetailedSummaryCard.vue'
+import DashboardLayout from '@/components/layout/DashboardLayout.vue'
+import DetailPageLayout from '@/components/layout/DetailPageLayout/DetailPageLayout.vue'
+import StatusBadge from '@/components/common/ui/StatusBadge/StatusBadge.vue'
+import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
+import TableToolbar from '@/components/common/data/TableToolbar/TableToolbar.vue'
+import DetailedSummaryCard from '@/components/cards/DetailedSummaryCard.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
 import { userService } from '@/services/userService'
 import { registrationService } from '@/services/registrationService'
 import { formatDate } from '@/utils/dateFormatter'
 
-// Images
-import parentAvatar from '@/assets/images/female-profile-parent.jpg'
-import childAvatar from '@/assets/images/child-profile.png'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -232,7 +230,7 @@ watch(
 <template>
   <DashboardLayout>
     <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents">
-      <template #header-actions>
+      <template #header-actions v-if="parent">
         <div class="actions-wrapper">
           <button
             class="btn-icon"
@@ -328,7 +326,7 @@ watch(
                   :class="{ active: selectedChildUid === s.id }"
                   @click="selectedChildUid = s.id"
                 >
-                  <img :src="childAvatar" class="chip-avatar" />
+                  <img :src="s.profileURL || getAssetUrl('profiles', 'child-profile.png')" class="chip-avatar" />
                   {{ s.fullname }}
                 </button>
               </div>
@@ -443,17 +441,17 @@ watch(
         </div>
       </template>
 
-      <template #right-content>
+      <template #right-content v-if="parent">
         <DetailedSummaryCard title="Basic Information" subtitle="Contact Information">
           <template #outside>
             <div class="profile-header">
               <div class="profile-preview">
-                <img :src="parentAvatar" alt="Profile" />
+                <img :src="parent.profileURL || getImageUrl('profiles', 'female-profile-parent.jpg')" alt="Profile" />
               </div>
-              <h3 class="profile-name">{{ parent?.fullname || parent?.name || 'Loading...' }}</h3>
+              <h3 class="profile-name">{{ parent.fullname || parent.name || 'Anonymous' }}</h3>
               <div class="badge-stack">
-                <StatusBadge :status="parent?.role || 'parent'" />
-                <StatusBadge :status="parent?.status || 'Active'" />
+                <StatusBadge :status="parent.role || 'parent'" />
+                <StatusBadge :status="parent.status || 'Active'" />
               </div>
             </div>
           </template>
@@ -461,15 +459,15 @@ watch(
           <div class="detail-info-group">
             <div class="info-item vertical">
               <span>Fullname:</span>
-              <strong>{{ parent?.fullname || parent?.name }}</strong>
+              <strong>{{ parent.fullname || parent.name }}</strong>
             </div>
             <div class="info-item vertical">
               <span>Phone Number:</span>
-              <strong>{{ parent?.phone || 'N/A' }}</strong>
+              <strong>{{ parent.phone || 'N/A' }}</strong>
             </div>
             <div class="info-item vertical">
               <span>Email:</span>
-              <strong class="email">{{ parent?.email || 'N/A' }}</strong>
+              <strong class="email">{{ parent.email || 'N/A' }}</strong>
             </div>
           </div>
         </DetailedSummaryCard>
@@ -477,10 +475,10 @@ watch(
         <DetailedSummaryCard subtitle="Child Profiles">
           <div class="relationships-list">
             <div v-for="s in students" :key="s.id" class="relationship-item">
-              <img :src="childAvatar" alt="child" class="small-avatar" />
+              <img :src="s.profileURL || getAssetUrl('profiles', 'child-profile.png')" alt="child" class="small-avatar" />
               <div class="child-info">
-                <strong>{{ s.fullname }}</strong>
-                <span>Student ID: {{ s.id.substring(0, 6) }}</span>
+                <strong>{{ s.fullname || s.name }}</strong>
+                <span>Student ID: {{ s.id?.substring(0, 6) }}</span>
               </div>
             </div>
             <div v-if="students.length === 0" class="text-muted text-center">
@@ -493,11 +491,11 @@ watch(
           <div class="timestamp-group">
             <div class="timestamp-item">
               <StatusBadge status="Create At" />
-              <p>{{ formatDate(parent?.createdAt) }}</p>
+              <p>{{ formatDate(parent.createdAt) }}</p>
             </div>
             <div class="timestamp-item">
               <StatusBadge status="Update At" />
-              <p>{{ formatDate(parent?.updatedAt || parent?.createdAt) }}</p>
+              <p>{{ formatDate(parent.updatedAt || parent.createdAt) }}</p>
             </div>
           </div>
         </DetailedSummaryCard>
@@ -631,6 +629,8 @@ watch(
   gap: 32px;
 }
 
+
+
 .child-selector {
   width: 220px;
   border-right: 1px solid #f1f5f9;
@@ -639,6 +639,8 @@ watch(
   flex-direction: column;
   gap: 12px;
 }
+
+
 
 .child-chip {
   display: flex;

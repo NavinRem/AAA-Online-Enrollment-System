@@ -3,7 +3,7 @@ const db = getFirestore("registration");
 
 class CourseService {
   async createCourse(courseData) {
-    const { title, category, categoryId, description, price, number_session, level, status, levelId, termId, schedule, imageURL } =
+    const { title, category, categoryId, description, price, numberSessions, level, status, levelId, termId, schedule, imageURL } =
       courseData;
 
     if (!title || !termId || !levelId) {
@@ -27,7 +27,7 @@ class CourseService {
       category: category || "Other",
       description: description || "",
       price: parseFloat(price) || 0,
-      number_session: parseInt(number_session) || 0,
+      numberSessions: parseInt(numberSessions) || 0,
       level: level || "beginner",
       status: status || "Active",
       levelId: levelId || null,
@@ -55,11 +55,9 @@ class CourseService {
       termsMap[doc.id] = doc.data().name;
     });
 
-    // Resolve levels manually instead of collectionGroup (to avoid index requirement)
     const levelsMap = {};
     const categoriesSnapshot = await db.collection("categories").get();
     
-    // Fetch levels for each category
     await Promise.all(
       categoriesSnapshot.docs.map(async (catDoc) => {
         const levelsSnapshot = await catDoc.ref.collection("levels").get();
@@ -69,7 +67,6 @@ class CourseService {
       })
     );
 
-    // Enrich courses with names
     return courses.map((course) => ({
       ...course,
       levelName: levelsMap[course.levelId] || course.level || "Beginner",
@@ -83,7 +80,6 @@ class CourseService {
     return { id: doc.id, ...doc.data() };
   }
 
-  // 21. CRUD/ManageCourse - Update
   async updateCourse(id, updateData) {
     const ref = db.collection("courses").doc(id);
     await ref.update({
@@ -93,7 +89,6 @@ class CourseService {
     return { message: "Course updated successfully" };
   }
 
-  // 21. CRUD/ManageCourse - Delete
   async deleteCourse(id) {
     await db.collection("courses").doc(id).delete();
     return { message: "Course deleted successfully" };

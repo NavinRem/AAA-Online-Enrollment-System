@@ -54,8 +54,8 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import AppModal from '../common/AppModal/AppModal.vue'
-import AppButton from '../common/AppButton/AppButton.vue'
+import AppModal from '@/components/common/ui/AppModal/AppModal.vue'
+import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
 
 const props = defineProps({
   isOpen: Boolean,
