@@ -34,6 +34,14 @@ class SessionService {
     }));
   }
 
+  async getAllSessions() {
+    const snapshot = await db.collection("session").get();
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  }
+
   async validateCapacity(sessionId) {
     const doc = await db.collection("session").doc(sessionId).get();
     if (!doc.exists) {

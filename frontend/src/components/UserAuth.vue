@@ -134,17 +134,17 @@ const handleSubmit = async () => {
 
         <form @submit.prevent="handleSubmit" class="auth-form">
           <div v-if="!isLogin && !isResetMode" class="form-group">
-            <label>Full Name</label>
+            <label>Full Name <span class="required">*</span></label>
             <input v-model="name" type="text" placeholder="Enter your full name" required />
           </div>
 
           <div v-if="!isLogin && !isResetMode" class="form-group">
-            <label>Phone Number</label>
+            <label>Phone Number <span class="required">*</span></label>
             <input v-model="phone" type="tel" placeholder="Enter your phone number" required />
           </div>
 
           <div v-if="!isLogin && !isResetMode" class="form-group">
-            <label>Role</label>
+            <label>Role <span class="required">*</span></label>
             <select v-model="role" required>
               <option value="parent">Parent</option>
               <option value="instructor">Instructor</option>
@@ -153,12 +153,12 @@ const handleSubmit = async () => {
           </div>
 
           <div class="form-group">
-            <label>Email</label>
+            <label>Email <span class="required">*</span></label>
             <input v-model="email" type="email" placeholder="Enter your email" required />
           </div>
 
           <div v-if="!isResetMode" class="form-group">
-            <label>Password</label>
+            <label>Password <span class="required">*</span></label>
             <div class="password-input">
               <input
                 v-model="password"

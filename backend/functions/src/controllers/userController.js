@@ -230,7 +230,7 @@ exports.seedData = async (req, res) => {
 
     // 4. Create Courses & Sessions
     const c1_id = "course_biology_101";
-    await db.collection("course").doc(c1_id).set({
+    await db.collection("courses").doc(c1_id).set({
       title: "Biology 101",
       description: "Intro to Biology",
       price: 200,

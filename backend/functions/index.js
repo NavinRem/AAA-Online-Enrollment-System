@@ -31,6 +31,9 @@ app.use("/students", studentRoutes);
 app.use("/payments", require("./src/routes/payments"));
 app.use("/attendance", require("./src/routes/attendance"));
 app.use("/progress", require("./src/routes/progress"));
+app.use("/categories", require("./src/routes/categories"));
+app.use("/terms", require("./src/routes/terms"));
+app.use("/uploads", require("./src/routes/uploads"));
 
 // Root Endpoint
 app.get("/", (req, res) => {

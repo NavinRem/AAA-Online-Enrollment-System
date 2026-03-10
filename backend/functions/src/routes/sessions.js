@@ -5,6 +5,9 @@ const sessionController = require("../controllers/sessionController");
 // Create Session
 router.post("/", sessionController.createSession);
 
+// Get All Sessions
+router.get("/", sessionController.getAllSessions);
+
 // Validate Capacity
 router.get("/:id/validateCapacity", sessionController.validateCapacity);
 

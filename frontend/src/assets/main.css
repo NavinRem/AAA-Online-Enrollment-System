@@ -128,3 +128,9 @@ button:active {
   width: 20px;
   opacity: 0.4;
 }
+
+.required {
+  color: #ef4444; /* Standard red */
+  margin-left: 2px;
+  font-weight: 700;
+}

@@ -14,7 +14,7 @@ class RegistrationService {
       // 1. Get References
       const sessionRef = db.collection("session").doc(session_id);
       const studentRef = db.collection("student").doc(student_id);
-      const courseRef = db.collection("course").doc(course_id);
+      const courseRef = db.collection("courses").doc(course_id);
 
       // Check for existing enrollment
       const existingEnrollmentQuery = db
@@ -73,7 +73,7 @@ class RegistrationService {
 
   async getStudentEligibility(studentId, courseId) {
     const studentDoc = await db.collection("student").doc(studentId).get();
-    const courseDoc = await db.collection("course").doc(courseId).get();
+    const courseDoc = await db.collection("courses").doc(courseId).get();
 
     if (!studentDoc.exists || !courseDoc.exists) {
       throw new Error("Student or Course not found");
@@ -88,7 +88,7 @@ class RegistrationService {
       db.collection("enrollment").get(),
       db.collection("user").get(),
       db.collection("student").get(),
-      db.collection("course").get(),
+      db.collection("courses").get(),
       db.collection("session").get(),
     ]);
 
@@ -152,17 +152,51 @@ class RegistrationService {
     });
   }
 
+  async getCourseDetails(courseId) {
+    const courseDoc = await db.collection("courses").doc(courseId).get();
+    if (!courseDoc.exists) throw new Error("Course not found");
+
+    const [sessionsSnapshot, registrationsSnapshot] = await Promise.all([
+      db.collection("session").where("courseId", "==", courseId).get(),
+      db.collection("enrollment").where("course_id", "==", courseId).get(), // Changed to enrollment and course_id
+    ]);
+
+    const sessions = sessionsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const enrollments = registrationsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    return {
+      ...courseDoc.data(),
+      id: courseDoc.id,
+      sessions,
+      enrollments,
+    };
+  }
+
+  async getAllCourseSelection() {
+    const [coursesSnapshot, sessionsSnapshot] = await Promise.all([
+      db.collection("courses").get(),
+      db.collection("session").get(),
+    ]);
+
+    const courses = coursesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const sessions = sessionsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    return { courses, sessions };
+  }
+
   async getRegistration(id) {
     const doc = await db.collection("enrollment").doc(id).get();
     if (!doc.exists) {
       throw new Error("Registration not found");
     }
 
+    const data = doc.data();
+
     // Fetch related documents in parallel with robust checks
     const [userDoc, studentDoc, courseDoc, sessionDoc] = await Promise.all([
       data.parent_id ? db.collection("user").doc(data.parent_id).get() : Promise.resolve({ exists: false }),
       data.student_id ? db.collection("student").doc(data.student_id).get() : Promise.resolve({ exists: false }),
-      data.course_id ? db.collection("course").doc(data.course_id).get() : Promise.resolve({ exists: false }),
+      data.course_id ? db.collection("courses").doc(data.course_id).get() : Promise.resolve({ exists: false }),
       data.session_id ? db.collection("session").doc(data.session_id).get() : Promise.resolve({ exists: false }),
     ]);
 

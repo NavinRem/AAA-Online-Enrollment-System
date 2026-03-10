@@ -99,8 +99,3 @@ const handleSubmit = () => {
 }
 </script>
 
-<style scoped>
-.required {
-  color: #ef4444;
-}
-</style>
