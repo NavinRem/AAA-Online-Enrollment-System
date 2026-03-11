@@ -39,6 +39,7 @@ frontend/dist/
 frontend/dist-ssr/
 frontend/coverage/
 frontend/.eslintcache
+frontend/.firebase/
 frontend/*.local
 frontend/*.timestamp-*-*.mjs
 frontend/cypress/videos/
