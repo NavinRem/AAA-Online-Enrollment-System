@@ -1,20 +1,103 @@
-# Global
+# ==========================================
+# GLOBAL IGNORES
+# ==========================================
 .DS_Store
 .vscode/
+!.vscode/extensions.json
 .idea/
 *.log
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.history
+.svn/
 
-# Backend (Firebase & Functions)
-backend/firebase-debug.log
+# ==========================================
+# BACKEND (Firebase & Functions)
+# ==========================================
 backend/.firebase/
+backend/firebase-debug.log*
+backend/firebase-debug.*.log*
+backend/firestore-debug.log
 backend/functions/node_modules/
-backend/functions/firebase-debug.log
-backend/functions/firebase-debug.*.log
+backend/functions/.npm/
+backend/functions/.eslintcache
+backend/functions/firebase-debug.log*
+backend/functions/firebase-debug.*.log*
+backend/functions/*.local
+backend/node_modules/
+backend/.env
+backend/.dataconnect/
 
-# Mobile & Web (Delegated to their own .gitignores, but redundancy is fine)
-# Note: They have their own .gitignore files, so we don't strictly need to repeat everything here.
-node_modules/
-dist/
-.env*
+# ==========================================
+# FRONTEND (Vue/Vite)
+# ==========================================
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/coverage/
+frontend/.eslintcache
+frontend/*.local
+frontend/*.timestamp-*-*.mjs
+frontend/cypress/videos/
+frontend/cypress/screenshots/
+frontend/__screenshots__/
 
+# ==========================================
+# Mobile (Flutter/Dart)
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.pub-cache/
+mobile/.pub/
+mobile/build/
+mobile/app.*.symbols
+mobile/app.*.map.json
+mobile/**/*.iml
+mobile/**/*.ipr
+mobile/**/*.iws
+mobile/**/*.class
+mobile/**/*.pyc
+mobile/migrate_working_dir/
 
+# Android-specific
+mobile/android/**/.gradle/
+mobile/android/captures/
+mobile/android/**/gradle-wrapper.jar
+mobile/android/gradlew
+mobile/android/gradlew.bat
+mobile/android/local.properties
+mobile/android/**/GeneratedPluginRegistrant.java
+mobile/android/.cxx/
+mobile/android/key.properties
+mobile/android/**/*.keystore
+mobile/android/**/*.jks
+mobile/android/app/debug/
+mobile/android/app/profile/
+mobile/android/app/release/
+
+# iOS-specific
+mobile/ios/**/dgph
+mobile/ios/*.mode1v3
+mobile/ios/*.mode2v3
+mobile/ios/*.pbxuser
+mobile/ios/*.perspectivev3
+mobile/ios/**/*sync/
+mobile/ios/.tags*
+mobile/ios/**/.vagrant/
+mobile/ios/**/DerivedData/
+mobile/ios/Icon?
+mobile/ios/**/Pods/
+mobile/ios/**/.symlinks/
+mobile/ios/profile
+mobile/ios/xcuserdata
+mobile/ios/**/.generated/
+mobile/ios/Flutter/App.framework
+mobile/ios/Flutter/Flutter.framework
+mobile/ios/Flutter/Flutter.podspec
+mobile/ios/Flutter/Generated.xcconfig
+mobile/ios/Flutter/ephemeral/
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/Runner/GeneratedPluginRegistrant.*

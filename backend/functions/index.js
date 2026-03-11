@@ -1,6 +1,9 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
 
 admin.initializeApp();
 // Force deploy trigger
