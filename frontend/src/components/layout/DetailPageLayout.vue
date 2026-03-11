@@ -47,4 +47,6 @@ const router = useRouter()
 const goBack = () => router.push(props.backRoute)
 </script>
 
-<style src="./DetailPageLayout.css" scoped></style>
+<style scoped>
+@import '@/assets/styles/components/DetailPageLayout.css';
+</style>
