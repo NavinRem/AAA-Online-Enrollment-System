@@ -15,7 +15,7 @@ service cloud.firestore {
 
     // Checks if the user is the owner of the student record
     function isParentOf(studentId) {
-      return get(/databases/$(database)/documents/student/$(studentId)).data.parent_id == request.auth.uid;
+      return get(/databases/$(database)/documents/student/$(studentId)).data.parentId == request.auth.uid;
     }
 
     // --- COLLECTION RULES ---
@@ -29,18 +29,18 @@ service cloud.firestore {
     // 2. student: Parents manage their kids; Instructors/Admins can view
     match /student/{studentId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.parent_id || 
+        request.auth.uid == resource.data.parentId || 
         getRole() in ['Instructor', 'Admin']
       );
-      allow create: if isSignedIn() && request.resource.data.parent_id == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.parentId == request.auth.uid;
       allow update, delete: if isSignedIn() && (
-        request.auth.uid == resource.data.parent_id || 
+        request.auth.uid == resource.data.parentId || 
         getRole() == 'Admin'
       );
     }
 
-    // 3. course: Publicly readable; Only Admins can modify the curriculum
-    match /course/{courseId} {
+    // 3. courses: Publicly readable; Only Admins can modify the curriculum
+    match /courses/{courseId} {
       allow read: if true; 
       allow write: if isSignedIn() && getRole() == 'Admin';
     }
@@ -54,17 +54,17 @@ service cloud.firestore {
     // 5. enrollment: Parents create and view their own; Admins verify status
     match /enrollment/{enrollId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.parent_id || 
+        request.auth.uid == resource.data.parentId || 
         getRole() == 'Admin'
       );
-      allow create: if isSignedIn() && request.resource.data.parent_id == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.parentId == request.auth.uid;
       allow update: if isSignedIn() && getRole() == 'Admin'; 
     }
 
     // 6. attendance: Real-time visibility for Parents; Writing restricted to Staff
     match /attendance/{attendanceId} {
       allow read: if isSignedIn() && (
-        isParentOf(resource.data.student_id) || 
+        isParentOf(resource.data.studentId) || 
         getRole() in ['Instructor', 'Admin']
       );
       allow create: if isSignedIn() && getRole() in ['Instructor', 'Admin'];
@@ -73,11 +73,36 @@ service cloud.firestore {
     // 7. payment: Restricted; Only Parent and Admin can view
     match /payment/{paymentId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.parent_id || 
+        request.auth.uid == resource.data.parentId || 
         getRole() == 'Admin'
       );
-      allow create: if isSignedIn() && request.resource.data.parent_id == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.parentId == request.auth.uid;
       allow update, delete: if false; // Financial records should be immutable
+    }
+
+    // 8. categories: Academic management
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isSignedIn() && getRole() == 'Admin';
+
+      // levels (subcollection under categories)
+      match /levels/{levelId} {
+        allow read: if true;
+        allow write: if isSignedIn() && getRole() == 'Admin';
+      }
+    }
+
+    // 9. terms: Academic terms
+    match /terms/{termId} {
+      allow read: if true;
+      allow write: if isSignedIn() && getRole() == 'Admin';
+    }
+
+    // 10. requests: General requests/notifications
+    match /requests/{requestId} {
+      allow read: if isSignedIn() && getRole() == 'Admin';
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && getRole() == 'Admin';
     }
   }
 }
