@@ -1,6 +1,6 @@
 <script setup>
 defineProps({
-  registrations: {
+  enrollments: {
     type: Array,
     default: () => [],
   },
@@ -29,7 +29,7 @@ import { formatDate } from '@/utils/dateFormatter'
     <AppTable
       :headers="['No', 'Parent/Guardian', 'Child', 'Course', 'Status', 'Amount', 'Enrolled Date']"
     >
-      <tr v-for="item in registrations" :key="item.no">
+      <tr v-for="item in enrollments" :key="item.no">
         <td>{{ item.no }}</td>
         <td class="bold">{{ item.parent }}</td>
         <td>{{ item.child }}</td>

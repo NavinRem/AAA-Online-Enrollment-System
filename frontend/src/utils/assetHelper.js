@@ -78,7 +78,7 @@ export const getIconUrl = (param1, param2) => {
      } else {
         // Auto-categorize based on common usage if no category provided
         const kw = param1.toLowerCase()
-        if (kw.includes('dashboard') || kw.includes('registration') || kw.includes('guardian') || kw.includes('student') || kw.includes('program') || kw.includes('dollar') || kw.includes('setting') || kw.includes('enrollment')) {
+        if (kw.includes('dashboard') || kw.includes('enrollment') || kw.includes('guardian') || kw.includes('student') || kw.includes('program') || kw.includes('dollar') || kw.includes('setting')) {
           cat = 'navigation'
         } else if (kw.includes('absent') || kw.includes('present') || kw.includes('attendance') || kw.includes('calendar') || kw.includes('arrow')) {
           cat = 'status'
@@ -86,6 +86,8 @@ export const getIconUrl = (param1, param2) => {
           cat = 'user'
         }
      }
+
+     if (name === 'registration-svgrepo.svg') name = 'enrollment-svgrepo.svg'
 
      try {
        // Vite requires the base path to be as specific as possible
@@ -121,8 +123,8 @@ export const getIconUrl = (param1, param2) => {
   else if (fileName === 'unpaid') fileName = 'unpaid.png'
   else if (fileName === 'pending') fileName = 'pending.png'
   else if (fileName === 'on-time' || fileName === 'active') fileName = 'on-time.png'
-  else if (fileName === 'register' || fileName === 'registration') fileName = 'register.png'
-  else if (fileName === 'enrollment' || fileName === 'enroll') fileName = 'enrollment.png'
+  else if (fileName === 'register' || fileName === 'registration' || fileName === 'enrollment') fileName = 'enrollment.png'
+  else if (fileName === 'enroll' || fileName === 'enrolling') fileName = 'enrollment.png'
   else if (fileName === 'payment' || fileName === 'pay' || fileName === 'revenue' || fileName === 'total-payment') fileName = 'payment.png'
   else if (fileName === 'pending-payment') fileName = 'pending_payment.png'
   else if (fileName === 'user-online' || fileName === 'online') fileName = 'user-online.png'

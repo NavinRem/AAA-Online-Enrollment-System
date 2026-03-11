@@ -2,7 +2,7 @@
 import { authService } from '../services/authService'
 import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
-import { registrationService } from '../services/registrationService'
+import { enrollmentService } from '../services/enrollmentService'
 import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
@@ -18,7 +18,7 @@ const user = ref(null)
 const userProfile = ref(null)
 const students = ref([])
 const courses = ref([])
-const registrations = ref([])
+const enrollments = ref([])
 const allUsers = ref([])
 const loading = ref(true)
 
@@ -32,7 +32,7 @@ const stats = ref({
     guardians: 0,
     students: 0,
     programs: 0,
-    registrations: 0,
+    enrollments: 0,
     pay: 0,
   },
 })
@@ -45,7 +45,7 @@ onMounted(() => {
       user.value = currentUser
       try {
         await fetchUserProfile(currentUser.uid)
-        await Promise.all([fetchStudents(), fetchCourses(), fetchRegistrations(), fetchAllUsers()])
+        await Promise.all([fetchStudents(), fetchCourses(), fetchEnrollments(), fetchAllUsers()])
         calculateStats()
         console.log('Dashboard [data] load complete')
       } catch (err) {
@@ -96,12 +96,12 @@ const fetchCourses = async () => {
   }
 }
 
-const fetchRegistrations = async () => {
+const fetchEnrollments = async () => {
   try {
-    const data = await registrationService.getAll()
-    registrations.value = Array.isArray(data) ? data : []
+    const data = await enrollmentService.getAll()
+    enrollments.value = Array.isArray(data) ? data : []
   } catch (error) {
-    console.error('Failed to fetch registrations', error)
+    console.error('Failed to fetch enrollments', error)
   }
 }
 
@@ -154,18 +154,18 @@ const calculateStats = () => {
     return s === 'paid' || s === 'confirmed'
   }
 
-  const todayRegistrationsList = allUsers.value.filter((u) => {
+  const todayAccountRegistrationsList = allUsers.value.filter((u) => {
     if (u.role !== 'parent' && u.role !== 'guardian') return false
     const time = parseDate(u.createdAt || u.updatedAt).getTime()
     return time >= startOfToday && time <= endOfToday
   })
 
-  const todayEnrollmentsList = registrations.value.filter((r) => {
+  const todayEnrollmentsList = enrollments.value.filter((r) => {
     const time = parseDate(r.enrollAt || r.createdAt || r.updatedAt).getTime()
     return time >= startOfToday && time <= endOfToday
   })
 
-  stats.value.today.reg = todayRegistrationsList.length
+  stats.value.today.reg = todayAccountRegistrationsList.length
   stats.value.today.enroll = todayEnrollmentsList.length
   stats.value.today.pay = todayEnrollmentsList
     .filter(isPaid)
@@ -174,7 +174,7 @@ const calculateStats = () => {
   const parents = allUsers.value.filter((u) => u.role === 'parent')
   const guardians = allUsers.value.filter((u) => u.role === 'guardian')
 
-  const totalEnrollmentsList = registrations.value
+  const totalEnrollmentsList = enrollments.value
   stats.value.week.reg = parents.length + guardians.length
   stats.value.week.enroll = totalEnrollmentsList.length
   stats.value.week.pay = totalEnrollmentsList
@@ -188,8 +188,8 @@ const calculateStats = () => {
   stats.value.totals.programs = courses.value.length
 }
 
-const mappedRegistrations = computed(() => {
-  return [...registrations.value]
+const mappedEnrollments = computed(() => {
+  return [...enrollments.value]
     .sort((a, b) => {
       const timeA = parseDate(a.enrollAt || a.createdAt || a.updatedAt).getTime()
       const timeB = parseDate(b.enrollAt || b.createdAt || b.updatedAt).getTime()
@@ -253,7 +253,7 @@ const mappedRegistrations = computed(() => {
         </section>
 
         <!-- Recent Enrollment Table -->
-        <RecentEnrollmentTable :registrations="mappedRegistrations" />
+        <RecentEnrollmentTable :enrollments="mappedEnrollments" />
       </div>
 
       <!-- Right Overview Column -->

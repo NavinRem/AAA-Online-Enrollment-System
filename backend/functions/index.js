@@ -9,7 +9,7 @@ admin.initializeApp();
 // Force deploy trigger
 
 // Import Routes
-const registrationRoutes = require("./src/routes/registrations");
+const enrollmentRoutes = require("./src/routes/enrollments");
 const userRoutes = require("./src/routes/users");
 const courseRoutes = require("./src/routes/courses");
 const sessionRoutes = require("./src/routes/sessions");
@@ -23,7 +23,7 @@ app.use(cors({ origin: true })); // Allow all origins for now (adjust for produc
 app.use(express.json());
 
 // Routes
-app.use("/registrations", registrationRoutes);
+app.use("/enrollments", enrollmentRoutes);
 app.use("/users", userRoutes);
 app.use("/courses", courseRoutes);
 app.use("/sessions", sessionRoutes);
@@ -37,7 +37,7 @@ app.use("/uploads", require("./src/routes/uploads"));
 
 // Root Endpoint
 app.get("/", (req, res) => {
-  res.send("Online Registration System API is running!");
+  res.send("Online Enrollment System API is running!");
 });
 
 // Error Handling Middleware

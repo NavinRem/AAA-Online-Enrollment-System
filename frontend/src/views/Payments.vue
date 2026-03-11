@@ -15,7 +15,7 @@ const payments = ref([
 const paymentStats = computed(() => [
   { label: 'Total Revenue', value: '$12,450', image: 'dashboard/payment.png', color: '#e1f5fe' },
   { label: 'Pending', value: '15', image: 'dashboard/pending_payment.png', color: '#e1f5fe' },
-  { label: 'Today', value: '$450', image: 'dashboard/registration.png', color: '#e1f5fe' },
+  { label: 'Today', value: '$450', image: 'dashboard/enrollment.png', color: '#e1f5fe' },
   { label: 'Refunded', value: '2', image: 'dashboard/refund.png', color: '#e1f5fe' }
 ])
 

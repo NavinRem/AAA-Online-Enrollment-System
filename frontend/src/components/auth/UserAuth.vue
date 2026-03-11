@@ -80,7 +80,7 @@ const handleSubmit = async () => {
       // 1. Create Auth User
       const user = await authService.register(email.value, password.value)
 
-      // 3. Create Profile in 'registration' database via Backend API
+      // 3. Create Profile in 'enrollment' database via Backend API
       await userService.registerParentAccount({
         uid: user.uid,
         email: email.value,

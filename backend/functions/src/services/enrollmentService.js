@@ -1,7 +1,7 @@
 const { getFirestore } = require("firebase-admin/firestore");
 const db = getFirestore("registration");
 
-class RegistrationService {
+class EnrollmentService {
   async createEnrollment(enrollmentData) {
     const { studentId, courseId, sessionId } = enrollmentData;
 
@@ -33,7 +33,7 @@ class RegistrationService {
       if (!courseDoc.exists) throw new Error("Course not found");
 
       if (!existingEnrollmentSnapshot.empty) {
-        throw new Error("Student already registered for this session");
+        throw new Error("Student already enrolled for this session");
       }
 
       const sessionData = sessionDoc.data();
@@ -66,7 +66,12 @@ class RegistrationService {
     return { id: enrollmentId, message: "Enrollment created successfully" };
   }
 
-  async getAllRegistrations() {
+  async getStudentEligibility(studentId, courseId) {
+    // Placeholder for eligibility logic
+    return { eligible: true, studentId, courseId };
+  }
+
+  async getAllEnrollments() {
     const [snapshot, usersSnap, studentsSnap, coursesSnap, sessionsSnap] = await Promise.all([
       db.collection("enrollment").get(),
       db.collection("user").get(),
@@ -135,10 +140,10 @@ class RegistrationService {
     });
   }
 
-  async getRegistration(id) {
+  async getEnrollment(id) {
     const doc = await db.collection("enrollment").doc(id).get();
     if (!doc.exists) {
-      throw new Error("Registration not found");
+      throw new Error("Enrollment not found");
     }
 
     const data = doc.data();
@@ -196,11 +201,11 @@ class RegistrationService {
     };
   }
 
-  async cancelRegistration(enrollmentId) {
+  async cancelEnrollment(enrollmentId) {
     const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
     const doc = await enrollmentRef.get();
 
-    if (!doc.exists) throw new Error("Registration not found");
+    if (!doc.exists) throw new Error("Enrollment not found");
 
     const data = doc.data();
     if (data.status === "cancelled") throw new Error("Already cancelled");
@@ -222,14 +227,14 @@ class RegistrationService {
       }
     });
 
-    return { message: "Registration cancelled successfully" };
+    return { message: "Enrollment cancelled successfully" };
   }
 
-  async updateRegistration(enrollmentId, updateData) {
+  async updateEnrollment(enrollmentId, updateData) {
     const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
     const doc = await enrollmentRef.get();
 
-    if (!doc.exists) throw new Error("Registration not found");
+    if (!doc.exists) throw new Error("Enrollment not found");
 
     const safeData = { ...updateData, updatedAt: new Date().toISOString() };
     delete safeData.id;
@@ -239,11 +244,11 @@ class RegistrationService {
     return { id: enrollmentId, ...safeData };
   }
 
-  async deleteRegistration(enrollmentId) {
+  async deleteEnrollment(enrollmentId) {
     const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
     const doc = await enrollmentRef.get();
 
-    if (!doc.exists) throw new Error("Registration not found");
+    if (!doc.exists) throw new Error("Enrollment not found");
 
     const data = doc.data();
 
@@ -264,8 +269,8 @@ class RegistrationService {
       await enrollmentRef.delete();
     }
 
-    return { message: "Registration deleted permanently" };
+    return { message: "Enrollment deleted permanently" };
   }
 }
 
-module.exports = new RegistrationService();
+module.exports = new EnrollmentService();

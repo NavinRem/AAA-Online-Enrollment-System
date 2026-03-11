@@ -8,7 +8,7 @@ import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
 import TableToolbar from '@/components/common/data/TableToolbar/TableToolbar.vue'
 import DetailedSummaryCard from '@/components/cards/DetailedSummaryCard.vue'
 import { userService } from '@/services/userService'
-import { registrationService } from '@/services/registrationService'
+import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate, formatDateOnly } from '@/utils/dateFormatter'
 import { calculateStudentStatus, isEnrollmentActive } from '@/utils/studentStatusHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
@@ -20,11 +20,11 @@ const router = useRouter()
 
 const student = ref(null)
 const parent = ref(null)
-const registrations = ref([])
+const enrollments = ref([])
 
 const computedStatus = computed(() => {
   if (!student.value) return 'Inactive'
-  return calculateStudentStatus(student.value, registrations.value)
+  return calculateStudentStatus(student.value, enrollments.value)
 })
 
 const primaryParent = computed(() => {
@@ -82,7 +82,7 @@ const submitActionModal = async (formData) => {
       })
 
       // 2. Cascade: Update all "Studying" enrollments with same status/reason
-      const activeEnrollments = registrations.value.filter((r) => {
+      const activeEnrollments = enrollments.value.filter((r) => {
         const status = getAcademicStatus(r)
         return status === 'Studying'
       })
@@ -90,7 +90,7 @@ const submitActionModal = async (formData) => {
       if (activeEnrollments.length > 0) {
         await Promise.all(
           activeEnrollments.map((enrollment) =>
-            registrationService.updateEnrollment(enrollment.id, {
+            enrollmentService.updateEnrollment(enrollment.id, {
               status: formData.status,
               overrideReason: formData.overrideReason,
               overrideRemark: formData.overrideRemark,
@@ -103,7 +103,7 @@ const submitActionModal = async (formData) => {
       globalSuccess.value = `Student and ${activeEnrollments.length} active programs updated!`
     } else if (type === 'enrollment-override' && actionModal.value.enrollment) {
       const eid = actionModal.value.enrollment.id
-      await registrationService.updateEnrollment(eid, {
+      await enrollmentService.updateEnrollment(eid, {
         status: formData.status,
         overrideReason: formData.overrideReason,
         overrideRemark: formData.overrideRemark,
@@ -112,7 +112,7 @@ const submitActionModal = async (formData) => {
       globalSuccess.value = 'Course status updated!'
     } else if (type === 'enrollment-delete' && actionModal.value.enrollment) {
       if (formData.deleteConfirm !== 'DELETE') throw new Error('Please type DELETE to confirm.')
-      await registrationService.deleteEnrollment(actionModal.value.enrollment.id)
+      await enrollmentService.deleteEnrollment(actionModal.value.enrollment.id)
       globalSuccess.value = 'Academic record deleted permanently!'
     } else if (type === 'delete') {
       if (formData.deleteConfirm !== 'DELETE') throw new Error('Please type DELETE to confirm.')
@@ -201,7 +201,7 @@ const getAcademicStatus = (r) => {
 
 const filteredAcademic = computed(() => {
   // 1. Filter: If student enrollment is not paid yet, do not show in their academic list.
-  let filtered = registrations.value.filter((r) => {
+  let filtered = enrollments.value.filter((r) => {
     const regStatus = (r.status || '').toLowerCase()
     return !['unpaid', 'pending'].includes(regStatus)
   })
@@ -273,9 +273,9 @@ const fetchData = async (id) => {
       }
     }
 
-    // 3. Fetch Registrations
-    const allRegistrations = (await registrationService.getAll()) || []
-    registrations.value = allRegistrations.filter((r) => {
+    // 3. Fetch Enrollments
+    const allEnrollments = (await enrollmentService.getAll()) || []
+    enrollments.value = allEnrollments.filter((r) => {
       const sId = String(r.student_id || r.studentId || '')
       return sId === String(id)
     })

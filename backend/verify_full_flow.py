@@ -3,7 +3,7 @@ import json
 import sys
 import time
 
-BASE_URL = "https://api-tyweqke5oa-uc.a.run.app"
+BASE_URL = "http://127.0.0.1:5001/aaa-online-registration-e3833/us-central1/api"
 PARENT_ID = "test-parent-integration-001"
 STUDENT_NAME = "Integration Student"
 DOB = "2016-06-01"
@@ -85,8 +85,8 @@ def run_tests():
         "sessionID": session_id
     }
     
-    # Endpoint: /registrations/createEnrollment (from registrations.js)
-    resp = session.post(f"{BASE_URL}/registrations/createEnrollment", json=enroll_payload)
+    # Endpoint: /enrollments/createEnrollment (from enrollments.js)
+    resp = session.post(f"{BASE_URL}/enrollments/createEnrollment", json=enroll_payload)
     if resp.status_code not in [200, 201]:
         log(f"FAILED: Enroll Student - {resp.status_code} {resp.text}")
         sys.exit(1)
@@ -97,9 +97,9 @@ def run_tests():
     # 5. Verify Enrollment Data
     # ---------------------------------------------------------
     log("5. Verifying Enrollment Data...")
-    resp = session.get(f"{BASE_URL}/registrations")
+    resp = session.get(f"{BASE_URL}/enrollments")
     if resp.status_code != 200:
-        log(f"FAILED: Get Registrations - {resp.status_code}")
+        log(f"FAILED: Get Enrollments - {resp.status_code}")
         sys.exit(1)
     
     all_enrollments = resp.json()

@@ -13,7 +13,7 @@ import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
 import StudentActionModal from '../components/students/StudentActionModal.vue'
 import { userService } from '../services/userService'
 import { authService } from '../services/authService'
-import { registrationService } from '../services/registrationService'
+import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, studentSearchMapper } from '../composables/useSearch'
 import { formatDate } from '../utils/dateFormatter'
 import { getCourseIcon } from '../utils/courseHelper'
@@ -49,16 +49,16 @@ onMounted(async () => {
   try {
     const profile = await userService.getProfile(currentUser.uid)
     let studentsData = []
-    let allRegistrations = []
+    let allEnrollments = []
 
     if (profile && profile.role === 'admin') {
       const [sData, rData, uData] = await Promise.all([
         userService.getAllStudents(),
-        registrationService.getAll(),
+        enrollmentService.getAll(),
         userService.getAllUsers(),
       ])
       studentsData = sData
-      allRegistrations = rData || []
+      allEnrollments = rData || []
       const allUsers = uData || []
       const oneWeekAgo = new Date()
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
@@ -66,7 +66,7 @@ onMounted(async () => {
       if (Array.isArray(studentsData)) {
         students.value = studentsData.map((student) => {
           const studentId = String(student.id || student.uid || '')
-          const studentRegs = allRegistrations.filter((r) => {
+          const studentRegs = allEnrollments.filter((r) => {
             const rStudentId = String(r.student_id || r.studentId || '')
             return rStudentId === studentId
           })
