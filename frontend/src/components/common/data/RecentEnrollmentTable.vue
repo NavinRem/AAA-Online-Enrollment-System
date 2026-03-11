@@ -6,9 +6,9 @@ defineProps({
   },
 })
 
-import StatusBadge from '@/components/common/ui/StatusBadge/StatusBadge.vue'
-import AppTable from '@/components/common/data/AppTable/AppTable.vue'
-import TableToolbar from '@/components/common/data/TableToolbar/TableToolbar.vue'
+import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppTable from '@/components/common/data/AppTable.vue'
+import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import { formatDate } from '@/utils/dateFormatter'
 </script>
 

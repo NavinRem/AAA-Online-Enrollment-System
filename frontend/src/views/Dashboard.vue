@@ -9,9 +9,9 @@ import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
 // UI Components
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
-import DataMetrics from '../components/common/data/DataMetrics/DataMetrics.vue'
+import DataMetrics from '../components/common/data/DataMetrics.vue'
 import MiniCard from '../components/cards/MiniCard.vue'
-import RecentEnrollmentTable from '../components/common/data/RecentEnrollmentTable/RecentEnrollmentTable.vue'
+import RecentEnrollmentTable from '../components/common/data/RecentEnrollmentTable.vue'
 
 const router = useRouter()
 const user = ref(null)
@@ -264,7 +264,7 @@ const mappedEnrollments = computed(() => {
               <img :src="userProfile?.profileURL || getImageUrl('profiles', 'profile-admin.png')" alt="User" />
             </div>
             <h3 class="welcome-text">
-              Welcome Back!<br />{{ userProfile?.name || 'Sonavin Rem' }}
+              Welcome Back!<br />{{ userProfile?.name || 'User' }}
             </h3>
             <p class="sub-text">Here is the overview</p>
           </div>
