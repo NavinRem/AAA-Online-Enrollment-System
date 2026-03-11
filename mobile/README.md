@@ -1,4 +1,4 @@
-# aaa_student_connect
+# AAA Online Enrollment - Mobile App
 
 A new Flutter project.
 

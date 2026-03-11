@@ -24,10 +24,12 @@ A robust, full-stack enrollment solution featuring a responsive Web dashboard an
 ## Project Structure
 
 ```text
-AAA-Online-Registration-System/
-├── frontend/      # Vue.js frontend source code
-├── mobile/        # Flutter mobile application source code
-└── backend/       # Security rules, Cloud Functions, and config files
+AAA-Online-Enrollment-System/
+├── frontend/      # Vue.js frontend (Web Dashboard)
+├── mobile/        # Flutter mobile application
+└── backend/       # Firebase Functions and Configurations
+    ├── configs/   # Security rules and indexes
+    └── functions/ # Cloud Functions source
 ```
 
 ---

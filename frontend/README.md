@@ -1,6 +1,6 @@
-# frontend
+# AAA Online Enrollment - Frontend (Web)
 
-This template should help get you started developing with Vue 3 in Vite.
+This is the Vue.js 3 + Vite frontend for the AAA Online Enrollment System.
 
 ## Recommended IDE Setup
 
