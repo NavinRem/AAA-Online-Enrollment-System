@@ -1,14 +1,14 @@
 {
   "firestore": {
     "database": "registration",
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+    "rules": "configs/firestore.rules",
+    "indexes": "configs/firestore.indexes.json"
   },
   "functions": {
     "source": "functions"
   },
   "storage": {
-    "rules": "storage.rules"
+    "rules": "configs/storage.rules"
   },
   "emulators": {
     "auth": {
