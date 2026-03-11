@@ -34,8 +34,8 @@ const sessionServiceMock = {
 };
 
 // Mock Firebase Imports for Controller (if any direct usage) or just proxy the service
-const sessionController = proxyquire("../src/controllers/sessionController", {
-  "../services/sessionService": sessionServiceMock,
+const sessionController = proxyquire("../src/controllers/academic/sessionController", {
+  "../../services/academic/sessionService": sessionServiceMock,
 });
 
 // Setup Express App

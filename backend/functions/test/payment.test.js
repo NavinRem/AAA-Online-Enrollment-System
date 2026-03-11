@@ -19,8 +19,8 @@ const paymentServiceMock = {
 };
 
 // Mock Controller
-const paymentController = proxyquire("../src/controllers/paymentController", {
-  "../services/paymentService": paymentServiceMock,
+const paymentController = proxyquire("../src/controllers/core/paymentController", {
+  "../../services/core/paymentService": paymentServiceMock,
 });
 
 // Setup App

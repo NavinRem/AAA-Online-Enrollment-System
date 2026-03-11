@@ -25,8 +25,8 @@ const studentServiceMock = {
 };
 
 // Mock Controller
-const studentController = proxyquire("../src/controllers/studentController", {
-  "../services/studentService": studentServiceMock,
+const studentController = proxyquire("../src/controllers/management/studentController", {
+  "../../services/management/studentService": studentServiceMock,
 });
 
 // Setup App

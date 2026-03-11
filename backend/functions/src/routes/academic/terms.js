@@ -1,0 +1,9 @@
+const express = require("express");
+const router = express.Router();
+const termController = require("../../controllers/academic/termController");
+
+router.get("/", termController.getAllTerms);
+router.post("/", termController.createTerm);
+router.delete("/:id", termController.deleteTerm);
+
+module.exports = router;
