@@ -13,8 +13,8 @@ const progressServiceMock = {
 };
 
 // Mock Controller
-const progressController = proxyquire("../src/controllers/progressController", {
-  "../services/progressService": progressServiceMock,
+const progressController = proxyquire("../src/controllers/tracking/progressController", {
+  "../../services/tracking/progressService": progressServiceMock,
 });
 
 // Setup App

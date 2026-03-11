@@ -25,9 +25,9 @@ const attendanceServiceMock = {
 
 // Mock Controller
 const attendanceController = proxyquire(
-  "../src/controllers/attendanceController",
+  "../src/controllers/tracking/attendanceController",
   {
-    "../services/attendanceService": attendanceServiceMock,
+    "../../services/tracking/attendanceService": attendanceServiceMock,
   },
 );
 
