@@ -1,6 +1,6 @@
-# AAA Online Registration System
+# AAA Online Enrollment System
 
-A robust, full-stack registration solution featuring a responsive Web dashboard and a native Mobile experience. This project utilizes a serverless architecture to provide real-time data synchronization and secure user management.
+A robust, full-stack enrollment solution featuring a responsive Web dashboard and a native Mobile experience. This project utilizes a serverless architecture to provide real-time data synchronization and secure user management.
 
 ---
 

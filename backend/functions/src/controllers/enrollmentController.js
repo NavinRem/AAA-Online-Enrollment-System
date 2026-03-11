@@ -1,12 +1,12 @@
-const registrationService = require("../services/registrationService");
+const enrollmentService = require("../services/enrollmentService");
 
 /**
- * @route POST /registrations/createEnrollment
+ * @route POST /enrollments/createEnrollment
  * @description Register a student for a course
  */
 exports.createEnrollment = async (req, res) => {
   try {
-    const result = await registrationService.createEnrollment(req.body);
+    const result = await enrollmentService.createEnrollment(req.body);
     res.status(201).json(result);
   } catch (error) {
     if (
@@ -17,9 +17,9 @@ exports.createEnrollment = async (req, res) => {
       return res.status(404).json({ error: error.message });
     }
     if (
-      error.message === "Student already registered for this session" ||
+      error.message === "Student already enrolled for this session" ||
       error.message === "Session is full" ||
-      error.message === "student_id, course_id, and session_id are required"
+      error.message === "studentId, courseId, and sessionId are required"
     ) {
       return res.status(400).json({ error: error.message });
     }
@@ -28,13 +28,13 @@ exports.createEnrollment = async (req, res) => {
 };
 
 /**
- * @route GET /registrations/eligibility/:studentId/:courseId
+ * @route GET /enrollments/eligibility/:studentId/:courseId
  * @description Check if a student is eligible for a course (placeholder for logic)
  */
 exports.getStudentEligibility = async (req, res) => {
   try {
     const { studentId, courseId } = req.params;
-    const result = await registrationService.getStudentEligibility(
+    const result = await enrollmentService.getStudentEligibility(
       studentId,
       courseId,
     );
@@ -48,69 +48,69 @@ exports.getStudentEligibility = async (req, res) => {
 };
 
 /**
- * @route GET /registrations
- * @description Get all registrations
+ * @route GET /enrollments
+ * @description Get all enrollments
  */
-exports.getAllRegistrations = async (req, res) => {
+exports.getAllEnrollments = async (req, res) => {
   try {
-    const registrations = await registrationService.getAllRegistrations();
-    res.status(200).json(registrations);
+    const enrollments = await enrollmentService.getAllEnrollments();
+    res.status(200).json(enrollments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
 
 /**
- * @route GET /registrations/:id
- * @description Get a single registration
+ * @route GET /enrollments/:id
+ * @description Get a single enrollment
  */
-exports.getRegistration = async (req, res) => {
+exports.getEnrollment = async (req, res) => {
   try {
-    const registration = await registrationService.getRegistration(
+    const enrollment = await enrollmentService.getEnrollment(
       req.params.id,
     );
-    res.status(200).json(registration);
+    res.status(200).json(enrollment);
   } catch (error) {
-    if (error.message === "Registration not found") {
+    if (error.message === "Enrollment not found") {
       return res.status(404).json({ message: error.message });
     }
     res.status(500).json({ error: error.message });
   }
 };
 
-exports.cancelRegistration = async (req, res) => {
+exports.cancelEnrollment = async (req, res) => {
   try {
-    const result = await registrationService.cancelRegistration(
+    const result = await enrollmentService.cancelEnrollment(
       req.body.enrollment_id,
     );
     res.status(200).json(result);
   } catch (error) {
-    if (error.message === "Registration not found")
+    if (error.message === "Enrollment not found")
       return res.status(404).json({ error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
 
-exports.updateRegistration = async (req, res) => {
+exports.updateEnrollment = async (req, res) => {
   try {
-    const result = await registrationService.updateRegistration(
+    const result = await enrollmentService.updateEnrollment(
       req.params.id,
       req.body,
     );
     res.status(200).json(result);
   } catch (error) {
-    if (error.message === "Registration not found")
+    if (error.message === "Enrollment not found")
       return res.status(404).json({ error: error.message });
     res.status(500).json({ error: error.message });
   }
 };
 
-exports.deleteRegistration = async (req, res) => {
+exports.deleteEnrollment = async (req, res) => {
   try {
-    const result = await registrationService.deleteRegistration(req.params.id);
+    const result = await enrollmentService.deleteEnrollment(req.params.id);
     res.status(200).json(result);
   } catch (error) {
-    if (error.message === "Registration not found")
+    if (error.message === "Enrollment not found")
       return res.status(404).json({ error: error.message });
     res.status(500).json({ error: error.message });
   }

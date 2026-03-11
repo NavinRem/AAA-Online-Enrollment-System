@@ -75,7 +75,7 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const pageTitle = to.meta.title || 'AAA'
-  document.title = `${pageTitle} - AAA Online Registration`
+  document.title = `${pageTitle} - AAA Online Enrollment`
 })
 
 export default router

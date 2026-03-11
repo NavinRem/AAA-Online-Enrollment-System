@@ -7,7 +7,7 @@ import DataMetrics from '../components/common/data/DataMetrics/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge/StatusBadge.vue'
 import EnrollmentForm from '../components/enrollments/EnrollmentForm.vue'
-import { registrationService } from '@/services/registrationService'
+import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
@@ -16,7 +16,7 @@ import { formatDate } from '@/utils/dateFormatter'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
-const registrations = ref([])
+const enrollments = ref([])
 const parents = ref([])
 const students = ref([])
 const courses = ref([])
@@ -28,17 +28,17 @@ const errorMessage = ref('')
 const successMessage = ref('')
 
 onMounted(async () => {
-  await fetchRegistrations()
+  await fetchEnrollments()
   await loadFormData()
 })
 
-const fetchRegistrations = async () => {
+const fetchEnrollments = async () => {
   try {
     loading.value = true
-    const data = await registrationService.getAll()
-    registrations.value = Array.isArray(data) ? data : []
+    const data = await enrollmentService.getAll()
+    enrollments.value = Array.isArray(data) ? data : []
   } catch (error) {
-    console.error('Failed to fetch registrations', error)
+    console.error('Failed to fetch enrollments', error)
   } finally {
     loading.value = false
   }
@@ -98,9 +98,9 @@ const handleCreateEnrollment = async (formData) => {
       enrollAt: new Date().toISOString(),
     }
 
-    await registrationService.createEnrollment(payload)
+    await enrollmentService.createEnrollment(payload)
     successMessage.value = 'Successfully created enrollment!'
-    await fetchRegistrations()
+    await fetchEnrollments()
 
     setTimeout(() => {
       showModal.value = false
@@ -120,16 +120,16 @@ const isUnpaid = (status) => status && !isPaid(status) && !isCancelled(status)
 
 const enrollmentStats = computed(() => {
   const today = new Date().toISOString().split('T')[0];
-  const todayRegistrations = registrations.value.filter(r => (r.enrollAt || r.createdAt)?.split('T')[0] === today);
-  const pendingRegistrations = registrations.value.filter(r => r.status === 'pending' || r.paymentStatus === 'pending');
-  const todayRevenue = todayRegistrations
+  const todayEnrollments = enrollments.value.filter(r => (r.enrollAt || r.createdAt)?.split('T')[0] === today);
+  const pendingEnrollments = enrollments.value.filter(r => r.status === 'pending' || r.paymentStatus === 'pending');
+  const todayRevenue = todayEnrollments
     .filter(r => isPaid(r.status || r.paymentStatus))
     .reduce((sum, r) => sum + (r.amount || 0), 0);
 
   return [
-    { label: 'Total Enrollments', value: registrations.value.length, image: getIconUrl('enrollment'), color: '#e1f5fe' },
-    { label: 'New Today', value: todayRegistrations.length, image: getIconUrl('register'), color: '#e1f5fe' },
-    { label: 'Pending Approval', value: pendingRegistrations.length, image: getIconUrl('dashboard', 'pending1.png'), color: '#e1f5fe' },
+    { label: 'Total Enrollments', value: enrollments.value.length, image: getIconUrl('enrollment'), color: '#e1f5fe' },
+    { label: 'New Today', value: todayEnrollments.length, image: getIconUrl('register'), color: '#e1f5fe' },
+    { label: 'Pending Approval', value: pendingEnrollments.length, image: getIconUrl('dashboard', 'pending1.png'), color: '#e1f5fe' },
     { label: 'Revenue Today', value: `$${todayRevenue}`, image: getIconUrl('pay'), color: '#e1f5fe' }
   ];
 });
@@ -147,8 +147,8 @@ const enrollmentHeaders = [
 
 const currentFilter = ref('all')
 
-const statusFilteredRegistrations = computed(() => {
-  let list = registrations.value.map((r) => {
+const statusFilteredEnrollments = computed(() => {
+  let list = enrollments.value.map((r) => {
     const parent = parents.value.find((p) => (p.uid || p.id) === (r.parentId))
     const student = students.value.find((s) => (s.uid || s.id) === (r.studentId))
 
@@ -169,8 +169,8 @@ const statusFilteredRegistrations = computed(() => {
   return list.sort((a, b) => new Date(b.enrollAt || b.createdAt).getTime() - new Date(a.enrollAt || a.createdAt).getTime())
 })
 
-const { searchQuery, searchResults: filteredRegistrations } = useSearch(
-  statusFilteredRegistrations,
+const { searchQuery, searchResults: filteredEnrollments } = useSearch(
+  statusFilteredEnrollments,
   enrollmentSearchMapper,
 )
 
@@ -206,18 +206,18 @@ const submitActionModal = async () => {
   submitting.value = true
   try {
     if (type === 'pay') {
-      await registrationService.updateEnrollment(enrollment.id, { paymentStatus: 'paid', paymentProof: proof })
+      await enrollmentService.updateEnrollment(enrollment.id, { paymentStatus: 'paid', paymentProof: proof })
     } else if (type === 'cancel') {
-      await registrationService.cancelEnrollment(enrollment.id)
-      await registrationService.updateEnrollment(enrollment.id, { cancelReason: reason })
+      await enrollmentService.cancelEnrollment(enrollment.id)
+      await enrollmentService.updateEnrollment(enrollment.id, { cancelReason: reason })
     } else if (type === 'delete') {
       if (deleteConfirm !== 'DELETE') throw new Error('Type DELETE to confirm')
-      await registrationService.deleteEnrollment(enrollment.id)
+      await enrollmentService.deleteEnrollment(enrollment.id)
     } else if (type === 'edit') {
-      await registrationService.updateEnrollment(enrollment.id, { amount: Number(amount), remark: remark.trim() })
+      await enrollmentService.updateEnrollment(enrollment.id, { amount: Number(amount), remark: remark.trim() })
     }
     successMessage.value = 'Action completed successfully.'
-    await fetchRegistrations()
+    await fetchEnrollments()
     setTimeout(() => { actionModal.value.isOpen = false }, 1500)
   } catch (err) {
     errorMessage.value = err.message
@@ -237,7 +237,7 @@ const submitActionModal = async () => {
       <template #table>
         <DataTable
           :headers="enrollmentHeaders"
-          :items="filteredRegistrations"
+          :items="filteredEnrollments"
           :loading="loading"
           v-model:searchQuery="searchQuery"
           searchPlaceholder="Search Enrollments"

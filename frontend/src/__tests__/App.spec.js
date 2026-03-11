@@ -6,6 +6,6 @@ import App from '../App.vue'
 describe('App', () => {
   it('mounts renders properly', () => {
     const wrapper = mount(App)
-    expect(wrapper.text()).toContain('Online Registration System')
+    expect(wrapper.text()).toContain('Online Enrollment System')
   })
 })

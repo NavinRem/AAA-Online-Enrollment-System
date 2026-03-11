@@ -1,22 +1,22 @@
 import { request } from './api'
 
-export const registrationService = {
+export const enrollmentService = {
   // Create Enrollment
   createEnrollment(data) {
-    return request('/registrations/createEnrollment', {
+    return request('/enrollments/createEnrollment', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   },
 
-  // Legacy alias
+  // Legacy alias/shorthand
   create(data) {
     return this.createEnrollment(data)
   },
 
   // Cancel Enrollment
   cancelEnrollment(enrollmentId) {
-    return request('/registrations/cancel', {
+    return request('/enrollments/cancel', {
       method: 'POST',
       body: JSON.stringify({ enrollment_id: enrollmentId }),
     })
@@ -24,7 +24,7 @@ export const registrationService = {
 
   // Update Enrollment
   updateEnrollment(enrollmentId, data) {
-    return request(`/registrations/${enrollmentId}`, {
+    return request(`/enrollments/${enrollmentId}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
@@ -32,14 +32,14 @@ export const registrationService = {
 
   // Delete Enrollment permanently
   deleteEnrollment(enrollmentId) {
-    return request(`/registrations/${enrollmentId}`, {
+    return request(`/enrollments/${enrollmentId}`, {
       method: 'DELETE',
     })
   },
 
-  // Get all registrations
+  // Get all enrollments
   getAll() {
-    return request('/registrations', {
+    return request('/enrollments', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -47,9 +47,9 @@ export const registrationService = {
     })
   },
 
-  // Get a single registration
+  // Get a single enrollment
   get(id) {
-    return request(`/registrations/${id}`, {
+    return request(`/enrollments/${id}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

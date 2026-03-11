@@ -114,7 +114,7 @@
           <p v-if="type === 'delete'">
             Deleting a student's profile removes their record and all historical class progression
             entirely. It can never be recovered. This should only be used for accidental duplicate
-            registrations or data cleanups.
+            enrollments or data cleanups.
           </p>
           <p v-else>
             Deleting an academic record is a destructive action. It can affect the student's future

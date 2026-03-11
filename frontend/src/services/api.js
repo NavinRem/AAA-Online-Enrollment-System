@@ -63,7 +63,7 @@ export async function request(endpoint, options = {}) {
     setCachedData(cacheKey, responseData)
   } else {
     // 3. Clear cache aggressively if we mutate (POST, DELETE, PUT)
-    // E.g., if we POST to /registrations, we clear the '/registrations' cache.
+    // E.g., if we POST to /enrollments, we clear the '/enrollments' cache.
     const resourceBase = endpoint.split('/')[1]
     if (resourceBase) {
       clearCachePrefix(`/${resourceBase}`)

@@ -3,7 +3,7 @@ import json
 import sys
 import time
 
-BASE_URL = "https://api-tyweqke5oa-uc.a.run.app"
+BASE_URL = "http://127.0.0.1:5001/aaa-online-registration-e3833/us-central1/api"
 PARENT_ID = "test-parent-123"
 STUDENT_ID = "test-student-456"
 COURSE_ID = "test-course-789"
@@ -93,7 +93,7 @@ def run_tests():
     # OR: just re-use the ones created above if they are in scope.
     # Python variables in a function are scoped to the function, so they ARE available here if defined above.
     
-    e_res = session.post(f"{BASE_URL}/registrations/createEnrollment", json={
+    e_res = session.post(f"{BASE_URL}/enrollments/createEnrollment", json={
         "student_id": real_student_id,
         "course_id": temp_course_id, # Reusing from Step 1
         "session_id": temp_session_id # Reusing from Step 2
@@ -160,13 +160,13 @@ def run_tests():
     log("SUCCESS: Attendance APIs")
 
 
-    # --- 5. Registration Cancel ---
-    log("5. Testing Cancel Registration...")
+    # --- 5. Enrollment Cancel ---
+    log("5. Testing Cancel Enrollment...")
     # Mocking this one might fail if ID doesn't exist, so we expect 404 or 200
     # Let's just hit the endpoint to see if it's reachable
-    cr_res = session.post(f"{BASE_URL}/registrations/cancel", json={"enrollment_id": "non-existent"})
-    if cr_res.status_code not in [200, 404]: fail(f"Cancel Registration (Got {cr_res.status_code})", cr_res)
-    log("SUCCESS: Cancel Registration API (Reachable)")
+    cr_res = session.post(f"{BASE_URL}/enrollments/cancel", json={"enrollment_id": "non-existent"})
+    if cr_res.status_code not in [200, 404]: fail(f"Cancel Enrollment (Got {cr_res.status_code})", cr_res)
+    log("SUCCESS: Cancel Enrollment API (Reachable)")
 
 
     # --- 6. Progress API ---

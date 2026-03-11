@@ -8,14 +8,14 @@ import DataTable from '../components/common/data/DataTable/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge/StatusBadge.vue'
 import ProgramActionModal from '../components/programs/ProgramActionModal.vue'
 import { courseService } from '../services/courseService'
-import { registrationService } from '../services/registrationService'
+import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, programSearchMapper } from '../composables/useSearch'
 import { getCourseIcon } from '../utils/courseHelper'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
 const programs = ref([])
-const registrations = ref([])
+const enrollments = ref([])
 const sessions = ref([])
 const loading = ref(true)
 const activeMenuId = ref(null)
@@ -62,8 +62,8 @@ const stats = computed(() => {
   // 1. Total Programs
   const total = programs.value.length
 
-  // 2. Active Programs (Programs that have at least one non-cancelled registration)
-  const activeRegs = registrations.value.filter(
+  // 2. Active Programs (Programs that have at least one non-cancelled enrollment)
+  const activeRegs = enrollments.value.filter(
     (r) =>
       (r.status || '').toLowerCase() !== 'cancelled' && (r.status || '').toLowerCase() !== 'canceled',
   )
@@ -103,8 +103,8 @@ const fetchPrograms = async () => {
         console.error('Error fetching courses:', e)
         return []
       }),
-      registrationService.getAll().catch((e) => {
-        console.error('Error fetching registrations:', e)
+      enrollmentService.getAll().catch((e) => {
+        console.error('Error fetching enrollments:', e)
         return []
       }),
       courseService.getAllSessions().catch((e) => {
@@ -114,10 +114,10 @@ const fetchPrograms = async () => {
     ])
     console.log('Fetched data:', { coursesData, regsData, sessionsData })
     programs.value = Array.isArray(coursesData) ? coursesData : []
-    registrations.value = Array.isArray(regsData) ? regsData : []
+    enrollments.value = Array.isArray(regsData) ? regsData : []
     sessions.value = Array.isArray(sessionsData) ? sessionsData : []
   } catch (error) {
-    console.error('Failed to fetch programs, registrations or sessions', error)
+    console.error('Failed to fetch programs, enrollments or sessions', error)
   } finally {
     loading.value = false
     console.log('Programs loading finished. programs:', programs.value.length)

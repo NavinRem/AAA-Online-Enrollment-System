@@ -18,7 +18,7 @@ const route = useRoute()
 
 const menuItems = [
   { name: 'Dashboard', path: '/dashboard', icon: 'navigation/dashboard-svgrepo.svg' },
-  { name: 'Enrollment', path: '/enrollments', icon: 'navigation/registration-svgrepo.svg' },
+  { name: 'Enrollment', path: '/enrollments', icon: 'navigation/enrollment-svgrepo.svg' },
   { name: 'Parent / Guardian', path: '/parents', icon: 'navigation/guardian-svgrepo.svg' },
   { name: 'Students', path: '/students', icon: 'navigation/student-svgrepo.svg' },
   { name: 'Programs', path: '/programs', icon: 'navigation/program-svgrepo.svg' },

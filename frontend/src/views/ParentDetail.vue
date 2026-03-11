@@ -10,7 +10,7 @@ import DetailedSummaryCard from '@/components/cards/DetailedSummaryCard.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
 import { userService } from '@/services/userService'
-import { registrationService } from '@/services/registrationService'
+import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate } from '@/utils/dateFormatter'
 
 import { getImageUrl } from '@/utils/assetHelper'
@@ -20,7 +20,7 @@ const router = useRouter()
 
 const parent = ref(null)
 const students = ref([])
-const registrations = ref([])
+const enrollments = ref([])
 const selectedChildUid = ref('all') // Default to 'all'
 const activeTab = ref('children') // 'children', 'payments', 'history'
 const currentFilter = ref('all')
@@ -58,9 +58,9 @@ const filterOptions = computed(() => {
 const loading = ref(true)
 const errorMessage = ref('')
 
-// Filter registrations for the Children List card based on selected child
-const studentRegistrations = computed(() => {
-  let list = registrations.value
+// Filter enrollments for the Children List card based on selected child
+const studentEnrollments = computed(() => {
+  let list = enrollments.value
   if (selectedChildUid.value !== 'all') {
     list = list.filter((r) => {
       const sId = r.student_id || r.studentId
@@ -76,15 +76,15 @@ const studentRegistrations = computed(() => {
 })
 
 const filteredPayments = computed(() => {
-  if (currentFilter.value === 'all') return registrations.value
-  return registrations.value.filter(
+  if (currentFilter.value === 'all') return enrollments.value
+  return enrollments.value.filter(
     (r) => (r.paymentStatus || 'pending').toLowerCase() === currentFilter.value,
   )
 })
 
 const filteredHistory = computed(() => {
-  if (currentFilter.value === 'all') return registrations.value
-  return registrations.value.filter((r) => {
+  if (currentFilter.value === 'all') return enrollments.value
+  return enrollments.value.filter((r) => {
     let status = (r.status || 'pending').toLowerCase()
     if (status === 'confirmed') status = 'paid' // Map backend 'confirmed' to UI 'paid'
     return status === currentFilter.value
@@ -105,10 +105,10 @@ const fetchData = async (id) => {
     if (!parentData) throw new Error('Parent not found')
     parent.value = parentData
 
-    // Fetch Students and Registrations in parallel
-    const [studentsData, allRegistrations] = await Promise.all([
+    // Fetch Students and Enrollments in parallel
+    const [studentsData, allEnrollments] = await Promise.all([
       userService.getStudents(id),
-      registrationService.getAll(),
+      enrollmentService.getAll(),
     ])
 
     students.value = studentsData || []
@@ -121,9 +121,9 @@ const fetchData = async (id) => {
       selectedChildUid.value = students.value[0].id || students.value[0].uid
     }
 
-    // Filter registrations for this parent
+    // Filter enrollments for this parent
     const pId = parent.value.uid || parent.value.id
-    registrations.value = (allRegistrations || []).filter((r) => {
+    enrollments.value = (allEnrollments || []).filter((r) => {
       const parentRef = r.parent_id || r.parentId
       return parentRef === pId
     })
@@ -208,7 +208,7 @@ const submitAddChild = async (childData) => {
     await fetchData(parent.value.uid || parent.value.id)
     setTimeout(() => (addChildModal.value.isOpen = false), 1500)
   } catch (err) {
-    globalError.value = err.message || 'Registration failed'
+    globalError.value = err.message || 'Enrollment failed'
   } finally {
     submitting.value = false
   }
@@ -347,12 +347,12 @@ watch(
                         No children linked to this parent account.
                       </td>
                     </tr>
-                    <tr v-else-if="studentRegistrations.length === 0">
+                    <tr v-else-if="studentEnrollments.length === 0">
                       <td colspan="5" class="text-center text-muted p-4">
                         This child is not currently registered in any active programs.
                       </td>
                     </tr>
-                    <tr v-for="(reg, idx) in studentRegistrations" :key="reg.id">
+                    <tr v-for="(reg, idx) in studentEnrollments" :key="reg.id">
                       <td>{{ idx + 1 }}</td>
                       <td>Piano</td>
                       <td>{{ reg.courseTitle || 'N/A' }}</td>

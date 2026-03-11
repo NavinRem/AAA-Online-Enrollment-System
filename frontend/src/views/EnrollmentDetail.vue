@@ -6,7 +6,7 @@ import DetailPageLayout from '@/components/layout/DetailPageLayout/DetailPageLay
 import StatusBadge from '@/components/common/ui/StatusBadge/StatusBadge.vue'
 import DetailCard from '@/components/cards/DetailCard.vue'
 import DetailedSummaryCard from '@/components/cards/DetailedSummaryCard.vue'
-import { registrationService } from '@/services/registrationService'
+import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { courseService } from '@/services/courseService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
@@ -73,7 +73,7 @@ const submitActionModal = async () => {
   try {
     if (type === 'pay') {
       if (!proof.trim()) throw new Error('Proof of payment (e.g. Receipt #) is required.')
-      await registrationService.updateEnrollment(enrollment.value.id, {
+      await enrollmentService.updateEnrollment(enrollment.value.id, {
         paymentStatus: 'paid',
         paymentProof: proof,
       })
@@ -81,18 +81,18 @@ const submitActionModal = async () => {
       enrollment.value.paymentProof = proof
     } else if (type === 'cancel') {
       if (!reason.trim()) throw new Error('A reason for cancellation must be provided.')
-      await registrationService.cancelEnrollment(enrollment.value.id)
-      await registrationService.updateEnrollment(enrollment.value.id, { cancelReason: reason })
+      await enrollmentService.cancelEnrollment(enrollment.value.id)
+      await enrollmentService.updateEnrollment(enrollment.value.id, { cancelReason: reason })
       enrollment.value.status = 'cancelled'
     } else if (type === 'delete') {
       if (deleteConfirm !== 'DELETE')
         throw new Error('You must type DELETE specifically to confirm.')
-      await registrationService.deleteEnrollment(enrollment.value.id)
+      await enrollmentService.deleteEnrollment(enrollment.value.id)
       router.push('/enrollments')
       return
     } else if (type === 'edit') {
       if (amount < 0) throw new Error('Amount cannot be negative.')
-      await registrationService.updateEnrollment(enrollment.value.id, {
+      await enrollmentService.updateEnrollment(enrollment.value.id, {
         amount: Number(amount),
         remark: remark.trim(),
       })
@@ -143,7 +143,7 @@ onMounted(async () => {
     if (!id) throw new Error('No Enrollment ID provided')
 
     // 1. Fetch the primary enrollment data (now enriched from backend)
-    const data = await registrationService.get(id)
+    const data = await enrollmentService.get(id)
     if (!data) throw new Error('Enrollment not found')
     enrollment.value = data
 
@@ -568,7 +568,7 @@ onMounted(async () => {
                 <p>
                   <strong>Critical Warning:</strong> Deleting an enrollment removes the record
                   entirely. It can never be recovered. This should only be used for accidental
-                  duplicate registrations.
+                  duplicate enrollments.
                 </p>
               </div>
               <label>Confirm Deletion <span class="required">*</span></label>

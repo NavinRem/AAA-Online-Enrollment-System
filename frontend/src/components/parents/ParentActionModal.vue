@@ -59,7 +59,7 @@
           <strong>Account Reactivation</strong>
           <p>
             Reactivating this account will restore the user's ability to log in and manage their
-            children's registrations immediately.
+            children's enrollments immediately.
           </p>
         </div>
       </div>
@@ -73,7 +73,7 @@
           <strong>Critical Permanent Action</strong>
           <p>
             Deleting an account removes the record entirely. It can never be recovered. This should
-            only be used for accidental duplicate registrations.
+            only be used for accidental duplicate enrollments.
           </p>
         </div>
       </div>

@@ -1,6 +1,6 @@
 /**
  * Checks if a specific enrollment should be considered "Active/Studying".
- * @param {Object} reg - The registration/enrollment object
+ * @param {Object} reg - The enrollment/enrollment object
  * @returns {Boolean}
  */
 export const isEnrollmentActive = (reg) => {
@@ -36,21 +36,21 @@ export const isEnrollmentActive = (reg) => {
  * 4. No valid, paid enrollments ever -> 'Inactive'
  *
  * @param {Object} student - The student object
- * @param {Array} allRegistrations - Array of all enrollments
+ * @param {Array} allEnrollments - Array of all enrollments
  * @returns {String} The calculated status
  */
-export const calculateStudentStatus = (student, allRegistrations = []) => {
+export const calculateStudentStatus = (student, allEnrollments = []) => {
   // 1. Explicit admin overrides take precedence over everything
   const explicitStatuses = ['Suspended', 'Stopped']
   if (student.status && explicitStatuses.includes(student.status)) {
     return student.status
   }
 
-  // Get only this student's registrations
+  // Get only this student's enrollments
   const studentId = String(student.id || student.uid || '')
   if (!studentId) return 'Inactive'
   
-  const studentRegs = allRegistrations.filter((r) => {
+  const studentRegs = allEnrollments.filter((r) => {
     const rStudentId = String(r.student_id || r.studentId || '')
     return rStudentId === studentId
   })
