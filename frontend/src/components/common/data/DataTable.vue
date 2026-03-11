@@ -1,6 +1,6 @@
 <script setup>
-import AppTable from '@/components/common/data/AppTable/AppTable.vue'
-import TableToolbar from '@/components/common/data/TableToolbar/TableToolbar.vue'
+import AppTable from '@/components/common/data/AppTable.vue'
+import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import { useTableActions } from '@/composables/useTableActions'
 
 const props = defineProps({

@@ -38,8 +38,8 @@
 
 <script setup>
 import { ref } from 'vue'
-import SearchBox from '@/components/common/data/SearchBox/SearchBox.vue'
-import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
+import SearchBox from '@/components/common/data/SearchBox.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
 
 defineProps({
   hasSearch: {

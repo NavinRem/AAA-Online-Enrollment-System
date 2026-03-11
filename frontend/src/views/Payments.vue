@@ -2,10 +2,10 @@
 import { ref, computed } from 'vue'
 import { formatDate } from '../utils/dateFormatter'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
-import DataPageLayout from '../components/layout/DataPageLayout/DataPageLayout.vue'
-import DataMetrics from '../components/common/data/DataMetrics/DataMetrics.vue'
-import DataTable from '../components/common/data/DataTable/DataTable.vue'
-import StatusBadge from '../components/common/ui/StatusBadge/StatusBadge.vue'
+import StatusBadge from '../components/common/ui/StatusBadge.vue'
+import DataMetrics from '../components/common/data/DataMetrics.vue'
+import DataTable from '../components/common/data/DataTable.vue'
+import DataPageLayout from '../components/layout/DataPageLayout.vue'
 
 const payments = ref([
   { id: 1, parent: 'Diana Holmes', amount: 180, method: 'Credit Card', status: 'Paid', date: '2026-02-15' },
