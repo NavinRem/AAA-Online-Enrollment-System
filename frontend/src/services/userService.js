@@ -2,7 +2,7 @@ import { request } from './api'
 
 export const userService = {
   // Register Parent Account
-  async registerParentAccount(userData) {
+  registerParentAccount(userData) {
     return request('/users/registerParentAccount', {
       method: 'POST',
       body: JSON.stringify(userData),
@@ -15,10 +15,8 @@ export const userService = {
   },
 
   // Get User Role
-  async getUserRole(uid) {
-    return request(`/users/${uid}/role`, {
-      method: 'GET',
-    })
+  getUserRole(uid) {
+    return request(`/users/${uid}/role`)
   },
 
   // Get All Users (Admin primarily)
@@ -27,7 +25,7 @@ export const userService = {
   },
 
   // Register Student Profile
-  async registerStudentProfile(uid, studentData) {
+  registerStudentProfile(uid, studentData) {
     return request(`/users/${uid}/registerStudentProfile`, {
       method: 'POST',
       body: JSON.stringify(studentData),
@@ -35,7 +33,7 @@ export const userService = {
   },
 
   // Update Medical Info
-  async updateMedicalInfo(studentId, note) {
+  updateMedicalInfo(studentId, note) {
     return request(`/users/students/${studentId}/medical`, {
       method: 'PUT',
       body: JSON.stringify({ medical_note: note }),
@@ -43,7 +41,7 @@ export const userService = {
   },
 
   // Update Student Profile Details or Status
-  async updateStudent(studentId, updateData) {
+  updateStudent(studentId, updateData) {
     return request(`/students/${studentId}`, {
       method: 'PUT',
       body: JSON.stringify(updateData),
@@ -66,7 +64,7 @@ export const userService = {
   },
 
   // Update User Profile (Admin)
-  async updateUser(uid, updateData) {
+  updateUser(uid, updateData) {
     return request(`/users/${uid}`, {
       method: 'PUT',
       body: JSON.stringify(updateData),
@@ -74,7 +72,7 @@ export const userService = {
   },
 
   // Delete User Account (Admin)
-  async deleteUser(uid) {
+  deleteUser(uid) {
     return request(`/users/${uid}`, {
       method: 'DELETE',
     })

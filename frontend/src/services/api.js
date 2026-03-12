@@ -16,36 +16,34 @@ export async function request(endpoint, options = {}) {
     if (cached) return cached
   }
 
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
-  }
-
+  // Handle headers
   const headers = {
-    ...defaultHeaders,
+    'Content-Type': 'application/json',
     ...options.headers,
   }
 
+  // Allow removing Content-Type (e.g. for FormData)
   if (headers['Content-Type'] === undefined) {
     delete headers['Content-Type']
   }
 
-  const config = {
+  const fetchOptions = {
     ...options,
     headers,
   }
 
-  const response = await fetch(url, config)
-
+  const response = await fetch(url, fetchOptions)
   const contentType = response.headers.get('content-type')
+  
   let responseData
-
-  if (contentType && contentType.indexOf('application/json') !== -1) {
+  if (contentType && contentType.includes('application/json')) {
     responseData = await response.json()
   } else {
     const text = await response.text()
     responseData = { message: text || response.statusText }
   }
 
+  // Error handling
   if (!response.ok) {
     throw new Error(
       responseData.message ||
@@ -58,12 +56,11 @@ export async function request(endpoint, options = {}) {
     throw new Error(responseData.error.message || responseData.error || 'Unknown API Error')
   }
 
-  // 2. Set Cache on success for GET
+  // 2. Cache management
   if (method === 'GET') {
     setCachedData(cacheKey, responseData)
   } else {
-    // 3. Clear cache aggressively if we mutate (POST, DELETE, PUT)
-    // E.g., if we POST to /enrollments, we clear the '/enrollments' cache.
+    // Clear cache for this resource type if we mutate
     const resourceBase = endpoint.split('/')[1]
     if (resourceBase) {
       clearCachePrefix(`/${resourceBase}`)

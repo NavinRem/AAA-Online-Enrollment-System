@@ -22,7 +22,7 @@ export const courseService = {
   },
 
   // Create new course
-  async createCourse(data) {
+  createCourse(data) {
     return request('/courses', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -30,7 +30,7 @@ export const courseService = {
   },
 
   // Update existing course
-  async updateCourse(id, data) {
+  updateCourse(id, data) {
     return request(`/courses/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -38,7 +38,7 @@ export const courseService = {
   },
 
   // Delete course
-  async deleteCourse(id) {
+  deleteCourse(id) {
     return request(`/courses/${id}`, {
       method: 'DELETE',
     })
@@ -56,7 +56,7 @@ export const courseService = {
     })
   },
 
-  async deleteCategory(id) {
+  deleteCategory(id) {
     return request(`/categories/${id}`, {
       method: 'DELETE',
     })
@@ -68,7 +68,7 @@ export const courseService = {
     return request(`/categories/${categoryId}/levels`)
   },
 
-  async createLevel(categoryId, data) {
+  createLevel(categoryId, data) {
     return request(`/categories/${categoryId}/levels`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -80,7 +80,7 @@ export const courseService = {
     return request('/terms')
   },
 
-  async createTerm(data) {
+  createTerm(data) {
     return request('/terms', {
       method: 'POST',
       body: JSON.stringify(data),
