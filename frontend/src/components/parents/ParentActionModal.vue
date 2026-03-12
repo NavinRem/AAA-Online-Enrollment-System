@@ -96,9 +96,10 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { computed } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import { useActionModal } from '@/composables/useActionModal'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -111,7 +112,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const localData = ref({
+const getInitialData = () => ({
   name: '',
   phone: '',
   email: '',
@@ -119,37 +120,30 @@ const localData = ref({
   deleteConfirm: '',
 })
 
-const originalData = ref({
-  name: '',
-  phone: '',
-  email: '',
-  role: '',
+const mapSourceToForm = () => {
+  const u = props.user || {}
+  return {
+    name: u.name || '',
+    phone: u.phone || '',
+    email: u.email || '',
+    role: u.role || 'parent',
+    deleteConfirm: '',
+  }
+}
+
+const { localData, originalData, submitForm } = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm,
 })
 
-// Sync local data with prop when modal opens
-watch(
-  () => props.isOpen,
-  (newVal) => {
-    if (newVal && props.user) {
-      const initial = {
-        name: props.user.name || '',
-        phone: props.user.phone || '',
-        email: props.user.email || '',
-        role: props.user.role || 'parent',
-        deleteConfirm: '',
-      }
-      localData.value = { ...initial }
-      originalData.value = { ...initial }
-    }
-  },
-)
-
 const modalTitle = computed(() => {
-  if (props.type === 'edit') return 'Edit User'
-  if (props.type === 'deactivate') return 'Deactivate User'
-  if (props.type === 'activate') return 'Reactivate User'
-  if (props.type === 'delete') return 'Delete User'
-  return 'Action Modal'
+  const titles = {
+    edit: 'Edit User',
+    deactivate: 'Deactivate User',
+    activate: 'Reactivate User',
+    delete: 'Delete User',
+  }
+  return titles[props.type] || 'Action Modal'
 })
 
 const isFormValid = computed(() => {
@@ -167,10 +161,7 @@ const isFormValid = computed(() => {
   return true
 })
 
-const handleSubmit = () => {
-  if (!isFormValid.value) return
-  emit('submit', { ...localData.value })
-}
+const handleSubmit = () => submitForm(isFormValid.value)
 </script>
 
 <style scoped>

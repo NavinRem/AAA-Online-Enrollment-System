@@ -178,10 +178,15 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { courseService } from '@/services/courseService'
+import { useActionModal } from '@/composables/useActionModal'
+import { 
+  calculateEndTime, 
+  calculateDuration, 
+} from '@/utils/timeHelper'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -201,81 +206,63 @@ const newCategoryName = ref('')
 const newLevelName = ref('')
 const newTermName = ref('')
 const isUploading = ref(false)
+const endTime = ref('10:00')
 
-const localData = ref({
+const getInitialData = () => ({
   title: '',
+  categoryId: '',
   category: '',
   description: '',
   price: 0,
   number_session: 11,
-  categoryId: '',
   levelId: '',
   termId: '',
   status: 'Active',
-  schedule: {
-    day: 'Monday',
-    time: '09:00',
-    duration: 60,
-  },
+  schedule: { day: 'Monday', time: '09:00', duration: 60 },
   imageURL: '',
   deleteConfirm: '',
 })
 
-const originalData = ref({})
+const mapSourceToForm = () => {
+  if (props.type === 'add') return getInitialData()
+  const s = props.program || {}
+  return {
+    title: s.title || s.name || '',
+    categoryId: s.categoryId || '',
+    category: s.category || '',
+    description: s.description || '',
+    price: s.price || 0,
+    number_session: s.number_session || 1,
+    levelId: s.levelId || '',
+    termId: s.termId || '',
+    status: s.status || 'Active',
+    schedule: s.schedule || { day: 'Monday', time: '09:00', duration: 60 },
+    imageURL: s.imageURL || '',
+    deleteConfirm: '',
+  }
+}
 
-watch(
-  () => props.isOpen,
-  async (newVal) => {
-    if (newVal) {
-      fetchCategories()
-      fetchTerms()
-      if (props.type === 'edit' || props.type === 'delete') {
-        const source = props.program || {}
-        localData.value = {
-          title: source.title || source.name || '',
-          categoryId: source.categoryId || '',
-          category: source.category || '',
-          description: source.description || '',
-          price: source.price || 0,
-          number_session: source.number_session || 1,
-          levelId: source.levelId || '',
-          termId: source.termId || '',
-          status: source.status || 'Active',
-          schedule: source.schedule || { day: 'Monday', time: '09:00', duration: 60 },
-          imageURL: source.imageURL || '',
-          deleteConfirm: '',
-        }
-        if (localData.value.categoryId) {
-          fetchLevels()
-        }
-        originalData.value = { ...localData.value }
-      } else {
-        localData.value = {
-          title: '',
-          categoryId: '',
-          category: '',
-          description: '',
-          price: 0,
-          number_session: 1,
-          levelId: '',
-          termId: '',
-          status: 'Active',
-          schedule: { day: 'Monday', time: '09:00', duration: 60 },
-          imageURL: '',
-          deleteConfirm: '',
-        }
-        levels.value = []
-      }
-    }
-  },
-)
+const { localData, submitForm } = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm
+})
+
+// Original Data kept for UI cues (some fields in template use it)
+const originalData = computed(() => props.program || {})
+
+// Lifecycle and Fetches
+watch(() => props.isOpen, (newVal) => {
+  if (newVal) {
+    fetchCategories()
+    fetchTerms()
+    if (localData.value.categoryId) fetchLevels()
+    else levels.value = []
+  }
+})
 
 const onCategoryChange = () => {
-  // Clear level when category changes
   localData.value.levelId = ''
   levels.value = []
-  
-  // Update name if needed (optional, keeping for legacy course matching)
   const selectedCat = categories.value.find(c => c.id === localData.value.categoryId)
   if (selectedCat) {
     localData.value.category = selectedCat.name
@@ -287,9 +274,7 @@ const fetchCategories = async () => {
   try {
     const data = await courseService.getAllCategories()
     categories.value = Array.isArray(data) ? data : []
-  } catch (err) {
-    console.error('Failed to fetch categories', err)
-  }
+  } catch (err) { console.error('Failed to fetch categories', err) }
 }
 
 const fetchLevels = async () => {
@@ -297,18 +282,14 @@ const fetchLevels = async () => {
   try {
     const data = await courseService.getAllLevels(localData.value.categoryId)
     levels.value = Array.isArray(data) ? data : []
-  } catch (err) {
-    console.error('Failed to fetch levels', err)
-  }
+  } catch (err) { console.error('Failed to fetch levels', err) }
 }
 
 const fetchTerms = async () => {
   try {
     const data = await courseService.getAllTerms()
     terms.value = Array.isArray(data) ? data : []
-  } catch (err) {
-    console.error('Failed to fetch terms', err)
-  }
+  } catch (err) { console.error('Failed to fetch terms', err) }
 }
 
 const handleCreateCategory = async () => {
@@ -319,26 +300,18 @@ const handleCreateCategory = async () => {
     localData.value.categoryId = result.id
     localData.value.category = result.name
     newCategoryName.value = ''
-    fetchLevels() // New category, clear levels
-  } catch (err) {
-    console.error('Failed to create category', err)
-    alert(err.message || 'Failed to create category')
-  }
+    fetchLevels()
+  } catch (err) { alert(err.message || 'Failed to create category') }
 }
 
 const handleCreateLevel = async () => {
   if (!newLevelName.value.trim() || !localData.value.categoryId) return
   try {
-    const result = await courseService.createLevel(localData.value.categoryId, { 
-      name: newLevelName.value.trim() 
-    })
+    const result = await courseService.createLevel(localData.value.categoryId, { name: newLevelName.value.trim() })
     await fetchLevels()
     localData.value.levelId = result.id
     newLevelName.value = ''
-  } catch (err) {
-    console.error('Failed to create level', err)
-    alert(err.message || 'Failed to create level')
-  }
+  } catch (err) { alert(err.message || 'Failed to create level') }
 }
 
 const handleCreateTerm = async () => {
@@ -348,115 +321,63 @@ const handleCreateTerm = async () => {
     await fetchTerms()
     localData.value.termId = result.id
     newTermName.value = ''
-  } catch (err) {
-    console.error('Failed to create term', err)
-    // Handle specific duplicate error or general error
-    const msg = err.message || 'Failed to create term'
-    alert(msg) // Simple fallback, or use emit if parent handles it
-  }
+  } catch (err) { alert(err.message || 'Failed to create term') }
 }
 
 const handleFileUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
-
   isUploading.value = true
   try {
     const result = await courseService.uploadImage(file)
     localData.value.imageURL = result.imageURL
-  } catch (err) {
-    console.error('Upload failed', err)
-    alert('Upload failed: ' + err.message)
-  } finally {
-    isUploading.value = false
-  }
+  } catch (err) { alert('Upload failed: ' + err.message) }
+  finally { isUploading.value = false }
 }
 
 const modalTitle = computed(() => {
-  if (props.type === 'add') return 'Create New Program'
-  if (props.type === 'edit') return 'Edit Program'
-  if (props.type === 'delete') return 'Delete Program'
-  return 'Program Action'
+  const titles = { add: 'Create New Program', edit: 'Edit Program', delete: 'Delete Program' }
+  return titles[props.type] || 'Program Action'
 })
 
 const isFormValid = computed(() => {
-  if (props.type === 'add' || props.type === 'edit') {
-    return (
-      localData.value.title.trim() && 
-      localData.value.categoryId && 
-      localData.value.levelId && 
-      localData.value.termId && 
-      localData.value.price >= 0 && 
-      localData.value.number_session > 0
-    )
-  }
-  if (props.type === 'delete') {
-    return localData.value.deleteConfirm === 'DELETE'
-  }
-  return true
+  if (props.type === 'delete') return localData.value.deleteConfirm === 'DELETE'
+  return (
+    localData.value.title.trim() && 
+    localData.value.categoryId && 
+    localData.value.levelId && 
+    localData.value.termId && 
+    localData.value.price >= 0 && 
+    localData.value.number_session > 0
+  )
 })
 
 const titlePlaceholder = computed(() => {
   const cat = categories.value.find(c => c.id === localData.value.categoryId)
   const lvl = levels.value.find(l => l.id === localData.value.levelId)
-  
   if (cat && lvl) return `e.g. ${cat.name} Level ${lvl.name}`
   if (cat) return `e.g. ${cat.name} Level 1`
   return 'e.g. Ballet Level 1'
 })
 
-// Advanced Scheduling Logic
-const endTime = ref('10:00')
-
-const timeToMinutes = (timeStr) => {
-  const [hours, minutes] = timeStr.split(':').map(Number)
-  return hours * 60 + minutes
-}
-
-const minutesToTime = (totalMinutes) => {
-  const hours = Math.floor(totalMinutes / 60) % 24
-  const minutes = totalMinutes % 60
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-}
-
-const updateEndTimeFromDuration = () => {
-  if (!localData.value.schedule.time || !localData.value.schedule.duration) return
-  const startMins = timeToMinutes(localData.value.schedule.time)
-  endTime.value = minutesToTime(startMins + parseInt(localData.value.schedule.duration))
-}
-
-const updateDurationFromEndTime = () => {
-  if (!localData.value.schedule.time || !endTime.value) return
-  let startMins = timeToMinutes(localData.value.schedule.time)
-  let endMins = timeToMinutes(endTime.value)
-  
-  // Handle overnight if needed, but for now assume same day
-  if (endMins < startMins) endMins += 24 * 60
-  
-  localData.value.schedule.duration = endMins - startMins
-}
-
+// Time Helpers
 const onStartTimeChange = () => {
-  updateEndTimeFromDuration()
+  endTime.value = calculateEndTime(localData.value.schedule.time, localData.value.schedule.duration)
 }
 
 const onEndTimeChange = () => {
-  updateDurationFromEndTime()
+  localData.value.schedule.duration = calculateDuration(localData.value.schedule.time, endTime.value)
 }
 
 const onDurationChange = () => {
-  updateEndTimeFromDuration()
+  endTime.value = calculateEndTime(localData.value.schedule.time, localData.value.schedule.duration)
 }
 
-// Sync endTime on load
 watch(() => localData.value.schedule, () => {
-  updateEndTimeFromDuration()
+  endTime.value = calculateEndTime(localData.value.schedule.time, localData.value.schedule.duration)
 }, { immediate: true, deep: true })
 
-const handleSubmit = () => {
-  if (!isFormValid.value) return
-  emit('submit', { ...localData.value })
-}
+const handleSubmit = () => submitForm(isFormValid.value)
 </script>
 
 <style scoped>
