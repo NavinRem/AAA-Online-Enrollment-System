@@ -1,22 +1,24 @@
 # AAA Online Enrollment System - Documentation Index
 
-This directory contains technical documentation and architectural reference for the AAA Online Enrollment System.
+This directory serves as the source of truth for the system's architecture, development standards, and historical evolution.
 
 ## [🏛️ Architecture](./architecture/)
-Core system designs and architectural boundaries.
-- [Firebase Architecture](./architecture/firebase-architecture.md): Overview of the consolidated Firebase setup.
-- [Frontend Architecture](./architecture/frontend-architecture.md): Description of the Vue.js architecture and service layer.
-- [Views Orchestration](./architecture/frontend-views.md): Audit results and design patterns for the application's view layer.
+Strict structural definitions and system boundaries.
+- [Frontend Architecture](./architecture/frontend-architecture.md): The layered orchestration design.
+- [Firebase Infrastructure](./architecture/firebase-architecture.md): Cloud services and deployment strategy.
+- [View Orchestration](./architecture/view-orchestration-architecture.md): The architectural role of View components.
+- [Services Reference](./architecture/services-reference.md): Global communication and caching layers.
 
-## [🧩 Patterns & Guides](./patterns/)
-Best practices and reusable patterns used throughout the codebase.
-- [Composables Guide](./patterns/composables-guide.md): **How to use and create stateful logic.**
-- [Components vs Composables](./patterns/components-vs-composables.md): Architectural guide on the distinction between components and composables.
-- [Utils vs Services](./patterns/utils-vs-services.md): Explanation of the architectural separation of concerns.
-- [Extreme Simplification](./patterns/extreme-simplification.md): Documentation on the code simplification sweep and helper patterns.
+## [🧩 Logic Patterns & Coding Standards](./patterns/)
+Reusable strategies for building features consistently.
+- [Logic Reuse: Composables](./patterns/logic-reuse-composables.md): Stateful reactive logic patterns.
+- [Boundaries: State vs. Template](./patterns/state-vs-template-boundaries.md): Deciding where code belongs.
+- [Separation: Processing vs. Communication](./patterns/processing-vs-communication.md): Pure functions vs. API calls.
+- [Pattern: Lean View Orchestration](./patterns/lean-view-orchestration-pattern.md): The "Extreme Simplification" philosophy.
 
-## [🗄️ Historical Context](./archives/)
-- [Project Progress (2026-03-11)](./archives/progress-2026-03-11.md): Summary of major cleanup and refactoring achievements.
+## [🗄️ Historical Records](./archives/)
+- [Development Log: 2026-03-12](./archives/dev-log-2026-03-12.md): Record of the Logic Extraction phase.
+- [Legacy Progress (2026-03-11)](./archives/progress-2026-03-11.md): Previous cleanup achievements.
 
 ---
-*Note: This documentation is intended for developers maintaining the system. For user guides, please refer to the project README.*
+*Note: This documentation is maintained for developers. For user-facing guides, see the project root README.*
