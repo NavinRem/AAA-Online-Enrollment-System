@@ -35,21 +35,11 @@ export const enrollmentService = {
 
   // Get all enrollments
   getAll() {
-    return request('/enrollments', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    return request('/enrollments')
   },
 
   // Get a single enrollment
   get(id) {
-    return request(`/enrollments/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+    return request(`/enrollments/${id}`)
   },
 }
