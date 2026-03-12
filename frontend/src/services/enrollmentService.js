@@ -33,12 +33,12 @@ export const enrollmentService = {
   },
 
   // Get all enrollments
-  getAll() {
+  getAllEnrollments() {
     return request('/enrollments')
   },
 
   // Get a single enrollment
-  get(id) {
+  getEnrollment(id) {
     return request(`/enrollments/${id}`)
   },
 }

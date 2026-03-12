@@ -49,7 +49,7 @@ const fetchPrograms = async () => {
         console.error('Error fetching courses:', e)
         return []
       }),
-      enrollmentService.getAll().catch((e) => {
+      enrollmentService.getAllEnrollments().catch((e) => {
         console.error('Error fetching enrollments:', e)
         return []
       }),

@@ -6,6 +6,7 @@ import { enrollmentService } from '../services/enrollmentService'
 import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { isPaid } from '@/utils/statusHelper'
 import { parseDate } from '../utils/dateFormatter'
 import { calculateDashboardStats } from '../utils/statsHelper'
 
@@ -39,7 +40,7 @@ onMounted(() => {
       
       const [uData, rData, cData, sData] = await Promise.all([
         userService.getAllUsers(),
-        enrollmentService.getAll(),
+        enrollmentService.getAllEnrollments(),
         courseService.getAllCourses(),
         userService.getAllStudents()
       ])
@@ -77,7 +78,7 @@ const mappedEnrollments = computed(() => {
       const p = allUsers.value.find(u => u.uid === r.parentId)
       const s = students.value.find(s => s.id === r.studentId)
       const c = courses.value.find(c => c.id === r.courseId)
-      const isPaid = ['paid', 'confirmed'].includes((r.paymentStatus || r.status || '').toLowerCase())
+      const rStatus = (r.paymentStatus || r.status || '')
 
       return {
         id: r.id,
@@ -85,7 +86,7 @@ const mappedEnrollments = computed(() => {
         parent: p?.name || r.parentName || 'Parent',
         child: s?.fullName || r.studentName || 'Student',
         course: c?.title || r.courseTitle || 'Course',
-        status: isPaid ? 'Paid' : ((r.status || '').toLowerCase() === 'cancelled' ? 'Canceled' : 'Unpaid'),
+        status: isPaid(rStatus) ? 'Paid' : ((r.status || '').toLowerCase() === 'cancelled' ? 'Canceled' : 'Unpaid'),
         amount: `$${r.amount || c?.price || 0}`,
         date: r.enrollAt || r.createdAt
       }

@@ -142,7 +142,7 @@ onMounted(async () => {
     if (!id) throw new Error('No Enrollment ID provided')
 
     // 1. Fetch the primary enrollment data (now enriched from backend)
-    const data = await enrollmentService.get(id)
+    const data = await enrollmentService.getEnrollment(id)
     if (!data) throw new Error('Enrollment not found')
     enrollment.value = data
 

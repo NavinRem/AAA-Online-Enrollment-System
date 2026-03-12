@@ -210,7 +210,7 @@ const fetchData = async (id) => {
     }
 
     // 3. Fetch Enrollments
-    const allEnrollments = (await enrollmentService.getAll()) || []
+    const allEnrollments = (await enrollmentService.getAllEnrollments()) || []
     enrollments.value = allEnrollments.filter((r) => {
       const sId = String(r.student_id || r.studentId || '')
       return sId === String(id)

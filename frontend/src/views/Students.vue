@@ -34,7 +34,7 @@ onMounted(async () => {
     if (profile?.role === 'admin') {
       const [sData, rData, uData] = await Promise.all([
         userService.getAllStudents(),
-        enrollmentService.getAll(),
+        enrollmentService.getAllEnrollments(),
         userService.getAllUsers(),
       ])
       students.value = enrichStudents(sData, rData || [], uData || [])

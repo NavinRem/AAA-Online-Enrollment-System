@@ -12,8 +12,9 @@ import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateEnrollmentStats, enrichEnrollments } from '../utils/enrollmentHelper'
-
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { isPaid, isCancelled, isUnpaid } from '@/utils/statusHelper'
+import { formatDate, formatDateOnly } from '@/utils/dateFormatter'
 
 const enrollments = ref([])
 const parents = ref([])
@@ -34,7 +35,7 @@ onMounted(async () => {
 const fetchEnrollments = async () => {
   try {
     loading.value = true
-    const data = await enrollmentService.getAll()
+    const data = await enrollmentService.getAllEnrollments()
     enrollments.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error('Failed to fetch enrollments', error)
@@ -112,10 +113,7 @@ const handleCreateEnrollment = async (formData) => {
   }
 }
 
-const isPaid = (status) => status?.toLowerCase() === 'paid' || status?.toLowerCase() === 'confirmed'
-const isCancelled = (status) =>
-  status?.toLowerCase() === 'canceled' || status?.toLowerCase() === 'cancelled'
-const isUnpaid = (status) => status && !isPaid(status) && !isCancelled(status)
+// Status helpers imported from @/utils/statusHelper
 
 const enrollmentStats = computed(() => {
   const s = calculateEnrollmentStats(enrollments.value)
@@ -266,7 +264,7 @@ const submitActionModal = async () => {
                 {{ item.courseTitle || 'Course' }}
               </div>
             </td>
-            <td class="hide-on-tablet">{{ item.enrollAt ? item.enrollAt.split('T')[0] : 'N/A' }}</td>
+            <td class="hide-on-tablet">{{ item.enrollAt ? formatDateOnly(item.enrollAt) : 'N/A' }}</td>
             <td class="bold hide-on-mobile">${{ item.amount || 0 }}</td>
             <td>
               <StatusBadge :status="isPaid(item.status || item.paymentStatus) ? 'Paid' : (isCancelled(item.status || item.paymentStatus) ? 'Cancelled' : 'Unpaid')" />
