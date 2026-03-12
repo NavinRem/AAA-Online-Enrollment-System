@@ -36,30 +36,49 @@ app.use(helmet());
 app.use(cors({ origin: true }));
 app.use(express.json());
 
-// Routes
+const apiRouter = express.Router();
+
 // --- Core Enrollment & Payments ---
-app.use("/enrollments", enrollmentRoutes);
-app.use("/payments", paymentRoutes);
+apiRouter.use("/enrollments", enrollmentRoutes);
+apiRouter.use("/payments", paymentRoutes);
 
 // --- Student & Parent Management ---
-app.use("/students", studentRoutes);
-app.use("/users", userRoutes);
+apiRouter.use("/students", studentRoutes);
+apiRouter.use("/users", userRoutes);
 
 // --- Academic Content ---
-app.use("/courses", courseRoutes);
-app.use("/sessions", sessionRoutes);
-app.use("/categories", categoryRoutes);
-app.use("/levels", levelRoutes);
-app.use("/terms", termRoutes);
+apiRouter.use("/courses", courseRoutes);
+apiRouter.use("/sessions", sessionRoutes);
+apiRouter.use("/categories", categoryRoutes);
+apiRouter.use("/levels", levelRoutes);
+apiRouter.use("/terms", termRoutes);
 
 // --- Administrative & Academic Tracking ---
-app.use("/attendance", attendanceRoutes);
-app.use("/progress", progressRoutes);
-app.use("/uploads", uploadRoutes);
+apiRouter.use("/attendance", attendanceRoutes);
+apiRouter.use("/progress", progressRoutes);
+apiRouter.use("/uploads", uploadRoutes);
+
+// Main app uses both prefixed and non-prefixed routes for maximum compatibility
+app.use("/api", apiRouter);
+app.use("/", apiRouter);
 
 // Root Endpoint
 app.get("/", (req, res) => {
   res.send("Online Enrollment System API is running!");
+});
+
+// Catch-all 404 handler for debugging path mismatches
+app.use((req, res, next) => {
+  logger.warn("404 Not Found:", {
+    method: req.method,
+    url: req.originalUrl,
+    path: req.path
+  });
+  res.status(404).json({
+    error: true,
+    message: `Cannot ${req.method} ${req.originalUrl}`,
+    suggestion: "Check your VITE_API_URL or endpoint paths."
+  });
 });
 
 // Error Handling Middleware
