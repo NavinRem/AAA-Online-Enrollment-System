@@ -14,13 +14,15 @@
 .history
 .svn/
 
+# Firebase & Deployment
+.firebase/
+firebase-debug.log*
+firebase-debug.*.log*
+firestore-debug.log
+
 # ==========================================
 # BACKEND (Firebase & Functions)
 # ==========================================
-backend/.firebase/
-backend/firebase-debug.log*
-backend/firebase-debug.*.log*
-backend/firestore-debug.log
 backend/functions/node_modules/
 backend/functions/.npm/
 backend/functions/.eslintcache

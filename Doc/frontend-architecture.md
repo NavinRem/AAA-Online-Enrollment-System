@@ -2,7 +2,10 @@
 
 This document explains the core foundation files of the AAA Online Enrollment System frontend.
 
-## 1. `src/main.js` (The Entry Point)
+## 1. `src/config.js` (Central Configuration)
+This is the single source of truth for all environment variables. It imports `import.meta.env` once and exports a structured `config` object. This ensures we don't have to pepper `import.meta.env` across the whole project.
+
+## 2. `src/main.js` (The Entry Point)
 This is the starting point of the entire application. When the browser loads the project, this is the first file it executes.
 
 *   **App Initialization**: Creates the Vue instance and mounts it to the DOM (`#app` in `index.html`).
