@@ -9,20 +9,20 @@ import {
 
 export const authService = {
   // Sign up with email and password
-  async register(email, password) {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-    return userCredential.user
+  register(email, password) {
+    return createUserWithEmailAndPassword(auth, email, password)
+      .then(userCredential => userCredential.user)
   },
 
   // Login with email and password
-  async login(email, password) {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password)
-    return userCredential.user
+  login(email, password) {
+    return signInWithEmailAndPassword(auth, email, password)
+      .then(userCredential => userCredential.user)
   },
 
   // Logout
-  async logout() {
-    await signOut(auth)
+  logout() {
+    return signOut(auth)
   },
 
   // Observe user state changes
@@ -36,7 +36,7 @@ export const authService = {
   },
 
   // Reset Password
-  async resetPassword(email) {
-    await sendPasswordResetEmail(auth, email)
+  resetPassword(email) {
+    return sendPasswordResetEmail(auth, email)
   },
 }
