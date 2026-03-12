@@ -10,10 +10,8 @@ export const userService = {
   },
 
   // Get User Profile by UID
-  async getProfile(uid) {
-    return request(`/users/${uid}`, {
-      method: 'GET',
-    })
+  getProfile(uid) {
+    return request(`/users/${uid}`)
   },
 
   // Get User Role
@@ -24,10 +22,8 @@ export const userService = {
   },
 
   // Get All Users (Admin primarily)
-  async getAllUsers() {
-    return request('/users', {
-      method: 'GET',
-    })
+  getAllUsers() {
+    return request('/users')
   },
 
   // Register Student Profile
@@ -55,24 +51,18 @@ export const userService = {
   },
 
   // Get Individual Student
-  async getStudent(studentId) {
-    return request(`/students/${studentId}`, {
-      method: 'GET',
-    })
+  getStudent(studentId) {
+    return request(`/students/${studentId}`)
   },
 
   // Get Students by Parent
-  async getStudents(uid) {
-    return request(`/users/${uid}/students`, {
-      method: 'GET',
-    })
+  getStudents(uid) {
+    return request(`/users/${uid}/students`)
   },
 
   // Get All Students (Admin)
-  async getAllStudents() {
-    return request('/users/allStudents', {
-      method: 'GET',
-    })
+  getAllStudents() {
+    return request('/users/allStudents')
   },
 
   // Update User Profile (Admin)

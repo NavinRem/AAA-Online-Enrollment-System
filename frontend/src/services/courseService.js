@@ -2,31 +2,23 @@ import { request } from './api'
 
 export const courseService = {
   // Get all courses
-  async getAllCourses() {
-    return request('/courses', {
-      method: 'GET',
-    })
+  getAllCourses() {
+    return request('/courses')
   },
 
   // Get sessions for a specific course
-  async getSessions(courseId) {
-    return request(`/courses/${courseId}/sessions`, {
-      method: 'GET',
-    })
+  getSessions(courseId) {
+    return request(`/courses/${courseId}/sessions`)
   },
 
   // Get all sessions across all courses
-  async getAllSessions() {
-    return request('/sessions', {
-      method: 'GET',
-    })
+  getAllSessions() {
+    return request('/sessions')
   },
 
   // Get single course details
-  async getCourse(courseId) {
-    return request(`/courses/${courseId}`, {
-      method: 'GET',
-    })
+  getCourse(courseId) {
+    return request(`/courses/${courseId}`)
   },
 
   // Create new course
@@ -53,10 +45,8 @@ export const courseService = {
   },
 
   // CATEGORY MANAGEMENT
-  async getAllCategories() {
-    return request('/categories', {
-      method: 'GET',
-    })
+  getAllCategories() {
+    return request('/categories')
   },
 
   async createCategory(data) {
@@ -73,11 +63,9 @@ export const courseService = {
   },
 
   // LEVEL MANAGEMENT (Category-Specific)
-  async getAllLevels(categoryId) {
-    if (!categoryId) return []
-    return request(`/categories/${categoryId}/levels`, {
-      method: 'GET',
-    })
+  getAllLevels(categoryId) {
+    if (!categoryId) return Promise.resolve([])
+    return request(`/categories/${categoryId}/levels`)
   },
 
   async createLevel(categoryId, data) {
@@ -88,10 +76,8 @@ export const courseService = {
   },
 
   // TERM MANAGEMENT
-  async getAllTerms() {
-    return request('/terms', {
-      method: 'GET',
-    })
+  getAllTerms() {
+    return request('/terms')
   },
 
   async createTerm(data) {

@@ -1,6 +1,6 @@
 import { getCachedData, setCachedData, clearCachePrefix } from './cache'
 
-const API_URL = 'https://api-tyweqke5oa-uc.a.run.app'
+const API_URL = import.meta.env.VITE_API_URL
 
 // Helper function for making requests
 export async function request(endpoint, options = {}) {
