@@ -12,8 +12,8 @@ import { calculateDashboardStats } from '../utils/statsHelper'
 // UI Components
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
-import MiniCard from '../components/cards/MiniCard.vue'
-import RecentEnrollmentTable from '../components/common/data/RecentEnrollmentTable.vue'
+import MiniCard from '../components/common/cards/MiniCard.vue'
+import RecentEnrollmentTable from '../components/enrollments/RecentEnrollmentTable.vue'
 
 const router = useRouter()
 const userProfile = ref(null)

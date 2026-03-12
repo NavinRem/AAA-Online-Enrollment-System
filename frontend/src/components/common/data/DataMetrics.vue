@@ -1,5 +1,5 @@
 <script setup>
-import SummaryCard from '@/components/cards/SummaryCard.vue'
+import SummaryCard from '@/components/common/cards/SummaryCard.vue'
 
 const props = defineProps({
   stats: {
