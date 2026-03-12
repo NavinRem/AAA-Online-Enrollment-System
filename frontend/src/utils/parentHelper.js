@@ -25,7 +25,7 @@ export const enrichParents = (users = [], students = []) => {
  * Calculates parent-related statistics.
  */
 export const calculateParentStats = (users = []) => {
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toISOString().split('T')[0] // Safe: toISOString() always contains 'T'
   const parents = users.filter(u => u.role === 'parent')
   const guardians = users.filter(u => u.role === 'guardian')
   

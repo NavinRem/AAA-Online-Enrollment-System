@@ -6,7 +6,7 @@ import { isEnrollmentActive } from './studentStatusHelper'
  * Calculates enrollment statistics.
  */
 export const calculateEnrollmentStats = (enrollments) => {
-  const now = new Date().toISOString().split('T')[0]
+  const now = new Date().toISOString().split('T')[0] // Safe: toISOString() always contains 'T'
   const today = enrollments.filter(r => (r.enrollAt || r.createdAt)?.startsWith(now))
   
   return {
