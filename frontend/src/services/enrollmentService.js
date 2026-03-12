@@ -12,9 +12,8 @@ export const enrollmentService = {
 
   // Cancel Enrollment
   cancelEnrollment(enrollmentId) {
-    return request('/enrollments/cancel', {
+    return request(`/enrollments/${enrollmentId}/cancel`, {
       method: 'POST',
-      body: JSON.stringify({ enrollment_id: enrollmentId }),
     })
   },
 

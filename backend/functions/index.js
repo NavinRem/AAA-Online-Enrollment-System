@@ -64,8 +64,18 @@ app.get("/", (req, res) => {
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
-  logger.error(err.stack);
-  res.status(500).send("Something broke!");
+  logger.error("API Error:", {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method
+  });
+  
+  res.status(err.status || 500).json({
+    error: true,
+    message: err.message || "Internal Server Error",
+    path: req.path
+  });
 });
 
 // Export the API

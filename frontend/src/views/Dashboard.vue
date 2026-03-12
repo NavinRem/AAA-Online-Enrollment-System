@@ -7,6 +7,7 @@ import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 import { parseDate } from '../utils/dateFormatter'
+import { calculateDashboardStats } from '../utils/statsHelper'
 
 // UI Components
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
@@ -122,58 +123,7 @@ const totalStats = computed(() => [
 ])
 
 const calculateStats = () => {
-  const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
-
-  const getExpectedAmount = (r) => {
-    let amt = 0
-    if (r.amount) amt = parseFloat(String(r.amount).replace(/[^0-9.]/g, ''))
-    else if (r.totalAmount) amt = parseFloat(String(r.totalAmount).replace(/[^0-9.]/g, ''))
-    else {
-      const course = courses.value.find((c) => c.id === r.courseId)
-      amt = course ? parseFloat(String(course.price || 0).replace(/[^0-9.]/g, '')) : 0
-    }
-    return isNaN(amt) ? 0 : amt
-  }
-
-  const isPaid = (r) => {
-    const s = (r.paymentStatus || r.status || '').toLowerCase()
-    return s === 'paid' || s === 'confirmed'
-  }
-
-  const todayAccountRegistrationsList = allUsers.value.filter((u) => {
-    if (u.role !== 'parent' && u.role !== 'guardian') return false
-    const time = parseDate(u.createdAt || u.updatedAt).getTime()
-    return time >= startOfToday && time <= endOfToday
-  })
-
-  const todayEnrollmentsList = enrollments.value.filter((r) => {
-    const time = parseDate(r.enrollAt || r.createdAt || r.updatedAt).getTime()
-    return time >= startOfToday && time <= endOfToday
-  })
-
-  stats.value.today.reg = todayAccountRegistrationsList.length
-  stats.value.today.enroll = todayEnrollmentsList.length
-  stats.value.today.pay = todayEnrollmentsList
-    .filter(isPaid)
-    .reduce((sum, r) => sum + getExpectedAmount(r), 0)
-
-  const parents = allUsers.value.filter((u) => u.role === 'parent')
-  const guardians = allUsers.value.filter((u) => u.role === 'guardian')
-
-  const totalEnrollmentsList = enrollments.value
-  stats.value.week.reg = parents.length + guardians.length
-  stats.value.week.enroll = totalEnrollmentsList.length
-  stats.value.week.pay = totalEnrollmentsList
-    .filter(isPaid)
-    .reduce((sum, r) => sum + getExpectedAmount(r), 0)
-
-  stats.value.totals.accounts = parents.length + guardians.length
-  stats.value.totals.parents = parents.length
-  stats.value.totals.guardians = guardians.length
-  stats.value.totals.students = students.value.length
-  stats.value.totals.programs = courses.value.length
+  stats.value = calculateDashboardStats(allUsers.value, enrollments.value, courses.value, students.value)
 }
 
 const mappedEnrollments = computed(() => {

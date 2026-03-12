@@ -81,7 +81,7 @@ exports.getEnrollment = async (req, res) => {
 exports.cancelEnrollment = async (req, res) => {
   try {
     const result = await enrollmentService.cancelEnrollment(
-      req.body.enrollment_id,
+      req.params.id,
     );
     res.status(200).json(result);
   } catch (error) {

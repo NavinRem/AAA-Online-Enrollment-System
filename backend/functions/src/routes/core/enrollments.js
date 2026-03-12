@@ -21,7 +21,7 @@ router.get("/", enrollmentController.getAllEnrollments);
 router.get("/:id", enrollmentController.getEnrollment);
 
 // Cancel Enrollment
-router.post("/cancel", enrollmentController.cancelEnrollment);
+router.post("/:id/cancel", enrollmentController.cancelEnrollment);
 
 // Update Enrollment properties
 router.patch("/:id", enrollmentController.updateEnrollment);
