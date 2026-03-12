@@ -9,10 +9,6 @@ export const enrollmentService = {
     })
   },
 
-  // Legacy alias/shorthand
-  create(data) {
-    return this.createEnrollment(data)
-  },
 
   // Cancel Enrollment
   cancelEnrollment(enrollmentId) {
