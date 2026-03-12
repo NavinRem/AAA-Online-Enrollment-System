@@ -6,6 +6,7 @@ import { enrollmentService } from '../services/enrollmentService'
 import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { parseDate } from '../utils/dateFormatter'
 
 // UI Components
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
@@ -38,23 +39,19 @@ const stats = ref({
 })
 
 onMounted(() => {
-  console.log('Dashboard [onMounted] starting...')
   authService.onAuthStateChanged(async (currentUser) => {
     if (currentUser) {
-      console.log('Dashboard [auth] user confirmed:', currentUser.uid)
       user.value = currentUser
       try {
         await fetchUserProfile(currentUser.uid)
         await Promise.all([fetchStudents(), fetchCourses(), fetchEnrollments(), fetchAllUsers()])
         calculateStats()
-        console.log('Dashboard [data] load complete')
       } catch (err) {
         console.error('Dashboard [error] loading data:', err)
       } finally {
         loading.value = false
       }
     } else {
-      console.log('Dashboard [auth] no user, redirecting...')
       router.push('/')
       // ensure we stop loading if we redirect
       loading.value = false
@@ -64,10 +61,8 @@ onMounted(() => {
 
 const fetchUserProfile = async (uid) => {
   try {
-    console.log('Dashboard [fetch] profile for:', uid)
     const profile = await userService.getProfile(uid)
     userProfile.value = profile
-    console.log('Dashboard [fetch] profile success:', profile?.name)
   } catch (error) {
     console.error('Failed to fetch user profile', error)
   }
@@ -125,13 +120,6 @@ const totalStats = computed(() => [
   { label: 'Total Course Enrollments', value: stats.value.week.enroll, image: getIconUrl('enroll'), color: '#e1f5fe' },
   { label: 'Total Payments', value: `$${stats.value.week.pay}`, image: getIconUrl('pay'), color: '#e1f5fe' }
 ])
-const parseDate = (dateValue) => {
-  if (!dateValue) return new Date(0)
-  if (typeof dateValue === 'object' && 'seconds' in dateValue) {
-    return new Date(dateValue.seconds * 1000)
-  }
-  return new Date(dateValue)
-}
 
 const calculateStats = () => {
   const now = new Date()

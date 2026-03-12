@@ -5,18 +5,18 @@
  * @param {string|object|number} dateValue - Date string, Firestore Timestamp, or number
  * @returns {string} Formatted date string or 'N/A'
  */
+export const parseDate = (dateValue) => {
+  if (!dateValue) return new Date(0)
+  if (dateValue && typeof dateValue === 'object' && 'seconds' in dateValue) {
+    return new Date(dateValue.seconds * 1000)
+  }
+  return new Date(dateValue)
+}
+
 export const formatDate = (dateValue) => {
   if (!dateValue) return 'N/A'
-
-  let date
-
-  // Handle Firestore Timestamp object (with seconds and nanoseconds)
-  if (dateValue && typeof dateValue === 'object' && 'seconds' in dateValue) {
-    date = new Date(dateValue.seconds * 1000)
-  } else {
-    // Standard JS Date initialization (handles ISO strings, numbers, etc.)
-    date = new Date(dateValue)
-  }
+  const date = parseDate(dateValue)
+  if (isNaN(date.getTime())) return 'N/A'
 
   // Final check for valid date
   if (isNaN(date.getTime())) return 'N/A'
@@ -47,16 +47,8 @@ export const formatDate = (dateValue) => {
  */
 export const formatDateOnly = (dateValue) => {
   if (!dateValue) return 'N/A'
-
-  let date
-
-  // Handle Firestore Timestamp object (with seconds and nanoseconds)
-  if (dateValue && typeof dateValue === 'object' && 'seconds' in dateValue) {
-    date = new Date(dateValue.seconds * 1000)
-  } else {
-    // Standard JS Date initialization (handles ISO strings, numbers, etc.)
-    date = new Date(dateValue)
-  }
+  const date = parseDate(dateValue)
+  if (isNaN(date.getTime())) return 'N/A'
 
   // Final check for valid date
   if (isNaN(date.getTime())) return 'N/A'
@@ -77,14 +69,7 @@ export const formatDateOnly = (dateValue) => {
  */
 export const calculateAge = (dateValue) => {
   if (!dateValue) return 'N/A'
-
-  let date
-  if (dateValue && typeof dateValue === 'object' && 'seconds' in dateValue) {
-    date = new Date(dateValue.seconds * 1000)
-  } else {
-    date = new Date(dateValue)
-  }
-
+  const date = parseDate(dateValue)
   if (isNaN(date.getTime())) return 'N/A'
 
   const today = new Date()
