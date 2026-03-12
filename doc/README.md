@@ -2,18 +2,21 @@
 
 This directory contains technical documentation and architectural reference for the AAA Online Enrollment System.
 
-## Architectural Guides
-- [Firebase Architecture](firebase-architecture.md): Overview of the consolidated Firebase setup, hosting, functions, and standard security rules.
-- [Frontend Architecture](frontend-architecture.md): Description of the Vue.js architecture, including the service layer and state management patterns.
-- [Frontend Views Audit](frontend-views.md): Audit results and design patterns for the application's view layer.
+## [🏛️ Architecture](./architecture/)
+Core system designs and architectural boundaries.
+- [Firebase Architecture](./architecture/firebase-architecture.md): Overview of the consolidated Firebase setup.
+- [Frontend Architecture](./architecture/frontend-architecture.md): Description of the Vue.js architecture and service layer.
+- [Views Orchestration](./architecture/frontend-views.md): Audit results and design patterns for the application's view layer.
 
-## Implementation Details
-- [Services Reference](services-reference.md): Listing of all frontend services and their backend counterparts.
-- [Utils vs Services](utils-vs-services.md): Explanation of the architectural separation of concerns.
-- [Extreme Simplification](extreme-simplification.md): Documentation on the code simplification sweep and helper patterns.
+## [🧩 Patterns & Guides](./patterns/)
+Best practices and reusable patterns used throughout the codebase.
+- [Composables Guide](./patterns/composables-guide.md): **How to use and create stateful logic.**
+- [Components vs Composables](./patterns/components-vs-composables.md): Architectural guide on the distinction between components and composables.
+- [Utils vs Services](./patterns/utils-vs-services.md): Explanation of the architectural separation of concerns.
+- [Extreme Simplification](./patterns/extreme-simplification.md): Documentation on the code simplification sweep and helper patterns.
 
-## Historical Context
-- [Project Progress (2026-03-11)](progress-2026-03-11.md): Summary of major cleanup and refactoring achievements during the March 2026 cleanup phase.
+## [🗄️ Historical Context](./archives/)
+- [Project Progress (2026-03-11)](./archives/progress-2026-03-11.md): Summary of major cleanup and refactoring achievements.
 
 ---
 *Note: This documentation is intended for developers maintaining the system. For user guides, please refer to the project README.*
