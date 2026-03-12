@@ -12,6 +12,7 @@ import { courseService } from '@/services/courseService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 
 import { getImageUrl } from '@/utils/assetHelper'
+import { isPaid, isCancelled } from '@/utils/statusHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -41,9 +42,7 @@ const actionModal = ref({
   deleteConfirm: '',
 })
 
-const isPaid = (status) => status?.toLowerCase() === 'paid' || status?.toLowerCase() === 'confirmed'
-const isCancelled = (status) =>
-  status?.toLowerCase() === 'canceled' || status?.toLowerCase() === 'cancelled'
+// Status checkers imported from statusHelper
 
 const openActionModal = (type) => {
   modalError.value = ''

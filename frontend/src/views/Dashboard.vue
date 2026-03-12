@@ -16,7 +16,6 @@ import MiniCard from '../components/cards/MiniCard.vue'
 import RecentEnrollmentTable from '../components/common/data/RecentEnrollmentTable.vue'
 
 const router = useRouter()
-const user = ref(null)
 const userProfile = ref(null)
 const students = ref([])
 const courses = ref([])
@@ -24,146 +23,71 @@ const enrollments = ref([])
 const allUsers = ref([])
 const loading = ref(true)
 
-// Stats
 const stats = ref({
   today: { reg: 0, enroll: 0, pay: 0 },
   week: { reg: 0, enroll: 0, pay: 0 },
-  totals: {
-    accounts: 0,
-    parents: 0,
-    guardians: 0,
-    students: 0,
-    programs: 0,
-    enrollments: 0,
-    pay: 0,
-  },
+  totals: { accounts: 0, parents: 0, guardians: 0, students: 0, programs: 0 }
 })
 
 onMounted(() => {
   authService.onAuthStateChanged(async (currentUser) => {
-    if (currentUser) {
-      user.value = currentUser
-      try {
-        await fetchUserProfile(currentUser.uid)
-        await Promise.all([fetchStudents(), fetchCourses(), fetchEnrollments(), fetchAllUsers()])
-        calculateStats()
-      } catch (err) {
-        console.error('Dashboard [error] loading data:', err)
-      } finally {
-        loading.value = false
-      }
-    } else {
-      router.push('/')
-      // ensure we stop loading if we redirect
+    if (!currentUser) return router.push('/')
+    
+    try {
+      const profile = await userService.getProfile(currentUser.uid)
+      userProfile.value = profile
+      
+      const [uData, rData, cData, sData] = await Promise.all([
+        userService.getAllUsers(),
+        enrollmentService.getAll(),
+        courseService.getAllCourses(),
+        userService.getAllStudents()
+      ])
+
+      allUsers.value = Array.isArray(uData) ? uData : []
+      enrollments.value = Array.isArray(rData) ? rData : []
+      courses.value = Array.isArray(cData) ? cData : []
+      students.value = Array.isArray(sData) ? sData : []
+      
+      stats.value = calculateDashboardStats(allUsers.value, enrollments.value, courses.value, students.value)
+    } catch (err) {
+      console.error('Dashboard error:', err)
+    } finally {
       loading.value = false
     }
   })
 })
 
-const fetchUserProfile = async (uid) => {
-  try {
-    const profile = await userService.getProfile(uid)
-    userProfile.value = profile
-  } catch (error) {
-    console.error('Failed to fetch user profile', error)
-  }
-}
-
-const fetchStudents = async () => {
-  try {
-    let data
-    if (userProfile.value?.role === 'admin') {
-      data = await userService.getAllStudents()
-    } else {
-      data = await userService.getStudents(user.value.uid)
-    }
-    students.value = Array.isArray(data) ? data : []
-  } catch (error) {
-    console.error('Failed to fetch students', error)
-  }
-}
-
-const fetchCourses = async () => {
-  try {
-    const data = await courseService.getAllCourses()
-    courses.value = Array.isArray(data) ? data : []
-  } catch (error) {
-    console.error('Failed to fetch courses', error)
-  }
-}
-
-const fetchEnrollments = async () => {
-  try {
-    const data = await enrollmentService.getAll()
-    enrollments.value = Array.isArray(data) ? data : []
-  } catch (error) {
-    console.error('Failed to fetch enrollments', error)
-  }
-}
-
-const fetchAllUsers = async () => {
-  try {
-    const data = await userService.getAllUsers()
-    allUsers.value = Array.isArray(data) ? data : []
-  } catch (error) {
-    console.error('Failed to fetch users', error)
-  }
-}
-
 const todayStats = computed(() => [
-  { label: 'New Accounts Today', value: stats.value.today.reg, image: getIconUrl('register'), color: '#e1f5fe' },
   { label: 'New Enrollments Today', value: stats.value.today.enroll, image: getIconUrl('enroll'), color: '#e1f5fe' },
   { label: "Today's Payments", value: `$${stats.value.today.pay}`, image: getIconUrl('pay'), color: '#e1f5fe' }
 ])
 
 const totalStats = computed(() => [
-  { label: 'Total Parent Accounts', value: stats.value.week.reg, image: getIconUrl('register'), color: '#e1f5fe' },
-  { label: 'Total Course Enrollments', value: stats.value.week.enroll, image: getIconUrl('enroll'), color: '#e1f5fe' },
-  { label: 'Total Payments', value: `$${stats.value.week.pay}`, image: getIconUrl('pay'), color: '#e1f5fe' }
+  { label: 'Total Parent Accounts', value: stats.value.totals.accounts, image: getIconUrl('register'), color: '#e1f5fe' },
+  { label: 'Total Course Enrollments', value: stats.value.totals.programs, image: getIconUrl('enroll'), color: '#e1f5fe' },
+  { label: 'Total Weekly Payments', value: `$${stats.value.week.pay}`, image: getIconUrl('pay'), color: '#e1f5fe' }
 ])
-
-const calculateStats = () => {
-  stats.value = calculateDashboardStats(allUsers.value, enrollments.value, courses.value, students.value)
-}
 
 const mappedEnrollments = computed(() => {
   return [...enrollments.value]
-    .sort((a, b) => {
-      const timeA = parseDate(a.enrollAt || a.createdAt || a.updatedAt).getTime()
-      const timeB = parseDate(b.enrollAt || b.createdAt || b.updatedAt).getTime()
-      if (isNaN(timeA) && isNaN(timeB)) return 0
-      if (isNaN(timeA)) return 1
-      if (isNaN(timeB)) return -1
-      return timeB - timeA
-    })
+    .sort((a, b) => parseDate(b.enrollAt || b.createdAt).getTime() - parseDate(a.enrollAt || a.createdAt).getTime())
     .slice(0, 5)
     .map((r, index) => {
-      const parent = allUsers.value.find((u) => u.uid === r.parentId)
-      const parentName = parent ? parent.name : (r.parentName || 'Parent')
+      const p = allUsers.value.find(u => u.uid === r.parentId)
+      const s = students.value.find(s => s.id === r.studentId)
+      const c = courses.value.find(c => c.id === r.courseId)
+      const isPaid = ['paid', 'confirmed'].includes((r.paymentStatus || r.status || '').toLowerCase())
 
-      const student = students.value.find((s) => s.id === r.studentId)
-      const studentName = student ? student.fullName : (r.studentName || 'Student')
-
-      const course = courses.value.find((c) => c.id === r.courseId)
-      const courseName = course ? course.title : (r.courseTitle || 'Course')
-
-      const isCanceled = (r.status || '').toLowerCase() === 'cancelled'
-      const isPaid = (r.paymentStatus || r.status || '').toLowerCase() === 'paid' || (r.paymentStatus || r.status || '').toLowerCase() === 'confirmed'
-
-      let finalStatus = 'Unpaid'
-      if (isCanceled) finalStatus = 'Canceled'
-      else if (isPaid) finalStatus = 'Paid'
-
-      const amt = r.amount || (course ? course.price : 0) || 0
       return {
         id: r.id,
         no: index + 1,
-        parent: parentName,
-        child: studentName,
-        course: courseName,
-        status: finalStatus,
-        amount: typeof amt === 'string' && amt.startsWith('$') ? amt : `$${amt}`,
-        date: r.enrollAt || r.createdAt || r.updatedAt,
+        parent: p?.name || r.parentName || 'Parent',
+        child: s?.fullName || r.studentName || 'Student',
+        course: c?.title || r.courseTitle || 'Course',
+        status: isPaid ? 'Paid' : ((r.status || '').toLowerCase() === 'cancelled' ? 'Canceled' : 'Unpaid'),
+        amount: `$${r.amount || c?.price || 0}`,
+        date: r.enrollAt || r.createdAt
       }
     })
 })
@@ -176,51 +100,36 @@ const mappedEnrollments = computed(() => {
       <p>Loading Dashboard Data...</p>
     </div>
     <div v-else class="dashboard-grid">
-      <!-- Main Content Column -->
       <div class="main-column">
-        <!-- Today Summary -->
         <section class="summary-section">
           <h2 class="section-title">Today Summary</h2>
           <DataMetrics :stats="todayStats" />
         </section>
 
-        <!-- Total Summary -->
         <section class="summary-section">
           <h2 class="section-title">Total Summary</h2>
           <DataMetrics :stats="totalStats" />
         </section>
 
-        <!-- Recent Enrollment Table -->
         <RecentEnrollmentTable :enrollments="mappedEnrollments" />
       </div>
 
-      <!-- Right Overview Column -->
       <div class="right-column">
         <div class="profile-overview">
           <div class="profile-card">
             <div class="profile-image-large">
               <img :src="userProfile?.profileURL || getImageUrl('profiles', 'profile-admin.png')" alt="User" />
             </div>
-            <h3 class="welcome-text">
-              Welcome Back!<br />{{ userProfile?.name || 'User' }}
-            </h3>
+            <h3 class="welcome-text">Welcome Back!<br />{{ userProfile?.name || 'User' }}</h3>
             <p class="sub-text">Here is the overview</p>
           </div>
 
           <div class="basic-info">
             <h3 class="info-title">Basic Information</h3>
             <div class="mini-cards-stack">
-              <MiniCard
-                title="Total Accounts"
-                :value="stats.totals.accounts"
-                :image="getIconUrl('user-online')"
-              />
+              <MiniCard title="Total Accounts" :value="stats.totals.accounts" :image="getIconUrl('user-online')" />
               <MiniCard title="Total Parents" :value="stats.totals.parents" :image="getImageUrl('parent')" />
-              <MiniCard
-                title="Total Guardians"
-                :value="stats.totals.guardians"
-                :image="getIconUrl('guardian')"
-              />
+              <MiniCard title="Total Guardians" :value="stats.totals.guardians" :image="getIconUrl('guardian')" />
               <MiniCard title="Total Students" :value="stats.totals.students" :image="getImageUrl('profiles', 'student2.png')" />
               <MiniCard title="Total Programs" :value="stats.totals.programs" :image="getImageUrl('program')" />
             </div>
@@ -237,8 +146,8 @@ const mappedEnrollments = computed(() => {
   grid-template-columns: 1fr 320px;
   gap: 30px;
   padding: 0 30px 30px 30px;
-  height: calc(100vh - 90px); /* Subtract Topbar height */
-  overflow: hidden; /* Prevent grid expansion */
+  height: calc(100vh - 90px);
+  overflow: hidden;
 }
 
 .main-column {
@@ -246,11 +155,10 @@ const mappedEnrollments = computed(() => {
   flex-direction: column;
   gap: 30px;
   overflow-y: auto;
-  padding-right: 15px; /* Space for scrollbar */
+  padding-right: 15px;
 }
 
 .summary-section {
-  
   background: white;
   border-radius: 20px;
   padding: 25px;
@@ -272,11 +180,6 @@ const mappedEnrollments = computed(() => {
   margin-left: 20px;
   height: 1px;
   background-color: #eee;
-}
-
-.right-column {
-  display: flex;
-  flex-direction: column;
 }
 
 .profile-overview {
@@ -336,7 +239,6 @@ const mappedEnrollments = computed(() => {
   gap: 15px;
 }
 
-
 .dashboard-loading {
   display: flex;
   flex-direction: column;
@@ -357,9 +259,6 @@ const mappedEnrollments = computed(() => {
 }
 
 @keyframes l2 {
-  to {
-    transform: rotate(1turn);
-  }
+  to { transform: rotate(1turn); }
 }
-
 </style>

@@ -11,8 +11,7 @@ import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
-import { getCourseIcon } from '../utils/courseHelper'
-import { formatDate } from '@/utils/dateFormatter'
+import { calculateEnrollmentStats, enrichEnrollments } from '../utils/enrollmentHelper'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
@@ -119,20 +118,14 @@ const isCancelled = (status) =>
 const isUnpaid = (status) => status && !isPaid(status) && !isCancelled(status)
 
 const enrollmentStats = computed(() => {
-  const today = new Date().toISOString().split('T')[0];
-  const todayEnrollments = enrollments.value.filter(r => (r.enrollAt || r.createdAt)?.split('T')[0] === today);
-  const pendingEnrollments = enrollments.value.filter(r => r.status === 'pending' || r.paymentStatus === 'pending');
-  const todayRevenue = todayEnrollments
-    .filter(r => isPaid(r.status || r.paymentStatus))
-    .reduce((sum, r) => sum + (r.amount || 0), 0);
-
+  const s = calculateEnrollmentStats(enrollments.value)
   return [
-    { label: 'Total Enrollments', value: enrollments.value.length, image: getIconUrl('enrollment'), color: '#e1f5fe' },
-    { label: 'New Today', value: todayEnrollments.length, image: getIconUrl('register'), color: '#e1f5fe' },
-    { label: 'Pending Approval', value: pendingEnrollments.length, image: getIconUrl('dashboard', 'pending1.png'), color: '#e1f5fe' },
-    { label: 'Revenue Today', value: `$${todayRevenue}`, image: getIconUrl('pay'), color: '#e1f5fe' }
-  ];
-});
+    { label: 'Total Enrollments', value: s.total, image: getIconUrl('enrollment'), color: '#e1f5fe' },
+    { label: 'New Today', value: s.todayCount, image: getIconUrl('register'), color: '#e1f5fe' },
+    { label: 'Pending Approval', value: s.pendingCount, image: getIconUrl('dashboard', 'pending1.png'), color: '#e1f5fe' },
+    { label: 'Revenue Today', value: `$${s.todayRevenue}`, image: getIconUrl('pay'), color: '#e1f5fe' }
+  ]
+})
 
 const enrollmentHeaders = [
   { label: 'No', width: '60px', class: 'hide-on-mobile' },
@@ -148,25 +141,16 @@ const enrollmentHeaders = [
 const currentFilter = ref('all')
 
 const statusFilteredEnrollments = computed(() => {
-  let list = enrollments.value.map((r) => {
-    const parent = parents.value.find((p) => (p.uid || p.id) === (r.parentId))
-    const student = students.value.find((s) => (s.uid || s.id) === (r.studentId))
-
-    return {
-      ...r,
-      parentProfileURL: parent?.profileURL || null,
-      studentProfileURL: student?.profileURL || null,
-      courseIcon: getCourseIcon(r.courseTitle || r.course_title),
-    }
+  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value)
+  
+  if (currentFilter.value === 'all') return enriched
+  
+  return enriched.filter(r => {
+    if (currentFilter.value === 'paid') return isPaid(r.status || r.paymentStatus)
+    if (currentFilter.value === 'unpaid') return isUnpaid(r.status || r.paymentStatus)
+    if (currentFilter.value === 'cancelled') return isCancelled(r.status || r.paymentStatus)
+    return true
   })
-
-  if (currentFilter.value !== 'all') {
-    if (currentFilter.value === 'paid') list = list.filter((r) => isPaid(r.status || r.paymentStatus))
-    else if (currentFilter.value === 'unpaid') list = list.filter((r) => isUnpaid(r.status || r.paymentStatus))
-    else if (currentFilter.value === 'cancelled') list = list.filter((r) => isCancelled(r.status || r.paymentStatus))
-  }
-
-  return list.sort((a, b) => new Date(b.enrollAt || b.createdAt).getTime() - new Date(a.enrollAt || a.createdAt).getTime())
 })
 
 const { searchQuery, searchResults: filteredEnrollments } = useSearch(

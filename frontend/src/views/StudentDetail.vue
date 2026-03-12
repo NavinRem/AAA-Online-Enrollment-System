@@ -12,6 +12,7 @@ import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate, formatDateOnly } from '@/utils/dateFormatter'
 import { calculateStudentStatus, isEnrollmentActive } from '@/utils/studentStatusHelper'
+import { filterDetailEnrollments, getAcademicStatus } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 
 import { getImageUrl } from '@/utils/assetHelper'
@@ -173,84 +174,19 @@ const filterOptions = computed(() => {
   return [{ label: 'All', value: 'all' }]
 })
 
-const getAcademicStatus = (r) => {
-  if (r.academicStatus) return r.academicStatus
-
-  const regStatus = (r.status || '').toLowerCase()
-  const now = new Date()
-  const endDate = r.endDate ? new Date(r.endDate) : null
-
-  if (isEnrollmentActive(r)) return 'Studying'
-
-  // If paid but cancelled, set it as stopped
-  if (['cancelled', 'canceled'].includes(regStatus)) return 'Stopped'
-
-  // If they stopped studying during the term (manual flag or specific status)
-  if (regStatus === 'suspended') return 'Suspended'
-
-  // If they passed the end date of the term, set graduate
-  // We check if it was ever active/paid before marking as graduated
-  const payStatus = (r.paymentStatus || '').toLowerCase()
-  const isPaid =
-    ['confirmed', 'paid', 'active', 'success'].includes(regStatus) || payStatus === 'paid'
-
-  if (isPaid && endDate && now > endDate) return 'Graduated'
-
-  // If not studying, and not graduated, it's either stopped (cancelled) or pending
-  return 'Inactive'
-}
-
 const filteredAcademic = computed(() => {
-  // 1. Filter: If student enrollment is not paid yet, do not show in their academic list.
-  let filtered = enrollments.value.filter((r) => {
-    const regStatus = (r.status || '').toLowerCase()
-    return !['unpaid', 'pending'].includes(regStatus)
+  const result = filterDetailEnrollments(enrollments.value, {
+    academicStatus: currentFilter.value === 'all' ? null : currentFilter.value
   })
 
-  // 2. Map: Apply status logic
-  let list = filtered.map((r, idx) => {
-    let st = ''
-
-    if (activeTab.value === 'academic') {
-      st = getAcademicStatus(r)
-    } else if (activeTab.value === 'attendance') {
-      st = ['Present', 'Late', 'Permission', 'Absent', 'Make-up'][idx % 5]
-    } else if (activeTab.value === 'behavior' || activeTab.value === 'exam') {
-      st = ['Excellent', 'Good/Fair', 'Warning', 'Serious', 'Serious'][idx % 5]
-    }
-
-    return { ...r, displayStatus: st }
-  })
-
-  if (currentFilter.value !== 'all') {
-    list = list.filter(
-      (r) => (r.displayStatus || '').toLowerCase() === currentFilter.value.toLowerCase(),
-    )
-  }
-
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    list = list.filter(
-      (r) =>
-        (r.course_id && r.course_id.toLowerCase().includes(q)) ||
-        (r.courseTitle && r.courseTitle.toLowerCase().includes(q)),
-    )
-  }
-
-  // Sort prioritize studying (active) over others, then by date descending
-  list.sort((a, b) => {
-    // Check if actively studying
-    const aIsActive = a.displayStatus === 'Studying' ? 1 : 0
-    const bIsActive = b.displayStatus === 'Studying' ? 1 : 0
-    if (aIsActive !== bIsActive) return bIsActive - aIsActive
-
-    // Sort by recent date
-    const aDate = new Date(a.enrollAt || a.createdAt || a.timestamp || 0).getTime()
-    const bDate = new Date(b.enrollAt || b.createdAt || b.timestamp || 0).getTime()
-    return bDate - aDate
-  })
-
-  return list
+  return result
+    .filter(r => searchQuery.value ? (r.courseTitle || '').toLowerCase().includes(searchQuery.value.toLowerCase()) : true)
+    .sort((a, b) => {
+      const aAct = getAcademicStatus(a) === 'Studying' ? 1 : 0
+      const bAct = getAcademicStatus(b) === 'Studying' ? 1 : 0
+      if (aAct !== bAct) return bAct - aAct
+      return new Date(b.enrollAt || b.createdAt) - new Date(a.enrollAt || a.createdAt)
+    })
 })
 
 const fetchData = async (id) => {
@@ -405,11 +341,11 @@ watch(
                     </td>
                     <td>{{ formatDate(item.startDate) }}</td>
                     <td>{{ formatDate(item.endDate) }}</td>
-                    <td><StatusBadge :status="item.displayStatus" /></td>
+                    <td><StatusBadge :status="getAcademicStatus(item)" /></td>
                     <td>
                       <button
                         v-if="
-                          item.displayStatus !== 'Suspended' && item.displayStatus !== 'Stopped'
+                          getAcademicStatus(item) !== 'Suspended' && getAcademicStatus(item) !== 'Stopped'
                         "
                         class="btn-icon override"
                         title="Override Course Status"
@@ -533,7 +469,7 @@ watch(
                     <td>{{ item.examiner || '-' }}</td>
                     <td>{{ item.score || '-' }}</td>
                     <td>
-                      <StatusBadge :status="item.displayStatus" />
+                      <StatusBadge :status="getAcademicStatus(item)" />
                     </td>
                   </tr>
                 </tbody>
