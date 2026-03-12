@@ -108,19 +108,16 @@ const fetchPrograms = async () => {
         return []
       }),
       courseService.getAllSessions().catch((e) => {
-        console.error('Error fetching sessions:', e)
         return []
       }),
     ])
-    console.log('Fetched data:', { coursesData, regsData, sessionsData })
     programs.value = Array.isArray(coursesData) ? coursesData : []
     enrollments.value = Array.isArray(regsData) ? regsData : []
     sessions.value = Array.isArray(sessionsData) ? sessionsData : []
   } catch (error) {
-    console.error('Failed to fetch programs, enrollments or sessions', error)
+    // Error handled via UI or logged silently
   } finally {
     loading.value = false
-    console.log('Programs loading finished. programs:', programs.value.length)
   }
 }
 
