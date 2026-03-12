@@ -38,7 +38,7 @@ const fetchEnrollments = async () => {
     const data = await enrollmentService.getAll()
     enrollments.value = Array.isArray(data) ? data : []
   } catch (error) {
-    // Handled via UI or logged silently
+    console.error('Failed to fetch enrollments', error)
   } finally {
     loading.value = false
   }
@@ -57,7 +57,7 @@ const loadFormData = async () => {
     courses.value = Array.isArray(coursesRes) ? coursesRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
   } catch (err) {
-    // Handled via UI or logged silently
+    console.error('Failed to load form data', err)
   }
 }
 
@@ -70,7 +70,7 @@ const handleCourseChange = async (courseId) => {
     const data = await courseService.getSessions(courseId)
     sessions.value = Array.isArray(data) ? data : []
   } catch (err) {
-    // Handled via UI or logged silently
+    console.error('Failed to load sessions', err)
   }
 }
 

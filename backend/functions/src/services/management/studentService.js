@@ -84,6 +84,18 @@ class StudentService {
       };
     });
   }
+
+  async updateMedicalInfo(id, medicalNote) {
+    const studentRef = db.collection("student").doc(id);
+    const doc = await studentRef.get();
+    if (!doc.exists) throw new Error("Student not found");
+
+    await studentRef.update({
+      medicalNote: medicalNote || "None",
+      updatedAt: new Date().toISOString(),
+    });
+    return { message: "Medical information updated successfully" };
+  }
 }
 
 module.exports = new StudentService();

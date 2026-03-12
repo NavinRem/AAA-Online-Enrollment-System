@@ -64,7 +64,7 @@ const studentEnrollments = computed(() => {
   let list = enrollments.value
   if (selectedChildUid.value !== 'all') {
     list = list.filter((r) => {
-      const sId = r.student_id || r.studentId
+      const sId = r.studentId
       return sId === selectedChildUid.value
     })
   }
@@ -125,7 +125,7 @@ const fetchData = async (id) => {
     // Filter enrollments for this parent
     const pId = parent.value.uid || parent.value.id
     enrollments.value = (allEnrollments || []).filter((r) => {
-      const parentRef = r.parent_id || r.parentId
+      const parentRef = r.parentId
       return parentRef === pId
     })
   } catch (error) {

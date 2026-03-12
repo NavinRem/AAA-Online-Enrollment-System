@@ -115,7 +115,7 @@ const fetchPrograms = async () => {
     enrollments.value = Array.isArray(regsData) ? regsData : []
     sessions.value = Array.isArray(sessionsData) ? sessionsData : []
   } catch (error) {
-    // Error handled via UI or logged silently
+    console.error('Failed to fetch programs, enrollments or sessions', error)
   } finally {
     loading.value = false
   }

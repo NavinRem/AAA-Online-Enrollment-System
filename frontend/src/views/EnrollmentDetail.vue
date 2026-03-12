@@ -149,17 +149,17 @@ onMounted(async () => {
 
     // 2. Fetch full related objects in parallel to ensure "real" data in cards
     const [userRes, studentRes, courseRes, sessionsRes] = await Promise.allSettled([
-      userService.getProfile(data.parent_id),
-      userService.getStudent(data.student_id),
-      courseService.getCourse(data.course_id),
-      courseService.getSessions(data.course_id),
+      userService.getProfile(data.parentId),
+      userService.getStudent(data.studentId),
+      courseService.getCourse(data.courseId),
+      courseService.getSessions(data.courseId),
     ])
 
     if (userRes.status === 'fulfilled') parent.value = userRes.value
     if (studentRes.status === 'fulfilled') student.value = studentRes.value
     if (courseRes.status === 'fulfilled') course.value = courseRes.value
     if (sessionsRes.status === 'fulfilled') {
-      session.value = (sessionsRes.value || []).find((s) => s.id === data.session_id)
+      session.value = (sessionsRes.value || []).find((s) => s.id === data.sessionId)
     }
   } catch (error) {
     errorMessage.value = error.message || 'Failed to load details'

@@ -36,7 +36,7 @@ export const userService = {
   updateMedicalInfo(studentId, note) {
     return request(`/users/students/${studentId}/medical`, {
       method: 'PUT',
-      body: JSON.stringify({ medical_note: note }),
+      body: JSON.stringify({ medicalNote: note }),
     })
   },
 
