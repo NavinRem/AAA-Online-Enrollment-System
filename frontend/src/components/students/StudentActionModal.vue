@@ -195,9 +195,10 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { computed } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import { useActionModal } from '@/composables/useActionModal'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -212,7 +213,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const localData = ref({
+const getInitialData = () => ({
   parentId: '',
   name: '',
   dob: '',
@@ -223,53 +224,42 @@ const localData = ref({
   overrideRemark: '',
 })
 
-const originalData = ref({
-  parentId: '',
-  name: '',
-  dob: '',
-  medical_note: '',
-  status: '',
-  overrideReason: '',
-  overrideRemark: '',
+const mapSourceToForm = () => {
+  const source = props.enrollment || props.student || {}
+  return {
+    parentId: source.parentId || source.parent_id || '',
+    name: source.name || source.fullName || source.fullname || '',
+    dob: source.dob || '',
+    medical_note: source.medical_note || (source.medicalNotes || source.medical_note || 'None'),
+    status:
+      source.status ||
+      (props.type === 'enrollment-override'
+        ? props.enrollment?.displayStatus || 'Studying'
+        : 'Studying'),
+    deleteConfirm: '',
+    overrideReason:
+      source.overrideReason ||
+      (props.type === 'enrollment-override' ? props.enrollment?.overrideReason || '' : ''),
+    overrideRemark:
+      source.overrideRemark ||
+      (props.type === 'enrollment-override' ? props.enrollment?.overrideRemark || '' : ''),
+  }
+}
+
+const { localData, originalData, submitForm } = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm,
 })
 
-// Sync local data with prop when modal opens
-watch(
-  () => props.isOpen,
-  (newVal) => {
-    if (newVal) {
-      const source = props.enrollment || props.student || {}
-      const initial = {
-        parentId: source.parentId || source.parent_id || '',
-        name: source.name || source.fullName || source.fullname || '',
-        dob: source.dob || '',
-        medical_note: source.medical_note || (source.medicalNotes || source.medical_note || 'None'),
-        status:
-          source.status ||
-          (props.type === 'enrollment-override'
-            ? props.enrollment?.displayStatus || 'Studying'
-            : 'Studying'),
-        deleteConfirm: '',
-        overrideReason:
-          source.overrideReason ||
-          (props.type === 'enrollment-override' ? props.enrollment?.overrideReason || '' : ''),
-        overrideRemark:
-          source.overrideRemark ||
-          (props.type === 'enrollment-override' ? props.enrollment?.overrideRemark || '' : ''),
-      }
-      localData.value = { ...initial }
-      originalData.value = { ...initial }
-    }
-  },
-)
-
 const modalTitle = computed(() => {
-  if (props.type === 'edit') return 'Edit Student Profile'
-  if (props.type === 'delete') return 'Delete Student Record'
-  if (props.type === 'override') return 'Manual Status Override'
-  if (props.type === 'enrollment-override') return 'Manual Enrollment Override'
-  if (props.type === 'enrollment-delete') return 'Delete Enrollment Record'
-  return 'Student Action'
+  const titles = {
+    edit: 'Edit Student Profile',
+    delete: 'Delete Student Record',
+    override: 'Manual Status Override',
+    'enrollment-override': 'Manual Enrollment Override',
+    'enrollment-delete': 'Delete Enrollment Record',
+  }
+  return titles[props.type] || 'Student Action'
 })
 
 const isFormValid = computed(() => {
@@ -289,11 +279,9 @@ const isFormValid = computed(() => {
   return true
 })
 
-const handleSubmit = () => {
-  if (!isFormValid.value) return
-  emit('submit', { ...localData.value })
-}
+const handleSubmit = () => submitForm(isFormValid.value)
 
+// Preset Management
 const togglePreset = (field, chipValue) => {
   const currentText = localData.value[field] || ''
   let values = currentText
@@ -304,7 +292,6 @@ const togglePreset = (field, chipValue) => {
   if (values.includes(chipValue)) {
     values = values.filter((v) => v !== chipValue)
   } else {
-    // If 'None' is picked, clear others. If others picked, remove 'None'.
     if (chipValue === 'None') {
       values = ['None']
     } else {
