@@ -8,7 +8,9 @@ This directory contains technical documentation and architectural reference for 
 - [Frontend Views Audit](frontend-views.md): Audit results and design patterns for the application's view layer.
 
 ## Implementation Details
-- [Service Layer Reference](services-reference.md): Detailed explanation of the frontend service pattern and API integration.
+- [Services Reference](services-reference.md): Listing of all frontend services and their backend counterparts.
+- [Utils vs Services](utils-vs-services.md): Explanation of the architectural separation of concerns.
+- [Extreme Simplification](extreme-simplification.md): Documentation on the code simplification sweep and helper patterns.
 
 ## Historical Context
 - [Project Progress (2026-03-11)](progress-2026-03-11.md): Summary of major cleanup and refactoring achievements during the March 2026 cleanup phase.

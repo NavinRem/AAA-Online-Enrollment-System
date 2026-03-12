@@ -16,9 +16,9 @@ import { authService } from '../services/authService'
 import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, studentSearchMapper } from '../composables/useSearch'
 import { formatDate } from '../utils/dateFormatter'
-import { getCourseIcon } from '../utils/courseHelper'
 import { calculateStudentStatus, isEnrollmentActive } from '../utils/studentStatusHelper'
 import { useTableActions } from '../composables/useTableActions'
+import { enrichStudents, calculateStudentStats } from '../utils/studentHelper'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
@@ -41,67 +41,26 @@ const handleAction = (type, item) => {
 
 onMounted(async () => {
   const currentUser = authService.getCurrentUser()
-  if (!currentUser) {
-    router.push('/')
-    return
-  }
+  if (!currentUser) return router.push('/')
 
   try {
     const profile = await userService.getProfile(currentUser.uid)
-    let studentsData = []
-    let allEnrollments = []
-
-    if (profile && profile.role === 'admin') {
+    if (profile?.role === 'admin') {
       const [sData, rData, uData] = await Promise.all([
         userService.getAllStudents(),
         enrollmentService.getAll(),
         userService.getAllUsers(),
       ])
-      studentsData = sData
-      allEnrollments = rData || []
-      const allUsers = uData || []
-      const oneWeekAgo = new Date()
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-
-      if (Array.isArray(studentsData)) {
-        students.value = studentsData.map((student) => {
-          const studentId = String(student.id || student.uid || '')
-          const studentRegs = allEnrollments.filter((r) => {
-            const rStudentId = String(r.student_id || r.studentId || '')
-            return rStudentId === studentId
-          })
-
-          // Find parent profile for avatar mapping
-          const pId = String(student.parentId || student.parent_id || '')
-          const parentProfile = allUsers.find((u) => String(u.uid || u.id || '') === pId)
-
-          // 2. Identify Studying Programs (For UI program icons only)
-          const activePrograms = studentRegs.filter((r) => isEnrollmentActive(r))
-
-          return {
-            ...student,
-            id: studentId, // Ensure canonical ID
-            status: calculateStudentStatus(student, studentRegs),
-            programs: activePrograms,
-            parentProfileURL: parentProfile?.profileURL || null,
-            dob: student.dob || student.DoB, // Normalize dob
-            fullName: student.fullname || student.name,
-          }
-        })
-      }
+      students.value = enrichStudents(sData, rData || [], uData || [])
     } else {
       const sData = await userService.getStudents(currentUser.uid)
-      studentsData = sData
-      if (Array.isArray(studentsData)) {
-        students.value = studentsData.map((s) => ({ ...s, programs: [] }))
-      }
+      students.value = (sData || []).map(s => ({ ...s, programs: [] }))
     }
   } catch (error) {
     console.error('Failed to fetch students', error)
   } finally {
     loading.value = false
   }
-
   window.addEventListener('click', handleGlobalClick)
 })
 
@@ -121,40 +80,15 @@ const filteredStudents = computed(() => {
   return list
 })
 
-const oneWeekAgo = computed(() => {
-  const date = new Date()
-  date.setDate(date.getDate() - 7)
-  return date
+const studentStats = computed(() => {
+  const s = calculateStudentStats(students.value)
+  return [
+    { label: 'Total Students', value: s.total, image: getImageUrl('student'), color: '#e1f5fe' },
+    { label: 'Active Today', value: s.activeCount, image: getIconUrl('on-time'), color: '#e1f5fe' },
+    { label: 'New This Week', value: s.newThisWeekCount, image: getIconUrl('register'), color: '#e1f5fe' },
+    { label: 'Pending Payment', value: s.pendingPaymentCount, image: getIconUrl('pending-payment'), color: '#e1f5fe' }
+  ]
 })
-
-const activeStudents = computed(() => {
-  return students.value.filter((s) => (s.status || '').toLowerCase() === 'studying')
-})
-
-const newThisWeek = computed(() => {
-  return students.value.filter((s) => {
-    const time = new Date(s.createdAt || s.created_at).getTime()
-    return time >= oneWeekAgo.value.getTime()
-  }).length
-})
-
-const inactiveOrStoppedCount = computed(() => {
-  return students.value.filter((s) => {
-    const status = (s.status || '').toLowerCase()
-    return status === 'inactive' || status === 'stopped'
-  }).length
-})
-
-const pendingPayment = computed(() => {
-  return students.value.filter((s) => (s.paymentStatus || '').toLowerCase() === 'pending').length
-})
-
-const studentStats = computed(() => [
-  { label: 'Total Students', value: students.value.length, image: getImageUrl('student'), color: '#e1f5fe' },
-  { label: 'Active Today', value: (activeStudents.value || []).length, image: getIconUrl('on-time'), color: '#e1f5fe' },
-  { label: 'New This Week', value: newThisWeek.value, image: getIconUrl('register'), color: '#e1f5fe' },
-  { label: 'Pending Payment', value: pendingPayment.value, image: getIconUrl('pending-payment'), color: '#e1f5fe' }
-])
 
 const studentHeaders = [
   { label: 'No', width: '60px', class: 'hide-on-mobile' },

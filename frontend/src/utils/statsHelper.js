@@ -1,4 +1,5 @@
 import { parseDate } from './dateFormatter'
+import { isPaid } from './statusHelper'
 
 /**
  * Calculates dashboard statistics based on the provided data arrays.
@@ -19,12 +20,7 @@ export const calculateDashboardStats = (allUsers, enrollments, courses, students
     return isNaN(amt) ? 0 : amt
   }
 
-  const isPaid = (r) => {
-    const s = (r.paymentStatus || r.status || '').toLowerCase()
-    return s === 'paid' || s === 'confirmed'
-  }
-
-  const todayAccountRegistrationsList = (allUsers || []).filter((u) => {
+  const todayAccounts = (allUsers || []).filter((u) => {
     if (u.role !== 'parent' && u.role !== 'guardian') return false
     const time = parseDate(u.createdAt || u.updatedAt).getTime()
     return time >= startOfToday && time <= endOfToday
@@ -40,14 +36,14 @@ export const calculateDashboardStats = (allUsers, enrollments, courses, students
 
   return {
     today: {
-      reg: todayAccountRegistrationsList.length,
+      reg: todayAccounts.length,
       enroll: todayEnrollmentsList.length,
-      pay: todayEnrollmentsList.filter(isPaid).reduce((sum, r) => sum + getExpectedAmount(r), 0)
+      pay: todayEnrollmentsList.filter(r => isPaid(r.status || r.paymentStatus)).reduce((sum, r) => sum + getExpectedAmount(r), 0)
     },
     week: {
       reg: parents.length + guardians.length,
       enroll: (enrollments || []).length,
-      pay: (enrollments || []).filter(isPaid).reduce((sum, r) => sum + getExpectedAmount(r), 0)
+      pay: (enrollments || []).filter(r => isPaid(r.status || r.paymentStatus)).reduce((sum, r) => sum + getExpectedAmount(r), 0)
     },
     totals: {
       accounts: parents.length + guardians.length,

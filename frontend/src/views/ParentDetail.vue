@@ -5,7 +5,6 @@ import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import DetailCard from '../components/cards/DetailCard.vue'
 import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import DetailedSummaryCard from '@/components/cards/DetailedSummaryCard.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
@@ -13,8 +12,9 @@ import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate } from '@/utils/dateFormatter'
+import { filterDetailEnrollments } from '@/utils/enrollmentHelper'
 
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -59,38 +59,24 @@ const filterOptions = computed(() => {
 const loading = ref(true)
 const errorMessage = ref('')
 
-// Filter enrollments for the Children List card based on selected child
-const studentEnrollments = computed(() => {
-  let list = enrollments.value
-  if (selectedChildUid.value !== 'all') {
-    list = list.filter((r) => {
-      const sId = r.studentId
-      return sId === selectedChildUid.value
-    })
-  }
-
-  if (currentFilter.value !== 'all') {
-    list = list.filter((r) => (r.status || 'studying').toLowerCase() === currentFilter.value)
-  }
-
-  return list
-})
-
-const filteredPayments = computed(() => {
-  if (currentFilter.value === 'all') return enrollments.value
-  return enrollments.value.filter(
-    (r) => (r.paymentStatus || 'pending').toLowerCase() === currentFilter.value,
-  )
-})
-
-const filteredHistory = computed(() => {
-  if (currentFilter.value === 'all') return enrollments.value
-  return enrollments.value.filter((r) => {
-    let status = (r.status || 'pending').toLowerCase()
-    if (status === 'confirmed') status = 'paid' // Map backend 'confirmed' to UI 'paid'
-    return status === currentFilter.value
+const studentEnrollments = computed(() => 
+  filterDetailEnrollments(enrollments.value, { 
+    studentId: selectedChildUid.value, 
+    academicStatus: currentFilter.value 
   })
-})
+)
+
+const filteredPayments = computed(() => 
+  filterDetailEnrollments(enrollments.value, { 
+    paymentStatus: currentFilter.value 
+  })
+)
+
+const filteredHistory = computed(() => 
+  filterDetailEnrollments(enrollments.value, { 
+    academicStatus: currentFilter.value 
+  })
+)
 
 const isInactive = computed(() => {
   return (parent.value?.status || 'Active').toLowerCase() === 'inactive'

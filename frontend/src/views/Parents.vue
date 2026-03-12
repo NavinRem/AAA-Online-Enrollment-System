@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { formatDate } from '@/utils/dateFormatter'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
@@ -16,16 +15,13 @@ import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
 import { useTableActions } from '../composables/useTableActions'
+import { enrichParents, calculateParentStats } from '../utils/parentHelper'
 
 const router = useRouter()
 
 const allUsers = ref([])
 const loading = ref(true)
 const {
-  activeMenuId,
-  isMenuAbove,
-  menuStyles,
-  toggleMenu,
   closeMenu,
   handleGlobalClick,
 } = useTableActions()
@@ -35,20 +31,15 @@ const handleAction = (type, item) => {
   closeMenu()
 }
 
-const parents = computed(() => allUsers.value.filter((u) => u.role === 'parent'))
-const guardians = computed(() => allUsers.value.filter((u) => u.role === 'guardian'))
-const recentlyRegistered = computed(() => {
-  const today = new Date().toISOString().split('T')[0]
-  return allUsers.value.filter((u) => (u.createdAt || '').split('T')[0] === today)
+const parentStats = computed(() => {
+  const s = calculateParentStats(allUsers.value)
+  return [
+    { label: 'Total Parents', value: s.parentCount, image: getIconUrl('register'), color: '#e1f5fe' },
+    { label: 'Total Guardians', value: s.guardianCount, image: getIconUrl('user-online'), color: '#e1f5fe' },
+    { label: 'Registered Today', value: s.todayCount, image: getIconUrl('register'), color: '#e1f5fe' },
+    { label: 'Active Now', value: s.activeCount, image: getIconUrl('on-time'), color: '#e1f5fe' }
+  ]
 })
-const activeNow = computed(() => allUsers.value.filter((u) => (u.status || 'Active').toLowerCase() === 'active'))
-
-const parentStats = computed(() => [
-  { label: 'Total Parents', value: parents.value.length, image: getIconUrl('register'), color: '#e1f5fe' },
-  { label: 'Total Guardians', value: guardians.value.length, image: getIconUrl('user-online'), color: '#e1f5fe' },
-  { label: 'Registered Today', value: recentlyRegistered.value.length, image: getIconUrl('register'), color: '#e1f5fe' },
-  { label: 'Active Now', value: activeNow.value.length, image: getIconUrl('on-time'), color: '#e1f5fe' }
-])
 
 const parentHeaders = [
   { label: 'No', width: '60px', class: 'hide-on-mobile' },
@@ -69,24 +60,7 @@ onMounted(async () => {
     ])
 
     if (Array.isArray(data)) {
-      // Create a map of parentId -> array of student items for fast lookup
-      const studentsByParent = {}
-      if (Array.isArray(allStudents)) {
-        allStudents.forEach((student) => {
-          const pId = student.parentId || student.parent_id
-          if (pId) {
-            if (!studentsByParent[pId]) studentsByParent[pId] = []
-            studentsByParent[pId].push(student)
-          }
-        })
-      }
-
-      allUsers.value = data
-        .filter((u) => u.role === 'parent' || u.role === 'guardian')
-        .map((u) => ({
-          ...u,
-          studentProfiles: studentsByParent[u.uid || u.id] || [], // Attach actual student profiles!
-        }))
+      allUsers.value = enrichParents(data, allStudents || [])
     }
   } catch (error) {
     console.error('Failed to fetch parents', error)

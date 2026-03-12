@@ -11,6 +11,7 @@ import { courseService } from '../services/courseService'
 import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, programSearchMapper } from '../composables/useSearch'
 import { getCourseIcon } from '../utils/courseHelper'
+import { calculateProgramStats } from '../utils/programHelper'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
@@ -33,65 +34,13 @@ const actionModal = ref({
   success: '',
 })
 
-// Helper to check if a session is currently in progress
-const isInProgress = (schedule) => {
-  if (!schedule || !schedule.day || !schedule.timeslot) return false
-
-  const currentTimeObj = now.value
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const currentDay = days[currentTimeObj.getDay()]
-
-  if (schedule.day !== currentDay) return false
-
-  // Parse timeslot "HH:mm-HH:mm" or "HH:mm - HH:mm"
-  const times = schedule.timeslot.split('-').map((t) => t.trim())
-  if (times.length !== 2) return false
-
-  const [startH, startM] = times[0].split(':').map(Number)
-  const [endH, endM] = times[1].split(':').map(Number)
-
-  const startTime = startH * 60 + startM
-  const endTime = endH * 60 + endM
-  const currentTimeMinutes = currentTimeObj.getHours() * 60 + currentTimeObj.getMinutes()
-
-  return currentTimeMinutes >= startTime && currentTimeMinutes <= endTime
-}
-
-// Stats
 const stats = computed(() => {
-  // 1. Total Programs
-  const total = programs.value.length
-
-  // 2. Active Programs (Programs that have at least one non-cancelled enrollment)
-  const activeRegs = enrollments.value.filter(
-    (r) =>
-      (r.status || '').toLowerCase() !== 'cancelled' && (r.status || '').toLowerCase() !== 'canceled',
-  )
-  const activeProgramIds = new Set(activeRegs.map((r) => r.courseId))
-  const activeCount = programs.value.filter((p) => activeProgramIds.has(p.id)).length
-
-  const upcomingCount = programs.value.filter(
-    (p) => (p.status || '').toLowerCase() === 'upcoming',
-  ).length
-
-  const inProgressProgramIds = new Set()
-  sessions.value.forEach((s) => {
-    if (isInProgress(s.schedule)) {
-      inProgressProgramIds.add(s.courseId)
-    }
-  })
-  const inProgressCount = inProgressProgramIds.size
-
+  const s = calculateProgramStats(programs.value, enrollments.value, sessions.value, now.value)
   return [
-    { label: 'Total Programs', value: total, image: getImageUrl('program'), color: '#e1f5fe' },
-    { label: 'Active Programs', value: activeCount, image: getIconUrl('active'), color: '#e1f5fe' },
-    { label: 'Upcoming Programs', value: upcomingCount, image: getIconUrl('register'), color: '#e1f5fe' },
-    {
-      label: 'In Progressing',
-      value: inProgressCount,
-      image: getIconUrl('total-payment'),
-      color: '#e1f5fe',
-    },
+    { label: 'Total Programs', value: s.total, image: getImageUrl('program'), color: '#e1f5fe' },
+    { label: 'Active Programs', value: s.activeCount, image: getIconUrl('active'), color: '#e1f5fe' },
+    { label: 'Upcoming Programs', value: s.upcomingCount, image: getIconUrl('register'), color: '#e1f5fe' },
+    { label: 'In Progressing', value: s.inProgressCount, image: getIconUrl('total-payment'), color: '#e1f5fe' }
   ]
 })
 
