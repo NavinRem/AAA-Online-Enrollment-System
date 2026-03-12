@@ -6,7 +6,8 @@ import DashboardLayout from '../components/layout/DashboardLayout.vue'
   <DashboardLayout>
     <div class="page-container">
       <div class="settings-card">
-        <p>System settings and profile management will appear here.</p>
+        <h3>Settings</h3>
+        <p>System settings and profile preferences will be available soon.</p>
       </div>
     </div>
   </DashboardLayout>

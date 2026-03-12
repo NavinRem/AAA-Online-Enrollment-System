@@ -2,13 +2,13 @@ const express = require("express");
 const router = express.Router();
 const userController = require("../../controllers/management/userController");
 
-// Register Parent Account (was createUser)
+// Register Parent Account
 router.post("/registerParentAccount", userController.registerParentAccount);
 
 // Get User Role
 router.get("/:uid/role", userController.getUserRole);
 
-// Register Student Profile (was addStudent)
+// Register Student Profile
 router.post(
   "/:uid/registerStudentProfile",
   userController.registerStudentProfile,
@@ -16,11 +16,6 @@ router.post(
 
 // Update Medical Info
 router.put("/students/:id/medical", userController.updateMedicalInfo);
-
-// --- Legacy / Utility Routes ---
-
-// Seed script (temp)
-router.get("/seed", userController.seedData);
 
 // Get All Students (Admin)
 router.get("/allStudents", userController.getAllStudents);
