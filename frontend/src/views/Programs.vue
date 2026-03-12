@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
@@ -19,9 +19,6 @@ const programs = ref([])
 const enrollments = ref([])
 const sessions = ref([])
 const loading = ref(true)
-const activeMenuId = ref(null)
-const isMenuAbove = ref(false)
-const menuStyles = ref({})
 const currentFilter = ref('all')
 const now = ref(new Date())
 
@@ -56,7 +53,7 @@ const fetchPrograms = async () => {
         console.error('Error fetching enrollments:', e)
         return []
       }),
-      courseService.getAllSessions().catch((e) => {
+      courseService.getAllSessions().catch(() => {
         return []
       }),
     ])
@@ -70,62 +67,15 @@ const fetchPrograms = async () => {
   }
 }
 
-const toggleMenu = (event, id) => {
-  if (activeMenuId.value === id) {
-    activeMenuId.value = null
-    return
-  }
-
-  const rect = event.currentTarget.getBoundingClientRect()
-  const spaceBelow = window.innerHeight - rect.bottom
-  isMenuAbove.value = spaceBelow < 280
-
-  if (isMenuAbove.value) {
-    menuStyles.value = {
-      bottom: `${window.innerHeight - rect.top + 8}px`,
-      right: `${window.innerWidth - rect.right}px`,
-    }
-  } else {
-    menuStyles.value = {
-      top: `${rect.bottom + 8}px`,
-      right: `${window.innerWidth - rect.right}px`,
-    }
-  }
-
-  activeMenuId.value = id
-}
-
-const closeMenu = () => {
-  activeMenuId.value = null
-}
-
-const handleGlobalClick = (event) => {
-  if (activeMenuId.value) {
-    const isTrigger = event.target.closest('.btn-dots')
-    const isMenu = event.target.closest('.action-dropdown')
-    if (!isTrigger && !isMenu) {
-      closeMenu()
-    }
-  }
-}
-
 const intervalId = ref(null)
 
 onMounted(() => {
   fetchPrograms()
-  window.addEventListener('click', handleGlobalClick)
 
   // Update every minute to keep "In Progress" fresh
   intervalId.value = setInterval(() => {
     now.value = new Date()
   }, 60000)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('click', handleGlobalClick)
-  if (intervalId.value) {
-    clearInterval(intervalId.value)
-  }
 })
 
 const programHeaders = [
@@ -167,7 +117,6 @@ const filteredPrograms = computed(() => {
 
 const handleAction = (type, program) => {
   openModal(type, program)
-  closeMenu()
 }
 
 const openModal = (type, program = null) => {

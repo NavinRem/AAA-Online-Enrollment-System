@@ -13,7 +13,7 @@ import { courseService } from '../services/courseService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateEnrollmentStats, enrichEnrollments } from '../utils/enrollmentHelper'
 
-import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const enrollments = ref([])
 const parents = ref([])

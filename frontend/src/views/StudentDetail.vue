@@ -10,7 +10,7 @@ import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.v
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate, formatDateOnly } from '@/utils/dateFormatter'
-import { calculateStudentStatus, isEnrollmentActive } from '@/utils/studentStatusHelper'
+import { calculateStudentStatus } from '@/utils/studentStatusHelper'
 import { filterDetailEnrollments, getAcademicStatus } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 
