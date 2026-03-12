@@ -20,11 +20,20 @@ This file serves as the central hub for connecting your frontend to Google Fireb
     *   `storage`: Manages cloud file uploads for any images or documents.
 *   **Reusability**: By centralizing the connection logic here, all other service files (e.g., `authService.js`, `enrollmentService.js`) can easily import a single, ready-at-hand Firebase instance without redundant setup.
 
+## 3. `src/services/` (The Service Layer)
+The Service layer acts as the **"Waiter"** between your components (the Customers) and the Backend API (the Kitchen).
+
+*   **Abstraction**: Components don't need to know about URLs or fetch logic. They just call `enrollmentService.getAll()`.
+*   **Centralization**: If a backend URL changes, you only fix it in one service file instead of searching through dozens of components.
+*   **Data Cleaning**: Services can "re-shape" messy backend data into a format that is easy for the UI to display.
+*   **Error Handling**: Centralizes logic for handling API failures or unauthorized access in one place.
+
 ---
 
 ### Summary Table
 
-| File | Primary Role | Analogy | 
+| File/Folder | Primary Role | Analogy | 
 | :--- | :--- | :--- |
 | `main.js` | Starts the Vue application engine | The Ignition System |
-| `firebase.js` | Connects the app to Google's data services | The Fuel Line |
+| `firebase.js` | Connects the app to Google services | The Fuel Line |
+| `src/services/` | Handles communication with the API | The Waiter / Courier |
