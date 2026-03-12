@@ -3,8 +3,6 @@ import { getStorage } from 'firebase/storage'
 import { initializeFirestore } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
 
-// TODO: Replace the following with your app's Firebase project configuration
-// See: https://firebase.google.com/docs/web/learn-more#config-object
 const firebaseConfig = {
   apiKey: 'AIzaSyD4y8-tKiRVgAG5jesH9Jjq5YRRfDjSTyY',
   authDomain: 'aaa-online-registration-e3833.firebaseapp.com',
@@ -23,11 +21,5 @@ const firestore = initializeFirestore(app, {}, 'registration')
 const storage = getStorage(app)
 const auth = getAuth(app)
 
-// if (location.hostname === 'localhost') {
-//   // Connect to Emulators
-//   // connectFirestoreEmulator(firestore, 'localhost', 8080)
-//   // connectAuthEmulator(auth, 'http://localhost:9099')
-//   // console.log('Running in development mode with Firebase Emulators')
-// }
 
 export { storage, firestore, auth, app }

@@ -32,7 +32,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
 
 const props = defineProps({
   loading: Boolean,

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { authService } from '@/services/authService'
 import { userService } from '@/services/userService'
 
-import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
 import { getImageUrl } from '@/utils/assetHelper'
 
 const router = useRouter()

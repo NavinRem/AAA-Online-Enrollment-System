@@ -1,7 +1,7 @@
 <script setup>
 import { useRouter, useRoute } from 'vue-router'
 import { authService } from '@/services/authService'
-import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
 const props = defineProps({
