@@ -63,7 +63,7 @@ app.get("/", (req, res) => {
 });
 
 // Error Handling Middleware
-app.use((err, res) => {
+app.use((err, req, res, next) => {
   logger.error(err.stack);
   res.status(500).send("Something broke!");
 });

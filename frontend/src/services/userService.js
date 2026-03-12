@@ -90,11 +90,4 @@ export const userService = {
     })
   },
 
-  // Aliases for backward compatibility in components
-  async createUser(userData) {
-    return this.registerParentAccount(userData)
-  },
-  async addStudent(uid, data) {
-    return this.registerStudentProfile(uid, data)
-  },
 }
