@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
@@ -23,13 +23,7 @@ const allUsers = ref([])
 const loading = ref(true)
 const {
   closeMenu,
-  handleGlobalClick,
 } = useTableActions()
-
-const handleAction = (type, item) => {
-  openActionModal(type, item)
-  closeMenu()
-}
 
 const parentStats = computed(() => {
   const s = calculateParentStats(allUsers.value)
@@ -67,12 +61,6 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-
-  window.addEventListener('click', handleGlobalClick)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('click', handleGlobalClick)
 })
 
 const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, parentSearchMapper)

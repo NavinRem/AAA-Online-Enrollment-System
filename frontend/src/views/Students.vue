@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 // UI Components
@@ -16,8 +16,7 @@ import { authService } from '../services/authService'
 import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, studentSearchMapper } from '../composables/useSearch'
 import { formatDate } from '../utils/dateFormatter'
-import { calculateStudentStatus, isEnrollmentActive } from '../utils/studentStatusHelper'
-import { useTableActions } from '../composables/useTableActions'
+import { getCourseIcon } from '../utils/courseHelper'
 import { enrichStudents, calculateStudentStats } from '../utils/studentHelper'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
@@ -25,19 +24,6 @@ import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 const router = useRouter()
 const students = ref([])
 const loading = ref(true)
-const {
-  activeMenuId,
-  isMenuAbove,
-  menuStyles,
-  toggleMenu,
-  closeMenu,
-  handleGlobalClick,
-} = useTableActions()
-
-const handleAction = (type, item) => {
-  openActionModal(type, item)
-  closeMenu()
-}
 
 onMounted(async () => {
   const currentUser = authService.getCurrentUser()
@@ -61,11 +47,6 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-  window.addEventListener('click', handleGlobalClick)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('click', handleGlobalClick)
 })
 
 const { searchQuery, searchResults } = useSearch(students, studentSearchMapper)
