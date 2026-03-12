@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
-import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },

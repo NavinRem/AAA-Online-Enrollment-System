@@ -179,8 +179,8 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import AppModal from '@/components/common/ui/AppModal/AppModal.vue'
-import AppButton from '@/components/common/ui/AppButton/AppButton.vue'
+import AppModal from '@/components/common/ui/AppModal.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
 import { courseService } from '@/services/courseService'
 
 const props = defineProps({
