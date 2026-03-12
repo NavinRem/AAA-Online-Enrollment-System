@@ -1,43 +1,45 @@
 # Firebase Architecture Reference
 
-This document explains the organization and strategy for Firebase configuration within the AAA Online Enrollment System.
+This document defines the backend infrastructure strategy and data security boundaries for the AAA Online Enrollment System.
 
-## Project Structure
+## Infrastructure Overview
 
-Our Firebase setup follows a "Monorepo" pattern, where infrastructure settings are consolidated at the project root while domain-specific rules live within their respective modules.
+The project uses a consolidated Firebase infrastructure to manage authentication, cloud functions, and database layers.
 
-### 1. Project Entry Points (Root)
-These files sit at the project root and manage the "Handbag" of the entire deployment:
+```mermaid
+graph LR
+    Dev[Developer Machine] -->|firebase deploy| CLI[Firebase CLI]
+    CLI --> Project[(AAA Enrollment Project)]
+    Project --> Hosting[Hosting: frontend/dist]
+    Project --> Functions[Functions: backend/functions]
+    Project --> Firestore[Firestore: Groups & Rules]
+    Project --> Storage[Storage: Media & Rules]
+```
 
-*   **`firebase.json`**: The master configuration. It tells the Firebase CLI where everything is. 
-    *   **Hosting**: Points to `frontend/dist`.
-    *   **Functions**: Points to `backend/functions`.
-    *   **Rules/Indexes**: Points into the `backend/configs/` directory.
-*   **.firebaserc**: Stores the Project ID (`aaa-online-registration-e3833`) to ensure we always deploy to the correct Google cloud environment.
+## Core Architectural Boundaries
 
-### 2. Configuration Subdirectory (`backend/configs/`)
-We keep security-critical and database-defining files here instead of the root.
+### 1. The Configuration Hub (`backend/configs/`)
+We maintain a strict separation between code and configuration. All security rules and schema indexes are isolated in the `backend/configs/` directory to ensure they are treated as part of the "Brain" (Backend) rather than the "Face" (Frontend).
 
-*   **`firestore.rules`**: Defines who can read/write to the database. Keeping this in the backend folder makes it clear it is a data-layer concern.
-*   **`firestore.indexes.json`**: Optimizes database queries.
-*   **`storage.rules`**: Controls permissions for file uploads to Cloud Storage.
+- **`firestore.rules`**: Granular access control for the NoSQL store.
+- **`storage.rules`**: Permissions for student document and program image uploads.
+- **`firestore.indexes.json`**: Performance optimization for complex filtered queries.
 
----
+### 2. Deployment Orchestration
+The root `firebase.json` serves as the master manifest. It orchestrates how local directories map to Google Cloud services:
+- **`frontend/dist`** maps to **Firebase Hosting**.
+- **`backend/functions`** maps to **Cloud Functions**.
 
-## Why this structure?
+## Deployment Strategy
 
-1.  **Deployment Simplicity**: You can run `firebase deploy` from the root folder to update the entire stack (web app + api functions + security rules) in one go.
-2.  **Clean Project Root**: Prevents "Config Bloat" at the top level. We only have entry points at the root, maintaining a professional and clean project home.
-3.  **Logical Ownership**: Security rules are backend logic. By keeping them in `backend/configs`, we maintain a clear separation between the "Face" (Frontend) and the "Brain" (Backend) of the system.
+| Service | Source Folder | Security Concern |
+| :--- | :--- | :--- |
+| **Database** | `backend/configs/` | Access control & Indexing |
+| **Functions** | `backend/functions/` | API authentication & Secrets |
+| **Storage** | `backend/configs/` | File size limits & User IDs |
+| **Hosting** | `frontend/dist/` | HTTPS & SEO Meta Tags |
 
----
+## Command Reference
 
-## Deployment Commands
-Run these from the main project folder:
-
-| Command | Action |
-| :--- | :--- |
-| `firebase login` | Authenticate your terminal |
-| `firebase emulators:start` | Test the entire system locally |
-| `firebase deploy` | Push all changes to the cloud |
-| `firebase deploy --only hosting` | Only update the web app |
+- `firebase deploy`: Full stack synchronization.
+- `firebase emulators:start`: Local sandbox for end-to-end testing.
