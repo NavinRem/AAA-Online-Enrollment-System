@@ -105,3 +105,13 @@ mobile/ios/Flutter/Generated.xcconfig
 mobile/ios/Flutter/ephemeral/
 mobile/ios/Flutter/flutter_export_environment.sh
 mobile/ios/Runner/GeneratedPluginRegistrant.*
+
+# ==========================================
+# DOCUMENTATION
+# ==========================================
+doc/**/*.mp4
+doc/**/*.mov
+doc/**/*.avi
+doc/site/
+doc/_build/
+doc/api/
