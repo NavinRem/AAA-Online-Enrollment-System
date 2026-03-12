@@ -128,9 +128,9 @@ const mappedEnrollments = computed(() => {
           <div class="basic-info">
             <h3 class="info-title">Basic Information</h3>
             <div class="mini-cards-stack">
-              <MiniCard title="Total Accounts" :value="stats.totals.accounts" :image="getIconUrl('user-online')" />
+              <MiniCard title="Total Accounts" :value="stats.totals.accounts" :image="getImageUrl('user-online')" />
               <MiniCard title="Total Parents" :value="stats.totals.parents" :image="getImageUrl('parent')" />
-              <MiniCard title="Total Guardians" :value="stats.totals.guardians" :image="getIconUrl('guardian')" />
+              <MiniCard title="Total Guardians" :value="stats.totals.guardians" :image="getImageUrl('guardian')" />
               <MiniCard title="Total Students" :value="stats.totals.students" :image="getImageUrl('profiles', 'student2.png')" />
               <MiniCard title="Total Programs" :value="stats.totals.programs" :image="getImageUrl('program')" />
             </div>
