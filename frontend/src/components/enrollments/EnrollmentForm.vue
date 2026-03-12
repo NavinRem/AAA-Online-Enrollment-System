@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, toRef } from 'vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import { useSearch } from '@/composables/useSearch'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -22,16 +23,8 @@ const formData = ref({
   sessionId: '',
 })
 
-const parentSearchQuery = ref('')
 const isParentDropdownOpen = ref(false)
-
-const filteredParents = computed(() => {
-  if (!parentSearchQuery.value) return props.parents
-  const q = parentSearchQuery.value.toLowerCase()
-  return props.parents.filter(
-    (p) => (p.name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q),
-  )
-})
+const { searchQuery: parentSearchQuery, searchResults: filteredParents } = useSearch(toRef(props, 'parents'))
 
 const selectedParentLabel = computed(() => {
   if (!formData.value.parentId) return 'Choose a parent'

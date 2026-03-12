@@ -13,12 +13,9 @@ const props = defineProps({
   currentFilter: { type: String, default: 'all' },
   filterOptions: { type: Array, default: () => [] },
   hasSearch: { type: Boolean, default: true },
-  emptyMessage: { type: String, default: 'No data found.' },
-  loadingMessage: { type: String, default: 'Loading...' },
-  actionLabel: { type: String, default: 'Action' }
 })
 
-const emit = defineEmits(['update:searchQuery', 'update:currentFilter', 'action', 'row-click', 'add-click'])
+const emit = defineEmits(['update:searchQuery', 'update:currentFilter', 'row-click', 'action'])
 
 const { activeMenuId, isMenuAbove, menuStyles, toggleMenu, closeMenu } = useTableActions()
 
@@ -26,9 +23,6 @@ const handleAction = (type, item) => {
   emit('action', { type, item })
   closeMenu()
 }
-
-const handleSearchUpdate = (val) => emit('update:searchQuery', val)
-const handleFilterUpdate = (val) => emit('update:currentFilter', val)
 </script>
 
 <template>
@@ -36,11 +30,11 @@ const handleFilterUpdate = (val) => emit('update:currentFilter', val)
     <TableToolbar
       :hasSearch="hasSearch"
       :searchQuery="searchQuery"
-      @update:searchQuery="handleSearchUpdate"
+      @update:searchQuery="emit('update:searchQuery', $event)"
       :searchPlaceholder="searchPlaceholder"
       :hasFilter="hasFilter"
       :currentFilter="currentFilter"
-      @update:currentFilter="handleFilterUpdate"
+      @update:currentFilter="emit('update:currentFilter', $event)"
       :filterOptions="filterOptions"
     >
       <template #actions>

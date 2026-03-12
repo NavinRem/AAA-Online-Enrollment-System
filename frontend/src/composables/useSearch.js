@@ -9,46 +9,23 @@ export function useSearch(listRef, customMapper = null) {
   const searchQuery = ref('')
 
   const searchResults = computed(() => {
-    if (!listRef.value) return []
-    if (!searchQuery.value) return listRef.value
+    const list = listRef.value
+    if (!list) return []
+    const q = searchQuery.value.toLowerCase().trim()
+    if (!q) return list
 
-    const query = searchQuery.value.toLowerCase().trim()
-    // Split search query into multiple keywords for more flexible "AND" matching
-    const queryWords = query.split(/\s+/)
-
-    return listRef.value.filter((item) => {
-      // Helper to cleanly extract all textual values from the object recursively
-      const extractValues = (obj) => {
-        if (!obj) return ''
-        if (typeof obj !== 'object') return String(obj)
-        return Object.values(obj)
-          .map((val) => {
-            if (val && typeof val === 'object') return extractValues(val)
-            if (val !== null && val !== undefined) return String(val)
-            return ''
-          })
-          .join(' ')
+    return list.filter((item) => {
+      const extract = (obj) => {
+        if (!obj || typeof obj !== 'object') return String(obj || '').toLowerCase()
+        return Object.values(obj).map(v => typeof v === 'object' ? extract(v) : String(v || '').toLowerCase()).join(' ')
       }
 
-      // Collect all deeply nested text inside the row attributes
-      let searchableText = extractValues(item)
-
-      // Include the explicitly mapped data just in case
-      if (customMapper) {
-        searchableText += ' ' + customMapper(item)
-      }
-
-      const text = searchableText.toLowerCase()
-
-      // Ensure the row matches at least one keyword (AND/OR logic) as requested
-      return queryWords.some((word) => text.includes(word))
+      const text = `${extract(item)} ${customMapper ? customMapper(item).toLowerCase() : ''}`
+      return text.includes(q)
     })
   })
 
-  return {
-    searchQuery,
-    searchResults,
-  }
+  return { searchQuery, searchResults }
 }
 
 // Pre-defined Custom Mappers for specific entities
