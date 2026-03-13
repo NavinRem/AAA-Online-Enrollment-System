@@ -52,7 +52,7 @@ class StudentService {
     return { message: "Student updated successfully" };
   }
 
-  async getStudentsByParent(parentId) {
+  async getStudentsByParentID(parentId) {
     const snapshot = await db
       .collection("student")
       .where("parentId", "==", parentId)

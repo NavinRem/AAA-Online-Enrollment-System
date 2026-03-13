@@ -15,7 +15,6 @@ const emit = defineEmits(['toggle-menu'])
 const pageTitle = computed(() => route.meta.title || 'Dashboard')
 
 onMounted(() => {
-  console.log('Topbar [getIconUrl]:', typeof getIconUrl)
   authService.onAuthStateChanged(async (user) => {
     if (user) {
       try {

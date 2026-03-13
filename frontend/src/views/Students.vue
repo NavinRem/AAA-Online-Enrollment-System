@@ -39,7 +39,7 @@ onMounted(async () => {
       ])
       students.value = enrichStudents(sData, rData || [], uData || [])
     } else {
-      const sData = await userService.getStudents(currentUser.uid)
+      const sData = await userService.getStudentsByParentID(currentUser.uid)
       students.value = (sData || []).map(s => ({ ...s, programs: [] }))
     }
   } catch (error) {

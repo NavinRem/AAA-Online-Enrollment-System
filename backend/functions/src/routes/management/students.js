@@ -15,7 +15,7 @@ router.put("/:id", studentController.updateStudent);
 router.put("/:id/medical", studentController.updateMedicalInfo);
 
 // Get Students by Parent ID
-router.get("/parent/:parentId", studentController.getStudentsByParent);
+router.get("/parent/:parentId", studentController.getStudentsByParentID);
 
 // Get ALL Students
 router.get("/", studentController.getAllStudents);

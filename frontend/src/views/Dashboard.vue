@@ -42,7 +42,7 @@ onMounted(() => {
         userService.getAllUsers(),
         enrollmentService.getAllEnrollments(),
         courseService.getAllCourses(),
-        userService.getAllStudents()
+        userService.getStudentsByParentID(currentUser.uid)
       ])
 
       allUsers.value = Array.isArray(uData) ? uData : []

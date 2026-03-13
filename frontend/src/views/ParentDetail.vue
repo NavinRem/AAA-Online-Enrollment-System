@@ -94,7 +94,7 @@ const fetchData = async (id) => {
 
     // Fetch Students and Enrollments in parallel
     const [studentsData, allEnrollments] = await Promise.all([
-      userService.getStudents(id),
+      userService.getStudentsByParentID(id),
       enrollmentService.getAllEnrollments(),
     ])
 

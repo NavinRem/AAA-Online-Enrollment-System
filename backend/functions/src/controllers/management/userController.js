@@ -1,4 +1,5 @@
 const userService = require("../../services/management/userService");
+const studentService = require("../../services/management/studentService");
 
 /**
  * @route POST /users
@@ -109,7 +110,7 @@ exports.updateMedicalInfo = async (req, res) => {
  */
 exports.getStudentsByParentID = async (req, res) => {
   try {
-    const students = await userService.getStudentsByParentID(req.params.uid);
+    const students = await studentService.getStudentsByParentID(req.params.uid);
     res.status(200).json(students);
   } catch (error) {
     res.status(500).json({ error: error.message });

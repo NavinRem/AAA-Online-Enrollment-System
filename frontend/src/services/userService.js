@@ -54,7 +54,7 @@ export const userService = {
   },
 
   // Get Students by Parent
-  getStudents(uid) {
+  getStudentsByParentID(uid) {
     return request(`/users/${uid}/students`)
   },
 

@@ -74,9 +74,9 @@ exports.updateMedicalInfo = async (req, res) => {
  * @route GET /students/parent/:parentId
  * @description Get all students for a parent
  */
-exports.getStudentsByParent = async (req, res) => {
+exports.getStudentsByParentID = async (req, res) => {
   try {
-    const students = await studentService.getStudentsByParent(
+    const students = await studentService.getStudentsByParentID(
       req.params.parentId,
     );
     res.status(200).json(students);
