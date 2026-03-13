@@ -1,5 +1,4 @@
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore("registration");
+const { db, COLLECTIONS } = require("../../config/database");
 
 class UserService {
   async registerParentAccount(userData) {
@@ -9,7 +8,7 @@ class UserService {
       throw new Error("User ID (uid) is required");
     }
 
-    const userRef = db.collection("user").doc(uid);
+    const userRef = db.collection(COLLECTIONS.USER).doc(uid);
     const data = {
       email,
       role: role || "parent",
@@ -30,7 +29,7 @@ class UserService {
   }
 
   async getUserRole(uid) {
-    const doc = await db.collection("user").doc(uid).get();
+    const doc = await db.collection(COLLECTIONS.USER).doc(uid).get();
     if (!doc.exists) {
       throw new Error("User not found");
     }
@@ -38,7 +37,7 @@ class UserService {
   }
 
   async getAllUsers() {
-    const snapshot = await db.collection("user").get();
+    const snapshot = await db.collection(COLLECTIONS.USER).get();
     return snapshot.docs.map((doc) => ({
       uid: doc.id,
       ...doc.data(),
@@ -46,7 +45,7 @@ class UserService {
   }
 
   async getUser(uid) {
-    const doc = await db.collection("user").doc(uid).get();
+    const doc = await db.collection(COLLECTIONS.USER).doc(uid).get();
     if (!doc.exists) {
       throw new Error("User not found");
     }
@@ -57,7 +56,7 @@ class UserService {
     if (!uid) {
       throw new Error("User ID (uid) is required");
     }
-    const userRef = db.collection("user").doc(uid);
+    const userRef = db.collection(COLLECTIONS.USER).doc(uid);
     const doc = await userRef.get();
     if (!doc.exists) {
       throw new Error("User not found");
@@ -75,7 +74,7 @@ class UserService {
     if (!uid) {
       throw new Error("User ID (uid) is required");
     }
-    const userRef = db.collection("user").doc(uid);
+    const userRef = db.collection(COLLECTIONS.USER).doc(uid);
     const doc = await userRef.get();
     if (!doc.exists) {
       throw new Error("User not found");

@@ -1,5 +1,4 @@
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore("registration");
+const { db, COLLECTIONS } = require("../../config/database");
 
 class EnrollmentService {
   async createEnrollment(enrollmentData) {
@@ -11,9 +10,9 @@ class EnrollmentService {
 
     let enrollmentId;
     await db.runTransaction(async (transaction) => {
-      const sessionRef = db.collection("session").doc(sessionId);
-      const studentRef = db.collection("student").doc(studentId);
-      const courseRef = db.collection("courses").doc(courseId);
+      const sessionRef = db.collection(COLLECTIONS.SESSION).doc(sessionId);
+      const studentRef = db.collection(COLLECTIONS.STUDENT).doc(studentId);
+      const courseRef = db.collection(COLLECTIONS.COURSE).doc(courseId);
 
       const existingEnrollmentQuery = db
         .collection("enrollment")
@@ -42,7 +41,7 @@ class EnrollmentService {
         throw new Error("Session is full");
       }
 
-      const enrollmentRef = db.collection("enrollment").doc();
+      const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc();
       enrollmentId = enrollmentRef.id;
       const data = {
         studentId,
@@ -73,11 +72,11 @@ class EnrollmentService {
 
   async getAllEnrollments() {
     const [snapshot, usersSnap, studentsSnap, coursesSnap, sessionsSnap] = await Promise.all([
-      db.collection("enrollment").get(),
-      db.collection("user").get(),
-      db.collection("student").get(),
-      db.collection("courses").get(),
-      db.collection("session").get(),
+      db.collection(COLLECTIONS.ENROLLMENT).get(),
+      db.collection(COLLECTIONS.USER).get(),
+      db.collection(COLLECTIONS.STUDENT).get(),
+      db.collection(COLLECTIONS.COURSE).get(),
+      db.collection(COLLECTIONS.SESSION).get(),
     ]);
 
     const usersMap = {};
@@ -141,7 +140,7 @@ class EnrollmentService {
   }
 
   async getEnrollment(id) {
-    const doc = await db.collection("enrollment").doc(id).get();
+    const doc = await db.collection(COLLECTIONS.ENROLLMENT).doc(id).get();
     if (!doc.exists) {
       throw new Error("Enrollment not found");
     }
@@ -149,10 +148,10 @@ class EnrollmentService {
     const data = doc.data();
 
     const [userDoc, studentDoc, courseDoc, sessionDoc] = await Promise.all([
-      data.parentId ? db.collection("user").doc(data.parentId).get() : Promise.resolve({ exists: false }),
-      data.studentId ? db.collection("student").doc(data.studentId).get() : Promise.resolve({ exists: false }),
-      data.courseId ? db.collection("courses").doc(data.courseId).get() : Promise.resolve({ exists: false }),
-      data.sessionId ? db.collection("session").doc(data.sessionId).get() : Promise.resolve({ exists: false }),
+      data.parentId ? db.collection(COLLECTIONS.USER).doc(data.parentId).get() : Promise.resolve({ exists: false }),
+      data.studentId ? db.collection(COLLECTIONS.STUDENT).doc(data.studentId).get() : Promise.resolve({ exists: false }),
+      data.courseId ? db.collection(COLLECTIONS.COURSE).doc(data.courseId).get() : Promise.resolve({ exists: false }),
+      data.sessionId ? db.collection(COLLECTIONS.SESSION).doc(data.sessionId).get() : Promise.resolve({ exists: false }),
     ]);
 
     const userData = userDoc.exists ? userDoc.data() : null;
@@ -175,7 +174,7 @@ class EnrollmentService {
       if (first.name) {
         instructorName = first.name;
       } else if (first.id) {
-        const instDoc = await db.collection("user").doc(first.id).get();
+        const instDoc = await db.collection(COLLECTIONS.USER).doc(first.id).get();
         if (instDoc.exists) {
           instructorName = instDoc.data().name || instDoc.data().email || "Assigned";
         }
@@ -202,7 +201,7 @@ class EnrollmentService {
   }
 
   async cancelEnrollment(enrollmentId) {
-    const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
+    const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId);
     const doc = await enrollmentRef.get();
 
     if (!doc.exists) throw new Error("Enrollment not found");
@@ -211,7 +210,7 @@ class EnrollmentService {
     if (data.status === "cancelled") throw new Error("Already cancelled");
 
     await db.runTransaction(async (transaction) => {
-      const sessionRef = db.collection("session").doc(data.sessionId);
+      const sessionRef = db.collection(COLLECTIONS.SESSION).doc(data.sessionId);
       const sessionDoc = await transaction.get(sessionRef);
 
       transaction.update(enrollmentRef, {
@@ -231,7 +230,7 @@ class EnrollmentService {
   }
 
   async updateEnrollment(enrollmentId, updateData) {
-    const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
+    const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId);
     const doc = await enrollmentRef.get();
 
     if (!doc.exists) throw new Error("Enrollment not found");
@@ -245,7 +244,7 @@ class EnrollmentService {
   }
 
   async deleteEnrollment(enrollmentId) {
-    const enrollmentRef = db.collection("enrollment").doc(enrollmentId);
+    const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId);
     const doc = await enrollmentRef.get();
 
     if (!doc.exists) throw new Error("Enrollment not found");
@@ -254,7 +253,7 @@ class EnrollmentService {
 
     if (data.status !== "cancelled" && data.status !== "canceled") {
       await db.runTransaction(async (transaction) => {
-        const sessionRef = db.collection("session").doc(data.sessionId);
+        const sessionRef = db.collection(COLLECTIONS.SESSION).doc(data.sessionId);
         const sessionDoc = await transaction.get(sessionRef);
 
         if (sessionDoc.exists) {

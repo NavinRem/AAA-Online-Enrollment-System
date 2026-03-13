@@ -1,5 +1,4 @@
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore("registration");
+const { db, COLLECTIONS } = require("../../config/database");
 
 class StudentService {
   async createStudent(studentData) {
@@ -9,7 +8,7 @@ class StudentService {
       throw new Error("Parent ID, Full Name, and Date of Birth are required");
     }
 
-    const studentRef = db.collection("student").doc();
+    const studentRef = db.collection(COLLECTIONS.STUDENT).doc();
     const data = {
       parentId,
       fullName,
@@ -24,7 +23,7 @@ class StudentService {
   }
 
   async getStudent(id) {
-    const doc = await db.collection("student").doc(id).get();
+    const doc = await db.collection(COLLECTIONS.STUDENT).doc(id).get();
     if (!doc.exists) {
       throw new Error("Student not found");
     }
@@ -32,7 +31,7 @@ class StudentService {
   }
 
   async updateStudent(id, updateData) {
-    const studentRef = db.collection("student").doc(id);
+    const studentRef = db.collection(COLLECTIONS.STUDENT).doc(id);
     const doc = await studentRef.get();
 
     if (!doc.exists) {
@@ -67,8 +66,8 @@ class StudentService {
 
   async getAllStudents() {
     // Fetch all students and enrich with parent names
-    const studentsSnapshot = await db.collection("student").get();
-    const usersSnapshot = await db.collection("user").where("role", "in", ["parent", "guardian"]).get();
+    const studentsSnapshot = await db.collection(COLLECTIONS.STUDENT).get();
+    const usersSnapshot = await db.collection(COLLECTIONS.USER).where("role", "in", ["parent", "guardian"]).get();
 
     const parentsMap = {};
     usersSnapshot.forEach((doc) => {
@@ -86,7 +85,7 @@ class StudentService {
   }
 
   async updateMedicalInfo(id, medicalNote) {
-    const studentRef = db.collection("student").doc(id);
+    const studentRef = db.collection(COLLECTIONS.STUDENT).doc(id);
     const doc = await studentRef.get();
     if (!doc.exists) throw new Error("Student not found");
 

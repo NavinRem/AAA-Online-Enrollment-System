@@ -1,11 +1,10 @@
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore("registration");
+const { db, COLLECTIONS } = require("../../config/database");
 
 class AttendanceService {
   // 16. Mark Check-In
   async markCheckIn(data) {
     const { student_id, session_id, timestamp } = data;
-    const ref = db.collection("attendance").doc();
+    const ref = db.collection(COLLECTIONS.ATTENDANCE).doc();
     await ref.set({
       student_id,
       session_id,
@@ -19,7 +18,7 @@ class AttendanceService {
   // 17. Mark Check-Out
   async markCheckOut(data) {
     const { student_id, session_id, timestamp } = data;
-    const ref = db.collection("attendance").doc();
+    const ref = db.collection(COLLECTIONS.ATTENDANCE).doc();
     await ref.set({
       student_id,
       session_id,
@@ -54,7 +53,7 @@ class AttendanceService {
   async requestMakeUpSession(data) {
     const { student_id, old_session_id, new_session_id, reason } = data;
     // Logic to check rules...
-    await db.collection("requests").add({
+    await db.collection(COLLECTIONS.REQUEST).add({
       type: "makeup",
       student_id,
       old_session_id,

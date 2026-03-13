@@ -1,5 +1,4 @@
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore("registration");
+const { db, COLLECTIONS } = require("../../config/database");
 
 class ProgressService {
   // 13. Get Student Progress
@@ -9,7 +8,7 @@ class ProgressService {
     // For now, let's return a mocked summary based on enrollment count.
 
     const snapshot = await db
-      .collection("enrollment")
+      .collection(COLLECTIONS.ENROLLMENT)
       .where("student_id", "==", studentId)
       .where("status", "==", "confirmed")
       .get();

@@ -1,9 +1,8 @@
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore("registration");
+const { db, COLLECTIONS } = require("../../config/database");
 
 class TermService {
   async getAllTerms() {
-    const snapshot = await db.collection("terms").get();
+    const snapshot = await db.collection(COLLECTIONS.TERM).get();
     return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
@@ -23,7 +22,7 @@ class TermService {
     }
 
     // Case-insensitive uniqueness check
-    const snapshot = await db.collection("terms").get();
+    const snapshot = await db.collection(COLLECTIONS.TERM).get();
     const exists = snapshot.docs.some(
       (doc) => doc.data().name.toLowerCase() === name.trim().toLowerCase()
     );
@@ -37,12 +36,12 @@ class TermService {
       createdAt: new Date().toISOString(),
     };
 
-    const docRef = await db.collection("terms").add(data);
+    const docRef = await db.collection(COLLECTIONS.TERM).add(data);
     return { id: docRef.id, ...data };
   }
 
   async deleteTerm(id) {
-    await db.collection("terms").doc(id).delete();
+    await db.collection(COLLECTIONS.TERM).doc(id).delete();
     return { message: "Term deleted successfully" };
   }
 }

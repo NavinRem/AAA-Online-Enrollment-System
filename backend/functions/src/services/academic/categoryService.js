@@ -1,9 +1,8 @@
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore("registration");
+const { db, COLLECTIONS } = require("../../config/database");
 
 class CategoryService {
   async getAllCategories() {
-    const snapshot = await db.collection("categories").get();
+    const snapshot = await db.collection(COLLECTIONS.CATEGORY).get();
     return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
@@ -23,7 +22,7 @@ class CategoryService {
     }
 
     // Case-insensitive uniqueness check
-    const snapshot = await db.collection("categories").get();
+    const snapshot = await db.collection(COLLECTIONS.CATEGORY).get();
     const exists = snapshot.docs.some(
       (doc) => doc.data().name.toLowerCase() === name.trim().toLowerCase()
     );
@@ -37,12 +36,12 @@ class CategoryService {
       createdAt: new Date().toISOString(),
     };
 
-    const docRef = await db.collection("categories").add(data);
+    const docRef = await db.collection(COLLECTIONS.CATEGORY).add(data);
     return { id: docRef.id, ...data };
   }
 
   async deleteCategory(id) {
-    await db.collection("categories").doc(id).delete();
+    await db.collection(COLLECTIONS.CATEGORY).doc(id).delete();
     return { message: "Category deleted successfully" };
   }
 }

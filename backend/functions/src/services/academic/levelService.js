@@ -1,10 +1,9 @@
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore("registration");
+const { db, COLLECTIONS } = require("../../config/database");
 
 class LevelService {
   async getAllLevels(categoryId) {
     if (!categoryId) return [];
-    const snapshot = await db.collection("categories").doc(categoryId).collection("levels").get();
+    const snapshot = await db.collection(COLLECTIONS.CATEGORY).doc(categoryId).collection(COLLECTIONS.LEVEL).get();
     return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
@@ -25,7 +24,7 @@ class LevelService {
     }
 
     // Case-insensitive uniqueness check within category
-    const snapshot = await db.collection("categories").doc(categoryId).collection("levels").get();
+    const snapshot = await db.collection(COLLECTIONS.CATEGORY).doc(categoryId).collection(COLLECTIONS.LEVEL).get();
     const exists = snapshot.docs.some(
       (doc) => doc.data().name.toLowerCase() === name.trim().toLowerCase()
     );
@@ -39,12 +38,12 @@ class LevelService {
       createdAt: new Date().toISOString(),
     };
 
-    const docRef = await db.collection("categories").doc(categoryId).collection("levels").add(data);
+    const docRef = await db.collection(COLLECTIONS.CATEGORY).doc(categoryId).collection(COLLECTIONS.LEVEL).add(data);
     return { id: docRef.id, ...data };
   }
 
   async deleteLevel(categoryId, id) {
-    await db.collection("categories").doc(categoryId).collection("levels").doc(id).delete();
+    await db.collection(COLLECTIONS.CATEGORY).doc(categoryId).collection(COLLECTIONS.LEVEL).doc(id).delete();
     return { message: "Level deleted successfully" };
   }
 }

@@ -1,5 +1,4 @@
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore("registration");
+const { db, COLLECTIONS } = require("../../config/database");
 
 class CourseService {
   async createCourse(courseData) {
@@ -11,7 +10,7 @@ class CourseService {
     }
 
     // Uniqueness check: Title + Term + Level
-    const snapshot = await db.collection("courses")
+    const snapshot = await db.collection(COLLECTIONS.COURSE)
       .where("title", "==", title.trim())
       .where("termId", "==", termId)
       .where("levelId", "==", levelId)
@@ -37,30 +36,30 @@ class CourseService {
       createdAt: new Date().toISOString(),
     };
 
-    const docRef = await db.collection("courses").add(data);
+    const docRef = await db.collection(COLLECTIONS.COURSE).add(data);
     return { id: docRef.id, message: "Course created successfully" };
   }
 
   async getAllCourses() {
-    const coursesSnapshot = await db.collection("courses").get();
+    const coursesSnapshot = await db.collection(COLLECTIONS.COURSE).get();
     const courses = coursesSnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
 
     // Fetch all terms for mapping
-    const termsSnapshot = await db.collection("terms").get();
+    const termsSnapshot = await db.collection(COLLECTIONS.TERM).get();
     const termsMap = {};
     termsSnapshot.docs.forEach((doc) => {
       termsMap[doc.id] = doc.data().name;
     });
 
     const levelsMap = {};
-    const categoriesSnapshot = await db.collection("categories").get();
+    const categoriesSnapshot = await db.collection(COLLECTIONS.CATEGORY).get();
     
     await Promise.all(
       categoriesSnapshot.docs.map(async (catDoc) => {
-        const levelsSnapshot = await catDoc.ref.collection("levels").get();
+        const levelsSnapshot = await catDoc.ref.collection(COLLECTIONS.LEVEL).get();
         levelsSnapshot.docs.forEach((lvlDoc) => {
           levelsMap[lvlDoc.id] = lvlDoc.data().name;
         });
@@ -75,13 +74,13 @@ class CourseService {
   }
 
   async getCourse(courseId) {
-    const doc = await db.collection("courses").doc(courseId).get();
+    const doc = await db.collection(COLLECTIONS.COURSE).doc(courseId).get();
     if (!doc.exists) throw new Error("Course not found");
     return { id: doc.id, ...doc.data() };
   }
 
   async updateCourse(id, updateData) {
-    const ref = db.collection("courses").doc(id);
+    const ref = db.collection(COLLECTIONS.COURSE).doc(id);
     await ref.update({
       ...updateData,
       updatedAt: new Date().toISOString(),
@@ -90,7 +89,7 @@ class CourseService {
   }
 
   async deleteCourse(id) {
-    await db.collection("courses").doc(id).delete();
+    await db.collection(COLLECTIONS.COURSE).doc(id).delete();
     return { message: "Course deleted successfully" };
   }
 }

@@ -1,5 +1,4 @@
-const { getFirestore } = require("firebase-admin/firestore");
-const db = getFirestore("registration");
+const { db, COLLECTIONS } = require("../../config/database");
 
 class PaymentService {
   // 10. Initiate Payment
@@ -7,7 +6,7 @@ class PaymentService {
     const { enrollment_id, amount, method, parent_id } = paymentData;
     // Placeholder: Integrate with Stripe/PayPal here
 
-    const paymentRef = db.collection("payment").doc();
+    const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc();
     const data = {
       enrollment_id,
       parent_id, // Required by Security Rules
@@ -27,7 +26,7 @@ class PaymentService {
 
   // 11. Verify Payment
   async verifyPayment(transactionId) {
-    const paymentRef = db.collection("payment").doc(transactionId);
+    const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc(transactionId);
     const doc = await paymentRef.get();
 
     if (!doc.exists) throw new Error("Transaction not found");
@@ -41,7 +40,7 @@ class PaymentService {
     // Update Enrollment Status
     const payment = doc.data();
     if (payment.enrollment_id) {
-      await db.collection("enrollment").doc(payment.enrollment_id).update({
+      await db.collection(COLLECTIONS.ENROLLMENT).doc(payment.enrollment_id).update({
         paymentStatus: "paid",
         status: "confirmed",
       });
@@ -57,7 +56,7 @@ class PaymentService {
     // Let's assume we pass userId in initiatePayment or look it up.
     // Simplify: Query payments by enrollmentId found for user's students?
     // For this MVP, let's just return all payments since we don't have authentication middleware strictly enforcing owner yet.
-    const snapshot = await db.collection("payment").get();
+    const snapshot = await db.collection(COLLECTIONS.PAYMENT).get();
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   }
 }
