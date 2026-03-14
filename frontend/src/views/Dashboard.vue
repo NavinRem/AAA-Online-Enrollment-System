@@ -77,8 +77,8 @@ const mappedEnrollments = computed(() => {
     .slice(0, 5)
     .map((r, index) => {
       const p = allUsers.value.find(u => u.uid === r.parentId)
-      const s = students.value.find(s => s.id === r.studentId)
-      const c = courses.value.find(c => c.id === r.courseId)
+      const s = students.value.find(s => s.studentId === r.studentId)
+      const c = courses.value.find(c => c.courseId === r.courseId || c.id === r.courseId)
       const rStatus = (r.paymentStatus || r.status || '')
 
       return {
