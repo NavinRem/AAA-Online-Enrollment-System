@@ -486,7 +486,7 @@ watch(
           <template #outside>
             <div class="profile-header">
               <div class="profile-preview">
-                <img :src="student?.profileURL || getImageUrl('profiles', 'child-profile.png')" alt="Student Profile" />
+                <img :src="student?.profileURL || getImageUrl('profiles/avatar-student')" alt="Student Profile" />
               </div>
             </div>
           </template>
@@ -533,7 +533,7 @@ watch(
               <span class="category-title">Parent</span>
               <div class="relationship-item" v-if="primaryParent">
                 <img
-                  :src="primaryParent.profileURL || getImageUrl('profiles', 'female-profile-parent.jpg')"
+                  :src="primaryParent.profileURL || getImageUrl('profiles/avatar-parent')"
                   alt="Parent Avatar"
                   class="small-avatar"
                 />
@@ -556,7 +556,7 @@ watch(
               <span class="category-title">Guardian</span>
               <div class="relationship-item" v-if="primaryGuardian">
                 <img
-                  :src="primaryGuardian.profileURL || getImageUrl('profiles', 'female-profile-parent.jpg')"
+                  :src="primaryGuardian.profileURL || getImageUrl('profiles/avatar-guardian')"
                   alt="Guardian Avatar"
                   class="small-avatar"
                 />

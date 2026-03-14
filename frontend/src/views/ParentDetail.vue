@@ -313,7 +313,7 @@ watch(
                   :class="{ active: selectedChildUid === s.id }"
                   @click="selectedChildUid = s.id"
                 >
-                  <img :src="s.profileURL || getAssetUrl('profiles', 'child-profile.png')" class="chip-avatar" />
+                  <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
                   {{ s.fullname }}
                 </button>
               </div>
@@ -433,7 +433,7 @@ watch(
           <template #outside>
             <div class="profile-header">
               <div class="profile-preview">
-                <img :src="parent.profileURL || getImageUrl('profiles', 'female-profile-parent.jpg')" alt="Profile" />
+                <img :src="parent.profileURL || getImageUrl('profiles/avatar-parent')" alt="Profile" />
               </div>
               <h3 class="profile-name">{{ parent.fullname || parent.name || 'Anonymous' }}</h3>
               <div class="badge-stack">
@@ -462,7 +462,7 @@ watch(
         <DetailedSummaryCard subtitle="Child Profiles">
           <div class="relationships-list">
             <div v-for="s in students" :key="s.id" class="relationship-item">
-              <img :src="s.profileURL || getAssetUrl('profiles', 'child-profile.png')" alt="child" class="small-avatar" />
+              <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
               <div class="child-info">
                 <strong>{{ s.fullname || s.name }}</strong>
                 <span>Student ID: {{ s.id?.substring(0, 6) }}</span>

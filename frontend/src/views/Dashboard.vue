@@ -60,14 +60,15 @@ onMounted(() => {
 })
 
 const todayStats = computed(() => [
-  { label: 'New Enrollments Today', value: stats.value.today.enroll, image: getIconUrl('enroll'), color: '#e1f5fe' },
-  { label: "Today's Payments", value: `$${stats.value.today.pay}`, image: getIconUrl('pay'), color: '#e1f5fe' }
+  { label: 'New Registrations Today', value: stats.value.today.reg, image: getImageUrl('dashboard/registration'), color: '#e1f5fe' },
+  { label: 'New Enrollments Today', value: stats.value.today.enroll, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
+  { label: "Today's Payments", value: `$${stats.value.today.pay}`, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
 ])
 
-const totalStats = computed(() => [
-  { label: 'Total Parent Accounts', value: stats.value.totals.accounts, image: getIconUrl('register'), color: '#e1f5fe' },
-  { label: 'Total Course Enrollments', value: stats.value.totals.programs, image: getIconUrl('enroll'), color: '#e1f5fe' },
-  { label: 'Total Weekly Payments', value: `$${stats.value.week.pay}`, image: getIconUrl('pay'), color: '#e1f5fe' }
+const thisWeekStats = computed(() => [
+  { label: 'Total Registrations', value: stats.value.week.reg, image: getImageUrl('dashboard/registration'), color: '#e1f5fe' },
+  { label: 'Total Enrollments', value: stats.value.week.enroll, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
+  { label: 'Total Payments', value: `$${stats.value.week.pay}`, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
 ])
 
 const mappedEnrollments = computed(() => {
@@ -108,8 +109,8 @@ const mappedEnrollments = computed(() => {
         </section>
 
         <section class="summary-section">
-          <h2 class="section-title">Total Summary</h2>
-          <DataMetrics :stats="totalStats" />
+          <h2 class="section-title">This Week</h2>
+          <DataMetrics :stats="thisWeekStats" />
         </section>
 
         <RecentEnrollmentTable :enrollments="mappedEnrollments" />
@@ -119,7 +120,7 @@ const mappedEnrollments = computed(() => {
         <div class="profile-overview">
           <div class="profile-card">
             <div class="profile-image-large">
-              <img :src="userProfile?.profileURL || getImageUrl('profiles', 'profile-admin.png')" alt="User" />
+              <img :src="userProfile?.profileURL || getImageUrl('profiles/avatar-admin')" alt="User" />
             </div>
             <h3 class="welcome-text">Welcome Back!<br />{{ userProfile?.name || 'User' }}</h3>
             <p class="sub-text">Here is the overview</p>
@@ -128,11 +129,11 @@ const mappedEnrollments = computed(() => {
           <div class="basic-info">
             <h3 class="info-title">Basic Information</h3>
             <div class="mini-cards-stack">
-              <MiniCard title="Total Accounts" :value="stats.totals.accounts" :image="getImageUrl('user-online')" />
-              <MiniCard title="Total Parents" :value="stats.totals.parents" :image="getImageUrl('parent')" />
-              <MiniCard title="Total Guardians" :value="stats.totals.guardians" :image="getImageUrl('guardian')" />
-              <MiniCard title="Total Students" :value="stats.totals.students" :image="getImageUrl('profiles', 'student2.png')" />
-              <MiniCard title="Total Programs" :value="stats.totals.programs" :image="getImageUrl('program')" />
+              <MiniCard title="Total Accounts" :value="stats.totals.accounts" :image="getImageUrl('dashboard/card-account')" />
+              <MiniCard title="Total Parents" :value="stats.totals.parents" :image="getImageUrl('dashboard/card-parent')" />
+              <MiniCard title="Total Guardians" :value="stats.totals.guardians" :image="getImageUrl('dashboard/card-guardian')" />
+              <MiniCard title="Total Students" :value="stats.totals.students" :image="getImageUrl('dashboard/card-student')" />
+              <MiniCard title="Total Programs" :value="stats.totals.programs" :image="getImageUrl('dashboard/card-program')" />
             </div>
           </div>
         </div>
@@ -227,7 +228,7 @@ const mappedEnrollments = computed(() => {
 }
 
 .info-title {
-  font-size: 1rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #1a1a1a;
   margin-bottom: 20px;

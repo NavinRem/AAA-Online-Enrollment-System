@@ -6,5 +6,6 @@ import { getImageUrl } from './assetHelper'
  * @param {string} courseName
  */
 export const getCourseIcon = (courseName) => {
-  return getImageUrl(courseName)
+  // Maps course name to card asset
+  return getImageUrl(`classes/card-${courseName.toLowerCase()}`)
 }

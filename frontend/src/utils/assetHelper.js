@@ -1,172 +1,128 @@
 /**
+ * Vite Dynamic Asset Resolution
+ * Using import.meta.glob ensures all assets are found and bundled correctly.
+ */
+const images = import.meta.glob('../assets/images/**/*.{png,jpg,jpeg,svg,webp}', { eager: true })
+const icons = import.meta.glob('../assets/icons/**/*.{png,jpg,jpeg,svg,webp}', { eager: true })
+
+/**
+ * ASSET_PATH_MAP: Explicitly map legacy fuzzy keywords to new standardized paths.
+ */
+const ASSET_PATH_MAP = {
+  'student': 'profiles/avatar-student',
+  'parent': 'profiles/avatar-parent',
+  'guardian': 'profiles/avatar-guardian',
+  'admin': 'profiles/avatar-admin',
+  'profile-admin': 'profiles/avatar-admin',
+  'child-profile': 'profiles/avatar-student',
+  'total-student': 'dashboard/card-student',
+  'total-parent': 'dashboard/card-parent',
+  'total-program': 'dashboard/card-program',
+  'total-guardian': 'dashboard/card-guardian',
+  'total-account': 'dashboard/card-account',
+  'user-online': 'dashboard/user-online',
+  'piano': 'classes/card-piano',
+  'robotic': 'classes/card-robotic',
+  'ballet': 'classes/card-ballet',
+  'paid': 'status/badge-paid',
+  'unpaid': 'status/badge-unpaid',
+  'pending': 'status/badge-pending',
+  'cancel': 'status/badge-cancel',
+  'logo': 'common/logo-main',
+  'aaa-logo': 'common/logo-main',
+  'program': 'programs/program'
+}
+
+const normalizeAssetName = (name) => {
+  if (!name) return ''
+  return name.toLowerCase().trim().replace(/\s+/g, '-').replace(/_/g, '-')
+}
+
+/**
+ * Resolves an asset from the globbed collections.
+ */
+const resolveAsset = (collections, baseDir, path) => {
+  if (!path) return ''
+  
+  // Clean path (remove leading slashes)
+  const cleanPath = path.startsWith('/') ? path.substring(1) : path
+  
+  // Try with various extensions if not provided
+  const extensions = cleanPath.includes('.') ? [''] : ['.png', '.jpg', '.jpeg', '.svg', '.webp']
+  
+  for (const ext of extensions) {
+    const fullPath = `../assets/${baseDir}/${cleanPath}${ext}`
+    if (collections[fullPath]) {
+      return collections[fullPath].default || collections[fullPath]
+    }
+  }
+  
+  return ''
+}
+
+/**
  * Dynamic Image Loader
- * Fetches larger assets like profiles, classes, programs, and backgrounds.
  */
 export const getImageUrl = (param1, param2) => {
   if (!param1) return ''
   
-  let category = param1
-  let name = param2
-  
-  if (!param2) {
-    const kw = param1.toLowerCase().trim()
-    if (kw.includes('student') || kw.includes('parent') || kw.includes('guardian') || kw.includes('profile') || kw.includes('admin') || kw.includes('avatar')) {
-      category = 'profiles'
-    } else if (kw.includes('piano') || kw.includes('robotic') || kw.includes('ballet') || kw.includes('class')) {
-      category = 'classes'
-    } else if (kw.includes('program') || kw.includes('course')) {
-      category = 'programs'
-    } else if (kw.includes('bg') || kw.includes('background') || kw.includes('school') || kw.includes('auth')) {
-      category = 'backgrounds'
-    } else {
-      category = 'common'
-    }
-    name = kw
+  // Case 1: Explicit Path 'category/filename'
+  if (!param2 && param1.includes('/')) {
+    const resolved = resolveAsset(images, 'images', param1)
+    if (resolved) return resolved
   }
 
-  const cleanName = name.toLowerCase().trim().replace(/\s+/g, '-').replace(/_/g, '-')
-  let fileName = cleanName
-  
-  if (fileName === 'student' || fileName === 'student-profile') fileName = 'student.png'
-  else if (fileName === 'parent' || fileName === 'parent-profile') fileName = 'parent.png'
-  else if (fileName === 'guardian' || fileName === 'guardian-profile') fileName = 'guardian.png'
-  else if (fileName === 'admin' || fileName === 'profile-admin') fileName = 'profile-admin.png'
-  else if (fileName === 'child-profile') fileName = 'child-profile.png'
-  else if (fileName.includes('piano')) fileName = 'piano-class.png'
-  else if (fileName.includes('robotic')) fileName = 'robotic-class.png'
-  else if (fileName.includes('ballet')) fileName = 'ballet-class.png'
-  else if (fileName === 'program' || fileName === 'course') fileName = 'program.png'
-  else if (fileName === 'logo' || fileName === 'aaa-logo') fileName = 'AAA-Logo.png'
-  else if (fileName.includes('blue-bg')) fileName = 'blue-bg-school.jpg'
-  else if (fileName.includes('auth-bg')) fileName = 'auth-bg.jpg'
-
-  if (!fileName.includes('.')) fileName = `${fileName}.png`
-  
-  try {
-    return new URL(`../assets/images/${category}/${fileName}`, import.meta.url).href
-  } catch (error) {
-    console.warn(`Image not found in ${category}: ${fileName}`, error)
-    try {
-       return new URL(`../assets/images/common/${fileName}`, import.meta.url).href
-    } catch(e) {
-       return ''
-    }
+  // Case 2: Standardized Alias (Legacy support)
+  const kw = normalizeAssetName(param2 || param1)
+  const mappedPath = ASSET_PATH_MAP[kw]
+  if (mappedPath) {
+    const resolved = resolveAsset(images, 'images', mappedPath)
+    if (resolved) return resolved
   }
+
+  // Case 3: Category passed as first arg, name as second
+  if (param1 && param2) {
+    const path = `${normalizeAssetName(param1)}/${normalizeAssetName(param2)}`
+    const resolved = resolveAsset(images, 'images', path)
+    if (resolved) return resolved
+  }
+
+  // Final Fallback
+  return ''
 }
 
 /**
  * Dynamic Icon Loader
- * Fetches UI icons from:
- * 1. src/assets/images/icons/ (PNG/JPG dashboard/status)
- * 2. src/assets/icons/ (SVG sidebar/topbar)
  */
 export const getIconUrl = (param1, param2) => {
   if (!param1) return ''
   
-  // Case A: SVG Icons in src/assets/icons/
-  if (param1.includes('.svg') || (param2 && param2.includes('.svg')) || param1.includes('svgrepo') || param1.includes('dollar-minimal')) {
-     let cat = 'action' // default for SVG
-     let name = param1
-     
-     if (param2) {
-        cat = param1
-        name = param2
-     } else if (param1.includes('/')) {
-        const parts = param1.split('/')
-        cat = parts[0]
-        name = parts[1]
-     } else {
-        // Auto-categorize based on common usage if no category provided
-        const kw = param1.toLowerCase()
-        if (kw.includes('dashboard') || kw.includes('enrollment') || kw.includes('guardian') || kw.includes('student') || kw.includes('program') || kw.includes('dollar') || kw.includes('setting')) {
-          cat = 'navigation'
-        } else if (kw.includes('absent') || kw.includes('present') || kw.includes('attendance') || kw.includes('calendar') || kw.includes('arrow')) {
-          cat = 'status'
-        } else if (kw.includes('child') || kw.includes('family') || kw.includes('profile') || kw.includes('user')) {
-          cat = 'user'
-        }
-     }
-
-     if (name === 'registration-svgrepo.svg') name = 'enrollment-svgrepo.svg'
-
-     try {
-       // Vite requires the base path to be as specific as possible
-       return new URL(`../assets/icons/${cat}/${name}`, import.meta.url).href
-     } catch (e) {
-       console.warn(`SVG Icon not found in ${cat}: ${name}`, e)
-       // Fallback to top level? (No, they are all in folders now)
-       try {
-         return new URL(`../assets/icons/other/${name}`, import.meta.url).href
-       } catch (e2) {
-         return ''
-       }
-     }
-  }
-
-  let category = param1
-  let name = param2
+  const name = param2 || param1
+  const isSvg = name.toLowerCase().includes('.svg') || name.includes('svgrepo')
   
-  if (!param2) {
-    const kw = param1.toLowerCase().trim()
-    if (kw.includes('paid') || kw.includes('unpaid') || kw.includes('pending')) {
-      category = 'status'
-    } else {
-      category = 'dashboard'
-    }
-    name = kw
+  // If it's not an SVG, route it to getImageUrl (Raster icons)
+  if (!isSvg) {
+     return getImageUrl(param1, param2)
   }
 
-  const cleanName = name.toLowerCase().trim().replace(/\s+/g, '-').replace(/_/g, '-')
-  let fileName = cleanName
-  
-  if (fileName === 'paid') fileName = 'paid.png'
-  else if (fileName === 'unpaid') fileName = 'unpaid.png'
-  else if (fileName === 'pending') fileName = 'pending.png'
-  else if (fileName === 'on-time' || fileName === 'active') fileName = 'on-time.png'
-  else if (fileName === 'register' || fileName === 'registration' || fileName === 'enrollment') fileName = 'enrollment.png'
-  else if (fileName === 'enroll' || fileName === 'enrolling') fileName = 'enrollment.png'
-  else if (fileName === 'payment' || fileName === 'pay' || fileName === 'revenue' || fileName === 'total-payment') fileName = 'payment.png'
-  else if (fileName === 'pending-payment') fileName = 'pending_payment.png'
-  else if (fileName === 'user-online' || fileName === 'online') fileName = 'user-online.png'
-  else if (fileName === 'cancel') fileName = 'cancel.png'
-  else if (fileName === 'refund') fileName = 'refund.png'
-  else if (fileName === 'transaction') fileName = 'transaction.png'
+  // Try icons folder
+  const path = param2 ? `${param1}/${param2}` : param1
+  const resolved = resolveAsset(icons, 'icons', path)
+  if (resolved) return resolved
 
-  if (!fileName.includes('.')) fileName = `${fileName}.png`
-  
-  try {
-    return new URL(`../assets/images/${category}/${fileName}`, import.meta.url).href
-  } catch (error) {
-    console.warn(`Icon not found in ${category}: ${fileName}`, error)
-    // Fallback to common images
-    try {
-       return new URL(`../assets/images/common/${fileName}`, import.meta.url).href
-    } catch(e) {
-       return ''
-    }
-  }
-}
-
-/**
- * Generic Asset Loader (Legacy/Fallback)
- */
-export const getAssetUrl = (param1, param2) => {
-  const kw = (param2 || param1).toLowerCase().trim()
-  if (kw.includes('.svg') || kw.includes('paid') || kw.includes('unpaid') || kw.includes('pending') || 
-      kw.includes('enroll') || kw.includes('register') || kw.includes('pay') || 
-      kw.includes('on-time') || kw.includes('cancel') || kw.includes('refund')) {
-    return getIconUrl(param1, param2)
-  }
+  // Fallback to images (some icons are stored there)
   return getImageUrl(param1, param2)
 }
 
 /**
  * Convenience helpers
  */
-export const getProfileAsset = (name) => getImageUrl('profiles', name)
-export const getDashboardAsset = (name) => getIconUrl('dashboard', name)
-export const getClassAsset = (name) => getImageUrl('classes', name)
+export const getProfileAsset = (name) => getImageUrl('profiles', `avatar-${name}`)
+export const getDashboardAsset = (name) => getImageUrl('dashboard', `card-${name}`)
+export const getClassAsset = (name) => getImageUrl('classes', `card-${name}`)
 export const getProgramAsset = (name) => getImageUrl('programs', name)
-export const getStatusAsset = (name) => getIconUrl('status', name)
+export const getStatusAsset = (name) => getImageUrl('status', `badge-${name}`)
 export const getBackgroundAsset = (name) => getImageUrl('backgrounds', name)
 export const getCommonAsset = (name) => getImageUrl('common', name)
+
+export const getAssetUrl = (param1, param2) => getImageUrl(param1, param2)

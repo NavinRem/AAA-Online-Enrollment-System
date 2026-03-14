@@ -25,13 +25,13 @@ const {
   closeMenu,
 } = useTableActions()
 
-const parentStats = computed(() => {
+const statsCards = computed(() => {
   const s = calculateParentStats(allUsers.value)
   return [
-    { label: 'Total Parents', value: s.parentCount, image: getIconUrl('register'), color: '#e1f5fe' },
-    { label: 'Total Guardians', value: s.guardianCount, image: getIconUrl('user-online'), color: '#e1f5fe' },
-    { label: 'Registered Today', value: s.todayCount, image: getIconUrl('register'), color: '#e1f5fe' },
-    { label: 'Active Now', value: s.activeCount, image: getIconUrl('on-time'), color: '#e1f5fe' }
+    { label: 'Total Parents', value: s.parentCount, image: getImageUrl('dashboard/card-parent'), color: '#e1f5fe' },
+    { label: 'Total Guardians', value: s.guardianCount, image: getImageUrl('dashboard/user-online'), color: '#e1f5fe' },
+    { label: 'Registered Today', value: s.todayCount, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
+    { label: 'Active Now', value: s.activeCount, image: getImageUrl('dashboard/on-time'), color: '#e1f5fe' }
   ]
 })
 
@@ -250,7 +250,7 @@ const navigateToDetail = (item) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Parent / Guardian Overview" listTitle="Parents/Guardians List">
       <template #overview>
-        <DataMetrics :stats="parentStats" />
+        <DataMetrics :stats="statsCards" />
       </template>
 
       <template #table>
@@ -275,10 +275,10 @@ const navigateToDetail = (item) => {
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
             <td class="hide-on-mobile">{{ index + 1 }}</td>
-            <td class="bold">
-              <div class="user-info">
-                <div class="avatar-mini">
-                  <img :src="item.profileURL || getImageUrl('profiles', 'female-profile-parent.jpg')" alt="parent avatar" />
+            <td>
+              <div class="user-cell">
+                <div class="user-avatar-small">
+                  <img :src="item.profileURL || getImageUrl('profiles/avatar-parent')" alt="parent avatar" />
                 </div>
                 {{ item.name || 'Parent' }}
               </div>
@@ -294,7 +294,7 @@ const navigateToDetail = (item) => {
                     :title="child.fullName || child.name || 'Child ' + (i + 1)"
                     :style="{ zIndex: item.studentProfiles.length - i }"
                   >
-                    <img :src="child.profileURL || getImageUrl('profiles', 'child-profile.png')" alt="child" />
+                    <img :src="child.profileURL || getImageUrl('profiles/avatar-student')" alt="child" />
                   </div>
                 </template>
               </div>

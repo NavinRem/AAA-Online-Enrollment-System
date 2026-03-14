@@ -124,7 +124,7 @@ const handleSubmit = async () => {
       <div class="form-container">
         <!-- Minimalist Logo -->
         <div class="logo">
-          <img :src="getImageUrl('aaa-logo')" alt="Active Kids Academy" class="logo-img" />
+          <img :src="getImageUrl('common/logo-main')" alt="Active Kids Academy" class="logo-img" />
         </div>
 
         <h2 class="title">

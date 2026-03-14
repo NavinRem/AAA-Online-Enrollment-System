@@ -118,10 +118,10 @@ const handleCreateEnrollment = async (formData) => {
 const enrollmentStats = computed(() => {
   const s = calculateEnrollmentStats(enrollments.value)
   return [
-    { label: 'Total Enrollments', value: s.total, image: getIconUrl('enrollment'), color: '#e1f5fe' },
-    { label: 'New Today', value: s.todayCount, image: getIconUrl('register'), color: '#e1f5fe' },
-    { label: 'Pending Approval', value: s.pendingCount, image: getIconUrl('dashboard', 'pending1.png'), color: '#e1f5fe' },
-    { label: 'Revenue Today', value: `$${s.todayRevenue}`, image: getIconUrl('pay'), color: '#e1f5fe' }
+    { label: 'Total Enrollments', value: s.total, image: getImageUrl('dashboard/card-program'), color: '#e1f5fe' },
+    { label: 'New Today', value: s.todayCount, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
+    { label: 'Pending Approval', value: s.pendingCount, image: getImageUrl('dashboard/card-account'), color: '#e1f5fe' },
+    { label: 'Revenue Today', value: `$${s.todayRevenue}`, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
   ]
 })
 
@@ -243,15 +243,15 @@ const submitActionModal = async () => {
             <td class="hide-on-tablet">
               <div class="user-info">
                 <div class="avatar-mini">
-                  <img :src="item.parentProfileURL || getImageUrl('profiles', 'female-profile-parent.jpg')" alt="parent" />
+                  <img :src="item.parentProfileURL || getImageUrl('profiles/avatar-parent')" alt="parent" />
                 </div>
-                {{ item.parentName || 'Parent' }}
+                <span>{{ item.parentName }}</span>
               </div>
             </td>
             <td>
-              <div class="user-info">
-                <div class="avatar-mini">
-                  <img :src="item.studentProfileURL || getImageUrl('profiles', 'child-profile.png')" alt="student" />
+              <div class="user-cell">
+                <div class="user-avatar-small">
+                  <img :src="item.studentProfileURL || getImageUrl('profiles/avatar-student')" alt="student" />
                 </div>
                 {{ item.studentName || 'Student' }}
               </div>

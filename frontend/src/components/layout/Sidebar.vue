@@ -47,7 +47,7 @@ const handleNavClick = () => {
 <template>
   <aside class="sidebar" :class="{ 'sidebar-mobile-open': isOpen }">
     <div class="logo-section">
-      <img :src="getImageUrl('aaa-logo')" alt="Logo" class="sidebar-logo" />
+      <img :src="getImageUrl('common/logo-main')" alt="Logo" class="sidebar-logo" />
       <span class="brand-name">Authentic Advanced Academy</span>
       <button class="mobile-close-btn" @click="emit('close')">×</button>
     </div>

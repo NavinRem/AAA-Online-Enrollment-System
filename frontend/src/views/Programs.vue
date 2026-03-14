@@ -31,13 +31,13 @@ const actionModal = ref({
   success: '',
 })
 
-const stats = computed(() => {
+const statsCards = computed(() => {
   const s = calculateProgramStats(programs.value, enrollments.value, sessions.value, now.value)
   return [
-    { label: 'Total Programs', value: s.total, image: getImageUrl('program'), color: '#e1f5fe' },
-    { label: 'Active Programs', value: s.activeCount, image: getIconUrl('active'), color: '#e1f5fe' },
-    { label: 'Upcoming Programs', value: s.upcomingCount, image: getIconUrl('register'), color: '#e1f5fe' },
-    { label: 'In Progressing', value: s.inProgressCount, image: getIconUrl('total-payment'), color: '#e1f5fe' }
+    { label: 'Total Programs', value: s.total, image: getImageUrl('dashboard/card-program'), color: '#e1f5fe' },
+    { label: 'Active Programs', value: s.activeCount, image: getImageUrl('dashboard/on-time'), color: '#e1f5fe' },
+    { label: 'Upcoming Programs', value: s.upcomingCount, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
+    { label: 'In Progressing', value: s.inProgressCount, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
   ]
 })
 

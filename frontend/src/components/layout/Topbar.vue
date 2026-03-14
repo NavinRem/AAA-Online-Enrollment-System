@@ -73,7 +73,7 @@ onMounted(() => {
           <span class="user-role">{{ userRole }}</span>
         </div>
         <div class="user-avatar">
-          <img :src="getImageUrl('admin')" alt="Profile" />
+              <img :src="getImageUrl('profiles/avatar-admin')" alt="Profile" />
         </div>
       </div>
     </div>

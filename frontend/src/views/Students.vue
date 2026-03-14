@@ -61,13 +61,13 @@ const filteredStudents = computed(() => {
   return list
 })
 
-const studentStats = computed(() => {
+const statsCards = computed(() => {
   const s = calculateStudentStats(students.value)
   return [
-    { label: 'Total Students', value: s.total, image: getImageUrl('student'), color: '#e1f5fe' },
-    { label: 'Active Today', value: s.activeCount, image: getIconUrl('on-time'), color: '#e1f5fe' },
-    { label: 'New This Week', value: s.newThisWeekCount, image: getIconUrl('register'), color: '#e1f5fe' },
-    { label: 'Pending Payment', value: s.pendingPaymentCount, image: getIconUrl('pending-payment'), color: '#e1f5fe' }
+    { label: 'Total Students', value: s.total, image: getImageUrl('dashboard/card-student'), color: '#e1f5fe' },
+    { label: 'Active Today', value: s.activeCount, image: getImageUrl('dashboard/on-time'), color: '#e1f5fe' },
+    { label: 'New This Week', value: s.newThisWeekCount, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
+    { label: 'Pending Payment', value: s.pendingPaymentCount, image: getImageUrl('dashboard/pending_payment'), color: '#e1f5fe' }
   ]
 })
 
@@ -242,7 +242,7 @@ const submitActionModal = async (formData) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Student Overview" listTitle="Student List">
       <template #overview>
-        <DataMetrics :stats="studentStats" />
+        <DataMetrics :stats="statsCards" />
       </template>
 
       <template #table>
@@ -274,15 +274,18 @@ const submitActionModal = async (formData) => {
             <td class="bold">
               <div class="user-info">
                 <div class="avatar-mini">
-                  <img :src="item.profileURL || getImageUrl('profiles', 'child-profile.png')" alt="avatar" />
+                  <img :src="item.profileURL || getImageUrl('profiles/avatar-student')" alt="avatar" />
                 </div>
-                {{ item.fullName || 'Student' }}
+                <div class="user-info">
+                  <span class="user-name">{{ item.fullName }}</span>
+                  <span class="user-id">ID: {{ item.id?.substring(0, 8) }}</span>
+                </div>
               </div>
             </td>
             <td>
-              <div class="user-info">
-                <div class="avatar-mini">
-                  <img :src="item.parentProfileURL || getImageUrl('profiles', 'female-profile-parent.jpg')" alt="parent avatar" />
+              <div class="user-cell">
+                <div class="user-avatar-small">
+                  <img :src="item.parentProfileURL || getImageUrl('profiles/avatar-parent')" alt="parent avatar" />
                 </div>
                 {{ item.parentName || 'Parent' }}
               </div>

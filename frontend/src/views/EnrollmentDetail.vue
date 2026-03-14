@@ -203,7 +203,7 @@ onMounted(async () => {
       </template>
 
       <template #left-content v-if="enrollment">
-        <DetailCard title="Parent/Guardian Information" :avatarUrl="getImageUrl('profiles', 'female-profile-parent.jpg')">
+        <DetailCard title="Parent/Guardian Information" :avatarUrl="getImageUrl('profiles/avatar-parent')">
           <p><strong>Fullname:</strong> {{ parent?.name || parent?.fullname || enrollment.parentName || 'N/A' }}</p>
           <p><strong>Email:</strong> {{ parent?.email || enrollment.parentEmail || 'N/A' }}</p>
           <p><strong>Phone Number:</strong> {{ parent?.phone || enrollment.parentPhone || 'N/A' }}</p>
@@ -218,7 +218,7 @@ onMounted(async () => {
           </p>
         </DetailCard>
 
-        <DetailCard title="Student Information" :avatarUrl="getImageUrl('profiles', 'child-profile.png')">
+        <DetailCard title="Student Information" :avatarUrl="getImageUrl('profiles/avatar-student')">
           <p>
             <strong>Fullname:</strong>
             {{ student?.fullname || student?.name || enrollment.studentName || 'N/A' }}
@@ -234,7 +234,7 @@ onMounted(async () => {
           </p>
         </DetailCard>
 
-        <DetailCard title="Enrollment Information" :avatarUrl="getImageUrl('classes', 'robotic-class.png')">
+        <DetailCard title="Enrollment Information" :avatarUrl="getImageUrl('classes/card-robotic')">
           <p>
             <strong>Course title:</strong>
             {{ course?.title || enrollment.courseTitle || 'N/A' }}
@@ -252,7 +252,7 @@ onMounted(async () => {
           </p>
         </DetailCard>
 
-        <DetailCard title="Session Information" :avatarUrl="getImageUrl('programs', 'program.png')">
+        <DetailCard title="Session Information" :avatarUrl="getImageUrl('programs/program')">
           <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle || 'N/A' }}</p>
           <p>
             <strong>Instructor Name:</strong>

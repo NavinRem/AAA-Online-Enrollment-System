@@ -52,14 +52,12 @@ import { formatDate } from '@/utils/dateFormatter'
   padding: 25px;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-  margin-top: 25px;
 }
 
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
 }
 
 .header-left {
