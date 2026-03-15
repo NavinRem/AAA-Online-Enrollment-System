@@ -6,7 +6,6 @@ import { enrollmentService } from '../services/enrollmentService'
 import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
-import { isPaid } from '@/utils/statusHelper'
 import { parseDate } from '../utils/dateFormatter'
 import { calculateDashboardStats } from '../utils/statsHelper'
 
@@ -32,7 +31,9 @@ const stats = ref({
 
 onMounted(() => {
   authService.onAuthStateChanged(async (currentUser) => {
-    if (!currentUser) return router.push('/')
+    // Note: We remove the immediate router.push('/') here because it conflicts 
+    // with our intentional logout transition pause in Sidebar.vue.
+    if (!currentUser) return 
     
     try {
       const profile = await userService.getProfile(currentUser.uid)

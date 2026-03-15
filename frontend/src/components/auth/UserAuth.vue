@@ -50,7 +50,6 @@ const handleSubmit = async () => {
 
   try {
     if (isResetMode.value) {
-      // Reset Password Logic
       await authService.resetPassword(email.value)
       message.value = 'Password reset email sent! Check your inbox.'
       loading.value = false
@@ -58,29 +57,38 @@ const handleSubmit = async () => {
     }
 
     if (isLogin.value) {
-      // Login Logic
+      // 1. Sign in
       const user = await authService.login(email.value, password.value)
 
-      // Role check to block parents from accessing the admin portal
+      // 2. Strict Role Check: ONLY 'admin' allowed
       try {
         const profile = await userService.getProfile(user.uid)
-        if (profile && profile.role === 'parent') {
+        if (!profile || profile.role !== 'admin') {
           await authService.logout()
-          error.value = 'Access Denied: Parents cannot log into the web admin dashboard.'
+          error.value = 'Permission Denied: Only administrators can access this portal.'
           loading.value = false
           return
         }
       } catch (profileError) {
-        console.error('Failed to fetch user profile for role check', profileError)
+        await authService.logout()
+        error.value = 'Auth Error: Failed to verify your permissions.'
+        loading.value = false
+        return
       }
 
-      message.value = 'Logged in successfully!'
+      message.value = 'Logged in successfully! Redirecting...'
+      console.log('Login success - pausing for 3s before redirect...')
+      
+      // Redirect to Dashboard
+      setTimeout(() => {
+        console.log('3s over - moving to dashboard')
+        router.push('/dashboard')
+      }, 3000)
     } else {
-      // Register Logic
       // 1. Create Auth User
       const user = await authService.register(email.value, password.value)
 
-      // 3. Create Profile in 'enrollment' database via Backend API
+      // 2. Create Profile
       await userService.registerParentAccount({
         uid: user.uid,
         email: email.value,
@@ -89,21 +97,15 @@ const handleSubmit = async () => {
         role: role.value,
       })
 
-      if (role.value === 'parent') {
-        await authService.logout()
-        error.value = 'Account created! However, parents cannot access the web admin dashboard.'
-        loading.value = false
-        return
-      }
-
-      message.value = 'Account created and profile saved!'
+      // 3. Forced Logout & Sign In Redirect
+      await authService.logout()
+      
+      // Success State
+      message.value = 'Account created! Please sign in with your new credentials.'
+      isLogin.value = true
+      // Optional: Clear sensitive fields
+      password.value = ''
     }
-
-    // Redirect to Dashboard on success
-    setTimeout(() => {
-      console.log('Redirecting to dashboard...')
-      router.push('/dashboard')
-    }, 1000)
   } catch (err) {
     error.value = err.message
   } finally {

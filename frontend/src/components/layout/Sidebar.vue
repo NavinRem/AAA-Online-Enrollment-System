@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authService } from '@/services/authService'
 import AppButton from '@/components/common/ui/AppButton.vue'
@@ -15,6 +16,7 @@ const emit = defineEmits(['close'])
 
 const router = useRouter()
 const route = useRoute()
+const logoutMessage = ref('')
 
 const menuItems = [
   { name: 'Dashboard', path: '/dashboard', icon: 'navigation/dashboard-svgrepo.svg' },
@@ -27,11 +29,27 @@ const menuItems = [
 ]
 
 const handleLogout = async () => {
+  if (logoutMessage.value) return
+  
   try {
-    await authService.logout()
-    router.push('/')
+    logoutMessage.value = 'Logging out...'
+    console.log('Logout pause started (3s)...')
+    
+    // We wait first, THEN log out and move. 
+    // This stops background listeners from reacting too early.
+    setTimeout(async () => {
+      try {
+        console.log('Pause finished - clearing session and redirecting...')
+        await authService.logout()
+        router.push('/')
+      } catch (err) {
+        console.error('Logout failed in timeout', err)
+        router.push('/')
+      }
+    }, 3000)
   } catch (error) {
-    console.error('Logout failed', error)
+    logoutMessage.value = ''
+    console.error('Logout initiation failed', error)
   }
 }
 
@@ -67,7 +85,10 @@ const handleNavClick = () => {
     </nav>
 
     <div class="sidebar-footer">
-      <AppButton variant="logout" style="width: 100%" @click="handleLogout">Log Out</AppButton>
+      <p v-if="logoutMessage" class="logout-msg">{{ logoutMessage }}</p>
+      <AppButton variant="logout" style="width: 100%" :loading="!!logoutMessage" @click="handleLogout">
+        Log Out
+      </AppButton>
     </div>
   </aside>
 </template>
@@ -166,6 +187,21 @@ const handleNavClick = () => {
 
 .sidebar-footer {
   padding: 20px;
+}
+
+.logout-msg {
+  color: #d32f2f;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+  text-align: center;
+  font-weight: 600;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
 }
 
 
