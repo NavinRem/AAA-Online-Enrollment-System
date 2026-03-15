@@ -11,13 +11,12 @@ import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '../services/userService'
 import { courseService } from '../services/courseService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
-import { calculateEnrollmentStats, enrichEnrollments } from '../utils/enrollmentHelper'
-import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 import { isPaid, isCancelled, isUnpaid } from '@/utils/statusHelper'
-import { formatDate, formatDateOnly } from '@/utils/dateFormatter'
 
 const enrollments = ref([])
-const parents = ref([])
+const parents = ref([]) 
 const students = ref([])
 const courses = ref([])
 const sessions = ref([])
@@ -116,12 +115,12 @@ const handleCreateEnrollment = async (formData) => {
 // Status helpers imported from @/utils/statusHelper
 
 const enrollmentStats = computed(() => {
-  const s = calculateEnrollmentStats(enrollments.value)
+  const s = calculateTotalEnrollment(enrollments.value)
   return [
-    { label: 'Total Enrollments', value: s.total, image: getImageUrl('dashboard/card-program'), color: '#e1f5fe' },
-    { label: 'New Today', value: s.todayCount, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
-    { label: 'Pending Approval', value: s.pendingCount, image: getImageUrl('dashboard/card-account'), color: '#e1f5fe' },
-    { label: 'Revenue Today', value: `$${s.todayRevenue}`, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
+    { label: 'Total Enrollments', value: s.total, image: getImageUrl('enrollment/total-enrollment'), color: '#e1f5fe' },
+    { label: 'Total Paid Enrollment', value: s.paidCount, image: getImageUrl('enrollment/total-paid-enrollment'), color: '#e1f5fe' },
+    { label: 'Total Unpaid Enrollment', value: s.unpaidCount, image: getImageUrl('enrollment/total-unpaid-enrollment'), color: '#e1f5fe' },
+    { label: 'Total Cancelled Enrollment', value: s.cancelledCount, image: getImageUrl('enrollment/total-canceled-enrollment'), color: '#e1f5fe' }
   ]
 })
 

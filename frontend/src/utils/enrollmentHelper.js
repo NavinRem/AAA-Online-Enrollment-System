@@ -5,15 +5,16 @@ import { isEnrollmentActive } from './studentStatusHelper'
 /**
  * Calculates enrollment statistics.
  */
-export const calculateEnrollmentStats = (enrollments) => {
-  const now = new Date().toISOString().split('T')[0] // Safe: toISOString() always contains 'T'
-  const today = enrollments.filter(r => (r.enrollAt || r.createdAt)?.startsWith(now))
-  
+export const calculateTotalEnrollment = (enrollments) => {
+  const total = enrollments.length
+  const paidCount = enrollments.filter(r => isPaid(r.status || r.paymentStatus)).length
+  const unpaidCount = enrollments.filter(r => isUnpaid(r.status || r.paymentStatus)).length
+  const cancelledCount = enrollments.filter(r => isCancelled(r.status || r.paymentStatus)).length
   return {
-    total: enrollments.length,
-    todayCount: today.length,
-    pendingCount: enrollments.filter(r => [r.status, r.paymentStatus].includes('pending')).length,
-    todayRevenue: today.filter(r => isPaid(r.status || r.paymentStatus)).reduce((sum, r) => sum + (r.amount || 0), 0)
+    total,
+    paidCount,
+    unpaidCount,
+    cancelledCount
   }
 }
 

@@ -13,6 +13,8 @@ const props = defineProps({
   currentFilter: { type: String, default: 'all' },
   filterOptions: { type: Array, default: () => [] },
   hasSearch: { type: Boolean, default: true },
+  loadingMessage: { type: String, default: 'Loading data...' },
+  emptyMessage: { type: String, default: 'No records found.' },
 })
 
 const emit = defineEmits(['update:searchQuery', 'update:currentFilter', 'row-click', 'action'])
