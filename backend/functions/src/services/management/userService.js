@@ -83,6 +83,14 @@ class UserService {
     await userRef.delete();
     return { uid, message: "User deleted successfully" };
   }
+
+  async getAllStudents() {
+    const snapshot = await db.collection(COLLECTIONS.STUDENT).get();
+    return snapshot.docs.map((doc) => ({
+      studentId: doc.id,
+      ...doc.data(),
+    }));
+  }
 }
 
 module.exports = new UserService();
