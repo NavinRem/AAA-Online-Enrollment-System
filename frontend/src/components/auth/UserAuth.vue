@@ -196,14 +196,16 @@ const handleSubmit = async () => {
         <AppButton
           v-if="isLogin && !isResetMode"
           variant="subtle"
-          style="width: 100%; justify-content: center; margin-bottom: 20px; border-radius: 8px"
           type="button"
+          style="width: 100%; border-radius: 8px; justify-content: center; gap: 10px;"
         >
-          <img
-            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/pwa/google.svg"
-            alt="Google"
-            style="width: 20px"
-          />
+          <template #icon-left>
+            <img
+              src="../../assets/icons/other/google-logo.svg"
+              alt="Google"
+              style="width: 20px; height: 20px; display: block;"
+            />
+          </template>
           Continue with Google
         </AppButton>
 

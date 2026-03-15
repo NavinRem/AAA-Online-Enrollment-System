@@ -78,7 +78,7 @@ class StudentService {
       const data = doc.data();
       return {
         id: doc.id,
-        parentName: parentsMap[data.parentId] || "Unknown Parent",
+        parentName: parentsMap[data.parentId] || "N/A",
         ...data,
       };
     });

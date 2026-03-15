@@ -105,20 +105,23 @@ class EnrollmentService {
 
     return snapshot.docs.map((doc) => {
       const data = doc.data();
-      const parentName =
-        usersMap[data.parentId]?.name ||
-        usersMap[data.parentId]?.email ||
-        "Unknown Parent";
-      const studentName =
-        studentsMap[data.studentId]?.fullName ||
-        studentsMap[data.studentId]?.name ||
-        "Unknown Student";
-      const courseTitle =
-        coursesMap[data.courseId]?.title ||
-        coursesMap[data.courseId]?.name ||
-        "Unknown Course";
+      const parentData = usersMap[data.parentId] || {};
+      const studentData = studentsMap[data.studentId] || {};
+      const courseData = coursesMap[data.courseId] || {};
+
+      const parentName = parentData.name || parentData.email || "N/A";
+      const studentName = studentData.fullName || studentData.name || "N/A";
+      const courseTitle = courseData.title || courseData.name || "N/A";
 
       const session = sessionsMap[data.sessionId];
+
+      const rStatus = (data.paymentStatus || data.status || "").toLowerCase();
+      let displayStatus = "Unpaid";
+      if (["paid", "confirmed", "active", "success"].includes(rStatus)) {
+        displayStatus = "Paid";
+      } else if (["canceled", "cancelled"].includes(rStatus)) {
+        displayStatus = "Canceled";
+      }
 
       return {
         id: doc.id,
@@ -126,15 +129,11 @@ class EnrollmentService {
         parentName,
         studentName,
         courseTitle,
+        displayStatus,
         sessionSchedule: session?.scheduleString || "N/A",
-        sessionCount:
-          session?.totalSessions || session?.sessionCount || 10,
-        dob: studentsMap[data.studentId]?.dob || null,
-        amount:
-          data.amount ||
-          data.totalAmount ||
-          coursesMap[data.courseId]?.price ||
-          0,
+        sessionCount: session?.totalSessions || session?.sessionCount || 10,
+        dob: studentData.dob || null,
+        amount: data.amount || data.totalAmount || courseData.price || 0,
       };
     });
   }
@@ -181,17 +180,32 @@ class EnrollmentService {
       }
     }
 
+    const rStatus = (data.paymentStatus || data.status || "").toLowerCase();
+    let displayStatus = "Unpaid";
+    if (["paid", "confirmed", "active", "success"].includes(rStatus)) {
+      displayStatus = "Paid";
+    } else if (["canceled", "cancelled"].includes(rStatus)) {
+      displayStatus = "Canceled";
+    }
+
     return {
       id: doc.id,
       ...data,
       parentName: userData?.name || userData?.email || data.parentName || "N/A",
       parentEmail: userData?.email || "N/A",
       parentPhone: userData?.phone || "N/A",
-      parentRole: userData?.role ? (userData.role === 'parent' ? 'Parent' : userData.role.charAt(0).toUpperCase() + userData.role.slice(1)) : "Guardian",
-      studentName: studentData?.fullName || studentData?.name || data.studentName || "N/A",
+      parentRole: userData?.role
+        ? userData.role === "parent"
+          ? "Parent"
+          : userData.role.charAt(0).toUpperCase() + userData.role.slice(1)
+        : "Guardian",
+      studentName:
+        studentData?.fullName || studentData?.name || data.studentName || "N/A",
       studentDob: studentData?.dob || null,
       medicalNote: studentData?.medicalNote || "None",
-      courseTitle: courseData?.title || courseData?.name || data.courseTitle || "N/A",
+      courseTitle:
+        courseData?.title || courseData?.name || data.courseTitle || "N/A",
+      displayStatus,
       sessionSchedule: sessionSchedule,
       instructorName,
       capacity: sessionData?.capacity || 0,

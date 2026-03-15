@@ -74,22 +74,21 @@ const thisWeekStats = computed(() => [
 
 const mappedEnrollments = computed(() => {
   return [...enrollments.value]
-    .sort((a, b) => parseDate(b.enrollAt || b.createdAt).getTime() - parseDate(a.enrollAt || a.createdAt).getTime())
+    .sort((a, b) => {
+      const timeB = parseDate(b.enrollAt || b.createdAt).getTime()
+      const timeA = parseDate(a.enrollAt || a.createdAt).getTime()
+      return timeB - timeA
+    })
     .slice(0, 5)
     .map((r, index) => {
-      const p = allUsers.value.find(u => u.uid === r.parentId)
-      const s = students.value.find(s => s.studentId === r.studentId)
-      const c = courses.value.find(c => c.courseId === r.courseId || c.id === r.courseId)
-      const rStatus = (r.paymentStatus || r.status || '')
-
       return {
         id: r.id,
         no: index + 1,
-        parent: p?.name || r.parentName || 'Parent',
-        child: s?.fullName || r.studentName || 'Student',
-        course: c?.title || r.courseTitle || 'Course',
-        status: isPaid(rStatus) ? 'Paid' : ((r.status || '').toLowerCase() === 'cancelled' ? 'Canceled' : 'Unpaid'),
-        amount: `$${r.amount || c?.price || 0}`,
+        parent: r.parentName,
+        child: r.studentName,
+        course: r.courseTitle,
+        status: r.displayStatus,
+        amount: `$${r.amount}`,
         date: r.enrollAt || r.createdAt
       }
     })
@@ -123,7 +122,7 @@ const mappedEnrollments = computed(() => {
             <div class="profile-image-large">
               <img :src="userProfile?.profileURL || getImageUrl('profiles/avatar-admin')" alt="User" />
             </div>
-            <h3 class="welcome-text">Welcome Back!<br />{{ userProfile?.name || 'User' }}</h3>
+            <h3 class="welcome-text">Welcome Back!<br />{{ userProfile?.name || 'Username' }}</h3>
             <p class="sub-text">Here is the overview</p>
           </div>
 
