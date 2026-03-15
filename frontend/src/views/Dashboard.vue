@@ -42,6 +42,7 @@ onMounted(() => {
         userService.getAllUsers(),
         enrollmentService.getAllEnrollments(),
         courseService.getAllCourses(),
+        userService.getAllStudents(),
         userService.getStudentsByParentID(currentUser.uid)
       ])
 

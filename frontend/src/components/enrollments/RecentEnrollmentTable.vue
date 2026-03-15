@@ -28,8 +28,9 @@ import { formatDate } from '@/utils/dateFormatter'
 
     <AppTable
       :headers="['No', 'Parent/Guardian', 'Child', 'Course', 'Status', 'Amount', 'Enrolled Date']"
+      :empty="enrollments.length === 0"
     >
-      <tr v-for="item in enrollments" :key="item.no">
+      <tr v-for="item in enrollments" :key="item.id || item.no">
         <td>{{ item.no }}</td>
         <td class="bold">{{ item.parent }}</td>
         <td>{{ item.child }}</td>
@@ -37,8 +38,8 @@ import { formatDate } from '@/utils/dateFormatter'
         <td>
           <StatusBadge :status="item.status" />
         </td>
-        <td>
-          <StatusBadge :status="item.amount" />
+        <td class="bold amount-cell">
+          {{ item.amount }}
         </td>
         <td class="date-cell">{{ formatDate(item.date) }}</td>
       </tr>
