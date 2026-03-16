@@ -17,7 +17,7 @@ import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, studentSearchMapper } from '../composables/useSearch'
 import { formatDate } from '../utils/dateFormatter'
 import { getCourseIcon } from '../utils/courseHelper'
-import { enrichStudents, calculateStudentStats } from '../utils/studentHelper'
+import { enrichStudents, calculateTotalStudent } from '../utils/studentHelper'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
@@ -62,24 +62,24 @@ const filteredStudents = computed(() => {
 })
 
 const statsCards = computed(() => {
-  const s = calculateStudentStats(students.value)
+  const s = calculateTotalStudent(students.value)
   return [
-    { label: 'Total Students', value: s.total, image: getImageUrl('dashboard/card-student'), color: '#e1f5fe' },
-    { label: 'Active Today', value: s.activeCount, image: getImageUrl('dashboard/on-time'), color: '#e1f5fe' },
-    { label: 'New This Week', value: s.newThisWeekCount, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
-    { label: 'Pending Payment', value: s.pendingPaymentCount, image: getImageUrl('dashboard/pending_payment'), color: '#e1f5fe' }
+    { label: 'Total Students', value: s.totalStudent, image: getImageUrl('student/total-student'), color: '#e1f5fe' },
+    { label: 'Currently Enrolled', value: s.currently_enrolled, image: getImageUrl('student/currently-enrolled'), color: '#e1f5fe' },
+    { label: 'Not Currently Enrolled', value: s.not_currently_enrolled, image: getImageUrl('student/currently-not-enrolled'), color: '#e1f5fe' },
+    { label: 'Newly Enrolled', value: s.newly_enrolled, image: getImageUrl('student/newly-enrolled'), color: '#e1f5fe' }
   ]
 })
 
 const studentHeaders = [
-  { label: 'No', width: '60px', class: 'hide-on-mobile' },
-  { label: 'Fullname' },
-  { label: 'Parent / Guardian', class: 'hide-on-mobile' },
+  { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Fullname', width: '280px' },
+  { label: 'Parent / Guardian', class: 'hide-on-mobile', width: '220px' },
   { label: 'Current Course', class: 'hide-on-tablet' },
-  { label: 'Joined Date', class: 'hide-on-tablet' },
-  { label: 'Status' },
+  { label: 'Joined Date', class: 'hide-on-tablet', width: '150px' },
+  { label: 'Status', align: 'center', width: '120px' },
   { label: 'Medical Notes', class: 'hide-on-mobile' },
-  { label: 'Action', width: '60px' }
+  { label: 'Action', width: '80px', align: 'center' }
 ]
 
 const showRegisterChildModal = ref(false)
@@ -240,13 +240,14 @@ const submitActionModal = async (formData) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Student Overview" listTitle="Student List">
+    <DataPageLayout overviewTitle="Student Overview">
       <template #overview>
         <DataMetrics :stats="statsCards" />
       </template>
 
       <template #table>
         <DataTable
+          title="Student List"
           :headers="studentHeaders"
           :items="filteredStudents"
           :loading="loading"
@@ -270,7 +271,7 @@ const submitActionModal = async (formData) => {
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile">{{ index + 1 }}</td>
+            <td class="hide-on-mobile text-center">{{ index + 1 }}</td>
             <td class="bold">
               <div class="user-info">
                 <div class="avatar-mini">
@@ -299,13 +300,13 @@ const submitActionModal = async (formData) => {
               </div>
             </td>
             <td class="hide-on-tablet">{{ formatDate(item.createdAt || new Date().toISOString()) }}</td>
-            <td><StatusBadge :status="item.status || 'Studying'" /></td>
-            <td class="hide-on-mobile">
+            <td class="text-center"><StatusBadge :status="item.status || 'Studying'" /></td>
+            <td class="hide-on-mobile text-center">
               <span :class="{ 'text-muted': !item.medicalNote || item.medicalNote.toLowerCase() === 'none' }">
                 {{ item.medicalNote || 'None' }}
               </span>
             </td>
-            <td class="action-cell">
+            <td class="action-cell text-center">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
                   <span class="dots-icon">⋮</span>

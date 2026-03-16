@@ -34,10 +34,10 @@ const actionModal = ref({
 const statsCards = computed(() => {
   const s = calculateProgramStats(programs.value, enrollments.value, sessions.value, now.value)
   return [
-    { label: 'Total Programs', value: s.total, image: getImageUrl('dashboard/card-program'), color: '#e1f5fe' },
-    { label: 'Active Programs', value: s.activeCount, image: getImageUrl('dashboard/on-time'), color: '#e1f5fe' },
-    { label: 'Upcoming Programs', value: s.upcomingCount, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
-    { label: 'In Progressing', value: s.inProgressCount, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
+    { label: 'Total Programs', value: s.total, image: getImageUrl('programs/total-program'), color: '#e1f5fe' },
+    { label: 'Active Programs', value: s.activeCount, image: getImageUrl('programs/active-program'), color: '#e1f5fe' },
+    { label: 'Upcoming Programs', value: s.upcomingCount, image: getImageUrl('programs/upcoming-program'), color: '#e1f5fe' },
+    { label: 'In Progressing', value: s.inProgressCount, image: getImageUrl('programs/in-progress-program'), color: '#e1f5fe' }
   ]
 })
 
@@ -79,16 +79,16 @@ onMounted(() => {
 })
 
 const programHeaders = [
-  { label: 'No', width: '60px', class: 'hide-on-mobile' },
+  { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
   { label: 'Program', class: 'hide-on-tablet' },
   { label: 'Title' },
   { label: 'Sessions', class: 'hide-on-mobile' },
-  { label: 'Price', class: 'hide-on-mobile' },
+  { label: 'Price', class: 'hide-on-mobile', align: 'center', width: '100px' },
   { label: 'Term', class: 'hide-on-tablet' },
   { label: 'Schedule', class: 'hide-on-tablet' },
-  { label: 'Level', class: 'hide-on-tablet' },
-  { label: 'Status' },
-  { label: 'Action', width: '60px' },
+  { label: 'Level', class: 'hide-on-tablet', align: 'center', width: '120px' },
+  { label: 'Status', align: 'center', width: '120px' },
+  { label: 'Action', width: '80px', align: 'center' },
 ]
 
 const { searchQuery, searchResults } = useSearch(programs, programSearchMapper)
@@ -163,13 +163,14 @@ const handleActionSubmit = async (formData) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Program Overview" listTitle="Course / Program Catalog">
+    <DataPageLayout overviewTitle="Program Overview">
       <template #overview>
-        <DataMetrics :stats="stats" />
+        <DataMetrics :stats="statsCards" />
       </template>
 
       <template #table>
         <DataTable
+          title="Program List"
           :headers="programHeaders"
           :items="filteredPrograms"
           :loading="loading"
@@ -193,7 +194,7 @@ const handleActionSubmit = async (formData) => {
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile">{{ index + 1 }}</td>
+            <td class="hide-on-mobile text-center">{{ index + 1 }}</td>
             <td class="hide-on-tablet">
               <div class="user-info">
                 <div class="program-icon-mini">
@@ -204,7 +205,7 @@ const handleActionSubmit = async (formData) => {
             </td>
             <td class="bold">{{ item.title }}</td>
             <td class="hide-on-mobile">{{ item.numberSessions || 0 }} Sessions</td>
-            <td class="hide-on-mobile"><StatusBadge :status="'$' + (item.price || 0)" /></td>
+            <td class="hide-on-mobile text-center"><StatusBadge :status="'$' + (item.price || 0)" /></td>
             <td class="hide-on-tablet"><StatusBadge :status="item.termName || 'Term 1 2026'" /></td>
             <td class="hide-on-tablet">
               <div class="schedule-info" v-if="item.schedule">
@@ -214,9 +215,9 @@ const handleActionSubmit = async (formData) => {
               </div>
               <span v-else class="help-text-small">Not scheduled</span>
             </td>
-            <td class="hide-on-tablet"><StatusBadge :status="item.levelName || item.level || 'Beginner'" /></td>
-            <td><StatusBadge :status="item.status || 'Active'" /></td>
-            <td class="action-cell">
+            <td class="hide-on-tablet text-center"><StatusBadge :status="item.levelName || item.level || 'Beginner'" /></td>
+            <td class="text-center"><StatusBadge :status="item.status || 'Active'" /></td>
+            <td class="action-cell text-center">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
                   <span class="dots-icon">⋮</span>

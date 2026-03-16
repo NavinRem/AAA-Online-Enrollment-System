@@ -15,6 +15,7 @@ const props = defineProps({
   hasSearch: { type: Boolean, default: true },
   loadingMessage: { type: String, default: 'Loading data...' },
   emptyMessage: { type: String, default: 'No records found.' },
+  title: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:searchQuery', 'update:currentFilter', 'row-click', 'action'])
@@ -38,6 +39,7 @@ const handleAction = (type, item) => {
       :currentFilter="currentFilter"
       @update:currentFilter="emit('update:currentFilter', $event)"
       :filterOptions="filterOptions"
+      :title="title"
     >
       <template #actions>
         <slot name="toolbar-actions"></slot>
@@ -56,7 +58,13 @@ const handleAction = (type, item) => {
       >
         <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId" :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction">
           <!-- Default Row Content if no slot provided -->
-          <td v-for="header in headers" :key="header">{{ item[header.toLowerCase().replace(' ', '')] }}</td>
+          <td 
+            v-for="(header, hIdx) in headers" 
+            :key="hIdx"
+            :class="typeof header === 'object' && header.align ? `text-${header.align}` : ''"
+          >
+            {{ item[typeof header === 'object' ? header.key || header.label.toLowerCase().replace(' ', '') : header.toLowerCase().replace(' ', '')] }}
+          </td>
         </slot>
       </tr>
     </AppTable>

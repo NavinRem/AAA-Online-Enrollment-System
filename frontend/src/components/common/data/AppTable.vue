@@ -11,7 +11,10 @@
             v-for="(col, index) in headers" 
             :key="index"
             :style="typeof col === 'object' ? { width: col.width } : {}"
-            :class="typeof col === 'object' ? col.class : ''"
+            :class="[
+              typeof col === 'object' ? col.class : '',
+              typeof col === 'object' && col.align ? `text-${col.align}` : ''
+            ]"
           >
             {{ typeof col === 'object' ? col.label : col }}
           </th>
@@ -46,6 +49,6 @@ defineProps({
 })
 </script>
 
-<style scoped>
+<style>
 @import '@/assets/styles/components/AppTable.css';
 </style>

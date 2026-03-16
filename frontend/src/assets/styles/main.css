@@ -404,3 +404,24 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
   opacity: 0;
   transform: translateY(-10px) scale(0.95);
 }
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-cell .user-avatar-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: #fff;
+}
+
+.user-cell .user-avatar-small img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

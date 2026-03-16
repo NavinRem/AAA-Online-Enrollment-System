@@ -22,17 +22,19 @@ const props = defineProps({
 const displayStatus = computed(() => {
   if (props.status === undefined || props.status === null) return 'N/A'
   const str = String(props.status)
-  const lower = str.toLowerCase()
+  const lower = str.toLowerCase().trim()
 
+  // 1. Check for specific generic terms FIRST to avoid payment helper overlaps
+  const genericTerms = ['active', 'inactive', 'studying', 'graduated', 'stopped', 'suspended']
+  if (genericTerms.includes(lower)) {
+    return lower.charAt(0).toUpperCase() + lower.slice(1)
+  }
+
+  // 2. Then check for payment/enrollment specific statuses
   if (isPaid(lower)) return 'Paid'
   if (isCancelled(lower)) return 'Cancelled'
   if (isPending(lower)) return 'Pending'
   if (isUnpaid(lower)) return 'Unpaid'
-
-  // Auto-capitalize specific terms
-  if (['active', 'inactive', 'studying', 'graduated', 'stopped', 'suspended'].includes(lower)) {
-    return lower.charAt(0).toUpperCase() + lower.slice(1)
-  }
 
   return str
 })

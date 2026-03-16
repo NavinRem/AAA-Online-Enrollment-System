@@ -1,38 +1,44 @@
 <template>
   <div class="table-toolbar">
-    <SearchBox
-      v-if="hasSearch"
-      :modelValue="searchQuery"
-      @update:modelValue="$emit('update:searchQuery', $event)"
-      :placeholder="searchPlaceholder"
-    />
-
-    <div v-if="hasFilter" class="filter-dropdown-container">
-      <AppButton
-        variant="secondary"
-        :class="{ active: currentFilter !== 'all' && currentFilter !== '' }"
-        @click="toggleFilter"
-        @blur="closeFilter"
-      >
-        <span style="margin-right: 6px"></span> Filter
-      </AppButton>
-      <transition name="toast-fade">
-        <div v-if="isFilterOpen" class="filter-dropdown-menu">
-          <div
-            v-for="option in filterOptions"
-            :key="option.value"
-            class="filter-option"
-            :class="{ active: currentFilter === option.value }"
-            @click.stop="selectFilter(option.value)"
-          >
-            {{ option.label }}
-          </div>
-        </div>
-      </transition>
+    <div class="table-title-area">
+      <h2 v-if="title" class="table-title">{{ title }}</h2>
     </div>
 
-    <!-- Actions for Add Buttons, etc -->
-    <slot name="actions"></slot>
+    <div class="table-controls">
+      <SearchBox
+        v-if="hasSearch"
+        :modelValue="searchQuery"
+        @update:modelValue="$emit('update:searchQuery', $event)"
+        :placeholder="searchPlaceholder"
+      />
+
+      <div v-if="hasFilter" class="filter-dropdown-container">
+        <AppButton
+          variant="secondary"
+          :class="{ active: currentFilter !== 'all' && currentFilter !== '' }"
+          @click="toggleFilter"
+          @blur="closeFilter"
+        >
+          <span style="margin-right: 6px"></span> Filter
+        </AppButton>
+        <transition name="toast-fade">
+          <div v-if="isFilterOpen" class="filter-dropdown-menu">
+            <div
+              v-for="option in filterOptions"
+              :key="option.value"
+              class="filter-option"
+              :class="{ active: currentFilter === option.value }"
+              @click.stop="selectFilter(option.value)"
+            >
+              {{ option.label }}
+            </div>
+          </div>
+        </transition>
+      </div>
+
+      <!-- Actions for Add Buttons, etc -->
+      <slot name="actions"></slot>
+    </div>
   </div>
 </template>
 
@@ -42,6 +48,10 @@ import SearchBox from '@/components/common/data/SearchBox.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 
 defineProps({
+  title: {
+    type: String,
+    default: '',
+  },
   hasSearch: {
     type: Boolean,
     default: true,

@@ -6,38 +6,41 @@ import StatusBadge from '../components/common/ui/StatusBadge.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
+import { paymentStatCard } from '../utils/paymentHelper'
+import { getImageUrl } from '../utils/assetHelper'
 
-const payments = ref([
-  { id: 1, parent: 'Diana Holmes', amount: 180, method: 'Credit Card', status: 'Paid', date: '2026-02-15' },
-  { id: 2, parent: 'Johnny Depp', amount: 180, method: 'Bank Transfer', status: 'Pending', date: '2026-02-15' }
-])
+const payments = ref([])
 
-const paymentStats = computed(() => [
-  { label: 'Total Revenue', value: '$12,450', image: 'dashboard/payment.png', color: '#e1f5fe' },
-  { label: 'Pending', value: '15', image: 'dashboard/pending_payment.png', color: '#e1f5fe' },
-  { label: 'Today', value: '$450', image: 'dashboard/enrollment.png', color: '#e1f5fe' },
-  { label: 'Refunded', value: '2', image: 'dashboard/refund.png', color: '#e1f5fe' }
-])
+const paymentStats = computed(() => {
+  const p = paymentStatCard(payments.value)
+  return [
+    { label: 'Total Transactions', value: p.total_transactions, image: getImageUrl('payment/total-transaction'), color: '#e1f5fe' },
+    { label: 'Total Revenue', value: '$' + p.total_revenue.toLocaleString(), image: getImageUrl('payment/total-revenue'), color: '#e1f5fe' },
+    { label: 'Unpaid Payment', value: '$' + p.pending_payments.toLocaleString(), image: getImageUrl('payment/unpaid-payment'), color: '#e1f5fe' },
+    { label: 'Refund Payment', value: '$' + p.refunded_payments.toLocaleString(), image: getImageUrl('payment/refund-payment'), color: '#e1f5fe' }
+  ]
+})
 
 const paymentHeaders = [
-  { label: 'ID', width: '80px' },
+  { label: 'ID', width: '80px', align: 'center' },
   { label: 'Parent' },
-  { label: 'Amount' },
+  { label: 'Amount', align: 'center' },
   { label: 'Method' },
-  { label: 'Status' },
+  { label: 'Status', align: 'center' },
   { label: 'Date' }
 ]
 </script>
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Payment Overview" listTitle="Payment Lists">
+    <DataPageLayout overviewTitle="Payment Overview">
       <template #overview>
         <DataMetrics :stats="paymentStats" />
       </template>
 
       <template #table>
         <DataTable
+          title="Payment Lists"
           :headers="paymentHeaders"
           :items="payments"
           searchPlaceholder="Search payments..."
@@ -49,11 +52,11 @@ const paymentHeaders = [
           ]"
         >
           <template #row="{ item }">
-            <td>#{{ item.id }}</td>
+            <td class="text-center">#{{ item.id }}</td>
             <td class="bold">{{ item.parent }}</td>
-            <td class="amount">${{ item.amount }}</td>
+            <td class="amount text-center">${{ item.amount }}</td>
             <td>{{ item.method }}</td>
-            <td><StatusBadge :status="item.status" /></td>
+            <td class="text-center"><StatusBadge :status="item.status" /></td>
             <td>{{ formatDate(item.date) }}</td>
           </template>
         </DataTable>

@@ -10,12 +10,6 @@
 
     <!-- List Section -->
     <section class="table-section card-box">
-      <div class="table-header">
-        <h2 class="section-title">{{ listTitle }}</h2>
-        <div class="header-actions">
-          <slot name="actions"></slot>
-        </div>
-      </div>
       <div class="table-responsive">
         <slot name="table"></slot>
       </div>

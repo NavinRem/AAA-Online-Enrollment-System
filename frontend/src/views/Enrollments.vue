@@ -125,14 +125,14 @@ const enrollmentStats = computed(() => {
 })
 
 const enrollmentHeaders = [
-  { label: 'No', width: '60px', class: 'hide-on-mobile' },
-  { label: 'Parent / Guardian', class: 'hide-on-tablet' },
-  { label: 'Student' },
+  { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Parent / Guardian', class: 'hide-on-tablet', width: '220px' },
+  { label: 'Student', width: '220px' },
   { label: 'Program' },
-  { label: 'Regist. Date', class: 'hide-on-tablet' },
-  { label: 'Amount', class: 'hide-on-mobile' },
-  { label: 'Status' },
-  { label: 'Action', width: '60px' }
+  { label: 'Regist. Date', class: 'hide-on-tablet', width: '150px' },
+  { label: 'Amount', class: 'hide-on-mobile', align: 'center', width: '100px' },
+  { label: 'Status', align: 'center', width: '120px' },
+  { label: 'Action', width: '80px', align: 'center' }
 ]
 
 const currentFilter = ref('all')
@@ -210,13 +210,14 @@ const submitActionModal = async () => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Enrollment Overview" listTitle="Enrollment Lists">
+    <DataPageLayout overviewTitle="Enrollment Overview">
       <template #overview>
         <DataMetrics :stats="enrollmentStats" />
       </template>
 
       <template #table>
         <DataTable
+          title="Enrollment Lists"
           :headers="enrollmentHeaders"
           :items="filteredEnrollments"
           :loading="loading"
@@ -238,7 +239,7 @@ const submitActionModal = async () => {
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile">{{ index + 1 }}</td>
+            <td class="hide-on-mobile text-center">{{ index + 1 }}</td>
             <td class="hide-on-tablet">
               <div class="user-info">
                 <div class="avatar-mini">
@@ -264,11 +265,11 @@ const submitActionModal = async () => {
               </div>
             </td>
             <td class="hide-on-tablet">{{ item.enrollAt ? formatDateOnly(item.enrollAt) : 'N/A' }}</td>
-            <td class="bold hide-on-mobile">${{ item.amount || 0 }}</td>
-            <td>
+            <td class="bold hide-on-mobile text-center">${{ item.amount || 0 }}</td>
+            <td class="text-center">
               <StatusBadge :status="isPaid(item.status || item.paymentStatus) ? 'Paid' : (isCancelled(item.status || item.paymentStatus) ? 'Cancelled' : 'Unpaid')" />
             </td>
-            <td class="action-cell">
+            <td class="action-cell text-center">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
                   <span class="dots-icon">⋮</span>

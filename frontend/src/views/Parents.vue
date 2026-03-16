@@ -28,22 +28,22 @@ const {
 const statsCards = computed(() => {
   const s = calculateParentStats(allUsers.value)
   return [
-    { label: 'Total Parents', value: s.parentCount, image: getImageUrl('dashboard/card-parent'), color: '#e1f5fe' },
-    { label: 'Total Guardians', value: s.guardianCount, image: getImageUrl('dashboard/user-online'), color: '#e1f5fe' },
-    { label: 'Registered Today', value: s.todayCount, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
-    { label: 'Active Now', value: s.activeCount, image: getImageUrl('dashboard/on-time'), color: '#e1f5fe' }
+    { label: 'Total Parents', value: s.parentCount, image: getImageUrl('parent/total-parent'), color: '#e1f5fe' },
+    { label: 'Total Guardians', value: s.guardianCount, image: getImageUrl('parent/total-guardian'), color: '#e1f5fe' },
+    { label: 'Registered Today', value: s.todayCount, image: getImageUrl('parent/recently-register'), color: '#e1f5fe' },
+    { label: 'Active Now', value: s.activeCount, image: getImageUrl('parent/active-now'), color: '#e1f5fe' }
   ]
 })
 
 const parentHeaders = [
-  { label: 'No', width: '60px', class: 'hide-on-mobile' },
-  { label: 'Fullname' },
-  { label: 'Child', class: 'hide-on-tablet' },
-  { label: 'Phone Number', class: 'hide-on-mobile' },
+  { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Fullname', width: '280px' },
+  { label: 'Child', class: 'hide-on-tablet', width: '200px' },
+  { label: 'Phone Number', class: 'hide-on-mobile', width: '150px' },
   { label: 'Email', class: 'hide-on-tablet' },
-  { label: 'Role', class: 'hide-on-mobile' },
-  { label: 'Status' },
-  { label: 'Action', width: '60px' }
+  { label: 'Role', class: 'hide-on-mobile', align: 'center', width: '120px' },
+  { label: 'Status', align: 'center', width: '120px' },
+  { label: 'Action', width: '80px', align: 'center' }
 ]
 
 onMounted(async () => {
@@ -248,13 +248,14 @@ const navigateToDetail = (item) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Parent / Guardian Overview" listTitle="Parents/Guardians List">
+    <DataPageLayout overviewTitle="Parent / Guardian Overview">
       <template #overview>
         <DataMetrics :stats="statsCards" />
       </template>
 
       <template #table>
         <DataTable
+          title="Parents/Guardians List"
           :headers="parentHeaders"
           :items="filteredParents"
           :loading="loading"
@@ -274,7 +275,7 @@ const navigateToDetail = (item) => {
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile">{{ index + 1 }}</td>
+            <td class="hide-on-mobile text-center">{{ index + 1 }}</td>
             <td>
               <div class="user-cell">
                 <div class="user-avatar-small">
@@ -300,10 +301,10 @@ const navigateToDetail = (item) => {
               </div>
             </td>
             <td class="hide-on-mobile">{{ item.phone || 'N/A' }}</td>
-            <td class="hide-on-tablet">{{ item.email }}</td>
-            <td class="hide-on-mobile"><StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" /></td>
-            <td><StatusBadge :status="item.status || 'Active'" /></td>
-            <td class="action-cell">
+            <td class="hide-on-tablet">{{ item.email || 'N/A' }}</td>
+            <td class="hide-on-mobile text-center"><StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" /></td>
+            <td class="text-center"><StatusBadge :status="item.status || 'Active'" /></td>
+            <td class="action-cell text-center">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.uid || item.id)">
                   <span class="dots-icon">⋮</span>

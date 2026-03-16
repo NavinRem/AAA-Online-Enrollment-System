@@ -13,7 +13,7 @@ import { formatDate } from '@/utils/dateFormatter'
 </script>
 
 <template>
-  <div class="table-container">
+  <div class="enrollment-table-card">
     <div class="table-header">
       <div class="header-left">
         <h3 class="section-title">Recent Enrollment</h3>
@@ -48,11 +48,13 @@ import { formatDate } from '@/utils/dateFormatter'
 </template>
 
 <style scoped>
-.table-container {
+.enrollment-table-card {
   background: white;
   padding: 25px;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+  height: auto !important; /* Force fit content height */
+  overflow: visible !important; /* Ensure no scrollbar */
 }
 
 .table-header {

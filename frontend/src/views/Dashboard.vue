@@ -159,6 +159,22 @@ const mappedEnrollments = computed(() => {
   gap: 30px;
   overflow-y: auto;
   padding-right: 15px;
+  min-height: 0; /* Critical for children height calculation in flex-scroll */
+}
+
+/* Adaptive Responsive Layout */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+    padding: 0 15px 30px 15px;
+  }
+  
+  .main-column {
+    overflow-y: visible;
+    padding-right: 0;
+  }   
 }
 
 .summary-section {

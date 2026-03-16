@@ -24,12 +24,15 @@ export const enrichStudents = (students = [], enrollments = [], users = []) => {
 /**
  * Calculates student statistics.
  */
-export const calculateStudentStats = (students) => {
-  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+export const calculateTotalStudent = (students) => {
+  const totalStudent = students.length
+  const currently_enrolled = students.filter(s => s.status?.toLowerCase() === 'studying').length
+  const not_currently_enrolled = students.filter(s => s.status?.toLowerCase() === 'not studying').length
+  const newly_enrolled = students.filter(s => s.status?.toLowerCase() === 'Inactive').length
   return {
-    total: students.length,
-    activeCount: students.filter(s => s.status?.toLowerCase() === 'studying').length,
-    newThisWeekCount: students.filter(s => new Date(s.createdAt || s.created_at).getTime() >= weekAgo).length,
-    pendingPaymentCount: students.filter(s => s.paymentStatus?.toLowerCase() === 'pending').length
+    totalStudent,
+    currently_enrolled,
+    not_currently_enrolled,
+    newly_enrolled
   }
 }
