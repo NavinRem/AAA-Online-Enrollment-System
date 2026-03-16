@@ -3,8 +3,9 @@
     <div v-if="error" class="alert-box error">{{ error }}</div>
     <div v-if="success" class="alert-box success">{{ success }}</div>
 
-    <div class="target-summary" v-if="user">
-      Executing action on: <strong>{{ user.name || user.email }}</strong>
+    <div class="identity-card" v-if="user">
+      <span class="label">{{ user.role || 'parent' }}</span>
+      <strong class="name">{{ user.name || user.email }}</strong>
     </div>
 
     <!-- Edit Form -->
@@ -15,13 +16,13 @@
         <input type="text" v-model="localData.name" placeholder="Enter full name" />
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Email Address</label>
         <span class="original-value" v-if="originalData.email">Original: {{ originalData.email }}</span>
         <input type="email" v-model="localData.email" placeholder="Enter email" />
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Phone Number</label>
         <span class="original-value" v-if="originalData.phone">Original: {{ originalData.phone }}</span>
         <input type="tel" v-model="localData.phone" placeholder="Enter phone number" />

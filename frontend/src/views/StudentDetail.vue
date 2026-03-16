@@ -29,11 +29,13 @@ const computedStatus = computed(() => {
 })
 
 const primaryParent = computed(() => {
-  return parent.value?.role?.toLowerCase() === 'parent' ? parent.value : null
+  const role = String(parent.value?.role || '').toLowerCase()
+  return role.includes('parent') ? parent.value : null
 })
 
 const primaryGuardian = computed(() => {
-  return parent.value?.role?.toLowerCase() === 'guardian' ? parent.value : null
+  const role = String(parent.value?.role || '').toLowerCase()
+  return role.includes('guardian') ? parent.value : null
 })
 
 const loading = ref(true)
@@ -199,10 +201,12 @@ const fetchData = async (id) => {
     student.value = studentData
 
     // 2. Fetch associated Parent profile if reference exists
-    const parentId = studentData.parentId || studentData.parent_id
-    if (parentId) {
+    const pId = studentData.parentId || studentData.parent_id
+    console.log('Student Parent ID:', pId)
+    if (pId) {
       try {
-        const pData = await userService.getProfile(parentId)
+        const pData = await userService.getProfile(pId)
+        console.log('Fetched Parent Data:', pData)
         parent.value = pData
       } catch (e) {
         console.warn('Could not fetch parent context silently', e)
@@ -533,14 +537,16 @@ watch(
               <span class="category-title">Parent</span>
               <div class="relationship-item" v-if="primaryParent">
                 <img
-                  :src="primaryParent.profileURL || getImageUrl('profiles/avatar-parent')"
+                  :src="primaryParent.profileURL"
                   alt="Parent Avatar"
                   class="small-avatar"
                 />
                 <div class="child-info">
                   <strong>{{
                     primaryParent.name ||
+                    primaryParent.fullName ||
                     primaryParent.fullname ||
+                    primaryParent.displayName ||
                     primaryParent.email ||
                     'Parent Name'
                   }}</strong>
@@ -563,7 +569,9 @@ watch(
                 <div class="child-info">
                   <strong>{{
                     primaryGuardian.name ||
+                    primaryGuardian.fullName ||
                     primaryGuardian.fullname ||
+                    primaryGuardian.displayName ||
                     primaryGuardian.email ||
                     'Guardian Name'
                   }}</strong>

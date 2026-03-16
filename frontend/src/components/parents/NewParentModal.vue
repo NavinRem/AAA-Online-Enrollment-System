@@ -9,12 +9,12 @@
         <input type="text" v-model="formData.name" placeholder="Enter full name" required />
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Email Address <span class="required">*</span></label>
         <input type="email" v-model="formData.email" placeholder="email@example.com" required />
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Phone Number</label>
         <input type="tel" v-model="formData.phone" placeholder="e.g. +855..." />
       </div>

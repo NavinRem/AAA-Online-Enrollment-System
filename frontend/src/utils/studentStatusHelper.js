@@ -22,7 +22,7 @@ export const calculateStudentStatus = (student, allEnrollments = []) => {
     return student.status
   }
 
-  const studentId = String(student.id || student.uid || '')
+  const studentId = String(student.id || student.uid || student.studentId || '')
   if (!studentId) return 'Inactive'
   
   const studentRegs = allEnrollments.filter(r => String(r.student_id || r.studentId || '') === studentId)

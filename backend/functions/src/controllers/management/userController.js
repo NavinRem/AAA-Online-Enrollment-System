@@ -69,13 +69,13 @@ exports.getUserRole = async (req, res) => {
  */
 exports.registerStudentProfile = async (req, res) => {
   try {
-    const result = await userService.registerStudentProfile(
-      req.params.uid,
-      req.body,
-    );
+    const result = await studentService.createStudent({
+      ...req.body,
+      parentId: req.params.uid,
+    });
     res.status(201).json(result);
   } catch (error) {
-    if (error.message === "Full Name and Date of Birth are required") {
+    if (error.message === "Parent ID, Full Name, and Date of Birth are required") {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });
@@ -88,7 +88,7 @@ exports.registerStudentProfile = async (req, res) => {
  */
 exports.updateMedicalInfo = async (req, res) => {
   try {
-    const result = await userService.updateMedicalInfo(
+    const result = await studentService.updateMedicalInfo(
       req.params.id,
       req.body.medical_note,
     );
@@ -155,7 +155,7 @@ exports.deleteUser = async (req, res) => {
  */
 exports.getAllStudents = async (req, res) => {
   try {
-    const students = await userService.getAllStudents();
+    const students = await studentService.getAllStudents();
     res.status(200).json(students);
   } catch (error) {
     res.status(500).json({ error: error.message });

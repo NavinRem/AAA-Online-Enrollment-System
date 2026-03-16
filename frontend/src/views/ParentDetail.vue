@@ -13,6 +13,7 @@ import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate } from '@/utils/dateFormatter'
 import { filterDetailEnrollments } from '@/utils/enrollmentHelper'
+import { enrichStudents } from '@/utils/studentHelper'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
@@ -98,7 +99,7 @@ const fetchData = async (id) => {
       enrollmentService.getAllEnrollments(),
     ])
 
-    students.value = studentsData || []
+    students.value = enrichStudents(studentsData || [], [], [])
 
     // Pre-select the first child by default if children exist
     if (
@@ -111,8 +112,8 @@ const fetchData = async (id) => {
     // Filter enrollments for this parent
     const pId = parent.value.uid || parent.value.id
     enrollments.value = (allEnrollments || []).filter((r) => {
-      const parentRef = r.parentId
-      return parentRef === pId
+      const parentRef = r.parentId || r.parent_id
+      return String(parentRef) === String(pId)
     })
   } catch (error) {
     console.error('Failed to load parent details', error)
@@ -198,6 +199,13 @@ const submitAddChild = async (childData) => {
     globalError.value = err.message || 'Enrollment failed'
   } finally {
     submitting.value = false
+  }
+}
+
+const navigateToStudent = (student) => {
+  const sId = student.id || student.uid
+  if (sId) {
+    router.push(`/students/${sId}`)
   }
 }
 
@@ -308,13 +316,14 @@ watch(
                 </button> -->
                 <button
                   v-for="s in students"
-                  :key="s.id"
+                  :key="s.id || s.uid"
                   class="child-chip"
-                  :class="{ active: selectedChildUid === s.id }"
-                  @click="selectedChildUid = s.id"
+                  :class="{ active: selectedChildUid === (s.id || s.uid) }"
+                  @click="selectedChildUid = (s.id || s.uid)"
+                  @dblclick="navigateToStudent(s)"
                 >
                   <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
-                  {{ s.fullname }}
+                  {{ s.fullName || s.fullname || s.name }}
                 </button>
               </div>
               <div class="table-container">
@@ -461,11 +470,16 @@ watch(
 
         <DetailedSummaryCard subtitle="Child Profiles">
           <div class="relationships-list">
-            <div v-for="s in students" :key="s.id" class="relationship-item">
+            <div 
+              v-for="s in students" 
+              :key="s.id || s.uid" 
+              class="relationship-item clickable"
+              @click="navigateToStudent(s)"
+            >
               <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
               <div class="child-info">
-                <strong>{{ s.fullname || s.name }}</strong>
-                <span>Student ID: {{ s.id?.substring(0, 6) }}</span>
+                <strong>{{ s.fullName || s.fullname || s.name }}</strong>
+                <span>Student ID: {{ (s.id || s.uid)?.substring(0, 6) }}</span>
               </div>
             </div>
             <div v-if="students.length === 0" class="text-muted text-center">
@@ -650,7 +664,6 @@ watch(
   height: 24px;
   border-radius: 50%;
 }
-
 .child-chip.active {
   background: #eff6ff;
   border-color: #00aeef;
@@ -854,5 +867,14 @@ tr:last-child td {
 
 .p-3 {
   padding: 12px;
+}
+.relationship-item.clickable {
+  cursor: pointer;
+  transition: background 0.2s;
+  padding: 8px;
+  border-radius: 12px;
+}
+.relationship-item.clickable:hover {
+  background: #f1f8ff;
 }
 </style>

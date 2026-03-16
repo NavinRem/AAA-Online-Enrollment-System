@@ -43,14 +43,16 @@ const statusColor = computed(() => {
   if (props.type) return props.type
   const s = String(props.status).toLowerCase().trim()
 
+  if (s === 'studying') return 'green'
+  if (s === 'inactive') return 'orange'
+
   if (s.includes('$') || /monday|tuesday|wednesday|thursday|friday|saturday|sunday/.test(s)) return 'blue'
   if (/:[0-9]{2}\s*(am|pm)/i.test(s)) return 'blue'
 
   const colorMap = {
-    green: ['paid', 'success', 'active', 'studying', 'on-time', 'present', 'excellent', 'parent'],
+    green: ['paid', 'success', 'active', 'on-time', 'present', 'excellent', 'parent'],
     yellow: ['unpaid', 'pending', 'deactivated', 'suspended', 'warning', 'permission'],
     red: ['canceled', 'cancelled', 'failed', 'stopped', 'absent', 'serious'],
-    orange: ['inactive'],
     blue: ['graduated', 'late', 'good', 'fair', 'guardian'],
     purple: ['make-up', 'makeup', 'intermediate', 'children'],
     magenta: ['unmarked']

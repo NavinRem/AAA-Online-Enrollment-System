@@ -16,7 +16,8 @@ export const enrichStudents = (students = [], enrollments = [], users = []) => {
       programs: regs.filter(isEnrollmentActive),
       parentProfileURL: p?.profileURL || null,
       dob: s.dob || s.DoB,
-      fullName: s.fullname || s.name || s.fullName
+      fullName: s.fullname || s.name || s.fullName || s.fullName,
+      fullname: s.fullname || s.name || s.fullName || s.fullName
     }
   })
 }
@@ -26,9 +27,9 @@ export const enrichStudents = (students = [], enrollments = [], users = []) => {
  */
 export const calculateTotalStudent = (students) => {
   const totalStudent = students.length
-  const currently_enrolled = students.filter(s => s.status?.toLowerCase() === 'studying').length
-  const not_currently_enrolled = students.filter(s => s.status?.toLowerCase() === 'not studying').length
-  const newly_enrolled = students.filter(s => s.status?.toLowerCase() === 'Inactive').length
+  const currently_enrolled = students.filter(s => String(s.status || '').toLowerCase() === 'studying').length
+  const not_currently_enrolled = students.filter(s => String(s.status || '').toLowerCase() !== 'studying').length
+  const newly_enrolled = students.filter(s => String(s.status || '').toLowerCase() === 'inactive').length
   return {
     totalStudent,
     currently_enrolled,

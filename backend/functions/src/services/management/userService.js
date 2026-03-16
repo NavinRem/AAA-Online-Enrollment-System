@@ -114,7 +114,7 @@ class UserService {
   async getAllStudents() {
     const snapshot = await db.collection(COLLECTIONS.STUDENT).get();
     return snapshot.docs.map((doc) => ({
-      studentId: doc.id,
+      id: doc.id,
       ...doc.data(),
     }));
   }

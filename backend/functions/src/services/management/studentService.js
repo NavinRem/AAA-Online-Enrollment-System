@@ -14,7 +14,7 @@ class StudentService {
       fullName,
       dob,
       medicalNote: medicalNote || "None",
-      status: "Studying",
+      status: "Inactive",
       createdAt: new Date().toISOString(),
     };
 

@@ -46,7 +46,7 @@ const parentHeaders = [
   { label: 'Child', class: 'hide-on-tablet', width: '200px' },
   { label: 'Phone Number', class: 'hide-on-mobile', width: '150px' },
   { label: 'Email', class: 'hide-on-tablet' },
-  { label: 'Joined Date', class: 'hide-on-tablet', width: '130px' },
+  { label: 'Joined Date', class: 'hide-on-tablet', width: '300px' },
   { label: 'Role', class: 'hide-on-mobile', align: 'center', width: '120px' },
   { label: 'Status', align: 'center', width: '120px' },
   { label: 'Action', width: '80px', align: 'center' }

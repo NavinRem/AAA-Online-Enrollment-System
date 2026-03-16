@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 export function useTableActions() {
   const activeMenuId = ref(null)
@@ -43,6 +43,14 @@ export function useTableActions() {
       }
     }
   }
+
+  onMounted(() => {
+    document.addEventListener('click', handleGlobalClick)
+  })
+
+  onUnmounted(() => {
+    document.removeEventListener('click', handleGlobalClick)
+  })
 
   return {
     activeMenuId,

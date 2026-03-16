@@ -3,9 +3,9 @@
     <div v-if="error" class="alert-box error">{{ error }}</div>
     <div v-if="success" class="alert-box success">{{ success }}</div>
 
-    <div class="target-summary" v-if="student || enrollment">
-      Executing action on {{ type === 'enrollment-override' ? 'enrollment' : 'student' }}:
-      <strong>{{
+    <div class="identity-card" v-if="student || enrollment">
+      <span class="label">{{ type === 'enrollment-override' || type === 'enrollment-delete' ? 'enrollment' : 'student' }}</span>
+      <strong class="name">{{
         enrollment
           ? enrollment.courseTitle
           : student?.name || student?.fullName || student?.fullname || student?.email || 'Unknown'
@@ -23,13 +23,13 @@
         </select>
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Full Name</label>
         <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
         <input type="text" v-model="localData.name" placeholder="Enter student full name" />
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Date of Birth</label>
         <span class="original-value" v-if="originalData.dob">Original: {{ originalData.dob }}</span>
         <input type="date" v-model="localData.dob" />

@@ -136,7 +136,7 @@ const enrollmentHeaders = [
   { label: 'Parent / Guardian', class: 'hide-on-tablet', width: '220px' },
   { label: 'Student', width: '220px' },
   { label: 'Program' },
-  { label: 'Regist. Date', class: 'hide-on-tablet', width: '150px' },
+  { label: 'Regist. Date', class: 'hide-on-tablet', width: '300px' },
   { label: 'Amount', class: 'hide-on-mobile', align: 'center', width: '100px' },
   { label: 'Status', align: 'center', width: '120px' },
   { label: 'Action', width: '80px', align: 'center' }

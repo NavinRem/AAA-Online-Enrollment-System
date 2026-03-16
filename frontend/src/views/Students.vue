@@ -44,8 +44,10 @@ onMounted(async () => {
       ])
       students.value = enrichStudents(sData, rData || [], uData || [])
     } else {
+      // Parents only fetch their own students - safer permission-wise
       const sData = await userService.getStudentsByParentID(currentUser.uid)
-      students.value = (sData || []).map(s => ({ ...s, programs: [] }))
+      // Enrich with empty context to get the standardized fullName fields
+      students.value = enrichStudents(sData, [], [])
     }
   } catch (error) {
     console.error('Failed to fetch students', error)
@@ -78,10 +80,10 @@ const statsCards = computed(() => {
 
 const studentHeaders = [
   { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Fullname', width: '280px' },
+  { label: 'Fullname', width: '300px' },
   { label: 'Parent / Guardian', class: 'hide-on-mobile', width: '220px' },
   { label: 'Current Course', class: 'hide-on-tablet' },
-  { label: 'Joined Date', class: 'hide-on-tablet', width: '150px' },
+  { label: 'Joined Date', class: 'hide-on-tablet', width: '300px' },
   { label: 'Status', align: 'center', width: '120px' },
   { label: 'Medical Notes', class: 'hide-on-mobile' },
   { label: 'Action', width: '80px', align: 'center' }
@@ -130,7 +132,7 @@ const handleRegisterStudent = async (childData) => {
       ...childData,
       parentId: parentId,
       parentName: chosenParent ? chosenParent.name || chosenParent.email : 'Parent',
-      status: 'Studying',
+      status: 'Inactive',
       createdAt: new Date().toISOString(),
       programs: [],
     }
@@ -151,12 +153,18 @@ const handleRegisterStudent = async (childData) => {
 }
 
 const navigateToDetail = (item) => {
+  console.log('Navigating to student detail. Item:', item)
   const studentId = item?.id || item?.uid
+  console.log('Selected studentId:', studentId)
+  
   if (studentId === newlyCreatedId.value) {
     newlyCreatedId.value = null
   }
+  
   if (studentId) {
     router.push(`/students/${studentId}`)
+  } else {
+    console.error('CRITICAL: No student ID found for item during navigation push.')
   }
 }
 
@@ -284,14 +292,13 @@ const submitActionModal = async (formData) => {
             <td class="hide-on-mobile text-center">
               {{ index + 1 }}
             </td>
-            <td class="bold">
+            <td class="bold" @click="navigateToDetail(item)">
               <div class="user-info">
                 <div class="avatar-mini">
                   <img :src="item.profileURL || getImageUrl('profiles/avatar-student')" alt="avatar" />
                 </div>
-                <div class="user-info">
-                  <span class="user-name">{{ item.fullName }}</span>
-                  <span class="user-id">ID: {{ item.id?.substring(0, 8) }}</span>
+                <div class="user-info" @click="navigateToDetail(item)">
+                  <span class="user-name">{{ item.fullName || item.fullname }}</span>
                 </div>
               </div>
             </td>

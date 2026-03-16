@@ -3,9 +3,9 @@
     <div v-if="error" class="alert-box error">{{ error }}</div>
     <div v-if="success" class="alert-box success">{{ success }}</div>
 
-    <div class="target-summary" v-if="parent">
-      {{ (parent.role || 'parent')[0].toUpperCase() + (parent.role || 'parent').slice(1) }}:
-      <strong>{{ parent.name || parent.email }}</strong>
+    <div class="identity-card" v-if="parent">
+      <span class="label">{{ parent.role }}</span>
+      <strong class="name">{{ parent.name || parent.email }}</strong>
     </div>
 
     <div class="form-grid">
@@ -19,17 +19,17 @@
           </option>
         </select>
       </div>
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Full Name <span class="required">*</span></label>
         <input
           type="text"
-          v-model="formData.fullname"
+          v-model="formData.fullName"
           placeholder="Enter child's full name"
           required
         />
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Date of Birth <span class="required">*</span></label>
         <input type="date" v-model="formData.dob" required />
       </div>
@@ -128,8 +128,8 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit'])
 
 const formData = ref({
-  parentId: '',
-  fullname: '',
+  parentId: props.parent?.uid || props.parent?.id || '',
+  fullName: '',
   dob: '',
   medicalNote: 'None',
 })
@@ -139,8 +139,8 @@ watch(
   (newVal) => {
     if (newVal) {
       formData.value = {
-        parentId: '',
-        fullname: '',
+        parentId: props.parent?.uid || props.parent?.id || '',
+        fullName: '',
         dob: '',
         medicalNote: 'None',
       }
@@ -149,7 +149,7 @@ watch(
 )
 
 const isFormValid = computed(() => {
-  const basicFields = formData.value.fullname.trim() && formData.value.dob
+  const basicFields = formData.value.fullName.trim() && formData.value.dob
   const parentSelected =
     props.selectableParents && props.selectableParents.length > 0 ? formData.value.parentId : true
   return basicFields && parentSelected
@@ -239,4 +239,5 @@ const isPresetActive = (field, chipValue) => {
   color: #00aeef;
   font-weight: 600;
 }
+
 </style>
