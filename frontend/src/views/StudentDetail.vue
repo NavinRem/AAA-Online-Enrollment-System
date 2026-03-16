@@ -726,9 +726,6 @@ td strong {
   color: #94a3b8;
 }
 
-.actions-wrapper {
-  display: flex;
-  gap: 8px;
 }
 
 /* Summary Card Matching Styles */

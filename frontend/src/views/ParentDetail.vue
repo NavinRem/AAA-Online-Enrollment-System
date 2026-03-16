@@ -521,11 +521,6 @@ watch(
   gap: 0 !important;
 }
 
-.actions-wrapper {
-  display: flex;
-  gap: 8px;
-}
-
 .tabs-navigation-wrapper {
   display: flex;
   justify-content: space-between;

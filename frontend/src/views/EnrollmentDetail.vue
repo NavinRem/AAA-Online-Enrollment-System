@@ -174,32 +174,34 @@ onMounted(async () => {
   <DashboardLayout>
     <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments">
       <template #header-actions v-if="enrollment">
-        <button class="btn-icon edit" title="Edit Enrollment" @click="openActionModal('edit')">
-          ✏️
-        </button>
-        <button
-          v-if="!isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
-          class="btn-icon check"
-          title="Mark as Paid"
-          @click="openActionModal('pay')"
-        >
-          ✓
-        </button>
-        <button
-          v-if="!isCancelled(enrollment.status)"
-          class="btn-icon cancel"
-          title="Cancel Enrollment"
-          @click="openActionModal('cancel')"
-        >
-          🚫
-        </button>
-        <button
-          class="btn-icon delete"
-          title="Delete Permanently"
-          @click="openActionModal('delete')"
-        >
-          🗑️
-        </button>
+        <div class="actions-wrapper">
+          <button class="btn-icon edit" title="Edit Enrollment" @click="openActionModal('edit')">
+            ✏️
+          </button>
+          <button
+            v-if="!isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
+            class="btn-icon check"
+            title="Mark as Paid"
+            @click="openActionModal('pay')"
+          >
+            ✓
+          </button>
+          <button
+            v-if="!isCancelled(enrollment.status)"
+            class="btn-icon cancel"
+            title="Cancel Enrollment"
+            @click="openActionModal('cancel')"
+          >
+            🚫
+          </button>
+          <button
+            class="btn-icon delete"
+            title="Delete Permanently"
+            @click="openActionModal('delete')"
+          >
+            🗑️
+          </button>
+        </div>
       </template>
 
       <template #left-content v-if="enrollment">

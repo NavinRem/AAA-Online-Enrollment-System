@@ -185,6 +185,46 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
   font-weight: bold;
 }
 
+/* Detail Page Header Action Styles */
+.actions-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.btn-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 12px;
+  border: none !important; /* Force borderless as requested */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: #f8fafc;
+  color: #64748b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.btn-icon:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.btn-icon:active {
+  transform: translateY(0);
+}
+
+.btn-icon.edit:hover { background-color: #e0f2fe; color: #0284c7; }
+.btn-icon.cancel:hover { background-color: #fef2f2; color: #ef4444; }
+.btn-icon.check:hover { background-color: #f0fdf4; color: #16a34a; }
+.btn-icon.delete:hover { background-color: #fff1f2; color: #e11d48; }
+.btn-icon.override:hover { background-color: #fff7ed; color: #ea580c; }
+
 .form-group input, 
 .form-group textarea, 
 .form-group select {
