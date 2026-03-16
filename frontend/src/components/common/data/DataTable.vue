@@ -16,6 +16,7 @@ const props = defineProps({
   loadingMessage: { type: String, default: 'Loading data...' },
   emptyMessage: { type: String, default: 'No records found.' },
   title: { type: String, default: '' },
+  rowClass: { type: Function, default: () => '' },
 })
 
 const emit = defineEmits(['update:searchQuery', 'update:currentFilter', 'row-click', 'action'])
@@ -54,6 +55,7 @@ const handleAction = (type, item) => {
         v-for="(item, index) in items"
         :key="item.id || index"
         class="clickable-row"
+        :class="rowClass(item)"
         @click="emit('row-click', item)"
       >
         <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId" :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction">

@@ -3,7 +3,7 @@
   "description": "Cloud Functions for Firebase (Enrollment)",
   "scripts": {
     "lint": "eslint .",
-    "serve": "firebase emulators:start",
+    "serve": "firebase emulators:start --import=./firebase-data --export-on-exit",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",

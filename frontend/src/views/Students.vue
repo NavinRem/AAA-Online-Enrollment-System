@@ -24,6 +24,11 @@ import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 const router = useRouter()
 const students = ref([])
 const loading = ref(true)
+const newlyCreatedId = ref(null)
+
+const getRowClass = (item) => {
+  return newlyCreatedId.value === (item.id || item.uid) ? 'new-row-highlight' : ''
+}
 
 onMounted(async () => {
   const currentUser = authService.getCurrentUser()
@@ -58,7 +63,7 @@ const filteredStudents = computed(() => {
   if (currentFilter.value !== 'all') {
     list = list.filter((s) => (s.status || 'studying').toLowerCase() === currentFilter.value)
   }
-  return list
+  return [...list].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
 })
 
 const statsCards = computed(() => {
@@ -131,6 +136,7 @@ const handleRegisterStudent = async (childData) => {
     }
 
     students.value.unshift(newStudent)
+    newlyCreatedId.value = result.id
 
     modalSuccess.value = 'Student registered successfully!'
     setTimeout(() => {
@@ -146,6 +152,9 @@ const handleRegisterStudent = async (childData) => {
 
 const navigateToDetail = (item) => {
   const studentId = item?.id || item?.uid
+  if (studentId === newlyCreatedId.value) {
+    newlyCreatedId.value = null
+  }
   if (studentId) {
     router.push(`/students/${studentId}`)
   }
@@ -263,6 +272,7 @@ const submitActionModal = async (formData) => {
             { label: 'Suspended', value: 'suspended' },
             { label: 'Stopped', value: 'stopped' },
           ]"
+          :rowClass="getRowClass"
           @row-click="navigateToDetail"
           @action="({ type, item }) => openActionModal(type, item)"
         >
@@ -271,7 +281,9 @@ const submitActionModal = async (formData) => {
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile text-center">{{ index + 1 }}</td>
+            <td class="hide-on-mobile text-center">
+              {{ index + 1 }}
+            </td>
             <td class="bold">
               <div class="user-info">
                 <div class="avatar-mini">
@@ -337,7 +349,7 @@ const submitActionModal = async (formData) => {
       :loading="modalLoading"
       :error="modalError"
       :success="modalSuccess"
-      @close="actionModal.isOpen = false"
+      @close="() => { actionModal.isOpen = false; modalError = ''; modalSuccess = ''; }"
       @submit="submitActionModal"
     />
 
@@ -348,7 +360,7 @@ const submitActionModal = async (formData) => {
       :loading="modalLoading"
       :error="modalError"
       :success="modalSuccess"
-      @close="showRegisterChildModal = false"
+      @close="() => { showRegisterChildModal = false; modalError = ''; modalSuccess = ''; }"
       @submit="handleRegisterStudent"
     />
   </DashboardLayout>

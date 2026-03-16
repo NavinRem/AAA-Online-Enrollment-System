@@ -21,6 +21,11 @@ const sessions = ref([])
 const loading = ref(true)
 const currentFilter = ref('all')
 const now = ref(new Date())
+const newlyCreatedId = ref(null)
+
+const getRowClass = (item) => {
+  return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
+}
 
 const actionModal = ref({
   isOpen: false,
@@ -107,12 +112,8 @@ const filteredPrograms = computed(() => {
     result = result.filter((p) => (p.status || 'Active').toLowerCase() === status)
   }
 
-  // Default Sort by Title
-  return result.sort((a, b) => {
-    const titleA = (a.title || a.name || '').toLowerCase()
-    const titleB = (b.title || b.name || '').toLowerCase()
-    return titleA.localeCompare(titleB)
-  })
+  // Sort by Created Date Descending (Newest first)
+  return result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
 })
 
 const handleAction = (type, program) => {
@@ -132,6 +133,8 @@ const openModal = (type, program = null) => {
 
 const closeModal = () => {
   actionModal.value.isOpen = false
+  actionModal.value.error = ''
+  actionModal.value.success = ''
 }
 
 const handleActionSubmit = async (formData) => {
@@ -139,7 +142,8 @@ const handleActionSubmit = async (formData) => {
   actionModal.value.error = ''
   try {
     if (actionModal.value.type === 'add') {
-      await courseService.createCourse(formData)
+      const result = await courseService.createCourse(formData)
+      newlyCreatedId.value = result.id
       actionModal.value.success = 'Program created successfully!'
     } else if (actionModal.value.type === 'edit') {
       await courseService.updateCourse(actionModal.value.program.id, formData)
@@ -157,6 +161,12 @@ const handleActionSubmit = async (formData) => {
     actionModal.value.error = error.message || 'Action failed'
   } finally {
     actionModal.value.loading = false
+  }
+}
+
+const onRowClick = (item) => {
+  if (item.id === newlyCreatedId.value) {
+    newlyCreatedId.value = null
   }
 }
 </script>
@@ -187,6 +197,8 @@ const handleActionSubmit = async (formData) => {
             { label: 'Level: Intermediate', value: 'level:intermediate' },
             { label: 'Level: Advanced', value: 'level:advanced' },
           ]"
+          :rowClass="getRowClass"
+          @row-click="onRowClick"
           @action="({ type, item }) => handleAction(type, item)"
         >
           <template #toolbar-actions>
@@ -194,7 +206,9 @@ const handleActionSubmit = async (formData) => {
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile text-center">{{ index + 1 }}</td>
+            <td class="hide-on-mobile text-center">
+              {{ index + 1 }}
+            </td>
             <td class="hide-on-tablet">
               <div class="user-info">
                 <div class="program-icon-mini">

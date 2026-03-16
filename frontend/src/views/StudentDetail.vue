@@ -726,8 +726,6 @@ td strong {
   color: #94a3b8;
 }
 
-}
-
 /* Summary Card Matching Styles */
 .profile-header {
   display: flex;

@@ -16,11 +16,16 @@ import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
 import { useTableActions } from '../composables/useTableActions'
 import { enrichParents, calculateParentStats } from '../utils/parentHelper'
+import { formatDate } from '../utils/dateFormatter'
 
 const router = useRouter()
 
 const allUsers = ref([])
 const loading = ref(true)
+const newlyCreatedId = ref(null)
+const getRowClass = (item) => {
+  return newlyCreatedId.value === (item.uid || item.id) ? 'new-row-highlight' : ''
+}
 const {
   closeMenu,
 } = useTableActions()
@@ -41,6 +46,7 @@ const parentHeaders = [
   { label: 'Child', class: 'hide-on-tablet', width: '200px' },
   { label: 'Phone Number', class: 'hide-on-mobile', width: '150px' },
   { label: 'Email', class: 'hide-on-tablet' },
+  { label: 'Joined Date', class: 'hide-on-tablet', width: '130px' },
   { label: 'Role', class: 'hide-on-mobile', align: 'center', width: '120px' },
   { label: 'Status', align: 'center', width: '120px' },
   { label: 'Action', width: '80px', align: 'center' }
@@ -54,7 +60,8 @@ onMounted(async () => {
     ])
 
     if (Array.isArray(data)) {
-      allUsers.value = enrichParents(data, allStudents || [])
+      const enriched = enrichParents(data, allStudents || [])
+      allUsers.value = enriched.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     }
   } catch (error) {
     console.error('Failed to fetch parents', error)
@@ -107,6 +114,8 @@ const openActionModal = (type, item) => {
 
 const closeActionModal = () => {
   actionModal.value.isOpen = false
+  errorMessage.value = ''
+  successMessage.value = ''
 }
 
 const submitActionModal = async (formData) => {
@@ -182,6 +191,8 @@ const submitNewParent = async (data) => {
     allUsers.value.unshift(newUser)
 
     successMessage.value = 'New account created successfully!'
+    newlyCreatedId.value = actualUid
+    
     setTimeout(() => {
       showNewParentModal.value = false
     }, 1500)
@@ -242,6 +253,9 @@ const submitAddChild = async (childData) => {
 }
 
 const navigateToDetail = (item) => {
+  if ((item.uid || item.id) === newlyCreatedId.value) {
+    newlyCreatedId.value = null
+  }
   router.push(`/parents/${item.uid || item.id}`)
 }
 </script>
@@ -267,6 +281,7 @@ const navigateToDetail = (item) => {
             { label: 'Active Only', value: 'active' },
             { label: 'Inactive Only', value: 'inactive' },
           ]"
+          :rowClass="getRowClass"
           @row-click="navigateToDetail"
           @action="({ type, item }) => openActionModal(type, item)"
         >
@@ -275,7 +290,9 @@ const navigateToDetail = (item) => {
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile text-center">{{ index + 1 }}</td>
+            <td class="hide-on-mobile text-center">
+              {{ index + 1 }}
+            </td>
             <td>
               <div class="user-cell">
                 <div class="user-avatar-small">
@@ -302,6 +319,7 @@ const navigateToDetail = (item) => {
             </td>
             <td class="hide-on-mobile">{{ item.phone || 'N/A' }}</td>
             <td class="hide-on-tablet">{{ item.email || 'N/A' }}</td>
+            <td class="hide-on-tablet">{{ formatDate(item.createdAt) }}</td>
             <td class="hide-on-mobile text-center"><StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" /></td>
             <td class="text-center"><StatusBadge :status="item.status || 'Active'" /></td>
             <td class="action-cell text-center">
@@ -346,7 +364,7 @@ const navigateToDetail = (item) => {
       :loading="submitting"
       :error="errorMessage"
       :success="successMessage"
-      @close="showNewParentModal = false"
+      @close="() => { showNewParentModal = false; errorMessage = ''; successMessage = ''; }"
       @submit="submitNewParent"
     />
 
@@ -356,7 +374,7 @@ const navigateToDetail = (item) => {
       :loading="submitting"
       :error="errorMessage"
       :success="successMessage"
-      @close="addChildModal.isOpen = false"
+      @close="() => { addChildModal.isOpen = false; errorMessage = ''; successMessage = ''; }"
       @submit="submitAddChild"
     />
   </DashboardLayout>

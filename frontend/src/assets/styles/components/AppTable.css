@@ -89,3 +89,25 @@
 @media (max-width: 768px) {
   .hide-on-mobile { display: none !important; }
 }
+
+/* Global New Row Highlight */
+.new-row-highlight td {
+  background-color: #f0f9ff !important;
+  border-top-color: #bae6fd !important;
+  border-bottom-color: #bae6fd !important;
+  animation: pulse-bg-new 2s infinite;
+}
+
+.new-row-highlight td:first-child {
+  border-left-color: #bae6fd !important;
+}
+
+.new-row-highlight td:last-child {
+  border-right-color: #bae6fd !important;
+}
+
+@keyframes pulse-bg-new {
+  0% { background-color: rgba(14, 165, 233, 0.05); }
+  50% { background-color: rgba(14, 165, 233, 0.15); }
+  100% { background-color: rgba(14, 165, 233, 0.05); }
+}

@@ -1,7 +1,7 @@
 <template>
   <AppModal :show="isOpen" title="Register New Child" @close="$emit('close')">
-    <div v-if="error" class="error-banner">{{ error }}</div>
-    <div v-if="success" class="success-banner">{{ success }}</div>
+    <div v-if="error" class="alert-box error">{{ error }}</div>
+    <div v-if="success" class="alert-box success">{{ success }}</div>
 
     <div class="target-summary" v-if="parent">
       {{ (parent.role || 'parent')[0].toUpperCase() + (parent.role || 'parent').slice(1) }}:

@@ -71,12 +71,12 @@ const handleSubmit = () => {
         <div class="modal-body">
           <transition name="toast-fade">
             <div v-if="error" class="alert-box error">
-              <span class="icon">⚠️</span> {{ error }}
+              {{ error }}
             </div>
           </transition>
           <transition name="toast-fade">
             <div v-if="success" class="alert-box success">
-              <span class="icon">✅</span> {{ success }}
+              {{ success }}
             </div>
           </transition>
 

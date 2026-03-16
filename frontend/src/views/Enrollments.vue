@@ -13,7 +13,8 @@ import { courseService } from '../services/courseService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
 import { getImageUrl } from '@/utils/assetHelper'
-import { isPaid, isCancelled, isUnpaid } from '@/utils/statusHelper'
+import { formatDate, formatDateOnly } from '../utils/dateFormatter'
+import AppModal from '@/components/common/ui/AppModal.vue'
 
 const enrollments = ref([])
 const parents = ref([]) 
@@ -25,6 +26,11 @@ const showModal = ref(false)
 const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const newlyCreatedId = ref(null)
+
+const getRowClass = (item) => {
+  return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
+}
 
 onMounted(async () => {
   await fetchEnrollments()
@@ -97,8 +103,9 @@ const handleCreateEnrollment = async (formData) => {
       enrollAt: new Date().toISOString(),
     }
 
-    await enrollmentService.createEnrollment(payload)
+    const result = await enrollmentService.createEnrollment(payload)
     successMessage.value = 'Successfully created enrollment!'
+    newlyCreatedId.value = result.id || result.UID
     await fetchEnrollments()
 
     setTimeout(() => {
@@ -147,7 +154,7 @@ const statusFilteredEnrollments = computed(() => {
     if (currentFilter.value === 'unpaid') return isUnpaid(r.status || r.paymentStatus)
     if (currentFilter.value === 'cancelled') return isCancelled(r.status || r.paymentStatus)
     return true
-  })
+  }).sort((a, b) => new Date(b.enrollAt || 0) - new Date(a.enrollAt || 0))
 })
 
 const { searchQuery, searchResults: filteredEnrollments } = useSearch(
@@ -199,12 +206,20 @@ const submitActionModal = async () => {
     }
     successMessage.value = 'Action completed successfully.'
     await fetchEnrollments()
-    setTimeout(() => { actionModal.value.isOpen = false }, 1500)
+    setTimeout(() => { 
+      closeActionModal()
+    }, 1500)
   } catch (err) {
     errorMessage.value = err.message
   } finally {
     submitting.value = false
   }
+}
+
+const closeActionModal = () => {
+  actionModal.value.isOpen = false
+  errorMessage.value = ''
+  successMessage.value = ''
 }
 </script>
 
@@ -231,15 +246,21 @@ const submitActionModal = async () => {
             { label: 'Unpaid Only', value: 'unpaid' },
             { label: 'Cancelled Only', value: 'cancelled' },
           ]"
+          :rowClass="getRowClass"
           @action="handleTableAction"
-          @row-click="item => $router.push(`/enrollment/${item.id}`)"
+          @row-click="item => { 
+            if (item.id === newlyCreatedId) newlyCreatedId = null;
+            $router.push(`/enrollment/${item.id}`);
+          }"
         >
           <template #toolbar-actions>
             <AppButton variant="primary" @click="showModal = true">+ New Enrollment</AppButton>
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile text-center">{{ index + 1 }}</td>
+            <td class="hide-on-mobile text-center">
+              {{ index + 1 }}
+            </td>
             <td class="hide-on-tablet">
               <div class="user-info">
                 <div class="avatar-mini">
@@ -264,7 +285,7 @@ const submitActionModal = async () => {
                 {{ item.courseTitle || 'Course' }}
               </div>
             </td>
-            <td class="hide-on-tablet">{{ item.enrollAt ? formatDateOnly(item.enrollAt) : 'N/A' }}</td>
+            <td class="hide-on-tablet">{{ formatDate(item.enrollAt) }}</td>
             <td class="bold hide-on-mobile text-center">${{ item.amount || 0 }}</td>
             <td class="text-center">
               <StatusBadge :status="isPaid(item.status || item.paymentStatus) ? 'Paid' : (isCancelled(item.status || item.paymentStatus) ? 'Cancelled' : 'Unpaid')" />
@@ -301,51 +322,55 @@ const submitActionModal = async () => {
       :sessions="sessions"
       :error="errorMessage"
       :success="successMessage"
-      @close="showModal = false"
+      @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }"
       @course-change="handleCourseChange"
       @submit="handleCreateEnrollment"
     />
 
     <!-- Action Modals -->
-    <transition name="modal-fade">
-      <div v-if="actionModal.isOpen" class="modal-overlay" @click.self="actionModal.isOpen = false">
-        <div class="modal-content action-modal">
-          <div class="modal-header">
-            <h3 class="capitalize">{{ actionModal.type }} Enrollment</h3>
-            <button class="close-btn" @click="actionModal.isOpen = false">×</button>
-          </div>
-          <div class="modal-body">
-            <div v-if="errorMessage" class="alert-box error">{{ errorMessage }}</div>
-            <div v-if="successMessage" class="alert-box success">{{ successMessage }}</div>
+    <AppModal 
+      :show="actionModal.isOpen" 
+      :title="actionModal.type + ' Enrollment'" 
+      variant="action" 
+      @close="closeActionModal"
+    >
+      <div v-if="errorMessage" class="alert-box error">{{ errorMessage }}</div>
+      <div v-if="successMessage" class="alert-box success">{{ successMessage }}</div>
 
-            <div v-if="actionModal.type === 'edit'" class="form-group">
-              <label>Amount ($)</label>
-              <input type="number" v-model="actionModal.amount" />
-              <label>Remark</label>
-              <textarea v-model="actionModal.remark"></textarea>
-            </div>
-            <div v-if="actionModal.type === 'pay'" class="form-group">
-              <label>Proof of Payment</label>
-              <input type="text" v-model="actionModal.proof" placeholder="Receipt #" />
-            </div>
-            <div v-if="actionModal.type === 'cancel'" class="form-group">
-              <label>Reason</label>
-              <textarea v-model="actionModal.reason"></textarea>
-            </div>
-            <div v-if="actionModal.type === 'delete'" class="form-group">
-              <p class="danger-text">This action is permanent. Type DELETE to confirm.</p>
-              <input type="text" v-model="actionModal.deleteConfirm" placeholder="DELETE" />
-            </div>
-          </div>
-          <div class="modal-footer">
-            <AppButton variant="cancel" @click="actionModal.isOpen = false">Cancel</AppButton>
-            <AppButton :variant="actionModal.type === 'delete' ? 'danger' : 'primary'" @click="submitActionModal" :loading="submitting">
-              Confirm {{ actionModal.type }}
-            </AppButton>
-          </div>
-        </div>
+      <div v-if="actionModal.type === 'edit'" class="form-group">
+        <label>Amount ($)</label>
+        <input type="number" v-model="actionModal.amount" />
+        <label>Remark</label>
+        <textarea v-model="actionModal.remark" placeholder="Enter administrative remarks..."></textarea>
       </div>
-    </transition>
+      <div v-if="actionModal.type === 'pay'" class="form-group">
+        <label>Proof of Payment</label>
+        <input type="text" v-model="actionModal.proof" placeholder="Receipt or Transaction ID" />
+      </div>
+      <div v-if="actionModal.type === 'cancel'" class="form-group">
+        <label>Reason for Cancellation</label>
+        <textarea v-model="actionModal.reason" placeholder="Why is this enrollment being cancelled?"></textarea>
+      </div>
+      <div v-if="actionModal.type === 'delete'" class="form-group">
+        <div class="info-block danger" style="background: #fef2f2; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
+          <p style="color: #991b1b; font-size: 0.9rem;"><strong>Warning:</strong> This action is permanent and cannot be undone.</p>
+        </div>
+        <label>Type <strong class="danger-text">DELETE</strong> to confirm</label>
+        <input type="text" v-model="actionModal.deleteConfirm" placeholder="DELETE" />
+      </div>
+
+      <template #footer>
+        <AppButton variant="cancel" @click="closeActionModal">Cancel</AppButton>
+        <AppButton 
+          :variant="actionModal.type === 'delete' ? 'danger' : 'primary'" 
+          @click="submitActionModal" 
+          :loading="submitting"
+          :disabled="submitting || (actionModal.type === 'delete' && actionModal.deleteConfirm !== 'DELETE')"
+        >
+          Confirm action
+        </AppButton>
+      </template>
+    </AppModal>
   </DashboardLayout>
 </template>
 

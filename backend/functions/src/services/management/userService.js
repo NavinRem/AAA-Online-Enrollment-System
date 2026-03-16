@@ -1,11 +1,38 @@
+const { getAuth } = require("firebase-admin/auth");
 const { db, COLLECTIONS } = require("../../config/database");
 
 class UserService {
   async registerParentAccount(userData) {
-    const { uid, email, role, name, profileURL, phone } = userData;
+    let { uid, email, role, name, profileURL, phone, password } = userData;
 
+    // If no UID is provided, we need to create the Auth user first
     if (!uid) {
-      throw new Error("User ID (uid) is required");
+      if (!email) {
+        throw new Error("Email is required to create an account");
+      }
+
+      try {
+        const userConfig = {
+          email,
+          displayName: name || null,
+        };
+        
+        // Use provided password or generate a random one
+        if (password) {
+          userConfig.password = password;
+        }
+
+        const userRecord = await getAuth().createUser(userConfig);
+        uid = userRecord.uid;
+      } catch (error) {
+        // If user already exists in Auth, try to find them
+        if (error.code === 'auth/email-already-exists') {
+          const userRecord = await getAuth().getUserByEmail(email);
+          uid = userRecord.uid;
+        } else {
+          throw error;
+        }
+      }
     }
 
     const userRef = db.collection(COLLECTIONS.USER).doc(uid);
@@ -25,7 +52,7 @@ class UserService {
     }
 
     await userRef.set(data, { merge: true });
-    return { uid, message: "Parent account registered successfully" };
+    return { uid, message: "Parent account registered successfully", isNew: true };
   }
 
   async getUserRole(uid) {
