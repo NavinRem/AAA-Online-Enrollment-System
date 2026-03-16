@@ -179,6 +179,12 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
   color: var(--text-dark);
 }
 
+.required {
+  color: var(--error-color);
+  margin-left: 2px;
+  font-weight: bold;
+}
+
 .form-group input, 
 .form-group textarea, 
 .form-group select {

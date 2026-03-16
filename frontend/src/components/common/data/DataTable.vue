@@ -54,7 +54,7 @@ const handleAction = (type, item) => {
         v-for="(item, index) in items"
         :key="item.id || index"
         class="clickable-row"
-        @click="emit('row-click', item.id || item.uid)"
+        @click="emit('row-click', item)"
       >
         <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId" :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction">
           <!-- Default Row Content if no slot provided -->

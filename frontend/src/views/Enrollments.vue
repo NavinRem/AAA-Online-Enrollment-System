@@ -232,7 +232,7 @@ const submitActionModal = async () => {
             { label: 'Cancelled Only', value: 'cancelled' },
           ]"
           @action="handleTableAction"
-          @row-click="id => $router.push(`/enrollment/${id}`)"
+          @row-click="item => $router.push(`/enrollment/${item.id}`)"
         >
           <template #toolbar-actions>
             <AppButton variant="primary" @click="showModal = true">+ New Enrollment</AppButton>
