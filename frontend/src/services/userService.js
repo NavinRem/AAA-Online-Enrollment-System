@@ -35,7 +35,7 @@ export const userService = {
   // Update Medical Info
   updateMedicalInfo(studentId, note) {
     return request(`/users/students/${studentId}/medical`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify({ medicalNote: note }),
     })
   },
@@ -43,7 +43,7 @@ export const userService = {
   // Update Student Profile Details or Status
   updateStudent(studentId, updateData) {
     return request(`/students/${studentId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(updateData),
     })
   },
@@ -66,7 +66,7 @@ export const userService = {
   // Update User Profile (Admin)
   updateUser(uid, updateData) {
     return request(`/users/${uid}`, {
-      method: 'PUT',
+      method: 'PATCH',
       body: JSON.stringify(updateData),
     })
   },

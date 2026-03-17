@@ -61,6 +61,7 @@ import { formatDate } from '@/utils/dateFormatter'
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 25px;
 }
 
 .header-left {
