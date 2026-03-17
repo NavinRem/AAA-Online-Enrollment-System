@@ -15,7 +15,7 @@ router.post(
 );
 
 // Update Medical Info
-router.put("/students/:id/medical", userController.updateMedicalInfo);
+router.patch("/students/:id/medical", userController.updateMedicalInfo);
 
 // Get All Students (Admin)
 router.get("/allStudents", userController.getAllStudents);
@@ -27,7 +27,7 @@ router.get("/", userController.getAllUsers);
 router.get("/:uid", userController.getUser);
 
 // Update User
-router.put("/:uid", userController.updateUser);
+router.patch("/:uid", userController.updateUser);
 
 // Delete User
 router.delete("/:uid", userController.deleteUser);

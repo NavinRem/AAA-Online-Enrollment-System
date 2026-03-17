@@ -19,7 +19,7 @@ router.get("/:id/getAvailableSessions", sessionController.getAvailableSessions);
 router.get("/:id", courseController.getCourse);
 
 // Update/Delete (Manage)
-router.put("/:id", courseController.updateCourse);
+router.patch("/:id", courseController.updateCourse);
 router.delete("/:id", courseController.deleteCourse);
 
 module.exports = router;

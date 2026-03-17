@@ -15,7 +15,7 @@ router.get("/:id/validateCapacity", sessionController.validateCapacity);
 router.get("/:id", sessionController.getSession);
 
 // Instructor Management
-router.put("/:id/instructor", sessionController.assignInstructor);
+router.patch("/:id/instructor", sessionController.assignInstructor);
 router.get("/:id/roster", sessionController.getInstructorRoster);
 router.post("/sync-counts", sessionController.syncStudentCounts);
 

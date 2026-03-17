@@ -9,10 +9,10 @@ router.post("/", studentController.createStudent);
 router.get("/:id", studentController.getStudent);
 
 // Update Student (General)
-router.put("/:id", studentController.updateStudent);
+router.patch("/:id", studentController.updateStudent);
 
 // Update Medical Info (Specific)
-router.put("/:id/medical", studentController.updateMedicalInfo);
+router.patch("/:id/medical", studentController.updateMedicalInfo);
 
 // Get Students by Parent ID
 router.get("/parent/:parentId", studentController.getStudentsByParentID);
