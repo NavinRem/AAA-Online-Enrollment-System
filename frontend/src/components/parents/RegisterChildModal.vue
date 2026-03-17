@@ -9,15 +9,53 @@
     </div>
 
     <div class="form-grid">
-      <!-- Show dropdown if multiple parents are provided to select from -->
       <div class="form-group full-width" v-if="selectableParents && selectableParents.length > 0">
         <label>Select Parent / Guardian <span class="required">*</span></label>
-        <select v-model="formData.parentId" required class="form-select">
-          <option disabled value="">-- Choose a parent/guardian --</option>
-          <option v-for="p in selectableParents" :key="p.uid || p.id" :value="p.uid || p.id">
-            {{ p.name || p.email }} ({{ p.phone || 'No phone' }})
-          </option>
-        </select>
+        <div class="custom-dropdown-container">
+          <div class="custom-dropdown" :class="{ open: isDropdownOpen }">
+            <div class="dropdown-header" @click="isDropdownOpen = !isDropdownOpen">
+              <template v-if="selectedParent">
+                <div class="selected-parent">
+                  <img :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-circle" />
+                  <span>{{ selectedParent.name || selectedParent.email }}</span>
+                </div>
+              </template>
+              <template v-else>
+                <span class="placeholder">Parent/guardian name</span>
+              </template>
+              <span class="chevron" :class="{ up: isDropdownOpen }"></span>
+            </div>
+            
+            <div class="dropdown-menu" v-if="isDropdownOpen">
+              <div class="dropdown-search">
+                <input
+                  type="text"
+                  v-model="searchQuery"
+                  placeholder="Search name or email..."
+                  @click.stop
+                  autofocus
+                />
+              </div>
+              <ul class="dropdown-list">
+                <li
+                  v-for="p in searchResults"
+                  :key="p.uid || p.id"
+                  class="dropdown-item"
+                  :class="{ active: formData.parentId === (p.uid || p.id) }"
+                  @click="selectParent(p)"
+                >
+                  <img :src="p.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-circle" />
+                  <div class="item-info">
+                    <span class="item-name">{{ p.name || p.email }}</span>
+                  </div>
+                </li>
+                <li v-if="searchResults.length === 0" class="dropdown-item no-results">
+                  No matches found.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="form-group">
         <label>Full Name <span class="required">*</span></label>
@@ -109,9 +147,11 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, toRef } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import { useSearch, parentSearchMapper } from '@/composables/useSearch'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -133,6 +173,22 @@ const formData = ref({
   dob: '',
   medicalNote: 'None',
 })
+
+// Dropdown Search Logic
+const isDropdownOpen = ref(false)
+const selectableParentsRef = toRef(props, 'selectableParents')
+const { searchQuery, searchResults } = useSearch(selectableParentsRef, parentSearchMapper)
+
+const selectedParent = computed(() => {
+  if (!formData.value.parentId) return null
+  return props.selectableParents.find(p => (p.uid || p.id) === formData.value.parentId)
+})
+
+const selectParent = (parent) => {
+  formData.value.parentId = parent.uid || parent.id
+  isDropdownOpen.value = false
+  searchQuery.value = ''
+}
 
 watch(
   () => props.isOpen,
@@ -193,21 +249,6 @@ const isPresetActive = (field, chipValue) => {
 
 <style scoped>
 
-.form-select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  background-color: #f8fafc;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.form-select:focus {
-  border-color: #00aeef;
-  background-color: #ffffff;
-}
 
 /* Preset Chips */
 .preset-chips {

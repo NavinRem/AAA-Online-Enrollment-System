@@ -15,12 +15,57 @@
     <div v-if="type === 'edit'" class="form-grid">
       <div class="form-group full-width" v-if="selectableParents && selectableParents.length > 0">
         <label>Update Parent / Guardian <span class="required">*</span></label>
-        <select v-model="localData.parentId" required class="form-select">
-          <option disabled value="">-- Choose a parent/guardian --</option>
-          <option v-for="p in selectableParents" :key="p.uid || p.id" :value="p.uid || p.id">
-            {{ p.name || p.email }} ({{ p.phone || 'No phone' }})
-          </option>
-        </select>
+        <div class="custom-dropdown-container">
+          <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
+            <div class="dropdown-header" @click="isParentDropdownOpen = !isParentDropdownOpen">
+              <template v-if="selectedParent">
+                <div class="selected-parent">
+                  <img
+                    :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')"
+                    class="avatar-mini-circle"
+                  />
+                  <span>{{ selectedParent.name || selectedParent.email }}</span>
+                </div>
+              </template>
+              <template v-else>
+                <span class="placeholder">-- Choose a parent/guardian --</span>
+              </template>
+              <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
+            </div>
+            
+            <div class="dropdown-menu" v-if="isParentDropdownOpen">
+              <div class="dropdown-search">
+                <input
+                  type="text"
+                  v-model="parentSearchQuery"
+                  placeholder="Search name or email..."
+                  @click.stop
+                  autofocus
+                />
+              </div>
+              <ul class="dropdown-list">
+                <li
+                  v-for="p in filteredParents"
+                  :key="p.uid || p.id"
+                  class="dropdown-item"
+                  :class="{ active: localData.parentId === (p.uid || p.id) }"
+                  @click="selectParent(p)"
+                >
+                  <img
+                    :src="p.profileURL || getImageUrl('profiles/avatar-parent')"
+                    class="avatar-mini-circle"
+                  />
+                  <div class="item-info">
+                    <span class="item-name">{{ p.name || p.email }}</span>
+                  </div>
+                </li>
+                <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
+                  No matches found.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="form-group">
@@ -195,10 +240,12 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, toRef } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { useActionModal } from '@/composables/useActionModal'
+import { useSearch, parentSearchMapper } from '@/composables/useSearch'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -250,6 +297,24 @@ const { localData, originalData, submitForm } = useActionModal(props, emit, {
   getInitialData,
   mapSourceToForm,
 })
+
+// Parent Search Logic
+const isParentDropdownOpen = ref(false)
+const { searchQuery: parentSearchQuery, searchResults: filteredParents } = useSearch(
+  toRef(props, 'selectableParents'),
+  parentSearchMapper,
+)
+
+const selectedParent = computed(() => {
+  if (!localData.value.parentId) return null
+  return props.selectableParents.find((p) => (p.uid || p.id) === localData.value.parentId)
+})
+
+const selectParent = (parent) => {
+  localData.value.parentId = parent.uid || parent.id
+  isParentDropdownOpen.value = false
+  parentSearchQuery.value = ''
+}
 
 const modalTitle = computed(() => {
   const titles = {
@@ -373,20 +438,9 @@ const isPresetActive = (field, chipValue) => {
   line-height: 1.5;
 }
 
-.form-select {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  background-color: #f8fafc;
-  outline: none;
-  transition: all 0.2s;
-}
 
-.form-select:focus {
-  border-color: #00aeef;
-  background-color: #ffffff;
+.form-select {
+  display: none;
 }
 
 /* Preset Chips */

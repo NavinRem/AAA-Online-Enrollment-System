@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, toRef } from 'vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import { useSearch } from '@/composables/useSearch'
+import { useSearch, parentSearchMapper, studentSearchMapper } from '@/composables/useSearch'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -24,12 +25,27 @@ const formData = ref({
 })
 
 const isParentDropdownOpen = ref(false)
-const { searchQuery: parentSearchQuery, searchResults: filteredParents } = useSearch(toRef(props, 'parents'))
+const { searchQuery: parentSearchQuery, searchResults: filteredParents } = useSearch(
+  toRef(props, 'parents'),
+  parentSearchMapper,
+)
 
-const selectedParentLabel = computed(() => {
-  if (!formData.value.parentId) return 'Choose a parent'
-  const p = props.parents.find((p) => (p.uid || p.id) === formData.value.parentId)
-  return p ? p.name || p.email : 'Choose a parent'
+const availableStudents = computed(() => {
+  if (!formData.value.parentId) return []
+  return props.students.filter(
+    (s) => s.parentId === formData.value.parentId || s.parent_id === formData.value.parentId,
+  )
+})
+
+const isStudentDropdownOpen = ref(false)
+const { searchQuery: studentSearchQuery, searchResults: filteredStudentsList } = useSearch(
+  availableStudents,
+  studentSearchMapper,
+)
+
+const selectedParent = computed(() => {
+  if (!formData.value.parentId) return null
+  return props.parents.find((p) => (p.uid || p.id) === formData.value.parentId)
 })
 
 const selectParent = (uid) => {
@@ -38,11 +54,14 @@ const selectParent = (uid) => {
   isParentDropdownOpen.value = false
 }
 
-const availableStudents = computed(() => {
-  if (!formData.value.parentId) return []
-  return props.students.filter(
-    (s) => s.parentId === formData.value.parentId || s.parent_id === formData.value.parentId,
-  )
+const selectStudent = (student) => {
+  formData.value.studentId = student.id || student.uid
+  isStudentDropdownOpen.value = false
+}
+
+const selectedStudent = computed(() => {
+  if (!formData.value.studentId) return null
+  return props.students.find((s) => (s.id || s.uid) === formData.value.studentId)
 })
 
 const selectedCoursePrice = computed(() => {
@@ -85,8 +104,19 @@ const handleSubmit = () => {
               <label>Select Parent / Guardian</label>
               <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
                 <div class="dropdown-header" @click="isParentDropdownOpen = !isParentDropdownOpen">
-                  {{ selectedParentLabel }}
-                  <span class="chevron"></span>
+                  <template v-if="selectedParent">
+                    <div class="selected-parent">
+                      <img
+                        :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')"
+                        class="avatar-mini-circle"
+                      />
+                      <span>{{ selectedParent.name || selectedParent.email }}</span>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <span class="placeholder">Choose a parent</span>
+                  </template>
+                  <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
                 </div>
                 <div class="dropdown-menu" v-if="isParentDropdownOpen">
                   <div class="dropdown-search">
@@ -105,7 +135,11 @@ const handleSubmit = () => {
                       :class="{ active: formData.parentId === (p.uid || p.id) }"
                       @click="selectParent(p.uid || p.id)"
                     >
-                      {{ p.name || p.email }}
+                      <img
+                        :src="p.profileURL || getImageUrl('profiles/avatar-parent')"
+                        class="avatar-mini-circle"
+                      />
+                      <span class="item-name">{{ p.name || p.email }}</span>
                     </li>
                     <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
                       No matches found.
@@ -115,14 +149,55 @@ const handleSubmit = () => {
               </div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group custom-dropdown-container">
               <label>Select Student</label>
-              <select v-model="formData.studentId" :disabled="!formData.parentId">
-                <option value="" disabled>Choose a student</option>
-                <option v-for="s in availableStudents" :key="s.id" :value="s.id">
-                  {{ s.fullName || s.fullname || s.name }}
-                </option>
-              </select>
+              <div class="custom-dropdown" :class="{ open: isStudentDropdownOpen, disabled: !formData.parentId }">
+                <div class="dropdown-header" @click="formData.parentId && (isStudentDropdownOpen = !isStudentDropdownOpen)">
+                  <template v-if="selectedStudent">
+                    <div class="selected-item">
+                      <img
+                        :src="selectedStudent.profileURL || getImageUrl('profiles/avatar-student')"
+                        class="avatar-mini-circle"
+                      />
+                      <span>{{ selectedStudent.fullName || selectedStudent.name }}</span>
+                    </div>
+                  </template>
+                  <template v-else>
+                    <span class="placeholder">{{ !formData.parentId ? 'Select parent first' : 'Choose a student' }}</span>
+                  </template>
+                  <span class="chevron" :class="{ up: isStudentDropdownOpen }"></span>
+                </div>
+                
+                <div class="dropdown-menu" v-if="isStudentDropdownOpen">
+                  <div class="dropdown-search">
+                    <input
+                      type="text"
+                      v-model="studentSearchQuery"
+                      placeholder="Search student name..."
+                      @click.stop
+                      autofocus
+                    />
+                  </div>
+                  <ul class="dropdown-list">
+                    <li
+                      v-for="s in filteredStudentsList"
+                      :key="s.id || s.uid"
+                      class="dropdown-item"
+                      :class="{ active: formData.studentId === (s.id || s.uid) }"
+                      @click="selectStudent(s)"
+                    >
+                      <img
+                        :src="s.profileURL || getImageUrl('profiles/avatar-student')"
+                        class="avatar-mini-circle"
+                      />
+                      <span class="item-name">{{ s.fullName || s.name }}</span>
+                    </li>
+                    <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results">
+                      No students found.
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
             <div class="form-group">
@@ -197,14 +272,67 @@ const handleSubmit = () => {
   flex-direction: column;
   gap: 8px;
 }
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.form-group select,
+.form-group input {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background-color: #f8fafc;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.form-group select:focus,
+.form-group input:focus {
+  border-color: #00aeef;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+}
+
 .price-preview {
   margin-top: 20px;
   padding: 16px;
-  background: #f8fafc;
-  border-radius: 8px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-/* ... etc */
+
+.price-label {
+  color: #0369a1;
+  font-weight: 600;
+}
+
+.price-value {
+  font-size: 1.25rem;
+  color: #0c4a6e;
+}
+
+
+/* Animations */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-active .modal-content {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.modal-fade-enter-from .modal-content {
+  transform: scale(0.9) translateY(20px);
+}
 </style>
