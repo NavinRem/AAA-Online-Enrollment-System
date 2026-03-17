@@ -14,6 +14,7 @@ import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
 import { getImageUrl } from '@/utils/assetHelper'
 import { formatDate, formatDateOnly } from '../utils/dateFormatter'
+import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
 import AppModal from '@/components/common/ui/AppModal.vue'
 
 const enrollments = ref([])
