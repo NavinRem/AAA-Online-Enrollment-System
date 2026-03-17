@@ -117,4 +117,4 @@ doc/site/
 doc/_build/
 doc/api/
 doc/archives/
-doc/
+# doc/
