@@ -30,7 +30,8 @@ const getRowClass = (item) => {
   return newlyCreatedId.value === (item.id || item.uid) ? 'new-row-highlight' : ''
 }
 
-onMounted(async () => {
+const fetchStudents = async () => {
+  loading.value = true
   const currentUser = authService.getCurrentUser()
   if (!currentUser) return router.push('/')
 
@@ -44,9 +45,7 @@ onMounted(async () => {
       ])
       students.value = enrichStudents(sData, rData || [], uData || [])
     } else {
-      // Parents only fetch their own students - safer permission-wise
       const sData = await userService.getStudentsByParentID(currentUser.uid)
-      // Enrich with empty context to get the standardized fullName fields
       students.value = enrichStudents(sData, [], [])
     }
   } catch (error) {
@@ -54,6 +53,10 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+}
+
+onMounted(() => {
+  fetchStudents()
 })
 
 const { searchQuery, searchResults } = useSearch(students, studentSearchMapper)
@@ -143,6 +146,7 @@ const handleRegisterStudent = async (childData) => {
     modalSuccess.value = 'Student registered successfully!'
     setTimeout(() => {
       showRegisterChildModal.value = false
+      fetchStudents()
     }, 1500)
   } catch (err) {
     console.error('Failed to register child', err)
@@ -221,6 +225,7 @@ const submitActionModal = async (formData) => {
           students.value[idx].parentName = chosenParent.name || chosenParent.email
         }
       }
+      newlyCreatedId.value = student.id || student.uid
       modalSuccess.value = 'Student profile updated successfully!'
     } else if (type === 'delete') {
       students.value = students.value.filter((s) => (s.id || s.uid) !== (student.id || student.uid))
@@ -245,6 +250,7 @@ const submitActionModal = async (formData) => {
 
     setTimeout(() => {
       actionModal.value.isOpen = false
+      fetchStudents()
     }, 1500)
   } catch (err) {
     console.error('Failed Action', err)
@@ -293,7 +299,7 @@ const submitActionModal = async (formData) => {
               {{ index + 1 }}
             </td>
             <td class="bold" @click="navigateToDetail(item)">
-              <div class="user-info">
+              <div class="student-info">
                 <div class="avatar-mini">
                   <img :src="item.profileURL || getImageUrl('profiles/avatar-student')" alt="avatar" />
                 </div>
@@ -382,5 +388,11 @@ const submitActionModal = async (formData) => {
 .actions-wrapper {
   display: flex;
   gap: 6px;
+}
+
+.student-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 </style>

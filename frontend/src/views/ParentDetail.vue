@@ -91,6 +91,7 @@ const fetchData = async (id) => {
     // Fetch Parent
     const parentData = await userService.getProfile(id)
     if (!parentData) throw new Error('Parent not found')
+
     parent.value = parentData
 
     // Fetch Students and Enrollments in parallel
@@ -479,7 +480,6 @@ watch(
               <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
               <div class="child-info">
                 <strong>{{ s.fullName || s.fullname || s.name }}</strong>
-                <span>Student ID: {{ (s.id || s.uid)?.substring(0, 6) }}</span>
               </div>
             </div>
             <div v-if="students.length === 0" class="text-muted text-center">
