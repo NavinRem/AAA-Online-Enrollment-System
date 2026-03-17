@@ -144,9 +144,23 @@ const handleActionSubmit = async (formData) => {
     if (actionModal.value.type === 'add') {
       const result = await courseService.createCourse(formData)
       newlyCreatedId.value = result.id
-      actionModal.value.success = 'Program created successfully!'
+      
+      // Auto-create initial session if schedule exists
+      if (formData.schedule) {
+        await courseService.createSession({
+          course_id: result.id,
+          schedule: {
+            day: formData.schedule.day,
+            timeslot: formData.schedule.timeslot
+          },
+          capacity: 20 // Default capacity
+        })
+      }
+      
+      actionModal.value.success = 'Program & Initial Session created successfully!'
     } else if (actionModal.value.type === 'edit') {
       await courseService.updateCourse(actionModal.value.program.id, formData)
+      newlyCreatedId.value = actionModal.value.program.id
       actionModal.value.success = 'Program updated successfully!'
     } else if (actionModal.value.type === 'delete') {
       await courseService.deleteCourse(actionModal.value.program.id)
@@ -224,8 +238,7 @@ const onRowClick = (item) => {
             <td class="hide-on-tablet">
               <div class="schedule-info" v-if="item.schedule">
                 <span class="day">{{ item.schedule.day.substring(0, 3) }}</span>
-                <span class="time">{{ item.schedule.time }}</span>
-                <span class="duration">({{ item.schedule.duration }}m)</span>
+                <span class="time">{{ item.schedule.timeslot }}</span>
               </div>
               <span v-else class="help-text-small">Not scheduled</span>
             </td>

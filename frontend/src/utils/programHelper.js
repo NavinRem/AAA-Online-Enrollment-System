@@ -6,8 +6,12 @@ import { isCancelled } from './statusHelper'
 export const isSessionInProgress = (schedule, now = new Date()) => {
   if (!schedule?.day || !schedule?.timeslot) return false
 
-  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  if (schedule.day !== days[now.getDay()]) return false
+  const daysLong = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const daysShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const currentDayLong = daysLong[now.getDay()]
+  const currentDayShort = daysShort[now.getDay()]
+  
+  if (schedule.day !== currentDayLong && schedule.day !== currentDayShort) return false
 
   const times = schedule.timeslot.split('-').map(t => t.trim())
   if (times.length !== 2) return false

@@ -103,4 +103,11 @@ export const courseService = {
       },
     })
   },
+  // SESSION MANAGEMENT
+  createSession(data) {
+    return request('/sessions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
 }
