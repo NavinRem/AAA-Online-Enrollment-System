@@ -68,5 +68,6 @@ export const parentSearchMapper = (p) => {
 }
 
 export const programSearchMapper = (p) => {
-  return `${p.title || p.name || ''} ${p.code || ''} ${p.category || ''} ${p.description || ''}`
+  const scheduleText = p.schedule ? `${p.schedule.day} ${p.schedule.timeslot}` : ''
+  return `${p.title || p.name || ''} ${p.category || ''} ${p.description || ''} ${scheduleText}`
 }
