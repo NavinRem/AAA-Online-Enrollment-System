@@ -98,13 +98,13 @@ const programHeaders = [
   { label: 'No', width: '60px', class: 'hide-on-mobile', align: 'center' },
   { label: 'Category', class: 'hide-on-tablet' },
   { label: 'Title', width: '200px' },
+  { label: 'Teachers', class: 'hide-on-tablet', width: '150px' },
   { label: 'Term', class: 'hide-on-tablet', width: '120px' },
-  { label: 'Teachers', class: 'hide-on-tablet' },
   { label: 'Period (Start-End)', class: 'hide-on-mobile' },
   { label: 'Schedule', class: 'hide-on-tablet' },
-  { label: 'Level', class: 'hide-on-tablet', align: 'center', width: '100px' },
+  { label: 'Level', class: 'hide-on-tablet', align: 'center', width: '30px' },
   { label: 'Price', class: 'hide-on-mobile', align: 'center', width: '90px' },
-  { label: 'Status', align: 'center', width: '110px' },
+  { label: 'Status', align: 'center', width: '100px' },
   { label: 'Action', width: '60px', align: 'center' },
 ]
 
@@ -271,9 +271,6 @@ const onRowClick = (item) => {
             </td>
             <td class="bold">{{ item.title }}</td>
             <td class="hide-on-tablet">
-              <StatusBadge :status="item.termName || item.term || 'No Term'" />
-            </td>
-            <td class="hide-on-tablet">
               <div v-if="item.teachers && item.teachers.length > 0" class="mini-teacher-list">
                 <div v-for="t in item.teachers.slice(0, 2)" :key="t.id" class="mini-teacher-item">
                   <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" />
@@ -282,6 +279,9 @@ const onRowClick = (item) => {
                 <span v-if="item.teachers.length > 2" class="more-count">+{{ item.teachers.length - 2 }}</span>
               </div>
               <span v-else class="help-text-small">No teachers</span>
+            </td>
+            <td class="hide-on-tablet">
+              <StatusBadge :status="item.termName || item.term || 'No Term'" />
             </td>
             <td class="hide-on-mobile">
               <div class="period-info" v-if="item.startDate">

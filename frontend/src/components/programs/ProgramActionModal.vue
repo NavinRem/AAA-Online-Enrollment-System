@@ -1,11 +1,20 @@
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" maxWidth="640px" @close="$emit('close')">
-    <div v-if="error" class="alert-box error">{{ error }}</div>
+  <AppModal :show="isOpen" maxWidth="640px" @close="$emit('close')">
+    <template #header>
+      <div class="modal-header-main">
+        <h3>{{ modalTitle }}</h3>
+        <div v-if="error" class="alert-box error stationary-alert">{{ error }}</div>
+        <div v-if="success" class="alert-box success stationary-alert">{{ success }}</div>
+      </div>
+    </template>
 
     <div v-if="type === 'add' || type === 'edit'" class="form-grid">
       <div class="form-group full-width">
         <label>Program Title <span class="required">*</span></label>
         <input type="text" v-model="localData.title" :placeholder="titlePlaceholder" required :disabled="isReadOnly" />
+        <div v-if="titleValidation.warning" class="input-warning">
+          {{ titleValidation.warning }}
+        </div>
       </div>
 
       <div class="form-group">
@@ -219,8 +228,6 @@
       <label>To confirm, type <strong class="danger-text">DELETE</strong> below</label>
       <input type="text" v-model="localData.deleteConfirm" placeholder="Type DELETE" />
     </div>
-
-    <div v-if="success" class="alert-box success" style="margin-top: 12px; margin-bottom: 0;">{{ success }}</div>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
@@ -485,6 +492,7 @@ const isFormValid = computed(() => {
     localData.value.startDate &&
     localData.value.endDate &&
     dateValidation.value.isValid &&
+    titleValidation.value.isValid &&
     localData.value.schedule.timeslot
   )
 })
@@ -546,6 +554,22 @@ const calculateMinEndDate = (start, dayName, sessions) => {
   
   return current.toISOString().split('T')[0]
 }
+
+const titleValidation = computed(() => {
+  if (!localData.value.title || !localData.value.categoryId) return { isValid: true, warning: '' }
+  
+  const category = categories.value.find(c => c.id === localData.value.categoryId)
+  if (!category) return { isValid: true, warning: '' }
+
+  const catName = category.name.toLowerCase()
+  if (!localData.value.title.toLowerCase().includes(catName)) {
+    return { 
+      isValid: false, 
+      warning: `The title should include the category name "${category.name}".` 
+    }
+  }
+  return { isValid: true, warning: '' }
+})
 
 const fixEndDate = () => {
   if (dateValidation.value.suggestedEndDate) {
@@ -843,5 +867,21 @@ const handleSubmit = () => submitForm(isFormValid.value)
 
 .btn-fix:hover {
   background: #ea580c;
+}
+
+.stationary-alert {
+  margin: 12px 0 0 0;
+  width: 100%;
+}
+
+.input-warning {
+  font-size: 0.75rem;
+  color: #f59e0b;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.modal-header-main {
+  width: 100%;
 }
 </style>
