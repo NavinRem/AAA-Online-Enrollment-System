@@ -23,6 +23,7 @@ const loading = ref(true)
 const currentFilter = ref('all')
 const categoryFilter = ref('all') // New
 const categories = ref([]) // New
+const isCategoryFilterOpen = ref(false)
 const now = ref(new Date())
 const newlyCreatedId = ref(null)
 
@@ -206,6 +207,21 @@ const handleActionSubmit = async (formData) => {
   }
 }
 
+const selectCategory = (id) => {
+  categoryFilter.value = id
+  isCategoryFilterOpen.value = false
+}
+
+const toggleCategoryFilter = () => {
+  isCategoryFilterOpen.value = !isCategoryFilterOpen.value
+}
+
+const closeCategoryFilter = () => {
+  setTimeout(() => {
+    isCategoryFilterOpen.value = false
+  }, 200)
+}
+
 const onRowClick = (item) => {
   if (item.id === newlyCreatedId.value) {
     newlyCreatedId.value = null
@@ -245,14 +261,37 @@ const onRowClick = (item) => {
           @action="({ type, item }) => handleAction(type, item)"
         >
           <template #toolbar-actions>
-            <!-- New Category Filter Dropdown -->
-            <div class="category-filter-wrapper">
-              <select v-model="categoryFilter" class="category-select">
-                <option value="all">All Categories</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.name">
-                  {{ cat.name }}
-                </option>
-              </select>
+            <!-- Unified Category Filter Dropdown -->
+            <div class="filter-dropdown-container">
+              <AppButton
+                variant="secondary"
+                :class="{ active: categoryFilter !== 'all' }"
+                @click="toggleCategoryFilter"
+                @blur="closeCategoryFilter"
+              >
+                <span v-if="categoryFilter === 'all'">All Categories</span>
+                <span v-else>{{ categories.find(c => c.id === categoryFilter)?.name || 'Category' }}</span>
+              </AppButton>
+              <transition name="toast-fade">
+                <div v-if="isCategoryFilterOpen" class="filter-dropdown-menu">
+                  <div
+                    class="filter-option"
+                    :class="{ active: categoryFilter === 'all' }"
+                    @click.stop="selectCategory('all')"
+                  >
+                    All Categories
+                  </div>
+                  <div
+                    v-for="cat in categories"
+                    :key="cat.id"
+                    class="filter-option"
+                    :class="{ active: categoryFilter === cat.id }"
+                    @click.stop="selectCategory(cat.id)"
+                  >
+                    {{ cat.name }}
+                  </div>
+                </div>
+              </transition>
             </div>
             <AppButton variant="primary" @click="openModal('add')">+ Add Program</AppButton>
           </template>
@@ -368,23 +407,40 @@ const onRowClick = (item) => {
   gap: 10px;
 }
 
-.category-filter-wrapper {
-  margin-right: 10px;
+.filter-dropdown-container {
+  position: relative;
 }
 
-.category-select {
-  padding: 8px 12px;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 0.9rem;
+.filter-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
   background: white;
-  color: #444;
-  outline: none;
-  cursor: pointer;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid #e0e0e0;
+  z-index: 100;
+  overflow: hidden;
+  min-width: 180px;
 }
 
-.category-select:focus {
-  border-color: #00aeef;
+.filter-option {
+  padding: 12px 18px;
+  font-size: 0.9rem;
+  color: #444;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.filter-option:hover {
+  background: #f4fafe;
+}
+
+.filter-option.active {
+  background: #e1f5fe;
+  color: #00aeef;
+  font-weight: 700;
 }
 
 .mini-teacher-list {
