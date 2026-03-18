@@ -40,10 +40,10 @@ const displayStatus = computed(() => {
 })
 
 const STATUS_CATEGORIES = {
-  green: ['paid', 'confirmed', 'active', 'on-time', 'present', 'excellent', 'studying', 'parent'],
+  green: ['paid', 'confirmed', 'active', 'on-time', 'present', 'excellent', 'studying', 'parent', 'create at', 'joined at'],
   yellow: ['unpaid', 'pending', 'deactivated', 'suspended', 'warning', 'permission', 'inactive', 'upcoming'],
   red: ['canceled', 'cancelled', 'failed', 'stopped', 'absent', 'serious'],
-  blue: ['graduated', 'late', 'good', 'fair', 'guardian'],
+  blue: ['graduated', 'late', 'good', 'fair', 'guardian', 'update at'],
   purple: ['make-up', 'makeup', 'intermediate', 'children', 'in progress'],
   magenta: ['unmarked']
 }

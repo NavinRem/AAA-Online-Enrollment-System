@@ -218,26 +218,26 @@ const studentStats = computed(() => {
     {
       label: 'Academic History',
       value: academicCount,
-      image: getImageUrl('classes/card-robotic'),
+      image: getImageUrl('data-metric-card/academic-history'),
       color: '#e0f2fe'
     },
     {
       label: 'Attendance',
       value: attendanceRate,
-      image: getImageUrl('programs/program'),
-      color: '#f0fdf4'
+      image: getImageUrl('data-metric-card/attendance'),
+      color: '#e0f2fe'
     },
     {
       label: 'Behavior Standing',
       value: behaviorStanding,
-      image: getImageUrl('profiles/avatar-student'),
-      color: '#fff7ed'
+      image: getImageUrl('data-metric-card/behavior'),
+      color: '#e0f2fe'
     },
     {
       label: 'Exam Average',
       value: examAverage,
-      image: getImageUrl('programs/program'),
-      color: '#faf5ff'
+      image: getImageUrl('data-metric-card/exam'),
+      color: '#e0f2fe'
     }
   ]
 })
