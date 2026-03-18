@@ -9,6 +9,7 @@ import DetailedSummaryCard from '../components/common/cards/DetailedSummaryCard.
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { courseService } from '@/services/courseService'
+import { getCourseIcon } from '@/utils/courseHelper'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 
 import { getImageUrl } from '@/utils/assetHelper'
@@ -205,76 +206,81 @@ onMounted(async () => {
       </template>
 
       <template #left-content v-if="enrollment">
-        <DetailCard title="Parent/Guardian Information" :avatarUrl="getImageUrl('profiles/avatar-parent')">
-          <p><strong>Fullname:</strong> {{ parent?.name || parent?.fullname || enrollment.parentName || 'N/A' }}</p>
-          <p><strong>Email:</strong> {{ parent?.email || enrollment.parentEmail || 'N/A' }}</p>
-          <p><strong>Phone Number:</strong> {{ parent?.phone || enrollment.parentPhone || 'N/A' }}</p>
-          <p>
-            <strong>Role:</strong>
-            <StatusBadge :status="parent?.role
-                ? parent.role === 'parent'
-                ? 'Parent'
-                : parent.role.charAt(0).toUpperCase() + parent.role.slice(1)
-                : enrollment.parentRole">
-              </StatusBadge>
-          </p>
-        </DetailCard>
-
-        <DetailCard title="Student Information" :avatarUrl="getImageUrl('profiles/avatar-student')">
-          <p>
-            <strong>Fullname:</strong>
-            {{ student?.fullname || student?.name || enrollment.studentName || 'N/A' }}
-          </p>
-          <p>
-            <strong>Date of birth:</strong>
-            {{ formatDateOnly(student?.dob || student?.DoB || enrollment.studentDob) }}
-          </p>
-          <p><strong>Age:</strong> {{ calculateAge(student?.dob || student?.DoB || enrollment.studentDob) }}</p>
-          <p>
-            <strong>Medical Note:</strong>
-            {{ student?.medicalNote || student?.medical_note || enrollment.medicalNote || 'None'}}
-          </p>
-        </DetailCard>
-
-        <DetailCard title="Enrollment Information" :avatarUrl="getImageUrl('classes/card-robotic')">
-          <p>
-            <strong>Course title:</strong>
-            {{ course?.title || enrollment.courseTitle || 'N/A' }}
-          </p>
-          <p>
-            <strong>Session:</strong> {{ enrollment.sessionSchedule || 'N/A' }}
-          </p>
-          <p>
-            <strong>Number Session Enrolled:</strong>
-            {{ session?.totalSessions || session?.total_sessions || enrollment.totalSessions || '0' }} Sessions
-          </p>
-          <p>
-            <strong>Date:</strong>
-            {{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}
-          </p>
-        </DetailCard>
-
-        <DetailCard title="Session Information" :avatarUrl="getImageUrl('programs/program')">
-          <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle || 'N/A' }}</p>
-          <p>
-            <strong>Instructor Name:</strong>
-            {{
-              session?.instructorName ||
-              (session?.instructors?.length > 0 ? session.instructors[0].name : enrollment.instructorName)
-              || 'N/A'
-            }}
-          </p>
-          <p><strong>Total Student:</strong> {{ session?.capacity || enrollment.capacity || 'N/A' }}</p>
-          <p>
-            <strong>Session Schedule:</strong>
-            {{
-              session?.schedule
-                ? (session.schedule.day ? session.schedule.day + ', ' : '') + (session.schedule.timeslot || session.schedule.startTime + '-' + session.schedule.endTime)
-                : enrollment.sessionSchedule
+        <div class="detail-cards-grid">
+          <DetailCard title="Parent/Guardian Information" :avatarUrl="parent?.profileURL || parent?.photoURL || getImageUrl('profiles/avatar-parent')">
+            <p><strong>Fullname:</strong> {{ parent?.fullname || parent?.name || enrollment.parentName || 'N/A' }}</p>
+            <p><strong>Email:</strong> {{ parent?.email || enrollment.parentEmail || 'N/A' }}</p>
+            <p><strong>Phone Number:</strong> {{ parent?.phone || enrollment.parentPhone || 'N/A' }}</p>
+            <p>
+              <strong>Role:</strong>
+              <StatusBadge :status="parent?.role
+                  ? parent.role === 'parent'
+                  ? 'Parent'
+                  : parent.role.charAt(0).toUpperCase() + parent.role.slice(1)
+                  : enrollment.parentRole">
+                </StatusBadge>
+            </p>
+          </DetailCard>
+  
+          <DetailCard title="Student Information" :avatarUrl="student?.profileURL || student?.photoURL || getImageUrl('profiles/avatar-student')">
+            <p>
+              <strong>Fullname:</strong>
+              {{ student?.fullname || student?.fullName || student?.name || enrollment.studentName || 'N/A' }}
+            </p>
+            <p>
+              <strong>Date of birth:</strong>
+              {{ formatDateOnly(student?.dob || student?.DoB || enrollment.studentDob) }}
+            </p>
+            <p><strong>Age:</strong> {{ calculateAge(student?.dob || student?.DoB || enrollment.studentDob) }}</p>
+            <p>
+              <strong>Medical Note:</strong>
+              {{ student?.medicalNote || student?.medical_note || enrollment.medicalNote || 'None'}}
+            </p>
+          </DetailCard>
+  
+          <DetailCard title="Enrollment Information" :avatarUrl="course?.imageURL || getCourseIcon(course?.category || enrollment.courseCategory || enrollment.courseTitle) || getImageUrl('programs/program')">
+            <p>
+              <strong>Course title:</strong>
+              {{ course?.title || enrollment.courseTitle || 'N/A' }}
+            </p>
+            <p>
+              <strong>Session:</strong> {{ enrollment.sessionSchedule || 'N/A' }}
+            </p>
+            <p>
+              <strong>Number Session Enrolled:</strong>
+              {{ session?.totalSessions || session?.total_sessions || enrollment.totalSessions || '0' }} Sessions
+            </p>
+            <p>
+              <strong>Date:</strong>
+              {{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}
+            </p>
+          </DetailCard>
+  
+          <DetailCard title="Session Information" :avatarUrl="getImageUrl('programs/program')">
+            <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle || 'N/A' }}</p>
+            <p>
+              <strong>Teacher Name:</strong>
+              {{
+                course?.teacherName || enrollment.teacherName ||
+                session?.instructorName ||
+                (session?.instructors?.length > 0 ? session.instructors[0].name : enrollment.instructorName)
                 || 'N/A'
-            }}
-          </p>
-        </DetailCard>
+              }}
+            </p>
+            <p><strong>Total Student:</strong> {{ session?.capacity || enrollment.capacity || 'N/A' }}</p>
+            <p>
+              <strong>Session Schedule:</strong>
+              {{
+                session?.schedule
+                  ? (typeof session.schedule === 'string' ? session.schedule : 
+                     (session.schedule.day ? session.schedule.day + ': ' : '') + 
+                     (session.schedule.timeslot || session.schedule.time || (session.schedule.startTime + ' - ' + session.schedule.endTime)))
+                  : enrollment.sessionSchedule
+                  || 'N/A'
+              }}
+            </p>
+          </DetailCard>
+        </div>
       </template>
 
       <template #right-content v-if="enrollment">
@@ -355,12 +361,21 @@ onMounted(async () => {
             <span class="summary-value">{{ course?.title || enrollment.courseTitle || 'N/A' }}</span>
           </div>
           <div class="detail-row">
-            <span class="summary-label">Instructor</span>
-            <span class="summary-value">{{ session?.instructorName || course?.instructor?.name || enrollment.instructorName || 'N/A' }}</span>
+            <span class="summary-label">Teacher</span>
+            <span class="summary-value">{{ course?.teacherName || enrollment.teacherName || session?.instructorName || 'N/A' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Schedule</span>
-            <span class="summary-value">{{ session?.schedule || enrollment.sessionSchedule || 'N/A' }}</span>
+            <span class="summary-value">
+              {{
+                session?.schedule
+                  ? (typeof session.schedule === 'string' ? session.schedule : 
+                     (session.schedule.day ? session.schedule.day + ': ' : '') + 
+                     (session.schedule.timeslot || session.schedule.time || (session.schedule.startTime + ' - ' + session.schedule.endTime)))
+                  : enrollment.sessionSchedule
+                  || 'N/A'
+              }}
+            </span>
           </div>
           <div class="mt-3">
             <span class="summary-label">Term Dates</span>
@@ -601,6 +616,9 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+@import '@/assets/styles/detail-view.css';
+
+/* Enrollment-specific modal and spacing tweaks */
 .sidebar-cards {
   padding-right: 20px;
   display: flex;
@@ -608,46 +626,9 @@ onMounted(async () => {
   gap: 25px;
   height: 100%;
 }
-.mt-3 {
-  margin-top: 15px;
-}
-.mr-2 {
-  margin-right: 8px;
-}
-.mb-1 {
-  margin-bottom: 5px;
-}
-.mb-2 {
-  margin-bottom: 8px;
-}
-.mb-3 {
-  margin-bottom: 12px;
-}
-.date-sub {
-  font-size: 1.05rem;
-  color: #1a1a1a;
-  font-weight: 700;
-}
-
-/* Modal and Transitions styling */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-  transition: all 0.3s ease;
-}
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
+.mt-3 { margin-top: 15px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
 
 .modal-overlay {
   position: fixed;
@@ -713,14 +694,6 @@ onMounted(async () => {
   color: #444;
 }
 
-.form-group input,
-.form-group textarea {
-  padding: 12px 14px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  font-size: 0.95rem;
-}
-
 .info-block {
   background: #e3f2fd;
   border-radius: 8px;
@@ -731,13 +704,8 @@ onMounted(async () => {
   align-items: flex-start;
 }
 
-.info-block.warning {
-  background: #fff9e6;
-}
-
-.info-block.danger {
-  background: #fdeaea;
-}
+.info-block.warning { background: #fff9e6; }
+.info-block.danger { background: #fdeaea; }
 
 .modal-footer {
   padding: 15px 25px;
@@ -746,22 +714,6 @@ onMounted(async () => {
   gap: 15px;
   background: #f8f9fa;
   border-top: 1px solid #eee;
-}
-
-.original-value {
-  display: block;
-  font-size: 0.75rem;
-  color: #94a3b8;
-  margin-top: -4px;
-  margin-bottom: 4px;
-  font-style: italic;
-}
-
-.preset-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
 }
 
 .preset-chip {
@@ -797,32 +749,13 @@ onMounted(async () => {
   font-weight: bold;
 }
 
-.save-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+.danger-text { color: #ef4444; }
+.danger-btn { background: #ef4444 !important; }
 
-.save-btn.danger-btn {
-  background: #e53935;
-}
+/* Modal Transitions */
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.3s ease; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
 
-.danger-text {
-  color: #e53935 !important;
-}
-
-.alert-box {
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-
-.alert-box.success {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.alert-box.error {
-  background: #ffebee;
-  color: #c62828;
-}
+.toast-fade-enter-active, .toast-fade-leave-active { transition: all 0.3s ease; }
+.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; transform: translateY(-10px); }
 </style>

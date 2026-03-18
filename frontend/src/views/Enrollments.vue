@@ -146,7 +146,7 @@ const enrollmentHeaders = [
 const currentFilter = ref('all')
 
 const statusFilteredEnrollments = computed(() => {
-  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value)
+  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, courses.value)
   
   if (currentFilter.value === 'all') return enriched
   
@@ -281,7 +281,7 @@ const closeActionModal = () => {
             <td>
               <div class="user-info">
                 <div class="program-icon-mini">
-                  <img :src="item.courseIcon" alt="program" />
+                  <img :src="item.courseImage || getImageUrl('programs/program')" alt="program" />
                 </div>
                 {{ item.courseTitle || 'Course' }}
               </div>
@@ -382,5 +382,9 @@ const closeActionModal = () => {
 .bold {
   font-weight: 600;
   color: #1a1a1a;
+}
+.user-info {
+  cursor: pointer;
+  gap: 10px;
 }
 </style>

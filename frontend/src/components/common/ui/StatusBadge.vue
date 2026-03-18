@@ -39,26 +39,30 @@ const displayStatus = computed(() => {
   return str
 })
 
+const STATUS_CATEGORIES = {
+  green: ['paid', 'confirmed', 'active', 'on-time', 'present', 'excellent', 'studying', 'parent'],
+  yellow: ['unpaid', 'pending', 'deactivated', 'suspended', 'warning', 'permission', 'inactive', 'upcoming'],
+  red: ['canceled', 'cancelled', 'failed', 'stopped', 'absent', 'serious'],
+  blue: ['graduated', 'late', 'good', 'fair', 'guardian'],
+  purple: ['make-up', 'makeup', 'intermediate', 'children', 'in progress'],
+  magenta: ['unmarked']
+}
+
 const statusColor = computed(() => {
   if (props.type) return props.type
   const s = String(props.status).toLowerCase().trim()
 
-  if (s === 'studying') return 'green'
-  if (s === 'inactive') return 'orange'
-
+  // 1. Check for ad-hoc values like amounts or schedule times
   if (s.includes('$') || /monday|tuesday|wednesday|thursday|friday|saturday|sunday/.test(s)) return 'blue'
   if (/:[0-9]{2}\s*(am|pm)/i.test(s)) return 'blue'
 
-  const colorMap = {
-    green: ['paid', 'success', 'active', 'on-time', 'present', 'excellent', 'parent'],
-    yellow: ['unpaid', 'pending', 'deactivated', 'suspended', 'warning', 'permission'],
-    red: ['canceled', 'cancelled', 'failed', 'stopped', 'absent', 'serious'],
-    blue: ['graduated', 'late', 'good', 'fair', 'guardian'],
-    purple: ['make-up', 'makeup', 'intermediate', 'children'],
-    magenta: ['unmarked']
+  // 2. Exact match priority (prevents "unpaid" matching "paid")
+  for (const [color, matches] of Object.entries(STATUS_CATEGORIES)) {
+    if (matches.includes(s)) return color
   }
 
-  for (const [color, matches] of Object.entries(colorMap)) {
+  // 3. Fallback to partial matches
+  for (const [color, matches] of Object.entries(STATUS_CATEGORIES)) {
     if (matches.some(m => s.includes(m))) return color
   }
 

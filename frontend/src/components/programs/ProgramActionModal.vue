@@ -97,6 +97,61 @@
       </div>
 
       <div class="form-group full-width">
+        <label>Teacher (Responsible for this Program) <span class="required">*</span></label>
+        <div class="custom-dropdown-container">
+          <div class="custom-dropdown" :class="{ open: isTeacherDropdownOpen }">
+            <div class="dropdown-header" @click="isTeacherDropdownOpen = !isTeacherDropdownOpen">
+              <template v-if="selectedTeacher">
+                <div class="selected-teacher">
+                  <img
+                    :src="selectedTeacher.profileURL || getImageUrl('profiles/avatar-parent')"
+                    class="avatar-mini-circle"
+                  />
+                  <span>{{ selectedTeacher.name || selectedTeacher.email }}</span>
+                </div>
+              </template>
+              <template v-else>
+                <span class="placeholder">-- Choose a teacher --</span>
+              </template>
+              <span class="chevron" :class="{ up: isTeacherDropdownOpen }"></span>
+            </div>
+            
+            <div class="dropdown-menu" v-if="isTeacherDropdownOpen">
+              <div class="dropdown-search">
+                <input
+                  type="text"
+                  v-model="teacherSearchQuery"
+                  placeholder="Search name or email..."
+                  @click.stop
+                  autofocus
+                />
+              </div>
+              <ul class="dropdown-list">
+                <li
+                  v-for="t in filteredTeachers"
+                  :key="t.uid || t.id"
+                  class="dropdown-item"
+                  :class="{ active: localData.teacherId === (t.uid || t.id) }"
+                  @click="selectTeacher(t)"
+                >
+                  <img
+                    :src="t.profileURL || getImageUrl('profiles/avatar-parent')"
+                    class="avatar-mini-circle"
+                  />
+                  <div class="item-info">
+                    <span class="item-name">{{ t.name || t.email }}</span>
+                  </div>
+                </li>
+                <li v-if="filteredTeachers.length === 0" class="dropdown-item no-results">
+                  No matches found.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group full-width">
         <label>Description (Optional)</label>
         <textarea v-model="localData.description" placeholder="What is this program about?" rows="2"></textarea>
       </div>
@@ -151,7 +206,10 @@ import { ref, computed, watch } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { courseService } from '@/services/courseService'
+import { userService } from '@/services/userService'
 import { useActionModal } from '@/composables/useActionModal'
+import { useSearch, teacherSearchMapper } from '@/composables/useSearch'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -164,13 +222,19 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const categories = ref([])
-const levels = ref([])
 const terms = ref([])
+const teachers = ref([])
 const newCategoryName = ref('')
 const newLevelName = ref('')
 const newTermName = ref('')
 const isUploading = ref(false)
+
+// Teacher Search Logic
+const isTeacherDropdownOpen = ref(false)
+const { searchQuery: teacherSearchQuery, searchResults: filteredTeachers } = useSearch(
+  teachers,
+  teacherSearchMapper,
+)
 
 const getInitialData = () => ({
   title: '',
@@ -184,6 +248,8 @@ const getInitialData = () => ({
   status: 'Active',
   schedule: { day: 'Monday', timeslot: '10:30 - 12:00' },
   imageURL: '',
+  teacherName: '',
+  teacherId: '',
   deleteConfirm: '',
 })
 
@@ -202,6 +268,8 @@ const mapSourceToForm = () => {
     status: s.status || 'Active',
     schedule: s.schedule || { day: 'Monday', timeslot: '10:30 - 12:00' },
     imageURL: s.imageURL || '',
+    teacherName: s.teacherName || '',
+    teacherId: s.teacherId || '',
     deleteConfirm: '',
   }
 }
@@ -215,10 +283,23 @@ watch(() => props.isOpen, (newVal) => {
   if (newVal) {
     fetchCategories()
     fetchTerms()
+    fetchTeachers()
     if (localData.value.categoryId) fetchLevels()
     else levels.value = []
   }
 })
+
+const selectedTeacher = computed(() => {
+  if (!localData.value.teacherId) return null
+  return teachers.value.find((t) => (t.uid || t.id) === localData.value.teacherId)
+})
+
+const selectTeacher = (teacher) => {
+  localData.value.teacherId = teacher.uid || teacher.id
+  localData.value.teacherName = teacher.name || teacher.email || ''
+  isTeacherDropdownOpen.value = false
+  teacherSearchQuery.value = ''
+}
 
 const onCategoryChange = () => {
   localData.value.levelId = ''
@@ -249,6 +330,14 @@ const fetchTerms = async () => {
   try {
     const data = await courseService.getAllTerms()
     terms.value = Array.isArray(data) ? data : []
+  } catch (err) { console.error(err) }
+}
+
+const fetchTeachers = async () => {
+  try {
+    const data = await userService.getAllUsers()
+    // Filter by role 'instructor' as per UserAuth setup
+    teachers.value = Array.isArray(data) ? data.filter(u => u.role === 'instructor') : []
   } catch (err) { console.error(err) }
 }
 
@@ -307,6 +396,7 @@ const isFormValid = computed(() => {
     localData.value.categoryId && 
     localData.value.levelId && 
     localData.value.termId && 
+    localData.value.teacherId &&
     localData.value.schedule.timeslot
   )
 })

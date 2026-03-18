@@ -9,10 +9,12 @@ import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.vue'
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
+import { trackingService } from '@/services/trackingService'
 import { formatDate, formatDateOnly } from '@/utils/dateFormatter'
 import { calculateStudentStatus } from '@/utils/studentStatusHelper'
 import { filterDetailEnrollments, getAcademicStatus } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
+import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 
 import { getImageUrl } from '@/utils/assetHelper'
 
@@ -22,6 +24,8 @@ const router = useRouter()
 const student = ref(null)
 const parent = ref(null)
 const enrollments = ref([])
+const attendanceHistory = ref([])
+const progressData = ref(null)
 
 const computedStatus = computed(() => {
   if (!student.value) return 'Inactive'
@@ -190,6 +194,54 @@ const filteredAcademic = computed(() => {
     })
 })
 
+const studentStats = computed(() => {
+  // 1. Academic History: Number of confirmed enrollments
+  const academicCount = enrollments.value.length
+
+  // 2. Attendance Rate: Based on 'present' status in history
+  let attendanceRate = '0%'
+  if (attendanceHistory.value.length > 0) {
+    const presentCount = attendanceHistory.value.filter(a => (a.status || '').toLowerCase() === 'present').length
+    attendanceRate = Math.round((presentCount / attendanceHistory.value.length) * 100) + '%'
+  }
+
+  // 3. Behavior Standing: From progress data or default
+  const behaviorStanding = progressData.value?.overallProgress || 'Good'
+
+  // 4. Exam Average: Find highest score from enrollments or default
+  const examAverage = enrollments.value.reduce((max, e) => {
+    const score = parseInt(e.score || 0)
+    return score > max ? score : max
+  }, 0) || '-'
+
+  return [
+    {
+      label: 'Academic History',
+      value: academicCount,
+      image: getImageUrl('classes/card-robotic'),
+      color: '#e0f2fe'
+    },
+    {
+      label: 'Attendance',
+      value: attendanceRate,
+      image: getImageUrl('programs/program'),
+      color: '#f0fdf4'
+    },
+    {
+      label: 'Behavior Standing',
+      value: behaviorStanding,
+      image: getImageUrl('profiles/avatar-student'),
+      color: '#fff7ed'
+    },
+    {
+      label: 'Exam Average',
+      value: examAverage,
+      image: getImageUrl('programs/program'),
+      color: '#faf5ff'
+    }
+  ]
+})
+
 const fetchData = async (id) => {
   try {
     loading.value = true
@@ -219,6 +271,18 @@ const fetchData = async (id) => {
       const sId = String(r.student_id || r.studentId || '')
       return sId === String(id)
     })
+
+    // 4. Fetch Attendance & Progress
+    try {
+      const [attendance, progress] = await Promise.all([
+        trackingService.getAttendanceHistory(id),
+        trackingService.getStudentProgress(id)
+      ])
+      attendanceHistory.value = attendance || []
+      progressData.value = progress || null
+    } catch (e) {
+      console.warn('Could not fetch tracking data silently', e)
+    }
   } catch (error) {
     console.error('Failed to load student details', error)
     errorMessage.value = error.message || 'Failed to load details'
@@ -265,7 +329,19 @@ watch(
         </div>
       </template>
 
-      <template #left-content>
+      <template #left-content v-if="student">
+        <!-- Student Quick Stats Row -->
+        <div class="metrics-row">
+          <DataMetricCard
+            v-for="stat in studentStats"
+            :key="stat.label"
+            :label="stat.label"
+            :value="stat.value"
+            :image="stat.image"
+            :color="stat.color"
+          />
+        </div>
+
         <!-- Custom Tab Navigation -->
         <div class="tabs-navigation-wrapper">
           <div class="tabs-navigation">
@@ -623,182 +699,20 @@ watch(
 </template>
 
 <style scoped>
-/* Override grid layout from DetailPageLayout if needed to fill space */
-:deep(.main-cards-grid) {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 0 !important;
-}
+@import '@/assets/styles/detail-view.css';
 
-/* Tab Navigation */
-.tabs-navigation-wrapper {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  gap: 20px;
-}
-
-.tabs-navigation {
-  display: flex;
-  gap: 12px;
-  padding: 8px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-  width: fit-content;
-}
-
-.tabs-navigation .app-btn {
-  color: #64748b;
-  font-weight: 600;
-  border-radius: 12px;
-}
-
-.tabs-navigation .app-btn:hover {
-  background: #f1f5f9;
-}
-
-.tabs-navigation .app-btn.active {
-  background: #00aeef;
-  color: white;
-  box-shadow: 0 4px 12px rgba(0, 174, 239, 0.25);
-}
-
-.tab-content-container {
-  min-height: 400px;
-}
-
-.detail-section-card {
-  background: #ffffff;
-  border-radius: 24px;
-  padding: 32px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.04);
-}
-
-.section-header {
-  border-bottom: 1px solid #f1f5f9;
-  padding-bottom: 16px;
-  margin-bottom: 24px;
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #1a1a1a;
-}
-
-/* Tables */
-.table-container {
-  width: 100%;
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th {
-  text-align: left;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 16px 12px;
-  border-bottom: 2px solid #f8fafc;
-}
-
-td {
-  padding: 16px 12px;
-  font-size: 0.9rem;
-  color: #334155;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-tr:last-child td {
-  border-bottom: none;
-}
-
-td strong {
-  color: #1a1a1a;
-  font-weight: 600;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 20px;
-  color: #94a3b8;
-}
-
-/* Summary Card Matching Styles */
-.profile-header {
+/* Student-specific sidebar tweaks if any */
+.timestamp-group {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin-bottom: 25px;
-  text-align: center;
-  gap: 5px;
-}
-
-.profile-preview {
-  display: flex;
-  justify-content: center;
-}
-
-.profile-preview img {
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 4px solid #fff;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
-}
-
-.detail-info-group {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-}
-
-.info-item {
-  display: flex;
-  font-size: 0.95rem;
-}
-
-.info-item.vertical {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.info-item.vertical span {
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #94a3b8;
-}
-
-.info-item.vertical strong {
-  color: #1e293b;
-  font-size: 1.05rem;
-}
-
-.status-inline {
-  display: flex;
-  align-items: center;
   gap: 16px;
-  margin-top: 5px;
 }
 
-.status-inline > span:first-child {
-  font-size: 0.85rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #94a3b8;
+.timestamp-item p {
+  margin-top: 8px;
+  font-size: 0.95rem;
+  color: #4a5568;
+  font-weight: 500;
 }
 
 .relationships-list {
@@ -853,14 +767,6 @@ td strong {
   color: #0f172a;
 }
 
-.empty-relation {
-  color: #94a3b8;
-  font-size: 0.95rem;
-  font-style: italic;
-  text-align: center;
-  margin-top: 10px;
-}
-
 .empty-relation-box {
   display: flex;
   align-items: center;
@@ -876,18 +782,5 @@ td strong {
   font-size: 0.9rem;
   margin: 0;
   font-style: italic;
-}
-
-.timestamp-group {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.timestamp-item p {
-  margin-top: 8px;
-  font-size: 0.95rem;
-  color: #4a5568;
-  font-weight: 500;
 }
 </style>

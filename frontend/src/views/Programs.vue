@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
@@ -11,7 +12,7 @@ import { courseService } from '../services/courseService'
 import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, programSearchMapper } from '../composables/useSearch'
 import { getCourseIcon } from '../utils/courseHelper'
-import { calculateProgramStats } from '../utils/programHelper'
+import { calculateProgramStats, getProgramDisplayStatus } from '../utils/programHelper'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
@@ -22,6 +23,8 @@ const loading = ref(true)
 const currentFilter = ref('all')
 const now = ref(new Date())
 const newlyCreatedId = ref(null)
+
+const router = useRouter()
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
@@ -42,7 +45,7 @@ const statsCards = computed(() => {
     { label: 'Total Programs', value: s.total, image: getImageUrl('programs/total-program'), color: '#e1f5fe' },
     { label: 'Active Programs', value: s.activeCount, image: getImageUrl('programs/active-program'), color: '#e1f5fe' },
     { label: 'Upcoming Programs', value: s.upcomingCount, image: getImageUrl('programs/upcoming-program'), color: '#e1f5fe' },
-    { label: 'In Progressing', value: s.inProgressCount, image: getImageUrl('programs/in-progress-program'), color: '#e1f5fe' }
+    { label: 'In Progress', value: s.inProgressCount, image: getImageUrl('programs/in-progress-program'), color: '#e1f5fe' }
   ]
 })
 
@@ -182,6 +185,7 @@ const onRowClick = (item) => {
   if (item.id === newlyCreatedId.value) {
     newlyCreatedId.value = null
   }
+  router.push(`/programs/${item.id}`)
 }
 </script>
 
@@ -243,7 +247,7 @@ const onRowClick = (item) => {
               <span v-else class="help-text-small">Not scheduled</span>
             </td>
             <td class="hide-on-tablet text-center"><StatusBadge :status="item.levelName || item.level || 'Beginner'" /></td>
-            <td class="text-center"><StatusBadge :status="item.status || 'Active'" /></td>
+            <td class="text-center"><StatusBadge :status="getProgramDisplayStatus(item, sessions, now)" /></td>
             <td class="action-cell text-center">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
@@ -305,5 +309,9 @@ const onRowClick = (item) => {
   font-size: 0.75rem;
   color: #64748b;
   margin-top: 4px;
+}
+.user-info {
+  cursor: pointer;
+  gap: 10px;
 }
 </style>

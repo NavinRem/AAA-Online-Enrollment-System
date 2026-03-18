@@ -21,16 +21,17 @@ export const calculateTotalEnrollment = (enrollments) => {
 /**
  * Enriches enrollment data with parent/student info and icons.
  */
-export const enrichEnrollments = (enrollments, parents = [], students = []) => {
+export const enrichEnrollments = (enrollments, parents = [], students = [], courses = []) => {
   return enrollments.map((r) => {
     const p = parents.find(p => (p.uid || p.id) === r.parentId)
     const s = students.find(s => (s.uid || s.id) === r.studentId)
+    const c = courses.find(c => (c.id || c.uid) === r.courseId)
 
     return {
       ...r,
       parentProfileURL: p?.profileURL || null,
       studentProfileURL: s?.profileURL || null,
-      courseIcon: getCourseIcon(r.courseTitle || r.course_title),
+      courseImage: c?.imageURL || getCourseIcon(c?.category || r.courseCategory || r.courseTitle || 'program'),
       displayStatus: isPaid(r.status || r.paymentStatus) ? 'Paid' : (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : 'Unpaid'),
       academicStatus: getAcademicStatus(r)
     }

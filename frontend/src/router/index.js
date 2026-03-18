@@ -59,6 +59,12 @@ const router = createRouter({
       meta: { title: 'Programs' },
     },
     {
+      path: '/programs/:id',
+      name: 'program-detail',
+      component: () => import('../views/ProgramDetail.vue'),
+      meta: { title: 'Program Detail' },
+    },
+    {
       path: '/payment',
       name: 'payment',
       component: () => import('../views/Payments.vue'),

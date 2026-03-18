@@ -395,4 +395,8 @@ const submitActionModal = async (formData) => {
   align-items: center;
   gap: 10px;
 }
+.user-info {
+  cursor: pointer;
+  gap: 10px;
+}
 </style>

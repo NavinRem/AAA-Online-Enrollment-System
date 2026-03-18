@@ -2,7 +2,7 @@ const { db, COLLECTIONS } = require("../../config/database");
 
 class CourseService {
   async createCourse(courseData) {
-    const { title, category, categoryId, description, price, numberSessions, level, status, levelId, termId, schedule, imageURL } =
+    const { title, category, categoryId, description, price, numberSessions, level, status, levelId, termId, schedule, imageURL, teacherName, teacherId } =
       courseData;
 
     if (!title || !termId || !levelId) {
@@ -33,7 +33,10 @@ class CourseService {
       termId: termId || null,
       schedule: schedule || null, // { day, time, duration }
       imageURL: imageURL || "",
+      teacherName: teacherName || "",
+      teacherId: teacherId || null,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const docRef = await db.collection(COLLECTIONS.COURSE).add(data);
