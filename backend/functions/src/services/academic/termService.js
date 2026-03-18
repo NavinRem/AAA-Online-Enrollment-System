@@ -10,8 +10,9 @@ class TermService {
   }
 
   async createTerm(termData) {
-    const { name } = termData;
+    const { name, startDate, endDate } = termData;
     if (!name) throw new Error("Term name is required");
+    if (!startDate || !endDate) throw new Error("Start date and end date are required for terms");
 
     const forbiddenKeywords = ["category", "level", "program", "course"];
     const lowerName = name.toLowerCase();
@@ -33,6 +34,8 @@ class TermService {
 
     const data = {
       name: name.trim(),
+      startDate,
+      endDate,
       createdAt: new Date().toISOString(),
     };
 

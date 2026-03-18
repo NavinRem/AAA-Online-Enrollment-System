@@ -41,30 +41,76 @@ export const isSessionInProgress = (schedule, now = new Date()) => {
  * Calculates program-related statistics.
  */
 export const calculateProgramStats = (programs = [], enrollments = [], sessions = [], now = new Date()) => {
-  // In Progress logic: find course IDs from sessions happening right now
-  const inProgressProgramIds = new Set(
-    sessions
-      .filter(s => isSessionInProgress(s.schedule, now))
-      .map(s => s.courseId || s.course_id)
-  )
+  let activeCount = 0
+  let upcomingCount = 0
+  let inProgressCount = 0
+  let archivedCount = 0
+
+  programs.forEach(p => {
+    const status = getProgramDisplayStatus(p, sessions, now)
+    if (status === 'Active') activeCount++
+    else if (status === 'Upcoming') upcomingCount++
+    else if (status === 'In Progress') inProgressCount++
+    else if (status === 'Archived') archivedCount++
+  })
 
   return {
     total: programs.length,
-    activeCount: programs.filter(p => (p.status || '').toLowerCase() === 'active').length,
-    upcomingCount: programs.filter(p => (p.status || '').toLowerCase() === 'upcoming').length,
-    inProgressCount: inProgressProgramIds.size
+    activeCount,
+    upcomingCount,
+    inProgressCount,
+    archivedCount
   }
 }
 
 /**
  * Gets the display status for a program, overriding with 'In Progress' if a session is live.
+ * Implements automated transitions for Upcoming, Active, In Progress, and Archived.
  */
 export const getProgramDisplayStatus = (program, sessions = [], now = new Date()) => {
-  const hasLiveSession = sessions.some(s => 
-    (s.courseId === program.id || s.course_id === program.id) && 
-    isSessionInProgress(s.schedule, now)
-  )
+  if (!program) return 'Active'
   
-  if (hasLiveSession) return 'In Progress'
+  // 1. Explicitly Archived or manually closed
+  if (program.status === 'Archived') return 'Archived'
+  if (program.status === 'Closed') return 'Closed'
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  
+  // Helper to parse date strings (YYYY-MM-DD)
+  const parseDate = (d) => {
+    if (!d) return null
+    const date = new Date(d)
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+  }
+
+  const startDate = parseDate(program.startDate)
+  const endDate = parseDate(program.endDate)
+
+  // 2. Archive Check (Auto-Archive after 7 days)
+  if (endDate) {
+    const sevenDaysAfter = endDate + (7 * 24 * 60 * 60 * 1000)
+    if (today > sevenDaysAfter) return 'Archived'
+  }
+
+  // 3. Upcoming Check
+  if (startDate && today < startDate) {
+    return 'Upcoming'
+  }
+
+  // 4. Active / In Progress Check
+  if (startDate && endDate && today >= startDate && today <= endDate) {
+    const hasLiveSession = sessions.some(s => 
+      (s.courseId === program.id || s.course_id === program.id) && 
+      isSessionInProgress(s.schedule, now)
+    )
+
+    // Fallback to program's own schedule
+    const hasLiveSchedule = !hasLiveSession && isSessionInProgress(program.schedule, now)
+    
+    if (hasLiveSession || hasLiveSchedule) return 'In Progress'
+    return 'Active'
+  }
+
+  // Fallback to existing status or default
   return program.status || 'Active'
 }

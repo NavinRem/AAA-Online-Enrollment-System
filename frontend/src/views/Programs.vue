@@ -14,13 +14,15 @@ import { useSearch, programSearchMapper } from '../composables/useSearch'
 import { getCourseIcon } from '../utils/courseHelper'
 import { calculateProgramStats, getProgramDisplayStatus } from '../utils/programHelper'
 
-import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const programs = ref([])
 const enrollments = ref([])
 const sessions = ref([])
 const loading = ref(true)
 const currentFilter = ref('all')
+const categoryFilter = ref('all') // New
+const categories = ref([]) // New
 const now = ref(new Date())
 const newlyCreatedId = ref(null)
 
@@ -45,16 +47,21 @@ const statsCards = computed(() => {
     { label: 'Total Programs', value: s.total, image: getImageUrl('programs/total-program'), color: '#e1f5fe' },
     { label: 'Active Programs', value: s.activeCount, image: getImageUrl('programs/active-program'), color: '#e1f5fe' },
     { label: 'Upcoming Programs', value: s.upcomingCount, image: getImageUrl('programs/upcoming-program'), color: '#e1f5fe' },
-    { label: 'In Progress', value: s.inProgressCount, image: getImageUrl('programs/in-progress-program'), color: '#e1f5fe' }
+    { label: 'In Progress', value: s.inProgressCount, image: getImageUrl('programs/in-progress-program'), color: '#e1f5fe' },
+    { label: 'Archived', value: s.archivedCount, image: getImageUrl('programs/closed-program'), color: '#e1f5fe' }
   ]
 })
 
 const fetchPrograms = async () => {
   loading.value = true
   try {
-    const [coursesData, regsData, sessionsData] = await Promise.all([
+    const [coursesData, catsData, regsData, sessionsData] = await Promise.all([
       courseService.getAllCourses().catch((e) => {
         console.error('Error fetching courses:', e)
+        return []
+      }),
+      courseService.getAllCategories().catch((e) => {
+        console.error('Error fetching categories:', e)
         return []
       }),
       enrollmentService.getAllEnrollments().catch((e) => {
@@ -66,6 +73,7 @@ const fetchPrograms = async () => {
       }),
     ])
     programs.value = Array.isArray(coursesData) ? coursesData : []
+    categories.value = Array.isArray(catsData) ? catsData : []
     enrollments.value = Array.isArray(regsData) ? regsData : []
     sessions.value = Array.isArray(sessionsData) ? sessionsData : []
   } catch (error) {
@@ -87,36 +95,52 @@ onMounted(() => {
 })
 
 const programHeaders = [
-  { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Program', class: 'hide-on-tablet' },
-  { label: 'Title' },
-  { label: 'Sessions', class: 'hide-on-mobile' },
-  { label: 'Price', class: 'hide-on-mobile', align: 'center', width: '100px' },
-  { label: 'Term', class: 'hide-on-tablet' },
+  { label: 'No', width: '60px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Category', class: 'hide-on-tablet' },
+  { label: 'Title', width: '200px' },
+  { label: 'Teachers', class: 'hide-on-tablet' },
+  { label: 'Period (Start-End)', class: 'hide-on-mobile' },
   { label: 'Schedule', class: 'hide-on-tablet' },
-  { label: 'Level', class: 'hide-on-tablet', align: 'center', width: '120px' },
-  { label: 'Status', align: 'center', width: '120px' },
-  { label: 'Action', width: '80px', align: 'center' },
+  { label: 'Level', class: 'hide-on-tablet', align: 'center', width: '100px' },
+  { label: 'Price', class: 'hide-on-mobile', align: 'center', width: '90px' },
+  { label: 'Status', align: 'center', width: '110px' },
+  { label: 'Action', width: '60px', align: 'center' },
 ]
 
 const { searchQuery, searchResults } = useSearch(programs, programSearchMapper)
 
 const filteredPrograms = computed(() => {
   const list = searchResults.value || []
-  const f = currentFilter.value
-
   let result = [...list]
-  // Filtering
-  if (f.startsWith('level:')) {
-    const level = f.replace('level:', '')
-    result = result.filter((p) => (p.level || '').toLowerCase() === level)
-  } else if (f.startsWith('status:')) {
-    const status = f.replace('status:', '')
-    result = result.filter((p) => (p.status || 'Active').toLowerCase() === status)
+
+  // 1. Filtering by Category (Separate Filter)
+  if (categoryFilter.value !== 'all') {
+    result = result.filter(p => (p.category || 'General') === categoryFilter.value)
   }
 
-  // Sort by Created Date Descending (Newest first)
-  return result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  // 2. Filtering by Status (Main Filter)
+  if (currentFilter.value.startsWith('status:')) {
+    const filterStatus = currentFilter.value.replace('status:', '')
+    result = result.filter((p) => {
+      const displayStatus = getProgramDisplayStatus(p, sessions.value, now.value).toLowerCase()
+      return displayStatus === filterStatus.toLowerCase()
+    })
+  }
+
+  // 3. Sorting
+  if (currentFilter.value === 'sort:category') {
+    result.sort((a, b) => {
+      const catA = (a.category || 'General').toLowerCase()
+      const catB = (b.category || 'General').toLowerCase()
+      if (catA !== catB) return catA.localeCompare(catB)
+      return (a.title || '').toLowerCase().localeCompare((b.title || '').toLowerCase())
+    })
+  } else {
+    // Default Sort: Created Date Descending
+    result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  }
+
+  return result
 })
 
 const handleAction = (type, program) => {
@@ -208,18 +232,27 @@ const onRowClick = (item) => {
           v-model:currentFilter="currentFilter"
           :filterOptions="[
             { label: 'All Programs', value: 'all' },
+            { label: 'Sort: Category', value: 'sort:category' },
             { label: 'Status: Active', value: 'status:active' },
             { label: 'Status: Upcoming', value: 'status:upcoming' },
+            { label: 'Status: In Progress', value: 'status:in progress' },
             { label: 'Status: Closed', value: 'status:closed' },
-            { label: 'Level: Beginner', value: 'level:beginner' },
-            { label: 'Level: Intermediate', value: 'level:intermediate' },
-            { label: 'Level: Advanced', value: 'level:advanced' },
+            { label: 'Status: Archived', value: 'status:archived' },
           ]"
           :rowClass="getRowClass"
           @row-click="onRowClick"
           @action="({ type, item }) => handleAction(type, item)"
         >
           <template #toolbar-actions>
+            <!-- New Category Filter Dropdown -->
+            <div class="category-filter-wrapper">
+              <select v-model="categoryFilter" class="category-select">
+                <option value="all">All Categories</option>
+                <option v-for="cat in categories" :key="cat.id" :value="cat.name">
+                  {{ cat.name }}
+                </option>
+              </select>
+            </div>
             <AppButton variant="primary" @click="openModal('add')">+ Add Program</AppButton>
           </template>
 
@@ -236,9 +269,24 @@ const onRowClick = (item) => {
               </div>
             </td>
             <td class="bold">{{ item.title }}</td>
-            <td class="hide-on-mobile">{{ item.numberSessions || 0 }} Sessions</td>
-            <td class="hide-on-mobile text-center"><StatusBadge :status="'$' + (item.price || 0)" /></td>
-            <td class="hide-on-tablet"><StatusBadge :status="item.termName || 'Term 1 2026'" /></td>
+            <td class="hide-on-tablet">
+              <div v-if="item.teachers && item.teachers.length > 0" class="mini-teacher-list">
+                <div v-for="t in item.teachers.slice(0, 2)" :key="t.id" class="mini-teacher-item">
+                  <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" />
+                  <span>{{ t.name }}</span>
+                </div>
+                <span v-if="item.teachers.length > 2" class="more-count">+{{ item.teachers.length - 2 }}</span>
+              </div>
+              <span v-else class="help-text-small">No teachers</span>
+            </td>
+            <td class="hide-on-mobile">
+              <div class="period-info" v-if="item.startDate">
+                <span>{{ item.startDate }}</span>
+                <span class="to-label">to</span>
+                <span>{{ item.endDate }}</span>
+              </div>
+              <StatusBadge v-else :status="item.termName || 'No Dates'" />
+            </td>
             <td class="hide-on-tablet">
               <div class="schedule-info" v-if="item.schedule">
                 <span class="day">{{ item.schedule.day.substring(0, 3) }}</span>
@@ -247,6 +295,7 @@ const onRowClick = (item) => {
               <span v-else class="help-text-small">Not scheduled</span>
             </td>
             <td class="hide-on-tablet text-center"><StatusBadge :status="item.levelName || item.level || 'Beginner'" /></td>
+            <td class="hide-on-mobile text-center"><StatusBadge :status="'$' + (item.price || 0)" /></td>
             <td class="text-center"><StatusBadge :status="getProgramDisplayStatus(item, sessions, now)" /></td>
             <td class="action-cell text-center">
               <div class="menu-container">
@@ -313,5 +362,63 @@ const onRowClick = (item) => {
 .user-info {
   cursor: pointer;
   gap: 10px;
+}
+
+.category-filter-wrapper {
+  margin-right: 10px;
+}
+
+.category-select {
+  padding: 8px 12px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  color: #444;
+  outline: none;
+  cursor: pointer;
+}
+
+.category-select:focus {
+  border-color: #00aeef;
+}
+
+.mini-teacher-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mini-teacher-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+}
+
+.mini-teacher-item img {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+}
+
+.more-count {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-left: 26px;
+}
+
+.period-info {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.to-label {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 </style>

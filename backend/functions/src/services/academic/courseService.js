@@ -2,8 +2,23 @@ const { db, COLLECTIONS } = require("../../config/database");
 
 class CourseService {
   async createCourse(courseData) {
-    const { title, category, categoryId, description, price, numberSessions, level, status, levelId, termId, schedule, imageURL, teacherName, teacherId } =
-      courseData;
+    const { 
+      title, 
+      category, 
+      categoryId, 
+      description, 
+      price, 
+      numberSessions, 
+      level, 
+      status, 
+      levelId, 
+      termId, 
+      schedule, 
+      imageURL, 
+      teachers, // Array of { id, name }
+      startDate,
+      endDate 
+    } = courseData;
 
     if (!title || !termId || !levelId) {
       throw new Error("Title, Term, and Level are required");
@@ -31,10 +46,11 @@ class CourseService {
       status: status || "Active",
       levelId: levelId || null,
       termId: termId || null,
-      schedule: schedule || null, // { day, time, duration }
+      schedule: schedule || null,
       imageURL: imageURL || "",
-      teacherName: teacherName || "",
-      teacherId: teacherId || null,
+      teachers: teachers || [], // Array of { id, name }
+      startDate: startDate || null,
+      endDate: endDate || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -84,11 +100,12 @@ class CourseService {
 
   async updateCourse(id, updateData) {
     const ref = db.collection(COLLECTIONS.COURSE).doc(id);
-    await ref.update({
+    const data = {
       ...updateData,
       updatedAt: new Date().toISOString(),
-    });
-    return { message: "Course updated successfully" };
+    };
+    await ref.update(data);
+    return { id, message: "Course updated successfully" };
   }
 
   async deleteCourse(id) {
