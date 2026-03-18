@@ -100,10 +100,10 @@ const programHeaders = [
   { label: 'Title', width: '200px' },
   { label: 'Teachers', class: 'hide-on-tablet', width: '150px' },
   { label: 'Term', class: 'hide-on-tablet', width: '120px' },
-  { label: 'Period (Start-End)', class: 'hide-on-mobile' },
-  { label: 'Schedule', class: 'hide-on-tablet' },
+  { label: 'Period', class: 'hide-on-mobile' },
+  { label: 'Schedule', class: 'hide-on-tablet', width: '150px' },
   { label: 'Level', class: 'hide-on-tablet', align: 'center', width: '30px' },
-  { label: 'Price', class: 'hide-on-mobile', align: 'center', width: '90px' },
+  { label: 'Price', class: 'hide-on-mobile', align: 'center', width: '80px' },
   { label: 'Status', align: 'center', width: '100px' },
   { label: 'Action', width: '60px', align: 'center' },
 ]
