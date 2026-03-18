@@ -411,11 +411,19 @@ const handleSubmit = () => submitForm(isFormValid.value)
 </script>
 
 <style scoped>
+@import '@/assets/styles/components/CustomDropdown.css';
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   padding: 4px 0;
+}
+
+.selected-teacher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .form-group {

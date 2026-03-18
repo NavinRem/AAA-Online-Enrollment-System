@@ -71,3 +71,7 @@ export const programSearchMapper = (p) => {
   const scheduleText = p.schedule ? `${p.schedule.day} ${p.schedule.timeslot}` : ''
   return `${p.title || p.name || ''} ${p.category || ''} ${p.description || ''} ${scheduleText}`
 }
+
+export const teacherSearchMapper = (t) => {
+  return `${t.name || ''} ${t.email || ''} ${t.uid || t.id || ''}`
+}
