@@ -18,7 +18,7 @@
     ]
   },
   "firestore": {
-    "database": "registration",
+    "database": "(default)",
     "rules": "backend/configs/firestore.rules",
     "indexes": "backend/configs/firestore.indexes.json"
   },

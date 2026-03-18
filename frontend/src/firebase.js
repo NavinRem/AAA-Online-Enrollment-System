@@ -9,7 +9,7 @@ const firebaseConfig = config.firebase
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
-const firestore = initializeFirestore(app, {}, 'registration')
+const firestore = initializeFirestore(app, {});
 const storage = getStorage(app)
 const auth = getAuth(app)
 

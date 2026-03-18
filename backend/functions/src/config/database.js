@@ -4,7 +4,7 @@ const { getFirestore } = require("firebase-admin/firestore");
  * Centralized Firestore configuration.
  * Change DATABASE_ID to "(default)" or your specific DB ID.
  */
-const DATABASE_ID = "registration";
+const DATABASE_ID = "(default)";
 const db = getFirestore(DATABASE_ID);
 
 /**
