@@ -207,8 +207,8 @@ const handleActionSubmit = async (formData) => {
   }
 }
 
-const selectCategory = (id) => {
-  categoryFilter.value = id
+const selectCategory = (name) => {
+  categoryFilter.value = name
   isCategoryFilterOpen.value = false
 }
 
@@ -270,10 +270,10 @@ const onRowClick = (item) => {
                 @blur="closeCategoryFilter"
               >
                 <span v-if="categoryFilter === 'all'">All Categories</span>
-                <span v-else>{{ categories.find(c => c.id === categoryFilter)?.name || 'Category' }}</span>
+                <span v-else>{{ categoryFilter }}</span>
               </AppButton>
               <transition name="toast-fade">
-                <div v-if="isCategoryFilterOpen" class="filter-dropdown-menu">
+                <div v-if="isCategoryFilterOpen" class="filter-dropdown-menu scrollable-menu">
                   <div
                     class="filter-option"
                     :class="{ active: categoryFilter === 'all' }"
@@ -285,8 +285,8 @@ const onRowClick = (item) => {
                     v-for="cat in categories"
                     :key="cat.id"
                     class="filter-option"
-                    :class="{ active: categoryFilter === cat.id }"
-                    @click.stop="selectCategory(cat.id)"
+                    :class="{ active: categoryFilter === cat.name }"
+                    @click.stop="selectCategory(cat.name)"
                   >
                     {{ cat.name }}
                   </div>
@@ -422,6 +422,11 @@ const onRowClick = (item) => {
   z-index: 100;
   overflow: hidden;
   min-width: 180px;
+}
+
+.scrollable-menu {
+  max-height: 200px;
+  overflow-y: auto !important;
 }
 
 .filter-option {
