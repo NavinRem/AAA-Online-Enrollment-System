@@ -15,7 +15,7 @@ import { formatDate } from '@/utils/dateFormatter'
 import { filterDetailEnrollments } from '@/utils/enrollmentHelper'
 import { enrichStudents } from '@/utils/studentHelper'
 
-import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -441,7 +441,7 @@ watch(
       <template #right-content v-if="parent">
         <DetailedSummaryCard title="Basic Information" subtitle="Contact Information">
           <template #outside>
-            <div class="profile-header">
+            <div class="profile-header" style="flex-direction: column; align-items: center;">
               <div class="profile-preview">
                 <img :src="parent.profileURL || getImageUrl('profiles/avatar-parent')" alt="Profile" />
               </div>
@@ -489,7 +489,7 @@ watch(
         </DetailedSummaryCard>
 
         <DetailedSummaryCard subtitle="Account Timestamp">
-          <div class="timestamp-group">
+          <div class="timestamp-group" style="gap: 20px;">
             <div class="timestamp-item">
               <StatusBadge status="Create At" />
               <p>{{ formatDate(parent.createdAt) }}</p>

@@ -23,6 +23,7 @@ const program = ref(null)
 const sessions = ref([])
 const enrollments = ref([])
 const students = ref([])
+const teacher = ref(null)
 const loading = ref(true)
 const errorMessage = ref('')
 const now = ref(new Date())
@@ -51,6 +52,16 @@ const fetchAllData = async () => {
     enrollments.value = allEnrollments.filter(e => String(e.courseId || e.course_id) === String(id))
     
     students.value = Array.isArray(stdData) ? stdData : []
+
+    // Fetch Teacher profile if linked
+    if (pData?.teacherId) {
+      try {
+        const tData = await userService.getProfile(pData.teacherId)
+        if (tData) teacher.value = tData
+      } catch (err) {
+        console.warn('Teacher profile not found for program:', err)
+      }
+    }
   } catch (err) {
     console.error('Error fetching program details:', err)
     errorMessage.value = 'Failed to load program details'
@@ -293,7 +304,13 @@ const handleStudentClick = (enroll) => {
 
           <div class="detail-row">
             <span class="summary-label">Teacher</span>
-            <span class="summary-value">{{ program.teacherName || 'Not Assigned' }}</span>
+            <div class="summary-value user-info no-padding" v-if="teacher || program.teacherName">
+              <div class="avatar-mini" v-if="teacher?.profileURL">
+                <img :src="teacher.profileURL" alt="Teacher" />
+              </div>
+              <span>{{ teacher?.fullname || teacher?.name || program.teacherName || 'Not Assigned' }}</span>
+            </div>
+            <span class="summary-value" v-else>Not Assigned</span>
           </div>
 
           <div class="detail-info-group">

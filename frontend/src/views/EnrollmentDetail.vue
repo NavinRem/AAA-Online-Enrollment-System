@@ -23,6 +23,7 @@ const parent = ref(null)
 const student = ref(null)
 const course = ref(null)
 const session = ref(null)
+const teacher = ref(null)
 
 const loading = ref(true)
 const errorMessage = ref('')
@@ -161,6 +162,16 @@ onMounted(async () => {
     if (sessionsRes.status === 'fulfilled') {
       session.value = (sessionsRes.value || []).find((s) => s.id === data.sessionId)
     }
+
+    // 3. Chain fetch Teacher profile if teacherId is present in course
+    if (course.value?.teacherId) {
+      try {
+        const teacherProfile = await userService.getProfile(course.value.teacherId)
+        if (teacherProfile) teacher.value = teacherProfile
+      } catch (err) {
+        console.warn('Teacher profile not found:', err)
+      }
+    }
   } catch (error) {
     errorMessage.value = error.message || 'Failed to load details'
   } finally {
@@ -256,15 +267,16 @@ onMounted(async () => {
             </p>
           </DetailCard>
   
-          <DetailCard title="Session Information" :avatarUrl="getImageUrl('programs/program')">
+          <DetailCard title="Session Information" :avatarUrl="teacher?.profileURL || getImageUrl('profiles/avatar-instructor')">
             <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle || 'N/A' }}</p>
             <p>
               <strong>Teacher Name:</strong>
               {{
+                teacher?.fullname || teacher?.name || teacher?.email ||
                 course?.teacherName || enrollment.teacherName ||
                 session?.instructorName ||
                 (session?.instructors?.length > 0 ? session.instructors[0].name : enrollment.instructorName)
-                || 'N/A'
+                || 'Not Assigned'
               }}
             </p>
             <p><strong>Total Student:</strong> {{ session?.capacity || enrollment.capacity || 'N/A' }}</p>
@@ -338,6 +350,22 @@ onMounted(async () => {
             </span>
           </div>
           <div class="detail-row">
+            <span class="summary-label">Status</span>
+            <div class="summary-value" style="display: flex; justify-content: flex-end;">
+              <StatusBadge :status="enrollment.status || enrollment.paymentStatus || 'Unpaid'" />
+            </div>
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Last Updated</span>
+            <span class="summary-value">{{
+              (enrollment.updatedAt || enrollment.enrollAt || enrollment.createdAt) ? formatDate(enrollment.updatedAt || enrollment.enrollAt || enrollment.createdAt) : 'Never'
+            }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="summary-label">Admin Remark</span>
+            <span class="summary-value">{{ enrollment.remark || 'N/A' }}</span>
+          </div>
+          <div class="detail-row">
             <span class="summary-label">Transaction ID / Proof</span>
             <span class="summary-value" style="word-break: break-all">
               {{ enrollment.paymentProof || 'N/A' }}
@@ -349,10 +377,6 @@ onMounted(async () => {
               {{ enrollment.paymentDate ? formatDate(enrollment.paymentDate) : 'Not Paid' }}
             </span>
           </div>
-          <div class="detail-row">
-            <span class="summary-label">Admin Remark</span>
-            <span class="summary-value">{{ enrollment.remark || 'N/A' }}</span>
-          </div>
         </DetailedSummaryCard>
 
         <DetailedSummaryCard subtitle="Program Summary">
@@ -362,7 +386,7 @@ onMounted(async () => {
           </div>
           <div class="detail-row">
             <span class="summary-label">Teacher</span>
-            <span class="summary-value">{{ course?.teacherName || enrollment.teacherName || session?.instructorName || 'N/A' }}</span>
+            <span class="summary-value">{{ teacher?.fullname || course?.teacherName || enrollment.teacherName || session?.instructorName || 'Not Assigned' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Schedule</span>

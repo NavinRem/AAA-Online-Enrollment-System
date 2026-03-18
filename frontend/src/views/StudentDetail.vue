@@ -10,7 +10,7 @@ import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.v
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { trackingService } from '@/services/trackingService'
-import { formatDate, formatDateOnly } from '@/utils/dateFormatter'
+import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 import { calculateStudentStatus } from '@/utils/studentStatusHelper'
 import { filterDetailEnrollments, getAcademicStatus } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
@@ -583,6 +583,11 @@ watch(
               <span>DATE OF BIRTH:</span>
               <strong>{{ formatDateOnly(student?.dob || student?.DoB) || '-' }}</strong>
             </div>
+            
+            <div class="info-item vertical">
+              <span>AGE:</span>
+              <strong>{{ calculateAge(student?.dob || student?.DoB) || '-' }}</strong>
+            </div>
 
             <div class="info-item vertical">
               <span>MEDICAL NOTE:</span>
@@ -613,7 +618,7 @@ watch(
               <span class="category-title">Parent</span>
               <div class="relationship-item" v-if="primaryParent">
                 <img
-                  :src="primaryParent.profileURL"
+                  :src="primaryParent.profileURL || getImageUrl('profiles/avatar-parent')"
                   alt="Parent Avatar"
                   class="small-avatar"
                 />
@@ -700,87 +705,4 @@ watch(
 
 <style scoped>
 @import '@/assets/styles/detail-view.css';
-
-/* Student-specific sidebar tweaks if any */
-.timestamp-group {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.timestamp-item p {
-  margin-top: 8px;
-  font-size: 0.95rem;
-  color: #4a5568;
-  font-weight: 500;
-}
-
-.relationships-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.relationship-category {
-  display: flex;
-  flex-direction: column;
-}
-
-.category-title {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #94a3b8;
-  margin-bottom: 8px;
-  display: block;
-}
-
-.relationship-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 1px solid #f1f5f9;
-  transition: all 0.2s;
-}
-
-.relationship-item:hover {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
-}
-
-.small-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.child-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.child-info strong {
-  font-size: 1rem;
-  color: #0f172a;
-}
-
-.empty-relation-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 16px;
-  background: transparent;
-  border-radius: 12px;
-  height: 60px;
-}
-
-.empty-relation-box p {
-  color: #94a3b8;
-  font-size: 0.9rem;
-  margin: 0;
-  font-style: italic;
-}
 </style>
