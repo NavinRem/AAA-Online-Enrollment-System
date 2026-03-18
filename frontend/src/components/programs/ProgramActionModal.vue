@@ -1,7 +1,6 @@
 <template>
   <AppModal :show="isOpen" :title="modalTitle" maxWidth="640px" @close="$emit('close')">
     <div v-if="error" class="alert-box error">{{ error }}</div>
-    <div v-if="success" class="alert-box success">{{ success }}</div>
 
     <div v-if="type === 'add' || type === 'edit'" class="form-grid">
       <div class="form-group full-width">
@@ -220,6 +219,8 @@
       <label>To confirm, type <strong class="danger-text">DELETE</strong> below</label>
       <input type="text" v-model="localData.deleteConfirm" placeholder="Type DELETE" />
     </div>
+
+    <div v-if="success" class="alert-box success" style="margin-top: 12px; margin-bottom: 0;">{{ success }}</div>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
