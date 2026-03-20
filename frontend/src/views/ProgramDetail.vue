@@ -358,33 +358,31 @@ const handleStudentClick = (enroll) => {
           </div>
         </DetailedSummaryCard>
 
-        <div class="sidebar-info-group">
-          <DetailedSummaryCard subtitle="Tuition & Cost">
-            <div class="detail-info-group">
-              <div class="info-item vertical">
-                <span>TOTAL DURATION:</span>
-                <strong>{{ program.number_session || program.numberSessions }} Sessions</strong>
-              </div>
-
-              <div class="info-item vertical" v-if="program.price">
-                <span>COST PER SESSION:</span>
-                <strong>${{ (program.price / (program.number_session || program.numberSessions)).toFixed(2) }} / Session</strong>
-              </div>
-
-              <div class="info-item vertical">
-                <span>TOTAL TUITION FEE:</span>
-                <strong class="price-highlight">${{ (Number(program.price) || 0).toLocaleString() }}</strong>
-              </div>
+        <DetailedSummaryCard subtitle="Tuition & Schedule" style="margin-top: 10px;">
+          <div class="detail-info-group">
+            <div class="info-item vertical">
+              <span>TOTAL DURATION:</span>
+              <strong>{{ program.number_session || program.numberSessions }} Sessions</strong>
             </div>
-          </DetailedSummaryCard>
 
-          <DetailedSummaryCard subtitle="Standard Schedule" style="margin-top: 10px;">
-            <div class="schedule-summary-box" v-if="program.schedule">
-              <div class="day">{{ program.schedule.day }}</div>
-              <div class="time">{{ program.schedule.timeslot }}</div>
+            <div class="info-item vertical" v-if="program.price">
+              <span>COST PER SESSION:</span>
+              <strong>${{ (program.price / (program.number_session || program.numberSessions)).toFixed(2) }} / Session</strong>
             </div>
-          </DetailedSummaryCard>
-        </div>
+
+            <div class="info-item vertical">
+              <span>TOTAL TUITION FEE:</span>
+              <strong class="price-highlight">${{ (Number(program.price) || 0).toLocaleString() }}</strong>
+            </div>
+          </div>
+
+          <div class="sidebar-divider"></div>
+
+          <div class="schedule-summary-box" v-if="program.schedule">
+            <div class="day">{{ program.schedule.day }}</div>
+            <div class="time">{{ program.schedule.timeslot }}</div>
+          </div>
+        </DetailedSummaryCard>
       </template>
     </DetailPageLayout>
   </DashboardLayout>
@@ -538,5 +536,12 @@ const handleStudentClick = (enroll) => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 20px 0;
+  border: none;
 }
 </style>
