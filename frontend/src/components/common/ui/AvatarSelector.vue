@@ -17,12 +17,25 @@
             <i class="fas fa-check"></i>
           </div>
         </div>
+
+        <!-- Custom Uploaded Avatar Slot (Inside Gallery) -->
+        <div 
+          v-if="isCustomUrl"
+          class="avatar-option custom-slot"
+          :class="{ active: isCustomUrl }"
+          @click="selectAvatar(modelValue)"
+        >
+          <img :src="modelValue" alt="Custom" />
+          <div class="check-badge">
+            <i class="fas fa-check"></i>
+          </div>
+        </div>
       </div>
 
       <div class="vertical-divider"></div>
 
-      <!-- Custom Upload Area -->
-      <div class="custom-area">
+      <!-- Upload Action Area (Right of Divider) -->
+      <div class="upload-area">
         <input 
           type="file" 
           ref="fileInput" 
@@ -30,24 +43,10 @@
           class="hidden-input" 
           @change="handleFileUpload" 
         />
-        <!-- New Upload Button (Always Visible) -->
-        <div class="upload-btn" @click="$refs.fileInput.click()" title="Upload custom image">
+        <div class="upload-btn" @click="$refs.fileInput.click()">
           <div v-if="uploading" class="spinner-mini"></div>
           <i v-else class="fas fa-plus"></i>
           <span>{{ uploading ? 'Wait...' : 'Upload' }}</span>
-        </div>
-
-        <!-- Custom Preview (Visible only when a custom URL is selected/uploaded) -->
-        <div 
-          v-if="isCustomUrl"
-          class="avatar-option custom-avatar" 
-          :class="{ active: true }" 
-          @click="selectAvatar(modelValue)"
-        >
-          <img :src="modelValue" class="preview-img" />
-          <div class="check-badge">
-            <i class="fas fa-check"></i>
-          </div>
         </div>
       </div>
     </div>
@@ -227,12 +226,6 @@ const handleFileUpload = async (event) => {
   display: none;
 }
 
-.custom-area {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
 .upload-btn {
   width: 54px;
   height: 54px;
@@ -264,8 +257,9 @@ const handleFileUpload = async (event) => {
   font-weight: 600;
 }
 
-.custom-avatar {
+.custom-slot {
   border-color: #00aeef !important;
+  border-style: solid;
 }
 
 .error-text {
