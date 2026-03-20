@@ -14,6 +14,7 @@ import NewParentModal from '../components/parents/NewParentModal.vue'
 import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
+import { storageService } from '@/services/storageService'
 import { useTableActions } from '../composables/useTableActions'
 import { enrichParents, calculateParentStats } from '../utils/parentHelper'
 import { formatDate } from '../utils/dateFormatter'
@@ -179,6 +180,15 @@ const submitNewParent = async (data) => {
 
   try {
     const payload = { ...data, status: 'Active' }
+    
+    // Finalize Profile Image (if temp)
+    if (payload.profileURL && payload.profileURL.includes('/profiles/temp/')) {
+      const extension = payload.profileURL.split('?')[0].split('.').pop()
+      const sanitizedName = payload.name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      const newPath = `profiles/new_parent/${sanitizedName}_${payload.role}.${extension}`
+      payload.profileURL = await storageService.moveProfileImage(payload.profileURL, newPath)
+    }
+
     const result = await userService.registerParentAccount(payload)
 
     // Use the actual UID from the backend response
@@ -223,6 +233,15 @@ const submitAddChild = async (childData) => {
 
   try {
     const parentId = parent.uid || parent.id
+    
+    // Finalize Profile Image (if temp)
+    if (childData.profileURL && childData.profileURL.includes('/profiles/temp/')) {
+      const extension = childData.profileURL.split('?')[0].split('.').pop()
+      const sanitizedName = (childData.fullName || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
+      childData.profileURL = await storageService.moveProfileImage(childData.profileURL, newPath)
+    }
+
     const result = await userService.registerStudentProfile(parentId, {
       ...childData,
       status: 'Studying', // Explicitly set status for new student

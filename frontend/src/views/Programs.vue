@@ -348,12 +348,6 @@ const onRowClick = (item) => {
                     <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" alt="teacher" />
                   </div>
                 </div>
-                <span v-if="item.teachers.length === 1" class="teacher-name-solo">
-                  {{ item.teachers[0].name }}
-                </span>
-                <span v-else-if="item.teachers.length > 1" class="teacher-count-tag">
-                   {{ item.teachers.length }} Teachers
-                </span>
               </div>
               <span v-else class="help-text-small">None assigned</span>
             </td>

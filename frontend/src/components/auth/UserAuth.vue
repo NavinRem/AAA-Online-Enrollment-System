@@ -7,6 +7,7 @@ import { userService } from '@/services/userService'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { getImageUrl } from '@/utils/assetHelper'
+import { storageService } from '@/services/storageService'
 
 const router = useRouter()
 
@@ -91,14 +92,23 @@ const handleSubmit = async () => {
       // 1. Create Auth User
       const user = await authService.register(email.value, password.value)
 
-      // 2. Create Profile
+      // 2. Finalize Profile Image (if temp)
+      let finalProfileURL = profileURL.value
+      if (finalProfileURL && finalProfileURL.includes('/profiles/temp/')) {
+        const extension = finalProfileURL.split('?')[0].split('.').pop()
+        const sanitizedName = name.value.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+        const newPath = `profiles/${user.uid}/${sanitizedName}_${role.value}.${extension}`
+        finalProfileURL = await storageService.moveProfileImage(finalProfileURL, newPath)
+      }
+
+      // 3. Create Profile
       await userService.registerParentAccount({
         uid: user.uid,
         email: email.value,
         name: name.value,
         phone: phone.value,
         role: role.value,
-        profileURL: profileURL.value,
+        profileURL: finalProfileURL,
       })
 
       // 3. Forced Logout & Sign In Redirect
