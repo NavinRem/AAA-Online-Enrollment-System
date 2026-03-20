@@ -45,6 +45,9 @@
       </div>
     </div>
     <div v-if="error" class="error-text">{{ error }}</div>
+    <div v-if="success" class="success-text">
+      <i class="fas fa-check-circle"></i> Upload successful!
+    </div>
   </div>
 </template>
 
@@ -66,6 +69,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const uploading = ref(false)
+const success = ref(false)
 const error = ref('')
 
 const availableAvatars = computed(() => {
@@ -92,6 +96,7 @@ const isCustomUrl = computed(() => {
 const selectAvatar = (url) => {
   emit('update:modelValue', url)
   error.value = ''
+  success.value = false
 }
 
 const handleFileUpload = async (event) => {
@@ -105,6 +110,7 @@ const handleFileUpload = async (event) => {
 
   uploading.value = true
   error.value = ''
+  success.value = false
 
   try {
     const timestamp = Date.now()
@@ -116,6 +122,7 @@ const handleFileUpload = async (event) => {
     const downloadURL = await getDownloadURL(snapshot.ref)
 
     emit('update:modelValue', downloadURL)
+    success.value = true
   } catch (err) {
     console.error('Upload error:', err)
     error.value = 'Upload failed'
@@ -263,6 +270,11 @@ const handleFileUpload = async (event) => {
 
 .error-text {
   color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+.success-text {
+  color: #10b981;
   font-size: 0.75rem;
   margin-top: 4px;
 }

@@ -6,17 +6,12 @@ service firebase.storage {
       allow read: if true;
     }
     
-    // 2. Allow public write to temp profiles (for registration)
+    // 2. Allow public write to temp profiles (for registration phase)
     match /profiles/temp/{filename} {
       allow write: if true;
     }
 
-    // 3. Allow authenticated write for everything else
-    match /profiles/{uid}/{filename} {
-      allow write: if request.auth != null;
-    }
-
-    // Fallback for any other path
+    // 3. Allow authenticated write for all other paths
     match /{allPaths=**} {
       allow write: if request.auth != null;
     }
