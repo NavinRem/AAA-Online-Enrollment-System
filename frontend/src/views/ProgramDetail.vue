@@ -186,51 +186,58 @@ const handleStudentClick = (enroll) => {
         <!-- Tab Content -->
         <div class="tab-content-container">
           <div v-if="activeTab === 'overview'" class="detail-section-card fade-in">
-            <div class="section-header">
-              <h3>Program Description</h3>
-            </div>
-            <div class="description-text">
-              <p>{{ program.description || 'No detailed description provided for this program.' }}</p>
-            </div>
+            <div class="overview-layout-container">
+              <!-- Program Metadata Grid (Highlights) -->
+              <div class="overview-section">
+                <div class="section-header">
+                  <h3>Program Highlights</h3>
+                </div>
+                <div class="detail-info-group grid-2-columns">
+                  <div class="info-item vertical">
+                    <span>CATEGORY:</span>
+                    <strong>{{ program.category || 'General' }}</strong>
+                  </div>
+                  
+                  <div class="info-item vertical">
+                    <span>ACADEMIC TERM:</span>
+                    <strong>{{ program.termName || 'Term 1 2026' }}</strong>
+                  </div>
 
-            <!-- Program Metadata Grid Moved from Sidebar -->
-            <div class="section-header mt-4">
-              <h3>Program Highlights</h3>
-            </div>
-            <div class="detail-info-group grid-2-columns">
-              <div class="info-item vertical">
-                <span>CATEGORY:</span>
-                <strong>{{ program.category || 'General' }}</strong>
-              </div>
-              
-              <div class="info-item vertical">
-                <span>ACADEMIC TERM:</span>
-                <strong>{{ program.termName || 'Term 1 2026' }}</strong>
+                  <div class="info-item vertical">
+                    <span>LEVEL:</span>
+                    <strong>{{ program.levelName || program.level || 'Beginner' }}</strong>
+                  </div>
+
+                  <div class="info-item vertical">
+                    <span>STATUS:</span>
+                    <strong>{{ program.status || 'Active' }}</strong>
+                  </div>
+
+                  <div class="info-item vertical">
+                    <span>START DATE:</span>
+                    <strong>{{ program.startDate || 'N/A' }}</strong>
+                  </div>
+
+                  <div class="info-item vertical">
+                    <span>END DATE:</span>
+                    <strong>{{ program.endDate || 'N/A' }}</strong>
+                  </div>
+
+                  <div class="info-item vertical">
+                    <span>LIVE STATUS:</span>
+                    <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
+                  </div>
+                </div>
               </div>
 
-              <div class="info-item vertical">
-                <span>LEVEL:</span>
-                <strong>{{ program.levelName || program.level || 'Beginner' }}</strong>
-              </div>
-
-              <div class="info-item vertical">
-                <span>STATUS:</span>
-                <strong>{{ program.status || 'Active' }}</strong>
-              </div>
-
-              <div class="info-item vertical">
-                <span>START DATE:</span>
-                <strong>{{ program.startDate || 'N/A' }}</strong>
-              </div>
-
-              <div class="info-item vertical">
-                <span>END DATE:</span>
-                <strong>{{ program.endDate || 'N/A' }}</strong>
-              </div>
-
-              <div class="info-item vertical">
-                <span>LIVE STATUS:</span>
-                <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
+              <!-- Program Description -->
+              <div class="overview-section">
+                <div class="section-header">
+                  <h3>Program Description</h3>
+                </div>
+                <div class="description-text">
+                  <p>{{ program.description || 'No detailed description provided for this program.' }}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -351,32 +358,33 @@ const handleStudentClick = (enroll) => {
           </div>
         </DetailedSummaryCard>
 
-        <DetailedSummaryCard subtitle="Tuition & Cost" style="margin-top: 10px;">
-          <div class="detail-info-group">
-            <div class="info-item vertical">
-              <span>TOTAL DURATION:</span>
-              <strong>{{ program.number_session || program.numberSessions }} Sessions</strong>
+        <div class="sidebar-info-group">
+          <DetailedSummaryCard subtitle="Tuition & Cost">
+            <div class="detail-info-group">
+              <div class="info-item vertical">
+                <span>TOTAL DURATION:</span>
+                <strong>{{ program.number_session || program.numberSessions }} Sessions</strong>
+              </div>
+
+              <div class="info-item vertical" v-if="program.price">
+                <span>COST PER SESSION:</span>
+                <strong>${{ (program.price / (program.number_session || program.numberSessions)).toFixed(2) }} / Session</strong>
+              </div>
+
+              <div class="info-item vertical">
+                <span>TOTAL TUITION FEE:</span>
+                <strong class="price-highlight">${{ (Number(program.price) || 0).toLocaleString() }}</strong>
+              </div>
             </div>
+          </DetailedSummaryCard>
 
-            <div class="info-item vertical" v-if="program.price">
-              <span>COST PER SESSION:</span>
-              <strong>${{ (program.price / (program.number_session || program.numberSessions)).toFixed(2) }} / Session</strong>
+          <DetailedSummaryCard subtitle="Standard Schedule" style="margin-top: 10px;">
+            <div class="schedule-summary-box" v-if="program.schedule">
+              <div class="day">{{ program.schedule.day }}</div>
+              <div class="time">{{ program.schedule.timeslot }}</div>
             </div>
-
-            <div class="info-item vertical">
-              <span>TOTAL TUITION FEE:</span>
-              <strong class="price-highlight">${{ (Number(program.price) || 0).toLocaleString() }}</strong>
-            </div>
-          </div>
-        </DetailedSummaryCard>
-
-
-        <DetailedSummaryCard subtitle="Standard Schedule" style="margin-top: 10px;">
-          <div class="schedule-summary-box" v-if="program.schedule">
-            <div class="day">{{ program.schedule.day }}</div>
-            <div class="time">{{ program.schedule.timeslot }}</div>
-          </div>
-        </DetailedSummaryCard>
+          </DetailedSummaryCard>
+        </div>
       </template>
     </DetailPageLayout>
   </DashboardLayout>
@@ -511,5 +519,24 @@ const handleStudentClick = (enroll) => {
 
 .mt-4 {
   margin-top: 32px;
+}
+
+.overview-layout-container {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.overview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-info-group {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 </style>
