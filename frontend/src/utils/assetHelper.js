@@ -13,6 +13,8 @@ const ASSET_PATH_MAP = {
   'parent': 'profiles/avatar-man',
   'guardian': 'profiles/avatar-man',
   'admin': 'profiles/avatar-admin',
+  'teacher-man': 'profiles/avatar-teacher-man',
+  'teacher-woman': 'profiles/avatar-teacher-woman',
   'profile-admin': 'profiles/avatar-admin',
   'child-profile': 'profiles/avatar-student',
   'total-student': 'dashboard/card-student',

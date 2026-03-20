@@ -28,7 +28,7 @@
       </div>
 
       <div class="form-group full-width">
-        <AvatarSelector v-model="formData.profileURL" type="parent" />
+        <AvatarSelector v-model="formData.profileURL" :role="formData.role" />
       </div>
 
       <div class="form-group full-width">

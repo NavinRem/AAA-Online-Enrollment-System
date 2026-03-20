@@ -65,9 +65,9 @@ import { getImageUrl } from '@/utils/assetHelper'
 
 const props = defineProps({
   modelValue: String,
-  type: {
+  role: {
     type: String,
-    default: 'parent' // 'parent' or 'student'
+    default: 'parent' // 'parent', 'student', or 'teacher'
   },
   uid: String, // Optional, for custom upload path
   customFileName: String
@@ -80,10 +80,16 @@ const success = ref(false)
 const error = ref('')
 
 const availableAvatars = computed(() => {
-  if (props.type === 'student') {
+  if (props.role === 'student') {
     return [
       { id: 'boy', name: 'Boy', url: getImageUrl('profiles/avatar-boy') },
       { id: 'girl', name: 'Girl', url: getImageUrl('profiles/avatar-girl') },
+    ]
+  }
+  if (props.role === 'teacher') {
+    return [
+      { id: 'teacher-man', name: 'Teacher (M)', url: getImageUrl('profiles/avatar-teacher-man') },
+      { id: 'teacher-woman', name: 'Teacher (F)', url: getImageUrl('profiles/avatar-teacher-woman') },
     ]
   }
   return [

@@ -150,7 +150,7 @@
         </div>
 
         <div class="form-group full-width">
-          <AvatarSelector v-model="localData.profileURL" type="student" :uid="student?.id || enrollment?.student_id" />
+          <AvatarSelector v-model="localData.profileURL" role="student" :uid="student?.id || enrollment?.student_id" />
         </div>
       </div>
 

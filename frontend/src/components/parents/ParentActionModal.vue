@@ -39,7 +39,7 @@
         </div>
 
         <div class="form-group full-width">
-          <AvatarSelector v-model="localData.profileURL" type="parent" :uid="user?.uid || user?.id" />
+          <AvatarSelector v-model="localData.profileURL" :role="localData.role" :uid="user?.uid || user?.id" />
         </div>
       </div>
 

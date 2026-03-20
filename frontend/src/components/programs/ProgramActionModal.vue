@@ -178,6 +178,14 @@
                     <div class="item-info">
                       <span class="item-name">{{ t.name || t.email }}</span>
                     </div>
+                    <button 
+                      type="button" 
+                      class="item-delete-btn" 
+                      @click.stop="handleDeleteTeacher(t)"
+                      title="Delete Teacher Account"
+                    >
+                      &times;
+                    </button>
                   </li>
                 <li v-if="filteredTeachers.length === 0" class="dropdown-item no-results">
                   No matches found.
@@ -440,6 +448,20 @@ const addTeacher = (t) => {
 
 const removeTeacher = (id) => {
   localData.value.teachers = localData.value.teachers.filter(t => t.id !== id)
+}
+
+const handleDeleteTeacher = async (teacher) => {
+  const name = teacher.name || teacher.email
+  if (!confirm(`Are you sure you want to PERMANENTLY delete the account for ${name}? This cannot be undone.`)) return
+  
+  try {
+    // We don't use the component-level 'loading' for this minor action 
+    // to avoid locking the whole modal, but we can if preferred.
+    await userService.deleteUser(teacher.uid || teacher.id)
+    await fetchTeachers() // Refresh the list
+  } catch (err) {
+    alert('Failed to delete teacher: ' + err.message)
+  }
 }
 
 const onCategoryChange = () => {
@@ -798,7 +820,38 @@ const handleSubmit = () => submitForm(isFormValid.value)
 
 .btn-add-inline:hover:not(:disabled) {
   background: #0096ce;
-  transform: translateY(-1px);
+}
+
+.item-delete-btn {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  visibility: hidden;
+  opacity: 0;
+}
+
+.dropdown-item:hover .item-delete-btn {
+  visibility: visible;
+  opacity: 1;
+}
+
+.item-delete-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.dropdown-item:hover {
+  background: #f1f5f9;
 }
 
 .btn-add-inline:disabled {

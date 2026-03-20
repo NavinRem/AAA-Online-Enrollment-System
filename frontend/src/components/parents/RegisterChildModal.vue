@@ -73,7 +73,7 @@
       </div>
 
       <div class="form-group full-width">
-        <AvatarSelector v-model="formData.profileURL" type="student" />
+        <AvatarSelector v-model="formData.profileURL" role="student" />
       </div>
 
       <div class="form-group full-width">
