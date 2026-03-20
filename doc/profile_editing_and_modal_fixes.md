@@ -19,7 +19,7 @@ This document technical explanation of the fixes implemented to resolve the prof
 **Solution**:
 - **Modified `AppModal.css`**: Increased `max-width` of `.modal-content.action` to `600px`.
 - **Responsive Width**: Added `width: 90%` for better mobile responsiveness.
-- **Refined `AvatarSelector.vue`**: Changed `justify-content` from `center` to `space-around` and increased horizontal padding to ensure the content "fits" the wider container naturally.
+- **Refined `AvatarSelector.vue`**: Redesigned the component to show a permanent "Upload" button next to a dedicated custom preview circle. This provides better visual feedback while allowing users to easily re-upload and override their custom avatar.
 
 ## 3. Storage Emulator Configuration
 **Problem**: Image uploads would hang "indefinitely" during local development.

@@ -21,8 +21,8 @@
 
       <div class="vertical-divider"></div>
 
-      <!-- Custom Upload -->
-      <div class="upload-area">
+      <!-- Custom Upload Area -->
+      <div class="custom-area">
         <input 
           type="file" 
           ref="fileInput" 
@@ -30,16 +30,23 @@
           class="hidden-input" 
           @change="handleFileUpload" 
         />
+        <!-- New Upload Button (Always Visible) -->
+        <div class="upload-btn" @click="$refs.fileInput.click()" title="Upload custom image">
+          <div v-if="uploading" class="spinner-mini"></div>
+          <i v-else class="fas fa-plus"></i>
+          <span>{{ uploading ? 'Wait...' : 'Upload' }}</span>
+        </div>
+
+        <!-- Custom Preview (Visible only when a custom URL is selected/uploaded) -->
         <div 
-          class="custom-preview" 
-          :class="{ 'is-custom': isCustomUrl }"
-          @click="$refs.fileInput.click()"
+          v-if="isCustomUrl"
+          class="avatar-option custom-avatar" 
+          :class="{ active: true }" 
+          @click="selectAvatar(modelValue)"
         >
-          <img v-if="isCustomUrl" :src="modelValue" class="preview-img" />
-          <div v-else class="upload-placeholder">
-            <i class="fas fa-plus" v-if="!uploading"></i>
-            <div v-else class="spinner-mini"></div>
-            <span>{{ uploading ? 'Uploading...' : 'Upload' }}</span>
+          <img :src="modelValue" class="preview-img" />
+          <div class="check-badge">
+            <i class="fas fa-check"></i>
           </div>
         </div>
       </div>
@@ -220,7 +227,13 @@ const handleFileUpload = async (event) => {
   display: none;
 }
 
-.custom-preview {
+.custom-area {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.upload-btn {
   width: 54px;
   height: 54px;
   border-radius: 50%;
@@ -231,41 +244,28 @@ const handleFileUpload = async (event) => {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  overflow: hidden;
   background: white;
-}
-
-.custom-preview:hover {
-  border-color: #00aeef;
-  background: #f1f5f9;
-}
-
-.custom-preview.is-custom {
-  border-style: solid;
-  border-color: #00aeef;
-}
-
-.preview-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   color: #94a3b8;
 }
 
-.upload-placeholder i {
+.upload-btn:hover {
+  border-color: #00aeef;
+  background: #f1f5f9;
+  color: #00aeef;
+}
+
+.upload-btn i {
   font-size: 0.9rem;
   margin-bottom: 2px;
 }
 
-.upload-placeholder span {
+.upload-btn span {
   font-size: 0.65rem;
   font-weight: 600;
+}
+
+.custom-avatar {
+  border-color: #00aeef !important;
 }
 
 .error-text {
