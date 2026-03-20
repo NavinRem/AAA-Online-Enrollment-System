@@ -69,7 +69,8 @@ const props = defineProps({
     type: String,
     default: 'parent' // 'parent' or 'student'
   },
-  uid: String // Optional, for custom upload path
+  uid: String, // Optional, for custom upload path
+  customFileName: String
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -117,9 +118,20 @@ const handleFileUpload = async (event) => {
   success.value = false
 
   try {
-    const timestamp = Date.now()
     const extension = file.name.split('.').pop()
-    const path = `profiles/${props.uid || 'temp'}/${timestamp}.${extension}`
+    
+    // Use customFileName if provided, otherwise fallback to timestamp
+    let fileName = Date.now().toString()
+    if (props.customFileName) {
+      // Sanitize: lowercase, replace spaces/special chars with underscores
+      fileName = props.customFileName
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '_')
+        .replace(/_+/g, '_') // collapse multiple underscores
+        .replace(/^_|_$/g, '') // trim underscores from ends
+    }
+
+    const path = `profiles/${props.uid || 'temp'}/${fileName}.${extension}`
     const fileRef = storageRef(storage, path)
 
     const snapshot = await uploadBytes(fileRef, file)
