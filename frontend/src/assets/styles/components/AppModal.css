@@ -216,6 +216,7 @@
   font-size: 0.9rem;
 }
 
+
 .success-banner {
   background: #dcfce7;
   color: #15803d;
@@ -224,4 +225,93 @@
   margin-bottom: 20px;
   font-weight: 500;
   font-size: 0.9rem;
+}
+
+/* --- Standard Deletion UI --- */
+.identity-card {
+  background: #ecf9ff;
+  border-left: 4px solid #00aeef;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.identity-card .label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #00aeef;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.identity-card .name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.warning-icon-centered {
+  font-size: 4.5rem;
+  text-align: center;
+  margin: 10px 0 20px 0;
+  line-height: 1;
+}
+
+.danger-box-standard {
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.danger-box-standard strong {
+  display: block;
+  font-size: 1.1rem;
+  color: #991b1b;
+  margin-bottom: 8px;
+}
+
+.danger-box-standard p {
+  font-size: 0.95rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.confirm-label-standard {
+  display: block;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.confirm-input-standard {
+  width: 100%;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px !important;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 1.5px;
+  transition: all 0.2s;
+  background: #fff !important;
+  color: #1a1a1a;
+}
+
+.confirm-input-standard:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important;
+}
+
+.confirm-input-standard::placeholder {
+  color: #cbd5e1;
+  font-weight: 500;
+  letter-spacing: normal;
 }

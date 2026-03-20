@@ -217,30 +217,28 @@
     </form>
     
     <!-- Delete Form (Student or Enrollment) -->
-    <div v-if="type === 'delete' || type === 'enrollment-delete'" class="delete-confirm-content">
-      <div class="info-block danger">
-        <div class="icon">⚠️</div>
-        <div class="text">
-          <strong>Critical Permanent Record Deletion</strong>
-          <p v-if="type === 'enrollment-delete'">
-            You are about to delete the enrollment record for <strong>{{ enrollment?.courseTitle }}</strong>. 
-            This will remove all grades and attendance history for this session.
-          </p>
-          <p v-else>
-            You are about to permanently delete the profile for <strong>{{ student?.name || student?.fullName }}</strong>. 
-            This will remove all their personal data and enrollment history.
-          </p>
-        </div>
+    <div v-if="type === 'delete' || type === 'enrollment-delete'" class="form-group full-width">
+      <div class="warning-icon-centered">⚠️</div>
+
+      <div class="danger-box-standard">
+        <strong>Critical Permanent Record Deletion</strong>
+        <p v-if="type === 'enrollment-delete'">
+          You are about to delete the enrollment record for <strong>{{ enrollment?.courseTitle }}</strong>. 
+          This will remove all grades and attendance history for this session.
+        </p>
+        <p v-else>
+          You are about to permanently delete the profile for <strong>{{ student?.name || student?.fullName }}</strong>. 
+          This will remove all their personal data and enrollment history.
+        </p>
       </div>
-      <div class="confirm-input-group">
-        <label>To confirm, type <strong class="danger-text">DELETE</strong> below:</label>
-        <input 
-          type="text" 
-          v-model="localData.deleteConfirm" 
-          placeholder="TYPE DELETE HERE" 
-          class="confirm-input"
-        />
-      </div>
+
+      <div class="confirm-label-standard">To confirm, type <strong>DELETE</strong> below:</div>
+      <input 
+        type="text" 
+        v-model="localData.deleteConfirm" 
+        class="confirm-input-standard" 
+        placeholder="TYPE DELETE HERE" 
+      />
     </div>
 
     <template #footer>
@@ -425,109 +423,4 @@ const isPresetActive = (field, chipValue) => {
   color: #ef4444;
 }
 
-.info-block {
-  display: flex;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.info-block.danger {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-}
-
-.info-block.warning {
-  background: #fffbeb;
-  border: 1px solid #fef3c7;
-}
-
-.info-block .icon {
-  font-size: 1.5rem;
-}
-
-.info-block .text strong {
-  display: block;
-  margin-bottom: 4px;
-  color: #1a1a1a;
-}
-
-.info-block .text p {
-  margin: 0;
-  font-size: 0.9rem;
-  color: #64748b;
-  line-height: 1.5;
-}
-
-
-.form-select {
-  display: none;
-}
-
-/* Preset Chips */
-.preset-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-/* Delete Confirmation Modal Styles */
-.delete-confirm-content {
-  text-align: center;
-  padding: 10px 0;
-}
-
-.confirm-input-group {
-  margin-top: 1.5rem;
-  text-align: left;
-}
-
-.confirm-input-group label {
-  display: block;
-  font-size: 0.9rem;
-  margin-bottom: 0.5rem;
-  color: #475569;
-}
-
-.confirm-input {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-align: center;
-  transition: all 0.2s;
-}
-
-.confirm-input:focus {
-  border-color: #ef4444;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-.preset-chip {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 100px;
-  padding: 6px 14px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: #64748b;
-  transition: all 0.2s;
-}
-
-.preset-chip:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-.preset-chip.active {
-  background: #eff6ff;
-  border-color: #00aeef;
-  color: #00aeef;
-  font-weight: 600;
-}
 </style>

@@ -80,22 +80,25 @@
     </form>
 
     <!-- Delete Form -->
-    <form v-if="type === 'delete'" class="form-group full-width" @submit.prevent="handleSubmit">
-      <div class="info-block danger">
-        <div class="icon">⚠️</div>
-        <div class="text">
-          <strong>Critical Permanent Account Deletion</strong>
-          <p>
-            Deleting an account removes the record entirely. It can never be recovered. This should
-            only be used for accidental duplicate enrollments.
-          </p>
-        </div>
+    <div v-if="type === 'delete'" class="form-group full-width">
+      <div class="warning-icon-centered">⚠️</div>
+
+      <div class="danger-box-standard">
+        <strong>Critical Permanent Account Deletion</strong>
+        <p>
+          Deleting an account removes the record entirely. It can never be recovered. This should
+          only be used for accidental duplicate enrollments.
+        </p>
       </div>
-      <label>To confirm, type <strong class="danger-text">DELETE</strong> below</label>
-      <input type="text" v-model="localData.deleteConfirm" placeholder="Type DELETE" />
-      <!-- Hidden submit for Enter key functionality -->
-      <button type="submit" style="display: none;"></button>
-    </form>
+
+      <div class="confirm-label-standard">To confirm, type <strong>DELETE</strong> below:</div>
+      <input 
+        type="text" 
+        v-model="localData.deleteConfirm" 
+        class="confirm-input-standard" 
+        placeholder="TYPE DELETE HERE" 
+      />
+    </div>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>

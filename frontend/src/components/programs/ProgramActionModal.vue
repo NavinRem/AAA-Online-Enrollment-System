@@ -227,23 +227,26 @@
       <button type="submit" style="display: none;"></button>
     </form>
 
-    <div v-if="type === 'delete'" class="delete-confirm-content">
-      <div class="warning-icon">⚠️</div>
-      <div class="info-block danger" style="text-align: left; margin-top: 10px;">
-        <div class="text">
-          <strong>Delete Program</strong>
-          <p>You are about to delete <strong>{{ program?.title }}</strong>. This action is permanent and will remove all associated sessions.</p>
-        </div>
+    <div v-if="type === 'delete'" class="form-group full-width">
+      <div class="identity-card">
+        <span class="label">Program</span>
+        <strong class="name">{{ program?.title }}</strong>
       </div>
-      <div class="confirm-input-group">
-        <label>To confirm, type <strong class="danger-text">DELETE</strong> below:</label>
-        <input 
-          type="text" 
-          v-model="localData.deleteConfirm" 
-          placeholder="TYPE DELETE HERE" 
-          class="confirm-input"
-        />
+
+      <div class="warning-icon-centered">⚠️</div>
+
+      <div class="danger-box-standard">
+        <strong>Critical Permanent Program Deletion</strong>
+        <p>You are about to delete this program. This action is permanent and will remove all associated sessions and historical enrollment records.</p>
       </div>
+
+      <div class="confirm-label-standard">To confirm, type <strong>DELETE</strong> below:</div>
+      <input 
+        type="text" 
+        v-model="localData.deleteConfirm" 
+        class="confirm-input-standard" 
+        placeholder="TYPE DELETE HERE" 
+      />
     </div>
 
     <template #footer>
@@ -265,30 +268,29 @@
     title="Confirm Permanent Deletion" 
     @close="closeDeleteConfirm"
   >
-    <div class="delete-confirm-content">
-      <div class="warning-icon">⚠️</div>
-      <div class="info-block danger" style="text-align: left; margin-top: 10px;">
-        <div class="text">
-          <strong>Critical Permanent Account Deletion</strong>
-          <p>
-            You are about to permanently delete the account for 
-            <strong>{{ teacherToDelete?.name || teacherToDelete?.email }}</strong>.
-          </p>
-          <p style="margin-top: 8px; font-size: 0.85rem; opacity: 0.9;">
-            This will remove their profile and their <strong>login credentials</strong>. This action cannot be undone.
-          </p>
-        </div>
+    <div class="form-group full-width">
+      <div class="identity-card" v-if="teacherToDelete">
+        <span class="label">teacher</span>
+        <strong class="name">{{ teacherToDelete.name || teacherToDelete.email }}</strong>
+      </div>
+
+      <div class="warning-icon-centered">⚠️</div>
+
+      <div class="danger-box-standard">
+        <strong>Critical Permanent Account Deletion</strong>
+        <p>
+          You are about to permanently delete this teacher account.
+          This will remove their profile and their <strong>login credentials</strong>. This action cannot be undone.
+        </p>
       </div>
       
-      <div class="confirm-input-group">
-        <label>Type <strong>DELETE</strong> to confirm:</label>
-        <input 
-          type="text" 
-          v-model="deleteConfirmText" 
-          placeholder="TYPE DELETE HERE"
-          class="confirm-input"
-        />
-      </div>
+      <div class="confirm-label-standard">To confirm, type <strong>DELETE</strong> below:</div>
+      <input 
+        type="text" 
+        v-model="deleteConfirmText" 
+        class="confirm-input-standard" 
+        placeholder="TYPE DELETE HERE"
+      />
     </div>
 
     <template #footer>
