@@ -291,28 +291,65 @@ const handleStudentClick = (enroll) => {
             </div>
           </template>
 
-          <div class="detail-row">
-            <span class="summary-label">Teachers</span>
-            <div class="summary-value teachers-list" v-if="program.teachers && program.teachers.length > 0">
-              <div v-for="t in program.teachers" :key="t.id" class="user-info no-padding">
-                <div class="avatar-mini">
-                  <img :src="t.profileURL || getImageUrl('profiles/avatar-instructor')" alt="Teacher" />
-                </div>
-                <span>{{ t.name || t.fullname || 'Unknown Teacher' }}</span>
-              </div>
-            </div>
-            <div class="summary-value" v-else-if="program.teacherName">
-               <span>{{ program.teacherName }}</span>
-            </div>
-            <span class="summary-value" v-else>Not Assigned</span>
-          </div>
-
           <div class="detail-info-group">
             <div class="info-item vertical">
               <span>CATEGORY:</span>
               <strong>{{ program.category || 'General' }}</strong>
             </div>
+            
+            <div class="info-item vertical">
+              <span>ACADEMIC TERM:</span>
+              <strong>{{ program.termName || 'Term 1 2026' }}</strong>
+            </div>
 
+            <div class="info-item vertical">
+              <span>LEVEL:</span>
+              <strong>{{ program.levelName || program.level || 'Beginner' }}</strong>
+            </div>
+
+            <div class="info-item vertical">
+              <span>STATUS:</span>
+              <strong>{{ program.status || 'Active' }}</strong>
+            </div>
+
+            <div class="info-item vertical">
+              <span>START DATE:</span>
+              <strong>{{ program.startDate || 'N/A' }}</strong>
+            </div>
+
+            <div class="info-item vertical">
+              <span>END DATE:</span>
+              <strong>{{ program.endDate || 'N/A' }}</strong>
+            </div>
+
+            <div class="info-item vertical">
+              <span>LIVE STATUS:</span>
+              <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
+            </div>
+          </div>
+        </DetailedSummaryCard>
+
+        <DetailedSummaryCard subtitle="Assigned Teachers" style="margin-top: 10px;">
+          <div class="relationships-list">
+            <div 
+              v-for="t in program.teachers" 
+              :key="t.id" 
+              class="relationship-item"
+            >
+              <img :src="t.profileURL || getImageUrl('profiles/avatar-instructor')" alt="Teacher" class="small-avatar" />
+              <div class="teacher-info">
+                <strong>{{ t.name || t.fullname || 'Unknown Teacher' }}</strong>
+                <span>{{ t.role || 'Teacher' }}</span>
+              </div>
+            </div>
+            <div v-if="!program.teachers || program.teachers.length === 0" class="text-muted text-center" style="padding: 10px;">
+              {{ program.teacherName ? program.teacherName : 'No teachers assigned.' }}
+            </div>
+          </div>
+        </DetailedSummaryCard>
+
+        <DetailedSummaryCard subtitle="Tuition & Cost" style="margin-top: 10px;">
+          <div class="detail-info-group">
             <div class="info-item vertical">
               <span>TOTAL DURATION:</span>
               <strong>{{ program.number_session || program.numberSessions }} Sessions</strong>
@@ -324,26 +361,12 @@ const handleStudentClick = (enroll) => {
             </div>
 
             <div class="info-item vertical">
-              <span>ACADEMIC LEVEL:</span>
-              <strong>{{ program.level || program.levelName || 'Beginner' }}</strong>
-            </div>
-
-            <div class="info-item vertical">
-              <span>TUITION FEE:</span>
+              <span>TOTAL TUITION FEE:</span>
               <strong class="price-highlight">${{ (Number(program.price) || 0).toLocaleString() }}</strong>
-            </div>
-
-            <div class="info-item vertical">
-              <span>ACADEMIC TERM:</span>
-              <strong>{{ program.termName || 'Term 1 2026' }}</strong>
-            </div>
-
-            <div class="info-item status-inline">
-              <span>LIVE STATUS:</span>
-              <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
             </div>
           </div>
         </DetailedSummaryCard>
+
 
         <DetailedSummaryCard subtitle="Standard Schedule" style="margin-top: 10px;">
           <div class="schedule-summary-box" v-if="program.schedule">
@@ -418,5 +441,62 @@ const handleStudentClick = (enroll) => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.relationships-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.relationship-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s;
+}
+
+.relationship-item:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.relationship-item.clickable {
+  cursor: pointer;
+}
+
+.relationship-item.clickable:hover {
+  transform: translateX(4px);
+}
+
+.small-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.teacher-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.teacher-info strong {
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.teacher-info span {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.text-center {
+  text-align: center;
 }
 </style>
