@@ -145,7 +145,14 @@
             <span>{{ t.name }}</span>
             <div v-if="!isReadOnly" class="tag-actions">
               <button type="button" class="remove-btn" @click="removeTeacher(t.id)" title="Remove from Program">&times;</button>
-              <button type="button" class="delete-account-tag-btn" @click="handleDeleteTeacher(t)" title="Permanently Delete User Account">🗑️</button>
+              <button 
+                type="button" 
+                class="item-delete-btn" 
+                @click.stop="handleDeleteTeacher(t)" 
+                title="Permanently Delete User Account"
+              >
+                🗑️
+              </button>
             </div>
           </div>
         </div>
@@ -228,16 +235,23 @@
       <button type="submit" style="display: none;"></button>
     </form>
 
-    <div v-if="type === 'delete'" class="form-group full-width">
-      <div class="info-block danger">
-        <div class="icon">🛑</div>
+    <div v-if="type === 'delete'" class="delete-confirm-content">
+      <div class="warning-icon">⚠️</div>
+      <div class="info-block danger" style="text-align: left; margin-top: 10px;">
         <div class="text">
           <strong>Delete Program</strong>
-          <p>You are about to delete <strong>{{ program?.title }}</strong>. This action is permanent.</p>
+          <p>You are about to delete <strong>{{ program?.title }}</strong>. This action is permanent and will remove all associated sessions.</p>
         </div>
       </div>
-      <label>To confirm, type <strong class="danger-text">DELETE</strong> below</label>
-      <input type="text" v-model="localData.deleteConfirm" placeholder="Type DELETE" />
+      <div class="confirm-input-group">
+        <label>To confirm, type <strong class="danger-text">DELETE</strong> below:</label>
+        <input 
+          type="text" 
+          v-model="localData.deleteConfirm" 
+          placeholder="TYPE DELETE HERE" 
+          class="confirm-input"
+        />
+      </div>
     </div>
 
     <template #footer>
@@ -351,6 +365,11 @@ const { searchQuery: teacherSearchQuery, searchResults: filteredTeachers } = use
 
 const sortedTeachers = computed(() => {
   return [...filteredTeachers.value].sort((a, b) => (a.name || a.email || '').localeCompare(b.name || b.email || ''))
+})
+
+const unselectedTeachers = computed(() => {
+  const selectedIds = new Set((localData.value.teachers || []).map(t => t.id || t.uid))
+  return sortedTeachers.value.filter(t => !selectedIds.has(t.id || t.uid))
 })
 
 const getInitialData = () => ({
@@ -477,10 +496,6 @@ const findNextOccurrence = (date, dayName) => {
   return current.toISOString().split('T')[0]
 }
 
-const unselectedTeachers = computed(() => {
-  const selectedIds = (localData.value.teachers || []).map(t => t.id)
-  return sortedTeachers.value.filter(t => !selectedIds.includes(t.uid || t.id))
-})
 
 const addTeacher = (t) => {
   if (!localData.value.teachers) localData.value.teachers = []
