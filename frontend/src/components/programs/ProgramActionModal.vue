@@ -143,7 +143,10 @@
           <div v-for="t in localData.teachers" :key="t.id" class="teacher-tag">
             <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" />
             <span>{{ t.name }}</span>
-            <button v-if="!isReadOnly" type="button" class="remove-btn" @click="removeTeacher(t.id)">&times;</button>
+            <div v-if="!isReadOnly" class="tag-actions">
+              <button type="button" class="remove-btn" @click="removeTeacher(t.id)" title="Remove from Program">&times;</button>
+              <button type="button" class="delete-account-tag-btn" @click="handleDeleteTeacher(t)" title="Permanently Delete User Account">🗑️</button>
+            </div>
           </div>
         </div>
 
@@ -182,9 +185,9 @@
                       type="button" 
                       class="item-delete-btn" 
                       @click.stop="handleDeleteTeacher(t)"
-                      title="Delete Teacher Account"
+                      title="Permanently Delete Teacher Account"
                     >
-                      &times;
+                      🗑️
                     </button>
                   </li>
                 <li v-if="filteredTeachers.length === 0" class="dropdown-item no-results">
@@ -847,7 +850,32 @@ const handleSubmit = () => submitForm(isFormValid.value)
 
 .item-delete-btn:hover {
   background: #fee2e2;
-  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.tag-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.delete-account-tag-btn {
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.delete-account-tag-btn:hover {
+  background: #fee2e2;
+  opacity: 1;
 }
 
 .dropdown-item:hover {

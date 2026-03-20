@@ -336,14 +336,26 @@ const onRowClick = (item) => {
             </td>
             <td class="bold">{{ item.title }}</td>
             <td class="hide-on-tablet">
-              <!-- Teachers are now hydrated from backend with profileURL -->
-              <div v-if="item.teachers && item.teachers.length > 0" class="mini-teacher-list">
-                <div v-for="t in item.teachers" :key="t.id || t.uid" class="mini-teacher-item">
-                  <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" />
-                  <span>{{ t.name }}</span>
+              <div v-if="item.teachers && item.teachers.length > 0" class="teacher-stack-container">
+                <div class="teacher-avatar-stack">
+                  <div
+                    v-for="(t, i) in item.teachers"
+                    :key="t.id || t.uid || i"
+                    class="teacher-avatar-mini"
+                    :title="t.name || 'Teacher'"
+                    :style="{ zIndex: item.teachers.length - i }"
+                  >
+                    <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" alt="teacher" />
+                  </div>
                 </div>
+                <span v-if="item.teachers.length === 1" class="teacher-name-solo">
+                  {{ item.teachers[0].name }}
+                </span>
+                <span v-else-if="item.teachers.length > 1" class="teacher-count-tag">
+                   {{ item.teachers.length }} Teachers
+                </span>
               </div>
-              <span v-else class="help-text-small">No teachers</span>
+              <span v-else class="help-text-small">None assigned</span>
             </td>
             <td class="hide-on-tablet">
               <StatusBadge :status="item.termName || item.term || 'No Term'" />
@@ -474,29 +486,56 @@ const onRowClick = (item) => {
   font-weight: 700;
 }
 
-.mini-teacher-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.mini-teacher-item {
+.teacher-stack-container {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
+  gap: 10px;
 }
 
-.mini-teacher-item img {
-  width: 20px;
-  height: 20px;
+.teacher-avatar-stack {
+  display: flex;
+  align-items: center;
+}
+
+.teacher-avatar-mini {
+  margin-left: -12px;
+  width: 28px;
+  height: 28px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  border: 2px solid white;
   border-radius: 50%;
+  overflow: hidden;
+  transition: transform 0.2s;
 }
 
-.more-count {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  margin-left: 26px;
+.teacher-avatar-mini:first-child {
+  margin-left: 0;
+}
+
+.teacher-avatar-mini:hover {
+  transform: translateY(-3px) scale(1.1);
+  z-index: 50 !important;
+}
+
+.teacher-avatar-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.teacher-name-solo {
+  font-size: 0.85rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.teacher-count-tag {
+  font-size: 0.75rem;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
 }
 
 .period-info {
