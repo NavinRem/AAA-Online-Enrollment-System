@@ -907,25 +907,26 @@ const handleSubmit = () => submitForm(isFormValid.value)
 
 .item-delete-btn {
   margin-left: auto;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
   border: none;
-  background: transparent;
-  color: #94a3b8;
+  background: #f1f5f9;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
-  cursor: pointer;
+  border-radius: 6px;
   transition: all 0.2s;
-  visibility: hidden;
-  opacity: 0;
+  opacity: 1;
+  z-index: 10;
+  font-size: 1rem;
 }
 
-.dropdown-item:hover .item-delete-btn {
-  visibility: visible;
-  opacity: 1;
+
+.item-delete-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  transform: scale(1.1);
 }
 
 .item-delete-btn:hover {
