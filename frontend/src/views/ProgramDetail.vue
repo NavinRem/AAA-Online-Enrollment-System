@@ -185,13 +185,53 @@ const handleStudentClick = (enroll) => {
 
         <!-- Tab Content -->
         <div class="tab-content-container">
-          <!-- Overview Tab -->
           <div v-if="activeTab === 'overview'" class="detail-section-card fade-in">
             <div class="section-header">
               <h3>Program Description</h3>
             </div>
             <div class="description-text">
               <p>{{ program.description || 'No detailed description provided for this program.' }}</p>
+            </div>
+
+            <!-- Program Metadata Grid Moved from Sidebar -->
+            <div class="section-header mt-4">
+              <h3>Program Highlights</h3>
+            </div>
+            <div class="detail-info-group grid-2-columns">
+              <div class="info-item vertical">
+                <span>CATEGORY:</span>
+                <strong>{{ program.category || 'General' }}</strong>
+              </div>
+              
+              <div class="info-item vertical">
+                <span>ACADEMIC TERM:</span>
+                <strong>{{ program.termName || 'Term 1 2026' }}</strong>
+              </div>
+
+              <div class="info-item vertical">
+                <span>LEVEL:</span>
+                <strong>{{ program.levelName || program.level || 'Beginner' }}</strong>
+              </div>
+
+              <div class="info-item vertical">
+                <span>STATUS:</span>
+                <strong>{{ program.status || 'Active' }}</strong>
+              </div>
+
+              <div class="info-item vertical">
+                <span>START DATE:</span>
+                <strong>{{ program.startDate || 'N/A' }}</strong>
+              </div>
+
+              <div class="info-item vertical">
+                <span>END DATE:</span>
+                <strong>{{ program.endDate || 'N/A' }}</strong>
+              </div>
+
+              <div class="info-item vertical">
+                <span>LIVE STATUS:</span>
+                <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
+              </div>
             </div>
           </div>
 
@@ -278,7 +318,7 @@ const handleStudentClick = (enroll) => {
       </template>
 
       <template #right-content v-if="program">
-        <DetailedSummaryCard title="Basic Information" subtitle="Program Information">
+        <DetailedSummaryCard title="Program Profile">
           <template #outside>
             <div class="profile-header">
               <div class="profile-preview">
@@ -290,43 +330,6 @@ const handleStudentClick = (enroll) => {
               </div>
             </div>
           </template>
-
-          <div class="detail-info-group">
-            <div class="info-item vertical">
-              <span>CATEGORY:</span>
-              <strong>{{ program.category || 'General' }}</strong>
-            </div>
-            
-            <div class="info-item vertical">
-              <span>ACADEMIC TERM:</span>
-              <strong>{{ program.termName || 'Term 1 2026' }}</strong>
-            </div>
-
-            <div class="info-item vertical">
-              <span>LEVEL:</span>
-              <strong>{{ program.levelName || program.level || 'Beginner' }}</strong>
-            </div>
-
-            <div class="info-item vertical">
-              <span>STATUS:</span>
-              <strong>{{ program.status || 'Active' }}</strong>
-            </div>
-
-            <div class="info-item vertical">
-              <span>START DATE:</span>
-              <strong>{{ program.startDate || 'N/A' }}</strong>
-            </div>
-
-            <div class="info-item vertical">
-              <span>END DATE:</span>
-              <strong>{{ program.endDate || 'N/A' }}</strong>
-            </div>
-
-            <div class="info-item vertical">
-              <span>LIVE STATUS:</span>
-              <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
-            </div>
-          </div>
         </DetailedSummaryCard>
 
         <DetailedSummaryCard subtitle="Assigned Teachers" style="margin-top: 10px;">
@@ -498,5 +501,15 @@ const handleStudentClick = (enroll) => {
 
 .text-center {
   text-align: center;
+}
+
+.grid-2-columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.mt-4 {
+  margin-top: 32px;
 }
 </style>
