@@ -93,10 +93,8 @@ const availableAvatars = computed(() => {
 
 const isCustomUrl = computed(() => {
   if (!props.modelValue) return false
-  // If URL starts with blob or firebasestorage, it's custom
-  return props.modelValue.startsWith('blob:') || 
-         props.modelValue.includes('firebasestorage.googleapis.com') ||
-         props.modelValue.startsWith('data:')
+  // It's custom if it doesn't match any of the built-in avatar URLs
+  return !availableAvatars.value.some(avatar => avatar.url === props.modelValue)
 })
 
 const selectAvatar = (url) => {
