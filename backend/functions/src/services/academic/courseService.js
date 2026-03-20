@@ -73,8 +73,24 @@ class CourseService {
       termsMap[doc.id] = doc.data().name;
     });
 
+    // Fetch all teachers for hydration (supporting both roles for transition)
+    const usersSnapshot = await db.collection(COLLECTIONS.USER).where("role", "in", ["teacher", "instructor"]).get();
+    const teachersMap = {};
+    usersSnapshot.docs.forEach((doc) => {
+      const userData = doc.data();
+      teachersMap[doc.id] = {
+        id: doc.id,
+        name: userData.name || userData.email || "Unknown",
+        profileURL: userData.profileURL || ""
+      };
+    });
+
     const levelsMap = {};
     const categoriesSnapshot = await db.collection(COLLECTIONS.CATEGORY).get();
+    const categoriesMap = {};
+    categoriesSnapshot.docs.forEach(doc => {
+      categoriesMap[doc.id] = doc.data().name;
+    });
     
     await Promise.all(
       categoriesSnapshot.docs.map(async (catDoc) => {
@@ -85,11 +101,26 @@ class CourseService {
       })
     );
 
-    return courses.map((course) => ({
-      ...course,
-      levelName: levelsMap[course.levelId] || course.level || "Beginner",
-      termName: termsMap[course.termId] || "Term 1 2026",
-    }));
+    return courses.map((course) => {
+      let rawTeachers = course.teachers || [];
+      if (rawTeachers.length === 0 && (course.teacherId || course.uid)) {
+        rawTeachers = [{ id: course.teacherId || course.uid, name: course.teacherName || "Unknown" }];
+      }
+      const hydratedTeachers = rawTeachers.map(t => {
+        const teacherId = typeof t === 'string' ? t : (t.id || t.uid);
+        if (!teacherId) return null;
+        
+        return teachersMap[teacherId] || (typeof t === 'object' ? { ...t, profileURL: "" } : { id: t, name: "Unknown", profileURL: "" });
+      }).filter(Boolean);
+
+      return {
+        ...course,
+        teachers: hydratedTeachers,
+        category: categoriesMap[course.categoryId] || course.category || "Other",
+        levelName: levelsMap[course.levelId] || course.level || "Beginner",
+        termName: termsMap[course.termId] || "Term 1 2026",
+      };
+    });
   }
 
   async getCourse(courseId) {

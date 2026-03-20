@@ -12,223 +12,210 @@
       }}</strong>
     </div>
 
-    <div v-if="type === 'edit'" class="form-grid">
-      <div class="form-group full-width" v-if="selectableParents && selectableParents.length > 0">
-        <label>Update Parent / Guardian <span class="required">*</span></label>
-        <div class="custom-dropdown-container">
-          <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
-            <div class="dropdown-header" @click="isParentDropdownOpen = !isParentDropdownOpen">
-              <template v-if="selectedParent">
-                <div class="selected-parent">
-                  <img
-                    :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')"
-                    class="avatar-mini-circle"
-                  />
-                  <span>{{ selectedParent.name || selectedParent.email }}</span>
-                </div>
-              </template>
-              <template v-else>
-                <span class="placeholder">-- Choose a parent/guardian --</span>
-              </template>
-              <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
-            </div>
-            
-            <div class="dropdown-menu" v-if="isParentDropdownOpen">
-              <div class="dropdown-search">
-                <input
-                  type="text"
-                  v-model="parentSearchQuery"
-                  placeholder="Search name or email..."
-                  @click.stop
-                  autofocus
-                />
-              </div>
-              <ul class="dropdown-list">
-                <li
-                  v-for="p in filteredParents"
-                  :key="p.uid || p.id"
-                  class="dropdown-item"
-                  :class="{ active: localData.parentId === (p.uid || p.id) }"
-                  @click="selectParent(p)"
-                >
-                  <img
-                    :src="p.profileURL || getImageUrl('profiles/avatar-parent')"
-                    class="avatar-mini-circle"
-                  />
-                  <div class="item-info">
-                    <span class="item-name">{{ p.name || p.email }}</span>
+    <form v-if="type === 'edit' || type === 'override' || type === 'enrollment-override'" @submit.prevent="handleSubmit">
+      <div v-if="type === 'edit'" class="form-grid">
+        <div class="form-group full-width" v-if="selectableParents && selectableParents.length > 0">
+          <label>Update Parent / Guardian <span class="required">*</span></label>
+          <div class="custom-dropdown-container">
+            <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
+              <div class="dropdown-header" @click="isParentDropdownOpen = !isParentDropdownOpen">
+                <template v-if="selectedParent">
+                  <div class="selected-parent">
+                    <img
+                      :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')"
+                      class="avatar-mini-circle"
+                    />
+                    <span>{{ selectedParent.name || selectedParent.email }}</span>
                   </div>
-                </li>
-                <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
-                  No matches found.
-                </li>
-              </ul>
+                </template>
+                <template v-else>
+                  <span class="placeholder">-- Choose a parent/guardian --</span>
+                </template>
+                <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
+              </div>
+              
+              <div class="dropdown-menu" v-if="isParentDropdownOpen">
+                <div class="dropdown-search">
+                  <input
+                    type="text"
+                    v-model="parentSearchQuery"
+                    placeholder="Search name or email..."
+                    @click.stop
+                    autofocus
+                  />
+                </div>
+                <ul class="dropdown-list">
+                  <li
+                    v-for="p in filteredParents"
+                    :key="p.uid || p.id"
+                    class="dropdown-item"
+                    :class="{ active: localData.parentId === (p.uid || p.id) }"
+                    @click="selectParent(p)"
+                  >
+                    <img
+                      :src="p.profileURL || getImageUrl('profiles/avatar-parent')"
+                      class="avatar-mini-circle"
+                    />
+                    <div class="item-info">
+                      <span class="item-name">{{ p.name || p.email }}</span>
+                    </div>
+                  </li>
+                  <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
+                    No matches found.
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="form-group">
-        <label>Full Name</label>
-        <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
-        <input type="text" v-model="localData.name" placeholder="Enter student full name" />
-      </div>
-
-      <div class="form-group">
-        <label>Date of Birth</label>
-        <span class="original-value" v-if="originalData.dob">Original: {{ originalData.dob }}</span>
-        <input type="date" v-model="localData.dob" />
-      </div>
-
-      <div class="form-group full-width">
-        <label>Medical Notes / Allergies</label>
-        <span class="original-value" v-if="originalData.medical_note">Original: {{ originalData.medical_note }}</span>
-        <textarea
-          v-model="localData.medical_note"
-          placeholder="e.g. Nut allergy, Asthma, or 'None'"
-          rows="3"
-        ></textarea>
-        <!-- Adding preset chips for admin convenience -->
-        <div class="preset-chips">
-          <button
-            type="button"
-            class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'None') }"
-            @click="togglePreset('medical_note', 'None')"
-          >
-            None
-          </button>
-          <button
-            type="button"
-            class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'G6PD Deficiency') }"
-            @click="togglePreset('medical_note', 'G6PD Deficiency')"
-          >
-            G6PD
-          </button>
-          <button
-            type="button"
-            class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'ADHD') }"
-            @click="togglePreset('medical_note', 'ADHD')"
-          >
-            ADHD
-          </button>
-          <button
-            type="button"
-            class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'Dyslexia') }"
-            @click="togglePreset('medical_note', 'Dyslexia')"
-          >
-            Dyslexia
-          </button>
-          <button
-            type="button"
-            class="preset-chip"
-            :class="{ active: isPresetActive('medical_note', 'Asthma') }"
-            @click="togglePreset('medical_note', 'Asthma')"
-          >
-            Asthma
-          </button>
+        <div class="form-group">
+          <label>Full Name</label>
+          <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
+          <input type="text" v-model="localData.name" placeholder="Enter student full name" />
         </div>
-      </div>
 
-      <div class="form-group full-width">
-        <label>Update Status</label>
-        <span class="original-value" v-if="originalData.status">Original: {{ originalData.status }}</span>
-        <select v-model="localData.status" class="form-select">
-          <option value="Studying">Studying (Active)</option>
-          <option value="Suspended">Suspended (Paused)</option>
-          <option value="Graduated">Graduated (Finished)</option>
-          <option value="Stopped">Stopped (Dropped Out)</option>
-        </select>
-        <p class="help-text">
-          Ensure you have parent/guardian authorization before suspending or stopping a child's
-          academic progress.
-        </p>
-      </div>
-    </div>
-
-    <!-- Delete Form (Student or Enrollment) -->
-    <div v-if="type === 'delete' || type === 'enrollment-delete'" class="form-group full-width">
-      <div class="info-block danger">
-        <div class="icon">🛑</div>
-        <div class="text">
-          <strong v-if="type === 'delete'">Critical Permanent Action</strong>
-          <strong v-else>Caution: Destructive Action</strong>
-          <p v-if="type === 'delete'">
-            Deleting a student's profile removes their record and all historical class progression
-            entirely. It can never be recovered. This should only be used for accidental duplicate
-            enrollments or data cleanups.
-          </p>
-          <p v-else>
-            Deleting an academic record is a destructive action. It can affect the student's future
-            academic history and progress tracking. This action cannot be undone.
-          </p>
+        <div class="form-group">
+          <label>Date of Birth</label>
+          <span class="original-value" v-if="originalData.dob">Original: {{ originalData.dob }}</span>
+          <input type="date" v-model="localData.dob" />
         </div>
-      </div>
-      <label>To confirm, type <strong class="danger-text">DELETE</strong> below</label>
-      <input type="text" v-model="localData.deleteConfirm" placeholder="Type DELETE" />
-    </div>
 
-    <!-- Manual Status Override Form (Student or Enrollment) -->
-    <div v-if="type === 'override' || type === 'enrollment-override'" class="form-grid">
-      <div class="form-group full-width">
-        <div class="info-block warning">
-          <div class="icon">⚠️</div>
-          <div class="text">
-            <strong
-              >Manual
-              {{ type === 'enrollment-override' ? 'Enrollment' : 'Status' }} Override</strong
+        <div class="form-group full-width">
+          <label>Medical Notes / Allergies</label>
+          <span class="original-value" v-if="originalData.medical_note">Original: {{ originalData.medical_note }}</span>
+          <textarea
+            v-model="localData.medical_note"
+            placeholder="e.g. Nut allergy, Asthma, or 'None'"
+            rows="3"
+          ></textarea>
+          <!-- Adding preset chips for admin convenience -->
+          <div class="preset-chips">
+            <button
+              type="button"
+              class="preset-chip"
+              :class="{ active: isPresetActive('medical_note', 'None') }"
+              @click="togglePreset('medical_note', 'None')"
             >
-            <p>
-              This will manually force a status that ignores the automatic system calculations.
-              Useful for specific parent requests or administrative pauses.
-            </p>
+              None
+            </button>
+            <button
+              type="button"
+              class="preset-chip"
+              :class="{ active: isPresetActive('medical_note', 'G6PD Deficiency') }"
+              @click="togglePreset('medical_note', 'G6PD Deficiency')"
+            >
+              G6PD
+            </button>
+            <button
+              type="button"
+              class="preset-chip"
+              :class="{ active: isPresetActive('medical_note', 'ADHD') }"
+              @click="togglePreset('medical_note', 'ADHD')"
+            >
+              ADHD
+            </button>
+            <button
+              type="button"
+              class="preset-chip"
+              :class="{ active: isPresetActive('medical_note', 'Dyslexia') }"
+              @click="togglePreset('medical_note', 'Dyslexia')"
+            >
+              Dyslexia
+            </button>
+            <button
+              type="button"
+              class="preset-chip"
+              :class="{ active: isPresetActive('medical_note', 'Asthma') }"
+              @click="togglePreset('medical_note', 'Asthma')"
+            >
+              Asthma
+            </button>
           </div>
         </div>
+
+        <div class="form-group full-width">
+          <label>Update Status</label>
+          <span class="original-value" v-if="originalData.status">Original: {{ originalData.status }}</span>
+          <select v-model="localData.status" class="form-select">
+            <option value="Studying">Studying (Active)</option>
+            <option value="Suspended">Suspended (Paused)</option>
+            <option value="Graduated">Graduated (Finished)</option>
+            <option value="Stopped">Stopped (Dropped Out)</option>
+          </select>
+          <p class="help-text">
+            Ensure you have parent/guardian authorization before suspending or stopping a child's
+            academic progress.
+          </p>
+        </div>
+
+        <div class="form-group full-width">
+          <AvatarSelector v-model="localData.profileURL" type="student" :uid="student?.id || enrollment?.student_id" />
+        </div>
       </div>
 
-      <div class="form-group full-width">
-        <label>Set Manual Status <span class="required">*</span></label>
-        <span class="original-value" v-if="originalData.status">Current: {{ originalData.status }}</span>
-        <select v-model="localData.status" class="form-select" required>
-          <option disabled value="">-- Select Status --</option>
-          <option value="Suspended">Suspended (Paused)</option>
-          <option value="Stopped">Stopped (Dropped Out)</option>
-        </select>
-      </div>
+      <!-- Manual Status Override Form (Student or Enrollment) -->
+      <div v-if="type === 'override' || type === 'enrollment-override'" class="form-grid">
+        <div class="form-group full-width">
+          <div class="info-block warning">
+            <div class="icon">⚠️</div>
+            <div class="text">
+              <strong
+                >Manual
+                {{ type === 'enrollment-override' ? 'Enrollment' : 'Status' }} Override</strong
+              >
+              <p>
+                This will manually force a status that ignores the automatic system calculations.
+                Useful for specific parent requests or administrative pauses.
+              </p>
+            </div>
+          </div>
+        </div>
 
-      <div class="form-group full-width">
-        <label>Reason Category <span class="required">*</span></label>
-        <span class="original-value" v-if="originalData.overrideReason">Current: {{ originalData.overrideReason }}</span>
-        <select v-model="localData.overrideReason" class="form-select" required>
-          <option disabled value="">-- Select Reason --</option>
-          <option value="Parent Request">Parent Request</option>
-          <option value="Health Issue">Health Issue</option>
-          <option value="Moving House">Relocation / Moving</option>
-          <option value="Financial">Financial Reasons</option>
-          <option value="Schedule Conflict">Schedule Conflict</option>
-          <option value="Other">Other</option>
-        </select>
-      </div>
+        <div class="form-group full-width">
+          <label>Set Manual Status <span class="required">*</span></label>
+          <span class="original-value" v-if="originalData.status">Current: {{ originalData.status }}</span>
+          <select v-model="localData.status" class="form-select" required>
+            <option disabled value="">-- Select Status --</option>
+            <option value="Suspended">Suspended (Paused)</option>
+            <option value="Stopped">Stopped (Dropped Out)</option>
+          </select>
+        </div>
 
-      <div class="form-group full-width">
-        <label>Administrative Remarks <span class="required">*</span></label>
-        <span class="original-value" v-if="originalData.overrideRemark">Current: {{ originalData.overrideRemark }}</span>
-        <textarea
-          v-model="localData.overrideRemark"
-          placeholder="Enter detailed reason for record keeping... (Required)"
-          rows="4"
-          required
-        ></textarea>
+        <div class="form-group full-width">
+          <label>Reason Category <span class="required">*</span></label>
+          <span class="original-value" v-if="originalData.overrideReason">Current: {{ originalData.overrideReason }}</span>
+          <select v-model="localData.overrideReason" class="form-select" required>
+            <option disabled value="">-- Select Reason --</option>
+            <option value="Parent Request">Parent Request</option>
+            <option value="Health Issue">Health Issue</option>
+            <option value="Moving House">Relocation / Moving</option>
+            <option value="Financial">Financial Reasons</option>
+            <option value="Schedule Conflict">Schedule Conflict</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Administrative Remarks <span class="required">*</span></label>
+          <span class="original-value" v-if="originalData.overrideRemark">Current: {{ originalData.overrideRemark }}</span>
+          <textarea
+            v-model="localData.overrideRemark"
+            placeholder="Enter detailed reason for record keeping... (Required)"
+            rows="4"
+            required
+          ></textarea>
+        </div>
       </div>
-    </div>
+      <!-- Hidden submit for Enter key functionality -->
+      <button type="submit" style="display: none;"></button>
+    </form>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
       <AppButton
         :variant="type === 'delete' || type === 'enrollment-delete' ? 'danger' : 'primary'"
+        type="submit"
         @click="handleSubmit"
         :loading="loading"
         :disabled="loading || !isFormValid"
@@ -245,6 +232,7 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
+import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { getImageUrl } from '@/utils/assetHelper'
 
 const props = defineProps({
@@ -264,6 +252,7 @@ const getInitialData = () => ({
   parentId: '',
   name: '',
   dob: '',
+  profileURL: '',
   medical_note: 'None',
   status: '',
   deleteConfirm: '',
@@ -277,6 +266,7 @@ const mapSourceToForm = () => {
     parentId: source.parentId || source.parent_id || '',
     name: source.name || source.fullName || source.fullname || '',
     dob: source.dob || '',
+    profileURL: source.profileURL || '',
     medical_note: source.medical_note || (source.medicalNotes || source.medical_note || 'None'),
     status:
       source.status ||

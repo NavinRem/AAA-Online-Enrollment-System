@@ -36,7 +36,8 @@ const statsCards = computed(() => {
     { label: 'Total Parents', value: s.parentCount, image: getImageUrl('parent/total-parent'), color: '#e1f5fe' },
     { label: 'Total Guardians', value: s.guardianCount, image: getImageUrl('parent/total-guardian'), color: '#e1f5fe' },
     { label: 'Registered Today', value: s.todayCount, image: getImageUrl('parent/recently-register'), color: '#e1f5fe' },
-    { label: 'Active Now', value: s.activeCount, image: getImageUrl('parent/active-now'), color: '#e1f5fe' }
+    { label: 'Active Now', value: s.activeCount, image: getImageUrl('parent/active-now'), color: '#e1f5fe' },
+    { label: 'Total Users', value: s.totalUsers, image: getImageUrl('parent/total-users'), color: '#e1f5fe' }
   ]
 })
 

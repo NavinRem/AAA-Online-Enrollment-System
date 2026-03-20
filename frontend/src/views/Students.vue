@@ -77,7 +77,8 @@ const statsCards = computed(() => {
     { label: 'Total Students', value: s.totalStudent, image: getImageUrl('student/total-student'), color: '#e1f5fe' },
     { label: 'Currently Enrolled', value: s.currently_enrolled, image: getImageUrl('student/currently-enrolled'), color: '#e1f5fe' },
     { label: 'Not Currently Enrolled', value: s.not_currently_enrolled, image: getImageUrl('student/currently-not-enrolled'), color: '#e1f5fe' },
-    { label: 'Newly Enrolled', value: s.newly_enrolled, image: getImageUrl('student/newly-enrolled'), color: '#e1f5fe' }
+    { label: 'Stopped Students', value: s.stop_enrolled, image: getImageUrl('student/stopped-enrolled'), color: '#e1f5fe' },
+    { label: 'Graduated Students', value: s.graduated, image: getImageUrl('student/graduated'), color: '#e1f5fe' }
   ]
 })
 

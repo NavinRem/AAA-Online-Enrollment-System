@@ -29,11 +29,13 @@ export const calculateTotalStudent = (students) => {
   const totalStudent = students.length
   const currently_enrolled = students.filter(s => String(s.status || '').toLowerCase() === 'studying').length
   const not_currently_enrolled = students.filter(s => String(s.status || '').toLowerCase() !== 'studying').length
-  const newly_enrolled = students.filter(s => String(s.status || '').toLowerCase() === 'inactive').length
+  const stop_enrolled = students.filter(s => String(s.status || '').toLowerCase() === 'stopped').length
+  const graduated = students.filter(s => String(s.status || '').toLowerCase() === 'graduated').length
   return {
     totalStudent,
     currently_enrolled,
     not_currently_enrolled,
-    newly_enrolled
+    stop_enrolled,
+    graduated
   }
 }

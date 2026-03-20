@@ -23,14 +23,17 @@ export const enrichParents = (users = [], students = []) => {
  * Calculates parent-related statistics.
  */
 export const calculateParentStats = (users = []) => {
-  const today = new Date().toISOString().split('T')[0] // Safe: toISOString() always contains 'T'
-  const parents = users.filter(u => u.role === 'parent')
-  const guardians = users.filter(u => u.role === 'guardian')
+  const parents = users.filter(u => u.role === 'parent').length
+  const guardians = users.filter(u => u.role === 'guardian').length
+  const todayCount = users.filter(u => (u.createdAt || '').startsWith(new Date().toISOString().split('T')[0])).length
+  const activeCount = users.filter(u => u.status === 'Active').length
+  const totalUsers = users.length
   
   return {
-    parentCount: parents.length,
-    guardianCount: guardians.length,
-    todayCount: users.filter(u => (u.createdAt || '').startsWith(today)).length,
-    activeCount: users.filter(u => (u.status || 'Active').toLowerCase() === 'active').length
+    parentCount: parents  ,
+    guardianCount: guardians,
+    todayCount: todayCount,
+    activeCount: activeCount,
+    totalUsers: totalUsers
   }
 }

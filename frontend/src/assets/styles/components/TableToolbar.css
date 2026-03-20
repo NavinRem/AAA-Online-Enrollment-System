@@ -36,6 +36,11 @@
   min-width: 180px;
 }
 
+.scrollable-menu {
+  max-height: 200px;
+  overflow-y: auto !important;
+}
+
 .filter-option {
   padding: 12px 18px;
   font-size: 0.9rem;

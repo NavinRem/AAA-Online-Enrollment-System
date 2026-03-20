@@ -75,14 +75,14 @@ exports.getSession = async (req, res) => {
 };
 
 /**
- * @route PUT /sessions/:id/instructor
- * @description Assign instructors to a session
+ * @route PUT /sessions/:id/teacher
+ * @description Assign teachers to a session
  */
-exports.assignInstructor = async (req, res) => {
+exports.assignTeacher = async (req, res) => {
   try {
-    const result = await sessionService.assignInstructor(
+    const result = await sessionService.assignTeacher(
       req.params.id,
-      req.body.instructors,
+      req.body.teachers,
     );
     res.status(200).json(result);
   } catch (error) {
@@ -91,12 +91,12 @@ exports.assignInstructor = async (req, res) => {
 };
 
 /**
- * @route GET /sessions/:id/roster
- * @description Get instructor roster
+ * @route GET /sessions/:id/teachers
+ * @description Get session teachers
  */
-exports.getInstructorRoster = async (req, res) => {
+exports.getSessionTeachers = async (req, res) => {
   try {
-    const result = await sessionService.getInstructorRoster(req.params.id);
+    const result = await sessionService.getSessionTeachers(req.params.id);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -8,66 +8,74 @@
       <strong class="name">{{ user.name || user.email }}</strong>
     </div>
 
-    <!-- Edit Form -->
-    <div v-if="type === 'edit'" class="form-grid">
-      <div class="form-group full-width">
-        <label>Full Name</label>
-        <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
-        <input type="text" v-model="localData.name" placeholder="Enter full name" />
-      </div>
+    <form v-if="type === 'edit' || type === 'deactivate' || type === 'activate'" @submit.prevent="handleSubmit">
+      <!-- Edit Form -->
+      <div v-if="type === 'edit'" class="form-grid">
+        <div class="form-group full-width">
+          <label>Full Name</label>
+          <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
+          <input type="text" v-model="localData.name" placeholder="Enter full name" />
+        </div>
 
-      <div class="form-group">
-        <label>Email Address</label>
-        <span class="original-value" v-if="originalData.email">Original: {{ originalData.email }}</span>
-        <input type="email" v-model="localData.email" placeholder="Enter email" />
-      </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <span class="original-value" v-if="originalData.email">Original: {{ originalData.email }}</span>
+          <input type="email" v-model="localData.email" placeholder="Enter email" />
+        </div>
 
-      <div class="form-group">
-        <label>Phone Number</label>
-        <span class="original-value" v-if="originalData.phone">Original: {{ originalData.phone }}</span>
-        <input type="tel" v-model="localData.phone" placeholder="Enter phone number" />
-      </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <span class="original-value" v-if="originalData.phone">Original: {{ originalData.phone }}</span>
+          <input type="tel" v-model="localData.phone" placeholder="Enter phone number" />
+        </div>
 
-      <div class="form-group full-width">
-        <label>Role</label>
-        <span class="original-value" v-if="originalData.role">Original: {{ originalData.role }}</span>
-        <select v-model="localData.role" class="form-select">
-          <option value="parent">Parent</option>
-          <option value="guardian">Guardian</option>
-        </select>
-      </div>
-    </div>
+        <div class="form-group full-width">
+          <label>Role</label>
+          <span class="original-value" v-if="originalData.role">Original: {{ originalData.role }}</span>
+          <select v-model="localData.role" class="form-select">
+            <option value="parent">Parent</option>
+            <option value="guardian">Guardian</option>
+          </select>
+        </div>
 
-    <!-- Deactivate Form -->
-    <div v-if="type === 'deactivate'" class="form-group full-width">
-      <div class="info-block warning">
-        <div class="icon">⚠️</div>
-        <div class="text">
-          <strong>Deactivation Warning</strong>
-          <p>
-            Deactivating an account will prevent the user from logging in. This family's child
-            records will remain untouched, and you can reactivate them at any time.
-          </p>
+        <div class="form-group full-width">
+          <AvatarSelector v-model="localData.profileURL" type="parent" :uid="user?.uid || user?.id" />
         </div>
       </div>
-    </div>
 
-    <!-- Activate Form -->
-    <div v-if="type === 'activate'" class="form-group full-width">
-      <div class="info-block active-info">
-        <div class="icon">✅</div>
-        <div class="text">
-          <strong>Account Reactivation</strong>
-          <p>
-            Reactivating this account will restore the user's ability to log in and manage their
-            children's enrollments immediately.
-          </p>
+      <!-- Deactivate Form -->
+      <div v-if="type === 'deactivate'" class="form-group full-width">
+        <div class="info-block warning">
+          <div class="icon">⚠️</div>
+          <div class="text">
+            <strong>Deactivation Warning</strong>
+            <p>
+              Deactivating an account will prevent the user from logging in. This family's child
+              records will remain untouched, and you can reactivate them at any time.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+
+      <!-- Activate Form -->
+      <div v-if="type === 'activate'" class="form-group full-width">
+        <div class="info-block active-info">
+          <div class="icon">✅</div>
+          <div class="text">
+            <strong>Account Reactivation</strong>
+            <p>
+              Reactivating this account will restore the user's ability to log in and manage their
+              children's enrollments immediately.
+            </p>
+          </div>
+        </div>
+      </div>
+      <!-- Hidden submit for Enter key functionality -->
+      <button type="submit" style="display: none;"></button>
+    </form>
 
     <!-- Delete Form -->
-    <div v-if="type === 'delete'" class="form-group full-width">
+    <form v-if="type === 'delete'" class="form-group full-width" @submit.prevent="handleSubmit">
       <div class="info-block danger">
         <div class="icon">🛑</div>
         <div class="text">
@@ -80,12 +88,15 @@
       </div>
       <label>To confirm, type <strong class="danger-text">DELETE</strong> below</label>
       <input type="text" v-model="localData.deleteConfirm" placeholder="Type DELETE" />
-    </div>
+      <!-- Hidden submit for Enter key functionality -->
+      <button type="submit" style="display: none;"></button>
+    </form>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
       <AppButton
         :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
+        type="submit"
         @click="handleSubmit"
         :loading="loading"
         :disabled="loading || !isFormValid"
@@ -100,6 +111,7 @@
 import { computed } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { useActionModal } from '@/composables/useActionModal'
 
 const props = defineProps({
@@ -118,6 +130,7 @@ const getInitialData = () => ({
   phone: '',
   email: '',
   role: 'parent',
+  profileURL: '',
   deleteConfirm: '',
 })
 
@@ -128,6 +141,7 @@ const mapSourceToForm = () => {
     phone: u.phone || '',
     email: u.email || '',
     role: u.role || 'parent',
+    profileURL: u.profileURL || '',
     deleteConfirm: '',
   }
 }

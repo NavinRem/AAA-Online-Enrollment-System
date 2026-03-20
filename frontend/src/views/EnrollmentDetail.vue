@@ -267,15 +267,15 @@ onMounted(async () => {
             </p>
           </DetailCard>
   
-          <DetailCard title="Session Information" :avatarUrl="teacher?.profileURL || getImageUrl('profiles/avatar-instructor')">
+          <DetailCard title="Session Information" :avatarUrl="teacher?.profileURL || getImageUrl('profiles/avatar-parent')">
             <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle || 'N/A' }}</p>
             <p>
               <strong>Teacher Name:</strong>
               {{
                 teacher?.fullname || teacher?.name || teacher?.email ||
                 course?.teacherName || enrollment.teacherName ||
-                session?.instructorName ||
-                (session?.instructors?.length > 0 ? session.instructors[0].name : enrollment.instructorName)
+                enrollment.teacherName ||
+                (session?.teachers?.length > 0 ? session.teachers[0].name : enrollment.teacherName)
                 || 'Not Assigned'
               }}
             </p>
@@ -386,7 +386,7 @@ onMounted(async () => {
           </div>
           <div class="detail-row">
             <span class="summary-label">Teacher</span>
-            <span class="summary-value">{{ teacher?.fullname || course?.teacherName || enrollment.teacherName || session?.instructorName || 'Not Assigned' }}</span>
+            <span class="summary-value">{{ teacher?.fullname || course?.teacherName || enrollment.teacherName || session?.teacherName || 'Not Assigned' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Schedule</span>
@@ -424,7 +424,7 @@ onMounted(async () => {
             <button class="close-btn" @click="closeActionModal">×</button>
           </div>
 
-          <div class="modal-body">
+          <form class="modal-body" @submit.prevent="submitActionModal">
             <transition name="toast-fade">
               <div v-if="modalError" class="alert-box error">
                 <span class="icon">⚠️</span> {{ modalError }}
@@ -618,7 +618,10 @@ onMounted(async () => {
               </p>
               <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
             </div>
-          </div>
+            
+            <!-- Hidden submit for Enter key functionality -->
+            <button type="submit" style="display: none;"></button>
+          </form>
 
           <div class="modal-footer">
             <button class="cancel-btn" @click="closeActionModal">Nevermind</button>
@@ -627,6 +630,7 @@ onMounted(async () => {
               :class="{
                 'danger-btn': actionModal.type === 'delete' || actionModal.type === 'cancel',
               }"
+              type="submit"
               @click="submitActionModal"
               :disabled="submitting"
             >

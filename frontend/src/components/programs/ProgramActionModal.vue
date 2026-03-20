@@ -8,7 +8,7 @@
       </div>
     </template>
 
-    <div v-if="type === 'add' || type === 'edit'" class="form-grid">
+    <form v-if="type === 'add' || type === 'edit'" class="form-grid" @submit.prevent="handleSubmit">
       <div class="form-group full-width">
         <label>Program Title <span class="required">*</span></label>
         <input type="text" v-model="localData.title" :placeholder="titlePlaceholder" required :disabled="isReadOnly" />
@@ -97,7 +97,6 @@
         </div>
         <div v-if="dateValidation.warning" class="date-warning">
           <span class="icon">⚠️</span> {{ dateValidation.warning }}
-          <button v-if="!isReadOnly" type="button" class="btn-fix" @click="fixEndDate">Fix End Date</button>
         </div>
       </div>
 
@@ -111,9 +110,8 @@
             ...(type === 'edit' ? [{ id: 'Closed', name: 'Closed' }, { id: 'Archived', name: 'Archived' }] : [])
           ]"
           :searchable="false"
-          :disabled="isReadOnly && localData.status === 'Archived'"
         />
-        <p v-if="isReadOnly" class="archive-warning">Archived programs are read-only.</p>
+        <p v-if="isReadOnly" class="archive-warning">Archived programs are read-only (except status).</p>
       </div>
 
       <div class="form-group full-width">
@@ -215,7 +213,9 @@
           </div>
         </div>
       </div>
-    </div>
+      <!-- Hidden submit for Enter key functionality -->
+      <button type="submit" style="display: none;"></button>
+    </form>
 
     <div v-if="type === 'delete'" class="form-group full-width">
       <div class="info-block danger">
@@ -233,6 +233,7 @@
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
       <AppButton
         :variant="type === 'delete' ? 'danger' : 'primary'"
+        type="submit"
         @click="handleSubmit"
         :loading="loading"
         :disabled="loading || !isFormValid"
@@ -302,16 +303,16 @@ const getInitialData = () => ({
   categoryId: '',
   category: '',
   description: '',
-  price: 0,
+  price: 180,
   numberSessions: 11,
   levelId: '',
   termId: '',
   status: 'Active',
-  startDate: '', // New
-  endDate: '', // New
+  startDate: '',
+  endDate: '', 
   schedule: { day: 'Monday', timeslot: '10:30 - 12:00' },
   imageURL: '',
-  teachers: [], // New (Multi)
+  teachers: [],
   deleteConfirm: '',
 })
 
@@ -322,18 +323,22 @@ const isReadOnly = computed(() => {
 const mapSourceToForm = () => {
   if (props.type === 'add') return getInitialData()
   const s = props.program || {}
+  
+  // Find matched term for fallback dates
+  const term = (terms.value || []).find(t => t.id === s.termId)
+
   return {
     title: s.title || s.name || '',
     categoryId: s.categoryId || '',
     category: s.category || '',
     description: s.description || '',
-    price: s.price || 0,
-    numberSessions: s.numberSessions || s.number_session || 1,
+    price: s.price ?? 180,
+    numberSessions: s.numberSessions || s.number_session || 11,
     levelId: s.levelId || '',
     termId: s.termId || '',
     status: s.status || 'Active',
-    startDate: s.startDate || '',
-    endDate: s.endDate || '',
+    startDate: s.startDate || term?.startDate || '',
+    endDate: s.endDate || term?.endDate || '',
     schedule: s.schedule || { day: 'Monday', timeslot: '10:30 - 12:00' },
     imageURL: s.imageURL || '',
     teachers: s.teachers || (s.teacherId ? [{ id: s.teacherId, name: s.teacherName }] : []),
@@ -346,15 +351,76 @@ const { localData, submitForm } = useActionModal(props, emit, {
   mapSourceToForm
 })
 
-watch(() => props.isOpen, (newVal) => {
-  if (newVal) {
-    fetchCategories()
-    fetchTerms()
-    fetchTeachers()
-    if (localData.value.categoryId) fetchLevels()
-    else levels.value = []
+watch(
+  [() => props.isOpen, () => props.program],
+  async ([isOpen, program]) => {
+    if (isOpen) {
+      // 1. Initial sync from props
+      localData.value = mapSourceToForm()
+      
+      // 2. Fetch all required options in parallel
+      await Promise.all([
+        fetchCategories(),
+        fetchTerms(),
+        fetchTeachers()
+      ])
+      
+      // 3. Dependent fetches and fallback logic
+      if (localData.value.categoryId) fetchLevels()
+      else levels.value = []
+
+      // If dates were missing, they might find a fallback now that terms are fetched
+      if (!localData.value.startDate || !localData.value.endDate) {
+        const reMapped = mapSourceToForm()
+        if (!localData.value.startDate) localData.value.startDate = reMapped.startDate
+        if (!localData.value.endDate) localData.value.endDate = reMapped.endDate
+      }
+    }
+  },
+  { immediate: true }
+)
+
+// Automatic Date Alignment & Suggestion
+watch(
+  [
+    () => localData.value.startDate,
+    () => localData.value.numberSessions,
+    () => localData.value.schedule.day
+  ],
+  ([newStart, newSessions, newDay]) => {
+    if (newStart && newSessions && newDay && !isReadOnly.value) {
+      const startDateObj = new Date(newStart)
+      const year = startDateObj.getFullYear()
+
+      // Only proceed if the year is fully entered (avoiding partial inputs like "0026")
+      if (isNaN(year) || year < 1000) return
+
+      // 1. Align Start Date with the Schedule Day
+      const alignedStart = findNextOccurrence(startDateObj, newDay)
+      if (alignedStart !== newStart) {
+        localData.value.startDate = alignedStart
+        return // Next watcher tick will handle the rest
+      }
+
+      // 2. Proactively update end date to match the suggested date
+      const suggested = calculateMinEndDate(new Date(alignedStart), newDay, newSessions)
+      localData.value.endDate = suggested
+    }
   }
-})
+)
+
+const findNextOccurrence = (date, dayName) => {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const targetDay = days.indexOf(dayName)
+  const current = new Date(date)
+  
+  // Keep moving forward until we hit the target day
+  while (current.getDay() !== targetDay) {
+    current.setDate(current.getDate() + 1)
+  }
+  
+  return current.toISOString().split('T')[0]
+}
 
 const unselectedTeachers = computed(() => {
   const selectedIds = (localData.value.teachers || []).map(t => t.id)
@@ -419,10 +485,12 @@ const onTermChange = () => {
 const fetchTeachers = async () => {
   try {
     const data = await userService.getAllUsers()
-    // Filter by role 'instructor' as per UserAuth setup
-    teachers.value = Array.isArray(data) ? data.filter(u => u.role === 'instructor') : []
+    teachers.value = Array.isArray(data) 
+      ? data.filter(u => ['teacher'].includes(u.role)) 
+      : []
   } catch (err) { console.error(err) }
 }
+
 
 const handleCreateCategory = async () => {
   if (!newCategoryName.value.trim()) return
@@ -526,6 +594,13 @@ const dateValidation = computed(() => {
 })
 
 const countOccurrences = (start, end, dayName) => {
+  if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return 0
+  
+  // Safety check: Don't process ranges larger than 2 years to prevent UI freezes
+  const diffTime = Math.abs(end - start)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  if (diffDays > 730) return 0 // Too large for a single program
+
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   const targetDay = days.indexOf(dayName)
   let count = 0
@@ -570,12 +645,6 @@ const titleValidation = computed(() => {
   }
   return { isValid: true, warning: '' }
 })
-
-const fixEndDate = () => {
-  if (dateValidation.value.suggestedEndDate) {
-    localData.value.endDate = dateValidation.value.suggestedEndDate
-  }
-}
 
 const handleSubmit = () => submitForm(isFormValid.value)
 </script>

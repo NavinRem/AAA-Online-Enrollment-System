@@ -8,7 +8,7 @@
       <strong class="name">{{ parent.name || parent.email }}</strong>
     </div>
 
-    <div class="form-grid">
+    <form class="form-grid" @submit.prevent="handleSubmit">
       <div class="form-group full-width" v-if="selectableParents && selectableParents.length > 0">
         <label>Select Parent / Guardian <span class="required">*</span></label>
         <div class="custom-dropdown-container">
@@ -73,6 +73,10 @@
       </div>
 
       <div class="form-group full-width">
+        <AvatarSelector v-model="formData.profileURL" type="student" />
+      </div>
+
+      <div class="form-group full-width">
         <label>Medical Notes / Allergies</label>
         <textarea
           v-model="formData.medicalNote"
@@ -130,12 +134,15 @@
           </button>
         </div>
       </div>
-    </div>
+      <!-- Hidden submit for Enter key functionality -->
+      <button type="submit" style="display: none;"></button>
+    </form>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
       <AppButton
         variant="primary"
+        type="submit"
         @click="handleSubmit"
         :loading="loading"
         :disabled="loading || !isFormValid"
@@ -150,6 +157,7 @@
 import { ref, watch, computed, toRef } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 import { getImageUrl } from '@/utils/assetHelper'
 
@@ -171,7 +179,8 @@ const formData = ref({
   parentId: props.parent?.uid || props.parent?.id || '',
   fullName: '',
   dob: '',
-  medicalNote: 'None',
+  profileURL: getImageUrl('profiles/avatar-boy'),
+  medicalNote: '',
 })
 
 // Dropdown Search Logic
@@ -198,7 +207,8 @@ watch(
         parentId: props.parent?.uid || props.parent?.id || '',
         fullName: '',
         dob: '',
-        medicalNote: 'None',
+        profileURL: getImageUrl('profiles/avatar-boy'),
+        medicalNote: '',
       }
     }
   },

@@ -24,6 +24,8 @@ const currentFilter = ref('all')
 const categoryFilter = ref('all') // New
 const categories = ref([]) // New
 const isCategoryFilterOpen = ref(false)
+const categorySearchQuery = ref('') // New for search
+const categoryMenuStyles = ref({}) // New for positioning
 const now = ref(new Date())
 const newlyCreatedId = ref(null)
 
@@ -49,14 +51,14 @@ const statsCards = computed(() => {
     { label: 'Active Programs', value: s.activeCount, image: getImageUrl('programs/active-program'), color: '#e1f5fe' },
     { label: 'Upcoming Programs', value: s.upcomingCount, image: getImageUrl('programs/upcoming-program'), color: '#e1f5fe' },
     { label: 'In Progress', value: s.inProgressCount, image: getImageUrl('programs/in-progress-program'), color: '#e1f5fe' },
-    { label: 'Archived', value: s.archivedCount, image: getImageUrl('programs/closed-program'), color: '#e1f5fe' }
+    { label: 'Archived', value: s.archivedCount, image: getImageUrl('programs/archived-program'), color: '#e1f5fe' }
   ]
 })
 
 const fetchPrograms = async () => {
   loading.value = true
   try {
-    const [coursesData, catsData, regsData, sessionsData] = await Promise.all([
+    const [coursesData, catsData] = await Promise.all([
       courseService.getAllCourses().catch((e) => {
         console.error('Error fetching courses:', e)
         return []
@@ -65,26 +67,23 @@ const fetchPrograms = async () => {
         console.error('Error fetching categories:', e)
         return []
       }),
-      enrollmentService.getAllEnrollments().catch((e) => {
-        console.error('Error fetching enrollments:', e)
-        return []
-      }),
-      courseService.getAllSessions().catch(() => {
-        return []
-      }),
     ])
     programs.value = Array.isArray(coursesData) ? coursesData : []
     categories.value = Array.isArray(catsData) ? catsData : []
-    enrollments.value = Array.isArray(regsData) ? regsData : []
-    sessions.value = Array.isArray(sessionsData) ? sessionsData : []
   } catch (error) {
-    console.error('Failed to fetch programs, enrollments or sessions', error)
+    console.error('Failed to fetch programs or categories', error)
   } finally {
     loading.value = false
   }
 }
 
 const intervalId = ref(null)
+
+const filteredCategories = computed(() => {
+  if (!categorySearchQuery.value) return categories.value
+  const q = categorySearchQuery.value.toLowerCase()
+  return categories.value.filter(c => c.name.toLowerCase().includes(q))
+})
 
 onMounted(() => {
   fetchPrograms()
@@ -212,12 +211,25 @@ const selectCategory = (name) => {
   isCategoryFilterOpen.value = false
 }
 
-const toggleCategoryFilter = () => {
+const toggleCategoryFilter = (event) => {
   isCategoryFilterOpen.value = !isCategoryFilterOpen.value
+  if (isCategoryFilterOpen.value) {
+    categorySearchQuery.value = ''
+    const rect = event.currentTarget.getBoundingClientRect()
+    categoryMenuStyles.value = {
+      top: `${rect.bottom + 8}px`,
+      left: `${rect.left}px`,
+      maxWidth: '100px'
+    }
+  }
 }
 
-const closeCategoryFilter = () => {
+const closeCategoryFilter = (event) => {
+  // Use a slight delay to allow click events on the menu to register
   setTimeout(() => {
+    // Check if the relatedTarget is inside the menu to prevent accidental closing
+    const menu = document.querySelector('.category-filter-menu')
+    if (menu && menu.contains(event.relatedTarget)) return
     isCategoryFilterOpen.value = false
   }, 200)
 }
@@ -272,26 +284,40 @@ const onRowClick = (item) => {
                 <span v-if="categoryFilter === 'all'">All Categories</span>
                 <span v-else>{{ categoryFilter }}</span>
               </AppButton>
-              <transition name="toast-fade">
-                <div v-if="isCategoryFilterOpen" class="filter-dropdown-menu scrollable-menu">
-                  <div
-                    class="filter-option"
-                    :class="{ active: categoryFilter === 'all' }"
-                    @click.stop="selectCategory('all')"
-                  >
-                    All Categories
+              <Teleport to="body">
+                <transition name="toast-fade">
+                  <div v-if="isCategoryFilterOpen" class="filter-dropdown-menu scrollable-menu category-filter-menu" :style="categoryMenuStyles" @mousedown.stop>
+                    <div class="dropdown-search" style="padding: 8px; border-bottom: 1px solid #f1f5f9;">
+                      <input
+                        type="text"
+                        v-model="categorySearchQuery"
+                        placeholder="Search category..."
+                        style="width: 100%; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem;"
+                        @mousedown.stop
+                      />
+                    </div>
+                    <div
+                      class="filter-option"
+                      :class="{ active: categoryFilter === 'all' }"
+                      @click.stop="selectCategory('all')"
+                    >
+                      All Categories
+                    </div>
+                    <div
+                      v-for="cat in filteredCategories"
+                      :key="cat.id"
+                      class="filter-option"
+                      :class="{ active: categoryFilter === cat.name }"
+                      @click.stop="selectCategory(cat.name)"
+                    >
+                      {{ cat.name }}
+                    </div>
+                    <div v-if="filteredCategories.length === 0" class="filter-option no-results" style="color: #94a3b8; font-style: italic;">
+                      No matches found
+                    </div>
                   </div>
-                  <div
-                    v-for="cat in categories"
-                    :key="cat.id"
-                    class="filter-option"
-                    :class="{ active: categoryFilter === cat.name }"
-                    @click.stop="selectCategory(cat.name)"
-                  >
-                    {{ cat.name }}
-                  </div>
-                </div>
-              </transition>
+                </transition>
+              </Teleport>
             </div>
             <AppButton variant="primary" @click="openModal('add')">+ Add Program</AppButton>
           </template>
@@ -310,12 +336,12 @@ const onRowClick = (item) => {
             </td>
             <td class="bold">{{ item.title }}</td>
             <td class="hide-on-tablet">
+              <!-- Teachers are now hydrated from backend with profileURL -->
               <div v-if="item.teachers && item.teachers.length > 0" class="mini-teacher-list">
-                <div v-for="t in item.teachers.slice(0, 2)" :key="t.id" class="mini-teacher-item">
+                <div v-for="t in item.teachers" :key="t.id || t.uid" class="mini-teacher-item">
                   <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" />
                   <span>{{ t.name }}</span>
                 </div>
-                <span v-if="item.teachers.length > 2" class="more-count">+{{ item.teachers.length - 2 }}</span>
               </div>
               <span v-else class="help-text-small">No teachers</span>
             </td>
@@ -332,7 +358,7 @@ const onRowClick = (item) => {
             </td>
             <td class="hide-on-tablet">
               <div class="schedule-info" v-if="item.schedule">
-                <span class="day">{{ item.schedule.day.substring(0, 3) }}</span>
+                <span class="day">{{ item.schedule.day }}</span>
                 <span class="time">{{ item.schedule.timeslot }}</span>
               </div>
               <span v-else class="help-text-small">Not scheduled</span>

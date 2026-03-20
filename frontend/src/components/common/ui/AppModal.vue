@@ -1,7 +1,7 @@
 <template>
   <transition name="modal-fade">
     <div v-if="show" class="modal-overlay" @click.self="$emit('close')">
-      <div class="modal-content" :class="variant" :style="{ maxWidth: maxWidth }">
+      <div class="modal-content" :class="variant">
         <div class="modal-header">
           <slot name="header">
             <h3>{{ title }}</h3>
@@ -30,10 +30,6 @@ defineProps({
   title: {
     type: String,
     default: '',
-  },
-  maxWidth: {
-    type: String,
-    default: '520px',
   },
   variant: {
     type: String,

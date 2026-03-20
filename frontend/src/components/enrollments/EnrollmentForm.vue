@@ -87,7 +87,7 @@ const handleSubmit = () => {
           <h3>Create New Enrollment</h3>
           <button class="close-btn" @click="$emit('close')">×</button>
         </div>
-        <div class="modal-body">
+        <form class="modal-body" @submit.prevent="handleSubmit">
           <transition name="toast-fade">
             <div v-if="error" class="alert-box error">
               {{ error }}
@@ -226,11 +226,15 @@ const handleSubmit = () => {
             <span class="price-label">Amount to be paid</span>
             <strong class="price-value">${{ selectedCoursePrice }}</strong>
           </div>
-        </div>
+          
+          <!-- Hidden submit for Enter key functionality -->
+          <button type="submit" style="display: none;"></button>
+        </form>
         <div class="modal-footer">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton
             variant="primary"
+            type="submit"
             @click="handleSubmit"
             :disabled="!formData.parentId || !formData.studentId || !formData.courseId || !formData.sessionId || loading"
             :loading="loading"

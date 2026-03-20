@@ -1,20 +1,30 @@
 import { getCourseIcon } from './courseHelper'
 import { isPaid, isCancelled, isUnpaid } from './statusHelper'
 import { isEnrollmentActive } from './studentStatusHelper'
+import { parseDate } from './dateFormatter'
 
 /**
  * Calculates enrollment statistics.
  */
 export const calculateTotalEnrollment = (enrollments) => {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
+
   const total = enrollments.length
   const paidCount = enrollments.filter(r => isPaid(r.status || r.paymentStatus)).length
   const unpaidCount = enrollments.filter(r => isUnpaid(r.status || r.paymentStatus)).length
   const cancelledCount = enrollments.filter(r => isCancelled(r.status || r.paymentStatus)).length
+  const todayCount = enrollments.filter(r => {
+    const time = parseDate(r.enrollAt || r.createdAt).getTime()
+    return time >= startOfToday && time <= endOfToday
+  }).length
   return {
     total,
     paidCount,
     unpaidCount,
-    cancelledCount
+    cancelledCount,
+    todayCount,
   }
 }
 

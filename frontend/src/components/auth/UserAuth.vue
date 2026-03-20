@@ -150,7 +150,7 @@ const handleSubmit = async () => {
             <label>Role <span class="required">*</span></label>
             <select v-model="role" required>
               <option value="parent">Parent</option>
-              <option value="instructor">Teacher</option>
+              <option value="teacher">Teacher</option>
               <option value="admin">Admin</option>
             </select>
           </div>

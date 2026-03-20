@@ -87,7 +87,7 @@ exports.getStudentsByParentID = async (req, res) => {
 
 /**
  * @route GET /students
- * @description Get ALL students (Admin/Instructor)
+ * @description Get ALL students (Admin/Teacher)
  */
 exports.getAllStudents = async (req, res) => {
   try {

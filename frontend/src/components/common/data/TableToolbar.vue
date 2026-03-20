@@ -21,19 +21,21 @@
         >
           <span style="margin-right: 6px"></span> Filter
         </AppButton>
-        <transition name="toast-fade">
-          <div v-if="isFilterOpen" class="filter-dropdown-menu">
-            <div
-              v-for="option in filterOptions"
-              :key="option.value"
-              class="filter-option"
-              :class="{ active: currentFilter === option.value }"
-              @click.stop="selectFilter(option.value)"
-            >
-              {{ option.label }}
+        <Teleport to="body">
+          <transition name="toast-fade">
+            <div v-if="isFilterOpen" class="filter-dropdown-menu status-filter-menu scrollable-menu" :style="filterMenuStyles" @mousedown.stop>
+              <div
+                v-for="option in filterOptions"
+                :key="option.value"
+                class="filter-option"
+                :class="{ active: currentFilter === option.value }"
+                @click.stop="selectFilter(option.value)"
+              >
+                {{ option.label }}
+              </div>
             </div>
-          </div>
-        </transition>
+          </transition>
+        </Teleport>
       </div>
 
       <!-- Actions for Add Buttons, etc -->
@@ -81,13 +83,24 @@ defineProps({
 const emit = defineEmits(['update:searchQuery', 'update:currentFilter'])
 
 const isFilterOpen = ref(false)
+const filterMenuStyles = ref({})
 
-const toggleFilter = () => {
+const toggleFilter = (event) => {
   isFilterOpen.value = !isFilterOpen.value
+  if (isFilterOpen.value) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    filterMenuStyles.value = {
+      top: `${rect.bottom + 8}px`,
+      left: `${rect.left}px`,
+      maxWidth: '100px'
+    }
+  }
 }
 
-const closeFilter = () => {
+const closeFilter = (event) => {
   setTimeout(() => {
+    const menu = document.querySelector('.status-filter-menu')
+    if (menu && menu.contains(event.relatedTarget)) return
     isFilterOpen.value = false
   }, 200)
 }

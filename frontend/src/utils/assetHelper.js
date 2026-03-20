@@ -9,9 +9,9 @@ const icons = import.meta.glob('../assets/icons/**/*.{png,jpg,jpeg,svg,webp}', {
  * ASSET_PATH_MAP: Explicitly map legacy fuzzy keywords to new standardized paths.
  */
 const ASSET_PATH_MAP = {
-  'student': 'profiles/avatar-student',
-  'parent': 'profiles/avatar-parent',
-  'guardian': 'profiles/avatar-guardian',
+  'student': 'profiles/avatar-boy',
+  'parent': 'profiles/avatar-man',
+  'guardian': 'profiles/avatar-man',
   'admin': 'profiles/avatar-admin',
   'profile-admin': 'profiles/avatar-admin',
   'child-profile': 'profiles/avatar-student',

@@ -61,8 +61,8 @@ const handleImageError = (e) => {
 }
 
 .card-illustration img {
-  max-width: 100%;
-  max-height: 100%;
+  width: 100px;
+  height: 100px;
   object-fit: contain;
 }
 

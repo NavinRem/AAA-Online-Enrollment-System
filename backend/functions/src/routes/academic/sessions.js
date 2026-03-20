@@ -14,9 +14,9 @@ router.get("/:id/validateCapacity", sessionController.validateCapacity);
 // Get Session by ID
 router.get("/:id", sessionController.getSession);
 
-// Instructor Management
-router.patch("/:id/instructor", sessionController.assignInstructor);
-router.get("/:id/roster", sessionController.getInstructorRoster);
+// Teacher Management
+router.patch("/:id/teacher", sessionController.assignTeacher);
+router.get("/:id/teachers", sessionController.getSessionTeachers);
 router.post("/sync-counts", sessionController.syncStudentCounts);
 
 module.exports = router;

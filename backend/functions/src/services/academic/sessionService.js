@@ -2,7 +2,7 @@ const { db, COLLECTIONS } = require("../../config/database");
 
 class SessionService {
   async createSession(sessionData) {
-    const { course_id, instructors, schedule, capacity } = sessionData;
+    const { course_id, teachers, schedule, capacity } = sessionData;
 
     if (!course_id) {
       throw new Error("course_id is required");
@@ -10,7 +10,7 @@ class SessionService {
 
     const data = {
       course_id,
-      instructors: instructors || [], // Array of { id, role }
+      teachers: teachers || [], // Array of { id, role }
       schedule: schedule || {}, // Map of { day, timeslot }
       capacity: parseInt(capacity) || 20,
       num_student: 0,
@@ -35,9 +35,27 @@ class SessionService {
 
   async getAllSessions() {
     const snapshot = await db.collection(COLLECTIONS.SESSION).get();
-    return snapshot.docs.map((doc) => ({
+    const sessions = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
+    }));
+
+    // Basic hydration (Teachers)
+    // Fetch all teachers for hydration (supporting both roles for transition)
+    const usersSnapshot = await db.collection(COLLECTIONS.USER).where("role", "in", ["teacher", "instructor"]).get();
+    const teachersMap = {};
+    usersSnapshot.docs.forEach(doc => {
+      const userData = doc.data();
+      teachersMap[doc.id] = {
+        id: doc.id,
+        name: userData.name || userData.email || "Unknown",
+        profileURL: userData.profileURL || ""
+      };
+    });
+
+    return sessions.map(s => ({
+      ...s,
+      teachers: (s.teachers || []).map(t => teachersMap[t.id] || t)
     }));
   }
 
@@ -66,19 +84,18 @@ class SessionService {
     return { id: doc.id, ...doc.data() };
   }
 
-  // 22. Assign Instructor
-  async assignInstructor(sessionId, instructors) {
-    // instructors = array of { id, role }
+  // 22. Assign Teacher
+  async assignTeacher(sessionId, teachers) {
     const ref = db.collection(COLLECTIONS.SESSION).doc(sessionId);
-    await ref.update({ instructors });
-    return { message: "Instructors assigned successfully" };
+    await ref.update({ teachers });
+    return { message: "Teachers assigned successfully" };
   }
 
-  // 15. Get Instructor Roster
-  async getInstructorRoster(sessionId) {
+  // 15. Get Session Teachers
+  async getSessionTeachers(sessionId) {
     const doc = await db.collection(COLLECTIONS.SESSION).doc(sessionId).get();
     if (!doc.exists) throw new Error("Session not found");
-    return doc.data().instructors || [];
+    return doc.data().teachers || [];
   }
 
   // 23. Sync Student Counts

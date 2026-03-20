@@ -167,15 +167,15 @@ class EnrollmentService {
       sessionSchedule = scheduleLines.join(", ");
     }
 
-    let instructorName = "Not Assigned";
-    if (sessionData && sessionData.instructors && sessionData.instructors.length > 0) {
-      const first = sessionData.instructors[0];
+    let teacherName = "Not Assigned";
+    if (sessionData && sessionData.teachers && sessionData.teachers.length > 0) {
+      const first = sessionData.teachers[0];
       if (first.name) {
-        instructorName = first.name;
+        teacherName = first.name;
       } else if (first.id) {
         const instDoc = await db.collection(COLLECTIONS.USER).doc(first.id).get();
         if (instDoc.exists) {
-          instructorName = instDoc.data().name || instDoc.data().email || "Assigned";
+          teacherName = instDoc.data().name || instDoc.data().email || "Assigned";
         }
       }
     }
@@ -207,7 +207,7 @@ class EnrollmentService {
         courseData?.title || courseData?.name || data.courseTitle || "N/A",
       displayStatus,
       sessionSchedule: sessionSchedule,
-      instructorName,
+      teacherName,
       capacity: sessionData?.capacity || 0,
       numStudent: sessionData?.numStudent || 0,
       totalSessions: sessionData?.totalSessions || 10,

@@ -3,7 +3,7 @@
     <div v-if="error" class="alert-box error">{{ error }}</div>
     <div v-if="success" class="alert-box success">{{ success }}</div>
 
-    <div class="form-grid">
+    <form class="form-grid" @submit.prevent="handleSubmit">
       <div class="form-group full-width">
         <label>Full Name <span class="required">*</span></label>
         <input type="text" v-model="formData.name" placeholder="Enter full name" required />
@@ -28,6 +28,10 @@
       </div>
 
       <div class="form-group full-width">
+        <AvatarSelector v-model="formData.profileURL" type="parent" />
+      </div>
+
+      <div class="form-group full-width">
         <label>Password (Temporary)</label>
         <input
           type="text"
@@ -36,12 +40,15 @@
         />
         <small class="text-muted">The parent will be asked to change this on first login.</small>
       </div>
-    </div>
+      <!-- Hidden submit for Enter key functionality -->
+      <button type="submit" style="display: none;"></button>
+    </form>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
       <AppButton
         variant="primary"
+        type="submit"
         @click="handleSubmit"
         :loading="loading"
         :disabled="loading || !isFormValid"
@@ -56,6 +63,8 @@
 import { ref, watch, computed } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -71,6 +80,7 @@ const formData = ref({
   email: '',
   phone: '',
   role: 'parent',
+  profileURL: getImageUrl('profiles/avatar-man'),
   password: '',
 })
 
@@ -83,6 +93,7 @@ watch(
         email: '',
         phone: '',
         role: 'parent',
+        profileURL: getImageUrl('profiles/avatar-man'),
         password: '',
       }
     }
