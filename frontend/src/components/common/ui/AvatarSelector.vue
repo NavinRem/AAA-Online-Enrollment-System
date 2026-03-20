@@ -61,7 +61,7 @@
 import { ref, computed } from 'vue'
 import { storage } from '@/firebase'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, ALL_BUILTIN_AVATARS } from '@/utils/assetHelper'
 
 const props = defineProps({
   modelValue: String,
@@ -80,18 +80,23 @@ const success = ref(false)
 const error = ref('')
 
 const availableAvatars = computed(() => {
-  if (props.role === 'student') {
+  const role = props.role?.toLowerCase()
+  
+  if (role === 'student') {
     return [
       { id: 'boy', name: 'Boy', url: getImageUrl('profiles/avatar-boy') },
       { id: 'girl', name: 'Girl', url: getImageUrl('profiles/avatar-girl') },
     ]
   }
-  if (props.role === 'teacher') {
+  
+  if (role === 'teacher') {
     return [
       { id: 'teacher-man', name: 'Teacher (M)', url: getImageUrl('profiles/avatar-teacher-man') },
       { id: 'teacher-woman', name: 'Teacher (F)', url: getImageUrl('profiles/avatar-teacher-woman') },
     ]
   }
+  
+  // Default to parent/guardian for all other roles (including admin)
   return [
     { id: 'man', name: 'Man', url: getImageUrl('profiles/avatar-man') },
     { id: 'woman', name: 'Woman', url: getImageUrl('profiles/avatar-woman') },
@@ -100,8 +105,8 @@ const availableAvatars = computed(() => {
 
 const isCustomUrl = computed(() => {
   if (!props.modelValue) return false
-  // It's custom if it doesn't match any of the built-in avatar URLs
-  return !availableAvatars.value.some(avatar => avatar.url === props.modelValue)
+  // It's custom ONLY if it's NOT one of the official built-in avatars
+  return !ALL_BUILTIN_AVATARS.includes(props.modelValue)
 })
 
 const selectAvatar = (url) => {

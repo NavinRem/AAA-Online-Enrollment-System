@@ -1,12 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/authService'
 import { userService } from '@/services/userService'
 
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, ALL_BUILTIN_AVATARS } from '@/utils/assetHelper'
 import { storageService } from '@/services/storageService'
 
 const router = useRouter()
@@ -23,6 +23,21 @@ const showPassword = ref(false)
 const error = ref('')
 const message = ref('')
 const loading = ref(false)
+
+// Automatically switch default avatar when role changes
+watch(role, (newRole) => {
+  // ONLY switch if the current image is one of the defaults
+  // If it's a custom upload, leave it alone!
+  if (ALL_BUILTIN_AVATARS.includes(profileURL.value)) {
+    if (newRole === 'student') {
+      profileURL.value = getImageUrl('profiles/avatar-boy')
+    } else if (newRole === 'teacher') {
+      profileURL.value = getImageUrl('profiles/avatar-teacher-man')
+    } else {
+      profileURL.value = getImageUrl('profiles/avatar-man')
+    }
+  }
+})
 
 const toggleMode = () => {
   isLogin.value = !isLogin.value

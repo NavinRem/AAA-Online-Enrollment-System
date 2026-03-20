@@ -128,3 +128,15 @@ export const getBackgroundAsset = (name) => getImageUrl('backgrounds', name)
 export const getCommonAsset = (name) => getImageUrl('common', name)
 
 export const getAssetUrl = (param1, param2) => getImageUrl(param1, param2)
+
+/**
+ * Built-in Profile Avatars
+ */
+export const ALL_BUILTIN_AVATARS = [
+  getImageUrl('profiles/avatar-boy'),
+  getImageUrl('profiles/avatar-girl'),
+  getImageUrl('profiles/avatar-man'),
+  getImageUrl('profiles/avatar-woman'),
+  getImageUrl('profiles/avatar-teacher-man'),
+  getImageUrl('profiles/avatar-teacher-woman'),
+]
