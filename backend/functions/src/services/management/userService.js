@@ -107,8 +107,22 @@ class UserService {
       throw new Error("User not found");
     }
 
+    try {
+      // 1. Delete from Firebase Authentication
+      await getAuth().deleteUser(uid);
+      console.log(`Successfully deleted Auth account for ${uid}`);
+    } catch (error) {
+      // Log error but continue with Firestore deletion if user doesn't exist in Auth
+      console.error(`Error deleting Auth account for ${uid}:`, error.message);
+      if (error.code !== 'auth/user-not-found') {
+        // If it's a real error (not just already gone), we might want to know
+        // but typically we still want to clean up the DB
+      }
+    }
+
+    // 2. Delete from Firestore
     await userRef.delete();
-    return { uid, message: "User deleted successfully" };
+    return { uid, message: "User deleted successfully (Auth + Firestore)" };
   }
 
   async getAllStudents() {

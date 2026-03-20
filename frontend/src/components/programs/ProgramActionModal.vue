@@ -253,6 +253,46 @@
       </AppButton>
     </template>
   </AppModal>
+  <AppModal 
+    v-if="showDeleteConfirm" 
+    :show="showDeleteConfirm" 
+    title="Confirm Permanent Deletion" 
+    @close="closeDeleteConfirm"
+  >
+    <div class="delete-confirm-content">
+      <div class="warning-icon">⚠️</div>
+      <h3>Are you sure?</h3>
+      <p>
+        You are about to <strong>permanently delete</strong> the account for 
+        <span class="highlight">{{ teacherToDelete?.name || teacherToDelete?.email }}</span>.
+      </p>
+      <p class="warning-text">
+        This will remove their profile and their <strong>login credentials</strong>. This action cannot be undone.
+      </p>
+      
+      <div class="confirm-input-group">
+        <label>Type <strong>DELETE</strong> to confirm:</label>
+        <input 
+          type="text" 
+          v-model="deleteConfirmText" 
+          placeholder="TYPE DELETE HERE"
+          class="confirm-input"
+        />
+      </div>
+    </div>
+
+    <template #footer>
+      <AppButton variant="cancel" @click="closeDeleteConfirm">Cancel</AppButton>
+      <AppButton 
+        variant="danger" 
+        @click="confirmDeleteTeacher" 
+        :disabled="deleteConfirmText !== 'DELETE'"
+        :loading="deletingUser"
+      >
+        Confirm Delete
+      </AppButton>
+    </template>
+  </AppModal>
 </template>
 
 <script setup>
@@ -285,6 +325,10 @@ const newCategoryName = ref('')
 const newLevelName = ref('')
 const newTermName = ref('')
 const isUploading = ref(false)
+const showDeleteConfirm = ref(false)
+const teacherToDelete = ref(null)
+const deleteConfirmText = ref('')
+const deletingUser = ref(false)
 
 const sortedCategories = computed(() => {
   return [...categories.value].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
@@ -453,17 +497,38 @@ const removeTeacher = (id) => {
   localData.value.teachers = localData.value.teachers.filter(t => t.id !== id)
 }
 
-const handleDeleteTeacher = async (teacher) => {
-  const name = teacher.name || teacher.email
-  if (!confirm(`Are you sure you want to PERMANENTLY delete the account for ${name}? This cannot be undone.`)) return
+const handleDeleteTeacher = (teacher) => {
+  teacherToDelete.value = teacher
+  showDeleteConfirm.value = true
+  deleteConfirmText.value = ''
+}
+
+const closeDeleteConfirm = () => {
+  showDeleteConfirm.value = false
+  teacherToDelete.value = null
+  deleteConfirmText.value = ''
+}
+
+const confirmDeleteTeacher = async () => {
+  if (deleteConfirmText.value !== 'DELETE') return
   
+  deletingUser.value = true
   try {
-    // We don't use the component-level 'loading' for this minor action 
-    // to avoid locking the whole modal, but we can if preferred.
-    await userService.deleteUser(teacher.uid || teacher.id)
-    await fetchTeachers() // Refresh the list
+    const uid = teacherToDelete.value.uid || teacherToDelete.value.id
+    await userService.deleteUser(uid)
+    
+    // 1. Remove from potential local selection
+    localData.value.teachers = localData.value.teachers.filter(t => (t.id || t.uid) !== uid)
+    
+    // 2. Refresh the master teachers list for the dropdown
+    await fetchTeachers()
+    
+    closeDeleteConfirm()
   } catch (err) {
-    alert('Failed to delete teacher: ' + err.message)
+    console.error('Failed to delete teacher:', err)
+    alert('Failed to delete teacher account: ' + err.message)
+  } finally {
+    deletingUser.value = false
   }
 }
 
@@ -957,6 +1022,61 @@ const handleSubmit = () => submitForm(isFormValid.value)
   font-size: 0.85rem;
   color: #334155;
   font-weight: 500;
+}
+
+/* Delete Confirmation Modal Styles */
+.delete-confirm-content {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.warning-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.highlight {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.warning-text {
+  background: #fff1f2;
+  border-left: 4px solid #ef4444;
+  padding: 12px;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+  color: #991b1b;
+  text-align: left;
+}
+
+.confirm-input-group {
+  margin-top: 1.5rem;
+  text-align: left;
+}
+
+.confirm-input-group label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: #475569;
+}
+
+.confirm-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.confirm-input:focus {
+  border-color: #ef4444;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 .remove-btn {
