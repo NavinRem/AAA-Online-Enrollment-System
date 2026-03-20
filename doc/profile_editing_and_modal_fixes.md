@@ -29,6 +29,7 @@ This document technical explanation of the fixes implemented to resolve the prof
 **Solution**:
 - **Updated `firebase.json`**: Added the `storage` emulator on port `9199`.
 - **Updated `firebase.js`**: Added `connectStorageEmulator(storage, '127.0.0.1', 9199)` to the local environment check.
+- **Updated `storage.rules`**: Allowed unauthenticated writes specifically to `/profiles/temp/` to enable registration-phase uploads.
 
 ## 4. Teacher & New User Avatar Selection
 **Requirement**: Allow new users (especially teachers who cannot edit their profile later) to select a default avatar or upload a custom one during account creation.

@@ -5,9 +5,15 @@ service firebase.storage {
       // Allow public read access to all files (useful for course images, avatars, etc.)
       allow read: if true;
       
-      // Only authenticated users can upload files. 
-      // Note: Backend functions bypass these rules when using the Admin SDK.
-      allow write: if request.auth != null;
+      // Profiles/temp: Allow anyone to upload a temporary profile picture (for registration)
+      match /profiles/temp/{allPaths=**} {
+        allow write: if true; 
+      }
+
+      // Rest of the profiles and other paths: Only authenticated users can upload.
+      match /{allPaths=**} {
+        allow write: if request.auth != null;
+      }
     }
   }
 }
