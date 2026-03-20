@@ -145,14 +145,6 @@
             <span>{{ t.name }}</span>
             <div v-if="!isReadOnly" class="tag-actions">
               <button type="button" class="remove-btn" @click="removeTeacher(t.id)" title="Remove from Program">&times;</button>
-              <button 
-                type="button" 
-                class="item-delete-btn" 
-                @click.stop="handleDeleteTeacher(t)" 
-                title="Permanently Delete User Account"
-              >
-                🗑️
-              </button>
             </div>
           </div>
         </div>
@@ -236,11 +228,11 @@
     </form>
 
     <div v-if="type === 'delete'" class="delete-confirm-content">
-      <div class="info-block danger">
-        <div class="icon">🛑</div>
+      <div class="warning-icon">⚠️</div>
+      <div class="info-block danger" style="text-align: left; margin-top: 10px;">
         <div class="text">
-          <strong>Critical Permanent Program Deletion</strong>
-          <p>You are about to delete <strong>{{ program?.title }}</strong>. This action is permanent and will remove all associated sessions and historical enrollment records.</p>
+          <strong>Delete Program</strong>
+          <p>You are about to delete <strong>{{ program?.title }}</strong>. This action is permanent and will remove all associated sessions.</p>
         </div>
       </div>
       <div class="confirm-input-group">
@@ -274,8 +266,8 @@
     @close="closeDeleteConfirm"
   >
     <div class="delete-confirm-content">
-      <div class="info-block danger">
-        <div class="icon">🛑</div>
+      <div class="warning-icon">⚠️</div>
+      <div class="info-block danger" style="text-align: left; margin-top: 10px;">
         <div class="text">
           <strong>Critical Permanent Account Deletion</strong>
           <p>
@@ -1048,6 +1040,26 @@ const handleSubmit = () => submitForm(isFormValid.value)
 .delete-confirm-content {
   text-align: center;
   padding: 10px 0;
+}
+
+.warning-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.highlight {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.warning-text {
+  background: #fff1f2;
+  border-left: 4px solid #ef4444;
+  padding: 12px;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+  color: #991b1b;
+  text-align: left;
 }
 
 .confirm-input-group {

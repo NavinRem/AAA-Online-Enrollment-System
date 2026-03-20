@@ -82,9 +82,9 @@
     <!-- Delete Form -->
     <form v-if="type === 'delete'" class="form-group full-width" @submit.prevent="handleSubmit">
       <div class="info-block danger">
-        <div class="icon">🛑</div>
+        <div class="icon">⚠️</div>
         <div class="text">
-          <strong>Critical Permanent Action</strong>
+          <strong>Critical Permanent Account Deletion</strong>
           <p>
             Deleting an account removes the record entirely. It can never be recovered. This should
             only be used for accidental duplicate enrollments.
