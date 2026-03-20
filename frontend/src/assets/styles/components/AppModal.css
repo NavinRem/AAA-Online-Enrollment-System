@@ -105,7 +105,8 @@
 
 /* Specialized Variant: Action Modal */
 .modal-content.action {
-  max-width: 480px;
+  width: 90%;
+  max-width: 600px;
 }
 
 /* Form Styles for Modal */

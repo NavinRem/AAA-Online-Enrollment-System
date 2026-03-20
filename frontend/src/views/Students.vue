@@ -198,7 +198,7 @@ const openActionModal = async (type, studentItem) => {
 
 const submitActionModal = async (formData) => {
   const { type, student } = actionModal.value
-  const { fullName, name, medicalNote, medical_note, status, parentId, dob } = formData
+  const { fullName, name, medicalNote, medical_note, status, parentId, dob, profileURL } = formData
   modalLoading.value = true
   modalError.value = ''
   modalSuccess.value = ''
@@ -211,6 +211,7 @@ const submitActionModal = async (formData) => {
         status,
         dob,
         parentId: parentId,
+        profileURL: profileURL,
       })
 
       const idx = students.value.findIndex((s) => s.id === student.id || s.uid === student.uid)
@@ -221,6 +222,7 @@ const submitActionModal = async (formData) => {
         students.value[idx].medicalNote = medicalNote || medical_note
         students.value[idx].status = status
         if (dob) students.value[idx].dob = dob
+        if (profileURL) students.value[idx].profileURL = profileURL
         if (chosenParent) {
           students.value[idx].parentId = parentId
           students.value[idx].parentName = chosenParent.name || chosenParent.email

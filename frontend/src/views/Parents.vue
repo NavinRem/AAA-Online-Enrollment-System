@@ -121,13 +121,13 @@ const closeActionModal = () => {
 
 const submitActionModal = async (formData) => {
   const { type, user } = actionModal.value
-  const { name, phone, email, role, deleteConfirm } = formData
+  const { name, phone, email, role, profileURL, deleteConfirm } = formData
   submitting.value = true
   errorMessage.value = ''
 
   try {
     if (type === 'edit') {
-      await userService.updateUser(user.uid || user.id, { name, phone, email, role })
+      await userService.updateUser(user.uid || user.id, { name, phone, email, role, profileURL })
 
       const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
       if (idx !== -1) {
@@ -135,6 +135,7 @@ const submitActionModal = async (formData) => {
         allUsers.value[idx].phone = phone
         allUsers.value[idx].email = email
         allUsers.value[idx].role = role
+        if (profileURL) allUsers.value[idx].profileURL = profileURL
       }
       successMessage.value = 'User updated successfully!'
     } else if (type === 'deactivate') {

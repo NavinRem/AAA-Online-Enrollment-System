@@ -144,11 +144,10 @@ const handleFileUpload = async (event) => {
 .selector-container {
   width: 100%;
   display: flex;
-  justify-content: center;
+  justify-content: space-around;
   align-items: center;
-  gap: 10px;
   background: #f8fafc;
-  padding: 16px;
+  padding: 16px 24px;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
 }
