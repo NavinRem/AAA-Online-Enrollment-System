@@ -21,7 +21,27 @@ This document technical explanation of the fixes implemented to resolve the prof
 - **Responsive Width**: Added `width: 90%` for better mobile responsiveness.
 - **Refined `AvatarSelector.vue`**: Changed `justify-content` from `center` to `space-around` and increased horizontal padding to ensure the content "fits" the wider container naturally.
 
+## 3. Storage Emulator Configuration
+**Problem**: Image uploads would hang "indefinitely" during local development.
+
+**Root Cause**: The application was correctly connected to Auth and Firestore emulators but was missing the Storage emulator connection. Attempting to upload to production Storage with a local emulator Auth token caused a security/timeout hang.
+
+**Solution**:
+- **Updated `firebase.json`**: Added the `storage` emulator on port `9199`.
+- **Updated `firebase.js`**: Added `connectStorageEmulator(storage, '127.0.0.1', 9199)` to the local environment check.
+
+## 4. Teacher & New User Avatar Selection
+**Requirement**: Allow new users (especially teachers who cannot edit their profile later) to select a default avatar or upload a custom one during account creation.
+
+**Solution**:
+- **Updated `UserAuth.vue`**: Integrated `AvatarSelector` into the registration form.
+- **Defaulting**: Set a default path (`profiles/avatar-man`) so that all new accounts start with a valid profile picture.
+- **Logic**: Passed the `profileURL` to the `registerParentAccount` (generic registration) service call.
+
 ## Related Files
+- `firebase.json`
+- `frontend/src/firebase.js`
+- `frontend/src/components/auth/UserAuth.vue`
 - `frontend/src/views/Parents.vue`
 - `frontend/src/views/Students.vue`
 - `frontend/src/assets/styles/components/AppModal.css`

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app'
-import { getStorage } from 'firebase/storage'
+import { getStorage, connectStorageEmulator } from 'firebase/storage'
 import { initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
 
@@ -17,6 +17,7 @@ const auth = getAuth(app)
 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
   connectFirestoreEmulator(firestore, '127.0.0.1', 8080)
   connectAuthEmulator(auth, 'http://127.0.0.1:9099')
+  connectStorageEmulator(storage, '127.0.0.1', 9199)
   console.log('Connected to Firebase Emulators')
 }
 

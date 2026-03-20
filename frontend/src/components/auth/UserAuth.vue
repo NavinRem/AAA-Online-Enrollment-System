@@ -5,6 +5,7 @@ import { authService } from '@/services/authService'
 import { userService } from '@/services/userService'
 
 import AppButton from '@/components/common/ui/AppButton.vue'
+import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { getImageUrl } from '@/utils/assetHelper'
 
 const router = useRouter()
@@ -16,6 +17,7 @@ const password = ref('')
 const phone = ref('')
 const role = ref('parent')
 const name = ref('')
+const profileURL = ref(getImageUrl('profiles/avatar-man'))
 const showPassword = ref(false)
 const error = ref('')
 const message = ref('')
@@ -30,6 +32,7 @@ const toggleMode = () => {
   name.value = ''
   phone.value = ''
   role.value = 'parent'
+  profileURL.value = getImageUrl('profiles/avatar-man')
   error.value = ''
   message.value = ''
 }
@@ -95,6 +98,7 @@ const handleSubmit = async () => {
         name: name.value,
         phone: phone.value,
         role: role.value,
+        profileURL: profileURL.value,
       })
 
       // 3. Forced Logout & Sign In Redirect
@@ -153,6 +157,10 @@ const handleSubmit = async () => {
               <option value="teacher">Teacher</option>
               <option value="admin">Admin</option>
             </select>
+          </div>
+          
+          <div v-if="!isLogin && !isResetMode" class="form-group">
+            <AvatarSelector v-model="profileURL" :type="role === 'student' ? 'student' : 'parent'" />
           </div>
 
           <div class="form-group">
