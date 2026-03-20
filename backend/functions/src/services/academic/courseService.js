@@ -66,6 +66,22 @@ class CourseService {
       ...doc.data(),
     }));
 
+    return this._hydrateCourses(courses);
+  }
+
+  async getCourse(courseId) {
+    const doc = await db.collection(COLLECTIONS.COURSE).doc(courseId).get();
+    if (!doc.exists) throw new Error("Course not found");
+    
+    const courses = [ { id: doc.id, ...doc.data() } ];
+    const hydrated = await this._hydrateCourses(courses);
+    return hydrated[0];
+  }
+
+  // Helper method to hydrate course data (Terms, Categories, Levels, Teachers)
+  async _hydrateCourses(courses) {
+    if (!courses || courses.length === 0) return [];
+
     // Fetch all terms for mapping
     const termsSnapshot = await db.collection(COLLECTIONS.TERM).get();
     const termsMap = {};
@@ -73,7 +89,7 @@ class CourseService {
       termsMap[doc.id] = doc.data().name;
     });
 
-    // Fetch all teachers for hydration (supporting both roles for transition)
+    // Fetch all teachers for hydration
     const usersSnapshot = await db.collection(COLLECTIONS.USER).where("role", "in", ["teacher", "instructor"]).get();
     const teachersMap = {};
     usersSnapshot.docs.forEach((doc) => {
@@ -85,9 +101,11 @@ class CourseService {
       };
     });
 
-    const levelsMap = {};
+    // Fetch all categories and levels
     const categoriesSnapshot = await db.collection(COLLECTIONS.CATEGORY).get();
     const categoriesMap = {};
+    const levelsMap = {};
+    
     categoriesSnapshot.docs.forEach(doc => {
       categoriesMap[doc.id] = doc.data().name;
     });
@@ -103,9 +121,11 @@ class CourseService {
 
     return courses.map((course) => {
       let rawTeachers = course.teachers || [];
+      // Fallback for legacy data/single teacherId
       if (rawTeachers.length === 0 && (course.teacherId || course.uid)) {
         rawTeachers = [{ id: course.teacherId || course.uid, name: course.teacherName || "Unknown" }];
       }
+      
       const hydratedTeachers = rawTeachers.map(t => {
         const teacherId = typeof t === 'string' ? t : (t.id || t.uid);
         if (!teacherId) return null;
@@ -121,12 +141,6 @@ class CourseService {
         termName: termsMap[course.termId] || "Term 1 2026",
       };
     });
-  }
-
-  async getCourse(courseId) {
-    const doc = await db.collection(COLLECTIONS.COURSE).doc(courseId).get();
-    if (!doc.exists) throw new Error("Course not found");
-    return { id: doc.id, ...doc.data() };
   }
 
   async updateCourse(id, updateData) {

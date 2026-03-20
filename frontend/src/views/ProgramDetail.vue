@@ -23,7 +23,6 @@ const program = ref(null)
 const sessions = ref([])
 const enrollments = ref([])
 const students = ref([])
-const teacher = ref(null)
 const loading = ref(true)
 const errorMessage = ref('')
 const now = ref(new Date())
@@ -52,16 +51,6 @@ const fetchAllData = async () => {
     enrollments.value = allEnrollments.filter(e => String(e.courseId || e.course_id) === String(id))
     
     students.value = Array.isArray(stdData) ? stdData : []
-
-    // Fetch Teacher profile if linked
-    if (pData?.teacherId) {
-      try {
-        const tData = await userService.getProfile(pData.teacherId)
-        if (tData) teacher.value = tData
-      } catch (err) {
-        console.warn('Teacher profile not found for program:', err)
-      }
-    }
   } catch (err) {
     console.error('Error fetching program details:', err)
     errorMessage.value = 'Failed to load program details'
@@ -91,10 +80,10 @@ const statsCards = computed(() => {
   const capacityPercent = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0
 
   return [
-    { label: 'Total Enrolled', value: totalEnrolled, image: getImageUrl('dashboard/enrollment'), color: '#e0f2fe' },
-    { label: 'Program Revenue', value: `$${totalRevenue.toLocaleString()}`, image: getImageUrl('dashboard/payment'), color: '#f0fdf4' },
-    { label: 'Remaining Sessions', value: program.value.number_session || program.value.numberSessions || '-', image: getImageUrl('programs/total-program'), color: '#fff7ed' },
-    { label: 'Enrollment Capacity', value: `${capacityPercent}%`, image: getImageUrl('dashboard/user-online'), color: capacityPercent > 90 ? '#fef2f2' : '#f8fafc' }
+    { label: 'Total Enrolled', value: totalEnrolled, image: getImageUrl('data-metric-card/total-enrolled'), color: '#e0f2fe' },
+    { label: 'Program Revenue', value: `$${totalRevenue.toLocaleString()}`, image: getImageUrl('data-metric-card/program-revenue'), color: '#f0fdf4' },
+    { label: 'Remaining Sessions', value: program.value.number_session || program.value.numberSessions || '-', image: getImageUrl('data-metric-card/remaining-sessions'), color: '#fff7ed' },
+    { label: 'Enrollment Capacity', value: `${capacityPercent}%`, image: getImageUrl('data-metric-card/enrollment-capacity'), color: capacityPercent > 90 ? '#fef2f2' : '#f8fafc' }
   ]
 })
 
@@ -303,12 +292,17 @@ const handleStudentClick = (enroll) => {
           </template>
 
           <div class="detail-row">
-            <span class="summary-label">Teacher</span>
-            <div class="summary-value user-info no-padding" v-if="teacher || program.teacherName">
-              <div class="avatar-mini" v-if="teacher?.profileURL">
-                <img :src="teacher.profileURL" alt="Teacher" />
+            <span class="summary-label">Teachers</span>
+            <div class="summary-value teachers-list" v-if="program.teachers && program.teachers.length > 0">
+              <div v-for="t in program.teachers" :key="t.id" class="user-info no-padding">
+                <div class="avatar-mini">
+                  <img :src="t.profileURL || getImageUrl('profiles/avatar-instructor')" alt="Teacher" />
+                </div>
+                <span>{{ t.name || t.fullname || 'Unknown Teacher' }}</span>
               </div>
-              <span>{{ teacher?.fullname || teacher?.name || program.teacherName || 'Not Assigned' }}</span>
+            </div>
+            <div class="summary-value" v-else-if="program.teacherName">
+               <span>{{ program.teacherName }}</span>
             </div>
             <span class="summary-value" v-else>Not Assigned</span>
           </div>
@@ -418,5 +412,11 @@ const handleStudentClick = (enroll) => {
   font-size: 1rem;
   font-weight: 600;
   color: #475569;
+}
+
+.teachers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 </style>
