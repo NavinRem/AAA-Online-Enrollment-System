@@ -39,7 +39,12 @@
         </div>
 
         <div class="form-group full-width">
-          <AvatarSelector v-model="localData.profileURL" :role="localData.role" :uid="user?.uid || user?.id" />
+          <AvatarSelector 
+            v-model="localData.profileURL" 
+            :role="localData.role" 
+            :uid="user?.uid || user?.id"
+            :customFileName="`${localData.name}_${localData.role}`"
+          />
         </div>
       </div>
 

@@ -73,7 +73,11 @@
       </div>
 
       <div class="form-group full-width">
-        <AvatarSelector v-model="formData.profileURL" role="student" />
+        <AvatarSelector 
+          v-model="formData.profileURL" 
+          role="student"
+          :customFileName="`${formData.fullName}_student`"
+        />
       </div>
 
       <div class="form-group full-width">
