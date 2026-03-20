@@ -160,7 +160,11 @@ const handleSubmit = async () => {
           </div>
           
           <div v-if="!isLogin && !isResetMode" class="form-group">
-            <AvatarSelector v-model="profileURL" :type="role === 'student' ? 'student' : 'parent'" />
+            <AvatarSelector 
+              v-model="profileURL" 
+              :role="role" 
+              :customFileName="`${name}_${role}`"
+            />
           </div>
 
           <div class="form-group">
