@@ -12,7 +12,8 @@ import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { getCourseIcon } from '@/utils/courseHelper'
 import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
-import { isPaid } from '@/utils/statusHelper'
+import { enrichEnrollments } from '@/utils/enrollmentHelper'
+import { isPaid, getStatusDisplay, getStatusCategory } from '@/utils/statusHelper'
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
 
@@ -34,7 +35,7 @@ const fetchAllData = async () => {
   const id = route.params.id
   loading.value = true
   errorMessage.value = ''
-  
+
   try {
     const [pData, sData, eData, stdData] = await Promise.all([
       courseService.getCourse(id),
@@ -42,14 +43,14 @@ const fetchAllData = async () => {
       enrollmentService.getAllEnrollments(),
       userService.getAllStudents()
     ])
-    
+
     program.value = pData
     sessions.value = Array.isArray(sData) ? sData : []
-    
+
     // Filter enrollments for this specific program
     const allEnrollments = Array.isArray(eData) ? eData : []
     enrollments.value = allEnrollments.filter(e => String(e.courseId || e.course_id) === String(id))
-    
+
     students.value = Array.isArray(stdData) ? stdData : []
   } catch (err) {
     console.error('Error fetching program details:', err)
@@ -68,13 +69,13 @@ onMounted(() => {
 
 const statsCards = computed(() => {
   if (!program.value) return []
-  
+
   const totalEnrolled = enrollments.value.length
   // Revenue: Sum of enrollment amounts ONLY if status is PAID
   const totalRevenue = enrollments.value
     .filter(e => isPaid(e.status || e.paymentStatus))
     .reduce((sum, e) => sum + (Number(e.amount || program.value.price || 0)), 0)
-  
+
   // Capacity: Enrolled vs Total Capacity of all sessions
   const totalCapacity = sessions.value.reduce((sum, s) => sum + (Number(s.capacity) || 20), 0)
   const capacityPercent = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0
@@ -88,16 +89,15 @@ const statsCards = computed(() => {
 })
 
 const enrolledStudents = computed(() => {
-  return enrollments.value.map(enroll => {
-    const student = students.value.find(s => String(s.id || s.uid) === String(enroll.studentId || enroll.student_id))
-    return {
-      ...enroll,
-      studentName: student ? (student.fullname || student.fullName || `${student.firstName} ${student.lastName}`) : (enroll.studentName || 'Unknown Student'),
-      studentPhoto: student?.profileURL || student?.photoURL || student?.profileImage || student?.profileURL
-    }
-  }).filter(e => {
+  if (!enrollments.value.length) return []
+
+  // Use the standard enrollment helper to enrich data (handles Paid/Unpaid/Cancelled + Academic Status)
+  const enriched = enrichEnrollments(enrollments.value, [], students.value, [program.value].filter(Boolean))
+
+  return enriched.filter(e => {
+    const studentName = e.studentName || 'Unknown Student'
     if (!searchQuery.value) return true
-    return e.studentName.toLowerCase().includes(searchQuery.value.toLowerCase())
+    return studentName.toLowerCase().includes(searchQuery.value.toLowerCase())
   })
 })
 
@@ -119,12 +119,7 @@ const handleStudentClick = (enroll) => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout
-      :loading="loading"
-      :errorMessage="errorMessage"
-      backRoute="/programs"
-      title="Program Detail"
-    >
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/programs" title="Program Detail">
       <template #header-actions v-if="program">
         <div class="actions-wrapper">
           <button class="btn-icon edit" title="Edit Program" @click="openActionModal('edit')">
@@ -142,42 +137,24 @@ const handleStudentClick = (enroll) => {
       <template #left-content v-if="program">
         <!-- Dashboard-style Metrics Top Row -->
         <div class="metrics-row fade-in">
-          <DataMetricCard
-            v-for="card in statsCards"
-            :key="card.label"
-            :label="card.label"
-            :value="card.value"
-            :image="card.image"
-            :color="card.color"
-          />
+          <DataMetricCard v-for="card in statsCards" :key="card.label" :label="card.label" :value="card.value"
+            :image="card.image" :color="card.color" />
         </div>
 
         <!-- Custom Tab Navigation Row -->
         <div class="tabs-navigation-wrapper fade-in">
           <div class="tabs-navigation">
-            <AppButton
-              variant="ghost"
-              :class="{ active: activeTab === 'overview' }"
-              @click="activeTab = 'overview'"
-            >
+            <AppButton variant="ghost" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
               Overview
             </AppButton>
-            <AppButton
-              variant="ghost"
-              :class="{ active: activeTab === 'students' }"
-              @click="activeTab = 'students'"
-            >
+            <AppButton variant="ghost" :class="{ active: activeTab === 'students' }" @click="activeTab = 'students'">
               Enrolled Students
             </AppButton>
-            <AppButton
-              variant="ghost"
-              :class="{ active: activeTab === 'sessions' }"
-              @click="activeTab = 'sessions'"
-            >
+            <AppButton variant="ghost" :class="{ active: activeTab === 'sessions' }" @click="activeTab = 'sessions'">
               Sessions
             </AppButton>
           </div>
-          
+
           <div class="global-filter">
             <AppButton variant="secondary" size="sm">Filter</AppButton>
           </div>
@@ -197,7 +174,7 @@ const handleStudentClick = (enroll) => {
                     <span>CATEGORY:</span>
                     <strong>{{ program.category || 'General' }}</strong>
                   </div>
-                  
+
                   <div class="info-item vertical">
                     <span>ACADEMIC TERM:</span>
                     <strong>{{ program.termName || 'Term 1 2026' }}</strong>
@@ -210,7 +187,7 @@ const handleStudentClick = (enroll) => {
 
                   <div class="info-item vertical">
                     <span>STATUS:</span>
-                    <strong>{{ program.status || 'Active' }}</strong>
+                    <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
                   </div>
 
                   <div class="info-item vertical">
@@ -223,10 +200,6 @@ const handleStudentClick = (enroll) => {
                     <strong>{{ program.endDate || 'N/A' }}</strong>
                   </div>
 
-                  <div class="info-item vertical">
-                    <span>LIVE STATUS:</span>
-                    <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
-                  </div>
                 </div>
               </div>
 
@@ -262,7 +235,8 @@ const handleStudentClick = (enroll) => {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(item, idx) in enrolledStudents" :key="item.id || idx" @click="handleStudentClick(item)" class="clickable-row">
+                  <tr v-for="(item, idx) in enrolledStudents" :key="item.id || idx" @click="handleStudentClick(item)"
+                    class="clickable-row">
                     <td class="text-center">{{ idx + 1 }}</td>
                     <td>
                       <div class="user-info">
@@ -274,10 +248,10 @@ const handleStudentClick = (enroll) => {
                     </td>
                     <td>{{ item.enrollAt || 'N/A' }}</td>
                     <td class="text-center">
-                      <StatusBadge :status="item.academicStatus || 'Studying'" />
+                      <StatusBadge :status="item.academicStatus" />
                     </td>
                     <td class="text-center">
-                      <StatusBadge :status="item.status || 'Paid'" />
+                      <StatusBadge :status="item.displayStatus" />
                     </td>
                   </tr>
                 </tbody>
@@ -325,34 +299,27 @@ const handleStudentClick = (enroll) => {
       </template>
 
       <template #right-content v-if="program">
-        <DetailedSummaryCard title="Program Profile">
+        <DetailedSummaryCard subtitle="Assigned Teachers" style="margin-top: 10px;">
           <template #outside>
             <div class="profile-header">
               <div class="profile-preview">
-                <img 
-                  :src="program.imageURL || getCourseIcon(program.category || program.title) || getImageUrl('programs/program')" 
-                  @error="(e) => (e.target.src = getImageUrl('programs/program'))"
-                  alt="Program Icon" 
-                />
+                <img
+                  :src="program.imageURL || getCourseIcon(program.category || program.title) || getImageUrl('programs/program')"
+                  @error="(e) => (e.target.src = getImageUrl('programs/program'))" alt="Program Icon" />
               </div>
+              <h2 class="profile-title">{{ program.title }}</h2>
             </div>
           </template>
-        </DetailedSummaryCard>
-
-        <DetailedSummaryCard subtitle="Assigned Teachers" style="margin-top: 10px;">
           <div class="relationships-list">
-            <div 
-              v-for="t in program.teachers" 
-              :key="t.id" 
-              class="relationship-item"
-            >
-              <img :src="t.profileURL || getImageUrl('profiles/avatar-instructor')" alt="Teacher" class="small-avatar" />
+            <div v-for="t in program.teachers" :key="t.id" class="relationship-item">
+              <img :src="t.profileURL" alt="Teacher" class="small-avatar" />
               <div class="teacher-info">
                 <strong>{{ t.name || t.fullname || 'Unknown Teacher' }}</strong>
                 <span>{{ t.role || 'Teacher' }}</span>
               </div>
             </div>
-            <div v-if="!program.teachers || program.teachers.length === 0" class="text-muted text-center" style="padding: 10px;">
+            <div v-if="!program.teachers || program.teachers.length === 0" class="text-muted text-center"
+              style="padding: 10px;">
               {{ program.teacherName ? program.teacherName : 'No teachers assigned.' }}
             </div>
           </div>
@@ -365,22 +332,20 @@ const handleStudentClick = (enroll) => {
               <strong>{{ program.number_session || program.numberSessions }} Sessions</strong>
             </div>
 
-            <div class="info-item vertical" v-if="program.price">
+            <div class="info-item vertical">
               <span>COST PER SESSION:</span>
-              <strong>${{ (program.price / (program.number_session || program.numberSessions)).toFixed(2) }} / Session</strong>
+              <strong>${{ (program.price / (program.number_session || program.numberSessions)).toFixed(2) }} /
+                Session</strong>
             </div>
 
             <div class="info-item vertical">
               <span>TOTAL TUITION FEE:</span>
               <strong class="price-highlight">${{ (Number(program.price) || 0).toLocaleString() }}</strong>
             </div>
-          </div>
-
-          <div class="sidebar-divider"></div>
-
-          <div class="schedule-summary-box" v-if="program.schedule">
-            <div class="day">{{ program.schedule.day }}</div>
-            <div class="time">{{ program.schedule.timeslot }}</div>
+            <div class="info-item vertical">
+              <span>SCHEDULE:</span>
+              <strong>{{ program.schedule?.day }} - {{ program.schedule?.timeslot }}</strong>
+            </div>
           </div>
         </DetailedSummaryCard>
       </template>
