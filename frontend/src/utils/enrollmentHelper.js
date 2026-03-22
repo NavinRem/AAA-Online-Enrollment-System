@@ -53,12 +53,20 @@ export const enrichEnrollments = (enrollments, parents = [], students = [], cour
  */
 export const getAcademicStatus = (r) => {
   if (r.academicStatus) return r.academicStatus
-  if (isEnrollmentActive(r)) return 'Studying'
+  
+  const status = (r.status || '').toLowerCase()
+  const paymentStatus = (r.paymentStatus || r.payment_status || '').toLowerCase()
+
+  // Terminal statuses
   if (isCancelled(r.status || r.paymentStatus)) return 'Stopped'
-  if ((r.status || '').toLowerCase() === 'suspended') return 'Suspended'
+  if (status === 'suspended') return 'Suspended'
   
   const endDate = r.endDate ? new Date(r.endDate) : null
   if (isPaid(r.status || r.paymentStatus) && endDate && new Date() > endDate) return 'Graduated'
+
+  // Progress statuses
+  if (isUnpaid(paymentStatus || status)) return 'Unpaid'
+  if (isPaid(paymentStatus || status) || isEnrollmentActive(r)) return 'Studying'
   
   return 'Inactive'
 }

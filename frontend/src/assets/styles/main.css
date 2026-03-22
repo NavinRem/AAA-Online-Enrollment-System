@@ -564,3 +564,8 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
   height: 100%;
   object-fit: cover;
 }
+
+/* Hide Firebase Emulator Banner */
+.firebase-emulator-warning {
+  display: none !important;
+}

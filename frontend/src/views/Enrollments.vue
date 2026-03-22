@@ -18,7 +18,7 @@ import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
 import AppModal from '@/components/common/ui/AppModal.vue'
 
 const enrollments = ref([])
-const parents = ref([]) 
+const parents = ref([])
 const students = ref([])
 const courses = ref([])
 const sessions = ref([])
@@ -148,9 +148,9 @@ const currentFilter = ref('all')
 
 const statusFilteredEnrollments = computed(() => {
   const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, courses.value)
-  
+
   if (currentFilter.value === 'all') return enriched
-  
+
   return enriched.filter(r => {
     if (currentFilter.value === 'paid') return isPaid(r.status || r.paymentStatus)
     if (currentFilter.value === 'unpaid') return isUnpaid(r.status || r.paymentStatus)
@@ -208,7 +208,7 @@ const submitActionModal = async () => {
     }
     successMessage.value = 'Action completed successfully.'
     await fetchEnrollments()
-    setTimeout(() => { 
+    setTimeout(() => {
       closeActionModal()
     }, 1500)
   } catch (err) {
@@ -233,28 +233,17 @@ const closeActionModal = () => {
       </template>
 
       <template #table>
-        <DataTable
-          title="Enrollment Lists"
-          :headers="enrollmentHeaders"
-          :items="filteredEnrollments"
-          :loading="loading"
-          v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search Enrollments"
-          :hasFilter="true"
-          v-model:currentFilter="currentFilter"
-          :filterOptions="[
+        <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="filteredEnrollments" :loading="loading"
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search Enrollments" :hasFilter="true"
+          v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Enrollments', value: 'all' },
             { label: 'Paid Only', value: 'paid' },
             { label: 'Unpaid Only', value: 'unpaid' },
             { label: 'Cancelled Only', value: 'cancelled' },
-          ]"
-          :rowClass="getRowClass"
-          @action="handleTableAction"
-          @row-click="item => { 
+          ]" :rowClass="getRowClass" @action="handleTableAction" @row-click="item => {
             if (item.id === newlyCreatedId) newlyCreatedId = null;
             $router.push(`/enrollment/${item.id}`);
-          }"
-        >
+          }">
           <template #toolbar-actions>
             <AppButton variant="primary" @click="showModal = true">+ New Enrollment</AppButton>
           </template>
@@ -288,9 +277,12 @@ const closeActionModal = () => {
               </div>
             </td>
             <td class="hide-on-tablet">{{ formatDate(item.enrollAt) }}</td>
-            <td class="bold hide-on-mobile text-center">${{ item.amount || 0 }}</td>
+            <td class="bold hide-on-mobile text-center">
+              <StatusBadge :status="'$' + item.amount || 0"></StatusBadge>
+            </td>
             <td class="text-center">
-              <StatusBadge :status="isPaid(item.status || item.paymentStatus) ? 'Paid' : (isCancelled(item.status || item.paymentStatus) ? 'Cancelled' : 'Unpaid')" />
+              <StatusBadge
+                :status="isPaid(item.status || item.paymentStatus) ? 'Paid' : (isCancelled(item.status || item.paymentStatus) ? 'Cancelled' : 'Unpaid')" />
             </td>
             <td class="action-cell text-center">
               <div class="menu-container">
@@ -299,10 +291,13 @@ const closeActionModal = () => {
                 </button>
                 <Teleport to="body">
                   <transition name="fade">
-                    <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }" :style="menuStyles" @click.stop>
+                    <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
+                      :style="menuStyles" @click.stop>
                       <button @click="handleAction('edit', item)">✏️ Edit</button>
-                      <button v-if="isUnpaid(item.status || item.paymentStatus)" @click="handleAction('pay', item)">💰 Pay</button>
-                      <button v-if="!isCancelled(item.status || item.paymentStatus)" @click="handleAction('cancel', item)">🚫 Cancel</button>
+                      <button v-if="isUnpaid(item.status || item.paymentStatus)" @click="handleAction('pay', item)">💰
+                        Pay</button>
+                      <button v-if="!isCancelled(item.status || item.paymentStatus)"
+                        @click="handleAction('cancel', item)">🚫 Cancel</button>
                       <div class="menu-divider"></div>
                       <button class="delete-btn" @click="handleAction('delete', item)">🗑️ Delete</button>
                     </div>
@@ -315,27 +310,14 @@ const closeActionModal = () => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentForm
-      :isOpen="showModal"
-      :loading="submitting"
-      :parents="parents"
-      :students="students"
-      :courses="courses"
-      :sessions="sessions"
-      :error="errorMessage"
-      :success="successMessage"
-      @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }"
-      @course-change="handleCourseChange"
-      @submit="handleCreateEnrollment"
-    />
+    <EnrollmentForm :isOpen="showModal" :loading="submitting" :parents="parents" :students="students" :courses="courses"
+      :sessions="sessions" :error="errorMessage" :success="successMessage"
+      @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }" @course-change="handleCourseChange"
+      @submit="handleCreateEnrollment" />
 
     <!-- Action Modals -->
-    <AppModal 
-      :show="actionModal.isOpen" 
-      :title="actionModal.type + ' Enrollment'" 
-      variant="action" 
-      @close="closeActionModal"
-    >
+    <AppModal :show="actionModal.isOpen" :title="actionModal.type + ' Enrollment'" variant="action"
+      @close="closeActionModal">
       <div v-if="errorMessage" class="alert-box error">{{ errorMessage }}</div>
       <div v-if="successMessage" class="alert-box success">{{ successMessage }}</div>
 
@@ -354,8 +336,10 @@ const closeActionModal = () => {
         <textarea v-model="actionModal.reason" placeholder="Why is this enrollment being cancelled?"></textarea>
       </div>
       <div v-if="actionModal.type === 'delete'" class="form-group">
-        <div class="info-block danger" style="background: #fef2f2; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
-          <p style="color: #991b1b; font-size: 0.9rem;"><strong>Warning:</strong> This action is permanent and cannot be undone.</p>
+        <div class="info-block danger"
+          style="background: #fef2f2; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
+          <p style="color: #991b1b; font-size: 0.9rem;"><strong>Warning:</strong> This action is permanent and cannot be
+            undone.</p>
         </div>
         <label>Type <strong class="danger-text">DELETE</strong> to confirm</label>
         <input type="text" v-model="actionModal.deleteConfirm" placeholder="DELETE" />
@@ -363,12 +347,9 @@ const closeActionModal = () => {
 
       <template #footer>
         <AppButton variant="cancel" @click="closeActionModal">Cancel</AppButton>
-        <AppButton 
-          :variant="actionModal.type === 'delete' ? 'danger' : 'primary'" 
-          @click="submitActionModal" 
+        <AppButton :variant="actionModal.type === 'delete' ? 'danger' : 'primary'" @click="submitActionModal"
           :loading="submitting"
-          :disabled="submitting || (actionModal.type === 'delete' && actionModal.deleteConfirm !== 'DELETE')"
-        >
+          :disabled="submitting || (actionModal.type === 'delete' && actionModal.deleteConfirm !== 'DELETE')">
           Confirm action
         </AppButton>
       </template>
@@ -380,10 +361,12 @@ const closeActionModal = () => {
 .action-modal {
   padding: 24px;
 }
+
 .bold {
   font-weight: 600;
   color: #1a1a1a;
 }
+
 .user-info {
   cursor: pointer;
   gap: 10px;

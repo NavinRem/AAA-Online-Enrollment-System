@@ -10,6 +10,7 @@ import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.v
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { trackingService } from '@/services/trackingService'
+import { courseService } from '@/services/courseService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 import { calculateStudentStatus } from '@/utils/studentStatusHelper'
 import { filterDetailEnrollments, getAcademicStatus } from '@/utils/enrollmentHelper'
@@ -48,9 +49,108 @@ const globalSuccess = ref('')
 const globalError = ref('')
 const submitting = ref(false)
 
+const activeDropdown = ref(null) // 'attendance', 'behavior', 'exam' or null
+const programMenuStyles = ref({})
+
+const toggleProgramFilter = (tab, event) => {
+  if (activeDropdown.value === tab) {
+    activeDropdown.value = null
+    return
+  }
+
+  activeDropdown.value = tab
+  const rect = event.currentTarget.getBoundingClientRect()
+  programMenuStyles.value = {
+    top: `${rect.bottom + window.scrollY + 8}px`,
+    left: `${rect.left + window.scrollX}px`,
+    minWidth: '220px'
+  }
+}
+
+const closeProgramFilter = (event) => {
+  setTimeout(() => {
+    const menu = document.querySelector('.program-filter-menu')
+    if (menu && menu.contains(event.relatedTarget)) return
+    activeDropdown.value = null
+  }, 200)
+}
+
+const selectProgramFilter = (tab, id) => {
+  if (tab === 'attendance') selectedAttendanceProgramId.value = id
+  if (tab === 'behavior') selectedBehaviorProgramId.value = id
+  if (tab === 'exam') selectedExamFilter.value = id
+  activeDropdown.value = null
+}
+
+const getSelectedProgramLabel = (tab) => {
+  if (tab === 'exam') {
+    const opt = examFilterOptions.value.find(o => o.id === selectedExamFilter.value)
+    return opt ? opt.title : 'All Exams'
+  }
+
+  let id = 'all'
+  if (tab === 'attendance') id = selectedAttendanceProgramId.value
+  if (tab === 'behavior') id = selectedBehaviorProgramId.value
+
+  if (id === 'all') return 'All Programs'
+  const p = registeredPrograms.value.find(p => p.id === id)
+  return p ? p.title : 'All Programs'
+}
+
 const activeTab = ref('academic') // 'academic', 'attendance', 'behavior', 'exam'
 const currentFilter = ref('all')
 const searchQuery = ref('')
+const selectedAttendanceProgramId = ref('all')
+const selectedBehaviorProgramId = ref('all')
+const selectedExamFilter = ref('all')
+
+const registeredPrograms = computed(() => {
+  if (!enrollments.value.length) return []
+  return enrollments.value
+    .map(e => ({
+      id: e.courseId || e.course_id,
+      title: e.courseTitle || 'Unknown Program'
+    }))
+    .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i)
+})
+
+const attendanceProgramOptions = computed(() => {
+  const idsWithLogs = new Set(attendanceHistory.value.map(a => a.courseId || a.course_id))
+  return registeredPrograms.value.filter(p => idsWithLogs.has(p.id))
+})
+
+const behaviorProgramOptions = computed(() => {
+  const idsWithLogs = new Set((progressData.value?.behaviorLogs || []).map(b => b.courseId || b.course_id))
+  return registeredPrograms.value.filter(p => idsWithLogs.has(p.id))
+})
+
+const examFilterOptions = computed(() => {
+  // Get unique terms from enrollments
+  const terms = enrollments.value
+    .map(e => e.termName || e.term)
+    .filter((v, i, a) => v && a.indexOf(v) === i)
+    .sort()
+    .map(t => ({ id: `term:${t}`, title: `Term: ${t}` }))
+
+  return [
+    { id: 'all', title: 'All Exams' },
+    { id: 'passed', title: 'Result: Passed' },
+    { id: 'failed', title: 'Result: Failed' },
+    ...terms
+  ]
+})
+
+const getFilterOptions = (tab) => {
+  if (tab === 'exam') return examFilterOptions.value
+  const options = tab === 'attendance' ? attendanceProgramOptions.value :
+    tab === 'behavior' ? behaviorProgramOptions.value : []
+  return options.length > 0 ? options : registeredPrograms.value
+}
+
+// Reset sub-filter when navigating tabs
+watch(activeTab, () => {
+  currentFilter.value = 'all'
+})
 
 const actionModal = ref({
   isOpen: false,
@@ -140,11 +240,22 @@ const submitActionModal = async (formData) => {
   }
 }
 
-// Reset filter when navigating tabs
-watch(activeTab, () => {
-  currentFilter.value = 'all'
-  searchQuery.value = ''
-})
+const formatDateTime = (date) => {
+  if (!date) return '-'
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date
+    if (isNaN(d.getTime())) return '-'
+
+    const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+
+    return `${dateStr} at ${timeStr}`
+  } catch (e) {
+    return '-'
+  }
+}
+
+// Reset filter logic moved to activeTab watch
 
 // Dynamic filter options based on tab
 const filterOptions = computed(() => {
@@ -167,13 +278,20 @@ const filterOptions = computed(() => {
       { label: 'Make-up', value: 'Make-up' },
     ]
   }
-  if (activeTab.value === 'behavior' || activeTab.value === 'exam') {
+  if (activeTab.value === 'behavior') {
     return [
       { label: 'All Status', value: 'all' },
       { label: 'Excellent', value: 'Excellent' },
       { label: 'Good/Fair', value: 'Good/Fair' },
       { label: 'Warning', value: 'Warning' },
       { label: 'Serious', value: 'Serious' },
+    ]
+  }
+  if (activeTab.value === 'exam') {
+    return [
+      { label: 'All Exams', value: 'all' },
+      { label: 'Passed', value: 'Passed' },
+      { label: 'Failed', value: 'Failed' },
     ]
   }
   return [{ label: 'All', value: 'all' }]
@@ -190,8 +308,46 @@ const filteredAcademic = computed(() => {
       const aAct = getAcademicStatus(a) === 'Studying' ? 1 : 0
       const bAct = getAcademicStatus(b) === 'Studying' ? 1 : 0
       if (aAct !== bAct) return bAct - aAct
-      return new Date(b.enrollAt || b.createdAt) - new Date(a.enrollAt || a.createdAt)
+      const dateA = new Date(a.enrollAt || a.createdAt || 0)
+      const dateB = new Date(b.enrollAt || b.createdAt || 0)
+      return dateB - dateA
     })
+})
+
+const filteredAttendance = computed(() => {
+  let result = [...attendanceHistory.value]
+  if (selectedAttendanceProgramId.value !== 'all') {
+    result = result.filter(a => (a.courseId === selectedAttendanceProgramId.value || a.course_id === selectedAttendanceProgramId.value))
+  }
+  return result.sort((a, b) => new Date(b.date || b.attendanceDate || b.createdAt) - new Date(a.date || a.attendanceDate || a.createdAt))
+})
+
+const filteredBehavior = computed(() => {
+  let result = progressData.value?.behaviorLogs || []
+  if (selectedBehaviorProgramId.value !== 'all') {
+    result = result.filter(b => (b.courseId === selectedBehaviorProgramId.value || b.course_id === selectedBehaviorProgramId.value))
+  }
+  return result.sort((a, b) => new Date(b.date || b.behaviorDate || b.createdAt) - new Date(a.date || a.behaviorDate || a.createdAt))
+})
+
+const filteredExams = computed(() => {
+  let result = progressData.value?.examRecords || progressData.value?.examLogs || []
+  const filter = selectedExamFilter.value
+
+  if (filter !== 'all') {
+    if (filter === 'passed') {
+      result = result.filter(e => Number(e.score || 0) >= 50)
+    } else if (filter === 'failed') {
+      result = result.filter(e => Number(e.score || 0) < 50)
+    } else if (filter.startsWith('term:')) {
+      const term = filter.replace('term:', '')
+      result = result.filter(e => (e.termName || e.term) === term)
+    } else {
+      // Fallback for program ID if needed, though we primarily use strings now
+      result = result.filter(e => (e.courseId === filter || e.course_id === filter))
+    }
+  }
+  return result.sort((a, b) => new Date(b.date || b.examDate) - new Date(a.date || a.examDate))
 })
 
 const studentStats = computed(() => {
@@ -265,12 +421,28 @@ const fetchData = async (id) => {
       }
     }
 
-    // 3. Fetch Enrollments
-    const allEnrollments = (await enrollmentService.getAllEnrollments()) || []
-    enrollments.value = allEnrollments.filter((r) => {
-      const sId = String(r.student_id || r.studentId || '')
-      return sId === String(id)
-    })
+    // 3. Fetch Enrollments & Courses
+    const [allEnrollments, allCourses] = await Promise.all([
+      enrollmentService.getAllEnrollments(),
+      courseService.getAllCourses()
+    ])
+
+    const courses = allCourses || []
+
+    enrollments.value = (allEnrollments || [])
+      .filter((r) => String(r.student_id || r.studentId || '') === String(id))
+      .map(r => {
+        const course = courses.find(c => (c.id || c.uid) === (r.courseId || r.course_id))
+        return {
+          ...r,
+          courseTitle: course?.title || r.courseTitle || 'Unknown Program',
+          termName: course?.termName || course?.term || r.termName || null,
+          schedule: course?.schedule || r.schedule || null,
+          startDate: course?.startDate || r.startDate || null,
+          endDate: course?.endDate || r.endDate || null,
+          sessionSchedule: r.sessionSchedule || (course?.schedule ? `${course.schedule.day} ${course.schedule.timeslot}` : null)
+        }
+      })
 
     // 4. Fetch Attendance & Progress
     try {
@@ -278,7 +450,25 @@ const fetchData = async (id) => {
         trackingService.getAttendanceHistory(id),
         trackingService.getStudentProgress(id)
       ])
-      attendanceHistory.value = attendance || []
+
+      // Enrich logs with course titles
+      attendanceHistory.value = (attendance || []).map(a => {
+        const course = courses.find(c => (c.id || c.uid) === (a.courseId || a.course_id))
+        return { ...a, courseTitle: course?.title || a.courseTitle || 'Unknown Program' }
+      })
+
+      if (progress) {
+        progress.behaviorLogs = (progress.behaviorLogs || []).map(b => {
+          const course = courses.find(c => (c.id || c.uid) === (b.courseId || b.course_id))
+          return { ...b, courseTitle: course?.title || b.courseTitle || 'Unknown Program' }
+        })
+
+        progress.examRecords = (progress.examRecords || []).map(e => {
+          const course = courses.find(c => (c.id || c.uid) === (e.courseId || e.course_id))
+          return { ...e, courseTitle: course?.title || e.courseTitle || 'Unknown Program' }
+        })
+      }
+
       progressData.value = progress || null
     } catch (e) {
       console.warn('Could not fetch tracking data silently', e)
@@ -305,22 +495,13 @@ watch(
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout
-      :loading="loading"
-      :errorMessage="errorMessage"
-      backRoute="/students"
-      title="Student Details"
-    >
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/students" title="Student Details">
       <template #header-actions v-if="student">
         <div class="actions-wrapper">
           <button class="btn-icon edit" title="Edit Profile" @click="openActionModal('edit')">
             ✏️
           </button>
-          <button
-            class="btn-icon cancel"
-            title="Override Status"
-            @click="openActionModal('override')"
-          >
+          <button class="btn-icon cancel" title="Override Status" @click="openActionModal('override')">
             ⏸️
           </button>
           <button class="btn-icon delete" title="Delete Student" @click="openActionModal('delete')">
@@ -332,57 +513,31 @@ watch(
       <template #left-content v-if="student">
         <!-- Student Quick Stats Row -->
         <div class="metrics-row">
-          <DataMetricCard
-            v-for="stat in studentStats"
-            :key="stat.label"
-            :label="stat.label"
-            :value="stat.value"
-            :image="stat.image"
-            :color="stat.color"
-          />
+          <DataMetricCard v-for="stat in studentStats" :key="stat.label" :label="stat.label" :value="stat.value"
+            :image="stat.image" :color="stat.color" />
         </div>
 
         <!-- Custom Tab Navigation -->
         <div class="tabs-navigation-wrapper">
           <div class="tabs-navigation">
-            <AppButton
-              variant="ghost"
-              :class="{ active: activeTab === 'academic' }"
-              @click="activeTab = 'academic'"
-            >
+            <AppButton variant="ghost" :class="{ active: activeTab === 'academic' }" @click="activeTab = 'academic'">
               Academic History
             </AppButton>
-            <AppButton
-              variant="ghost"
-              :class="{ active: activeTab === 'attendance' }"
-              @click="activeTab = 'attendance'"
-            >
+            <AppButton variant="ghost" :class="{ active: activeTab === 'attendance' }"
+              @click="activeTab = 'attendance'">
               Attendance Record
             </AppButton>
-            <AppButton
-              variant="ghost"
-              :class="{ active: activeTab === 'behavior' }"
-              @click="activeTab = 'behavior'"
-            >
+            <AppButton variant="ghost" :class="{ active: activeTab === 'behavior' }" @click="activeTab = 'behavior'">
               Behavior Record
             </AppButton>
-            <AppButton
-              variant="ghost"
-              :class="{ active: activeTab === 'exam' }"
-              @click="activeTab = 'exam'"
-            >
+            <AppButton variant="ghost" :class="{ active: activeTab === 'exam' }" @click="activeTab = 'exam'">
               Exam Record
             </AppButton>
           </div>
 
           <div class="global-filter">
-            <TableToolbar
-              :hasSearch="false"
-              :hasFilter="true"
-              :currentFilter="currentFilter"
-              @update:currentFilter="currentFilter = $event"
-              :filterOptions="filterOptions"
-            />
+            <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
+              @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
           </div>
         </div>
 
@@ -393,58 +548,47 @@ watch(
             <div class="section-header">
               <h3>Academic History List</h3>
             </div>
-
-            <div class="table-container">
+            <div class="table-container table-scroll-container">
               <table v-if="filteredAcademic.length > 0">
                 <thead>
                   <tr>
-                    <th>No</th>
-                    <th>Course</th>
-                    <th>Session</th>
-                    <th>Enrollment Date</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Status</th>
-                    <th>Action</th>
+                    <th width="30">No</th>
+                    <th width="150">Program Title</th>
+                    <th width="100">Term</th>
+                    <th width="100">Schedule</th>
+                    <th class="text-center" width="100">Status</th>
+                    <th class="text-center" width="120">Enroll Date</th>
+                    <th class="text-center" width="120">Start Date</th>
+                    <th class="text-center" width="120">End Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(item, idx) in filteredAcademic" :key="item.id || idx">
-                    <td>{{ idx + 1 }}</td>
-                    <td>
-                      <strong>{{ item.courseTitle || item.course_id || '-' }}</strong>
+                    <td class="text-center">{{ idx + 1 }}</td>
+                    <td><strong>{{ item.courseTitle || item.courseName || '-' }}</strong></td>
+                    <td class="text-center">
+                      <StatusBadge :status="item.termName || 'No Term'" type="blue" />
                     </td>
-                    <td>{{ item.sessionSchedule || item.session_id || '-' }}</td>
                     <td>
-                      {{ item.createdAt ? formatDate(item.createdAt) : '-' }}
+                      <div class="schedule-info" v-if="item.schedule || item.sessionSchedule">
+                        <span class="day">{{ (item.schedule?.day || (typeof item.sessionSchedule === 'string' ?
+                          item.sessionSchedule.split(' ')[0] : '')) }}</span>
+                        <span class="time">{{ (item.schedule?.timeslot || (typeof item.sessionSchedule === 'string' ?
+                          item.sessionSchedule.split(' ').slice(1).join(' ') : '')) }}</span>
+                      </div>
+                      <span v-else class="help-text-small">N/A</span>
                     </td>
-                    <td>{{ formatDate(item.startDate) }}</td>
-                    <td>{{ formatDate(item.endDate) }}</td>
-                    <td><StatusBadge :status="getAcademicStatus(item)" /></td>
-                    <td>
-                      <button
-                        v-if="
-                          getAcademicStatus(item) !== 'Suspended' && getAcademicStatus(item) !== 'Stopped'
-                        "
-                        class="btn-icon override"
-                        title="Override Course Status"
-                        @click="openActionModal('enrollment-override', item)"
-                      >
-                        ⏸️
-                      </button>
-                      <button
-                        class="btn-icon delete"
-                        title="Delete Enrollment Record"
-                        @click="openActionModal('enrollment-delete', item)"
-                      >
-                        🗑️
-                      </button>
+                    <td class="text-center">
+                      <StatusBadge :status="getAcademicStatus(item)" />
                     </td>
+                    <td class="text-center">{{ formatDateOnly(item.enrollAt || item.createdAt) }}</td>
+                    <td class="text-center">{{ formatDateOnly(item.startDate) }}</td>
+                    <td class="text-center">{{ formatDateOnly(item.endDate) }}</td>
                   </tr>
                 </tbody>
               </table>
               <div v-else class="empty-state">
-                <p>No academic history records found.</p>
+                <p>No academic records found.</p>
               </div>
             </div>
           </div>
@@ -453,34 +597,55 @@ watch(
           <div v-if="activeTab === 'attendance'" class="detail-section-card full-width">
             <div class="section-header">
               <h3>Attendance Record List</h3>
+              <div class="filter-dropdown-container" v-if="registeredPrograms.length > 0">
+                <AppButton variant="secondary" :class="{ active: selectedAttendanceProgramId !== 'all' }"
+                  @click="toggleProgramFilter('attendance', $event)" @blur="closeProgramFilter">
+                  {{ getSelectedProgramLabel('attendance') }}
+                </AppButton>
+                <Teleport to="body">
+                  <transition name="toast-fade">
+                    <div v-if="activeDropdown === 'attendance'" :key="'dropdown-attendance'"
+                      class="filter-dropdown-menu program-filter-menu scrollable-menu" :style="programMenuStyles"
+                      @mousedown.stop>
+                      <div class="filter-option" :class="{ active: selectedAttendanceProgramId === 'all' }"
+                        @click.stop="selectProgramFilter('attendance', 'all')">
+                        All Programs
+                      </div>
+                      <div v-for="p in getFilterOptions('attendance')" :key="p.id" class="filter-option"
+                        :class="{ active: selectedAttendanceProgramId === p.id }"
+                        @click.stop="selectProgramFilter('attendance', p.id)">
+                        {{ p.title }}
+                      </div>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
             </div>
-            <div class="table-container">
-              <table v-if="filteredAcademic.length > 0">
+            <div class="table-container table-scroll-container">
+              <table v-if="filteredAttendance.length > 0">
                 <thead>
                   <tr>
-                    <th>No</th>
-                    <th>Session</th>
-                    <th>Date</th>
-                    <th>Marked By</th>
-                    <th>Status</th>
+                    <th width="60">No</th>
+                    <th width="240">Program</th>
+                    <th width="200">Marked Timestamp</th>
+                    <th width="150">Marked By</th>
+                    <th class="text-center" width="120">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(item, idx) in filteredAcademic" :key="item.id || idx">
-                    <td>{{ idx + 1 }}</td>
-                    <td>{{ item.sessionSchedule || item.session_id || '-' }}</td>
-                    <td>
-                      {{ item.attendanceDate ? formatDate(item.attendanceDate) : '-' }}
-                    </td>
+                  <tr v-for="(item, idx) in filteredAttendance" :key="item.id || idx">
+                    <td class="text-center">{{ idx + 1 }}</td>
+                    <td>{{ item.courseTitle || '-' }}</td>
+                    <td>{{ formatDateTime(item.date || item.attendanceDate || item.createdAt) }}</td>
                     <td>{{ item.markedBy || '-' }}</td>
-                    <td>
-                      <StatusBadge :status="item.displayStatus" />
+                    <td class="text-center">
+                      <StatusBadge :status="item.status || item.displayStatus" />
                     </td>
                   </tr>
                 </tbody>
               </table>
               <div v-else class="empty-state">
-                <p>No attendance records found.</p>
+                <p>No attendance records found for this selection.</p>
               </div>
             </div>
           </div>
@@ -489,34 +654,55 @@ watch(
           <div v-if="activeTab === 'behavior'" class="detail-section-card full-width">
             <div class="section-header">
               <h3>Behavior Record List</h3>
+              <div class="filter-dropdown-container" v-if="registeredPrograms.length > 0">
+                <AppButton variant="secondary" :class="{ active: selectedBehaviorProgramId !== 'all' }"
+                  @click="toggleProgramFilter('behavior', $event)" @blur="closeProgramFilter">
+                  {{ getSelectedProgramLabel('behavior') }}
+                </AppButton>
+                <Teleport to="body">
+                  <transition name="toast-fade">
+                    <div v-if="activeDropdown === 'behavior'" :key="'dropdown-behavior'"
+                      class="filter-dropdown-menu program-filter-menu scrollable-menu" :style="programMenuStyles"
+                      @mousedown.stop>
+                      <div class="filter-option" :class="{ active: selectedBehaviorProgramId === 'all' }"
+                        @click.stop="selectProgramFilter('behavior', 'all')">
+                        All Programs
+                      </div>
+                      <div v-for="p in getFilterOptions('behavior')" :key="p.id" class="filter-option"
+                        :class="{ active: selectedBehaviorProgramId === p.id }"
+                        @click.stop="selectProgramFilter('behavior', p.id)">
+                        {{ p.title }}
+                      </div>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
             </div>
-            <div class="table-container">
-              <table v-if="filteredAcademic.length > 0">
+            <div class="table-container table-scroll-container">
+              <table v-if="filteredBehavior.length > 0">
                 <thead>
                   <tr>
-                    <th>No</th>
-                    <th>Session</th>
-                    <th>Date</th>
-                    <th>Marked By</th>
-                    <th>Status</th>
+                    <th width="60">No</th>
+                    <th width="240">Program</th>
+                    <th width="200">Marked Timestamp</th>
+                    <th class="text-center" width="150">Category</th>
+                    <th>Remark</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(item, idx) in filteredAcademic" :key="item.id || idx">
-                    <td>{{ idx + 1 }}</td>
-                    <td>{{ item.sessionSchedule || item.session_id || '-' }}</td>
-                    <td>
-                      {{ item.behaviorDate ? formatDate(item.behaviorDate) : '-' }}
+                  <tr v-for="(item, idx) in filteredBehavior" :key="item.id || idx">
+                    <td class="text-center">{{ idx + 1 }}</td>
+                    <td>{{ item.courseTitle || '-' }}</td>
+                    <td>{{ formatDateTime(item.date || item.behaviorDate || item.createdAt) }}</td>
+                    <td class="text-center">
+                      <StatusBadge :status="item.category || item.status || 'General'" />
                     </td>
-                    <td>{{ item.markedBy || '-' }}</td>
-                    <td>
-                      <StatusBadge :status="item.displayStatus" />
-                    </td>
+                    <td>{{ item.remark || item.note || item.displayStatus || '-' }}</td>
                   </tr>
                 </tbody>
               </table>
               <div v-else class="empty-state">
-                <p>No behavior records found.</p>
+                <p>No behavior records found for this selection.</p>
               </div>
             </div>
           </div>
@@ -525,36 +711,53 @@ watch(
           <div v-if="activeTab === 'exam'" class="detail-section-card full-width">
             <div class="section-header">
               <h3>Exam Record List</h3>
+              <div class="filter-dropdown-container" v-if="registeredPrograms.length > 0">
+                <AppButton variant="secondary" :class="{ active: selectedExamFilter !== 'all' }"
+                  @click="toggleProgramFilter('exam', $event)" @blur="closeProgramFilter">
+                  {{ getSelectedProgramLabel('exam') }}
+                </AppButton>
+                <Teleport to="body">
+                  <transition name="toast-fade">
+                    <div v-if="activeDropdown === 'exam'" :key="'dropdown-exam'"
+                      class="filter-dropdown-menu program-filter-menu scrollable-menu" :style="programMenuStyles"
+                      @mousedown.stop>
+                      <div v-for="p in getFilterOptions('exam')" :key="p.id" class="filter-option"
+                        :class="{ active: selectedExamFilter === p.id }"
+                        @click.stop="selectProgramFilter('exam', p.id)">
+                        {{ p.title }}
+                      </div>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
             </div>
-            <div class="table-container">
-              <table v-if="filteredAcademic.length > 0">
+            <div class="table-container table-scroll-container">
+              <table v-if="filteredExams.length > 0">
                 <thead>
                   <tr>
-                    <th>No</th>
-                    <th>Session</th>
-                    <th>Exam Date</th>
-                    <th>Examiner</th>
-                    <th>Score</th>
-                    <th>Status</th>
+                    <th width="60">No</th>
+                    <th width="240">Program</th>
+                    <th class="text-center" width="150">Exam Date</th>
+                    <th width="200">Examiner</th>
+                    <th class="text-center" width="100">Score</th>
+                    <th class="text-center" width="120">Result</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(item, idx) in filteredAcademic" :key="item.id || idx">
-                    <td>{{ idx + 1 }}</td>
-                    <td>{{ item.sessionSchedule || item.session_id || '-' }}</td>
-                    <td>
-                      {{ item.examDate ? formatDate(item.examDate) : '-' }}
-                    </td>
+                  <tr v-for="(item, idx) in filteredExams" :key="item.id || idx">
+                    <td class="text-center">{{ idx + 1 }}</td>
+                    <td>{{ item.courseTitle || '-' }}</td>
+                    <td class="text-center">{{ formatDateOnly(item.date || item.examDate) }}</td>
                     <td>{{ item.examiner || '-' }}</td>
-                    <td>{{ item.score || '-' }}</td>
-                    <td>
-                      <StatusBadge :status="getAcademicStatus(item)" />
+                    <td class="text-center"><strong>{{ item.score || '-' }}</strong></td>
+                    <td class="text-center">
+                      <StatusBadge :status="item.score >= 50 ? 'Passed' : 'Failed'" />
                     </td>
                   </tr>
                 </tbody>
               </table>
               <div v-else class="empty-state">
-                <p>No exam records found.</p>
+                <p>No exam records found for this selection.</p>
               </div>
             </div>
           </div>
@@ -571,64 +774,63 @@ watch(
             </div>
           </template>
 
-          <div class="detail-info-group">
-            <div class="info-item vertical">
-              <span>FULLNAME:</span>
-              <strong>{{
-                student?.name || student?.fullName || student?.fullname || 'Unknown'
-              }}</strong>
+          <div class="scrollable-info-body">
+            <div class="detail-info-group">
+              <div class="info-item vertical">
+                <span class="info-label">FULLNAME:</span>
+                <strong>{{ student?.name || student?.fullName || student?.fullname || 'Unknown' }}</strong>
+              </div>
+              <div class="info-item vertical">
+                <span class="info-label">DATE OF BIRTH:</span>
+                <strong>{{ formatDateOnly(student?.dob || student?.DoB) || '-' }}</strong>
+              </div>
+              <div class="info-item vertical">
+                <span class="info-label">AGE:</span>
+                <strong>{{ calculateAge(student?.dob || student?.DoB) || '-' }}</strong>
+              </div>
+              <div class="info-item vertical">
+                <span class="info-label">MEDICAL NOTE:</span>
+                <strong>{{ student?.medicalNote || student?.medical_note || 'None' }}</strong>
+              </div>
+              <div class="info-item vertical">
+                <span class="info-label">STATUS:</span>
+                <StatusBadge :status="computedStatus" />
+              </div>
+              <div class="info-item vertical" v-if="student?.overrideReason">
+                <span class="info-label">OVERRIDE REASON:</span>
+                <strong style="color: #ef4444">{{ student?.overrideReason }}</strong>
+              </div>
+              <div class="info-item vertical" v-if="student?.overrideRemark">
+                <span class="info-label">OVERRIDE REMARK:</span>
+                <strong>{{ student?.overrideRemark }}</strong>
+              </div>
             </div>
 
-            <div class="info-item vertical">
-              <span>DATE OF BIRTH:</span>
-              <strong>{{ formatDateOnly(student?.dob || student?.DoB) || '-' }}</strong>
-            </div>
-            
-            <div class="info-item vertical">
-              <span>AGE:</span>
-              <strong>{{ calculateAge(student?.dob || student?.DoB) || '-' }}</strong>
-            </div>
-
-            <div class="info-item vertical">
-              <span>MEDICAL NOTE:</span>
-              <strong>{{ student?.medicalNote || student?.medical_note || 'None' }}</strong>
-            </div>
-
-            <div class="info-item status-inline">
-              <span>STATUS:</span>
-              <StatusBadge :status="computedStatus" />
-            </div>
-
-            <div class="info-item vertical" v-if="student?.overrideReason">
-              <span>OVERRIDE REASON:</span>
-              <strong style="color: #ef4444">{{ student?.overrideReason }}</strong>
-            </div>
-
-            <div class="info-item vertical" v-if="student?.overrideRemark">
-              <span>OVERRIDE REMARK:</span>
-              <strong>{{ student?.overrideRemark }}</strong>
+            <div class="timestamp-group" style="margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+              <div class="timestamp-item">
+                <StatusBadge status="Joined At" />
+                <p>{{ formatDate(student?.createdAt || student?.created_at) }}</p>
+              </div>
+              <div class="timestamp-item">
+                <StatusBadge status="Update At" />
+                <p>{{ formatDate(student?.updatedAt || student?.updated_at || student?.createdAt || new
+                  Date().toISOString()) }}
+                </p>
+              </div>
             </div>
           </div>
         </DetailedSummaryCard>
 
         <DetailedSummaryCard subtitle="Relationships">
-          <div class="relationships-list">
-            <!-- Primary Parent Block -->
-            <div class="relationship-category">
+          <div class="relationships-list scrollable-info-body">
+            <div class="relationship-category ">
               <span class="category-title">Parent</span>
               <div class="relationship-item" v-if="primaryParent">
-                <img
-                  :src="primaryParent.profileURL || getImageUrl('profiles/avatar-parent')"
-                  alt="Parent Avatar"
-                  class="small-avatar"
-                />
+                <img :src="primaryParent.profileURL || getImageUrl('profiles/avatar-parent')" alt="Parent Avatar"
+                  class="small-avatar" />
                 <div class="child-info">
                   <strong>{{
                     primaryParent.name ||
-                    primaryParent.fullName ||
-                    primaryParent.fullname ||
-                    primaryParent.displayName ||
-                    primaryParent.email ||
                     'Parent Name'
                   }}</strong>
                 </div>
@@ -637,16 +839,11 @@ watch(
                 <!-- <p>No parent mapped.</p> -->
               </div>
             </div>
-
-            <!-- Secondary Guardian Block -->
             <div class="relationship-category" style="margin-top: 5px">
               <span class="category-title">Guardian</span>
               <div class="relationship-item" v-if="primaryGuardian">
-                <img
-                  :src="primaryGuardian.profileURL || getImageUrl('profiles/avatar-guardian')"
-                  alt="Guardian Avatar"
-                  class="small-avatar"
-                />
+                <img :src="primaryGuardian.profileURL || getImageUrl('profiles/avatar-guardian')" alt="Guardian Avatar"
+                  class="small-avatar" />
                 <div class="child-info">
                   <strong>{{
                     primaryGuardian.name ||
@@ -664,42 +861,12 @@ watch(
             </div>
           </div>
         </DetailedSummaryCard>
-
-        <DetailedSummaryCard subtitle="History Timestamp">
-          <div class="timestamp-group">
-            <div class="timestamp-item">
-              <StatusBadge status="Joined At" />
-              <p>{{ formatDate(student?.createdAt || student?.created_at) }}</p>
-            </div>
-            <div class="timestamp-item">
-              <StatusBadge status="Update At" />
-              <p>
-                {{
-                  formatDate(
-                    student?.updatedAt ||
-                      student?.updated_at ||
-                      student?.createdAt ||
-                      new Date().toISOString(),
-                  )
-                }}
-              </p>
-            </div>
-          </div>
-        </DetailedSummaryCard>
       </template>
     </DetailPageLayout>
 
-    <StudentActionModal
-      :isOpen="actionModal.isOpen"
-      :type="actionModal.type"
-      :student="actionModal.student"
-      :enrollment="actionModal.enrollment"
-      :loading="submitting"
-      :error="globalError"
-      :success="globalSuccess"
-      @close="actionModal.isOpen = false"
-      @submit="submitActionModal"
-    />
+    <StudentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :student="actionModal.student"
+      :enrollment="actionModal.enrollment" :loading="submitting" :error="globalError" :success="globalSuccess"
+      @close="actionModal.isOpen = false" @submit="submitActionModal" />
   </DashboardLayout>
 </template>
 
