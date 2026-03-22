@@ -352,7 +352,7 @@ const onRowClick = (item) => {
               <span v-else class="help-text-small">None assigned</span>
             </td>
             <td class="hide-on-tablet">
-              <StatusBadge :status="item.termName || item.term || 'No Term'" />
+              <StatusBadge :status="item.termName || item.term || 'No Term'" type="blue" />
             </td>
             <td class="hide-on-mobile">
               <div class="period-info" v-if="item.startDate">
@@ -360,7 +360,7 @@ const onRowClick = (item) => {
                 <span class="to-label">to</span>
                 <span>{{ item.endDate }}</span>
               </div>
-              <StatusBadge v-else :status="item.termName || 'No Dates'" />
+              <StatusBadge v-else :status="item.termName || 'No Dates'" type="blue" />
             </td>
             <td class="hide-on-tablet">
               <div class="schedule-info" v-if="item.schedule">
@@ -369,7 +369,7 @@ const onRowClick = (item) => {
               </div>
               <span v-else class="help-text-small">Not scheduled</span>
             </td>
-            <td class="hide-on-tablet text-center"><StatusBadge :status="item.levelName || item.level || 'Beginner'" /></td>
+            <td class="hide-on-tablet text-center"><StatusBadge :status="item.levelName || item.level || 'Beginner'" type="purple" /></td>
             <td class="hide-on-mobile text-center"><StatusBadge :status="'$' + (item.price || 0)" /></td>
             <td class="text-center"><StatusBadge :status="getProgramDisplayStatus(item, sessions, now)" /></td>
             <td class="action-cell text-center">

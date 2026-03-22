@@ -14,6 +14,7 @@ import { getCourseIcon } from '@/utils/courseHelper'
 import { enrichEnrollments } from '@/utils/enrollmentHelper'
 import { isPaid } from '@/utils/statusHelper'
 import { getImageUrl } from '@/utils/assetHelper'
+import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
 import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
 
 
@@ -128,12 +129,33 @@ const sessionInstances = computed(() => {
 
     while (current <= end) {
       const dateStr = current.toISOString().split('T')[0]
+      const isToday = dateStr === now.value.toISOString().split('T')[0]
+      const isPastDay = current < new Date(now.value.getFullYear(), now.value.getMonth(), now.value.getDate())
+      
+      let status = 'Scheduled'
+      if (isToday) {
+        if (isSessionInProgress(session.schedule, now.value)) {
+          status = 'In Progress'
+        } else {
+          // Simple time check for today's past sessions
+          const times = (session.schedule?.timeslot || '').split('-').map(t => t.trim())
+          if (times.length === 2) {
+            const [hours, minutes] = times[1].split(':').map(Number)
+            const endMinutes = hours * 60 + minutes
+            const currentMinutes = now.value.getHours() * 60 + now.value.getMinutes()
+            if (currentMinutes > endMinutes) status = 'Past'
+          }
+        }
+      } else if (isPastDay) {
+        status = 'Past'
+      }
+
       instances.push({
         id: `${session.id}-${dateStr}`,
         date: dateStr,
         day: dayName,
         timeslot: session.schedule?.timeslot,
-        status: current < new Date() ? 'Past' : 'Scheduled'
+        status: status
       })
 
       current.setDate(current.getDate() + 7)
@@ -276,7 +298,7 @@ const handleActionSubmit = async (formData) => {
 
                   <div class="info-item vertical">
                     <span class="info-label">STATUS:</span>
-                    <StatusBadge :status="program.status || 'Active'" />
+                    <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
                   </div>
 
                   <div class="info-item vertical">
