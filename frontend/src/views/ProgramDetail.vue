@@ -70,21 +70,26 @@ onMounted(() => {
 const statsCards = computed(() => {
   if (!program.value) return []
 
-  const totalEnrolled = enrollments.value.length
-  // Revenue: Sum of enrollment amounts ONLY if status is PAID
+  // 1. Paid Enrollments Only
+  const paidEnrollmentsCount = enrollments.value.filter(e => isPaid(e.status || e.paymentStatus)).length
+
+  // 2. Revenue (Paid only)
   const totalRevenue = enrollments.value
     .filter(e => isPaid(e.status || e.paymentStatus))
     .reduce((sum, e) => sum + (Number(e.amount || program.value.price || 0)), 0)
 
-  // Capacity: Enrolled vs Total Capacity of all sessions
-  const totalCapacity = sessions.value.reduce((sum, s) => sum + (Number(s.capacity || s.maxCapacity) || 5), 0)
-  const capacityPercent = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0
+  // 3. Remaining Sessions (Scheduled status from instances)
+  const scheduledCount = sessionInstances.value.filter(i => i.status === 'Scheduled').length
+
+  // 4. Capacity (Remaining slots count)
+  const maxCapacity = Number(program.value.maxCapacity || program.value.capacity || 5)
+  const remainingCapacity = Math.max(0, maxCapacity - paidEnrollmentsCount)
 
   return [
-    { label: 'Total Enrolled', value: totalEnrolled, image: getImageUrl('data-metric-card/total-enrolled'), color: '#e0f2fe' },
+    { label: 'Total Enrolled', value: paidEnrollmentsCount, image: getImageUrl('data-metric-card/total-enrolled'), color: '#e0f2fe' },
     { label: 'Program Revenue', value: `$${totalRevenue.toLocaleString()}`, image: getImageUrl('data-metric-card/program-revenue'), color: '#f0fdf4' },
-    { label: 'Remaining Sessions', value: program.value.number_session || program.value.numberSessions || '-', image: getImageUrl('data-metric-card/remaining-sessions'), color: '#fff7ed' },
-    { label: 'Enrollment Capacity', value: `${capacityPercent}%`, image: getImageUrl('data-metric-card/enrollment-capacity'), color: capacityPercent > 90 ? '#fef2f2' : '#f8fafc' }
+    { label: 'Remaining Sessions', value: scheduledCount, image: getImageUrl('data-metric-card/remaining-sessions'), color: '#fff7ed' },
+    { label: 'Enrollment Capacity', value: remainingCapacity, image: getImageUrl('data-metric-card/enrollment-capacity'), color: remainingCapacity < 2 ? '#fef2f2' : '#f8fafc' }
   ]
 })
 
@@ -216,9 +221,6 @@ const handleActionSubmit = async (formData) => {
           <button class="btn-icon edit" title="Edit Program" @click="openActionModal('edit')">
             ✏️
           </button>
-          <button class="btn-icon cancel" title="Override Status" @click="openActionModal('override')">
-            ⏸️
-          </button>
           <button class="btn-icon delete" title="Delete Program" @click="openActionModal('delete')">
             🗑️
           </button>
@@ -305,8 +307,7 @@ const handleActionSubmit = async (formData) => {
 
                   <div class="info-item vertical">
                     <span class="info-label">COST PER SESSION:</span>
-                    <strong>${{ (Number(program.price || 0) / (Number(program.number_session) || 1)).toFixed(2)
-                    }}</strong>
+                    <strong>${{ (Number(program.price || 0) / (Number(program.number_session || program.numberSessions) || 1)).toFixed(2) }}</strong>
                   </div>
                 </div>
               </div>

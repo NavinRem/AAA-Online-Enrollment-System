@@ -8,8 +8,8 @@
       </div>
     </template>
 
-    <form v-if="type === 'add' || type === 'edit' || type === 'override'" class="form-grid" @submit.prevent="handleSubmit">
-      <div v-if="type !== 'override'" class="form-group full-width">
+    <form v-if="type === 'add' || type === 'edit'" class="form-grid" @submit.prevent="handleSubmit">
+      <div class="form-group full-width">
         <label>Program Title <span class="required">*</span></label>
         <input type="text" v-model="localData.title" :placeholder="titlePlaceholder" required :disabled="isReadOnly" />
         <div v-if="titleValidation.warning" class="input-warning">
@@ -17,71 +17,59 @@
         </div>
       </div>
 
-      <div v-if="type !== 'override'" class="form-group">
+      <div class="form-group">
         <label>Category <span class="required">*</span></label>
         <div class="category-field">
-          <AppSelect
-            v-model="localData.categoryId"
-            :items="sortedCategories"
-            placeholder="-- Select Category --"
-            searchPlaceholder="Search category..."
-            :disabled="isReadOnly"
-            @change="onCategoryChange"
-          />
+          <AppSelect v-model="localData.categoryId" :items="sortedCategories" placeholder="-- Select Category --"
+            searchPlaceholder="Search category..." :disabled="isReadOnly" @change="onCategoryChange" />
           <div v-if="!isReadOnly" class="quick-add">
             <div class="inline-add-group">
-              <input type="text" v-model="newCategoryName" placeholder="New category..." @keyup.enter="handleCreateCategory" />
-              <button type="button" @click="handleCreateCategory" :disabled="!newCategoryName.trim()" class="btn-add-inline">Add</button>
+              <input type="text" v-model="newCategoryName" placeholder="New category..."
+                @keyup.enter="handleCreateCategory" />
+              <button type="button" @click="handleCreateCategory" :disabled="!newCategoryName.trim()"
+                class="btn-add-inline">Add</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div v-if="type !== 'override'" class="form-group">
+      <div class="form-group">
         <label>Level <span class="required">*</span></label>
         <div class="dynamic-field">
-          <AppSelect
-            v-model="localData.levelId"
-            :items="sortedLevels"
-            placeholder="-- Select Level --"
-            searchPlaceholder="Search level..."
-            :disabled="isReadOnly"
-          />
+          <AppSelect v-model="localData.levelId" :items="sortedLevels" placeholder="-- Select Level --"
+            searchPlaceholder="Search level..." :disabled="isReadOnly" />
           <div v-if="!isReadOnly" class="quick-add">
             <div class="inline-add-group">
               <input type="text" v-model="newLevelName" placeholder="New level..." @keyup.enter="handleCreateLevel" />
-              <button type="button" @click="handleCreateLevel" :disabled="!newLevelName.trim()" class="btn-add-inline">Add</button>
+              <button type="button" @click="handleCreateLevel" :disabled="!newLevelName.trim()"
+                class="btn-add-inline">Add</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div v-if="type !== 'override'" class="form-group">
+      <div class="form-group">
         <label>Academic Term <span class="required">*</span></label>
         <div class="dynamic-field">
-          <AppSelect
-            v-model="localData.termId"
-            :items="sortedTerms"
-            placeholder="-- Select Term --"
-            searchPlaceholder="Search term..."
-            :disabled="isReadOnly"
-            @change="onTermChange"
-          />
+          <AppSelect v-model="localData.termId" :items="sortedTerms" placeholder="-- Select Term --"
+            searchPlaceholder="Search term..." :disabled="isReadOnly" @change="onTermChange" />
           <div v-if="!isReadOnly" class="quick-add-term">
             <div class="inline-add-group">
               <input type="text" v-model="newTermName" placeholder="New term..." @keyup.enter="handleCreateTerm" />
-              <button type="button" @click="handleCreateTerm" :disabled="!newTermName.trim()" class="btn-add-inline">Add Term</button>
+              <button type="button" @click="handleCreateTerm" :disabled="!newTermName.trim()" class="btn-add-inline">Add
+                Term</button>
             </div>
           </div>
         </div>
       </div>
 
-      <div v-if="type !== 'override'" class="form-group">
+      <div class="form-group">
         <label>Program Price ($) <span class="required">*</span></label>
-        <input type="number" v-model="localData.price" min="0" step="0.01" required placeholder="0.00" :disabled="isReadOnly" />
+        <input type="number" v-model="localData.price" min="0" step="0.01" required placeholder="0.00"
+          :disabled="isReadOnly" />
       </div>
 
-      <div v-if="type !== 'override'" class="form-group">
+      <div class="form-group">
         <label>Total Sessions <span class="required">*</span></label>
         <input type="number" v-model="localData.numberSessions" min="1" required :disabled="isReadOnly" />
         <p class="help-text-small" v-if="localData.numberSessions > 0">
@@ -89,13 +77,13 @@
         </p>
       </div>
 
-      <div v-if="type !== 'override'" class="form-group">
+      <div class="form-group">
         <label>Max Capacity <span class="required">*</span></label>
         <input type="number" v-model="localData.maxCapacity" min="1" required :disabled="isReadOnly" />
         <p class="help-text-small">Limits enrollments to this number.</p>
       </div>
 
-      <div v-if="type !== 'override'" class="form-group full-width">
+      <div class="form-group full-width">
         <label>Program Period (Start - End) <span class="required">*</span></label>
         <div class="row-inputs">
           <input type="date" v-model="localData.startDate" required :disabled="isReadOnly" />
@@ -108,49 +96,37 @@
 
       <div class="form-group">
         <label>Status <span class="required">*</span></label>
-        <AppSelect
-          v-model="localData.status"
-          :items="[
-            { id: 'Active', name: 'Active' },
-            { id: 'Upcoming', name: 'Upcoming' },
-            ...(type === 'edit' || type === 'override' ? [{ id: 'Closed', name: 'Closed' }, { id: 'Archived', name: 'Archived' }] : [])
-          ]"
-          :searchable="false"
-        />
+        <AppSelect v-model="localData.status" :items="[
+          { id: 'Active', name: 'Active' },
+          { id: 'Upcoming', name: 'Upcoming' },
+          ...(type === 'edit' ? [{ id: 'Closed', name: 'Closed' }, { id: 'Archived', name: 'Archived' }] : [])
+        ]" :searchable="false" />
         <p v-if="isReadOnly" class="archive-warning">Archived programs are read-only (except status).</p>
       </div>
 
-      <div v-if="type !== 'override'" class="form-group full-width">
+      <div class="form-group full-width">
         <label>Weekly Schedule <span class="required">*</span></label>
         <div class="row-inputs">
-          <AppSelect
-            v-model="localData.schedule.day"
+          <AppSelect v-model="localData.schedule.day"
             :items="['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => ({ id: d, name: d }))"
-            :searchable="false"
-            :disabled="isReadOnly"
-            style="width: 140px;"
-          />
-          <AppSelect
-            v-model="localData.schedule.timeslot"
+            :searchable="false" :disabled="isReadOnly" style="width: 140px;" />
+          <AppSelect v-model="localData.schedule.timeslot"
             :items="['08:30 - 10:00', '10:30 - 12:00', '13:30 - 15:00', '15:30 - 17:00', '17:30 - 19:00'].map(s => ({ id: s, name: s }))"
-            placeholder="-- Select Time Slot --"
-            :searchable="false"
-            :disabled="isReadOnly"
-            style="flex: 1;"
-          />
+            placeholder="-- Select Time Slot --" :searchable="false" :disabled="isReadOnly" style="flex: 1;" />
         </div>
       </div>
 
-      <div v-if="type !== 'override'" class="form-group full-width">
+      <div class="form-group full-width">
         <label>Teachers (Responsible for this Program) <span class="required">*</span></label>
-        
+
         <!-- Display Selected Teachers as Tags -->
         <div v-if="localData.teachers && localData.teachers.length > 0" class="teacher-tags">
           <div v-for="t in localData.teachers" :key="t.id" class="teacher-tag">
             <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" />
             <span>{{ t.name }}</span>
             <div v-if="!isReadOnly" class="tag-actions">
-              <button type="button" class="remove-btn" @click="removeTeacher(t.id)" title="Remove from Program">&times;</button>
+              <button type="button" class="remove-btn" @click="removeTeacher(t.id)"
+                title="Remove from Program">&times;</button>
             </div>
           </div>
         </div>
@@ -161,40 +137,23 @@
               <span class="placeholder">-- Add a teacher --</span>
               <span class="chevron" :class="{ up: isTeacherDropdownOpen }"></span>
             </div>
-            
+
             <div class="dropdown-menu" v-if="isTeacherDropdownOpen">
               <div class="dropdown-search">
-                <input
-                  type="text"
-                  v-model="teacherSearchQuery"
-                  placeholder="Search name or email..."
-                  @click.stop
-                  autofocus
-                />
+                <input type="text" v-model="teacherSearchQuery" placeholder="Search name or email..." @click.stop
+                  autofocus />
               </div>
               <ul class="dropdown-list">
-                  <li
-                    v-for="t in unselectedTeachers"
-                    :key="t.uid || t.id"
-                    class="dropdown-item"
-                    @click="addTeacher(t)"
-                  >
-                    <img
-                      :src="t.profileURL || getImageUrl('profiles/avatar-parent')"
-                      class="avatar-mini-circle"
-                    />
-                    <div class="item-info">
-                      <span class="item-name">{{ t.name || t.email }}</span>
-                    </div>
-                    <button 
-                      type="button" 
-                      class="item-delete-btn" 
-                      @click.stop="handleDeleteTeacher(t)"
-                      title="Permanently Delete Teacher Account"
-                    >
-                      🗑️
-                    </button>
-                  </li>
+                <li v-for="t in unselectedTeachers" :key="t.uid || t.id" class="dropdown-item" @click="addTeacher(t)">
+                  <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-circle" />
+                  <div class="item-info">
+                    <span class="item-name">{{ t.name || t.email }}</span>
+                  </div>
+                  <button type="button" class="item-delete-btn" @click.stop="handleDeleteTeacher(t)"
+                    title="Permanently Delete Teacher Account">
+                    🗑️
+                  </button>
+                </li>
                 <li v-if="filteredTeachers.length === 0" class="dropdown-item no-results">
                   No matches found.
                 </li>
@@ -204,12 +163,13 @@
         </div>
       </div>
 
-      <div v-if="type !== 'override'" class="form-group full-width">
+      <div class="form-group full-width">
         <label>Description (Optional)</label>
-        <textarea v-model="localData.description" placeholder="What is this program about?" rows="2" :disabled="isReadOnly"></textarea>
+        <textarea v-model="localData.description" placeholder="What is this program about?" rows="2"
+          :disabled="isReadOnly"></textarea>
       </div>
 
-      <div v-if="type !== 'override'" class="form-group full-width" style="margin-bottom: 0;">
+      <div class="form-group full-width" style="margin-bottom: 0;">
         <label>Program Photo (Optional)</label>
         <div class="upload-container">
           <div v-if="localData.imageURL" class="image-preview">
@@ -243,37 +203,25 @@
 
       <div class="danger-box-standard">
         <strong>Critical Permanent Program Deletion</strong>
-        <p>You are about to delete this program. This action is permanent and will remove all associated sessions and historical enrollment records.</p>
+        <p>You are about to delete this program. This action is permanent and will remove all associated sessions and
+          historical enrollment records.</p>
       </div>
 
       <div class="confirm-label-standard">To confirm, type <strong>DELETE</strong> below:</div>
-      <input 
-        type="text" 
-        v-model="localData.deleteConfirm" 
-        class="confirm-input-standard" 
-        placeholder="TYPE DELETE HERE" 
-      />
+      <input type="text" v-model="localData.deleteConfirm" class="confirm-input-standard"
+        placeholder="TYPE DELETE HERE" />
     </div>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-      <AppButton
-        :variant="type === 'delete' ? 'danger' : 'primary'"
-        type="submit"
-        @click="handleSubmit"
-        :loading="loading"
-        :disabled="loading || !isFormValid"
-      >
+      <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" type="submit" @click="handleSubmit"
+        :loading="loading" :disabled="loading || !isFormValid">
         {{ type === 'delete' ? 'Delete' : 'Save Program' }}
       </AppButton>
     </template>
   </AppModal>
-  <AppModal 
-    v-if="showDeleteConfirm" 
-    :show="showDeleteConfirm" 
-    title="Confirm Permanent Deletion" 
-    @close="closeDeleteConfirm"
-  >
+  <AppModal v-if="showDeleteConfirm" :show="showDeleteConfirm" title="Confirm Permanent Deletion"
+    @close="closeDeleteConfirm">
     <div class="form-group full-width">
       <div class="identity-card" v-if="teacherToDelete">
         <span class="label">teacher</span>
@@ -289,24 +237,15 @@
           This will remove their profile and their <strong>login credentials</strong>. This action cannot be undone.
         </p>
       </div>
-      
+
       <div class="confirm-label-standard">To confirm, type <strong>DELETE</strong> below:</div>
-      <input 
-        type="text" 
-        v-model="deleteConfirmText" 
-        class="confirm-input-standard" 
-        placeholder="TYPE DELETE HERE"
-      />
+      <input type="text" v-model="deleteConfirmText" class="confirm-input-standard" placeholder="TYPE DELETE HERE" />
     </div>
 
     <template #footer>
       <AppButton variant="cancel" @click="closeDeleteConfirm">Cancel</AppButton>
-      <AppButton 
-        variant="danger" 
-        @click="confirmDeleteTeacher" 
-        :disabled="deleteConfirmText !== 'DELETE'"
-        :loading="deletingUser"
-      >
+      <AppButton variant="danger" @click="confirmDeleteTeacher" :disabled="deleteConfirmText !== 'DELETE'"
+        :loading="deletingUser">
         Confirm Delete
       </AppButton>
     </template>
@@ -388,7 +327,7 @@ const getInitialData = () => ({
   termId: '',
   status: 'Active',
   startDate: '',
-  endDate: '', 
+  endDate: '',
   schedule: { day: 'Monday', timeslot: '10:30 - 12:00' },
   imageURL: '',
   teachers: [],
@@ -402,7 +341,7 @@ const isReadOnly = computed(() => {
 const mapSourceToForm = () => {
   if (props.type === 'add') return getInitialData()
   const s = props.program || {}
-  
+
   // Find matched term for fallback dates
   const term = (terms.value || []).find(t => t.id === s.termId)
 
@@ -437,14 +376,14 @@ watch(
     if (isOpen) {
       // 1. Initial sync from props
       localData.value = mapSourceToForm()
-      
+
       // 2. Fetch all required options in parallel
       await Promise.all([
         fetchCategories(),
         fetchTerms(),
         fetchTeachers()
       ])
-      
+
       // 3. Dependent fetches and fallback logic
       if (localData.value.categoryId) fetchLevels()
       else levels.value = []
@@ -493,12 +432,12 @@ const findNextOccurrence = (date, dayName) => {
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
   const targetDay = days.indexOf(dayName)
   const current = new Date(date)
-  
+
   // Keep moving forward until we hit the target day
   while (current.getDay() !== targetDay) {
     current.setDate(current.getDate() + 1)
   }
-  
+
   return current.toISOString().split('T')[0]
 }
 
@@ -532,18 +471,18 @@ const closeDeleteConfirm = () => {
 
 const confirmDeleteTeacher = async () => {
   if (deleteConfirmText.value !== 'DELETE') return
-  
+
   deletingUser.value = true
   try {
     const uid = teacherToDelete.value.uid || teacherToDelete.value.id
     await userService.deleteUser(uid)
-    
+
     // 1. Remove from potential local selection
     localData.value.teachers = localData.value.teachers.filter(t => (t.id || t.uid) !== uid)
-    
+
     // 2. Refresh the master teachers list for the dropdown
     await fetchTeachers()
-    
+
     closeDeleteConfirm()
   } catch (err) {
     console.error('Failed to delete teacher:', err)
@@ -596,8 +535,8 @@ const onTermChange = () => {
 const fetchTeachers = async () => {
   try {
     const data = await userService.getAllUsers()
-    teachers.value = Array.isArray(data) 
-      ? data.filter(u => ['teacher'].includes(u.role)) 
+    teachers.value = Array.isArray(data)
+      ? data.filter(u => ['teacher'].includes(u.role))
       : []
   } catch (err) { console.error(err) }
 }
@@ -633,7 +572,7 @@ const handleCreateTerm = async () => {
     return
   }
   try {
-    const result = await courseService.createTerm({ 
+    const result = await courseService.createTerm({
       name: newTermName.value.trim(),
       startDate: localData.value.startDate,
       endDate: localData.value.endDate
@@ -656,18 +595,17 @@ const handleFileUpload = async (event) => {
 }
 
 const modalTitle = computed(() => {
-  const titles = { add: 'Create New Program', edit: 'Edit Program', delete: 'Delete Program', override: 'Override Status' }
+  const titles = { add: 'Create New Program', edit: 'Edit Program', delete: 'Delete Program' }
   return titles[props.type] || 'Program Action'
 })
 
 const isFormValid = computed(() => {
   if (props.type === 'delete') return localData.value.deleteConfirm === 'DELETE'
-  if (props.type === 'override') return !!localData.value.status
   return (
-    localData.value.title.trim() && 
-    localData.value.categoryId && 
-    localData.value.levelId && 
-    localData.value.termId && 
+    localData.value.title.trim() &&
+    localData.value.categoryId &&
+    localData.value.levelId &&
+    localData.value.termId &&
     localData.value.teachers?.length > 0 &&
     localData.value.startDate &&
     localData.value.endDate &&
@@ -696,8 +634,8 @@ const dateValidation = computed(() => {
   const count = countOccurrences(start, end, dayName)
   if (count < sessions) {
     const minEnd = calculateMinEndDate(start, dayName, sessions)
-    return { 
-      isValid: false, 
+    return {
+      isValid: false,
       warning: `Need ${sessions} ${dayName}s, but current period only has ${count}. Suggested end date: ${minEnd}.`,
       suggestedEndDate: minEnd
     }
@@ -707,7 +645,7 @@ const dateValidation = computed(() => {
 
 const countOccurrences = (start, end, dayName) => {
   if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return 0
-  
+
   // Safety check: Don't process ranges larger than 2 years to prevent UI freezes
   const diffTime = Math.abs(end - start)
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
@@ -729,30 +667,30 @@ const calculateMinEndDate = (start, dayName, sessions) => {
   const targetDay = days.indexOf(dayName)
   let current = new Date(start)
   let count = 0
-  
+
   // Find first occurrence
   while (current.getDay() !== targetDay) {
     current.setDate(current.getDate() + 1)
   }
-  
+
   // Add weeks for remaining sessions
   const remainingSessions = sessions - 1
   current.setDate(current.getDate() + (remainingSessions * 7))
-  
+
   return current.toISOString().split('T')[0]
 }
 
 const titleValidation = computed(() => {
   if (!localData.value.title || !localData.value.categoryId) return { isValid: true, warning: '' }
-  
+
   const category = categories.value.find(c => c.id === localData.value.categoryId)
   if (!category) return { isValid: true, warning: '' }
 
   const catName = category.name.toLowerCase()
   if (!localData.value.title.toLowerCase().includes(catName)) {
-    return { 
-      isValid: false, 
-      warning: `The title should include the category name "${category.name}".` 
+    return {
+      isValid: false,
+      warning: `The title should include the category name "${category.name}".`
     }
   }
   return { isValid: true, warning: '' }
@@ -883,7 +821,7 @@ const handleSubmit = () => submitForm(isFormValid.value)
   padding: 4px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .inline-add-group input {
@@ -1017,6 +955,7 @@ const handleSubmit = () => submitForm(isFormValid.value)
   color: #ef4444;
   font-weight: 700;
 }
+
 .teacher-tags {
   display: flex;
   flex-wrap: wrap;

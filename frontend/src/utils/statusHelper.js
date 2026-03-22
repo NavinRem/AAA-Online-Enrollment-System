@@ -28,10 +28,10 @@ export const getStatusCategory = (status) => {
   const s = String(status || '').toLowerCase().trim()
   
   const categories = {
-    green: ['paid', 'confirmed', 'active', 'on-time', 'present', 'excellent', 'studying', 'parent', 'create at', 'joined at', 'success'],
+    green: ['paid', 'confirmed', 'active', 'on-time', 'present', 'excellent', 'studying', 'parent', 'create at', 'joined at', 'success', 'past'],
     yellow: ['unpaid', 'pending', 'deactivated', 'suspended', 'warning', 'permission', 'inactive', 'upcoming', 'scheduled'],
     red: ['canceled', 'cancelled', 'failed', 'stopped', 'absent', 'serious', 'closed'],
-    blue: ['graduated', 'late', 'good', 'fair', 'guardian', 'update at', 'past'],
+    blue: ['graduated', 'late', 'good', 'fair', 'guardian', 'update at'],
     purple: ['make-up', 'makeup', 'intermediate', 'children', 'in progress'],
     magenta: ['unmarked', 'archived']
   }
