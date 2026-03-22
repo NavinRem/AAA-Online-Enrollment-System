@@ -31,7 +31,7 @@ export const getStatusCategory = (status) => {
     green: ['paid', 'confirmed', 'active', 'on-time', 'present', 'excellent', 'studying', 'parent', 'create at', 'joined at', 'success'],
     yellow: ['unpaid', 'pending', 'deactivated', 'suspended', 'warning', 'permission', 'inactive', 'upcoming', 'scheduled'],
     red: ['canceled', 'cancelled', 'failed', 'stopped', 'absent', 'serious', 'closed'],
-    blue: ['graduated', 'late', 'good', 'fair', 'guardian', 'update at'],
+    blue: ['graduated', 'late', 'good', 'fair', 'guardian', 'update at', 'past'],
     purple: ['make-up', 'makeup', 'intermediate', 'children', 'in progress'],
     magenta: ['unmarked', 'archived']
   }

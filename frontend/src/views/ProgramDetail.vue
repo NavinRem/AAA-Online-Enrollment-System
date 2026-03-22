@@ -14,6 +14,7 @@ import { getCourseIcon } from '@/utils/courseHelper'
 import { enrichEnrollments } from '@/utils/enrollmentHelper'
 import { isPaid } from '@/utils/statusHelper'
 import { getImageUrl } from '@/utils/assetHelper'
+import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
 
 
 const route = useRoute()
@@ -151,6 +152,60 @@ const handleStudentClick = (enroll) => {
     router.push(`/students/${sId}`)
   }
 }
+
+// Modal Logic
+const actionModal = ref({
+  isOpen: false,
+  type: 'edit',
+  program: null,
+  loading: false,
+  error: '',
+  success: '',
+})
+
+const openActionModal = (type) => {
+  actionModal.value = {
+    isOpen: true,
+    type,
+    program: program.value,
+    loading: false,
+    error: '',
+    success: '',
+  }
+}
+
+const closeModal = () => {
+  actionModal.value.isOpen = false
+  actionModal.value.error = ''
+  actionModal.value.success = ''
+}
+
+const handleActionSubmit = async (formData) => {
+  actionModal.value.loading = true
+  actionModal.value.error = ''
+  try {
+    if (actionModal.value.type === 'edit') {
+      await courseService.updateCourse(program.value.id, formData)
+      actionModal.value.success = 'Program updated successfully!'
+    } else if (actionModal.value.type === 'delete') {
+      await courseService.deleteCourse(program.value.id)
+      actionModal.value.success = 'Program deleted successfully!'
+      setTimeout(() => {
+        router.push('/programs')
+      }, 1500)
+      return
+    }
+
+    setTimeout(() => {
+      closeModal()
+      initData() // Refresh page data
+    }, 1500)
+  } catch (error) {
+    actionModal.value.error = error.message || 'Action failed'
+  } finally {
+    actionModal.value.loading = false
+  }
+}
 </script>
 
 <template>
@@ -251,7 +306,7 @@ const handleStudentClick = (enroll) => {
                   <div class="info-item vertical">
                     <span class="info-label">COST PER SESSION:</span>
                     <strong>${{ (Number(program.price || 0) / (Number(program.number_session) || 1)).toFixed(2)
-                      }}</strong>
+                    }}</strong>
                   </div>
                 </div>
               </div>
@@ -373,6 +428,10 @@ const handleStudentClick = (enroll) => {
 
       </template>
     </DetailPageLayout>
+
+    <ProgramActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :program="actionModal.program"
+      :loading="actionModal.loading" :error="actionModal.error" :success="actionModal.success" @close="closeModal"
+      @submit="handleActionSubmit" />
   </DashboardLayout>
 </template>
 

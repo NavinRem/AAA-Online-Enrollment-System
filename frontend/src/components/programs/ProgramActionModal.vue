@@ -8,8 +8,8 @@
       </div>
     </template>
 
-    <form v-if="type === 'add' || type === 'edit'" class="form-grid" @submit.prevent="handleSubmit">
-      <div class="form-group full-width">
+    <form v-if="type === 'add' || type === 'edit' || type === 'override'" class="form-grid" @submit.prevent="handleSubmit">
+      <div v-if="type !== 'override'" class="form-group full-width">
         <label>Program Title <span class="required">*</span></label>
         <input type="text" v-model="localData.title" :placeholder="titlePlaceholder" required :disabled="isReadOnly" />
         <div v-if="titleValidation.warning" class="input-warning">
@@ -17,7 +17,7 @@
         </div>
       </div>
 
-      <div class="form-group">
+      <div v-if="type !== 'override'" class="form-group">
         <label>Category <span class="required">*</span></label>
         <div class="category-field">
           <AppSelect
@@ -37,7 +37,7 @@
         </div>
       </div>
 
-      <div class="form-group">
+      <div v-if="type !== 'override'" class="form-group">
         <label>Level <span class="required">*</span></label>
         <div class="dynamic-field">
           <AppSelect
@@ -56,7 +56,7 @@
         </div>
       </div>
 
-      <div class="form-group">
+      <div v-if="type !== 'override'" class="form-group">
         <label>Academic Term <span class="required">*</span></label>
         <div class="dynamic-field">
           <AppSelect
@@ -76,12 +76,12 @@
         </div>
       </div>
 
-      <div class="form-group">
+      <div v-if="type !== 'override'" class="form-group">
         <label>Program Price ($) <span class="required">*</span></label>
         <input type="number" v-model="localData.price" min="0" step="0.01" required placeholder="0.00" :disabled="isReadOnly" />
       </div>
 
-      <div class="form-group">
+      <div v-if="type !== 'override'" class="form-group">
         <label>Total Sessions <span class="required">*</span></label>
         <input type="number" v-model="localData.numberSessions" min="1" required :disabled="isReadOnly" />
         <p class="help-text-small" v-if="localData.numberSessions > 0">
@@ -89,13 +89,13 @@
         </p>
       </div>
 
-      <div class="form-group">
+      <div v-if="type !== 'override'" class="form-group">
         <label>Max Capacity <span class="required">*</span></label>
         <input type="number" v-model="localData.maxCapacity" min="1" required :disabled="isReadOnly" />
         <p class="help-text-small">Limits enrollments to this number.</p>
       </div>
 
-      <div class="form-group full-width">
+      <div v-if="type !== 'override'" class="form-group full-width">
         <label>Program Period (Start - End) <span class="required">*</span></label>
         <div class="row-inputs">
           <input type="date" v-model="localData.startDate" required :disabled="isReadOnly" />
@@ -113,14 +113,14 @@
           :items="[
             { id: 'Active', name: 'Active' },
             { id: 'Upcoming', name: 'Upcoming' },
-            ...(type === 'edit' ? [{ id: 'Closed', name: 'Closed' }, { id: 'Archived', name: 'Archived' }] : [])
+            ...(type === 'edit' || type === 'override' ? [{ id: 'Closed', name: 'Closed' }, { id: 'Archived', name: 'Archived' }] : [])
           ]"
           :searchable="false"
         />
         <p v-if="isReadOnly" class="archive-warning">Archived programs are read-only (except status).</p>
       </div>
 
-      <div class="form-group full-width">
+      <div v-if="type !== 'override'" class="form-group full-width">
         <label>Weekly Schedule <span class="required">*</span></label>
         <div class="row-inputs">
           <AppSelect
@@ -141,7 +141,7 @@
         </div>
       </div>
 
-      <div class="form-group full-width">
+      <div v-if="type !== 'override'" class="form-group full-width">
         <label>Teachers (Responsible for this Program) <span class="required">*</span></label>
         
         <!-- Display Selected Teachers as Tags -->
@@ -204,12 +204,12 @@
         </div>
       </div>
 
-      <div class="form-group full-width">
+      <div v-if="type !== 'override'" class="form-group full-width">
         <label>Description (Optional)</label>
         <textarea v-model="localData.description" placeholder="What is this program about?" rows="2" :disabled="isReadOnly"></textarea>
       </div>
 
-      <div class="form-group full-width" style="margin-bottom: 0;">
+      <div v-if="type !== 'override'" class="form-group full-width" style="margin-bottom: 0;">
         <label>Program Photo (Optional)</label>
         <div class="upload-container">
           <div v-if="localData.imageURL" class="image-preview">
@@ -656,12 +656,13 @@ const handleFileUpload = async (event) => {
 }
 
 const modalTitle = computed(() => {
-  const titles = { add: 'Create New Program', edit: 'Edit Program', delete: 'Delete Program' }
+  const titles = { add: 'Create New Program', edit: 'Edit Program', delete: 'Delete Program', override: 'Override Status' }
   return titles[props.type] || 'Program Action'
 })
 
 const isFormValid = computed(() => {
   if (props.type === 'delete') return localData.value.deleteConfirm === 'DELETE'
+  if (props.type === 'override') return !!localData.value.status
   return (
     localData.value.title.trim() && 
     localData.value.categoryId && 
