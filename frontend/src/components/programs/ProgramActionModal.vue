@@ -89,6 +89,12 @@
         </p>
       </div>
 
+      <div class="form-group">
+        <label>Max Capacity <span class="required">*</span></label>
+        <input type="number" v-model="localData.maxCapacity" min="1" required :disabled="isReadOnly" />
+        <p class="help-text-small">Limits enrollments to this number.</p>
+      </div>
+
       <div class="form-group full-width">
         <label>Program Period (Start - End) <span class="required">*</span></label>
         <div class="row-inputs">
@@ -377,6 +383,7 @@ const getInitialData = () => ({
   description: '',
   price: 180,
   numberSessions: 11,
+  maxCapacity: 5,
   levelId: '',
   termId: '',
   status: 'Active',
@@ -406,6 +413,7 @@ const mapSourceToForm = () => {
     description: s.description || '',
     price: s.price ?? 180,
     numberSessions: s.numberSessions || s.number_session || 11,
+    maxCapacity: s.maxCapacity || s.capacity || 5,
     levelId: s.levelId || '',
     termId: s.termId || '',
     status: s.status || 'Active',

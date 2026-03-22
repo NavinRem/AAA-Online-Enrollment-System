@@ -26,9 +26,9 @@ const toggleSidebar = () => {
 .app-layout {
   display: flex;
   background-color: #f7f9fc;
-  min-height: 100vh;
+  height: 100vh;
   position: relative;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .main-wrapper {

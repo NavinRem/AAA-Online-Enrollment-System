@@ -214,9 +214,10 @@ const handleSubmit = () => {
               <label>Select Session</label>
               <select v-model="formData.sessionId" :disabled="!formData.courseId || sessions.length === 0">
                 <option value="" disabled>Choose a session time</option>
-                <option v-for="s in sessions" :key="s.id" :value="s.id">
+                <option v-for="s in sessions" :key="s.id" :value="s.id" :disabled="(s.numStudent || 0) >= (s.capacity || s.maxCapacity || 5)">
                   {{ s.schedule?.day || 'TBD' }} @ {{ s.schedule?.timeslot || 'TBD' }} 
-                  ({{ s.numStudent || 0 }}/{{ s.capacity || 20 }} enrolled)
+                  ({{ s.numStudent || 0 }}/{{ s.capacity || s.maxCapacity || 5 }} enrolled)
+                  {{ (s.numStudent || 0) >= (s.capacity || s.maxCapacity || 5) ? ' - (FULL)' : '' }}
                 </option>
               </select>
             </div>

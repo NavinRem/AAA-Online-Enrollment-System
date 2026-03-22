@@ -11,10 +11,9 @@ import { courseService } from '@/services/courseService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { getCourseIcon } from '@/utils/courseHelper'
-import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
 import { enrichEnrollments } from '@/utils/enrollmentHelper'
-import { isPaid, getStatusDisplay, getStatusCategory } from '@/utils/statusHelper'
-import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { isPaid } from '@/utils/statusHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 
 
 const route = useRoute()
@@ -31,7 +30,7 @@ const now = ref(new Date())
 const activeTab = ref('overview')
 const searchQuery = ref('')
 
-const fetchAllData = async () => {
+const initData = async () => {
   const id = route.params.id
   loading.value = true
   errorMessage.value = ''
@@ -61,7 +60,7 @@ const fetchAllData = async () => {
 }
 
 onMounted(() => {
-  fetchAllData()
+  initData()
   // Refresh live status timer every minute
   const interval = setInterval(() => { now.value = new Date() }, 60000)
   return () => clearInterval(interval)
@@ -77,7 +76,7 @@ const statsCards = computed(() => {
     .reduce((sum, e) => sum + (Number(e.amount || program.value.price || 0)), 0)
 
   // Capacity: Enrolled vs Total Capacity of all sessions
-  const totalCapacity = sessions.value.reduce((sum, s) => sum + (Number(s.capacity) || 20), 0)
+  const totalCapacity = sessions.value.reduce((sum, s) => sum + (Number(s.capacity || s.maxCapacity) || 5), 0)
   const capacityPercent = totalCapacity > 0 ? Math.round((totalEnrolled / totalCapacity) * 100) : 0
 
   return [
@@ -99,6 +98,43 @@ const enrolledStudents = computed(() => {
     if (!searchQuery.value) return true
     return studentName.toLowerCase().includes(searchQuery.value.toLowerCase())
   })
+})
+
+const sessionInstances = computed(() => {
+  if (!program.value || sessions.value.length === 0) return []
+
+  const instances = []
+  const start = new Date(program.value.startDate)
+  const end = new Date(program.value.endDate)
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+  sessions.value.forEach(session => {
+    const dayName = session.schedule?.day
+    if (!dayName) return
+
+    const targetDayIndex = days.indexOf(dayName)
+    let current = new Date(start)
+
+    // Align to target day
+    while (current.getDay() !== targetDayIndex) {
+      current.setDate(current.getDate() + 1)
+    }
+
+    while (current <= end) {
+      const dateStr = current.toISOString().split('T')[0]
+      instances.push({
+        id: `${session.id}-${dateStr}`,
+        date: dateStr,
+        day: dayName,
+        timeslot: session.schedule?.timeslot,
+        status: current < new Date() ? 'Past' : 'Scheduled'
+      })
+
+      current.setDate(current.getDate() + 7)
+    }
+  })
+
+  return instances.sort((a, b) => a.date.localeCompare(b.date))
 })
 
 const studentHeaders = [
@@ -151,12 +187,8 @@ const handleStudentClick = (enroll) => {
               Enrolled Students
             </AppButton>
             <AppButton variant="ghost" :class="{ active: activeTab === 'sessions' }" @click="activeTab = 'sessions'">
-              Sessions
+              Sessions History
             </AppButton>
-          </div>
-
-          <div class="global-filter">
-            <AppButton variant="secondary" size="sm">Filter</AppButton>
           </div>
         </div>
 
@@ -169,49 +201,61 @@ const handleStudentClick = (enroll) => {
                 <div class="section-header">
                   <h3>Program Highlights</h3>
                 </div>
-                <div class="detail-info-group grid-2-columns">
+                <div class="grid-2-columns">
                   <div class="info-item vertical">
-                    <span>CATEGORY:</span>
+                    <span class="info-label">CATEGORY:</span>
                     <strong>{{ program.category || 'General' }}</strong>
                   </div>
 
                   <div class="info-item vertical">
-                    <span>ACADEMIC TERM:</span>
+                    <span class="info-label">ACADEMIC TERM:</span>
                     <strong>{{ program.termName || 'Term 1 2026' }}</strong>
                   </div>
 
                   <div class="info-item vertical">
-                    <span>LEVEL:</span>
+                    <span class="info-label">LEVEL:</span>
                     <strong>{{ program.levelName || program.level || 'Beginner' }}</strong>
                   </div>
 
                   <div class="info-item vertical">
-                    <span>STATUS:</span>
-                    <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
+                    <span class="info-label">STATUS:</span>
+                    <StatusBadge :status="program.status || 'Active'" />
                   </div>
 
                   <div class="info-item vertical">
-                    <span>START DATE:</span>
+                    <span class="info-label">START DATE:</span>
                     <strong>{{ program.startDate || 'N/A' }}</strong>
                   </div>
 
                   <div class="info-item vertical">
-                    <span>END DATE:</span>
+                    <span class="info-label">END DATE:</span>
                     <strong>{{ program.endDate || 'N/A' }}</strong>
                   </div>
 
+                  <div class="info-item vertical">
+                    <span class="info-label">TOTAL SESSIONS:</span>
+                    <strong>{{ program.number_session || program.numberSessions }} Sessions</strong>
+                  </div>
+
+                  <div class="info-item vertical">
+                    <span class="info-label">TOTAL TUITION FEE:</span>
+                    <strong class="price-highlight">${{ (Number(program.price) || 0).toLocaleString() }}</strong>
+                  </div>
+
+                  <div class="info-item vertical">
+                    <span class="info-label">SCHEDULE:</span>
+                    <strong>{{ program.schedule?.day }}</strong>
+                    <strong>{{ program.schedule?.timeslot }}</strong>
+                  </div>
+
+                  <div class="info-item vertical">
+                    <span class="info-label">COST PER SESSION:</span>
+                    <strong>${{ (Number(program.price || 0) / (Number(program.number_session) || 1)).toFixed(2)
+                      }}</strong>
+                  </div>
                 </div>
               </div>
 
-              <!-- Program Description -->
-              <div class="overview-section">
-                <div class="section-header">
-                  <h3>Program Description</h3>
-                </div>
-                <div class="description-text">
-                  <p>{{ program.description || 'No detailed description provided for this program.' }}</p>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -262,54 +306,56 @@ const handleStudentClick = (enroll) => {
             </div>
           </div>
 
-          <!-- Sessions Tab -->
-          <div v-if="activeTab === 'sessions'" class="detail-section-card full-width fade-in">
-            <div class="section-header">
-              <h3>Academic Schedule</h3>
-            </div>
-            <div class="table-container">
-              <table v-if="sessions.length > 0">
+          <!-- Sessions History Tab -->
+          <div v-if="activeTab === 'sessions'" class="detail-section-card">
+            <div class="table-responsive">
+              <table class="data-table fixed-layout">
                 <thead>
                   <tr>
-                    <th>No</th>
-                    <th>Schedule Day</th>
-                    <th>Time Slot</th>
-                    <th class="text-center">Capacity</th>
-                    <th class="text-center">Current Status</th>
+                    <th style="width: 20%">Date</th>
+                    <th style="width: 20%">Day</th>
+                    <th style="width: 40%">Time Slot</th>
+                    <th class="text-center" style="width: 20%">Status</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr v-for="(item, idx) in sessions" :key="item.id || idx">
-                    <td class="text-center">{{ idx + 1 }}</td>
-                    <td><strong>{{ item.schedule?.day }}</strong></td>
-                    <td>{{ item.schedule?.timeslot }}</td>
-                    <td class="text-center">{{ item.capacity || 20 }}</td>
+                <tbody v-if="sessionInstances.length > 0">
+                  <tr v-for="item in sessionInstances" :key="item.id">
+                    <td><strong>{{ item.date }}</strong></td>
+                    <td>{{ item.day }}</td>
+                    <td>{{ item.timeslot }}</td>
                     <td class="text-center">
-                      <StatusBadge :status="isSessionInProgress(item.schedule, now) ? 'In Progress' : 'Scheduled'" />
+                      <StatusBadge :status="item.status" />
+                    </td>
+                  </tr>
+                </tbody>
+                <tbody v-else>
+                  <tr>
+                    <td colspan="5" class="text-center" style="padding: 40px; color: #64748b;">
+                      No session history available for this period.
                     </td>
                   </tr>
                 </tbody>
               </table>
-              <div v-else class="empty-state">
-                <p>No sessions scheduled for this program.</p>
-              </div>
             </div>
           </div>
         </div>
       </template>
 
       <template #right-content v-if="program">
-        <DetailedSummaryCard subtitle="Assigned Teachers" style="margin-top: 10px;">
-          <template #outside>
-            <div class="profile-header">
-              <div class="profile-preview">
-                <img
-                  :src="program.imageURL || getCourseIcon(program.category || program.title) || getImageUrl('programs/program')"
-                  @error="(e) => (e.target.src = getImageUrl('programs/program'))" alt="Program Icon" />
-              </div>
-              <h2 class="profile-title">{{ program.title }}</h2>
-            </div>
-          </template>
+        <div class="profile-header">
+          <div class="profile-preview">
+            <img
+              :src="program.imageURL || getCourseIcon(program.category || program.title) || getImageUrl('programs/program')"
+              @error="(e) => (e.target.src = getImageUrl('programs/program'))" alt="Program Icon" />
+          </div>
+          <h2 class="profile-title">{{ program.title }}</h2>
+        </div>
+
+        <DetailedSummaryCard subtitle="Program Description" style="margin-bottom: 20px;">
+          <p class="summary-value">{{ program.description || 'No detailed description provided.' }}</p>
+        </DetailedSummaryCard>
+
+        <DetailedSummaryCard subtitle="Assigned Teachers">
           <div class="relationships-list">
             <div v-for="t in program.teachers" :key="t.id" class="relationship-item">
               <img :src="t.profileURL" alt="Teacher" class="small-avatar" />
@@ -325,29 +371,6 @@ const handleStudentClick = (enroll) => {
           </div>
         </DetailedSummaryCard>
 
-        <DetailedSummaryCard subtitle="Tuition & Schedule" style="margin-top: 10px;">
-          <div class="detail-info-group">
-            <div class="info-item vertical">
-              <span>TOTAL DURATION:</span>
-              <strong>{{ program.number_session || program.numberSessions }} Sessions</strong>
-            </div>
-
-            <div class="info-item vertical">
-              <span>COST PER SESSION:</span>
-              <strong>${{ (program.price / (program.number_session || program.numberSessions)).toFixed(2) }} /
-                Session</strong>
-            </div>
-
-            <div class="info-item vertical">
-              <span>TOTAL TUITION FEE:</span>
-              <strong class="price-highlight">${{ (Number(program.price) || 0).toLocaleString() }}</strong>
-            </div>
-            <div class="info-item vertical">
-              <span>SCHEDULE:</span>
-              <strong>{{ program.schedule?.day }} - {{ program.schedule?.timeslot }}</strong>
-            </div>
-          </div>
-        </DetailedSummaryCard>
       </template>
     </DetailPageLayout>
   </DashboardLayout>
@@ -421,6 +444,27 @@ const handleStudentClick = (enroll) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Custom Clean Scrollbar for Sidebar */
+.relationships-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.relationships-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.relationships-list::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.relationships-list::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
 }
 
 .relationship-item {
@@ -487,7 +531,10 @@ const handleStudentClick = (enroll) => {
 .overview-layout-container {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+}
+
+.data-table.fixed-layout {
+  table-layout: fixed;
 }
 
 .overview-section {
@@ -508,5 +555,50 @@ const handleStudentClick = (enroll) => {
   background: #f1f5f9;
   margin: 20px 0;
   border: none;
+}
+
+/* Scrollable Tables Styling */
+.table-container,
+.table-responsive {
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.table-container table,
+.table-responsive table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table-container table thead th,
+.table-responsive table thead th {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+  box-shadow: inset 0 -2px 0 #f8fafc;
+}
+
+/* Custom Scrollbar */
+.table-container::-webkit-scrollbar,
+.table-responsive::-webkit-scrollbar {
+  width: 5px;
+}
+
+.table-container::-webkit-scrollbar-track,
+.table-responsive::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-container::-webkit-scrollbar-thumb,
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover,
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
 }
 </style>
