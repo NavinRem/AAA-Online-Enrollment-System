@@ -264,35 +264,4 @@ const isPresetActive = (field, chipValue) => {
 <style scoped>
 
 
-/* Preset Chips */
-.preset-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.preset-chip {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 100px;
-  padding: 6px 14px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  color: #64748b;
-  transition: all 0.2s;
-}
-
-.preset-chip:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-.preset-chip.active {
-  background: #eff6ff;
-  border-color: #00aeef;
-  color: #00aeef;
-  font-weight: 600;
-}
-
 </style>

@@ -744,21 +744,6 @@ onMounted(async () => {
   border-top: 1px solid #eee;
 }
 
-.preset-chip {
-  background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 16px;
-  padding: 8px 14px;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.preset-chip.active {
-  background: #f0f4f8;
-  border-color: #9cb2c6;
-  color: #3f5d7d;
-}
-
 .cancel-btn {
   background: white;
   border: 1px solid #ddd;
