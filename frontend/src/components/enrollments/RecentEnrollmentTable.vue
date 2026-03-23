@@ -1,4 +1,11 @@
 <script setup>
+import { useRouter } from 'vue-router'
+import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppTable from '@/components/common/data/AppTable.vue'
+import TableToolbar from '@/components/common/data/TableToolbar.vue'
+import { formatDate } from '@/utils/dateFormatter'
+import { getIconUrl, getImageUrl } from '@/utils/assetHelper'
+
 defineProps({
   enrollments: {
     type: Array,
@@ -6,10 +13,13 @@ defineProps({
   },
 })
 
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
-import AppTable from '@/components/common/data/AppTable.vue'
-import TableToolbar from '@/components/common/data/TableToolbar.vue'
-import { formatDate } from '@/utils/dateFormatter'
+const router = useRouter()
+
+const navigateToDetail = (item) => {
+  if (item.id) {
+    router.push(`/enrollments/${item.id}`)
+  }
+}
 </script>
 
 <template>
@@ -18,28 +28,40 @@ import { formatDate } from '@/utils/dateFormatter'
       <div class="header-left">
         <h3 class="section-title">Recent Enrollment</h3>
       </div>
-      <TableToolbar
-        :hasSearch="true"
-        searchPlaceholder="Search something..."
-        :hasFilter="true"
-        :filterOptions="[{ label: 'All', value: 'all' }]"
-      />
+      <TableToolbar :hasSearch="true" searchPlaceholder="Search something..." :hasFilter="true"
+        :filterOptions="[{ label: 'All', value: 'all' }]" />
     </div>
 
-    <AppTable
-      :headers="['No', 'Parent/Guardian', 'Child', 'Course', 'Status', 'Amount', 'Enrolled Date']"
-      :empty="enrollments.length === 0"
-    >
+    <AppTable :headers="['No', 'Parent/Guardian', 'Child', 'Course', 'Status', 'Amount', 'Enrolled Date']"
+      :empty="enrollments.length === 0">
       <tr v-for="item in enrollments" :key="item.id || item.no">
         <td>{{ item.no }}</td>
-        <td class="bold">{{ item.parent }}</td>
-        <td>{{ item.child }}</td>
+        <td class="bold">
+          <div class="student-info clickable" @click="navigateToDetail(item)">
+            <div class="avatar-mini">
+              <img :src="item.parentProfileURL || getImageUrl('profiles/avatar-parent')" alt="parent" />
+            </div>
+            <div class="user-info">
+              <span class="user-name">{{ item.parent }}</span>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div class="student-info clickable" @click="navigateToDetail(item)">
+            <div class="avatar-mini">
+              <img :src="item.studentProfileURL || getImageUrl('profiles/avatar-student')" alt="child" />
+            </div>
+            <div class="user-info">
+              <span class="user-name">{{ item.child }}</span>
+            </div>
+          </div>
+        </td>
         <td>{{ item.course }}</td>
         <td>
           <StatusBadge :status="item.status" />
         </td>
         <td class="bold amount-cell">
-          {{ item.amount }}
+          <StatusBadge :status="item.amount" />
         </td>
         <td class="date-cell">{{ formatDate(item.date) }}</td>
       </tr>
@@ -53,8 +75,10 @@ import { formatDate } from '@/utils/dateFormatter'
   padding: 25px;
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-  height: auto !important; /* Force fit content height */
-  overflow: visible !important; /* Ensure no scrollbar */
+  height: auto !important;
+  /* Force fit content height */
+  overflow: visible !important;
+  /* Ensure no scrollbar */
 }
 
 .table-header {

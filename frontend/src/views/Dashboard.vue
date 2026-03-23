@@ -82,11 +82,16 @@ const mappedEnrollments = computed(() => {
     })
     .slice(0, 5)
     .map((r, index) => {
+      const parentUser = allUsers.value.find(u => (u.uid || u.id) === (r.parentId || r.parent_id))
+      const studentProfile = students.value.find(s => (s.id || s.uid) === (r.studentId || r.student_id))
+      
       return {
         id: r.id,
         no: index + 1,
         parent: r.parentName,
+        parentProfileURL: parentUser?.profileURL || getImageUrl('profiles/avatar-parent'),
         child: r.studentName,
+        studentProfileURL: studentProfile?.profileURL || getImageUrl('profiles/avatar-student'),
         course: r.courseTitle,
         status: r.displayStatus,
         amount: `$${r.amount}`,

@@ -99,6 +99,12 @@ const handleCreateEnrollment = async (formData) => {
       sessionId: session.id,
       sessionSchedule: session.schedule?.day + ' ' + session.schedule?.timeslot,
       amount: formData.amount,
+      discountAmount: formData.discountAmount || 0,
+      isSponsorship: formData.isSponsorship || false,
+      sponsorName: formData.sponsorName || '',
+      isProrated: formData.isProrated,
+      enrollmentType: formData.enrollmentType || 'Full',
+      remark: formData.remark || '',
       status: 'pending',
       paymentStatus: 'unpaid',
       enrollAt: new Date().toISOString(),
@@ -136,10 +142,10 @@ const enrollmentStats = computed(() => {
 const enrollmentHeaders = [
   { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
   { label: 'Parent / Guardian', class: 'hide-on-tablet', width: '220px' },
-  { label: 'Student', width: '220px' },
-  { label: 'Program' },
-  { label: 'Regist. Date', class: 'hide-on-tablet', width: '300px' },
-  { label: 'Amount', class: 'hide-on-mobile', align: 'center', width: '100px' },
+  { label: 'Student', width: '200px' },
+  { label: 'Program & Session' },
+  { label: 'Mode', width: '100px', align: 'center' },
+  { label: 'Amount', class: 'hide-on-mobile', align: 'center', width: '120px' },
   { label: 'Status', align: 'center', width: '120px' },
   { label: 'Action', width: '80px', align: 'center' }
 ]
@@ -223,6 +229,11 @@ const closeActionModal = () => {
   errorMessage.value = ''
   successMessage.value = ''
 }
+
+const formatPrice = (val) => {
+  if (val === undefined || val === null) return '0'
+  return Number.isInteger(val) ? val.toString() : val.toFixed(2)
+}
 </script>
 
 <template>
@@ -269,16 +280,21 @@ const closeActionModal = () => {
               </div>
             </td>
             <td>
-              <div class="user-info">
-                <div class="program-icon-mini">
-                  <img :src="item.courseImage || getImageUrl('programs/program')" alt="program" />
-                </div>
-                {{ item.courseTitle || 'Course' }}
+              <div class="program-cell">
+                <div class="program-title">{{ item.courseTitle || 'Course' }}</div>
+                <div class="session-subtitle">{{ item.sessionSchedule || 'TBD' }}</div>
               </div>
             </td>
-            <td class="hide-on-tablet">{{ formatDate(item.enrollAt) }}</td>
+            <td class="text-center">
+              <span class="type-badge" :class="item.enrollmentType?.toLowerCase()">
+                {{ item.enrollmentType || 'Full' }}
+              </span>
+            </td>
             <td class="bold hide-on-mobile text-center">
-              <StatusBadge :status="'$' + item.amount || 0"></StatusBadge>
+              <div class="amount-cell">
+                <StatusBadge :status="'$' + formatPrice(item.amount || 0)"></StatusBadge>
+                <div v-if="item.isProrated" class="prorate-note">PRORATED</div>
+              </div>
             </td>
             <td class="text-center">
               <StatusBadge
@@ -311,7 +327,7 @@ const closeActionModal = () => {
     </DataPageLayout>
 
     <EnrollmentForm :isOpen="showModal" :loading="submitting" :parents="parents" :students="students" :courses="courses"
-      :sessions="sessions" :error="errorMessage" :success="successMessage"
+      :sessions="sessions" :enrollments="enrollments" :error="errorMessage" :success="successMessage"
       @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }" @course-change="handleCourseChange"
       @submit="handleCreateEnrollment" />
 
@@ -370,5 +386,51 @@ const closeActionModal = () => {
 .user-info {
   cursor: pointer;
   gap: 10px;
+}
+
+.program-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.program-title {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+.session-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+.type-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: #f1f5f9;
+  color: #475569;
+}
+.type-badge.prorated {
+  background: #f0f9ff;
+  color: #00aeef;
+  border: 1px solid #e0f2fe;
+}
+.type-badge.full {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #dcfce7;
+}
+.amount-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.prorate-note {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #00aeef;
+  letter-spacing: 0.05em;
 }
 </style>

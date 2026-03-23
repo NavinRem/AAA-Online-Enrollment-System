@@ -60,22 +60,22 @@ const filterOptions = computed(() => {
 const loading = ref(true)
 const errorMessage = ref('')
 
-const studentEnrollments = computed(() => 
-  filterDetailEnrollments(enrollments.value, { 
-    studentId: selectedChildUid.value, 
-    academicStatus: currentFilter.value 
+const studentEnrollments = computed(() =>
+  filterDetailEnrollments(enrollments.value, {
+    studentId: selectedChildUid.value,
+    academicStatus: currentFilter.value
   })
 )
 
-const filteredPayments = computed(() => 
-  filterDetailEnrollments(enrollments.value, { 
-    paymentStatus: currentFilter.value 
+const filteredPayments = computed(() =>
+  filterDetailEnrollments(enrollments.value, {
+    paymentStatus: currentFilter.value
   })
 )
 
-const filteredHistory = computed(() => 
-  filterDetailEnrollments(enrollments.value, { 
-    academicStatus: currentFilter.value 
+const filteredHistory = computed(() =>
+  filterDetailEnrollments(enrollments.value, {
+    academicStatus: currentFilter.value
   })
 )
 
@@ -225,34 +225,21 @@ watch(
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" title="Parent Details">
       <template #header-actions v-if="parent">
         <div class="actions-wrapper">
-          <button
-            class="btn-icon"
-            style="background-color: #f1f8ff; color: #007aff"
-            title="Register Child"
-            @click="openAddChildModal"
-          >
+          <button class="btn-icon" style="background-color: #f1f8ff; color: #007aff" title="Register Child"
+            @click="openAddChildModal">
             👶
           </button>
           <button class="btn-icon edit" title="Edit Parent" @click="openActionModal('edit')">
             ✏️
           </button>
-          <button
-            v-if="!isInactive"
-            class="btn-icon cancel"
-            title="Deactivate Account"
-            @click="openActionModal('deactivate')"
-          >
+          <button v-if="!isInactive" class="btn-icon cancel" title="Deactivate Account"
+            @click="openActionModal('deactivate')">
             🚫
           </button>
-          <button
-            v-else
-            class="btn-icon check"
-            title="Activate Account"
-            @click="openActionModal('activate')"
-          >
+          <button v-else class="btn-icon check" title="Activate Account" @click="openActionModal('activate')">
             ✅
           </button>
           <button class="btn-icon delete" title="Delete Account" @click="openActionModal('delete')">
@@ -265,37 +252,20 @@ watch(
         <!-- Custom Tab Navigation -->
         <div class="tabs-navigation-wrapper">
           <div class="tabs-navigation">
-            <AppButton
-              variant="ghost"
-              :class="{ active: activeTab === 'children' }"
-              @click="activeTab = 'children'"
-            >
+            <AppButton variant="ghost" :class="{ active: activeTab === 'children' }" @click="activeTab = 'children'">
               Children & Programs
             </AppButton>
-            <AppButton
-              variant="ghost"
-              :class="{ active: activeTab === 'payments' }"
-              @click="activeTab = 'payments'"
-            >
+            <AppButton variant="ghost" :class="{ active: activeTab === 'payments' }" @click="activeTab = 'payments'">
               Payment History
             </AppButton>
-            <AppButton
-              variant="ghost"
-              :class="{ active: activeTab === 'history' }"
-              @click="activeTab = 'history'"
-            >
+            <AppButton variant="ghost" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
               Enrollment Logs
             </AppButton>
           </div>
 
           <div class="global-filter">
-            <TableToolbar
-              :hasSearch="false"
-              :hasFilter="true"
-              :currentFilter="currentFilter"
-              @update:currentFilter="currentFilter = $event"
-              :filterOptions="filterOptions"
-            />
+            <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
+              @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
           </div>
         </div>
 
@@ -315,14 +285,9 @@ watch(
                 >
                   All Children
                 </button> -->
-                <button
-                  v-for="s in students"
-                  :key="s.id || s.uid"
-                  class="child-chip"
-                  :class="{ active: selectedChildUid === (s.id || s.uid) }"
-                  @click="selectedChildUid = (s.id || s.uid)"
-                  @dblclick="navigateToStudent(s)"
-                >
+                <button v-for="s in students" :key="s.id || s.uid" class="child-chip"
+                  :class="{ active: selectedChildUid === (s.id || s.uid) }" @click="selectedChildUid = (s.id || s.uid)"
+                  @dblclick="navigateToStudent(s)">
                   <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
                   {{ s.fullName || s.fullname || s.name }}
                 </button>
@@ -354,7 +319,9 @@ watch(
                       <td>Piano</td>
                       <td>{{ reg.courseTitle || 'N/A' }}</td>
                       <td>{{ reg.sessionSchedule || 'N/A' }}</td>
-                      <td><StatusBadge :status="reg.status || 'Studying'" /></td>
+                      <td>
+                        <StatusBadge :status="reg.status || 'Studying'" />
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -381,7 +348,7 @@ watch(
                 </thead>
                 <tbody>
                   <tr v-if="filteredPayments.length === 0">
-                    <td colspan="6" class="text-center">No payment history matching the filter.</td>
+                    <td colspan="6" class="text-center">No payment history</td>
                   </tr>
                   <tr v-for="(reg, idx) in filteredPayments" :key="'pay-' + reg.id">
                     <td>{{ idx + 1 }}</td>
@@ -389,7 +356,9 @@ watch(
                     <td class="mono">{{ reg.id.substring(0, 8) + '...' }}</td>
                     <td class="price">${{ reg.amount || reg.totalAmount }}</td>
                     <td>{{ formatDate(reg.updatedAt || reg.createdAt) }}</td>
-                    <td><StatusBadge :status="reg.paymentStatus || 'Pending'" /></td>
+                    <td>
+                      <StatusBadge :status="reg.paymentStatus || 'Pending'" />
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -416,7 +385,7 @@ watch(
                 <tbody>
                   <tr v-if="filteredHistory.length === 0">
                     <td colspan="6" class="text-center">
-                      No enrollment history matching the filter.
+                      No enrollment history.
                     </td>
                   </tr>
                   <tr v-for="(reg, idx) in filteredHistory" :key="reg.id">
@@ -426,9 +395,7 @@ watch(
                     <td>{{ reg.studentName }}</td>
                     <td>{{ formatDate(reg.createdAt) }}</td>
                     <td>
-                      <StatusBadge
-                        :status="reg.status?.toLowerCase() === 'confirmed' ? 'Paid' : reg.status"
-                      />
+                      <StatusBadge :status="reg.status?.toLowerCase() === 'confirmed' ? 'Paid' : reg.status" />
                     </td>
                   </tr>
                 </tbody>
@@ -439,7 +406,7 @@ watch(
       </template>
 
       <template #right-content v-if="parent">
-        <DetailedSummaryCard title="Basic Information" subtitle="Contact Information">
+        <DetailedSummaryCard title="Basic Information" subtitle="Parent Information">
           <template #outside>
             <div class="profile-header" style="flex-direction: column; align-items: center;">
               <div class="profile-preview">
@@ -453,30 +420,36 @@ watch(
             </div>
           </template>
 
-          <div class="detail-info-group">
-            <div class="info-item vertical">
-              <span>Fullname:</span>
-              <strong>{{ parent.fullname || parent.name }}</strong>
-            </div>
-            <div class="info-item vertical">
-              <span>Phone Number:</span>
-              <strong>{{ parent.phone || 'N/A' }}</strong>
-            </div>
-            <div class="info-item vertical">
-              <span>Email:</span>
-              <strong class="email">{{ parent.email || 'N/A' }}</strong>
+          <div class="scrollable-info-body">
+            <div class="detail-info-group">
+              <div class="info-item vertical">
+                <span class="info-label">Fullname:</span>
+                <strong>{{ parent.fullname || parent.name }}</strong>
+              </div>
+              <div class="info-item vertical">
+                <span class="info-label">Phone Number:</span>
+                <strong>{{ parent.phone || 'N/A' }}</strong>
+              </div>
+              <div class="info-item vertical">
+                <span class="info-label">Email:</span>
+                <strong class="email">{{ parent.email || 'N/A' }}</strong>
+              </div>
+              <div class="info-item vertical">
+                <StatusBadge status="Created At" />
+                <strong>{{ formatDate(parent.createdAt) }}</strong>
+              </div>
+              <div class="info-item vertical">
+                <StatusBadge status="Updated At" />
+                <strong>{{ formatDate(parent.updatedAt || parent.createdAt) }}</strong>
+              </div>
             </div>
           </div>
         </DetailedSummaryCard>
 
         <DetailedSummaryCard subtitle="Child Profiles">
           <div class="relationships-list">
-            <div 
-              v-for="s in students" 
-              :key="s.id || s.uid" 
-              class="relationship-item clickable"
-              @click="navigateToStudent(s)"
-            >
+            <div v-for="s in students" :key="s.id || s.uid" class="relationship-item clickable"
+              @click="navigateToStudent(s)">
               <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
               <div class="child-info">
                 <strong>{{ s.fullName || s.fullname || s.name }}</strong>
@@ -487,43 +460,16 @@ watch(
             </div>
           </div>
         </DetailedSummaryCard>
-
-        <DetailedSummaryCard subtitle="Account Timestamp">
-          <div class="timestamp-group" style="gap: 20px;">
-            <div class="timestamp-item">
-              <StatusBadge status="Create At" />
-              <p>{{ formatDate(parent.createdAt) }}</p>
-            </div>
-            <div class="timestamp-item">
-              <StatusBadge status="Update At" />
-              <p>{{ formatDate(parent.updatedAt || parent.createdAt) }}</p>
-            </div>
-          </div>
-        </DetailedSummaryCard>
       </template>
     </DetailPageLayout>
 
     <!-- Admin Action Modals -->
-    <ParentActionModal
-      :isOpen="actionModal.isOpen"
-      :type="actionModal.type"
-      :user="actionModal.user"
-      :loading="submitting"
-      :error="globalError"
-      :success="globalSuccess"
-      @close="actionModal.isOpen = false"
-      @submit="submitActionModal"
-    />
+    <ParentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :user="actionModal.user"
+      :loading="submitting" :error="globalError" :success="globalSuccess" @close="actionModal.isOpen = false"
+      @submit="submitActionModal" />
 
-    <RegisterChildModal
-      :isOpen="addChildModal.isOpen"
-      :parent="addChildModal.parent"
-      :loading="submitting"
-      :error="globalError"
-      :success="globalSuccess"
-      @close="addChildModal.isOpen = false"
-      @submit="submitAddChild"
-    />
+    <RegisterChildModal :isOpen="addChildModal.isOpen" :parent="addChildModal.parent" :loading="submitting"
+      :error="globalError" :success="globalSuccess" @close="addChildModal.isOpen = false" @submit="submitAddChild" />
   </DashboardLayout>
 </template>
 
@@ -620,12 +566,15 @@ watch(
 .relationship-item.clickable {
   cursor: pointer;
   transition: all 0.2s;
-  padding: 8px; /* This was 16px in original, 8px in instruction. Keeping 8px from instruction. */
-  border-radius: 12px; /* This was 16px in original, 12px in instruction. Keeping 12px from instruction. */
+  padding: 8px;
+  /* This was 16px in original, 8px in instruction. Keeping 8px from instruction. */
+  border-radius: 12px;
+  /* This was 16px in original, 12px in instruction. Keeping 12px from instruction. */
 }
 
 .relationship-item.clickable:hover {
-  background: #f1f5f9; /* This was #f1f8ff in instruction, #f1f5f9 in original. Keeping #f1f5f9 from instruction. */
+  background: #f1f5f9;
+  /* This was #f1f8ff in instruction, #f1f5f9 in original. Keeping #f1f5f9 from instruction. */
   transform: translateX(4px);
 }
 
@@ -692,12 +641,14 @@ watch(
 .p-3 {
   padding: 12px;
 }
+
 .relationship-item.clickable {
   cursor: pointer;
   transition: background 0.2s;
   padding: 8px;
   border-radius: 12px;
 }
+
 .relationship-item.clickable:hover {
   background: #f1f8ff;
 }

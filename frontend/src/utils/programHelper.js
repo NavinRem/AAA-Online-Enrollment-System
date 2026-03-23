@@ -1,5 +1,20 @@
 import { isCancelled } from './statusHelper'
 
+// Handle both 24h (10:30) and 12h (10:30 AM) formats
+export const parseTimeToMinutes = (timeStr) => {
+  if (!timeStr) return 0
+  const parts = timeStr.trim().split(/\s+/)
+  const [hours, minutes] = parts[0].split(':').map(Number)
+  let totalMinutes = hours * 60 + minutes
+  
+  if (parts.length > 1) {
+    const modifier = parts[1].toUpperCase()
+    if (modifier === 'PM' && hours < 12) totalMinutes += 12 * 60
+    if (modifier === 'AM' && hours === 12) totalMinutes -= 12 * 60
+  }
+  return totalMinutes
+}
+
 /**
  * Checks if a session is currently in progress.
  */
@@ -15,20 +30,6 @@ export const isSessionInProgress = (schedule, now = new Date()) => {
 
   const times = schedule.timeslot.split('-').map(t => t.trim())
   if (times.length !== 2) return false
-
-  // Handle both 24h (10:30) and 12h (10:30 AM) formats
-  const parseTimeToMinutes = (timeStr) => {
-    const parts = timeStr.trim().split(/\s+/)
-    const [hours, minutes] = parts[0].split(':').map(Number)
-    let totalMinutes = hours * 60 + minutes
-    
-    if (parts.length > 1) {
-      const modifier = parts[1].toUpperCase()
-      if (modifier === 'PM' && hours < 12) totalMinutes += 12 * 60
-      if (modifier === 'AM' && hours === 12) totalMinutes -= 12 * 60
-    }
-    return totalMinutes
-  }
 
   const startMinutes = parseTimeToMinutes(times[0])
   const endMinutes = parseTimeToMinutes(times[1])
@@ -113,4 +114,84 @@ export const getProgramDisplayStatus = (program, sessions = [], now = new Date()
 
   // Fallback to existing status or default
   return program.status || 'Active'
+}
+
+/**
+ * Calculates the total number of target days between two dates.
+ */
+export const countTargetDays = (start, end, targetDay) => {
+  if (!start || !end || !targetDay) return 0
+  
+  const dStart = new Date(start)
+  const dEnd = new Date(end)
+  const daysLong = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const targetIndex = daysLong.indexOf(targetDay)
+  
+  if (targetIndex === -1) return 0
+  
+  let count = 0
+  let current = new Date(dStart)
+  // Standardize current date to midnight for comparison
+  current.setHours(0, 0, 0, 0)
+  dEnd.setHours(23, 59, 59, 999)
+  
+  while (current <= dEnd) {
+    if (current.getDay() === targetIndex) {
+      count++
+    }
+    current.setDate(current.getDate() + 1)
+  }
+  return count
+}
+
+/**
+ * Calculates session counts: total, remaining, and passed.
+ */
+export const getSessionCounts = (programStartDate, programEndDate, schedule, now = new Date()) => {
+  if (!programStartDate || !programEndDate || !schedule?.day) return null
+  
+  const sessionDay = schedule.day
+  const total = countTargetDays(programStartDate, programEndDate, sessionDay)
+  
+  // Date-only normalization
+  const dateOnly = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate())
+  const today = dateOnly(now)
+  
+  // If program is in the future, all sessions are remaining
+  if (today < dateOnly(new Date(programStartDate))) {
+    return { total, remaining: total, passed: 0 }
+  }
+
+  // Basic remaining calculation from tomorrow onwards
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  
+  let remaining = countTargetDays(tomorrow, programEndDate, sessionDay)
+  
+  // Check if today is a session day and if the session is still upcoming
+  const daysLong = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const daysShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const todayDayLong = daysLong[now.getDay()]
+  const todayDayShort = daysShort[now.getDay()]
+  
+  if ((sessionDay === todayDayLong || sessionDay === todayDayShort) && schedule.timeslot) {
+     const times = schedule.timeslot.split('-').map(t => t.trim())
+     if (times.length > 0) {
+        const startMinutes = parseTimeToMinutes(times[0])
+        const currentMinutes = now.getHours() * 60 + now.getMinutes()
+        
+        // If session hasn't started yet today, count it as remaining
+        if (currentMinutes < startMinutes) {
+          remaining++
+        }
+     }
+  }
+  
+  const passed = Math.max(0, total - remaining)
+  
+  return {
+    total,
+    remaining,
+    passed
+  }
 }

@@ -69,7 +69,8 @@ export const parentSearchMapper = (p) => {
 
 export const programSearchMapper = (p) => {
   const scheduleText = p.schedule ? `${p.schedule.day} ${p.schedule.timeslot}` : ''
-  return `${p.title || p.name || ''} ${p.category || ''} ${p.description || ''} ${scheduleText}`
+  const termText = p.termName || p.term || ''
+  return `${p.title || p.name || ''} ${p.category || ''} ${p.description || ''} ${scheduleText} ${termText}`
 }
 
 export const teacherSearchMapper = (t) => {

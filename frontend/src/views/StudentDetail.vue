@@ -812,7 +812,7 @@ watch(
                 <p>{{ formatDate(student?.createdAt || student?.created_at) }}</p>
               </div>
               <div class="timestamp-item">
-                <StatusBadge status="Update At" />
+                <StatusBadge status="Updated At" />
                 <p>{{ formatDate(student?.updatedAt || student?.updated_at || student?.createdAt || new
                   Date().toISOString()) }}
                 </p>
@@ -832,7 +832,7 @@ watch(
                   <strong>{{
                     primaryParent.name ||
                     'Parent Name'
-                  }}</strong>
+                    }}</strong>
                 </div>
               </div>
               <div v-else class="empty-relation-box">
@@ -852,7 +852,7 @@ watch(
                     primaryGuardian.displayName ||
                     primaryGuardian.email ||
                     'Guardian Name'
-                  }}</strong>
+                    }}</strong>
                 </div>
               </div>
               <div v-else class="empty-relation-box">
