@@ -17,15 +17,10 @@ defineProps({
     <h3 v-if="title" class="card-caption">{{ title }}</h3>
 
     <div v-if="hasAvatar" class="avatar-wrapper">
-      <img
-        :src="avatarUrl"
-        :alt="title"
-        class="avatar-icon"
-        onerror="
+      <img :src="avatarUrl" :alt="title" class="avatar-icon" onerror="
           this.src =
             'data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%2300aeef\'><path d=\'M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\'/></svg>'
-        "
-      />
+        " />
     </div>
 
     <div class="info-block-light">
@@ -44,6 +39,7 @@ defineProps({
   text-align: left;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .card-caption {
@@ -56,8 +52,8 @@ defineProps({
 }
 
 .avatar-wrapper {
-  width: 90px;
-  height: 90px;
+  width: 100px;
+  height: 100px;
   margin: 0 auto 20px;
   border-radius: 50%;
   border: 2px solid #e1f5fe;

@@ -12,7 +12,7 @@ import { programService } from '@/services/programService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 
-import { 
+import {
   getImageUrl,
   getProgramProfileURL,
   getParentProfileURL,
@@ -190,7 +190,7 @@ onMounted(async () => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments" :scrollable="true">
       <template #header-actions v-if="enrollment">
         <div class="actions-wrapper">
           <button class="btn-icon edit" title="Edit Enrollment" @click="openActionModal('edit')">
@@ -212,7 +212,8 @@ onMounted(async () => {
 
       <template #left-content v-if="enrollment">
         <div class="detail-cards-grid">
-          <DetailCard title="Parent/Guardian Information" :avatarUrl="getParentProfileURL(enrollment.parentProfileURL || parent?.profileURL)">
+          <DetailCard title="Parent/Guardian Information"
+            :avatarUrl="getParentProfileURL(enrollment.parentProfileURL || parent?.profileURL)">
             <p><strong>Fullname:</strong> {{ enrollment.parentName || parent?.fullName || parent?.name || 'N/A' }}</p>
             <p><strong>Email:</strong> {{ parent?.email || enrollment.parentEmail || 'N/A' }}</p>
             <p><strong>Phone Number:</strong> {{ parent?.phone || enrollment.parentPhone || 'N/A' }}</p>
@@ -227,7 +228,8 @@ onMounted(async () => {
             </p>
           </DetailCard>
 
-          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.studentProfileURL || student?.profileURL)">
+          <DetailCard title="Student Information"
+            :avatarUrl="getStudentProfileURL(enrollment.studentProfileURL || student?.profileURL)">
             <p>
               <strong>Fullname:</strong>
               {{ enrollment.studentName || student?.fullName || student?.name || 'N/A' }}
@@ -263,7 +265,8 @@ onMounted(async () => {
             </p>
           </DetailCard>
 
-          <DetailCard title="Session Information" :avatarUrl="getTeacherProfileURL(teacher?.profileURL || enrollment.teacherProfileURL)">
+          <DetailCard title="Session Information"
+            :avatarUrl="getTeacherProfileURL(teacher?.profileURL || enrollment.teacherProfileURL)">
             <p><strong>Program:</strong> {{ enrollment.programTitle || program?.title || 'N/A' }}</p>
             <p>
               <strong>Teacher Name:</strong>
@@ -276,7 +279,8 @@ onMounted(async () => {
             </p>
             <p><strong>Total Student:</strong> {{ session?.capacity || enrollment.capacity || 'N/A' }}</p>
             <div class="session-info-row">
-              <div class="session-day"><strong>{{ getSessionDay(session?.schedule || enrollment.sessionSchedule) }}</strong></div>
+              <div class="session-day"><strong>{{ getSessionDay(session?.schedule || enrollment.sessionSchedule)
+              }}</strong></div>
               <div class="session-time">{{ getSessionTime(session?.schedule || enrollment.sessionSchedule) }}</div>
             </div>
           </DetailCard>
@@ -374,7 +378,8 @@ onMounted(async () => {
           </div>
           <div class="detail-row">
             <div class="summary-value" style="display: flex; flex-direction: column; align-items: flex-end;">
-              <div class="session-day"><strong>{{ getSessionDay(session?.schedule || enrollment?.sessionSchedule) }}</strong></div>
+              <div class="session-day"><strong>{{ getSessionDay(session?.schedule || enrollment?.sessionSchedule)
+              }}</strong></div>
               <div class="session-time">{{ getSessionTime(session?.schedule || enrollment?.sessionSchedule) }}</div>
             </div>
           </div>
@@ -571,7 +576,25 @@ onMounted(async () => {
 <style scoped>
 @import '@/assets/styles/detail-view.css';
 
-/* Enrollment-specific modal and spacing tweaks */
+.detail-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  width: 100%;
+  gap: 24px;
+  align-items: stretch; /* Cards in same row match height */
+  margin-bottom: 30px;
+}
+
+/* Custom scrollbar for webkit to keep it premium */
+:deep(.main-cards-grid::-webkit-scrollbar) {
+  width: 6px;
+}
+
+:deep(.main-cards-grid::-webkit-scrollbar-thumb) {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
 .sidebar-cards {
   padding-right: 20px;
   display: flex;
