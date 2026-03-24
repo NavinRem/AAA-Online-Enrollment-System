@@ -1,7 +1,7 @@
 const { db, COLLECTIONS } = require("../../config/database");
 
-class CourseService {
-  async createCourse(courseData) {
+class ProgramService {
+  async createProgram(programData) {
     const { 
       title, 
       category, 
@@ -18,14 +18,14 @@ class CourseService {
       teachers, // Array of { id, name }
       startDate,
       endDate 
-    } = courseData;
+    } = programData;
 
     if (!title || !termId || !levelId) {
       throw new Error("Title, Term, and Level are required");
     }
 
     // Uniqueness check: Title + Term + Level
-    const snapshot = await db.collection(COLLECTIONS.COURSE)
+    const snapshot = await db.collection(COLLECTIONS.PROGRAM)
       .where("title", "==", title.trim())
       .where("termId", "==", termId)
       .where("levelId", "==", levelId)
@@ -55,32 +55,32 @@ class CourseService {
       updatedAt: new Date().toISOString(),
     };
 
-    const docRef = await db.collection(COLLECTIONS.COURSE).add(data);
-    return { id: docRef.id, message: "Course created successfully" };
+    const docRef = await db.collection(COLLECTIONS.PROGRAM).add(data);
+    return { id: docRef.id, message: "Program created successfully" };
   }
 
-  async getAllCourses() {
-    const coursesSnapshot = await db.collection(COLLECTIONS.COURSE).get();
-    const courses = coursesSnapshot.docs.map((doc) => ({
+  async getAllPrograms() {
+    const programsSnapshot = await db.collection(COLLECTIONS.PROGRAM).get();
+    const programs = programsSnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
 
-    return this._hydrateCourses(courses);
+    return this._hydratePrograms(programs);
   }
 
-  async getCourse(courseId) {
-    const doc = await db.collection(COLLECTIONS.COURSE).doc(courseId).get();
-    if (!doc.exists) throw new Error("Course not found");
+  async getProgram(programId) {
+    const doc = await db.collection(COLLECTIONS.PROGRAM).doc(programId).get();
+    if (!doc.exists) throw new Error("Program not found");
     
-    const courses = [ { id: doc.id, ...doc.data() } ];
-    const hydrated = await this._hydrateCourses(courses);
+    const programs = [ { id: doc.id, ...doc.data() } ];
+    const hydrated = await this._hydratePrograms(programs);
     return hydrated[0];
   }
 
-  // Helper method to hydrate course data (Terms, Categories, Levels, Teachers)
-  async _hydrateCourses(courses) {
-    if (!courses || courses.length === 0) return [];
+  // Helper method to hydrate program data (Terms, Categories, Levels, Teachers)
+  async _hydratePrograms(programs) {
+    if (!programs || programs.length === 0) return [];
 
     // Fetch all terms for mapping
     const termsSnapshot = await db.collection(COLLECTIONS.TERM).get();
@@ -119,11 +119,11 @@ class CourseService {
       })
     );
 
-    return courses.map((course) => {
-      let rawTeachers = course.teachers || [];
+    return programs.map((program) => {
+      let rawTeachers = program.teachers || [];
       // Fallback for legacy data/single teacherId
-      if (rawTeachers.length === 0 && (course.teacherId || course.uid)) {
-        rawTeachers = [{ id: course.teacherId || course.uid, name: course.teacherName || "Unknown" }];
+      if (rawTeachers.length === 0 && (program.teacherId || program.uid)) {
+        rawTeachers = [{ id: program.teacherId || program.uid, name: program.teacherName || "Unknown" }];
       }
       
       const hydratedTeachers = rawTeachers.map(t => {
@@ -134,29 +134,29 @@ class CourseService {
       }).filter(Boolean);
 
       return {
-        ...course,
+        ...program,
         teachers: hydratedTeachers,
-        category: categoriesMap[course.categoryId] || course.category || "Other",
-        levelName: levelsMap[course.levelId] || course.level || "Beginner",
-        termName: termsMap[course.termId] || "Term 1 2026",
+        category: categoriesMap[program.categoryId] || program.category,
+        levelName: levelsMap[program.levelId] || program.level,
+        termName: termsMap[program.termId],
       };
     });
   }
 
-  async updateCourse(id, updateData) {
-    const ref = db.collection(COLLECTIONS.COURSE).doc(id);
+  async updateProgram(id, updateData) {
+    const ref = db.collection(COLLECTIONS.PROGRAM).doc(id);
     const data = {
       ...updateData,
       updatedAt: new Date().toISOString(),
     };
     await ref.update(data);
-    return { id, message: "Course updated successfully" };
+    return { id, message: "Program updated successfully" };
   }
 
-  async deleteCourse(id) {
-    await db.collection(COLLECTIONS.COURSE).doc(id).delete();
-    return { message: "Course deleted successfully" };
+  async deleteProgram(id) {
+    await db.collection(COLLECTIONS.PROGRAM).doc(id).delete();
+    return { message: "Program deleted successfully" };
   }
 }
 
-module.exports = new CourseService();
+module.exports = new ProgramService();

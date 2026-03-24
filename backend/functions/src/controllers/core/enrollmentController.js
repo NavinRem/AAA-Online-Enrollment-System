@@ -2,7 +2,7 @@ const enrollmentService = require("../../services/core/enrollmentService");
 
 /**
  * @route POST /enrollments/createEnrollment
- * @description Register a student for a course
+ * @description Register a student for a program
  */
 exports.createEnrollment = async (req, res) => {
   try {
@@ -12,14 +12,14 @@ exports.createEnrollment = async (req, res) => {
     if (
       error.message === "Session not found" ||
       error.message === "Student not found" ||
-      error.message === "Course not found"
+      error.message === "Program not found"
     ) {
       return res.status(404).json({ error: error.message });
     }
     if (
       error.message === "Student already enrolled for this session" ||
       error.message === "Session is full" ||
-      error.message === "studentId, courseId, and sessionId are required"
+      error.message === "studentId, programId, and sessionId are required"
     ) {
       return res.status(400).json({ error: error.message });
     }
@@ -28,19 +28,19 @@ exports.createEnrollment = async (req, res) => {
 };
 
 /**
- * @route GET /enrollments/eligibility/:studentId/:courseId
- * @description Check if a student is eligible for a course (placeholder for logic)
+ * @route GET /enrollments/eligibility/:studentId/:programId
+ * @description Check if a student is eligible for a program (placeholder for logic)
  */
 exports.getStudentEligibility = async (req, res) => {
   try {
-    const { studentId, courseId } = req.params;
+    const { studentId, programId } = req.params;
     const result = await enrollmentService.getStudentEligibility(
       studentId,
-      courseId,
+      programId,
     );
     res.status(200).json(result);
   } catch (error) {
-    if (error.message === "Student or Course not found") {
+    if (error.message === "Student or Program not found") {
       return res.status(404).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });

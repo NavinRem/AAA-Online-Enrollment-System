@@ -257,7 +257,7 @@ import { ref, computed, watch } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
-import { courseService } from '@/services/courseService'
+import { programService } from '@/services/programService'
 import { userService } from '@/services/userService'
 import { useActionModal } from '@/composables/useActionModal'
 import { useSearch, teacherSearchMapper } from '@/composables/useSearch'
@@ -504,7 +504,7 @@ const onCategoryChange = () => {
 
 const fetchCategories = async () => {
   try {
-    const data = await courseService.getAllCategories()
+    const data = await programService.getAllCategories()
     categories.value = Array.isArray(data) ? data : []
   } catch (err) { console.error(err) }
 }
@@ -512,14 +512,14 @@ const fetchCategories = async () => {
 const fetchLevels = async () => {
   if (!localData.value.categoryId) return
   try {
-    const data = await courseService.getAllLevels(localData.value.categoryId)
+    const data = await programService.getAllLevels(localData.value.categoryId)
     levels.value = Array.isArray(data) ? data : []
   } catch (err) { console.error(err) }
 }
 
 const fetchTerms = async () => {
   try {
-    const data = await courseService.getAllTerms()
+    const data = await programService.getAllTerms()
     terms.value = Array.isArray(data) ? data : []
   } catch (err) { console.error(err) }
 }
@@ -545,7 +545,7 @@ const fetchTeachers = async () => {
 const handleCreateCategory = async () => {
   if (!newCategoryName.value.trim()) return
   try {
-    const result = await courseService.createCategory({ name: newCategoryName.value.trim() })
+    const result = await programService.createCategory({ name: newCategoryName.value.trim() })
     await fetchCategories()
     localData.value.categoryId = result.id
     localData.value.category = result.name
@@ -557,7 +557,7 @@ const handleCreateCategory = async () => {
 const handleCreateLevel = async () => {
   if (!newLevelName.value.trim() || !localData.value.categoryId) return
   try {
-    const result = await courseService.createLevel(localData.value.categoryId, { name: newLevelName.value.trim() })
+    const result = await programService.createLevel(localData.value.categoryId, { name: newLevelName.value.trim() })
     await fetchLevels()
     localData.value.levelId = result.id
     newLevelName.value = ''
@@ -572,7 +572,7 @@ const handleCreateTerm = async () => {
     return
   }
   try {
-    const result = await courseService.createTerm({
+    const result = await programService.createTerm({
       name: newTermName.value.trim(),
       startDate: localData.value.startDate,
       endDate: localData.value.endDate
@@ -588,7 +588,7 @@ const handleFileUpload = async (event) => {
   if (!file) return
   isUploading.value = true
   try {
-    const result = await courseService.uploadImage(file)
+    const result = await programService.uploadImage(file)
     localData.value.imageURL = result.imageURL
   } catch (err) { alert('Upload failed: ' + err.message) }
   finally { isUploading.value = false }

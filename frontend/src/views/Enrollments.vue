@@ -9,18 +9,17 @@ import StatusBadge from '../components/common/ui/StatusBadge.vue'
 import EnrollmentForm from '../components/enrollments/EnrollmentForm.vue'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '../services/userService'
-import { courseService } from '../services/courseService'
+import { programService } from '../services/programService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
 import { getImageUrl } from '@/utils/assetHelper'
-import { formatDate, formatDateOnly } from '../utils/dateFormatter'
 import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
 import AppModal from '@/components/common/ui/AppModal.vue'
 
 const enrollments = ref([])
 const parents = ref([])
 const students = ref([])
-const courses = ref([])
+const programs = ref([])
 const sessions = ref([])
 const loading = ref(true)
 const showModal = ref(false)
@@ -52,28 +51,28 @@ const fetchEnrollments = async () => {
 
 const loadFormData = async () => {
   try {
-    const [usersRes, coursesRes, studentsRes] = await Promise.all([
+    const [usersRes, programsRes, studentsRes] = await Promise.all([
       userService.getAllUsers(),
-      courseService.getAllCourses(),
+      programService.getAllPrograms(),
       userService.getAllStudents(),
     ])
     parents.value = Array.isArray(usersRes)
       ? usersRes.filter((u) => u.role === 'parent' || u.role === 'guardian')
       : []
-    courses.value = Array.isArray(coursesRes) ? coursesRes : []
+    programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
   } catch (err) {
     console.error('Failed to load form data', err)
   }
 }
 
-const handleCourseChange = async (courseId) => {
-  if (!courseId) {
+const handleProgramChange = async (programId) => {
+  if (!programId) {
     sessions.value = []
     return
   }
   try {
-    const data = await courseService.getSessions(courseId)
+    const data = await programService.getSessions(programId)
     sessions.value = Array.isArray(data) ? data : []
   } catch (err) {
     console.error('Failed to load sessions', err)
@@ -86,7 +85,7 @@ const handleCreateEnrollment = async (formData) => {
   try {
     const parent = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
     const student = students.value.find((s) => s.id === formData.studentId)
-    const course = courses.value.find((c) => c.id === formData.courseId)
+    const program = programs.value.find((c) => c.id === formData.programId || c.id === formData.courseId)
     const session = sessions.value.find((s) => s.id === formData.sessionId)
 
     const payload = {
@@ -94,8 +93,8 @@ const handleCreateEnrollment = async (formData) => {
       parentName: parent.name || parent.email || 'Parent',
       studentId: student.id,
       studentName: student.fullname || student.fullName || student.name || 'Student',
-      courseId: course.id,
-      courseTitle: course.title || course.name || 'Course',
+      programId: program.id,
+      programTitle: program.title || program.name || 'Program',
       sessionId: session.id,
       sessionSchedule: session.schedule?.day + ' ' + session.schedule?.timeslot,
       amount: formData.amount,
@@ -153,7 +152,7 @@ const enrollmentHeaders = [
 const currentFilter = ref('all')
 
 const statusFilteredEnrollments = computed(() => {
-  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, courses.value)
+  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, programs.value)
 
   if (currentFilter.value === 'all') return enriched
 
@@ -266,23 +265,28 @@ const formatPrice = (val) => {
             <td class="hide-on-tablet">
               <div class="user-info">
                 <div class="avatar-mini">
-                  <img :src="item.parentProfileURL || getImageUrl('profiles/avatar-parent')" alt="parent" />
+                  <img :src="item.parentProfileURL" alt="parent" />
                 </div>
                 <span>{{ item.parentName }}</span>
               </div>
             </td>
             <td>
-              <div class="user-cell">
-                <div class="user-avatar-small">
-                  <img :src="item.studentProfileURL || getImageUrl('profiles/avatar-student')" alt="student" />
+              <div class="user-info">
+                <div class="avatar-mini">
+                  <img :src="item.studentProfileURL" alt="student" />
                 </div>
-                {{ item.studentName || 'Student' }}
+                <span>{{ item.studentName }}</span>
               </div>
             </td>
             <td>
-              <div class="program-cell">
-                <div class="program-title">{{ item.courseTitle || 'Course' }}</div>
-                <div class="session-subtitle">{{ item.sessionSchedule || 'TBD' }}</div>
+              <div class="program-info">
+                <div class="program-icon-wrapper">
+                  <img :src="item.programURL" alt="program" />
+                </div>
+                <div class="program-cell">
+                  <div class="program-title">{{ item.programTitle || 'Program' }}</div>
+                  <div class="session-subtitle">{{ item.sessionSchedule || 'TBD' }}</div>
+                </div>
               </div>
             </td>
             <td class="text-center">
@@ -326,9 +330,9 @@ const formatPrice = (val) => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentForm :isOpen="showModal" :loading="submitting" :parents="parents" :students="students" :courses="courses"
+    <EnrollmentForm :isOpen="showModal" :loading="submitting" :parents="parents" :students="students" :programs="programs"
       :sessions="sessions" :enrollments="enrollments" :error="errorMessage" :success="successMessage"
-      @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }" @course-change="handleCourseChange"
+      @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }" @program-change="handleProgramChange"
       @submit="handleCreateEnrollment" />
 
     <!-- Action Modals -->
@@ -385,23 +389,8 @@ const formatPrice = (val) => {
 
 .user-info {
   cursor: pointer;
-  gap: 10px;
 }
 
-.program-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.program-title {
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 0.95rem;
-}
-.session-subtitle {
-  font-size: 0.8rem;
-  color: #64748b;
-}
 .type-badge {
   padding: 4px 10px;
   border-radius: 6px;
@@ -411,22 +400,26 @@ const formatPrice = (val) => {
   background: #f1f5f9;
   color: #475569;
 }
+
 .type-badge.prorated {
   background: #f0f9ff;
   color: #00aeef;
   border: 1px solid #e0f2fe;
 }
+
 .type-badge.full {
   background: #f0fdf4;
   color: #166534;
   border: 1px solid #dcfce7;
 }
+
 .amount-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
 }
+
 .prorate-note {
   font-size: 0.65rem;
   font-weight: 800;

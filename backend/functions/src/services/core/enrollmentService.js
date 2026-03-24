@@ -2,41 +2,41 @@ const { db, COLLECTIONS } = require("../../config/database");
 
 class EnrollmentService {
   async createEnrollment(enrollmentData) {
-    const { studentId, courseId, sessionId } = enrollmentData;
+    const { studentId, programId, sessionId } = enrollmentData;
 
-    if (!studentId || !courseId || !sessionId) {
-      throw new Error("studentId, courseId, and sessionId are required");
+    if (!studentId || !programId || !sessionId) {
+      throw new Error("studentId, programId, and sessionId are required");
     }
 
     let enrollmentId;
     await db.runTransaction(async (transaction) => {
       const sessionRef = db.collection(COLLECTIONS.SESSION).doc(sessionId);
       const studentRef = db.collection(COLLECTIONS.STUDENT).doc(studentId);
-      const courseRef = db.collection(COLLECTIONS.COURSE).doc(courseId);
+      const programRef = db.collection(COLLECTIONS.PROGRAM).doc(programId);
 
       const existingEnrollmentQuery = db
         .collection("enrollment")
         .where("studentId", "==", studentId)
         .where("sessionId", "==", sessionId);
 
-      const [sessionDoc, studentDoc, courseDoc, existingEnrollmentSnapshot] =
+      const [sessionDoc, studentDoc, programDoc, existingEnrollmentSnapshot] =
         await Promise.all([
           transaction.get(sessionRef),
           transaction.get(studentRef),
-          transaction.get(courseRef),
+          transaction.get(programRef),
           transaction.get(existingEnrollmentQuery),
         ]);
 
       if (!sessionDoc.exists) throw new Error("Session not found");
       if (!studentDoc.exists) throw new Error("Student not found");
-      if (!courseDoc.exists) throw new Error("Course not found");
+      if (!programDoc.exists) throw new Error("Program not found");
 
       if (!existingEnrollmentSnapshot.empty) {
         throw new Error("Student already enrolled for this session");
       }
 
       const sessionData = sessionDoc.data();
-      const courseData = courseDoc.data();
+      const programData = programDoc.data();
       if ((sessionData.numStudent || 0) >= sessionData.capacity) {
         throw new Error("Session is full");
       }
@@ -46,12 +46,12 @@ class EnrollmentService {
       const data = {
         studentId,
         sessionId,
-        courseId,
+        programId,
         parentId: studentDoc.data().parentId, 
         status: "pending",
         paymentStatus: "unpaid",
-        amount: courseData.price || 0,
-        totalAmount: courseData.price || 0,
+        amount: programData.price || 0,
+        totalAmount: programData.price || 0,
         enrollAt: new Date().toISOString(),
       };
 
@@ -65,17 +65,17 @@ class EnrollmentService {
     return { id: enrollmentId, message: "Enrollment created successfully" };
   }
 
-  async getStudentEligibility(studentId, courseId) {
+  async getStudentEligibility(studentId, programId) {
     // Placeholder for eligibility logic
-    return { eligible: true, studentId, courseId };
+    return { eligible: true, studentId, programId };
   }
 
   async getAllEnrollments() {
-    const [snapshot, usersSnap, studentsSnap, coursesSnap, sessionsSnap] = await Promise.all([
+    const [snapshot, usersSnap, studentsSnap, programsSnap, sessionsSnap] = await Promise.all([
       db.collection(COLLECTIONS.ENROLLMENT).get(),
       db.collection(COLLECTIONS.USER).get(),
       db.collection(COLLECTIONS.STUDENT).get(),
-      db.collection(COLLECTIONS.COURSE).get(),
+      db.collection(COLLECTIONS.PROGRAM).get(),
       db.collection(COLLECTIONS.SESSION).get(),
     ]);
 
@@ -85,8 +85,8 @@ class EnrollmentService {
     const studentsMap = {};
     studentsSnap.forEach((doc) => (studentsMap[doc.id] = doc.data()));
 
-    const coursesMap = {};
-    coursesSnap.forEach((doc) => (coursesMap[doc.id] = doc.data()));
+    const programsMap = {};
+    programsSnap.forEach((doc) => (programsMap[doc.id] = doc.data()));
 
     const sessionsMap = {};
     sessionsSnap.forEach((doc) => {
@@ -107,11 +107,11 @@ class EnrollmentService {
       const data = doc.data();
       const parentData = usersMap[data.parentId] || {};
       const studentData = studentsMap[data.studentId] || {};
-      const courseData = coursesMap[data.courseId] || {};
+      const programData = programsMap[data.programId] || {};
 
       const parentName = parentData.name || parentData.email || "N/A";
       const studentName = studentData.fullName || studentData.name || "N/A";
-      const courseTitle = courseData.title || courseData.name || "N/A";
+      const programTitle = programData.title || programData.name || "N/A";
 
       const session = sessionsMap[data.sessionId];
 
@@ -128,12 +128,12 @@ class EnrollmentService {
         ...data,
         parentName,
         studentName,
-        courseTitle,
+        programTitle,
         displayStatus,
         sessionSchedule: session?.scheduleString || "N/A",
         sessionCount: session?.totalSessions || session?.sessionCount || 10,
         dob: studentData.dob || null,
-        amount: data.amount || data.totalAmount || courseData.price || 0,
+        amount: data.amount || data.totalAmount || programData.price || 0,
       };
     });
   }
@@ -146,16 +146,16 @@ class EnrollmentService {
 
     const data = doc.data();
 
-    const [userDoc, studentDoc, courseDoc, sessionDoc] = await Promise.all([
+    const [userDoc, studentDoc, programDoc, sessionDoc] = await Promise.all([
       data.parentId ? db.collection(COLLECTIONS.USER).doc(data.parentId).get() : Promise.resolve({ exists: false }),
       data.studentId ? db.collection(COLLECTIONS.STUDENT).doc(data.studentId).get() : Promise.resolve({ exists: false }),
-      data.courseId ? db.collection(COLLECTIONS.COURSE).doc(data.courseId).get() : Promise.resolve({ exists: false }),
+      data.programId ? db.collection(COLLECTIONS.PROGRAM).doc(data.programId).get() : Promise.resolve({ exists: false }),
       data.sessionId ? db.collection(COLLECTIONS.SESSION).doc(data.sessionId).get() : Promise.resolve({ exists: false }),
     ]);
 
     const userData = userDoc.exists ? userDoc.data() : null;
     const studentData = studentDoc.exists ? studentDoc.data() : null;
-    const courseData = courseDoc.exists ? courseDoc.data() : null;
+    const programData = programDoc.exists ? programDoc.data() : null;
     const sessionData = sessionDoc.exists ? sessionDoc.data() : null;
 
     let sessionSchedule = data.sessionSchedule || "N/A";
@@ -203,8 +203,8 @@ class EnrollmentService {
         studentData?.fullName || studentData?.name || data.studentName || "N/A",
       studentDob: studentData?.dob || null,
       medicalNote: studentData?.medicalNote || "None",
-      courseTitle:
-        courseData?.title || courseData?.name || data.courseTitle || "N/A",
+      programTitle:
+        programData?.title || programData?.name || data.programTitle || "N/A",
       displayStatus,
       sessionSchedule: sessionSchedule,
       teacherName,

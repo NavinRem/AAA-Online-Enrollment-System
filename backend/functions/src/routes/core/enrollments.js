@@ -7,7 +7,7 @@ router.post("/createEnrollment", enrollmentController.createEnrollment);
 
 // Check Eligibility
 router.get(
-  "/eligibility/:studentId/:courseId",
+  "/eligibility/:studentId/:programId",
   enrollmentController.getStudentEligibility,
 );
 

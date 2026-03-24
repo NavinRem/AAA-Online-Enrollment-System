@@ -4,7 +4,7 @@ import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppTable from '@/components/common/data/AppTable.vue'
 import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import { formatDate } from '@/utils/dateFormatter'
-import { getIconUrl, getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 
 defineProps({
   enrollments: {
@@ -14,6 +14,17 @@ defineProps({
 })
 
 const router = useRouter()
+
+// Defining headers with widths for even alignment
+const enrollmentHeaders = [
+  { label: 'No', width: '50px', align: 'center' },
+  { label: 'Parent / Guardian', width: '22%' },
+  { label: 'Child', width: '18%' },
+  { label: 'Program', width: '20%' },
+  { label: 'Status', width: '100px', align: 'center' },
+  { label: 'Amount', width: '100px', align: 'center' },
+  { label: 'Enrolled Date', width: '30%', align: 'center' }
+]
 
 const navigateToDetail = (item) => {
   if (item.id) {
@@ -32,10 +43,9 @@ const navigateToDetail = (item) => {
         :filterOptions="[{ label: 'All', value: 'all' }]" />
     </div>
 
-    <AppTable :headers="['No', 'Parent/Guardian', 'Child', 'Course', 'Status', 'Amount', 'Enrolled Date']"
-      :empty="enrollments.length === 0">
+    <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
       <tr v-for="item in enrollments" :key="item.id || item.no">
-        <td>{{ item.no }}</td>
+        <td class="text-center">{{ item.no }}</td>
         <td class="bold">
           <div class="student-info clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
@@ -56,14 +66,21 @@ const navigateToDetail = (item) => {
             </div>
           </div>
         </td>
-        <td>{{ item.course }}</td>
         <td>
+          <div class="program-info-cell clickable" @click="navigateToDetail(item)">
+            <div class="program-icon-mini">
+              <img :src="item.programURL || item.courseURL" :alt="item.program || item.course" />
+            </div>
+            <span class="program-name">{{ item.program || item.course }}</span>
+          </div>
+        </td>
+        <td class="text-center">
           <StatusBadge :status="item.status" />
         </td>
-        <td class="bold amount-cell">
+        <td class="bold text-center">
           <StatusBadge :status="item.amount" />
         </td>
-        <td class="date-cell">{{ formatDate(item.date) }}</td>
+        <td class="date-cell text-center">{{ formatDate(item.date) }}</td>
       </tr>
     </AppTable>
   </div>

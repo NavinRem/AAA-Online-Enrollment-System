@@ -7,7 +7,7 @@
       <span class="label">{{ type === 'enrollment-override' || type === 'enrollment-delete' ? 'enrollment' : 'student' }}</span>
       <strong class="name">{{
         enrollment
-          ? enrollment.courseTitle
+          ? enrollment.programTitle || enrollment.courseTitle
           : student?.name || student?.fullName || student?.fullname || student?.email || 'Unknown'
       }}</strong>
     </div>
@@ -167,7 +167,7 @@
             <div class="text">
               <strong
                 >Manual
-                {{ type === 'enrollment-override' ? 'Enrollment' : 'Status' }} Override</strong
+                {{ type === 'enrollment-override' ? 'Program' : 'Status' }} Override</strong
               >
               <p>
                 This will manually force a status that ignores the automatic system calculations.
@@ -223,12 +223,12 @@
       <div class="danger-box-standard">
         <strong>Critical Permanent Record Deletion</strong>
         <p v-if="type === 'enrollment-delete'">
-          You are about to delete the enrollment record for <strong>{{ enrollment?.courseTitle }}</strong>. 
+          You are about to delete the enrollment record for <strong>{{ enrollment?.programTitle || enrollment?.courseTitle }}</strong>. 
           This will remove all grades and attendance history for this session.
         </p>
         <p v-else>
-          You are about to permanently delete the profile for <strong>{{ student?.name || student?.fullName }}</strong>. 
-          This will remove all their personal data and enrollment history.
+          You are about to permanently delete the profile for <strong>{{ student?.name || student?.fullName || student?.fullname }}</strong>. 
+          This will remove all their personal data and program history.
         </p>
       </div>
 
@@ -341,8 +341,8 @@ const modalTitle = computed(() => {
     edit: 'Edit Student Profile',
     delete: 'Delete Student Record',
     override: 'Manual Status Override',
-    'enrollment-override': 'Manual Enrollment Override',
-    'enrollment-delete': 'Delete Enrollment Record',
+    'enrollment-override': 'Manual Program Override',
+    'enrollment-delete': 'Delete Program Record',
   }
   return titles[props.type] || 'Student Action'
 })

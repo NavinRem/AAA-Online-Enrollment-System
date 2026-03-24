@@ -297,8 +297,8 @@ watch(
                   <thead>
                     <tr>
                       <th>No</th>
+                      <th>Category</th>
                       <th>Program</th>
-                      <th>Course</th>
                       <th>Session</th>
                       <th>Status</th>
                     </tr>
@@ -317,7 +317,7 @@ watch(
                     <tr v-for="(reg, idx) in studentEnrollments" :key="reg.id">
                       <td>{{ idx + 1 }}</td>
                       <td>Piano</td>
-                      <td>{{ reg.courseTitle || 'N/A' }}</td>
+                      <td>{{ reg.programTitle || reg.courseTitle || 'N/A' }}</td>
                       <td>{{ reg.sessionSchedule || 'N/A' }}</td>
                       <td>
                         <StatusBadge :status="reg.status || 'Studying'" />
@@ -376,7 +376,7 @@ watch(
                   <tr>
                     <th>No</th>
                     <th>Enrollment ID</th>
-                    <th>Course</th>
+                    <th>Program</th>
                     <th>Child</th>
                     <th>Enrolled Date</th>
                     <th>Status</th>
@@ -391,7 +391,7 @@ watch(
                   <tr v-for="(reg, idx) in filteredHistory" :key="reg.id">
                     <td>{{ idx + 1 }}</td>
                     <td class="mono">{{ reg.id }}</td>
-                    <td>{{ reg.courseTitle }}</td>
+                    <td>{{ reg.programTitle || reg.courseTitle }}</td>
                     <td>{{ reg.studentName }}</td>
                     <td>{{ formatDate(reg.createdAt) }}</td>
                     <td>

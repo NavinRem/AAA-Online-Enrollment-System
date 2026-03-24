@@ -8,10 +8,10 @@ import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge.vue'
 import ProgramActionModal from '../components/programs/ProgramActionModal.vue'
-import { courseService } from '../services/courseService'
+import { programService } from '../services/programService'
 import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, programSearchMapper } from '../composables/useSearch'
-import { getCourseIcon } from '../utils/courseHelper'
+import { getProgramIcon } from '../utils/programHelper'
 import { calculateProgramStats, getProgramDisplayStatus } from '../utils/programHelper'
 
 import { getImageUrl } from '@/utils/assetHelper'
@@ -58,17 +58,17 @@ const statsCards = computed(() => {
 const fetchPrograms = async () => {
   loading.value = true
   try {
-    const [coursesData, catsData] = await Promise.all([
-      courseService.getAllCourses().catch((e) => {
-        console.error('Error fetching courses:', e)
+    const [programsData, catsData] = await Promise.all([
+      programService.getAllPrograms().catch((e) => {
+        console.error('Error fetching programs:', e)
         return []
       }),
-      courseService.getAllCategories().catch((e) => {
+      programService.getAllCategories().catch((e) => {
         console.error('Error fetching categories:', e)
         return []
       }),
     ])
-    programs.value = Array.isArray(coursesData) ? coursesData : []
+    programs.value = Array.isArray(programsData) ? programsData : []
     categories.value = Array.isArray(catsData) ? catsData : []
   } catch (error) {
     console.error('Failed to fetch programs or categories', error)
@@ -170,13 +170,13 @@ const handleActionSubmit = async (formData) => {
   actionModal.value.error = ''
   try {
     if (actionModal.value.type === 'add') {
-      const result = await courseService.createCourse(formData)
+      const result = await programService.createProgram(formData)
       newlyCreatedId.value = result.id
       
       // Auto-create initial session if schedule exists
       if (formData.schedule) {
-        await courseService.createSession({
-          course_id: result.id,
+        await programService.createSession({
+          program_id: result.id,
           schedule: {
             day: formData.schedule.day,
             timeslot: formData.schedule.timeslot
@@ -187,11 +187,11 @@ const handleActionSubmit = async (formData) => {
       
       actionModal.value.success = 'Program & Initial Session created successfully!'
     } else if (actionModal.value.type === 'edit') {
-      await courseService.updateCourse(actionModal.value.program.id, formData)
+      await programService.updateProgram(actionModal.value.program.id, formData)
       newlyCreatedId.value = actionModal.value.program.id
       actionModal.value.success = 'Program updated successfully!'
     } else if (actionModal.value.type === 'delete') {
-      await courseService.deleteCourse(actionModal.value.program.id)
+      await programService.deleteProgram(actionModal.value.program.id)
       actionModal.value.success = 'Program deleted successfully!'
     }
 
@@ -329,7 +329,7 @@ const onRowClick = (item) => {
             <td class="hide-on-tablet">
               <div class="user-info">
                 <div class="program-icon-mini">
-                  <img :src="getCourseIcon(item.category || item.title)" alt="course" />
+                  <img :src="getProgramIcon(item.category || item.title)" alt="program" />
                 </div>
                 {{ item.category || 'General' }}
               </div>

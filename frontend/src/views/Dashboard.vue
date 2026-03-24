@@ -1,7 +1,7 @@
 <script setup>
 import { authService } from '../services/authService'
 import { userService } from '../services/userService'
-import { courseService } from '../services/courseService'
+import { programService } from '../services/programService'
 import { enrollmentService } from '../services/enrollmentService'
 import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
@@ -15,12 +15,11 @@ import DataMetrics from '../components/common/data/DataMetrics.vue'
 import MiniCard from '../components/common/cards/MiniCard.vue'
 import RecentEnrollmentTable from '../components/enrollments/RecentEnrollmentTable.vue'
 
-const router = useRouter()
 const userProfile = ref(null)
 const students = ref([])
-const courses = ref([])
+const programs = ref([])
 const enrollments = ref([])
-const allUsers = ref([])
+const users = ref([])
 const loading = ref(true)
 
 const stats = ref({
@@ -31,28 +30,26 @@ const stats = ref({
 
 onMounted(() => {
   authService.onAuthStateChanged(async (currentUser) => {
-    // Note: We remove the immediate router.push('/') here because it conflicts 
-    // with our intentional logout transition pause in Sidebar.vue.
-    if (!currentUser) return 
-    
+    if (!currentUser) return
+
     try {
       const profile = await userService.getProfile(currentUser.uid)
       userProfile.value = profile
-      
-      const [uData, rData, cData, sData] = await Promise.all([
+
+      const [uData, rData, pData, sData] = await Promise.all([
         userService.getAllUsers(),
         enrollmentService.getAllEnrollments(),
-        courseService.getAllCourses(),
+        programService.getAllPrograms(),
         userService.getAllStudents(),
         userService.getStudentsByParentID(currentUser.uid)
       ])
 
-      allUsers.value = Array.isArray(uData) ? uData : []
+      users.value = Array.isArray(uData) ? uData : []
       enrollments.value = Array.isArray(rData) ? rData : []
-      courses.value = Array.isArray(cData) ? cData : []
+      programs.value = Array.isArray(pData) ? pData : []
       students.value = Array.isArray(sData) ? sData : []
-      
-      stats.value = calculateDashboardStats(allUsers.value, enrollments.value, courses.value, students.value)
+
+      stats.value = calculateDashboardStats(users.value, enrollments.value, programs.value, students.value)
     } catch (err) {
       console.error('Dashboard error:', err)
     } finally {
@@ -82,17 +79,18 @@ const mappedEnrollments = computed(() => {
     })
     .slice(0, 5)
     .map((r, index) => {
-      const parentUser = allUsers.value.find(u => (u.uid || u.id) === (r.parentId || r.parent_id))
+      const parentUser = users.value.find(u => (u.uid || u.id) === (r.parentId || r.parent_id))
       const studentProfile = students.value.find(s => (s.id || s.uid) === (r.studentId || r.student_id))
-      
+      const program = allPrograms.value.find(p => (p.id || p.uid) === (r.programId || r.program_id))
+
       return {
         id: r.id,
         no: index + 1,
-        parent: r.parentName,
         parentProfileURL: parentUser?.profileURL || getImageUrl('profiles/avatar-parent'),
-        child: r.studentName,
+        parent: r.parentName,
         studentProfileURL: studentProfile?.profileURL || getImageUrl('profiles/avatar-student'),
-        course: r.courseTitle,
+        child: r.studentName,
+        program: r.programTitle,
         status: r.displayStatus,
         amount: `$${r.amount}`,
         date: r.enrollAt || r.createdAt
@@ -135,11 +133,16 @@ const mappedEnrollments = computed(() => {
           <div class="basic-info">
             <h3 class="info-title">Basic Information</h3>
             <div class="mini-cards-stack">
-              <MiniCard title="Total Accounts" :value="stats.totals.accounts" :image="getImageUrl('dashboard/card-account')" />
-              <MiniCard title="Total Parents" :value="stats.totals.parents" :image="getImageUrl('dashboard/card-parent')" />
-              <MiniCard title="Total Guardians" :value="stats.totals.guardians" :image="getImageUrl('dashboard/card-guardian')" />
-              <MiniCard title="Total Students" :value="stats.totals.students" :image="getImageUrl('dashboard/card-student')" />
-              <MiniCard title="Total Programs" :value="stats.totals.programs" :image="getImageUrl('dashboard/card-program')" />
+              <MiniCard title="Total Accounts" :value="stats.totals.accounts"
+                :image="getImageUrl('dashboard/card-account')" />
+              <MiniCard title="Total Parents" :value="stats.totals.parents"
+                :image="getImageUrl('dashboard/card-parent')" />
+              <MiniCard title="Total Guardians" :value="stats.totals.guardians"
+                :image="getImageUrl('dashboard/card-guardian')" />
+              <MiniCard title="Total Students" :value="stats.totals.students"
+                :image="getImageUrl('dashboard/card-student')" />
+              <MiniCard title="Total Programs" :value="stats.totals.programs"
+                :image="getImageUrl('dashboard/card-program')" />
             </div>
           </div>
         </div>
@@ -164,7 +167,8 @@ const mappedEnrollments = computed(() => {
   gap: 30px;
   overflow-y: auto;
   padding-right: 15px;
-  min-height: 0; /* Critical for children height calculation in flex-scroll */
+  min-height: 0;
+  /* Critical for children height calculation in flex-scroll */
 }
 
 /* Adaptive Responsive Layout */
@@ -175,11 +179,11 @@ const mappedEnrollments = computed(() => {
     overflow: visible;
     padding: 0 15px 30px 15px;
   }
-  
+
   .main-column {
     overflow-y: visible;
     padding-right: 0;
-  }   
+  }
 }
 
 .summary-section {
@@ -283,6 +287,8 @@ const mappedEnrollments = computed(() => {
 }
 
 @keyframes l2 {
-  to { transform: rotate(1turn); }
+  to {
+    transform: rotate(1turn);
+  }
 }
 </style>

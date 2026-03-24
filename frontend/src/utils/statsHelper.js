@@ -4,7 +4,7 @@ import { isPaid } from './statusHelper'
 /**
  * Calculates dashboard statistics based on the provided data arrays.
  */
-export const calculateDashboardStats = (allUsers, enrollments, courses, students) => {
+export const calculateDashboardStats = (allUsers, enrollments, programs, students) => {
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
@@ -14,8 +14,9 @@ export const calculateDashboardStats = (allUsers, enrollments, courses, students
     if (r.amount) amt = parseFloat(String(r.amount).replace(/[^0-9.]/g, ''))
     else if (r.totalAmount) amt = parseFloat(String(r.totalAmount).replace(/[^0-9.]/g, ''))
     else {
-      const course = courses.find((c) => c.id === r.courseId)
-      amt = course ? parseFloat(String(course.price || 0).replace(/[^0-9.]/g, '')) : 0
+      const progId = r.programId || r.courseId || r.program_id || r.course_id
+      const program = programs.find((c) => (c.id || c.uid) === progId)
+      amt = program ? parseFloat(String(program.price || 0).replace(/[^0-9.]/g, '')) : 0
     }
     return isNaN(amt) ? 0 : amt
   }
@@ -50,7 +51,7 @@ export const calculateDashboardStats = (allUsers, enrollments, courses, students
       parents: parents.length,
       guardians: guardians.length,
       students: (students || []).length,
-      programs: (courses || []).length
+      programs: (programs || []).length
     }
   }
 }

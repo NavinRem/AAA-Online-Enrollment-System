@@ -11,19 +11,19 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   parents: { type: Array, default: () => [] },
   students: { type: Array, default: () => [] },
-  courses: { type: Array, default: () => [] },
+  programs: { type: Array, default: () => [] },
   sessions: { type: Array, default: () => [] },
   enrollments: { type: Array, default: () => [] },
   error: { type: String, default: '' },
   success: { type: String, default: '' },
 })
 
-const emit = defineEmits(['close', 'submit', 'course-change'])
+const emit = defineEmits(['close', 'submit', 'program-change'])
 
 const formData = ref({
   parentId: '',
   studentId: '',
-  courseId: '',
+  programId: '',
   sessionId: '',
   isProrated: true,
   discountAmount: 0,
@@ -36,15 +36,15 @@ const formData = ref({
 
 const isParentDropdownOpen = ref(false)
 const isStudentDropdownOpen = ref(false)
-const isCourseDropdownOpen = ref(false)
+const isProgramDropdownOpen = ref(false)
 const isSessionDropdownOpen = ref(false)
 const { searchQuery: parentSearchQuery, searchResults: filteredParents } = useSearch(
   toRef(props, 'parents'),
   parentSearchMapper,
 )
 
-const { searchQuery: programSearchQuery, searchResults: filteredCourses } = useSearch(
-  toRef(props, 'courses'),
+const { searchQuery: programSearchQuery, searchResults: filteredPrograms } = useSearch(
+  toRef(props, 'programs'),
   programSearchMapper,
 )
 
@@ -81,21 +81,21 @@ const selectedStudent = computed(() => {
   return props.students.find((s) => (s.id || s.uid) === formData.value.studentId)
 })
 
-const selectedCoursePrice = computed(() => {
-  const c = props.courses.find((c) => c.id === formData.value.courseId)
+const selectedProgramPrice = computed(() => {
+  const c = props.programs.find((c) => c.id === formData.value.programId || c.id === formData.value.courseId)
   return c ? c.price || 0 : 0
 })
 
 const pricePerSession = computed(() => {
-  if (!selectedCoursePrice.value || !sessionInfo.value || sessionInfo.value.total === 0) return 0
-  return selectedCoursePrice.value / sessionInfo.value.total
+  if (!selectedProgramPrice.value || !sessionInfo.value || sessionInfo.value.total === 0) return 0
+  return selectedProgramPrice.value / sessionInfo.value.total
 })
 
-const handleCourseChange = (courseId) => {
-  formData.value.courseId = courseId
+const handleProgramChange = (programId) => {
+  formData.value.programId = programId
   formData.value.sessionId = ''
-  isCourseDropdownOpen.value = false
-  emit('course-change', courseId)
+  isProgramDropdownOpen.value = false
+  emit('program-change', programId)
 }
 
 const selectSession = (sessionId) => {
@@ -104,16 +104,16 @@ const selectSession = (sessionId) => {
 }
 
 const sessionInfo = computed(() => {
-  if (!formData.value.courseId || !formData.value.sessionId) return null
-  const course = props.courses.find((c) => c.id === formData.value.courseId)
+  if (!(formData.value.programId || formData.value.courseId) || !formData.value.sessionId) return null
+  const program = props.programs.find((c) => c.id === formData.value.programId || c.id === formData.value.courseId)
   const session = props.sessions.find((s) => s.id === formData.value.sessionId)
-  if (!course || !session) return null
+  if (!program || !session) return null
 
-  return getSessionCounts(course.startDate, course.endDate, session.schedule)
+  return getSessionCounts(program.startDate, program.endDate, session.schedule)
 })
 
-const selectedCourse = computed(() => {
-  return props.courses.find((c) => c.id === formData.value.courseId)
+const selectedProgram = computed(() => {
+  return props.programs.find((c) => c.id === formData.value.programId || c.id === formData.value.courseId)
 })
 
 const selectedSession = computed(() => {
@@ -122,14 +122,14 @@ const selectedSession = computed(() => {
 })
 
 const isAlreadyEnrolled = computed(() => {
-  if (!formData.value.studentId || !formData.value.courseId) return false
+  if (!formData.value.studentId || !(formData.value.programId || formData.value.courseId)) return false
   return props.enrollments.some(
-    (e) => e.studentId === formData.value.studentId && e.courseId === formData.value.courseId && e.status !== 'cancelled'
+    (e) => e.studentId === formData.value.studentId && (e.programId === formData.value.programId || e.courseId === formData.value.courseId) && e.status !== 'cancelled'
   )
 })
 
 const calculatedPrice = computed(() => {
-  const basePrice = selectedCoursePrice.value
+  const basePrice = selectedProgramPrice.value
   let price = basePrice
 
   if (formData.value.isProrated && sessionInfo.value) {
@@ -153,10 +153,10 @@ const formatPrice = (val) => {
 }
 
 const prorateSavings = computed(() => {
-  if (!formData.value.isProrated || !sessionInfo.value || !selectedCoursePrice.value) return 0
+  if (!formData.value.isProrated || !sessionInfo.value || !selectedProgramPrice.value) return 0
   const { total, remaining } = sessionInfo.value
   if (total <= 0) return 0
-  return (selectedCoursePrice.value / total) * (total - remaining)
+  return (selectedProgramPrice.value / total) * (total - remaining)
 })
 
 const handleSubmit = () => {
@@ -265,33 +265,33 @@ const handleSubmit = () => {
 
               <div class="form-group custom-dropdown-container">
                 <label>Select Program</label>
-                <div class="custom-dropdown" :class="{ open: isCourseDropdownOpen }">
-                  <div class="dropdown-header" @click="isCourseDropdownOpen = !isCourseDropdownOpen">
-                    <template v-if="selectedCourse">
+                <div class="custom-dropdown" :class="{ open: isProgramDropdownOpen }">
+                  <div class="dropdown-header" @click="isProgramDropdownOpen = !isProgramDropdownOpen">
+                    <template v-if="selectedProgram">
                       <div class="selected-item">
-                        <span>{{ selectedCourse.title || selectedCourse.name }}</span>
-                        <StatusBadge :status="selectedCourse.termName || selectedCourse.term" type="blue" />
+                        <span>{{ selectedProgram.title || selectedProgram.name }}</span>
+                        <StatusBadge :status="selectedProgram.termName || selectedProgram.term" type="blue" />
                       </div>
                     </template>
                     <template v-else>
                       <span class="placeholder">Choose a program</span>
                     </template>
-                    <span class="chevron" :class="{ up: isCourseDropdownOpen }"></span>
+                    <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
                   </div>
-                  <div class="dropdown-menu" v-if="isCourseDropdownOpen">
+                  <div class="dropdown-menu" v-if="isProgramDropdownOpen">
                     <div class="dropdown-search">
                       <input type="text" v-model="programSearchQuery" placeholder="Search program title..." @click.stop
                         autofocus />
                     </div>
                     <ul class="dropdown-list scrollable">
-                      <li v-for="c in filteredCourses" :key="c.id" class="dropdown-item"
-                        :class="{ active: formData.courseId === c.id }" @click="handleCourseChange(c.id)">
+                      <li v-for="c in filteredPrograms" :key="c.id" class="dropdown-item"
+                        :class="{ active: formData.programId === c.id || formData.courseId === c.id }" @click="handleProgramChange(c.id)">
                         <div class="item-content-between">
                           <span class="item-name">{{ c.title || c.name }}</span>
                           <StatusBadge :status="c.termName || c.term" type="blue" />
                         </div>
                       </li>
-                      <li v-if="filteredCourses.length === 0" class="dropdown-item no-results">
+                      <li v-if="filteredPrograms.length === 0" class="dropdown-item no-results">
                         No matches found.
                       </li>
                     </ul>
@@ -302,9 +302,9 @@ const handleSubmit = () => {
               <div class="form-group custom-dropdown-container">
                 <label>Select Session</label>
                 <div class="custom-dropdown"
-                  :class="{ open: isSessionDropdownOpen, disabled: !formData.courseId || sessions.length === 0 }">
+                  :class="{ open: isSessionDropdownOpen, disabled: !(formData.programId || formData.courseId) || sessions.length === 0 }">
                   <div class="dropdown-header"
-                    @click="formData.courseId && sessions.length > 0 && (isSessionDropdownOpen = !isSessionDropdownOpen)">
+                    @click="(formData.programId || formData.courseId) && sessions.length > 0 && (isSessionDropdownOpen = !isSessionDropdownOpen)">
                     <template v-if="selectedSession">
                       <div class="selected-session">
                         <div class="session-main">
@@ -352,12 +352,12 @@ const handleSubmit = () => {
             </div>
 
             <!-- Program Brief -->
-            <div v-if="selectedCourse" class="form-group full-width" style="margin-top: 16px;">
+            <div v-if="selectedProgram" class="form-group full-width" style="margin-top: 16px;">
               <label>Program Period</label>
               <div class="period-info-box">
-                <span class="date">{{ selectedCourse.startDate }}</span>
+                <span class="date">{{ selectedProgram.startDate }}</span>
                 <span class="sep">to</span>
-                <span class="date">{{ selectedCourse.endDate }}</span>
+                <span class="date">{{ selectedProgram.endDate }}</span>
               </div>
             </div>
 
@@ -434,7 +434,7 @@ const handleSubmit = () => {
             </div>
 
             <!-- Final Amount Preview -->
-            <div v-if="formData.courseId && formData.sessionId" class="price-preview">
+            <div v-if="(formData.programId || formData.courseId) && formData.sessionId" class="price-preview">
               <div class="price-info">
                 <div class="price-header-row">
                   <span class="price-label">Final Amount</span>
@@ -442,7 +442,7 @@ const handleSubmit = () => {
                 </div>
                 <div class="price-notes">
                   <div v-if="sessionInfo && sessionInfo.passed > 0 && formData.isProrated" class="price-note">
-                    <span class="original-price">${{ formatPrice(selectedCoursePrice) }}</span>
+                    <span class="original-price">${{ formatPrice(selectedProgramPrice) }}</span>
                     <span class="badge discount">-${{ formatPrice(prorateSavings) }} (Prorated)</span>
                   </div>
                   <div v-if="formData.discountAmount > 0" class="price-note">
@@ -460,7 +460,7 @@ const handleSubmit = () => {
         <div class="modal-footer">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton variant="primary" type="submit" @click="handleSubmit"
-            :disabled="!formData.parentId || !formData.studentId || !formData.courseId || !formData.sessionId || loading"
+            :disabled="!formData.parentId || !formData.studentId || !(formData.programId || formData.courseId) || !formData.sessionId || loading"
             :loading="loading">
             Confirm Enrollment
           </AppButton>

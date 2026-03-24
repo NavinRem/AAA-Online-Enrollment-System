@@ -7,10 +7,10 @@ import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
-import { courseService } from '@/services/courseService'
+import { programService } from '@/services/programService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
-import { getCourseIcon } from '@/utils/courseHelper'
+import { getProgramIcon } from '@/utils/programHelper'
 import { enrichEnrollments } from '@/utils/enrollmentHelper'
 import { isPaid } from '@/utils/statusHelper'
 import { getImageUrl } from '@/utils/assetHelper'
@@ -39,8 +39,8 @@ const initData = async () => {
 
   try {
     const [pData, sData, eData, stdData] = await Promise.all([
-      courseService.getCourse(id),
-      courseService.getSessions(id),
+      programService.getProgram(id),
+      programService.getSessions(id),
       enrollmentService.getAllEnrollments(),
       userService.getAllStudents()
     ])
@@ -50,7 +50,7 @@ const initData = async () => {
 
     // Filter enrollments for this specific program
     const allEnrollments = Array.isArray(eData) ? eData : []
-    enrollments.value = allEnrollments.filter(e => String(e.courseId || e.course_id) === String(id))
+    enrollments.value = allEnrollments.filter(e => String(e.programId || e.program_id || e.courseId || e.course_id) === String(id))
 
     students.value = Array.isArray(stdData) ? stdData : []
   } catch (err) {
@@ -212,10 +212,10 @@ const handleActionSubmit = async (formData) => {
   actionModal.value.error = ''
   try {
     if (actionModal.value.type === 'edit') {
-      await courseService.updateCourse(program.value.id, formData)
+      await programService.updateProgram(program.value.id, formData)
       actionModal.value.success = 'Program updated successfully!'
     } else if (actionModal.value.type === 'delete') {
-      await courseService.deleteCourse(program.value.id)
+      await programService.deleteProgram(program.value.id)
       actionModal.value.success = 'Program deleted successfully!'
       setTimeout(() => {
         router.push('/programs')
@@ -423,7 +423,7 @@ const handleActionSubmit = async (formData) => {
         <div class="profile-header">
           <div class="profile-preview">
             <img
-              :src="program.imageURL || getCourseIcon(program.category || program.title) || getImageUrl('programs/program')"
+              :src="program.imageURL || getProgramIcon(program.category || program.title) || getImageUrl('programs/program')"
               @error="(e) => (e.target.src = getImageUrl('programs/program'))" alt="Program Icon" />
           </div>
           <h2 class="profile-title">{{ program.title }}</h2>

@@ -8,8 +8,8 @@ import DetailCard from '../components/common/cards/DetailCard.vue'
 import DetailedSummaryCard from '../components/common/cards/DetailedSummaryCard.vue'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
-import { courseService } from '@/services/courseService'
-import { getCourseIcon } from '@/utils/courseHelper'
+import { programService } from '@/services/programService'
+import { getProgramIcon } from '@/utils/programHelper'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 
 import { getImageUrl } from '@/utils/assetHelper'
@@ -21,7 +21,7 @@ const router = useRouter()
 const enrollment = ref(null)
 const parent = ref(null)
 const student = ref(null)
-const course = ref(null)
+const program = ref(null)
 const session = ref(null)
 const teacher = ref(null)
 
@@ -149,24 +149,24 @@ onMounted(async () => {
     enrollment.value = data
 
     // 2. Fetch full related objects in parallel to ensure "real" data in cards
-    const [userRes, studentRes, courseRes, sessionsRes] = await Promise.allSettled([
+    const [userRes, studentRes, programRes, sessionsRes] = await Promise.allSettled([
       userService.getProfile(data.parentId),
       userService.getStudent(data.studentId),
-      courseService.getCourse(data.courseId),
-      courseService.getSessions(data.courseId),
+      programService.getProgram(data.programId || data.courseId),
+      programService.getSessions(data.programId || data.courseId),
     ])
 
     if (userRes.status === 'fulfilled') parent.value = userRes.value
     if (studentRes.status === 'fulfilled') student.value = studentRes.value
-    if (courseRes.status === 'fulfilled') course.value = courseRes.value
+    if (programRes.status === 'fulfilled') program.value = programRes.value
     if (sessionsRes.status === 'fulfilled') {
       session.value = (sessionsRes.value || []).find((s) => s.id === data.sessionId)
     }
 
-    // 3. Chain fetch Teacher profile if teacherId is present in course
-    if (course.value?.teacherId) {
+    // 3. Chain fetch Teacher profile if teacherId is present in program
+    if (program.value?.teacherId) {
       try {
-        const teacherProfile = await userService.getProfile(course.value.teacherId)
+        const teacherProfile = await userService.getProfile(program.value.teacherId)
         if (teacherProfile) teacher.value = teacherProfile
       } catch (err) {
         console.warn('Teacher profile not found:', err)
@@ -249,17 +249,17 @@ onMounted(async () => {
             </p>
           </DetailCard>
   
-          <DetailCard title="Enrollment Information" :avatarUrl="course?.imageURL || getCourseIcon(course?.category || enrollment.courseCategory || enrollment.courseTitle) || getImageUrl('programs/program')">
+          <DetailCard title="Enrollment Information" :avatarUrl="program?.imageURL || getProgramIcon(program?.category || enrollment.programCategory || enrollment.programTitle || enrollment.courseCategory || enrollment.courseTitle) || getImageUrl('programs/program')">
             <p>
-              <strong>Course title:</strong>
-              {{ course?.title || enrollment.courseTitle || 'N/A' }}
+              <strong>Program title:</strong>
+              {{ program?.title || enrollment.programTitle || enrollment.courseTitle || 'N/A' }}
             </p>
             <p>
               <strong>Session:</strong> {{ enrollment.sessionSchedule || 'N/A' }}
             </p>
             <p>
               <strong>Number Session Enrolled:</strong>
-              {{ session?.totalSessions || session?.total_sessions || enrollment.totalSessions || '0' }} Sessions
+              {{ session?.totalSessions || session?.total_sessions || enrollment.numberSessions || enrollment.totalSessions || '0' }} Sessions
             </p>
             <p>
               <strong>Date:</strong>
@@ -268,13 +268,12 @@ onMounted(async () => {
           </DetailCard>
   
           <DetailCard title="Session Information" :avatarUrl="teacher?.profileURL || getImageUrl('profiles/avatar-parent')">
-            <p><strong>Course:</strong> {{ course?.title || enrollment.courseTitle || 'N/A' }}</p>
+            <p><strong>Program:</strong> {{ program?.title || enrollment.programTitle || enrollment.courseTitle || 'N/A' }}</p>
             <p>
               <strong>Teacher Name:</strong>
               {{
                 teacher?.fullname || teacher?.name || teacher?.email ||
-                course?.teacherName || enrollment.teacherName ||
-                enrollment.teacherName ||
+                program?.teacherName || enrollment.teacherName ||
                 (session?.teachers?.length > 0 ? session.teachers[0].name : enrollment.teacherName)
                 || 'Not Assigned'
               }}
@@ -381,12 +380,12 @@ onMounted(async () => {
 
         <DetailedSummaryCard subtitle="Program Summary">
           <div class="detail-row">
-            <span class="summary-label">Course</span>
-            <span class="summary-value">{{ course?.title || enrollment.courseTitle || 'N/A' }}</span>
+            <span class="summary-label">Program</span>
+            <span class="summary-value">{{ program?.title || enrollment.programTitle || enrollment.courseTitle || 'N/A' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Teacher</span>
-            <span class="summary-value">{{ teacher?.fullname || course?.teacherName || enrollment.teacherName || session?.teacherName || 'Not Assigned' }}</span>
+            <span class="summary-value">{{ teacher?.fullname || program?.teacherName || enrollment.teacherName || session?.teacherName || 'Not Assigned' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Schedule</span>
@@ -404,8 +403,8 @@ onMounted(async () => {
           <div class="mt-3">
             <span class="summary-label">Term Dates</span>
             <p class="summary-value" style="font-size: 0.9rem; margin-top: 5px">
-              <strong>Start:</strong> {{ enrollment.startDate || course?.startDate ? formatDate(enrollment.startDate || course?.startDate) : 'N/A' }}<br />
-              <strong>End:</strong> {{ enrollment.endDate || course?.endDate ? formatDate(enrollment.endDate || course?.endDate) : 'N/A' }}
+              <strong>Start:</strong> {{ enrollment.startDate || program?.startDate ? formatDate(enrollment.startDate || program?.startDate) : 'N/A' }}<br />
+              <strong>End:</strong> {{ enrollment.endDate || program?.endDate ? formatDate(enrollment.endDate || program?.endDate) : 'N/A' }}
             </p>
           </div>
         </DetailedSummaryCard>
@@ -585,10 +584,10 @@ onMounted(async () => {
                 <button
                   type="button"
                   class="preset-chip"
-                  :class="{ active: isPresetActive('reason', 'Course schedule conflict') }"
-                  @click="togglePreset('reason', 'Course schedule conflict')"
+                  :class="{ active: isPresetActive('reason', 'Program schedule conflict') }"
+                  @click="togglePreset('reason', 'Program schedule conflict')"
                 >
-                  Course schedule conflict
+                  Program schedule conflict
                 </button>
                 <button
                   type="button"

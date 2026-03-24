@@ -1,45 +1,45 @@
 import { request } from './api'
 
-export const courseService = {
-  // Get all courses
-  getAllCourses() {
-    return request('/courses')
+export const programService = {
+  // Get all programs
+  getAllPrograms() {
+    return request('/programs')
   },
 
-  // Get sessions for a specific course
-  getSessions(courseId) {
-    return request(`/courses/${courseId}/sessions`)
+  // Get sessions for a specific program
+  getSessions(programId) {
+    return request(`/programs/${programId}/sessions`)
   },
 
-  // Get all sessions across all courses
+  // Get all sessions across all programs
   getAllSessions() {
     return request('/sessions')
   },
 
-  // Get single course details
-  getCourse(courseId) {
-    return request(`/courses/${courseId}`)
+  // Get single program details
+  getProgram(programId) {
+    return request(`/programs/${programId}`)
   },
 
-  // Create new course
-  createCourse(data) {
-    return request('/courses', {
+  // Create new program
+  createProgram(data) {
+    return request('/programs', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   },
 
-  // Update existing course
-  updateCourse(id, data) {
-    return request(`/courses/${id}`, {
+  // Update existing program
+  updateProgram(id, data) {
+    return request(`/programs/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   },
 
-  // Delete course
-  deleteCourse(id) {
-    return request(`/courses/${id}`, {
+  // Delete program
+  deleteProgram(id) {
+    return request(`/programs/${id}`, {
       method: 'DELETE',
     })
   },

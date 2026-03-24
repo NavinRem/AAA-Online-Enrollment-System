@@ -2,14 +2,14 @@ const { db, COLLECTIONS } = require("../../config/database");
 
 class SessionService {
   async createSession(sessionData) {
-    const { course_id, teachers, schedule, capacity } = sessionData;
+    const { program_id, teachers, schedule, capacity } = sessionData;
 
-    if (!course_id) {
-      throw new Error("course_id is required");
+    if (!program_id) {
+      throw new Error("program_id is required");
     }
 
     const data = {
-      course_id,
+      program_id,
       teachers: teachers || [], // Array of { id, role }
       schedule: schedule || {}, // Map of { day, timeslot }
       capacity: parseInt(capacity) || 20,
@@ -21,10 +21,10 @@ class SessionService {
     return { id: docRef.id, message: "Session created successfully" };
   }
 
-  async getAvailableSessions(course_id) {
+  async getAvailableSessions(program_id) {
     const snapshot = await db
       .collection(COLLECTIONS.SESSION)
-      .where("course_id", "==", course_id)
+      .where("program_id", "==", program_id)
       .get();
 
     return snapshot.docs.map((doc) => ({

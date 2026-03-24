@@ -13,6 +13,55 @@
   font-size: 0.95rem;
 }
 
+.student-info,
+.user-info,
+.course-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar-mini,
+.course-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+
+.avatar-mini img,
+.course-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-mini-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.program-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.program-title {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.95rem;
+}
+
+.session-subtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
 .data-table {
   width: 100%;
   border-collapse: separate;

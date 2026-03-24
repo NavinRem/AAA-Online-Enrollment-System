@@ -1,4 +1,4 @@
-import { getCourseIcon } from './courseHelper'
+import { getProgramIcon } from './programHelper'
 import { isPaid, isCancelled, isUnpaid } from './statusHelper'
 import { isEnrollmentActive } from './studentStatusHelper'
 import { parseDate } from './dateFormatter'
@@ -31,17 +31,18 @@ export const calculateTotalEnrollment = (enrollments) => {
 /**
  * Enriches enrollment data with parent/student info and icons.
  */
-export const enrichEnrollments = (enrollments, parents = [], students = [], courses = []) => {
+export const enrichEnrollments = (enrollments, parents = [], students = [], programs = []) => {
   return enrollments.map((r) => {
     const p = parents.find(p => (p.uid || p.id) === r.parentId)
     const s = students.find(s => (s.uid || s.id) === r.studentId)
-    const c = courses.find(c => (c.id || c.uid) === r.courseId)
+    const c = programs.find(c => (c.id || c.uid) === r.programId)
 
     return {
       ...r,
       parentProfileURL: p?.profileURL || null,
       studentProfileURL: s?.profileURL || null,
-      courseImage: c?.imageURL || getCourseIcon(c?.category || r.courseCategory || r.courseTitle || 'program'),
+      programImage: c?.imageURL || getProgramIcon(c?.category || r.programCategory || r.courseCategory || r.programTitle || r.courseTitle || 'program'),
+      programURL: c?.imageURL || getProgramIcon(c?.category || r.programCategory || r.courseCategory || r.programTitle || r.courseTitle || 'program'),
       displayStatus: isPaid(r.status || r.paymentStatus) ? 'Paid' : (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : 'Unpaid'),
       academicStatus: getAcademicStatus(r)
     }

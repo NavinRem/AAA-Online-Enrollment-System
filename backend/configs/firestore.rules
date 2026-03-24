@@ -39,8 +39,8 @@ service cloud.firestore {
       );
     }
 
-    // 3. courses: Publicly readable; Only Admins can modify the curriculum
-    match /courses/{courseId} {
+    // 3. programs: Publicly readable; Only Admins can modify the curriculum
+    match /programs/{programId} {
       allow read: if true; 
       allow write: if isSignedIn() && getRole() == 'Admin';
     }

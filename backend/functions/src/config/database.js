@@ -16,7 +16,7 @@ const COLLECTIONS = {
   USER: "user",
   STUDENT: "student",
   ENROLLMENT: "enrollment",
-  COURSE: "courses",      // Standard plural used in your project
+  PROGRAM: "programs",      // Renamed from 'courses'
   SESSION: "session",
   TERM: "terms",          // Standard plural used in your project
   CATEGORY: "categories", // Standard plural used in your project

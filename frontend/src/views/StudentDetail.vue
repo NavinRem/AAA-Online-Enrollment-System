@@ -10,7 +10,7 @@ import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.v
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { trackingService } from '@/services/trackingService'
-import { courseService } from '@/services/courseService'
+import { programService } from '@/services/programService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 import { calculateStudentStatus } from '@/utils/studentStatusHelper'
 import { filterDetailEnrollments, getAcademicStatus } from '@/utils/enrollmentHelper'
@@ -108,19 +108,19 @@ const registeredPrograms = computed(() => {
   if (!enrollments.value.length) return []
   return enrollments.value
     .map(e => ({
-      id: e.courseId || e.course_id,
-      title: e.courseTitle || 'Unknown Program'
+      id: e.programId || e.courseId || e.program_id || e.course_id,
+      title: e.programTitle || e.courseTitle || 'Unknown Program'
     }))
     .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i)
 })
 
 const attendanceProgramOptions = computed(() => {
-  const idsWithLogs = new Set(attendanceHistory.value.map(a => a.courseId || a.course_id))
+  const idsWithLogs = new Set(attendanceHistory.value.map(a => a.programId || a.courseId || a.program_id || a.course_id))
   return registeredPrograms.value.filter(p => idsWithLogs.has(p.id))
 })
 
 const behaviorProgramOptions = computed(() => {
-  const idsWithLogs = new Set((progressData.value?.behaviorLogs || []).map(b => b.courseId || b.course_id))
+  const idsWithLogs = new Set((progressData.value?.behaviorLogs || []).map(b => b.programId || b.courseId || b.program_id || b.course_id))
   return registeredPrograms.value.filter(p => idsWithLogs.has(p.id))
 })
 
@@ -216,7 +216,7 @@ const submitActionModal = async (formData) => {
         overrideRemark: formData.overrideRemark,
         academicStatus: formData.status,
       })
-      globalSuccess.value = 'Course status updated!'
+      globalSuccess.value = 'Program status updated!'
     } else if (type === 'enrollment-delete' && actionModal.value.enrollment) {
       if (formData.deleteConfirm !== 'DELETE') throw new Error('Please type DELETE to confirm.')
       await enrollmentService.deleteEnrollment(actionModal.value.enrollment.id)
@@ -303,7 +303,7 @@ const filteredAcademic = computed(() => {
   })
 
   return result
-    .filter(r => searchQuery.value ? (r.courseTitle || '').toLowerCase().includes(searchQuery.value.toLowerCase()) : true)
+    .filter(r => searchQuery.value ? (r.programTitle || r.courseTitle || '').toLowerCase().includes(searchQuery.value.toLowerCase()) : true)
     .sort((a, b) => {
       const aAct = getAcademicStatus(a) === 'Studying' ? 1 : 0
       const bAct = getAcademicStatus(b) === 'Studying' ? 1 : 0
@@ -317,7 +317,7 @@ const filteredAcademic = computed(() => {
 const filteredAttendance = computed(() => {
   let result = [...attendanceHistory.value]
   if (selectedAttendanceProgramId.value !== 'all') {
-    result = result.filter(a => (a.courseId === selectedAttendanceProgramId.value || a.course_id === selectedAttendanceProgramId.value))
+    result = result.filter(a => (a.programId === selectedAttendanceProgramId.value || a.courseId === selectedAttendanceProgramId.value || a.program_id === selectedAttendanceProgramId.value || a.course_id === selectedAttendanceProgramId.value))
   }
   return result.sort((a, b) => new Date(b.date || b.attendanceDate || b.createdAt) - new Date(a.date || a.attendanceDate || a.createdAt))
 })
@@ -325,7 +325,7 @@ const filteredAttendance = computed(() => {
 const filteredBehavior = computed(() => {
   let result = progressData.value?.behaviorLogs || []
   if (selectedBehaviorProgramId.value !== 'all') {
-    result = result.filter(b => (b.courseId === selectedBehaviorProgramId.value || b.course_id === selectedBehaviorProgramId.value))
+    result = result.filter(b => (b.programId === selectedBehaviorProgramId.value || b.courseId === selectedBehaviorProgramId.value || b.program_id === selectedBehaviorProgramId.value || b.course_id === selectedBehaviorProgramId.value))
   }
   return result.sort((a, b) => new Date(b.date || b.behaviorDate || b.createdAt) - new Date(a.date || a.behaviorDate || a.createdAt))
 })
@@ -344,7 +344,7 @@ const filteredExams = computed(() => {
       result = result.filter(e => (e.termName || e.term) === term)
     } else {
       // Fallback for program ID if needed, though we primarily use strings now
-      result = result.filter(e => (e.courseId === filter || e.course_id === filter))
+      result = result.filter(e => (e.programId === filter || e.courseId === filter || e.program_id === filter || e.course_id === filter))
     }
   }
   return result.sort((a, b) => new Date(b.date || b.examDate) - new Date(a.date || a.examDate))
@@ -421,26 +421,26 @@ const fetchData = async (id) => {
       }
     }
 
-    // 3. Fetch Enrollments & Courses
-    const [allEnrollments, allCourses] = await Promise.all([
+    // 3. Fetch Enrollments & Programs
+    const [allEnrollments, allPrograms] = await Promise.all([
       enrollmentService.getAllEnrollments(),
-      courseService.getAllCourses()
+      programService.getAllPrograms()
     ])
 
-    const courses = allCourses || []
+    const programs = allPrograms || []
 
     enrollments.value = (allEnrollments || [])
       .filter((r) => String(r.student_id || r.studentId || '') === String(id))
       .map(r => {
-        const course = courses.find(c => (c.id || c.uid) === (r.courseId || r.course_id))
+        const program = programs.find(c => (c.id || c.uid) === (r.programId || r.courseId || r.program_id || r.course_id))
         return {
           ...r,
-          courseTitle: course?.title || r.courseTitle || 'Unknown Program',
-          termName: course?.termName || course?.term || r.termName || null,
-          schedule: course?.schedule || r.schedule || null,
-          startDate: course?.startDate || r.startDate || null,
-          endDate: course?.endDate || r.endDate || null,
-          sessionSchedule: r.sessionSchedule || (course?.schedule ? `${course.schedule.day} ${course.schedule.timeslot}` : null)
+          programTitle: program?.title || r.programTitle || r.courseTitle || 'Unknown Program',
+          termName: program?.termName || program?.term || r.termName || null,
+          schedule: program?.schedule || r.schedule || null,
+          startDate: program?.startDate || r.startDate || null,
+          endDate: program?.endDate || r.endDate || null,
+          sessionSchedule: r.sessionSchedule || (program?.schedule ? `${program.schedule.day} ${program.schedule.timeslot}` : null)
         }
       })
 
@@ -453,19 +453,19 @@ const fetchData = async (id) => {
 
       // Enrich logs with course titles
       attendanceHistory.value = (attendance || []).map(a => {
-        const course = courses.find(c => (c.id || c.uid) === (a.courseId || a.course_id))
-        return { ...a, courseTitle: course?.title || a.courseTitle || 'Unknown Program' }
+        const program = programs.find(c => (c.id || c.uid) === (a.programId || a.courseId || a.program_id || a.course_id))
+        return { ...a, programTitle: program?.title || a.programTitle || a.courseTitle || 'Unknown Program' }
       })
 
       if (progress) {
         progress.behaviorLogs = (progress.behaviorLogs || []).map(b => {
-          const course = courses.find(c => (c.id || c.uid) === (b.courseId || b.course_id))
-          return { ...b, courseTitle: course?.title || b.courseTitle || 'Unknown Program' }
+          const program = programs.find(c => (c.id || c.uid) === (b.programId || b.courseId || b.program_id || b.course_id))
+          return { ...b, programTitle: program?.title || b.programTitle || b.courseTitle || 'Unknown Program' }
         })
 
         progress.examRecords = (progress.examRecords || []).map(e => {
-          const course = courses.find(c => (c.id || c.uid) === (e.courseId || e.course_id))
-          return { ...e, courseTitle: course?.title || e.courseTitle || 'Unknown Program' }
+          const program = programs.find(c => (c.id || c.uid) === (e.programId || e.courseId || e.program_id || e.course_id))
+          return { ...e, programTitle: program?.title || e.programTitle || e.courseTitle || 'Unknown Program' }
         })
       }
 
@@ -565,7 +565,7 @@ watch(
                 <tbody>
                   <tr v-for="(item, idx) in filteredAcademic" :key="item.id || idx">
                     <td class="text-center">{{ idx + 1 }}</td>
-                    <td><strong>{{ item.courseTitle || item.courseName || '-' }}</strong></td>
+                    <td><strong>{{ item.programTitle || item.courseTitle || item.courseName || '-' }}</strong></td>
                     <td class="text-center">
                       <StatusBadge :status="item.termName || 'No Term'" type="blue" />
                     </td>
@@ -635,7 +635,7 @@ watch(
                 <tbody>
                   <tr v-for="(item, idx) in filteredAttendance" :key="item.id || idx">
                     <td class="text-center">{{ idx + 1 }}</td>
-                    <td>{{ item.courseTitle || '-' }}</td>
+                    <td>{{ item.programTitle || item.courseTitle || '-' }}</td>
                     <td>{{ formatDateTime(item.date || item.attendanceDate || item.createdAt) }}</td>
                     <td>{{ item.markedBy || '-' }}</td>
                     <td class="text-center">
@@ -692,7 +692,7 @@ watch(
                 <tbody>
                   <tr v-for="(item, idx) in filteredBehavior" :key="item.id || idx">
                     <td class="text-center">{{ idx + 1 }}</td>
-                    <td>{{ item.courseTitle || '-' }}</td>
+                    <td>{{ item.programTitle || item.courseTitle || '-' }}</td>
                     <td>{{ formatDateTime(item.date || item.behaviorDate || item.createdAt) }}</td>
                     <td class="text-center">
                       <StatusBadge :status="item.category || item.status || 'General'" />
@@ -746,7 +746,7 @@ watch(
                 <tbody>
                   <tr v-for="(item, idx) in filteredExams" :key="item.id || idx">
                     <td class="text-center">{{ idx + 1 }}</td>
-                    <td>{{ item.courseTitle || '-' }}</td>
+                    <td>{{ item.programTitle || item.courseTitle || '-' }}</td>
                     <td class="text-center">{{ formatDateOnly(item.date || item.examDate) }}</td>
                     <td>{{ item.examiner || '-' }}</td>
                     <td class="text-center"><strong>{{ item.score || '-' }}</strong></td>

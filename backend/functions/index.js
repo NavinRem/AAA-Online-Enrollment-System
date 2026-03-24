@@ -18,7 +18,7 @@ const studentRoutes = require("./src/routes/management/students");
 const userRoutes = require("./src/routes/management/users");
 
 // --- Academic Content ---
-const courseRoutes = require("./src/routes/academic/courses");
+const programRoutes = require("./src/routes/academic/programs");
 const sessionRoutes = require("./src/routes/academic/sessions");
 const categoryRoutes = require("./src/routes/academic/categories");
 const levelRoutes = require("./src/routes/academic/levels");
@@ -47,7 +47,7 @@ apiRouter.use("/students", studentRoutes);
 apiRouter.use("/users", userRoutes);
 
 // --- Academic Content ---
-apiRouter.use("/courses", courseRoutes);
+apiRouter.use("/programs", programRoutes);
 apiRouter.use("/sessions", sessionRoutes);
 apiRouter.use("/categories", categoryRoutes);
 apiRouter.use("/levels", levelRoutes);

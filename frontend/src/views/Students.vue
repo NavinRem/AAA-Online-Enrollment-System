@@ -16,7 +16,7 @@ import { authService } from '../services/authService'
 import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, studentSearchMapper } from '../composables/useSearch'
 import { formatDate } from '../utils/dateFormatter'
-import { getCourseIcon } from '../utils/courseHelper'
+import { getProgramIcon } from '../utils/programHelper'
 import { enrichStudents, calculateTotalStudent } from '../utils/studentHelper'
 
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
@@ -86,7 +86,7 @@ const studentHeaders = [
   { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
   { label: 'Fullname', width: '300px' },
   { label: 'Parent / Guardian', class: 'hide-on-mobile', width: '220px' },
-  { label: 'Current Course', class: 'hide-on-tablet' },
+  { label: 'Current Program', class: 'hide-on-tablet' },
   { label: 'Joined Date', class: 'hide-on-tablet', width: '300px' },
   { label: 'Status', align: 'center', width: '120px' },
   { label: 'Medical Notes', class: 'hide-on-mobile' },
@@ -161,11 +161,11 @@ const navigateToDetail = (item) => {
   console.log('Navigating to student detail. Item:', item)
   const studentId = item?.id || item?.uid
   console.log('Selected studentId:', studentId)
-  
+
   if (studentId === newlyCreatedId.value) {
     newlyCreatedId.value = null
   }
-  
+
   if (studentId) {
     router.push(`/students/${studentId}`)
   } else {
@@ -272,27 +272,17 @@ const submitActionModal = async (formData) => {
       </template>
 
       <template #table>
-        <DataTable
-          title="Student List"
-          :headers="studentHeaders"
-          :items="filteredStudents"
-          :loading="loading"
-          v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search students..."
-          :hasFilter="true"
-          v-model:currentFilter="currentFilter"
-          :filterOptions="[
+        <DataTable title="Student List" :headers="studentHeaders" :items="filteredStudents" :loading="loading"
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search students..." :hasFilter="true"
+          v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Status', value: 'all' },
             { label: 'Studying', value: 'studying' },
             { label: 'Inactive', value: 'inactive' },
             { label: 'Graduated', value: 'graduated' },
             { label: 'Suspended', value: 'suspended' },
             { label: 'Stopped', value: 'stopped' },
-          ]"
-          :rowClass="getRowClass"
-          @row-click="navigateToDetail"
-          @action="({ type, item }) => openActionModal(type, item)"
-        >
+          ]" :rowClass="getRowClass" @row-click="navigateToDetail"
+          @action="({ type, item }) => openActionModal(type, item)">
           <template #toolbar-actions>
             <AppButton variant="primary" @click="handleOpenAddStudent">+ Add Student</AppButton>
           </template>
@@ -321,14 +311,17 @@ const submitActionModal = async (formData) => {
             </td>
             <td class="hide-on-tablet">
               <div class="course-icons">
-                <div v-for="(program, pIdx) in item.programs" :key="pIdx" class="program-icon-mini" :title="program.courseTitle || 'Program'">
-                  <img :src="getCourseIcon(program.courseTitle)" :alt="program.courseTitle" />
+                <div v-for="(program, pIdx) in item.programs" :key="pIdx" class="program-icon-mini"
+                  :title="program.programTitle || program.courseTitle || 'Program'">
+                  <img :src="getProgramIcon(program.programTitle || program.courseTitle)" :alt="program.programTitle || program.courseTitle" />
                 </div>
                 <span v-if="!item.programs || item.programs.length === 0" class="text-muted">None</span>
               </div>
             </td>
             <td class="hide-on-tablet">{{ formatDate(item.createdAt || new Date().toISOString()) }}</td>
-            <td class="text-center"><StatusBadge :status="item.status || 'Studying'" /></td>
+            <td class="text-center">
+              <StatusBadge :status="item.status || 'Studying'" />
+            </td>
             <td class="hide-on-mobile text-center">
               <span :class="{ 'text-muted': !item.medicalNote || item.medicalNote.toLowerCase() === 'none' }">
                 {{ item.medicalNote || 'None' }}
@@ -341,7 +334,8 @@ const submitActionModal = async (formData) => {
                 </button>
                 <Teleport to="body">
                   <transition name="fade">
-                    <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }" :style="menuStyles" @click.stop>
+                    <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
+                      :style="menuStyles" @click.stop>
                       <button @click="handleAction('edit', item)">✏️ Edit</button>
                       <button @click="handleAction('override', item)">⏸️ Override</button>
                       <div class="menu-divider"></div>
@@ -357,28 +351,14 @@ const submitActionModal = async (formData) => {
     </DataPageLayout>
 
     <!-- Modals -->
-    <StudentActionModal
-      :isOpen="actionModal.isOpen"
-      :type="actionModal.type"
-      :student="actionModal.student"
-      :selectableParents="parentsList"
-      :loading="modalLoading"
-      :error="modalError"
-      :success="modalSuccess"
-      @close="() => { actionModal.isOpen = false; modalError = ''; modalSuccess = ''; }"
-      @submit="submitActionModal"
-    />
+    <StudentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :student="actionModal.student"
+      :selectableParents="parentsList" :loading="modalLoading" :error="modalError" :success="modalSuccess"
+      @close="() => { actionModal.isOpen = false; modalError = ''; modalSuccess = ''; }" @submit="submitActionModal" />
 
-    <RegisterChildModal
-      :isOpen="showRegisterChildModal"
-      :parent="selectedParentForModal"
-      :selectableParents="parentsList"
-      :loading="modalLoading"
-      :error="modalError"
-      :success="modalSuccess"
+    <RegisterChildModal :isOpen="showRegisterChildModal" :parent="selectedParentForModal"
+      :selectableParents="parentsList" :loading="modalLoading" :error="modalError" :success="modalSuccess"
       @close="() => { showRegisterChildModal = false; modalError = ''; modalSuccess = ''; }"
-      @submit="handleRegisterStudent"
-    />
+      @submit="handleRegisterStudent" />
   </DashboardLayout>
 </template>
 
@@ -393,11 +373,6 @@ const submitActionModal = async (formData) => {
   gap: 6px;
 }
 
-.student-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
 .user-info {
   cursor: pointer;
   gap: 10px;
