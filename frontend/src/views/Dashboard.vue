@@ -72,28 +72,29 @@ const thisWeekStats = computed(() => [
 const mappedEnrollments = computed(() => {
   return [...enrollments.value]
     .sort((a, b) => {
-      const timeB = parseDate(b.enrollAt).getTime()
-      const timeA = parseDate(a.enrollAt).getTime()
+      const timeB = parseDate(b.enrollAt || b.createdAt).getTime()
+      const timeA = parseDate(a.enrollAt || a.createdAt).getTime()
       return timeB - timeA
     })
     .slice(0, 5)
     .map((r, index) => {
-      const parent = users.value.find(u => u.uid === r.parentId)
-      const student = students.value.find(s => s.id === r.studentId)
-      const program = programs.value.find(p => p.id === r.programId)
+      // Prioritize backend-provided hydrated names and URLs or use local lookup as fallback
+      const p = users.value.find(u => u.uid === r.parentId)
+      const s = students.value.find(s => s.id === r.studentId)
+      const c = programs.value.find(prog => prog.id === (r.programId || r.courseId))
 
       return {
         id: r.id,
         no: index + 1,
-        parentProfileURL: parent?.profileURL || getImageUrl('profiles/avatar-parent'),
-        parent: parent?.fullName || parent?.name || r.parentName,
-        studentProfileURL: student?.profileURL || getImageUrl('profiles/avatar-student'),
-        child: student?.fullName || student?.name || r.studentName,
-        programURL: program?.profileURL || getImageUrl('profiles/avatar-program'),
-        program: program?.title || r.programTitle,
-        status: r.displayStatus,
+        parentName: r.parentName || p?.fullName || p?.name || 'N/A',
+        parentProfileURL: r.parentProfileURL || p?.profileURL || getImageUrl('profiles/avatar-parent'),
+        studentName: r.studentName || s?.fullName || s?.name || 'N/A',
+        studentProfileURL: r.studentProfileURL || s?.profileURL || getImageUrl('profiles/avatar-student'),
+        programTitle: r.programTitle || c?.title || 'N/A',
+        programProfileURL: r.programProfileURL || c?.imageURL || getImageUrl('programs/program'),
+        status: r.displayStatus || r.status || 'Pending',
         amount: `$${r.amount}`,
-        date: r.enrollAt
+        date: r.enrollAt || r.createdAt
       }
     })
 })

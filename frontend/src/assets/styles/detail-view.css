@@ -295,20 +295,6 @@ td {
   gap: 12px;
 }
 
-.avatar-mini {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: #f1f5f9;
-}
-
-.avatar-mini img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 /* Sidebar Custom Stylings */
 .profile-header {
   display: flex;

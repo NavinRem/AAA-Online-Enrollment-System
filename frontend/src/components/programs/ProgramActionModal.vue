@@ -145,7 +145,7 @@
               </div>
               <ul class="dropdown-list">
                 <li v-for="t in unselectedTeachers" :key="t.uid || t.id" class="dropdown-item" @click="addTeacher(t)">
-                  <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-circle" />
+                  <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
                   <div class="item-info">
                     <span class="item-name">{{ t.name || t.email }}</span>
                   </div>

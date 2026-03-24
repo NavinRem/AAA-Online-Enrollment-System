@@ -218,8 +218,8 @@ onMounted(async () => {
 
       <template #left-content v-if="enrollment">
         <div class="detail-cards-grid">
-          <DetailCard title="Parent/Guardian Information" :avatarUrl="parent?.profileURL || getImageUrl('profiles/avatar-parent')">
-            <p><strong>Fullname:</strong> {{ parent?.fullName || parent?.name || enrollment.parentName || 'N/A' }}</p>
+          <DetailCard title="Parent/Guardian Information" :avatarUrl="enrollment.parentProfileURL || parent?.profileURL || getImageUrl('profiles/avatar-parent')">
+            <p><strong>Fullname:</strong> {{ enrollment.parentName || parent?.fullName || parent?.name || 'N/A' }}</p>
             <p><strong>Email:</strong> {{ parent?.email || enrollment.parentEmail || 'N/A' }}</p>
             <p><strong>Phone Number:</strong> {{ parent?.phone || enrollment.parentPhone || 'N/A' }}</p>
             <p>
@@ -233,10 +233,10 @@ onMounted(async () => {
             </p>
           </DetailCard>
   
-          <DetailCard title="Student Information" :avatarUrl="student?.profileURL || getImageUrl('profiles/avatar-student')">
+          <DetailCard title="Student Information" :avatarUrl="enrollment.studentProfileURL || student?.profileURL || getImageUrl('profiles/avatar-student')">
             <p>
               <strong>Fullname:</strong>
-              {{ student?.fullName || student?.name || enrollment.studentName || 'N/A' }}
+              {{ enrollment.studentName || student?.fullName || student?.name || 'N/A' }}
             </p>
             <p>
               <strong>Date of birth:</strong>
@@ -249,10 +249,10 @@ onMounted(async () => {
             </p>
           </DetailCard>
   
-          <DetailCard title="Enrollment Information" :avatarUrl="program?.imageURL || getProgramIcon(program?.category || enrollment.programCategory || enrollment.programTitle) || getImageUrl('programs/program')">
+          <DetailCard title="Enrollment Information" :avatarUrl="enrollment.programProfileURL || program?.imageURL || getProgramIcon(program?.category || enrollment.programCategory || enrollment.programTitle) || getImageUrl('programs/program')">
             <p>
               <strong>Program title:</strong>
-              {{ program?.title || enrollment.programTitle || 'N/A' }}
+              {{ enrollment.programTitle || program?.title || 'N/A' }}
             </p>
             <p>
               <strong>Session:</strong> {{ enrollment.sessionSchedule || 'N/A' }}
@@ -268,7 +268,7 @@ onMounted(async () => {
           </DetailCard>
   
           <DetailCard title="Session Information" :avatarUrl="teacher?.profileURL || getImageUrl('profiles/avatar-parent')">
-            <p><strong>Program:</strong> {{ program?.title || enrollment.programTitle || enrollment.courseTitle || 'N/A' }}</p>
+            <p><strong>Program:</strong> {{ enrollment.programTitle || program?.title || 'N/A' }}</p>
             <p>
               <strong>Teacher Name:</strong>
               {{

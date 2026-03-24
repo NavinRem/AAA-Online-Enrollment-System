@@ -292,7 +292,7 @@ const submitActionModal = async (formData) => {
               {{ index + 1 }}
             </td>
             <td class="bold" @click="navigateToDetail(item)">
-              <div class="student-info">
+              <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="item.profileURL || getImageUrl('profiles/avatar-student')" alt="avatar" />
                 </div>

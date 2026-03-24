@@ -114,9 +114,9 @@ class EnrollmentService {
       const studentName = studentData.fullName || studentData.name || data.studentName || "N/A";
       const programTitle = programData.title || programData.name || data.programTitle || data.courseTitle || "N/A";
 
-      const parentProfileURL = parentData.profileURL || "N/A";
-      const studentProfileURL = studentData.profileURL || "N/A";
-      const programProfileURL = programData.profileURL || "N/A";
+      const parentProfileURL = parentData.profileURL || null;
+      const studentProfileURL = studentData.profileURL || null;
+      const programProfileURL = programData.profileURL || null;
 
       const session = sessionsMap[data.sessionId];
 
@@ -199,9 +199,7 @@ class EnrollmentService {
     return {
       id: doc.id,
       ...data,
-      parentName: userData?.name || userData?.email || data.parentName || "N/A",
-      parentEmail: userData?.email || "N/A",
-      parentPhone: userData?.phone || "N/A",
+      parentProfileURL: userData?.profileURL || null,
       parentRole: userData?.role
         ? userData.role === "parent"
           ? "Parent"
@@ -209,11 +207,13 @@ class EnrollmentService {
         : "Guardian",
       studentName:
         studentData?.fullName || studentData?.name || data.studentName || "N/A",
+      studentProfileURL: studentData?.profileURL || null,
       studentDob: studentData?.dob || null,
       medicalNote: studentData?.medicalNote || "None",
       programId: data.programId || data.courseId,
       programTitle:
         programData?.title || programData?.name || data.programTitle || data.courseTitle || "N/A",
+      programProfileURL: programData?.profileURL || null,
       displayStatus,
       sessionSchedule: sessionSchedule,
       teacherName,

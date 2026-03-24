@@ -198,7 +198,7 @@ const handleSubmit = () => {
                     <template v-if="selectedParent">
                       <div class="selected-parent">
                         <img :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')"
-                          class="avatar-mini-circle" />
+                          class="avatar-mini-sm" />
                         <span>{{ selectedParent.name || selectedParent.email }}</span>
                       </div>
                     </template>
@@ -214,7 +214,7 @@ const handleSubmit = () => {
                     <ul class="dropdown-list">
                       <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
                         :class="{ active: formData.parentId === (p.uid || p.id) }" @click="selectParent(p.uid || p.id)">
-                        <img :src="p.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-circle" />
+                        <img :src="p.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
                         <span class="item-name">{{ p.name || p.email }}</span>
                       </li>
                       <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
@@ -233,7 +233,7 @@ const handleSubmit = () => {
                     <template v-if="selectedStudent">
                       <div class="selected-item">
                         <img :src="selectedStudent.profileURL || getImageUrl('profiles/avatar-student')"
-                          class="avatar-mini-circle" />
+                          class="avatar-mini-sm" />
                         <span>{{ selectedStudent.fullName || selectedStudent.name }}</span>
                       </div>
                     </template>
@@ -252,7 +252,7 @@ const handleSubmit = () => {
                     <ul class="dropdown-list">
                       <li v-for="s in filteredStudentsList" :key="s.id || s.uid" class="dropdown-item"
                         :class="{ active: formData.studentId === (s.id || s.uid) }" @click="selectStudent(s)">
-                        <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="avatar-mini-circle" />
+                        <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="avatar-mini-sm" />
                         <span class="item-name">{{ s.fullName || s.name }}</span>
                       </li>
                       <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results">
@@ -309,7 +309,7 @@ const handleSubmit = () => {
                       </div>
                     </template>
                     <template v-else>
-                      <span class="placeholder">{{ !formData.courseId ? 'Select program first' : (sessions.length === 0
+                      <span class="placeholder">{{ !formData.programId ? 'Select program first' : (sessions.length === 0
                         ? 'No sessions' : 'Choose a time') }}</span>
                     </template>
                     <span class="chevron" :class="{ up: isSessionDropdownOpen }"></span>
@@ -998,12 +998,7 @@ input:checked+.slider:before {
   gap: 10px;
 }
 
-.avatar-mini-circle {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  object-fit: cover;
-}
+/* Uses global .avatar-mini-sm */
 
 .placeholder {
   color: #94a3b8;

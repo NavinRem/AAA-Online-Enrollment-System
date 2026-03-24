@@ -16,7 +16,7 @@
             <div class="dropdown-header" @click="isDropdownOpen = !isDropdownOpen">
               <template v-if="selectedParent">
                 <div class="selected-parent">
-                  <img :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-circle" />
+                  <img :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
                   <span>{{ selectedParent.name || selectedParent.email }}</span>
                 </div>
               </template>
@@ -44,7 +44,7 @@
                   :class="{ active: formData.parentId === (p.uid || p.id) }"
                   @click="selectParent(p)"
                 >
-                  <img :src="p.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-circle" />
+                  <img :src="p.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
                   <div class="item-info">
                     <span class="item-name">{{ p.name || p.email }}</span>
                   </div>

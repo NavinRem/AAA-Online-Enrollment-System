@@ -263,7 +263,7 @@ const formatPrice = (val) => {
               {{ index + 1 }}
             </td>
             <td class="hide-on-tablet">
-              <div class="user-info">
+              <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="item.parentProfileURL" alt="parent" />
                 </div>
@@ -271,7 +271,7 @@ const formatPrice = (val) => {
               </div>
             </td>
             <td>
-              <div class="user-info">
+              <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="item.studentProfileURL" alt="student" />
                 </div>
@@ -279,9 +279,9 @@ const formatPrice = (val) => {
               </div>
             </td>
             <td>
-              <div class="program-info">
-                <div class="program-icon-wrapper">
-                  <img :src="item.programURL" alt="program" />
+              <div class="info-cell">
+                <div class="program-icon-mini">
+                  <img :src="item.programProfileURL" alt="program" />
                 </div>
                 <div class="program-cell">
                   <div class="program-title">{{ item.programTitle || 'Program' }}</div>

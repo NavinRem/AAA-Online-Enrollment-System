@@ -108,19 +108,19 @@ const registeredPrograms = computed(() => {
   if (!enrollments.value.length) return []
   return enrollments.value
     .map(e => ({
-      id: e.programId || e.courseId,
+      id: e.programId,
       title: e.programTitle || 'Unknown Program'
     }))
     .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i)
 })
 
 const attendanceProgramOptions = computed(() => {
-  const idsWithLogs = new Set(attendanceHistory.value.map(a => a.programId || a.courseId))
+  const idsWithLogs = new Set(attendanceHistory.value.map(a => a.programId))
   return registeredPrograms.value.filter(p => idsWithLogs.has(p.id))
 })
 
 const behaviorProgramOptions = computed(() => {
-  const idsWithLogs = new Set((progressData.value?.behaviorLogs || []).map(b => b.programId || b.courseId))
+  const idsWithLogs = new Set((progressData.value?.behaviorLogs || []).map(b => b.programId))
   return registeredPrograms.value.filter(p => idsWithLogs.has(p.id))
 })
 
@@ -317,7 +317,7 @@ const filteredAcademic = computed(() => {
 const filteredAttendance = computed(() => {
   let result = [...attendanceHistory.value]
   if (selectedAttendanceProgramId.value !== 'all') {
-    result = result.filter(a => (a.programId === selectedAttendanceProgramId.value || a.courseId === selectedAttendanceProgramId.value))
+    result = result.filter(a => a.programId === selectedAttendanceProgramId.value)
   }
   return result.sort((a, b) => new Date(b.date || b.attendanceDate || b.createdAt) - new Date(a.date || a.attendanceDate || a.createdAt))
 })
@@ -325,7 +325,7 @@ const filteredAttendance = computed(() => {
 const filteredBehavior = computed(() => {
   let result = progressData.value?.behaviorLogs || []
   if (selectedBehaviorProgramId.value !== 'all') {
-    result = result.filter(b => (b.programId === selectedBehaviorProgramId.value || b.courseId === selectedBehaviorProgramId.value))
+    result = result.filter(b => b.programId === selectedBehaviorProgramId.value)
   }
   return result.sort((a, b) => new Date(b.date || b.behaviorDate || b.createdAt) - new Date(a.date || a.behaviorDate || a.createdAt))
 })
@@ -344,7 +344,7 @@ const filteredExams = computed(() => {
       result = result.filter(e => (e.termName || e.term) === term)
     } else {
       // Fallback for program ID if needed, though we primarily use strings now
-      result = result.filter(e => (e.programId === filter || e.courseId === filter))
+      result = result.filter(e => e.programId === filter)
     }
   }
   return result.sort((a, b) => new Date(b.date || b.examDate) - new Date(a.date || a.examDate))
@@ -432,7 +432,7 @@ const fetchData = async (id) => {
     enrollments.value = (allEnrollments || [])
       .filter((r) => String(r.studentId || '') === String(id))
       .map(r => {
-        const program = programs.find(c => (c.id || c.uid) === (r.programId || r.courseId))
+        const program = programs.find(c => (c.id || c.uid) === r.programId)
         return {
           ...r,
           programTitle: program?.title || r.programTitle || r.courseTitle || 'Unknown Program',
@@ -453,18 +453,18 @@ const fetchData = async (id) => {
 
       // Enrich logs with course titles
       attendanceHistory.value = (attendance || []).map(a => {
-        const program = programs.find(c => (c.id || c.uid) === (a.programId || a.courseId))
+        const program = programs.find(c => (c.id || c.uid) === a.programId)
         return { ...a, programTitle: program?.title || a.programTitle || a.courseTitle || 'Unknown Program' }
       })
 
       if (progress) {
         progress.behaviorLogs = (progress.behaviorLogs || []).map(b => {
-          const program = programs.find(c => (c.id || c.uid) === (b.programId || b.courseId))
+          const program = programs.find(c => (c.id || c.uid) === b.programId)
           return { ...b, programTitle: program?.title || b.programTitle || b.courseTitle || 'Unknown Program' }
         })
 
         progress.examRecords = (progress.examRecords || []).map(e => {
-          const program = programs.find(c => (c.id || c.uid) === (e.programId || e.courseId))
+          const program = programs.find(c => (c.id || c.uid) === e.programId)
           return { ...e, programTitle: program?.title || e.programTitle || e.courseTitle || 'Unknown Program' }
         })
       }

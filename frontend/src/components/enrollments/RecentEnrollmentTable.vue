@@ -17,13 +17,13 @@ const router = useRouter()
 
 // Defining headers with widths for even alignment
 const enrollmentHeaders = [
-  { label: 'No', width: '50px', align: 'center' },
-  { label: 'Parent / Guardian', width: '22%' },
-  { label: 'Child', width: '18%' },
-  { label: 'Program', width: '20%' },
+  { label: 'No', width: '30px', align: 'center' },
+  { label: 'Parent / Guardian', width: '30%' },
+  { label: 'Child', width: '30%' },
+  { label: 'Program', width: '30%' },
   { label: 'Status', width: '100px', align: 'center' },
   { label: 'Amount', width: '100px', align: 'center' },
-  { label: 'Enrolled Date', width: '30%', align: 'center' }
+  { label: 'Enrolled Date', width: '10%', align: 'center' }
 ]
 
 const navigateToDetail = (item) => {
@@ -47,31 +47,32 @@ const navigateToDetail = (item) => {
       <tr v-for="item in enrollments" :key="item.id || item.no">
         <td class="text-center">{{ item.no }}</td>
         <td class="bold">
-          <div class="student-info clickable" @click="navigateToDetail(item)">
+          <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
               <img :src="item.parentProfileURL || getImageUrl('profiles/avatar-parent')" alt="parent" />
             </div>
             <div class="user-info">
-              <span class="user-name">{{ item.parent }}</span>
+              <span class="user-name">{{ item.parentName || item.parent }}</span>
             </div>
           </div>
         </td>
         <td>
-          <div class="student-info clickable" @click="navigateToDetail(item)">
+          <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
               <img :src="item.studentProfileURL || getImageUrl('profiles/avatar-student')" alt="child" />
             </div>
             <div class="user-info">
-              <span class="user-name">{{ item.child }}</span>
+              <span class="user-name">{{ item.studentName || item.child }}</span>
             </div>
           </div>
         </td>
         <td>
-          <div class="program-info-cell clickable" @click="navigateToDetail(item)">
-            <div class="program-icon-mini">
-              <img :src="item.programURL" :alt="item.program" />
+          <div class="info-cell clickable" @click="navigateToDetail(item)">
+            <div class="avatar-mini">
+              <img :src="item.programProfileURL || getImageUrl('programs/program')"
+                :alt="item.programTitle || item.program" />
             </div>
-            <span class="program-name">{{ item.program }}</span>
+            <span class="program-name">{{ item.programTitle || item.program }}</span>
           </div>
         </td>
         <td class="text-center">

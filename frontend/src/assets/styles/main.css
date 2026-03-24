@@ -122,19 +122,39 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
    ========================================================================== */
 
 /* Avatars & Icons */
+/* Avatars & Icons */
 .avatar-mini {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 50% !important;
   overflow: hidden;
   border: 1px solid var(--border-color);
   background: #fff;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.avatar-mini img {
+.avatar-mini-sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 50% !important;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: #fff;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-mini img,
+.avatar-mini-sm img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 /* Standardized Identity Card for Modals */
@@ -165,19 +185,21 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
 .program-icon-mini {
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: 50% !important;
   overflow: hidden;
   border: 1px solid var(--border-color);
   background: white;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .program-icon-mini img {
   width: 70%;
   height: 70%;
   object-fit: contain;
+  border-radius: 50%;
 }
 
 /* ==========================================================================

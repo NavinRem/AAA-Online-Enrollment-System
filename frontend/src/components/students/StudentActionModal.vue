@@ -23,7 +23,7 @@
                   <div class="selected-parent">
                     <img
                       :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')"
-                      class="avatar-mini-circle"
+                      class="avatar-mini-sm"
                     />
                     <span>{{ selectedParent.name || selectedParent.email }}</span>
                   </div>
@@ -54,7 +54,7 @@
                   >
                     <img
                       :src="p.profileURL || getImageUrl('profiles/avatar-parent')"
-                      class="avatar-mini-circle"
+                      class="avatar-mini-sm"
                     />
                     <div class="item-info">
                       <span class="item-name">{{ p.name || p.email }}</span>

@@ -2,6 +2,7 @@ import { getProgramIcon } from './programHelper'
 import { isPaid, isCancelled, isUnpaid } from './statusHelper'
 import { isEnrollmentActive } from './studentStatusHelper'
 import { parseDate } from './dateFormatter'
+import { getImageUrl } from '@/utils/assetHelper'
 
 /**
  * Calculates enrollment statistics.
@@ -39,10 +40,12 @@ export const enrichEnrollments = (enrollments, parents = [], students = [], prog
 
     return {
       ...r,
-      parentProfileURL: p?.profileURL || null,
-      studentProfileURL: s?.profileURL || null,
-      programImage: c?.imageURL || getProgramIcon(c?.category || r.programCategory || r.programTitle || 'program'),
-      programURL: c?.imageURL || getProgramIcon(c?.category || r.programCategory || r.programTitle || 'program'),
+      parentName: p?.fullName || p?.name || r.parentName || 'N/A',
+      parentProfileURL: p?.profileURL || r.parentProfileURL || getImageUrl('profiles/avatar-parent'),
+      studentName: s?.fullName || s?.name || r.studentName || 'N/A',
+      studentProfileURL: s?.profileURL || r.studentProfileURL || getImageUrl('profiles/avatar-student'),
+      programTitle: c?.title || r.programTitle || 'N/A',
+      programProfileURL: c?.imageURL || r.programProfileURL || getProgramIcon(c?.category || r.programCategory || r.programTitle || 'program'),
       displayStatus: isPaid(r.status || r.paymentStatus) ? 'Paid' : (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : 'Unpaid'),
       academicStatus: getAcademicStatus(r)
     }

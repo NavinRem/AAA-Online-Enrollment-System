@@ -42,13 +42,7 @@
   gap: 10px;
 }
 
-.avatar-mini-circle {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  object-fit: cover;
-  background: #f1f5f9;
-}
+/* Uses global .avatar-mini-sm */
 
 .placeholder {
   color: #94a3b8;

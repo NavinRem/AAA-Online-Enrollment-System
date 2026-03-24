@@ -47,7 +47,7 @@ class ProgramService {
       levelId: levelId || null,
       termId: termId || null,
       schedule: schedule || null,
-      imageURL: imageURL || "",
+      imageURL: imageURL || null,
       teachers: teachers || [], // Array of { id, name }
       startDate: startDate || null,
       endDate: endDate || null,
@@ -97,7 +97,7 @@ class ProgramService {
       teachersMap[doc.id] = {
         id: doc.id,
         name: userData.name || userData.email || "Unknown",
-        profileURL: userData.profileURL || ""
+        profileURL: userData.profileURL || null
       };
     });
 
