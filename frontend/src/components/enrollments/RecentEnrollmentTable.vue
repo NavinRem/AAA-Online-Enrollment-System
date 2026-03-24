@@ -3,10 +3,10 @@ import { useRouter } from 'vue-router'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppTable from '@/components/common/data/AppTable.vue'
 import { formatDate } from '@/utils/dateFormatter'
-import { 
-  getProgramProfileURL, 
-  getParentProfileURL, 
-  getStudentProfileURL 
+import {
+  getProgramProfileURL,
+  getParentProfileURL,
+  getStudentProfileURL
 } from '@/utils/assetHelper'
 
 defineProps({
@@ -57,7 +57,7 @@ const navigateToDetail = (item) => {
             </div>
           </div>
         </td>
-        <td>
+        <td class="bold">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
               <img :src="getStudentProfileURL(item.studentProfileURL)" alt="child" />
@@ -67,7 +67,7 @@ const navigateToDetail = (item) => {
             </div>
           </div>
         </td>
-        <td>
+        <td class="bold">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
               <img :src="getProgramProfileURL(item.programProfileURL)" :alt="item.programTitle" />
@@ -81,7 +81,7 @@ const navigateToDetail = (item) => {
         <td class="bold text-center">
           <StatusBadge :status="item.amount" />
         </td>
-        <td class="date-cell text-center">{{ formatDate(item.date) }}</td>
+        <td class="date-cell text-center bold">{{ formatDate(item.date) }}</td>
       </tr>
     </AppTable>
   </div>
