@@ -42,9 +42,9 @@ const getFormattedDateString = (dateString) => {
 }
 
 export const enrollmentSearchMapper = (r) => {
-  const parent = r.parentName || r.parent_name || ''
-  const student = r.studentName || r.student_name || ''
-  const program = r.programTitle || r.courseTitle || r.course_title || ''
+  const parent = r.parentName || ''
+  const student = r.studentName || ''
+  const program = r.programTitle || ''
   const session = r.sessionSchedule || ''
   const id = r.id || ''
   const paymentProof = r.paymentProof || ''
@@ -52,18 +52,18 @@ export const enrollmentSearchMapper = (r) => {
   const status = r.status || ''
   const payStatus = r.paymentStatus || ''
   const amount = (r.amount || r.totalAmount || 0).toString()
-  const dateObjStr = getFormattedDateString(r.createdAt || r.created_at)
+  const dateObjStr = getFormattedDateString(r.createdAt)
 
   return `${id} ${parent} ${student} ${program} ${session} ${paymentProof} ${remark} ${status} ${payStatus} ${amount} ${dateObjStr}`
 }
 
 export const studentSearchMapper = (s) => {
-  const dateObjStr = getFormattedDateString(s.createdAt || s.created_at)
+  const dateObjStr = getFormattedDateString(s.createdAt)
   return `${s.name || s.fullName || ''} ${s.parentName || ''} ${s.studentId || ''} ${s.gender || ''} ${s.status || 'Studying'} ${dateObjStr}`
 }
 
 export const parentSearchMapper = (p) => {
-  const dateObjStr = getFormattedDateString(p.createdAt || p.created_at)
+  const dateObjStr = getFormattedDateString(p.createdAt)
   return `${p.name || ''} ${p.email || ''} ${p.phone || ''} ${p.address || ''} ${p.status || 'Active'} ${dateObjStr}`
 }
 

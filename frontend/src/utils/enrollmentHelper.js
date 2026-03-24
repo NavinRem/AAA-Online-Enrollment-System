@@ -41,8 +41,8 @@ export const enrichEnrollments = (enrollments, parents = [], students = [], prog
       ...r,
       parentProfileURL: p?.profileURL || null,
       studentProfileURL: s?.profileURL || null,
-      programImage: c?.imageURL || getProgramIcon(c?.category || r.programCategory || r.courseCategory || r.programTitle || r.courseTitle || 'program'),
-      programURL: c?.imageURL || getProgramIcon(c?.category || r.programCategory || r.courseCategory || r.programTitle || r.courseTitle || 'program'),
+      programImage: c?.imageURL || getProgramIcon(c?.category || r.programCategory || r.programTitle || 'program'),
+      programURL: c?.imageURL || getProgramIcon(c?.category || r.programCategory || r.programTitle || 'program'),
       displayStatus: isPaid(r.status || r.paymentStatus) ? 'Paid' : (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : 'Unpaid'),
       academicStatus: getAcademicStatus(r)
     }
@@ -56,7 +56,7 @@ export const getAcademicStatus = (r) => {
   if (r.academicStatus) return r.academicStatus
   
   const status = (r.status || '').toLowerCase()
-  const paymentStatus = (r.paymentStatus || r.payment_status || '').toLowerCase()
+  const paymentStatus = (r.paymentStatus || '').toLowerCase()
 
   // Terminal statuses
   if (isCancelled(r.status || r.paymentStatus)) return 'Stopped'
@@ -80,7 +80,7 @@ export const filterDetailEnrollments = (enrollments, options = {}) => {
   let list = enrollments
 
   if (studentId && studentId !== 'all') {
-    list = list.filter(r => (r.studentId || r.student_id) === studentId)
+    list = list.filter(r => r.studentId === studentId)
   }
 
   if (status && status !== 'all') {

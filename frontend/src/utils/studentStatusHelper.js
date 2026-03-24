@@ -25,7 +25,7 @@ export const calculateStudentStatus = (student, allEnrollments = []) => {
   const studentId = String(student.id || student.uid || student.studentId || '')
   if (!studentId) return 'Inactive'
   
-  const studentRegs = allEnrollments.filter(r => String(r.student_id || r.studentId || '') === studentId)
+  const studentRegs = allEnrollments.filter(r => String(r.studentId || '') === studentId)
   if (studentRegs.length === 0) return 'Inactive'
 
   let hasValidPaidEnrollment = false

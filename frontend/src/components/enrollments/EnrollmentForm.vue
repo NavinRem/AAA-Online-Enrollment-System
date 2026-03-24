@@ -51,7 +51,7 @@ const { searchQuery: programSearchQuery, searchResults: filteredPrograms } = use
 const availableStudents = computed(() => {
   if (!formData.value.parentId) return []
   return props.students.filter(
-    (s) => s.parentId === formData.value.parentId || s.parent_id === formData.value.parentId,
+    (s) => s.parentId === formData.value.parentId,
   )
 })
 
@@ -82,7 +82,7 @@ const selectedStudent = computed(() => {
 })
 
 const selectedProgramPrice = computed(() => {
-  const c = props.programs.find((c) => c.id === formData.value.programId || c.id === formData.value.courseId)
+  const c = props.programs.find((c) => c.id === formData.value.programId)
   return c ? c.price || 0 : 0
 })
 
@@ -103,17 +103,15 @@ const selectSession = (sessionId) => {
   isSessionDropdownOpen.value = false
 }
 
-const sessionInfo = computed(() => {
-  if (!(formData.value.programId || formData.value.courseId) || !formData.value.sessionId) return null
-  const program = props.programs.find((c) => c.id === formData.value.programId || c.id === formData.value.courseId)
+  if (!formData.value.programId || !formData.value.sessionId) return null
+  const program = props.programs.find((c) => c.id === formData.value.programId)
   const session = props.sessions.find((s) => s.id === formData.value.sessionId)
   if (!program || !session) return null
 
   return getSessionCounts(program.startDate, program.endDate, session.schedule)
-})
 
 const selectedProgram = computed(() => {
-  return props.programs.find((c) => c.id === formData.value.programId || c.id === formData.value.courseId)
+  return props.programs.find((c) => c.id === formData.value.programId)
 })
 
 const selectedSession = computed(() => {
@@ -122,9 +120,9 @@ const selectedSession = computed(() => {
 })
 
 const isAlreadyEnrolled = computed(() => {
-  if (!formData.value.studentId || !(formData.value.programId || formData.value.courseId)) return false
+  if (!formData.value.studentId || !formData.value.programId) return false
   return props.enrollments.some(
-    (e) => e.studentId === formData.value.studentId && (e.programId === formData.value.programId || e.courseId === formData.value.courseId) && e.status !== 'cancelled'
+    (e) => e.studentId === formData.value.studentId && e.programId === formData.value.programId && e.status !== 'cancelled'
   )
 })
 
@@ -270,7 +268,7 @@ const handleSubmit = () => {
                     <template v-if="selectedProgram">
                       <div class="selected-item">
                         <span>{{ selectedProgram.title || selectedProgram.name }}</span>
-                        <StatusBadge :status="selectedProgram.termName || selectedProgram.term" type="blue" />
+                        <StatusBadge :status="selectedProgram.termName" type="blue" />
                       </div>
                     </template>
                     <template v-else>
@@ -284,13 +282,8 @@ const handleSubmit = () => {
                         autofocus />
                     </div>
                     <ul class="dropdown-list scrollable">
-                      <li v-for="c in filteredPrograms" :key="c.id" class="dropdown-item"
-                        :class="{ active: formData.programId === c.id || formData.courseId === c.id }" @click="handleProgramChange(c.id)">
-                        <div class="item-content-between">
                           <span class="item-name">{{ c.title || c.name }}</span>
-                          <StatusBadge :status="c.termName || c.term" type="blue" />
-                        </div>
-                      </li>
+                          <StatusBadge :status="c.termName" type="blue" />
                       <li v-if="filteredPrograms.length === 0" class="dropdown-item no-results">
                         No matches found.
                       </li>
@@ -302,9 +295,9 @@ const handleSubmit = () => {
               <div class="form-group custom-dropdown-container">
                 <label>Select Session</label>
                 <div class="custom-dropdown"
-                  :class="{ open: isSessionDropdownOpen, disabled: !(formData.programId || formData.courseId) || sessions.length === 0 }">
+                  :class="{ open: isSessionDropdownOpen, disabled: !formData.programId || sessions.length === 0 }">
                   <div class="dropdown-header"
-                    @click="(formData.programId || formData.courseId) && sessions.length > 0 && (isSessionDropdownOpen = !isSessionDropdownOpen)">
+                    @click="formData.programId && sessions.length > 0 && (isSessionDropdownOpen = !isSessionDropdownOpen)">
                     <template v-if="selectedSession">
                       <div class="selected-session">
                         <div class="session-main">
@@ -323,8 +316,8 @@ const handleSubmit = () => {
                     <ul class="dropdown-list">
                       <li v-for="s in sessions" :key="s.id" class="dropdown-item session-item" :class="{
                         active: formData.sessionId === s.id,
-                        disabled: (s.numStudent || 0) >= (s.capacity || s.maxCapacity || 5)
-                      }" @click="(s.numStudent || 0) < (s.capacity || s.maxCapacity || 5) && selectSession(s.id)">
+                        disabled: (s.numStudent || 0) >= (s.maxCapacity || 5)
+                      }" @click="(s.numStudent || 0) < (s.maxCapacity || 5) && selectSession(s.id)">
                         <div class="session-rows">
                            <div class="session-row-1">
                             <div class="session-day-badge">
@@ -337,10 +330,10 @@ const handleSubmit = () => {
                           <div class="session-row-2">
                             <div class="capacity-bar-mini">
                               <div class="capacity-progress"
-                                :style="{ width: Math.min(100, ((s.numStudent || 0) / (s.capacity || s.maxCapacity || 5)) * 100) + '%' }">
+                                :style="{ width: Math.min(100, ((s.numStudent || 0) / (s.maxCapacity || 5)) * 100) + '%' }">
                               </div>
                             </div>
-                            <span class="capacity-text">{{ s.numStudent || 0 }} / {{ s.capacity || s.maxCapacity || 5 }}
+                            <span class="capacity-text">{{ s.numStudent || 0 }} / {{ s.maxCapacity || 5 }}
                               enrolled</span>
                           </div>
                         </div>
@@ -434,7 +427,7 @@ const handleSubmit = () => {
             </div>
 
             <!-- Final Amount Preview -->
-            <div v-if="(formData.programId || formData.courseId) && formData.sessionId" class="price-preview">
+            <div v-if="formData.programId && formData.sessionId" class="price-preview">
               <div class="price-info">
                 <div class="price-header-row">
                   <span class="price-label">Final Amount</span>
@@ -460,7 +453,7 @@ const handleSubmit = () => {
         <div class="modal-footer">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton variant="primary" type="submit" @click="handleSubmit"
-            :disabled="!formData.parentId || !formData.studentId || !(formData.programId || formData.courseId) || !formData.sessionId || loading"
+            :disabled="!formData.parentId || !formData.studentId || !formData.programId || !formData.sessionId || loading"
             :loading="loading">
             Confirm Enrollment
           </AppButton>

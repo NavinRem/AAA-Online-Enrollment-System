@@ -113,7 +113,7 @@ const fetchData = async (id) => {
     // Filter enrollments for this parent
     const pId = parent.value.uid || parent.value.id
     enrollments.value = (allEnrollments || []).filter((r) => {
-      const parentRef = r.parentId || r.parent_id
+      const parentRef = r.parentId
       return String(parentRef) === String(pId)
     })
   } catch (error) {
@@ -317,7 +317,7 @@ watch(
                     <tr v-for="(reg, idx) in studentEnrollments" :key="reg.id">
                       <td>{{ idx + 1 }}</td>
                       <td>Piano</td>
-                      <td>{{ reg.programTitle || reg.courseTitle || 'N/A' }}</td>
+                      <td>{{ reg.programTitle || 'N/A' }}</td>
                       <td>{{ reg.sessionSchedule || 'N/A' }}</td>
                       <td>
                         <StatusBadge :status="reg.status || 'Studying'" />
@@ -354,7 +354,7 @@ watch(
                     <td>{{ idx + 1 }}</td>
                     <td class="mono">{{ reg.paymentProof || 'N/A' }}</td>
                     <td class="mono">{{ reg.id.substring(0, 8) + '...' }}</td>
-                    <td class="price">${{ reg.amount || reg.totalAmount }}</td>
+                    <td class="price">${{ reg.amount }}</td>
                     <td>{{ formatDate(reg.updatedAt || reg.createdAt) }}</td>
                     <td>
                       <StatusBadge :status="reg.paymentStatus || 'Pending'" />
@@ -391,7 +391,7 @@ watch(
                   <tr v-for="(reg, idx) in filteredHistory" :key="reg.id">
                     <td>{{ idx + 1 }}</td>
                     <td class="mono">{{ reg.id }}</td>
-                    <td>{{ reg.programTitle || reg.courseTitle }}</td>
+                    <td>{{ reg.programTitle }}</td>
                     <td>{{ reg.studentName }}</td>
                     <td>{{ formatDate(reg.createdAt) }}</td>
                     <td>

@@ -109,9 +109,13 @@ class EnrollmentService {
       const studentData = studentsMap[data.studentId] || {};
       const programData = programsMap[data.programId] || {};
 
-      const parentName = parentData.name || parentData.email || "N/A";
-      const studentName = studentData.fullName || studentData.name || "N/A";
-      const programTitle = programData.title || programData.name || "N/A";
+      const parentName = parentData.name || parentData.email || data.parentName || "N/A";
+      const studentName = studentData.fullName || studentData.name || data.studentName || "N/A";
+      const programTitle = programData.title || programData.name || data.programTitle || "N/A";
+
+      const parentProfileURL = parentData.profileURL || "N/A";
+      const studentProfileURL = studentData.profileURL || "N/A";
+      const programProfileURL = programData.profileURL || "N/A";
 
       const session = sessionsMap[data.sessionId];
 
@@ -127,8 +131,11 @@ class EnrollmentService {
         id: doc.id,
         ...data,
         parentName,
+        parentProfileURL,
         studentName,
+        studentProfileURL,
         programTitle,
+        programProfileURL,
         displayStatus,
         sessionSchedule: session?.scheduleString || "N/A",
         sessionCount: session?.totalSessions || session?.sessionCount || 10,

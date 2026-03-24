@@ -2,14 +2,14 @@ const sessionService = require("../../services/academic/sessionService");
 
 /**
  * @route POST /sessions
- * @description Create a new Session (linked to a Course)
+ * @description Create a new Session (linked to a Program)
  */
 exports.createSession = async (req, res) => {
   try {
     const result = await sessionService.createSession(req.body);
     res.status(201).json(result);
   } catch (error) {
-    if (error.message === "course_id is required") {
+    if (error.message === "programId is required") {
       return res.status(400).json({ error: error.message });
     }
     res.status(500).json({ error: error.message });
@@ -17,8 +17,7 @@ exports.createSession = async (req, res) => {
 };
 
 /**
- * @route GET /courses/:id/sessions/getAvailableSessions
- * @description Get all sessions for a specific course (renamed)
+ * @description Get all sessions for a specific program
  */
 exports.getAvailableSessions = async (req, res) => {
   try {
@@ -31,7 +30,7 @@ exports.getAvailableSessions = async (req, res) => {
 
 /**
  * @route GET /sessions
- * @description Get all sessions across all courses
+ * @description Get all sessions across all programs
  */
 exports.getAllSessions = async (req, res) => {
   try {
@@ -109,7 +108,7 @@ exports.getSessionTeachers = async (req, res) => {
  */
 exports.syncStudentCounts = async (req, res) => {
   try {
-    const result = await sessionService.syncStudentCounts(req.body.session_id);
+    const result = await sessionService.syncStudentCounts(req.body.sessionId);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });

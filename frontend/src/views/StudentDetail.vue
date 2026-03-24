@@ -108,19 +108,19 @@ const registeredPrograms = computed(() => {
   if (!enrollments.value.length) return []
   return enrollments.value
     .map(e => ({
-      id: e.programId || e.courseId || e.program_id || e.course_id,
-      title: e.programTitle || e.courseTitle || 'Unknown Program'
+      id: e.programId || e.courseId,
+      title: e.programTitle || 'Unknown Program'
     }))
     .filter((v, i, a) => a.findIndex(t => (t.id === v.id)) === i)
 })
 
 const attendanceProgramOptions = computed(() => {
-  const idsWithLogs = new Set(attendanceHistory.value.map(a => a.programId || a.courseId || a.program_id || a.course_id))
+  const idsWithLogs = new Set(attendanceHistory.value.map(a => a.programId || a.courseId))
   return registeredPrograms.value.filter(p => idsWithLogs.has(p.id))
 })
 
 const behaviorProgramOptions = computed(() => {
-  const idsWithLogs = new Set((progressData.value?.behaviorLogs || []).map(b => b.programId || b.courseId || b.program_id || b.course_id))
+  const idsWithLogs = new Set((progressData.value?.behaviorLogs || []).map(b => b.programId || b.courseId))
   return registeredPrograms.value.filter(p => idsWithLogs.has(p.id))
 })
 
@@ -303,7 +303,7 @@ const filteredAcademic = computed(() => {
   })
 
   return result
-    .filter(r => searchQuery.value ? (r.programTitle || r.courseTitle || '').toLowerCase().includes(searchQuery.value.toLowerCase()) : true)
+    .filter(r => searchQuery.value ? (r.programTitle || '').toLowerCase().includes(searchQuery.value.toLowerCase()) : true)
     .sort((a, b) => {
       const aAct = getAcademicStatus(a) === 'Studying' ? 1 : 0
       const bAct = getAcademicStatus(b) === 'Studying' ? 1 : 0
@@ -317,7 +317,7 @@ const filteredAcademic = computed(() => {
 const filteredAttendance = computed(() => {
   let result = [...attendanceHistory.value]
   if (selectedAttendanceProgramId.value !== 'all') {
-    result = result.filter(a => (a.programId === selectedAttendanceProgramId.value || a.courseId === selectedAttendanceProgramId.value || a.program_id === selectedAttendanceProgramId.value || a.course_id === selectedAttendanceProgramId.value))
+    result = result.filter(a => (a.programId === selectedAttendanceProgramId.value || a.courseId === selectedAttendanceProgramId.value))
   }
   return result.sort((a, b) => new Date(b.date || b.attendanceDate || b.createdAt) - new Date(a.date || a.attendanceDate || a.createdAt))
 })
@@ -325,7 +325,7 @@ const filteredAttendance = computed(() => {
 const filteredBehavior = computed(() => {
   let result = progressData.value?.behaviorLogs || []
   if (selectedBehaviorProgramId.value !== 'all') {
-    result = result.filter(b => (b.programId === selectedBehaviorProgramId.value || b.courseId === selectedBehaviorProgramId.value || b.program_id === selectedBehaviorProgramId.value || b.course_id === selectedBehaviorProgramId.value))
+    result = result.filter(b => (b.programId === selectedBehaviorProgramId.value || b.courseId === selectedBehaviorProgramId.value))
   }
   return result.sort((a, b) => new Date(b.date || b.behaviorDate || b.createdAt) - new Date(a.date || a.behaviorDate || a.createdAt))
 })
@@ -344,7 +344,7 @@ const filteredExams = computed(() => {
       result = result.filter(e => (e.termName || e.term) === term)
     } else {
       // Fallback for program ID if needed, though we primarily use strings now
-      result = result.filter(e => (e.programId === filter || e.courseId === filter || e.program_id === filter || e.course_id === filter))
+      result = result.filter(e => (e.programId === filter || e.courseId === filter))
     }
   }
   return result.sort((a, b) => new Date(b.date || b.examDate) - new Date(a.date || a.examDate))
@@ -409,7 +409,7 @@ const fetchData = async (id) => {
     student.value = studentData
 
     // 2. Fetch associated Parent profile if reference exists
-    const pId = studentData.parentId || studentData.parent_id
+    const pId = studentData.parentId
     console.log('Student Parent ID:', pId)
     if (pId) {
       try {
@@ -430,9 +430,9 @@ const fetchData = async (id) => {
     const programs = allPrograms || []
 
     enrollments.value = (allEnrollments || [])
-      .filter((r) => String(r.student_id || r.studentId || '') === String(id))
+      .filter((r) => String(r.studentId || '') === String(id))
       .map(r => {
-        const program = programs.find(c => (c.id || c.uid) === (r.programId || r.courseId || r.program_id || r.course_id))
+        const program = programs.find(c => (c.id || c.uid) === (r.programId || r.courseId))
         return {
           ...r,
           programTitle: program?.title || r.programTitle || r.courseTitle || 'Unknown Program',
@@ -453,18 +453,18 @@ const fetchData = async (id) => {
 
       // Enrich logs with course titles
       attendanceHistory.value = (attendance || []).map(a => {
-        const program = programs.find(c => (c.id || c.uid) === (a.programId || a.courseId || a.program_id || a.course_id))
+        const program = programs.find(c => (c.id || c.uid) === (a.programId || a.courseId))
         return { ...a, programTitle: program?.title || a.programTitle || a.courseTitle || 'Unknown Program' }
       })
 
       if (progress) {
         progress.behaviorLogs = (progress.behaviorLogs || []).map(b => {
-          const program = programs.find(c => (c.id || c.uid) === (b.programId || b.courseId || b.program_id || b.course_id))
+          const program = programs.find(c => (c.id || c.uid) === (b.programId || b.courseId))
           return { ...b, programTitle: program?.title || b.programTitle || b.courseTitle || 'Unknown Program' }
         })
 
         progress.examRecords = (progress.examRecords || []).map(e => {
-          const program = programs.find(c => (c.id || c.uid) === (e.programId || e.courseId || e.program_id || e.course_id))
+          const program = programs.find(c => (c.id || c.uid) === (e.programId || e.courseId))
           return { ...e, programTitle: program?.title || e.programTitle || e.courseTitle || 'Unknown Program' }
         })
       }
@@ -565,7 +565,7 @@ watch(
                 <tbody>
                   <tr v-for="(item, idx) in filteredAcademic" :key="item.id || idx">
                     <td class="text-center">{{ idx + 1 }}</td>
-                    <td><strong>{{ item.programTitle || item.courseTitle || item.courseName || '-' }}</strong></td>
+                    <td><strong>{{ item.programTitle || '-' }}</strong></td>
                     <td class="text-center">
                       <StatusBadge :status="item.termName || 'No Term'" type="blue" />
                     </td>
@@ -778,7 +778,7 @@ watch(
             <div class="detail-info-group">
               <div class="info-item vertical">
                 <span class="info-label">FULLNAME:</span>
-                <strong>{{ student?.name || student?.fullName || student?.fullname || 'Unknown' }}</strong>
+                <strong>{{ student?.fullName || student?.name || 'Unknown' }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">DATE OF BIRTH:</span>
@@ -790,7 +790,7 @@ watch(
               </div>
               <div class="info-item vertical">
                 <span class="info-label">MEDICAL NOTE:</span>
-                <strong>{{ student?.medicalNote || student?.medical_note || 'None' }}</strong>
+                <strong>{{ student?.medicalNote || 'None' }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">STATUS:</span>
@@ -809,13 +809,11 @@ watch(
             <div class="timestamp-group" style="margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
               <div class="timestamp-item">
                 <StatusBadge status="Joined At" />
-                <p>{{ formatDate(student?.createdAt || student?.created_at) }}</p>
+                <p>{{ formatDate(student?.createdAt) }}</p>
               </div>
               <div class="timestamp-item">
                 <StatusBadge status="Updated At" />
-                <p>{{ formatDate(student?.updatedAt || student?.updated_at || student?.createdAt || new
-                  Date().toISOString()) }}
-                </p>
+                <p>{{ formatDate(student?.updatedAt || student?.createdAt) }}</p>
               </div>
             </div>
           </div>

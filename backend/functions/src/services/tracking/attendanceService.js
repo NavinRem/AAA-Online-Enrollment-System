@@ -1,13 +1,13 @@
 const { db, COLLECTIONS } = require("../../config/database");
 
 class AttendanceService {
-  // 16. Mark Check-In
+  // Mark Check-In
   async markCheckIn(data) {
-    const { student_id, session_id, timestamp } = data;
+    const { studentId, sessionId, timestamp } = data;
     const ref = db.collection(COLLECTIONS.ATTENDANCE).doc();
     await ref.set({
-      student_id,
-      session_id,
+      studentId,
+      sessionId,
       type: "check-in",
       timestamp: timestamp || new Date().toISOString(),
       status: "present",
@@ -15,13 +15,13 @@ class AttendanceService {
     return { message: "Check-in recorded" };
   }
 
-  // 17. Mark Check-Out
+  // Mark Check-Out
   async markCheckOut(data) {
-    const { student_id, session_id, timestamp } = data;
+    const { studentId, sessionId, timestamp } = data;
     const ref = db.collection(COLLECTIONS.ATTENDANCE).doc();
     await ref.set({
-      student_id,
-      session_id,
+      studentId,
+      sessionId,
       type: "check-out",
       timestamp: timestamp || new Date().toISOString(),
       status: "checked-out",
@@ -29,35 +29,35 @@ class AttendanceService {
     return { message: "Check-out recorded" };
   }
 
-  // 14. Get Attendance History (Student)
-  async getAttendanceHistory(student_id) {
+  // Get Attendance History (Student)
+  async getAttendanceHistory(studentId) {
     const snapshot = await db
-      .collection("attendance")
-      .where("student_id", "==", student_id)
+      .collection(COLLECTIONS.ATTENDANCE)
+      .where("studentId", "==", studentId)
       .orderBy("timestamp", "desc")
       .get();
     return snapshot.docs.map((doc) => doc.data());
   }
 
-  // 20. Get Attendance Logs (Session)
-  async getAttendanceLogs(session_id) {
+  // Get Attendance Logs (Session)
+  async getAttendanceLogs(sessionId) {
     const snapshot = await db
-      .collection("attendance")
-      .where("session_id", "==", session_id)
+      .collection(COLLECTIONS.ATTENDANCE)
+      .where("sessionId", "==", sessionId)
       .orderBy("timestamp", "desc")
       .get();
     return snapshot.docs.map((doc) => doc.data());
   }
 
-  // 18. Request Make-Up Session
+  // Request Make-Up Session
   async requestMakeUpSession(data) {
-    const { student_id, old_session_id, new_session_id, reason } = data;
+    const { studentId, oldSessionId, newSessionId, reason } = data;
     // Logic to check rules...
     await db.collection(COLLECTIONS.REQUEST).add({
       type: "makeup",
-      student_id,
-      old_session_id,
-      new_session_id,
+      studentId,
+      oldSessionId,
+      newSessionId,
       reason,
       status: "pending",
       createdAt: new Date().toISOString(),

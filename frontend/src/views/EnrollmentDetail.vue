@@ -152,8 +152,8 @@ onMounted(async () => {
     const [userRes, studentRes, programRes, sessionsRes] = await Promise.allSettled([
       userService.getProfile(data.parentId),
       userService.getStudent(data.studentId),
-      programService.getProgram(data.programId || data.courseId),
-      programService.getSessions(data.programId || data.courseId),
+      programService.getProgram(data.programId),
+      programService.getSessions(data.programId),
     ])
 
     if (userRes.status === 'fulfilled') parent.value = userRes.value
@@ -218,8 +218,8 @@ onMounted(async () => {
 
       <template #left-content v-if="enrollment">
         <div class="detail-cards-grid">
-          <DetailCard title="Parent/Guardian Information" :avatarUrl="parent?.profileURL || parent?.photoURL || getImageUrl('profiles/avatar-parent')">
-            <p><strong>Fullname:</strong> {{ parent?.fullname || parent?.name || enrollment.parentName || 'N/A' }}</p>
+          <DetailCard title="Parent/Guardian Information" :avatarUrl="parent?.profileURL || getImageUrl('profiles/avatar-parent')">
+            <p><strong>Fullname:</strong> {{ parent?.fullName || parent?.name || enrollment.parentName || 'N/A' }}</p>
             <p><strong>Email:</strong> {{ parent?.email || enrollment.parentEmail || 'N/A' }}</p>
             <p><strong>Phone Number:</strong> {{ parent?.phone || enrollment.parentPhone || 'N/A' }}</p>
             <p>
@@ -233,33 +233,33 @@ onMounted(async () => {
             </p>
           </DetailCard>
   
-          <DetailCard title="Student Information" :avatarUrl="student?.profileURL || student?.photoURL || getImageUrl('profiles/avatar-student')">
+          <DetailCard title="Student Information" :avatarUrl="student?.profileURL || getImageUrl('profiles/avatar-student')">
             <p>
               <strong>Fullname:</strong>
-              {{ student?.fullname || student?.fullName || student?.name || enrollment.studentName || 'N/A' }}
+              {{ student?.fullName || student?.name || enrollment.studentName || 'N/A' }}
             </p>
             <p>
               <strong>Date of birth:</strong>
-              {{ formatDateOnly(student?.dob || student?.DoB || enrollment.studentDob) }}
+              {{ formatDateOnly(student?.dob || enrollment.studentDob) }}
             </p>
-            <p><strong>Age:</strong> {{ calculateAge(student?.dob || student?.DoB || enrollment.studentDob) }}</p>
+            <p><strong>Age:</strong> {{ calculateAge(student?.dob || enrollment.studentDob) }}</p>
             <p>
               <strong>Medical Note:</strong>
-              {{ student?.medicalNote || student?.medical_note || enrollment.medicalNote || 'None'}}
+              {{ student?.medicalNote || enrollment.medicalNote || 'None'}}
             </p>
           </DetailCard>
   
-          <DetailCard title="Enrollment Information" :avatarUrl="program?.imageURL || getProgramIcon(program?.category || enrollment.programCategory || enrollment.programTitle || enrollment.courseCategory || enrollment.courseTitle) || getImageUrl('programs/program')">
+          <DetailCard title="Enrollment Information" :avatarUrl="program?.imageURL || getProgramIcon(program?.category || enrollment.programCategory || enrollment.programTitle) || getImageUrl('programs/program')">
             <p>
               <strong>Program title:</strong>
-              {{ program?.title || enrollment.programTitle || enrollment.courseTitle || 'N/A' }}
+              {{ program?.title || enrollment.programTitle || 'N/A' }}
             </p>
             <p>
               <strong>Session:</strong> {{ enrollment.sessionSchedule || 'N/A' }}
             </p>
             <p>
               <strong>Number Session Enrolled:</strong>
-              {{ session?.totalSessions || session?.total_sessions || enrollment.numberSessions || enrollment.totalSessions || '0' }} Sessions
+              {{ session?.totalSessions || enrollment.numberSessions || enrollment.totalSessions || '0' }} Sessions
             </p>
             <p>
               <strong>Date:</strong>

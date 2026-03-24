@@ -50,7 +50,7 @@ const initData = async () => {
 
     // Filter enrollments for this specific program
     const allEnrollments = Array.isArray(eData) ? eData : []
-    enrollments.value = allEnrollments.filter(e => String(e.programId || e.program_id || e.courseId || e.course_id) === String(id))
+    enrollments.value = allEnrollments.filter(e => String(e.programId || '') === String(id))
 
     students.value = Array.isArray(stdData) ? stdData : []
   } catch (err) {
@@ -174,7 +174,7 @@ const studentHeaders = [
 ]
 
 const handleStudentClick = (enroll) => {
-  const sId = enroll.student_id || enroll.studentId
+  const sId = enroll.studentId
   if (sId) {
     router.push(`/students/${sId}`)
   }
@@ -313,7 +313,7 @@ const handleActionSubmit = async (formData) => {
 
                   <div class="info-item vertical">
                     <span class="info-label">TOTAL SESSIONS:</span>
-                    <strong>{{ program.number_session || program.numberSessions }} Sessions</strong>
+                    <strong>{{ program.numberSessions }} Sessions</strong>
                   </div>
 
                   <div class="info-item vertical">
@@ -329,7 +329,7 @@ const handleActionSubmit = async (formData) => {
 
                   <div class="info-item vertical">
                     <span class="info-label">COST PER SESSION:</span>
-                    <strong>${{ (Number(program.price || 0) / (Number(program.number_session || program.numberSessions) || 1)).toFixed(2) }}</strong>
+                    <strong>${{ (Number(program.price || 0) / (Number(program.numberSessions) || 1)).toFixed(2) }}</strong>
                   </div>
                 </div>
               </div>

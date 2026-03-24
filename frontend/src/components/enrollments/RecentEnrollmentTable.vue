@@ -69,9 +69,9 @@ const navigateToDetail = (item) => {
         <td>
           <div class="program-info-cell clickable" @click="navigateToDetail(item)">
             <div class="program-icon-mini">
-              <img :src="item.programURL || item.courseURL" :alt="item.program || item.course" />
+              <img :src="item.programURL" :alt="item.program" />
             </div>
-            <span class="program-name">{{ item.program || item.course }}</span>
+            <span class="program-name">{{ item.program }}</span>
           </div>
         </td>
         <td class="text-center">

@@ -14,7 +14,7 @@ export const calculateDashboardStats = (allUsers, enrollments, programs, student
     if (r.amount) amt = parseFloat(String(r.amount).replace(/[^0-9.]/g, ''))
     else if (r.totalAmount) amt = parseFloat(String(r.totalAmount).replace(/[^0-9.]/g, ''))
     else {
-      const progId = r.programId || r.courseId || r.program_id || r.course_id
+      const progId = r.programId || r.courseId
       const program = programs.find((c) => (c.id || c.uid) === progId)
       amt = program ? parseFloat(String(program.price || 0).replace(/[^0-9.]/g, '')) : 0
     }

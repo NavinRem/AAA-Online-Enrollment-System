@@ -90,7 +90,7 @@ exports.updateMedicalInfo = async (req, res) => {
   try {
     const result = await studentService.updateMedicalInfo(
       req.params.id,
-      req.body.medical_note,
+      req.body.medicalNote,
     );
     res.status(200).json(result);
   } catch (error) {

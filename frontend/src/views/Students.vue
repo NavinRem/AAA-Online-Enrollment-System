@@ -75,9 +75,9 @@ const statsCards = computed(() => {
   const s = calculateTotalStudent(students.value)
   return [
     { label: 'Total Students', value: s.totalStudent, image: getImageUrl('student/total-student'), color: '#e1f5fe' },
-    { label: 'Currently Enrolled', value: s.currently_enrolled, image: getImageUrl('student/currently-enrolled'), color: '#e1f5fe' },
-    { label: 'Not Currently Enrolled', value: s.not_currently_enrolled, image: getImageUrl('student/currently-not-enrolled'), color: '#e1f5fe' },
-    { label: 'Stopped Students', value: s.stop_enrolled, image: getImageUrl('student/stopped-enrolled'), color: '#e1f5fe' },
+    { label: 'Currently Enrolled', value: s.currentlyEnrolled, image: getImageUrl('student/currently-enrolled'), color: '#e1f5fe' },
+    { label: 'Not Currently Enrolled', value: s.notCurrentlyEnrolled, image: getImageUrl('student/currently-not-enrolled'), color: '#e1f5fe' },
+    { label: 'Stopped Students', value: s.stopEnrolled, image: getImageUrl('student/stopped-enrolled'), color: '#e1f5fe' },
     { label: 'Graduated Students', value: s.graduated, image: getImageUrl('student/graduated'), color: '#e1f5fe' }
   ]
 })
@@ -198,14 +198,14 @@ const openActionModal = async (type, studentItem) => {
 
 const submitActionModal = async (formData) => {
   const { type, student } = actionModal.value
-  const { fullName, name, medicalNote, medical_note, status, parentId, dob, profileURL } = formData
+  const { fullName, name, medicalNote, status, parentId, dob, profileURL } = formData
   modalLoading.value = true
   modalError.value = ''
   modalSuccess.value = ''
 
   try {
     if (type === 'edit') {
-      await userService.updateMedicalInfo(student.id || student.uid, medicalNote || medical_note)
+      await userService.updateMedicalInfo(student.id || student.uid, medicalNote)
       await userService.updateStudent(student.id || student.uid, {
         name,
         status,
@@ -219,7 +219,7 @@ const submitActionModal = async (formData) => {
         const chosenParent = parentsList.value.find((p) => (p.uid || p.id) === parentId)
 
         students.value[idx].fullName = fullName || name
-        students.value[idx].medicalNote = medicalNote || medical_note
+        students.value[idx].medicalNote = medicalNote
         students.value[idx].status = status
         if (dob) students.value[idx].dob = dob
         if (profileURL) students.value[idx].profileURL = profileURL
@@ -297,7 +297,7 @@ const submitActionModal = async (formData) => {
                   <img :src="item.profileURL || getImageUrl('profiles/avatar-student')" alt="avatar" />
                 </div>
                 <div class="user-info" @click="navigateToDetail(item)">
-                  <span class="user-name">{{ item.fullName || item.fullname }}</span>
+                  <span class="user-name">{{ item.fullName }}</span>
                 </div>
               </div>
             </td>
@@ -312,8 +312,8 @@ const submitActionModal = async (formData) => {
             <td class="hide-on-tablet">
               <div class="course-icons">
                 <div v-for="(program, pIdx) in item.programs" :key="pIdx" class="program-icon-mini"
-                  :title="program.programTitle || program.courseTitle || 'Program'">
-                  <img :src="getProgramIcon(program.programTitle || program.courseTitle)" :alt="program.programTitle || program.courseTitle" />
+                  :title="program.programTitle">
+                  <img :src="getProgramIcon(program.programTitle)" :alt="program.programTitle" />
                 </div>
                 <span v-if="!item.programs || item.programs.length === 0" class="text-muted">None</span>
               </div>

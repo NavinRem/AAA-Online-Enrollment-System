@@ -83,9 +83,9 @@
 
         <div class="form-group full-width">
           <label>Medical Notes / Allergies</label>
-          <span class="original-value" v-if="originalData.medical_note">Original: {{ originalData.medical_note }}</span>
+          <span class="original-value" v-if="originalData.medicalNote">Original: {{ originalData.medicalNote }}</span>
           <textarea
-            v-model="localData.medical_note"
+            v-model="localData.medicalNote"
             placeholder="e.g. Nut allergy, Asthma, or 'None'"
             rows="3"
           ></textarea>
@@ -94,40 +94,40 @@
             <button
               type="button"
               class="preset-chip"
-              :class="{ active: isPresetActive('medical_note', 'None') }"
-              @click="togglePreset('medical_note', 'None')"
+              :class="{ active: isPresetActive('medicalNote', 'None') }"
+              @click="togglePreset('medicalNote', 'None')"
             >
               None
             </button>
             <button
               type="button"
               class="preset-chip"
-              :class="{ active: isPresetActive('medical_note', 'G6PD Deficiency') }"
-              @click="togglePreset('medical_note', 'G6PD Deficiency')"
+              :class="{ active: isPresetActive('medicalNote', 'G6PD Deficiency') }"
+              @click="togglePreset('medicalNote', 'G6PD Deficiency')"
             >
               G6PD
             </button>
             <button
               type="button"
               class="preset-chip"
-              :class="{ active: isPresetActive('medical_note', 'ADHD') }"
-              @click="togglePreset('medical_note', 'ADHD')"
+              :class="{ active: isPresetActive('medicalNote', 'ADHD') }"
+              @click="togglePreset('medicalNote', 'ADHD')"
             >
               ADHD
             </button>
             <button
               type="button"
               class="preset-chip"
-              :class="{ active: isPresetActive('medical_note', 'Dyslexia') }"
-              @click="togglePreset('medical_note', 'Dyslexia')"
+              :class="{ active: isPresetActive('medicalNote', 'Dyslexia') }"
+              @click="togglePreset('medicalNote', 'Dyslexia')"
             >
               Dyslexia
             </button>
             <button
               type="button"
               class="preset-chip"
-              :class="{ active: isPresetActive('medical_note', 'Asthma') }"
-              @click="togglePreset('medical_note', 'Asthma')"
+              :class="{ active: isPresetActive('medicalNote', 'Asthma') }"
+              @click="togglePreset('medicalNote', 'Asthma')"
             >
               Asthma
             </button>
@@ -153,7 +153,7 @@
           <AvatarSelector 
             v-model="localData.profileURL" 
             role="student" 
-            :uid="student?.id || enrollment?.student_id"
+            :uid="student?.id || enrollment?.studentId"
             :customFileName="`${localData.name}_student`"
           />
         </div>
@@ -283,7 +283,7 @@ const getInitialData = () => ({
   name: '',
   dob: '',
   profileURL: '',
-  medical_note: 'None',
+  medicalNote: 'None',
   status: '',
   deleteConfirm: '',
   overrideReason: '',
@@ -293,11 +293,11 @@ const getInitialData = () => ({
 const mapSourceToForm = () => {
   const source = props.enrollment || props.student || {}
   return {
-    parentId: source.parentId || source.parent_id || '',
+    parentId: source.parentId || '',
     name: source.name || source.fullName || source.fullname || '',
     dob: source.dob || '',
     profileURL: source.profileURL || '',
-    medical_note: source.medical_note || (source.medicalNotes || source.medical_note || 'None'),
+    medicalNote: source.medicalNote || 'None',
     status:
       source.status ||
       (props.type === 'enrollment-override'

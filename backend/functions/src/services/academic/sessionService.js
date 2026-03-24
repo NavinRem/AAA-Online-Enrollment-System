@@ -2,18 +2,18 @@ const { db, COLLECTIONS } = require("../../config/database");
 
 class SessionService {
   async createSession(sessionData) {
-    const { program_id, teachers, schedule, capacity } = sessionData;
+    const { programId, teachers, schedule, capacity } = sessionData;
 
-    if (!program_id) {
-      throw new Error("program_id is required");
+    if (!programId) {
+      throw new Error("programId is required");
     }
 
     const data = {
-      program_id,
+      programId,
       teachers: teachers || [], // Array of { id, role }
       schedule: schedule || {}, // Map of { day, timeslot }
       capacity: parseInt(capacity) || 20,
-      num_student: 0,
+      numStudent: 0,
       createdAt: new Date().toISOString(),
     };
 
@@ -21,10 +21,10 @@ class SessionService {
     return { id: docRef.id, message: "Session created successfully" };
   }
 
-  async getAvailableSessions(program_id) {
+  async getAvailableSessions(programId) {
     const snapshot = await db
       .collection(COLLECTIONS.SESSION)
-      .where("program_id", "==", program_id)
+      .where("programId", "==", programId)
       .get();
 
     return snapshot.docs.map((doc) => ({
@@ -41,7 +41,6 @@ class SessionService {
     }));
 
     // Basic hydration (Teachers)
-    // Fetch all teachers for hydration (supporting both roles for transition)
     const usersSnapshot = await db.collection(COLLECTIONS.USER).where("role", "in", ["teacher", "instructor"]).get();
     const teachersMap = {};
     usersSnapshot.docs.forEach(doc => {
@@ -66,12 +65,12 @@ class SessionService {
     }
 
     const data = doc.data();
-    const available = (data.num_student || 0) < (data.capacity || 0);
+    const available = (data.numStudent || 0) < (data.capacity || 0);
 
     return {
       id: doc.id,
       hasCapacity: available,
-      current: data.num_student || 0,
+      current: data.numStudent || 0,
       capacity: data.capacity,
     };
   }
@@ -84,34 +83,33 @@ class SessionService {
     return { id: doc.id, ...doc.data() };
   }
 
-  // 22. Assign Teacher
+  // Assign Teacher
   async assignTeacher(sessionId, teachers) {
     const ref = db.collection(COLLECTIONS.SESSION).doc(sessionId);
     await ref.update({ teachers });
     return { message: "Teachers assigned successfully" };
   }
 
-  // 15. Get Session Teachers
+  // Get Session Teachers
   async getSessionTeachers(sessionId) {
     const doc = await db.collection(COLLECTIONS.SESSION).doc(sessionId).get();
     if (!doc.exists) throw new Error("Session not found");
     return doc.data().teachers || [];
   }
 
-  // 23. Sync Student Counts
+  // Sync Student Counts
   async syncStudentCounts(sessionId) {
     const ref = db.collection(COLLECTIONS.SESSION).doc(sessionId);
 
     // Count enrollments
     const snapshot = await db
       .collection(COLLECTIONS.ENROLLMENT)
-      .where("session_id", "==", sessionId)
-      .where("status", "in", ["confirmed", "pending"]) // Count active
-      .count()
+      .where("sessionId", "==", sessionId)
+      .where("status", "in", ["confirmed", "pending"])
       .get();
 
-    const count = snapshot.data().count;
-    await ref.update({ num_student: count });
+    const count = snapshot.docs.length;
+    await ref.update({ numStudent: count });
 
     return { message: "Student count synced", count };
   }

@@ -3,7 +3,7 @@
  */
 export const enrichParents = (users = [], students = []) => {
   const studentsByParent = students.reduce((acc, s) => {
-    const pId = s.parentId || s.parent_id
+    const pId = s.parentId
     if (pId) {
       if (!acc[pId]) acc[pId] = []
       acc[pId].push(s)

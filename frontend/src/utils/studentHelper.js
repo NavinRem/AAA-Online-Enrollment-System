@@ -6,8 +6,8 @@ import { calculateStudentStatus, isEnrollmentActive } from './studentStatusHelpe
 export const enrichStudents = (students = [], enrollments = [], users = []) => {
   return students.map(s => {
     const id = String(s.id || s.uid || '')
-    const regs = enrollments.filter(r => String(r.student_id || r.studentId || '') === id)
-    const p = users.find(u => String(u.uid || u.id || '') === String(s.parentId || s.parent_id || ''))
+    const regs = enrollments.filter(r => String(r.studentId || '') === id)
+    const p = users.find(u => String(u.uid || u.id || '') === String(s.parentId || ''))
 
     return {
       ...s,
@@ -16,8 +16,7 @@ export const enrichStudents = (students = [], enrollments = [], users = []) => {
       programs: regs.filter(isEnrollmentActive),
       parentProfileURL: p?.profileURL || null,
       dob: s.dob || s.DoB,
-      fullName: s.fullname || s.name || s.fullName || s.fullName,
-      fullname: s.fullname || s.name || s.fullName || s.fullName
+      fullName: s.fullName || s.fullname || s.name || 'Student',
     }
   })
 }
@@ -27,15 +26,16 @@ export const enrichStudents = (students = [], enrollments = [], users = []) => {
  */
 export const calculateTotalStudent = (students) => {
   const totalStudent = students.length
-  const currently_enrolled = students.filter(s => String(s.status || '').toLowerCase() === 'studying').length
-  const not_currently_enrolled = students.filter(s => String(s.status || '').toLowerCase() !== 'studying').length
-  const stop_enrolled = students.filter(s => String(s.status || '').toLowerCase() === 'stopped').length
+  const currentlyEnrolled = students.filter(s => String(s.status || '').toLowerCase() === 'studying').length
+  const notCurrentlyEnrolled = students.filter(s => String(s.status || '').toLowerCase() !== 'studying').length
+  const stopEnrolled = students.filter(s => String(s.status || '').toLowerCase() === 'stopped').length
   const graduated = students.filter(s => String(s.status || '').toLowerCase() === 'graduated').length
+
   return {
     totalStudent,
-    currently_enrolled,
-    not_currently_enrolled,
-    stop_enrolled,
+    currentlyEnrolled,
+    notCurrentlyEnrolled,
+    stopEnrolled,
     graduated
   }
 }

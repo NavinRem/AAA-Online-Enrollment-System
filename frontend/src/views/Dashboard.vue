@@ -3,9 +3,8 @@ import { authService } from '../services/authService'
 import { userService } from '../services/userService'
 import { programService } from '../services/programService'
 import { enrollmentService } from '../services/enrollmentService'
-import { useRouter } from 'vue-router'
 import { ref, onMounted, computed } from 'vue'
-import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 import { parseDate } from '../utils/dateFormatter'
 import { calculateDashboardStats } from '../utils/statsHelper'
 
@@ -73,27 +72,28 @@ const thisWeekStats = computed(() => [
 const mappedEnrollments = computed(() => {
   return [...enrollments.value]
     .sort((a, b) => {
-      const timeB = parseDate(b.enrollAt || b.createdAt).getTime()
-      const timeA = parseDate(a.enrollAt || a.createdAt).getTime()
+      const timeB = parseDate(b.enrollAt).getTime()
+      const timeA = parseDate(a.enrollAt).getTime()
       return timeB - timeA
     })
     .slice(0, 5)
     .map((r, index) => {
-      const parentUser = users.value.find(u => (u.uid || u.id) === (r.parentId || r.parent_id))
-      const studentProfile = students.value.find(s => (s.id || s.uid) === (r.studentId || r.student_id))
-      const program = allPrograms.value.find(p => (p.id || p.uid) === (r.programId || r.program_id))
+      const parent = users.value.find(u => u.uid === r.parentId)
+      const student = students.value.find(s => s.id === r.studentId)
+      const program = programs.value.find(p => p.id === r.programId)
 
       return {
         id: r.id,
         no: index + 1,
-        parentProfileURL: parentUser?.profileURL || getImageUrl('profiles/avatar-parent'),
-        parent: r.parentName,
-        studentProfileURL: studentProfile?.profileURL || getImageUrl('profiles/avatar-student'),
-        child: r.studentName,
-        program: r.programTitle,
+        parentProfileURL: parent?.profileURL || getImageUrl('profiles/avatar-parent'),
+        parent: parent?.fullName || parent?.name || r.parentName,
+        studentProfileURL: student?.profileURL || getImageUrl('profiles/avatar-student'),
+        child: student?.fullName || student?.name || r.studentName,
+        programURL: program?.profileURL || getImageUrl('profiles/avatar-program'),
+        program: program?.title || r.programTitle,
         status: r.displayStatus,
         amount: `$${r.amount}`,
-        date: r.enrollAt || r.createdAt
+        date: r.enrollAt
       }
     })
 })
