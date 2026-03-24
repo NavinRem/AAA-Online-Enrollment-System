@@ -12,7 +12,7 @@ import { userService } from '../services/userService'
 import { programService } from '../services/programService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
 import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
 import AppModal from '@/components/common/ui/AppModal.vue'
 
@@ -265,7 +265,7 @@ const formatPrice = (val) => {
             <td class="hide-on-tablet">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="item.parentProfileURL" alt="parent" />
+                  <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent" />
                 </div>
                 <span>{{ item.parentName }}</span>
               </div>
@@ -273,7 +273,7 @@ const formatPrice = (val) => {
             <td>
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="item.studentProfileURL" alt="student" />
+                  <img :src="getStudentProfileURL(item.studentProfileURL)" alt="student" />
                 </div>
                 <span>{{ item.studentName }}</span>
               </div>
@@ -281,7 +281,7 @@ const formatPrice = (val) => {
             <td>
               <div class="info-cell">
                 <div class="program-icon-mini">
-                  <img :src="item.programProfileURL" alt="program" />
+                  <img :src="getProgramProfileURL(item.programProfileURL)" alt="program" />
                 </div>
                 <div class="program-cell">
                   <div class="program-title">{{ item.programTitle || 'Program' }}</div>
@@ -330,10 +330,10 @@ const formatPrice = (val) => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentForm :isOpen="showModal" :loading="submitting" :parents="parents" :students="students" :programs="programs"
-      :sessions="sessions" :enrollments="enrollments" :error="errorMessage" :success="successMessage"
-      @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }" @program-change="handleProgramChange"
-      @submit="handleCreateEnrollment" />
+    <EnrollmentForm :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
+      :programs="programs" :sessions="sessions" :enrollments="enrollments" :error="errorMessage"
+      :success="successMessage" @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }"
+      @program-change="handleProgramChange" @submit="handleCreateEnrollment" />
 
     <!-- Action Modals -->
     <AppModal :show="actionModal.isOpen" :title="actionModal.type + ' Enrollment'" variant="action"

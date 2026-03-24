@@ -1,15 +1,6 @@
-import { getImageUrl } from './assetHelper'
-
 /**
- * Returns the appropriate icon path for a given program name.
- *
- * @param {string} programName
+ * Helper functions for program-related logic.
  */
-export const getProgramIcon = (programName) => {
-  // Maps program name to card asset
-  if (!programName) return getImageUrl('programs/program')
-  return getImageUrl(`classes/card-${programName.toLowerCase()}`)
-}
 
 export const getSessionCounts = (startDate, endDate, schedule) => {
   if (!startDate || !endDate || !schedule) return { total: 0, remaining: 0 }

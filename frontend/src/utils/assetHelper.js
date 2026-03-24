@@ -6,56 +6,49 @@ const images = import.meta.glob('../assets/images/**/*.{png,jpg,jpeg,svg,webp}',
 const icons = import.meta.glob('../assets/icons/**/*.{png,jpg,jpeg,svg,webp}', { eager: true })
 
 /**
- * ASSET_PATH_MAP: Explicitly map legacy fuzzy keywords to new standardized paths.
+ * Normalizes a keyword for asset lookup.
  */
-const ASSET_PATH_MAP = {
-  'student': 'profiles/avatar-boy',
-  'parent': 'profiles/avatar-man',
-  'guardian': 'profiles/avatar-man',
-  'admin': 'profiles/avatar-admin',
-  'teacher-man': 'profiles/avatar-teacher-man',
-  'teacher-woman': 'profiles/avatar-teacher-woman',
-  'profile-admin': 'profiles/avatar-admin',
-  'child-profile': 'profiles/avatar-student',
-  'total-student': 'dashboard/card-student',
-  'total-parent': 'dashboard/card-parent',
-  'total-program': 'dashboard/card-program',
-  'total-guardian': 'dashboard/card-guardian',
-  'total-account': 'dashboard/card-account',
-  'user-online': 'dashboard/user-online',
-  'piano': 'classes/card-piano',
-  'robotic': 'classes/card-robotic',
-  'ballet': 'classes/card-ballet',
-  'paid': 'status/badge-paid',
-  'unpaid': 'status/badge-unpaid',
-  'pending': 'status/badge-pending',
-  'cancel': 'status/badge-cancel',
-  'logo': 'common/logo-main',
-  'aaa-logo': 'common/logo-main',
-  'program': 'programs/program'
-}
-
-const normalizeAssetName = (name) => {
+const normalize = (name) => {
   if (!name) return ''
   return name.toLowerCase().trim().replace(/\s+/g, '-').replace(/_/g, '-')
 }
 
 /**
- * Resolves an asset from the globbed collections.
+ * Core resolver for project assets.
+ * 
+ * Logic:
+ * 1. Cleanup path.
+ * 2. Try direct match in collection.
+ * 3. If image, try convention patterns (classes/card-*, profiles/avatar-*).
  */
-const resolveAsset = (collections, baseDir, path) => {
+const getAsset = (collections, baseDir, path) => {
   if (!path) return ''
   
-  // Clean path (remove leading slashes)
   const cleanPath = path.startsWith('/') ? path.substring(1) : path
+  const normalizedPath = normalize(cleanPath)
   
-  // Try with various extensions if not provided
-  const extensions = cleanPath.includes('.') ? [''] : ['.png', '.jpg', '.jpeg', '.svg', '.webp']
+  const hasExtension = normalizedPath.includes('.')
+  const extensions = hasExtension ? [''] : ['.png', '.jpg', '.jpeg', '.svg', '.webp']
   
+  // 1. Direct Lookup (using normalized path)
   for (const ext of extensions) {
-    const fullPath = `../assets/${baseDir}/${cleanPath}${ext}`
-    if (collections[fullPath]) {
-      return collections[fullPath].default || collections[fullPath]
+    const fullPath = `../assets/${baseDir}/${normalizedPath}${ext}`
+    if (collections[fullPath]) return collections[fullPath].default || collections[fullPath]
+  }
+  
+  // 2. Convention Fallbacks (Images only)
+  if (baseDir === 'images') {
+    const patterns = [
+      `classes/card-${normalizedPath}`,
+      `profiles/avatar-${normalizedPath}`,
+      `dashboard/card-${normalizedPath}`,
+      `status/badge-${normalizedPath}`
+    ]
+    for (const p of patterns) {
+      for (const ext of extensions) {
+        const fullPath = `../assets/${baseDir}/${p}${ext}`
+        if (collections[fullPath]) return collections[fullPath].default || collections[fullPath]
+      }
     }
   }
   
@@ -63,80 +56,77 @@ const resolveAsset = (collections, baseDir, path) => {
 }
 
 /**
- * Dynamic Image Loader
+ * Main Image Resolution Entry Point
  */
 export const getImageUrl = (param1, param2) => {
   if (!param1) return ''
   
-  // Case 1: Explicit Path 'category/filename'
-  if (!param2 && param1.includes('/')) {
-    const resolved = resolveAsset(images, 'images', param1)
-    if (resolved) return resolved
+  // Already resolved URL (Storage, Absolute, Data, etc.)
+  if (!param2 && typeof param1 === 'string' && (param1.startsWith('http') || param1.includes('firebasestorage') || param1.startsWith('/') || param1.startsWith('data:'))) {
+    return param1
   }
 
-  // Case 2: Standardized Alias (Legacy support)
-  const kw = normalizeAssetName(param2 || param1)
-  const mappedPath = ASSET_PATH_MAP[kw]
-  if (mappedPath) {
-    const resolved = resolveAsset(images, 'images', mappedPath)
-    if (resolved) return resolved
-  }
-
-  // Case 3: Category passed as first arg, name as second
+  // Double Param Logic (e.g., getImageUrl('profiles', 'boy'))
   if (param1 && param2) {
-    const path = `${normalizeAssetName(param1)}/${normalizeAssetName(param2)}`
-    const resolved = resolveAsset(images, 'images', path)
-    if (resolved) return resolved
+    return getAsset(images, 'images', `${param1}/${param2}`)
   }
 
-  // Final Fallback
-  return ''
+  // Single identifier logic (e.g., getImageUrl('Piano'))
+  return getAsset(images, 'images', param1)
 }
 
 /**
- * Dynamic Icon Loader
+ * Icon Loader
  */
 export const getIconUrl = (param1, param2) => {
   if (!param1) return ''
   
-  const name = param2 || param1
-  const isSvg = name.toLowerCase().includes('.svg') || name.includes('svgrepo')
+  const name = (param2 || param1).toLowerCase()
+  const isSvg = name.includes('.svg') || name.includes('svgrepo')
   
-  // If it's not an SVG, route it to getImageUrl (Raster icons)
-  if (!isSvg) {
-     return getImageUrl(param1, param2)
-  }
+  if (!isSvg) return getImageUrl(param1, param2)
 
-  // Try icons folder
   const path = param2 ? `${param1}/${param2}` : param1
-  const resolved = resolveAsset(icons, 'icons', path)
-  if (resolved) return resolved
-
-  // Fallback to images (some icons are stored there)
-  return getImageUrl(param1, param2)
+  const resolved = getAsset(icons, 'icons', path)
+  return resolved || getImageUrl(param1, param2)
 }
 
 /**
- * Convenience helpers
+ * Standardized Profile Resolution Helpers
+ */
+export const getProgramProfileURL = (profileURL, category) => {
+  if (profileURL) return getImageUrl(profileURL)
+  if (category) return getImageUrl(category)
+  return getImageUrl('classes/card-model')
+}
+
+export const getParentProfileURL = (profileURL) => {
+  return getImageUrl(profileURL) || getImageUrl('profiles/avatar-man')
+}
+
+export const getStudentProfileURL = (profileURL) => {
+  return getImageUrl(profileURL) || getImageUrl('profiles/avatar-boy')
+}
+
+export const getTeacherProfileURL = (profileURL) => {
+  return getImageUrl(profileURL) || getImageUrl('profiles/avatar-teacher-man')
+}
+
+/**
+ * Convenience Shorthands
  */
 export const getProfileAsset = (name) => getImageUrl('profiles', `avatar-${name}`)
 export const getDashboardAsset = (name) => getImageUrl('dashboard', `card-${name}`)
 export const getClassAsset = (name) => getImageUrl('classes', `card-${name}`)
 export const getProgramAsset = (name) => getImageUrl('programs', name)
 export const getStatusAsset = (name) => getImageUrl('status', `badge-${name}`)
-export const getBackgroundAsset = (name) => getImageUrl('backgrounds', name)
 export const getCommonAsset = (name) => getImageUrl('common', name)
 
-export const getAssetUrl = (param1, param2) => getImageUrl(param1, param2)
-
-/**
- * Built-in Profile Avatars
- */
 export const ALL_BUILTIN_AVATARS = [
-  getImageUrl('profiles/avatar-boy'),
-  getImageUrl('profiles/avatar-girl'),
-  getImageUrl('profiles/avatar-man'),
-  getImageUrl('profiles/avatar-woman'),
-  getImageUrl('profiles/avatar-teacher-man'),
-  getImageUrl('profiles/avatar-teacher-woman'),
+  getProfileAsset('boy'),
+  getProfileAsset('girl'),
+  getProfileAsset('man'),
+  getProfileAsset('woman'),
+  getProfileAsset('teacher-man'),
+  getProfileAsset('teacher-woman'),
 ]

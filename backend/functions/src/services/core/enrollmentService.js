@@ -113,6 +113,7 @@ class EnrollmentService {
       const parentName = parentData.name || parentData.email || data.parentName || "N/A";
       const studentName = studentData.fullName || studentData.name || data.studentName || "N/A";
       const programTitle = programData.title || programData.name || data.programTitle || data.courseTitle || "N/A";
+      const programCategory = programData.category || "N/A";
 
       const parentProfileURL = parentData.profileURL || null;
       const studentProfileURL = studentData.profileURL || null;
@@ -140,6 +141,7 @@ class EnrollmentService {
         studentName,
         studentProfileURL,
         programTitle,
+        programCategory,
         programProfileURL,
         teacherName,
         teacherProfileURL,

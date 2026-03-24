@@ -10,10 +10,10 @@ import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { programService } from '@/services/programService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
-import { getProgramIcon } from '@/utils/programHelper'
-import { enrichEnrollments } from '@/utils/enrollmentHelper'
-import { isPaid } from '@/utils/statusHelper'
-import { getImageUrl } from '@/utils/assetHelper'
+import { 
+  getProgramProfileURL, 
+  getImageUrl 
+} from '@/utils/assetHelper'
 import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
 import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
 
@@ -423,9 +423,8 @@ const handleActionSubmit = async (formData) => {
       <template #right-content v-if="program">
         <div class="profile-header">
           <div class="profile-preview">
-            <img
-              :src="program.profileURL || getProgramIcon(program.category || program.title) || getImageUrl('programs/program')"
-              @error="(e) => (e.target.src = getImageUrl('programs/program'))" alt="Program Icon" />
+            <img :src="getProgramProfileURL(program.profileURL || program.imageURL, program.category)"
+              alt="Program Icon" />
           </div>
           <h2 class="profile-title">{{ program.title }}</h2>
         </div>

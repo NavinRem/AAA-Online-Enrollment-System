@@ -16,10 +16,13 @@ import { authService } from '../services/authService'
 import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, studentSearchMapper } from '../composables/useSearch'
 import { formatDate } from '../utils/dateFormatter'
-import { getProgramIcon } from '../utils/programHelper'
-import { enrichStudents, calculateTotalStudent } from '../utils/studentHelper'
-
-import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import {
+  getProgramProfileURL,
+  getStudentProfileURL,
+  getParentProfileURL,
+  getImageUrl,
+} from '@/utils/assetHelper'
+import { calculateTotalStudent, enrichStudents } from '@/utils/studentHelper'
 
 const router = useRouter()
 const students = ref([])
@@ -294,7 +297,7 @@ const submitActionModal = async (formData) => {
             <td class="bold" @click="navigateToDetail(item)">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="item.profileURL || getImageUrl('profiles/avatar-student')" alt="avatar" />
+                  <img :src="getStudentProfileURL(item.profileURL)" alt="avatar" />
                 </div>
                 <div class="user-info" @click="navigateToDetail(item)">
                   <span class="user-name">{{ item.fullName }}</span>
@@ -304,7 +307,7 @@ const submitActionModal = async (formData) => {
             <td>
               <div class="user-cell">
                 <div class="user-avatar-small">
-                  <img :src="item.parentProfileURL || getImageUrl('profiles/avatar-parent')" alt="parent avatar" />
+                  <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent avatar" />
                 </div>
                 {{ item.parentName || 'Parent' }}
               </div>
@@ -313,7 +316,8 @@ const submitActionModal = async (formData) => {
               <div class="course-icons">
                 <div v-for="(program, pIdx) in item.programs" :key="pIdx" class="program-icon-mini"
                   :title="program.programTitle">
-                  <img :src="getProgramIcon(program.programTitle)" :alt="program.programTitle" />
+                  <img :src="getProgramProfileURL(program.programProfileURL)"
+                    :alt="program.programTitle" />
                 </div>
                 <span v-if="!item.programs || item.programs.length === 0" class="text-muted">None</span>
               </div>

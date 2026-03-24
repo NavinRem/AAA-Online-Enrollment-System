@@ -9,12 +9,13 @@ import DataTable from '../components/common/data/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge.vue'
 import ProgramActionModal from '../components/programs/ProgramActionModal.vue'
 import { programService } from '../services/programService'
-import { enrollmentService } from '../services/enrollmentService'
 import { useSearch, programSearchMapper } from '../composables/useSearch'
-import { getProgramIcon } from '../utils/programHelper'
-import { calculateProgramStats, getProgramDisplayStatus } from '../utils/programHelper'
-
-import { getImageUrl } from '@/utils/assetHelper'
+import {
+  getProgramProfileURL,
+  getTeacherProfileURL,
+  getImageUrl
+} from '@/utils/assetHelper'
+import { calculateProgramStats, getProgramDisplayStatus } from '@/utils/programHelper'
 
 const programs = ref([])
 const enrollments = ref([])
@@ -172,7 +173,7 @@ const handleActionSubmit = async (formData) => {
     if (actionModal.value.type === 'add') {
       const result = await programService.createProgram(formData)
       newlyCreatedId.value = result.id
-      
+
       // Auto-create initial session if schedule exists
       if (formData.schedule) {
         await programService.createSession({
@@ -184,7 +185,7 @@ const handleActionSubmit = async (formData) => {
           capacity: 20 // Default capacity
         })
       }
-      
+
       actionModal.value.success = 'Program & Initial Session created successfully!'
     } else if (actionModal.value.type === 'edit') {
       await programService.updateProgram(actionModal.value.program.id, formData)
@@ -250,16 +251,9 @@ const onRowClick = (item) => {
       </template>
 
       <template #table>
-        <DataTable
-          title="Program List"
-          :headers="programHeaders"
-          :items="filteredPrograms"
-          :loading="loading"
-          v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search programs..."
-          :hasFilter="true"
-          v-model:currentFilter="currentFilter"
-          :filterOptions="[
+        <DataTable title="Program List" :headers="programHeaders" :items="filteredPrograms" :loading="loading"
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search programs..." :hasFilter="true"
+          v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Programs', value: 'all' },
             { label: 'Sort: Category', value: 'sort:category' },
             { label: 'Status: Active', value: 'status:active' },
@@ -267,52 +261,34 @@ const onRowClick = (item) => {
             { label: 'Status: In Progress', value: 'status:in progress' },
             { label: 'Status: Closed', value: 'status:closed' },
             { label: 'Status: Archived', value: 'status:archived' },
-          ]"
-          :rowClass="getRowClass"
-          @row-click="onRowClick"
-          @action="({ type, item }) => handleAction(type, item)"
-        >
+          ]" :rowClass="getRowClass" @row-click="onRowClick" @action="({ type, item }) => handleAction(type, item)">
           <template #toolbar-actions>
             <!-- Unified Category Filter Dropdown -->
             <div class="filter-dropdown-container">
-              <AppButton
-                variant="secondary"
-                :class="{ active: categoryFilter !== 'all' }"
-                @click="toggleCategoryFilter"
-                @blur="closeCategoryFilter"
-              >
+              <AppButton variant="secondary" :class="{ active: categoryFilter !== 'all' }" @click="toggleCategoryFilter"
+                @blur="closeCategoryFilter">
                 <span v-if="categoryFilter === 'all'">All Categories</span>
                 <span v-else>{{ categoryFilter }}</span>
               </AppButton>
               <Teleport to="body">
                 <transition name="toast-fade">
-                  <div v-if="isCategoryFilterOpen" class="filter-dropdown-menu scrollable-menu category-filter-menu" :style="categoryMenuStyles" @mousedown.stop>
+                  <div v-if="isCategoryFilterOpen" class="filter-dropdown-menu scrollable-menu category-filter-menu"
+                    :style="categoryMenuStyles" @mousedown.stop>
                     <div class="dropdown-search" style="padding: 8px; border-bottom: 1px solid #f1f5f9;">
-                      <input
-                        type="text"
-                        v-model="categorySearchQuery"
-                        placeholder="Search category..."
+                      <input type="text" v-model="categorySearchQuery" placeholder="Search category..."
                         style="width: 100%; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem;"
-                        @mousedown.stop
-                      />
+                        @mousedown.stop />
                     </div>
-                    <div
-                      class="filter-option"
-                      :class="{ active: categoryFilter === 'all' }"
-                      @click.stop="selectCategory('all')"
-                    >
+                    <div class="filter-option" :class="{ active: categoryFilter === 'all' }"
+                      @click.stop="selectCategory('all')">
                       All Categories
                     </div>
-                    <div
-                      v-for="cat in filteredCategories"
-                      :key="cat.id"
-                      class="filter-option"
-                      :class="{ active: categoryFilter === cat.name }"
-                      @click.stop="selectCategory(cat.name)"
-                    >
+                    <div v-for="cat in filteredCategories" :key="cat.id" class="filter-option"
+                      :class="{ active: categoryFilter === cat.name }" @click.stop="selectCategory(cat.name)">
                       {{ cat.name }}
                     </div>
-                    <div v-if="filteredCategories.length === 0" class="filter-option no-results" style="color: #94a3b8; font-style: italic;">
+                    <div v-if="filteredCategories.length === 0" class="filter-option no-results"
+                      style="color: #94a3b8; font-style: italic;">
                       No matches found
                     </div>
                   </div>
@@ -329,7 +305,7 @@ const onRowClick = (item) => {
             <td class="hide-on-tablet">
               <div class="user-info">
                 <div class="program-icon-mini">
-                  <img :src="getProgramIcon(item.category || item.title)" alt="program" />
+                  <img :src="getProgramProfileURL(item.profileURL || item.imageURL, item.category)" alt="program" />
                 </div>
                 {{ item.category || 'General' }}
               </div>
@@ -338,14 +314,9 @@ const onRowClick = (item) => {
             <td class="hide-on-tablet">
               <div v-if="item.teachers && item.teachers.length > 0" class="teacher-stack-container">
                 <div class="teacher-avatar-stack">
-                  <div
-                    v-for="(t, i) in item.teachers"
-                    :key="t.id || t.uid || i"
-                    class="teacher-avatar-mini"
-                    :title="t.name || 'Teacher'"
-                    :style="{ zIndex: item.teachers.length - i }"
-                  >
-                    <img :src="t.profileURL || getImageUrl('profiles/avatar-parent')" alt="teacher" />
+                  <div v-for="(t, i) in item.teachers" :key="t.id || t.uid || i" class="teacher-avatar-mini"
+                    :title="t.name || 'Teacher'" :style="{ zIndex: item.teachers.length - i }">
+                    <img :src="getTeacherProfileURL(t.profileURL)" alt="teacher" />
                   </div>
                 </div>
               </div>
@@ -369,9 +340,15 @@ const onRowClick = (item) => {
               </div>
               <span v-else class="help-text-small">Not scheduled</span>
             </td>
-            <td class="hide-on-tablet text-center"><StatusBadge :status="item.levelName || item.level || 'Beginner'" type="purple" /></td>
-            <td class="hide-on-mobile text-center"><StatusBadge :status="'$' + (item.price || 0)" /></td>
-            <td class="text-center"><StatusBadge :status="getProgramDisplayStatus(item, sessions, now)" /></td>
+            <td class="hide-on-tablet text-center">
+              <StatusBadge :status="item.levelName || item.level || 'Beginner'" type="purple" />
+            </td>
+            <td class="hide-on-mobile text-center">
+              <StatusBadge :status="'$' + (item.price || 0)" />
+            </td>
+            <td class="text-center">
+              <StatusBadge :status="getProgramDisplayStatus(item, sessions, now)" />
+            </td>
             <td class="action-cell text-center">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
@@ -379,7 +356,8 @@ const onRowClick = (item) => {
                 </button>
                 <Teleport to="body">
                   <transition name="fade">
-                    <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }" :style="menuStyles" @click.stop>
+                    <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
+                      :style="menuStyles" @click.stop>
                       <button @click="handleAction('edit', item)">✏️ Edit</button>
                       <div class="menu-divider"></div>
                       <button class="delete-btn" @click="handleAction('delete', item)">🗑️ Delete</button>
@@ -393,16 +371,9 @@ const onRowClick = (item) => {
       </template>
     </DataPageLayout>
 
-    <ProgramActionModal
-      :isOpen="actionModal.isOpen"
-      :type="actionModal.type"
-      :program="actionModal.program"
-      :loading="actionModal.loading"
-      :error="actionModal.error"
-      :success="actionModal.success"
-      @close="closeModal"
-      @submit="handleActionSubmit"
-    />
+    <ProgramActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :program="actionModal.program"
+      :loading="actionModal.loading" :error="actionModal.error" :success="actionModal.success" @close="closeModal"
+      @submit="handleActionSubmit" />
   </DashboardLayout>
 </template>
 
@@ -434,6 +405,7 @@ const onRowClick = (item) => {
   color: #64748b;
   margin-top: 4px;
 }
+
 .user-info {
   cursor: pointer;
   gap: 10px;

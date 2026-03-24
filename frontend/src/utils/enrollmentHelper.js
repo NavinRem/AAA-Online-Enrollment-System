@@ -1,8 +1,13 @@
-import { getProgramIcon } from './programHelper'
 import { isPaid, isCancelled, isUnpaid } from './statusHelper'
 import { isEnrollmentActive } from './studentStatusHelper'
 import { parseDate } from './dateFormatter'
-import { getImageUrl } from '@/utils/assetHelper'
+import { 
+  getImageUrl, 
+  getProgramProfileURL, 
+  getParentProfileURL, 
+  getStudentProfileURL,
+  getTeacherProfileURL
+} from '@/utils/assetHelper'
 
 /**
  * Calculates enrollment statistics.
@@ -38,17 +43,23 @@ export const enrichEnrollments = (enrollments, parents = [], students = [], prog
     const s = students.find(s => (s.uid || s.id) === r.studentId)
     const c = programs.find(c => (c.id || c.uid) === r.programId)
 
+    const programCategory = r.programCategory || c?.category || 'program'
+
     return {
       ...r,
-      parentName: p?.fullName || p?.name || r.parentName || 'N/A',
-      parentProfileURL: p?.profileURL || r.parentProfileURL || getImageUrl('profiles/avatar-parent'),
-      studentName: s?.fullName || s?.name || r.studentName || 'N/A',
-      studentProfileURL: s?.profileURL || r.studentProfileURL || getImageUrl('profiles/avatar-student'),
-      programTitle: c?.title || r.programTitle || 'N/A',
-      programProfileURL: c?.profileURL || getProgramIcon(c?.category || r.programCategory || r.programTitle || 'program'),
-      teacherName: r.teacherName || (c?.teachers?.length > 0 ? c.teachers[0].name : 'Not Assigned'),
-      teacherProfileURL: r.teacherProfileURL || (c?.teachers?.length > 0 ? c.teachers[0].profileURL : null),
-      displayStatus: isPaid(r.status || r.paymentStatus) ? 'Paid' : (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : 'Unpaid'),
+      parentName: r.parentName || p?.fullName || p?.name || 'N/A',
+      parentProfileURL: getParentProfileURL(r.parentProfileURL || p?.profileURL),
+      
+      studentName: r.studentName || s?.fullName || s?.name || 'N/A',
+      studentProfileURL: getStudentProfileURL(r.studentProfileURL || s?.profileURL),
+      
+      programTitle: r.programTitle || c?.title || 'N/A',
+      programProfileURL: getProgramProfileURL(r.programProfileURL || c?.profileURL, programCategory),
+      
+      teacherName: r.teacherName || (c?.teachers?.length > 0 ? c.teachers[0].name : ''),
+      teacherProfileURL: getTeacherProfileURL(r.teacherProfileURL || (c?.teachers?.length > 0 ? c.teachers[0].profileURL : null)),
+      
+      displayStatus: r.displayStatus || (isPaid(r.status || r.paymentStatus) ? 'Paid' : (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : 'Unpaid')),
       academicStatus: getAcademicStatus(r)
     }
   }).sort((a, b) => new Date(b.enrollAt || b.createdAt) - new Date(a.enrollAt || a.createdAt))

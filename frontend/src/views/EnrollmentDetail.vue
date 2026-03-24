@@ -9,10 +9,15 @@ import DetailedSummaryCard from '../components/common/cards/DetailedSummaryCard.
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { programService } from '@/services/programService'
-import { getProgramIcon } from '@/utils/programHelper'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 
-import { getImageUrl } from '@/utils/assetHelper'
+import { 
+  getImageUrl,
+  getProgramProfileURL,
+  getParentProfileURL,
+  getStudentProfileURL,
+  getTeacherProfileURL
+} from '@/utils/assetHelper'
 import { isPaid, isCancelled } from '@/utils/statusHelper'
 
 const route = useRoute()
@@ -190,27 +195,15 @@ onMounted(async () => {
           <button class="btn-icon edit" title="Edit Enrollment" @click="openActionModal('edit')">
             ✏️
           </button>
-          <button
-            v-if="!isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
-            class="btn-icon check"
-            title="Mark as Paid"
-            @click="openActionModal('pay')"
-          >
+          <button v-if="!isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)" class="btn-icon check"
+            title="Mark as Paid" @click="openActionModal('pay')">
             ✓
           </button>
-          <button
-            v-if="!isCancelled(enrollment.status)"
-            class="btn-icon cancel"
-            title="Cancel Enrollment"
-            @click="openActionModal('cancel')"
-          >
+          <button v-if="!isCancelled(enrollment.status)" class="btn-icon cancel" title="Cancel Enrollment"
+            @click="openActionModal('cancel')">
             🚫
           </button>
-          <button
-            class="btn-icon delete"
-            title="Delete Permanently"
-            @click="openActionModal('delete')"
-          >
+          <button class="btn-icon delete" title="Delete Permanently" @click="openActionModal('delete')">
             🗑️
           </button>
         </div>
@@ -218,22 +211,22 @@ onMounted(async () => {
 
       <template #left-content v-if="enrollment">
         <div class="detail-cards-grid">
-          <DetailCard title="Parent/Guardian Information" :avatarUrl="enrollment.parentProfileURL || parent?.profileURL || getImageUrl('profiles/avatar-parent')">
+          <DetailCard title="Parent/Guardian Information" :avatarUrl="getParentProfileURL(enrollment.parentProfileURL || parent?.profileURL)">
             <p><strong>Fullname:</strong> {{ enrollment.parentName || parent?.fullName || parent?.name || 'N/A' }}</p>
             <p><strong>Email:</strong> {{ parent?.email || enrollment.parentEmail || 'N/A' }}</p>
             <p><strong>Phone Number:</strong> {{ parent?.phone || enrollment.parentPhone || 'N/A' }}</p>
             <p>
               <strong>Role:</strong>
               <StatusBadge :status="parent?.role
-                  ? parent.role === 'parent'
+                ? parent.role === 'parent'
                   ? 'Parent'
                   : parent.role.charAt(0).toUpperCase() + parent.role.slice(1)
-                  : enrollment.parentRole">
-                </StatusBadge>
+                : enrollment.parentRole">
+              </StatusBadge>
             </p>
           </DetailCard>
-  
-          <DetailCard title="Student Information" :avatarUrl="enrollment.studentProfileURL || student?.profileURL || getImageUrl('profiles/avatar-student')">
+
+          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.studentProfileURL || student?.profileURL)">
             <p>
               <strong>Fullname:</strong>
               {{ enrollment.studentName || student?.fullName || student?.name || 'N/A' }}
@@ -245,11 +238,12 @@ onMounted(async () => {
             <p><strong>Age:</strong> {{ calculateAge(student?.dob || enrollment.studentDob) }}</p>
             <p>
               <strong>Medical Note:</strong>
-              {{ student?.medicalNote || enrollment.medicalNote || 'None'}}
+              {{ student?.medicalNote || enrollment.medicalNote || 'None' }}
             </p>
           </DetailCard>
-  
-          <DetailCard title="Enrollment Information" :avatarUrl="enrollment.programProfileURL || program?.imageURL || getProgramIcon(program?.category || enrollment.programCategory || enrollment.programTitle) || getImageUrl('programs/program')">
+
+          <DetailCard title="Enrollment Information"
+            :avatarUrl="getProgramProfileURL(enrollment.programProfileURL || program?.profileURL || program?.imageURL)">
             <p>
               <strong>Program title:</strong>
               {{ enrollment.programTitle || program?.title || 'N/A' }}
@@ -266,8 +260,8 @@ onMounted(async () => {
               {{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}
             </p>
           </DetailCard>
-  
-          <DetailCard title="Session Information" :avatarUrl="teacher?.profileURL || getImageUrl('profiles/avatar-parent')">
+
+          <DetailCard title="Session Information" :avatarUrl="getTeacherProfileURL(teacher?.profileURL || enrollment.teacherProfileURL)">
             <p><strong>Program:</strong> {{ enrollment.programTitle || program?.title || 'N/A' }}</p>
             <p>
               <strong>Teacher Name:</strong>
@@ -283,9 +277,10 @@ onMounted(async () => {
               <strong>Session Schedule:</strong>
               {{
                 session?.schedule
-                  ? (typeof session.schedule === 'string' ? session.schedule : 
-                     (session.schedule.day ? session.schedule.day + ': ' : '') + 
-                     (session.schedule.timeslot || session.schedule.time || (session.schedule.startTime + ' - ' + session.schedule.endTime)))
+                  ? (typeof session.schedule === 'string' ? session.schedule :
+                    (session.schedule.day ? session.schedule.day + ': ' : '') +
+                    (session.schedule.timeslot || session.schedule.time || (session.schedule.startTime + ' - ' +
+                      session.schedule.endTime)))
                   : enrollment.sessionSchedule
                   || 'N/A'
               }}
@@ -298,15 +293,12 @@ onMounted(async () => {
         <DetailedSummaryCard title="Basic Information" subtitle="Enrollment Status">
           <div class="detail-row align-center mb-2">
             <span class="summary-label">Status</span>
-            <StatusBadge
-              :status="
-                enrollment.status === 'cancelled'
-                  ? 'Canceled'
-                  : enrollment.paymentStatus?.toLowerCase() === 'paid'
-                    ? 'Paid'
-                    : 'Unpaid'
-              "
-            />
+            <StatusBadge :status="enrollment.status === 'cancelled'
+              ? 'Canceled'
+              : enrollment.paymentStatus?.toLowerCase() === 'paid'
+                ? 'Paid'
+                : 'Unpaid'
+              " />
           </div>
           <div class="detail-row">
             <span class="summary-label">Last Updated</span>
@@ -314,12 +306,9 @@ onMounted(async () => {
               enrollment.updatedAt ? formatDate(enrollment.updatedAt) : 'Never'
             }}</span>
           </div>
-          <div
-            v-if="
-              enrollment.status === 'cancelled' && (enrollment.cancelReason || enrollment.reason)
-            "
-            class="detail-row mb-3"
-          >
+          <div v-if="
+            enrollment.status === 'cancelled' && (enrollment.cancelReason || enrollment.reason)
+          " class="detail-row mb-3">
             <span class="summary-label">Cancel Reason</span>
             <span class="summary-value" style="color: #ef4444; font-weight: 600">
               {{ enrollment.cancelReason || enrollment.reason }}
@@ -357,7 +346,8 @@ onMounted(async () => {
           <div class="detail-row">
             <span class="summary-label">Last Updated</span>
             <span class="summary-value">{{
-              (enrollment?.updatedAt || enrollment?.enrollAt || enrollment?.createdAt) ? formatDate(enrollment?.updatedAt || enrollment?.enrollAt || enrollment?.createdAt) : 'Never'
+              (enrollment?.updatedAt || enrollment?.enrollAt || enrollment?.createdAt) ?
+                formatDate(enrollment?.updatedAt || enrollment?.enrollAt || enrollment?.createdAt) : 'Never'
             }}</span>
           </div>
           <div class="detail-row">
@@ -385,16 +375,18 @@ onMounted(async () => {
           </div>
           <div class="detail-row">
             <span class="summary-label">Teacher</span>
-            <span class="summary-value">{{ teacher?.fullname || program?.teacherName || enrollment?.teacherName || session?.teacherName || 'Not Assigned' }}</span>
+            <span class="summary-value">{{ teacher?.fullname || program?.teacherName || enrollment?.teacherName ||
+              session?.teacherName || 'Not Assigned' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Schedule</span>
             <span class="summary-value">
               {{
                 session?.schedule
-                  ? (typeof session.schedule === 'string' ? session.schedule : 
-                     (session.schedule.day ? session.schedule.day + ': ' : '') + 
-                     (session.schedule.timeslot || session.schedule.time || (session.schedule.startTime + ' - ' + session.schedule.endTime)))
+                  ? (typeof session.schedule === 'string' ? session.schedule :
+                    (session.schedule.day ? session.schedule.day + ': ' : '') +
+                    (session.schedule.timeslot || session.schedule.time || (session.schedule.startTime + ' - ' +
+                      session.schedule.endTime)))
                   : enrollment?.sessionSchedule
                   || 'N/A'
               }}
@@ -403,8 +395,10 @@ onMounted(async () => {
           <div class="mt-3">
             <span class="summary-label">Term Dates</span>
             <p class="summary-value" style="font-size: 0.9rem; margin-top: 5px">
-              <strong>Start:</strong> {{ enrollment?.startDate || program?.startDate ? formatDate(enrollment?.startDate || program?.startDate) : 'N/A' }}<br />
-              <strong>End:</strong> {{ enrollment?.endDate || program?.endDate ? formatDate(enrollment?.endDate || program?.endDate) : 'N/A' }}
+              <strong>Start:</strong> {{ enrollment?.startDate || program?.startDate ? formatDate(enrollment?.startDate
+                || program?.startDate) : 'N/A' }}<br />
+              <strong>End:</strong> {{ enrollment?.endDate || program?.endDate ? formatDate(enrollment?.endDate ||
+                program?.endDate) : 'N/A' }}
             </p>
           </div>
         </DetailedSummaryCard>
@@ -445,46 +439,32 @@ onMounted(async () => {
                 </p>
               </div>
               <label>Adjust Enrollment Amount ($)</label>
-              <span class="original-value" v-if="actionModal.originalAmount">Original: ${{ actionModal.originalAmount }}</span>
+              <span class="original-value" v-if="actionModal.originalAmount">Original: ${{ actionModal.originalAmount
+              }}</span>
               <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
 
               <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
-              <span class="original-value" v-if="actionModal.originalRemark">Original: {{ actionModal.originalRemark }}</span>
-              <textarea
-                v-model="actionModal.remark"
-                placeholder="Please write your remark here..."
-              ></textarea>
+              <span class="original-value" v-if="actionModal.originalRemark">Original: {{ actionModal.originalRemark
+              }}</span>
+              <textarea v-model="actionModal.remark" placeholder="Please write your remark here..."></textarea>
               <div class="preset-chips">
-                <button
-                  type="button"
-                  class="preset-chip"
-                  :class="{ active: isPresetActive('remark', 'VIP Student') }"
-                  @click="togglePreset('remark', 'VIP Student')"
-                >
+                <button type="button" class="preset-chip" :class="{ active: isPresetActive('remark', 'VIP Student') }"
+                  @click="togglePreset('remark', 'VIP Student')">
                   VIP Student
                 </button>
-                <button
-                  type="button"
-                  class="preset-chip"
+                <button type="button" class="preset-chip"
                   :class="{ active: isPresetActive('remark', 'Needs extra attention') }"
-                  @click="togglePreset('remark', 'Needs extra attention')"
-                >
+                  @click="togglePreset('remark', 'Needs extra attention')">
                   Needs extra attention
                 </button>
-                <button
-                  type="button"
-                  class="preset-chip"
+                <button type="button" class="preset-chip"
                   :class="{ active: isPresetActive('remark', 'Parent will pay next week') }"
-                  @click="togglePreset('remark', 'Parent will pay next week')"
-                >
+                  @click="togglePreset('remark', 'Parent will pay next week')">
                   Parent will pay next week
                 </button>
-                <button
-                  type="button"
-                  class="preset-chip"
+                <button type="button" class="preset-chip"
                   :class="{ active: isPresetActive('remark', 'Pending partial refund') }"
-                  @click="togglePreset('remark', 'Pending partial refund')"
-                >
+                  @click="togglePreset('remark', 'Pending partial refund')">
                   Pending partial refund
                 </button>
               </div>
@@ -501,41 +481,25 @@ onMounted(async () => {
                 </p>
               </div>
               <label>Proof of Payment Reference <span class="required">*</span></label>
-              <textarea
-                v-model="actionModal.proof"
-                placeholder="Please write the bank reference number or method here..."
-              ></textarea>
+              <textarea v-model="actionModal.proof"
+                placeholder="Please write the bank reference number or method here..."></textarea>
               <div class="preset-chips">
-                <button
-                  type="button"
-                  class="preset-chip"
-                  :class="{ active: isPresetActive('proof', 'Paid in Cash') }"
-                  @click="togglePreset('proof', 'Paid in Cash')"
-                >
+                <button type="button" class="preset-chip" :class="{ active: isPresetActive('proof', 'Paid in Cash') }"
+                  @click="togglePreset('proof', 'Paid in Cash')">
                   Paid in Cash
                 </button>
-                <button
-                  type="button"
-                  class="preset-chip"
-                  :class="{ active: isPresetActive('proof', 'Paid via Check') }"
-                  @click="togglePreset('proof', 'Paid via Check')"
-                >
+                <button type="button" class="preset-chip" :class="{ active: isPresetActive('proof', 'Paid via Check') }"
+                  @click="togglePreset('proof', 'Paid via Check')">
                   Paid via Check
                 </button>
-                <button
-                  type="button"
-                  class="preset-chip"
+                <button type="button" class="preset-chip"
                   :class="{ active: isPresetActive('proof', 'Paid via Bank Transfer') }"
-                  @click="togglePreset('proof', 'Paid via Bank Transfer')"
-                >
+                  @click="togglePreset('proof', 'Paid via Bank Transfer')">
                   Paid via Bank Transfer
                 </button>
-                <button
-                  type="button"
-                  class="preset-chip"
+                <button type="button" class="preset-chip"
                   :class="{ active: isPresetActive('proof', 'Paid via Credit Card') }"
-                  @click="togglePreset('proof', 'Paid via Credit Card')"
-                >
+                  @click="togglePreset('proof', 'Paid via Credit Card')">
                   Paid via Credit Card
                 </button>
               </div>
@@ -552,49 +516,31 @@ onMounted(async () => {
                 </p>
               </div>
               <label>Reason for Cancellation <span class="required">*</span></label>
-              <textarea
-                v-model="actionModal.reason"
-                placeholder="Please write your reason here..."
-              ></textarea>
+              <textarea v-model="actionModal.reason" placeholder="Please write your reason here..."></textarea>
               <div class="preset-chips">
-                <button
-                  type="button"
-                  class="preset-chip"
+                <button type="button" class="preset-chip"
                   :class="{ active: isPresetActive('reason', 'Parent requested via email') }"
-                  @click="togglePreset('reason', 'Parent requested via email')"
-                >
+                  @click="togglePreset('reason', 'Parent requested via email')">
                   Parent requested via email
                 </button>
-                <button
-                  type="button"
-                  class="preset-chip"
+                <button type="button" class="preset-chip"
                   :class="{ active: isPresetActive('reason', 'Parent requested via phone') }"
-                  @click="togglePreset('reason', 'Parent requested via phone')"
-                >
+                  @click="togglePreset('reason', 'Parent requested via phone')">
                   Parent requested via phone
                 </button>
-                <button
-                  type="button"
-                  class="preset-chip"
+                <button type="button" class="preset-chip"
                   :class="{ active: isPresetActive('reason', 'Did not pay on time') }"
-                  @click="togglePreset('reason', 'Did not pay on time')"
-                >
+                  @click="togglePreset('reason', 'Did not pay on time')">
                   Did not pay on time
                 </button>
-                <button
-                  type="button"
-                  class="preset-chip"
+                <button type="button" class="preset-chip"
                   :class="{ active: isPresetActive('reason', 'Program schedule conflict') }"
-                  @click="togglePreset('reason', 'Program schedule conflict')"
-                >
+                  @click="togglePreset('reason', 'Program schedule conflict')">
                   Program schedule conflict
                 </button>
-                <button
-                  type="button"
-                  class="preset-chip"
+                <button type="button" class="preset-chip"
                   :class="{ active: isPresetActive('reason', 'Duplicate enrollment') }"
-                  @click="togglePreset('reason', 'Duplicate enrollment')"
-                >
+                  @click="togglePreset('reason', 'Duplicate enrollment')">
                   Duplicate enrollment
                 </button>
               </div>
@@ -617,22 +563,16 @@ onMounted(async () => {
               </p>
               <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
             </div>
-            
+
             <!-- Hidden submit for Enter key functionality -->
             <button type="submit" style="display: none;"></button>
           </form>
 
           <div class="modal-footer">
             <button class="cancel-btn" @click="closeActionModal">Nevermind</button>
-            <button
-              class="save-btn"
-              :class="{
-                'danger-btn': actionModal.type === 'delete' || actionModal.type === 'cancel',
-              }"
-              type="submit"
-              @click="submitActionModal"
-              :disabled="submitting"
-            >
+            <button class="save-btn" :class="{
+              'danger-btn': actionModal.type === 'delete' || actionModal.type === 'cancel',
+            }" type="submit" @click="submitActionModal" :disabled="submitting">
               {{ submitting ? 'Processing...' : 'Confirm Action' }}
             </button>
           </div>
@@ -653,9 +593,18 @@ onMounted(async () => {
   gap: 25px;
   height: 100%;
 }
-.mt-3 { margin-top: 15px; }
-.mb-2 { margin-bottom: 8px; }
-.mb-3 { margin-bottom: 12px; }
+
+.mt-3 {
+  margin-top: 15px;
+}
+
+.mb-2 {
+  margin-bottom: 8px;
+}
+
+.mb-3 {
+  margin-bottom: 12px;
+}
 
 .modal-overlay {
   position: fixed;
@@ -731,8 +680,13 @@ onMounted(async () => {
   align-items: flex-start;
 }
 
-.info-block.warning { background: #fff9e6; }
-.info-block.danger { background: #fdeaea; }
+.info-block.warning {
+  background: #fff9e6;
+}
+
+.info-block.danger {
+  background: #fdeaea;
+}
 
 .modal-footer {
   padding: 15px 25px;
@@ -761,13 +715,33 @@ onMounted(async () => {
   font-weight: bold;
 }
 
-.danger-text { color: #ef4444; }
-.danger-btn { background: #ef4444 !important; }
+.danger-text {
+  color: #ef4444;
+}
+
+.danger-btn {
+  background: #ef4444 !important;
+}
 
 /* Modal Transitions */
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.3s ease; }
-.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
 
-.toast-fade-enter-active, .toast-fade-leave-active { transition: all 0.3s ease; }
-.toast-fade-enter-from, .toast-fade-leave-to { opacity: 0; transform: translateY(-10px); }
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
 </style>

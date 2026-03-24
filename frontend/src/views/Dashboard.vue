@@ -4,7 +4,12 @@ import { userService } from '../services/userService'
 import { programService } from '../services/programService'
 import { enrollmentService } from '../services/enrollmentService'
 import { ref, onMounted, computed } from 'vue'
-import { getImageUrl } from '@/utils/assetHelper'
+import { 
+  getImageUrl,
+  getProgramProfileURL,
+  getParentProfileURL,
+  getStudentProfileURL
+} from '@/utils/assetHelper'
 import { parseDate } from '../utils/dateFormatter'
 import { calculateDashboardStats } from '../utils/statsHelper'
 
@@ -87,11 +92,11 @@ const mappedEnrollments = computed(() => {
         id: r.id,
         no: index + 1,
         parentName: r.parentName || p?.fullName || p?.name || 'N/A',
-        parentProfileURL: r.parentProfileURL || p?.profileURL || getImageUrl('profiles/avatar-parent'),
+        parentProfileURL: getParentProfileURL(r.parentProfileURL || p?.profileURL),
         studentName: r.studentName || s?.fullName || s?.name || 'N/A',
-        studentProfileURL: r.studentProfileURL || s?.profileURL || getImageUrl('profiles/avatar-student'),
+        studentProfileURL: getStudentProfileURL(r.studentProfileURL || s?.profileURL),
         programTitle: r.programTitle || c?.title || 'N/A',
-        programProfileURL: c?.profileURL || getImageUrl('programs/program'),
+        programProfileURL: getProgramProfileURL(r.programProfileURL || c?.profileURL, r.programCategory || c?.category),
         status: r.displayStatus || r.status || 'Pending',
         amount: `$${r.amount}`,
         date: r.enrollAt || r.createdAt

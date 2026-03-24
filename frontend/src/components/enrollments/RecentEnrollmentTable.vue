@@ -2,9 +2,12 @@
 import { useRouter } from 'vue-router'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppTable from '@/components/common/data/AppTable.vue'
-import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import { formatDate } from '@/utils/dateFormatter'
-import { getImageUrl } from '@/utils/assetHelper'
+import { 
+  getProgramProfileURL, 
+  getParentProfileURL, 
+  getStudentProfileURL 
+} from '@/utils/assetHelper'
 
 defineProps({
   enrollments: {
@@ -47,30 +50,29 @@ const navigateToDetail = (item) => {
         <td class="bold">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="item.parentProfileURL" alt="parent" />
+              <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent" />
             </div>
             <div class="user-info">
-              <span class="user-name">{{ item.parentName || item.parent }}</span>
+              <span class="user-name">{{ item.parentName }}</span>
             </div>
           </div>
         </td>
         <td>
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="item.studentProfileURL || getImageUrl('profiles/avatar-student')" alt="child" />
+              <img :src="getStudentProfileURL(item.studentProfileURL)" alt="child" />
             </div>
             <div class="user-info">
-              <span class="user-name">{{ item.studentName || item.child }}</span>
+              <span class="user-name">{{ item.studentName }}</span>
             </div>
           </div>
         </td>
         <td>
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="item.programProfileURL || getImageUrl('programs/program')"
-                :alt="item.programTitle || item.program" />
+              <img :src="getProgramProfileURL(item.programProfileURL)" :alt="item.programTitle" />
             </div>
-            <span class="program-name">{{ item.programTitle || item.program }}</span>
+            <span class="program-name">{{ item.programTitle }}</span>
           </div>
         </td>
         <td class="text-center">
