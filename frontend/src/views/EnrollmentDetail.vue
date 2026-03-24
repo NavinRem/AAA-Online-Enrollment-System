@@ -10,6 +10,7 @@ import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { programService } from '@/services/programService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
+import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 
 import { 
   getImageUrl,
@@ -248,9 +249,10 @@ onMounted(async () => {
               <strong>Program title:</strong>
               {{ enrollment.programTitle || program?.title || 'N/A' }}
             </p>
-            <p>
-              <strong>Session:</strong> {{ enrollment.sessionSchedule || 'N/A' }}
-            </p>
+            <div class="session-info-row">
+              <div class="session-day"><strong>{{ getSessionDay(enrollment.sessionSchedule) }}</strong></div>
+              <div class="session-time">{{ getSessionTime(enrollment.sessionSchedule) }}</div>
+            </div>
             <p>
               <strong>Number Session Enrolled:</strong>
               {{ session?.totalSessions || enrollment.numberSessions || enrollment.totalSessions || '0' }} Sessions
@@ -273,18 +275,10 @@ onMounted(async () => {
               }}
             </p>
             <p><strong>Total Student:</strong> {{ session?.capacity || enrollment.capacity || 'N/A' }}</p>
-            <p>
-              <strong>Session Schedule:</strong>
-              {{
-                session?.schedule
-                  ? (typeof session.schedule === 'string' ? session.schedule :
-                    (session.schedule.day ? session.schedule.day + ': ' : '') +
-                    (session.schedule.timeslot || session.schedule.time || (session.schedule.startTime + ' - ' +
-                      session.schedule.endTime)))
-                  : enrollment.sessionSchedule
-                  || 'N/A'
-              }}
-            </p>
+            <div class="session-info-row">
+              <div class="session-day"><strong>{{ getSessionDay(session?.schedule || enrollment.sessionSchedule) }}</strong></div>
+              <div class="session-time">{{ getSessionTime(session?.schedule || enrollment.sessionSchedule) }}</div>
+            </div>
           </DetailCard>
         </div>
       </template>
@@ -379,18 +373,10 @@ onMounted(async () => {
               session?.teacherName || 'Not Assigned' }}</span>
           </div>
           <div class="detail-row">
-            <span class="summary-label">Schedule</span>
-            <span class="summary-value">
-              {{
-                session?.schedule
-                  ? (typeof session.schedule === 'string' ? session.schedule :
-                    (session.schedule.day ? session.schedule.day + ': ' : '') +
-                    (session.schedule.timeslot || session.schedule.time || (session.schedule.startTime + ' - ' +
-                      session.schedule.endTime)))
-                  : enrollment?.sessionSchedule
-                  || 'N/A'
-              }}
-            </span>
+            <div class="summary-value" style="display: flex; flex-direction: column; align-items: flex-end;">
+              <div class="session-day"><strong>{{ getSessionDay(session?.schedule || enrollment?.sessionSchedule) }}</strong></div>
+              <div class="session-time">{{ getSessionTime(session?.schedule || enrollment?.sessionSchedule) }}</div>
+            </div>
           </div>
           <div class="mt-3">
             <span class="summary-label">Term Dates</span>
@@ -604,6 +590,23 @@ onMounted(async () => {
 
 .mb-3 {
   margin-bottom: 12px;
+}
+
+.session-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+
+.session-day {
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.session-time {
+  font-size: 0.9rem;
+  color: #64748b;
 }
 
 .modal-overlay {

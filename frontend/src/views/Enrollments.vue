@@ -6,12 +6,14 @@ import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge.vue'
-import EnrollmentForm from '../components/enrollments/EnrollmentForm.vue'
+import EnrollmentModal from '../components/enrollments/EnrollmentModal.vue'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '../services/userService'
 import { programService } from '../services/programService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
+import { formatDate } from '../utils/dateFormatter'
+import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
 import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
 import AppModal from '@/components/common/ui/AppModal.vue'
@@ -139,14 +141,16 @@ const enrollmentStats = computed(() => {
 })
 
 const enrollmentHeaders = [
-  { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Parent / Guardian', class: 'hide-on-tablet', width: '220px' },
-  { label: 'Student', width: '200px' },
-  { label: 'Program & Session' },
-  { label: 'Mode', width: '100px', align: 'center' },
-  { label: 'Amount', class: 'hide-on-mobile', align: 'center', width: '120px' },
-  { label: 'Status', align: 'center', width: '120px' },
-  { label: 'Action', width: '80px', align: 'center' }
+  { label: 'No', width: '30px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Parent / Guardian', class: 'hide-on-tablet', width: '250px' },
+  { label: 'Student', width: '250px' },
+  { label: 'Program', width: '300px' },
+  { label: 'Session', width: '180px' },
+  { label: 'Enrolled Date', width: '100px', align: 'center' },
+  { label: 'Mode', width: '80px', align: 'center' },
+  { label: 'Amount', class: 'hide-on-mobile', align: 'center', width: '80px' },
+  { label: 'Status', align: 'center', width: '80px' },
+  { label: 'Action', width: '50px', align: 'center' }
 ]
 
 const currentFilter = ref('all')
@@ -285,14 +289,20 @@ const formatPrice = (val) => {
                 </div>
                 <div class="program-cell">
                   <div class="program-title">{{ item.programTitle || 'Program' }}</div>
-                  <div class="session-subtitle">{{ item.sessionSchedule || 'TBD' }}</div>
                 </div>
               </div>
             </td>
+            <td>
+              <div class="session-cell">
+                <div class="session-day"><strong>{{ getSessionDay(item.sessionSchedule) }}</strong></div>
+                <div class="session-time">{{ getSessionTime(item.sessionSchedule) }}</div>
+              </div>
+            </td>
             <td class="text-center">
-              <span class="type-badge" :class="item.enrollmentType?.toLowerCase()">
-                {{ item.enrollmentType || 'Full' }}
-              </span>
+              <span class="date-text">{{ formatDate(item.enrollAt) }}</span>
+            </td>
+            <td class="text-center">
+              <StatusBadge :status="item.enrollmentType || 'Full'" />
             </td>
             <td class="bold hide-on-mobile text-center">
               <div class="amount-cell">
@@ -330,7 +340,7 @@ const formatPrice = (val) => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentForm :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
+    <EnrollmentModal :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
       :programs="programs" :sessions="sessions" :enrollments="enrollments" :error="errorMessage"
       :success="successMessage" @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }"
       @program-change="handleProgramChange" @submit="handleCreateEnrollment" />
@@ -391,27 +401,28 @@ const formatPrice = (val) => {
   cursor: pointer;
 }
 
-.type-badge {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  background: #f1f5f9;
+.session-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.session-day {
+  font-size: 0.95rem;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.session-time {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.date-text {
+  font-size: 0.9rem;
   color: #475569;
 }
 
-.type-badge.prorated {
-  background: #f0f9ff;
-  color: #00aeef;
-  border: 1px solid #e0f2fe;
-}
-
-.type-badge.full {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #dcfce7;
-}
 
 .amount-cell {
   display: flex;

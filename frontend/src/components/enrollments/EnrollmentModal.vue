@@ -5,6 +5,7 @@ import { useSearch, parentSearchMapper, studentSearchMapper, programSearchMapper
 import { getImageUrl } from '@/utils/assetHelper'
 import { getSessionCounts } from '@/utils/programHelper'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppModal from '@/components/common/ui/AppModal.vue'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -169,130 +170,124 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <transition name="modal-fade">
-    <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Create New Enrollment</h3>
-          <button class="close-btn" @click="$emit('close')">×</button>
+  <AppModal :show="isOpen" title="Create New Enrollment" @close="$emit('close')">
+    <form @submit.prevent="handleSubmit">
+      <transition name="toast-fade">
+        <div v-if="error" class="alert-box error">
+          {{ error }}
         </div>
-        <div class="modal-body">
-          <form @submit.prevent="handleSubmit">
-            <transition name="toast-fade">
-              <div v-if="error" class="alert-box error">
-                {{ error }}
-              </div>
-            </transition>
-            <transition name="toast-fade">
-              <div v-if="success" class="alert-box success">
-                {{ success }}
-              </div>
-            </transition>
+      </transition>
+      <transition name="toast-fade">
+        <div v-if="success" class="alert-box success">
+          {{ success }}
+        </div>
+      </transition>
 
-            <div class="form-grid">
-              <!-- Selection Group 1 -->
-              <div class="form-group custom-dropdown-container">
-                <label>Select Parent / Guardian</label>
-                <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
-                  <div class="dropdown-header" @click="isParentDropdownOpen = !isParentDropdownOpen">
-                    <template v-if="selectedParent">
-                      <div class="selected-parent">
-                        <img :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')"
-                          class="avatar-mini-sm" />
-                        <span>{{ selectedParent.name || selectedParent.email }}</span>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <span class="placeholder">Choose a parent</span>
-                    </template>
-                    <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
-                  </div>
-                  <div class="dropdown-menu" v-if="isParentDropdownOpen">
-                    <div class="dropdown-search">
-                      <input type="text" v-model="parentSearchQuery" placeholder="Search name or email..." autofocus />
-                    </div>
-                    <ul class="dropdown-list">
-                      <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
-                        :class="{ active: formData.parentId === (p.uid || p.id) }" @click="selectParent(p.uid || p.id)">
-                        <img :src="p.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
-                        <span class="item-name">{{ p.name || p.email }}</span>
-                      </li>
-                      <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
-                        No matches found.
-                      </li>
-                    </ul>
-                  </div>
+      <div class="form-grid">
+        <!-- Selection Group 1 -->
+        <div class="form-group custom-dropdown-container">
+          <label>Select Parent / Guardian</label>
+          <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
+            <div class="dropdown-header" @click="isParentDropdownOpen = !isParentDropdownOpen">
+              <template v-if="selectedParent">
+                <div class="selected-parent">
+                  <img :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
+                  <span>{{ selectedParent.name || selectedParent.email }}</span>
                 </div>
+              </template>
+              <template v-else>
+                <span class="placeholder">Choose a parent</span>
+              </template>
+              <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
+            </div>
+            <div class="dropdown-menu" v-if="isParentDropdownOpen">
+              <div class="dropdown-search">
+                <input type="text" v-model="parentSearchQuery" placeholder="Search name or email..." autofocus />
               </div>
+              <ul class="dropdown-list">
+                <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
+                  :class="{ active: formData.parentId === (p.uid || p.id) }" @click="selectParent(p.uid || p.id)">
+                  <img :src="p.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
+                  <span class="item-name">{{ p.name || p.email }}</span>
+                </li>
+                <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
+                  No matches found.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
-              <div class="form-group custom-dropdown-container">
-                <label>Select Student</label>
-                <div class="custom-dropdown" :class="{ open: isStudentDropdownOpen, disabled: !formData.parentId }">
-                  <div class="dropdown-header"
-                    @click="formData.parentId && (isStudentDropdownOpen = !isStudentDropdownOpen)">
-                    <template v-if="selectedStudent">
-                      <div class="selected-item">
-                        <img :src="selectedStudent.profileURL || getImageUrl('profiles/avatar-student')"
-                          class="avatar-mini-sm" />
-                        <span>{{ selectedStudent.fullName || selectedStudent.name }}</span>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <span class="placeholder">{{ !formData.parentId ? 'Select parent first' : 'Choose a student'
-                        }}</span>
-                    </template>
-                    <span class="chevron" :class="{ up: isStudentDropdownOpen }"></span>
-                  </div>
-
-                  <div class="dropdown-menu" v-if="isStudentDropdownOpen">
-                    <div class="dropdown-search">
-                      <input type="text" v-model="studentSearchQuery" placeholder="Search student name..." @click.stop
-                        autofocus />
-                    </div>
-                    <ul class="dropdown-list">
-                      <li v-for="s in filteredStudentsList" :key="s.id || s.uid" class="dropdown-item"
-                        :class="{ active: formData.studentId === (s.id || s.uid) }" @click="selectStudent(s)">
-                        <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="avatar-mini-sm" />
-                        <span class="item-name">{{ s.fullName || s.name }}</span>
-                      </li>
-                      <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results">
-                        No students found.
-                      </li>
-                    </ul>
-                  </div>
+        <div class="form-group custom-dropdown-container">
+          <label>Select Student</label>
+          <div class="custom-dropdown" :class="{ open: isStudentDropdownOpen, disabled: !formData.parentId }">
+            <div class="dropdown-header" @click="formData.parentId && (isStudentDropdownOpen = !isStudentDropdownOpen)">
+              <template v-if="selectedStudent">
+                <div class="selected-item">
+                  <img :src="selectedStudent.profileURL || getImageUrl('profiles/avatar-student')"
+                    class="avatar-mini-sm" />
+                  <span>{{ selectedStudent.fullName || selectedStudent.name }}</span>
                 </div>
-              </div>
+              </template>
+              <template v-else>
+                <span class="placeholder">{{ !formData.parentId ? 'Select parent first' : 'Choose a student'
+                }}</span>
+              </template>
+              <span class="chevron" :class="{ up: isStudentDropdownOpen }"></span>
+            </div>
 
-              <div class="form-group custom-dropdown-container">
-                <label>Select Program</label>
-                <div class="custom-dropdown" :class="{ open: isProgramDropdownOpen }">
-                  <div class="dropdown-header" @click="isProgramDropdownOpen = !isProgramDropdownOpen">
-                    <template v-if="selectedProgram">
-                      <div class="selected-item">
-                        <span>{{ selectedProgram.title || selectedProgram.name }}</span>
-                        <StatusBadge :status="selectedProgram.termName" type="blue" />
-                      </div>
-                    </template>
-                    <template v-else>
-                      <span class="placeholder">Choose a program</span>
-                    </template>
-                    <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
-                  </div>
-                  <div class="dropdown-menu" v-if="isProgramDropdownOpen">
-                    <div class="dropdown-search">
-                      <input type="text" v-model="programSearchQuery" placeholder="Search program title..." @click.stop
-                        autofocus />
-                    </div>
-                    <ul class="dropdown-list scrollable">
-                          <span class="item-name">{{ c.title || c.name }}</span>
-                          <StatusBadge :status="c.termName" type="blue" />
-                      <li v-if="filteredPrograms.length === 0" class="dropdown-item no-results">
-                        No matches found.
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+            <div class="dropdown-menu" v-if="isStudentDropdownOpen">
+              <div class="dropdown-search">
+                <input type="text" v-model="studentSearchQuery" placeholder="Search student name..." @click.stop
+                  autofocus />
               </div>
+              <ul class="dropdown-list">
+                <li v-for="s in filteredStudentsList" :key="s.id || s.uid" class="dropdown-item"
+                  :class="{ active: formData.studentId === (s.id || s.uid) }" @click="selectStudent(s)">
+                  <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="avatar-mini-sm" />
+                  <span class="item-name">{{ s.fullName || s.name }}</span>
+                </li>
+                <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results">
+                  No students found.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group custom-dropdown-container">
+          <label>Select Program</label>
+          <div class="custom-dropdown" :class="{ open: isProgramDropdownOpen }">
+            <div class="dropdown-header" @click="isProgramDropdownOpen = !isProgramDropdownOpen">
+              <template v-if="selectedProgram">
+                <div class="selected-item">
+                  <span>{{ selectedProgram.title || selectedProgram.name }}</span>
+                  <StatusBadge :status="selectedProgram.termName" type="blue" />
+                </div>
+              </template>
+              <template v-else>
+                <span class="placeholder">Choose a program</span>
+              </template>
+              <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
+            </div>
+            <div class="dropdown-menu" v-if="isProgramDropdownOpen">
+              <div class="dropdown-search">
+                <input type="text" v-model="programSearchQuery" placeholder="Search program title..." @click.stop
+                  autofocus />
+              </div>
+              <ul class="dropdown-list scrollable">
+                <li v-for="c in filteredPrograms" :key="c.id" class="dropdown-item"
+                  :class="{ active: formData.programId === c.id }" @click="handleProgramChange(c.id)">
+                  <span class="item-name">{{ c.title || c.name }}</span>
+                  <StatusBadge :status="c.termName" type="blue" />
+                </li>
+                <li v-if="filteredPrograms.length === 0" class="dropdown-item no-results">
+                  No matches found.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
               <div class="form-group custom-dropdown-container">
                 <label>Select Session</label>
@@ -302,9 +297,9 @@ const handleSubmit = () => {
                     @click="formData.programId && sessions.length > 0 && (isSessionDropdownOpen = !isSessionDropdownOpen)">
                     <template v-if="selectedSession">
                       <div class="selected-session">
-                        <div class="session-main">
-                          <StatusBadge :status="selectedSession.schedule?.day" type="blue" />
-                          <span class="timeslot-text">{{ selectedSession.schedule?.timeslot }}</span>
+                        <div class="session-display">
+                          <div class="session-day"><strong>{{ selectedSession.schedule?.day }}</strong></div>
+                          <div class="session-time">{{ selectedSession.schedule?.timeslot }}</div>
                         </div>
                       </div>
                     </template>
@@ -321,10 +316,10 @@ const handleSubmit = () => {
                         disabled: (s.numStudent || 0) >= (s.maxCapacity || 5)
                       }" @click="(s.numStudent || 0) < (s.maxCapacity || 5) && selectSession(s.id)">
                         <div class="session-rows">
-                           <div class="session-row-1">
-                            <div class="session-day-badge">
-                              <StatusBadge :status="s.schedule?.day" type="blue" />
-                              <span class="timeslot-text">{{ s.schedule?.timeslot || 'TBD' }}</span>
+                          <div class="session-row-1">
+                            <div class="session-display">
+                              <div class="session-day"><strong>{{ s.schedule?.day }}</strong></div>
+                              <div class="session-time">{{ s.schedule?.timeslot || 'TBD' }}</div>
                             </div>
                             <span v-if="(s.numStudent || 0) >= (s.capacity || s.maxCapacity || 5)"
                               class="full-badge">FULL</span>
@@ -370,7 +365,8 @@ const handleSubmit = () => {
                     <div class="summary-value">
                       <strong>{{ sessionInfo.remaining }}</strong>
                       <small>of {{ sessionInfo.total }} sessions</small>
-                      <span v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession) }}/sess)</span>
+                      <span v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
+                        }}/sess)</span>
                     </div>
                   </div>
                   <div v-if="sessionInfo.passed > 0" class="passed-indicator">
@@ -433,7 +429,7 @@ const handleSubmit = () => {
               <div class="price-info">
                 <div class="price-header-row">
                   <span class="price-label">Final Amount</span>
-                  <span v-if="formData.isProrated" class="partial-status-tag">Partial Enrollment</span>
+                  <StatusBadge v-if="formData.isProrated" status="Partial Enrollment" type="blue" />
                 </div>
                 <div class="price-notes">
                   <div v-if="sessionInfo && sessionInfo.passed > 0 && formData.isProrated" class="price-note">
@@ -448,94 +444,26 @@ const handleSubmit = () => {
               <strong class="price-value">${{ formatPrice(finalAmount) }}</strong>
             </div>
 
-            <!-- Hidden submit for Enter key functionality -->
-            <button type="submit" style="display: none;"></button>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-          <AppButton variant="primary" type="submit" @click="handleSubmit"
-            :disabled="!formData.parentId || !formData.studentId || !formData.programId || !formData.sessionId || loading"
-            :loading="loading">
-            Confirm Enrollment
-          </AppButton>
-        </div>
-      </div>
-    </div>
-  </transition>
+      <!-- Hidden submit for Enter key functionality -->
+      <button type="submit" style="display: none;"></button>
+    </form>
+
+    <template #footer>
+      <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
+      <AppButton variant="primary" type="submit" @click="handleSubmit"
+        :disabled="!formData.parentId || !formData.studentId || !formData.programId || !formData.sessionId || loading"
+        :loading="loading">
+        Confirm Enrollment
+      </AppButton>
+    </template>
+  </AppModal>
 </template>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  width: 95%;
-  max-width: 600px;
-  max-height: 90vh;
-  /* Capped for scrollable content */
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-}
-
-.modal-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  color: #1e293b;
-  font-weight: 700;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.close-btn:hover {
-  color: #64748b;
-}
-
-.modal-body {
-  padding: 24px;
-  overflow-y: auto;
-  /* Scrollable body */
-  flex: 1;
-}
-
 .modal-footer {
-  padding: 20px 24px;
-  border-top: 1px solid #f1f5f9;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  background: #f8fafc;
-  flex-shrink: 0;
 }
 
 .form-grid {
@@ -1092,12 +1020,22 @@ input:checked+.slider:before {
   flex-direction: column;
 }
 
-.session-main, .session-day-badge {
+.session-display {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.session-day {
+  font-size: 0.95rem;
   color: #1e293b;
+  line-height: 1.2;
+}
+
+.session-time {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: normal;
 }
 
 .session-rows {
