@@ -824,11 +824,11 @@ watch(
             <div class="relationship-category ">
               <span class="category-title">Parent</span>
               <div class="relationship-item" v-if="primaryParent">
-                <img :src="primaryParent.profileURL || getImageUrl('profiles/avatar-parent')" alt="Parent Avatar"
+                <img :src="primaryParent?.profileURL || getImageUrl('profiles/avatar-parent')" alt="Parent Avatar"
                   class="small-avatar" />
                 <div class="child-info">
                   <strong>{{
-                    primaryParent.name ||
+                    primaryParent?.name ||
                     'Parent Name'
                     }}</strong>
                 </div>
@@ -840,15 +840,15 @@ watch(
             <div class="relationship-category" style="margin-top: 5px">
               <span class="category-title">Guardian</span>
               <div class="relationship-item" v-if="primaryGuardian">
-                <img :src="primaryGuardian.profileURL || getImageUrl('profiles/avatar-guardian')" alt="Guardian Avatar"
+                <img :src="primaryGuardian?.profileURL || getImageUrl('profiles/avatar-guardian')" alt="Guardian Avatar"
                   class="small-avatar" />
                 <div class="child-info">
                   <strong>{{
-                    primaryGuardian.name ||
-                    primaryGuardian.fullName ||
-                    primaryGuardian.fullname ||
-                    primaryGuardian.displayName ||
-                    primaryGuardian.email ||
+                    primaryGuardian?.name ||
+                    primaryGuardian?.fullName ||
+                    primaryGuardian?.fullname ||
+                    primaryGuardian?.displayName ||
+                    primaryGuardian?.email ||
                     'Guardian Name'
                     }}</strong>
                 </div>

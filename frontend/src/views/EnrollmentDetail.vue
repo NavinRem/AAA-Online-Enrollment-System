@@ -52,8 +52,8 @@ const openActionModal = (type) => {
   actionModal.value = {
     isOpen: true,
     type,
-    amount: enrollment.value.amount || enrollment.value.totalAmount || 0,
-    originalAmount: enrollment.value.amount || enrollment.value.totalAmount || 0,
+    amount: enrollment.value.amount || 0,
+    originalAmount: enrollment.value.amount || 0,
     proof: '',
     reason: '',
     remark: enrollment.value.remark || '',
@@ -340,40 +340,40 @@ onMounted(async () => {
         <DetailedSummaryCard subtitle="Payment Summary">
           <div class="detail-row align-center">
             <span class="summary-label">Total Amount</span>
-            <StatusBadge :status="'$' + (enrollment.amount || enrollment.totalAmount || 0)" />
+            <StatusBadge :status="'$' + (enrollment?.amount || 0)" />
           </div>
           <div class="detail-row">
             <span class="summary-label">Payment Method</span>
             <span class="summary-value">
-              {{ enrollment.paymentMethod || 'Not Specified' }}
+              {{ enrollment?.paymentMethod || 'Not Specified' }}
             </span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Status</span>
             <div class="summary-value" style="display: flex; justify-content: flex-end;">
-              <StatusBadge :status="enrollment.status || enrollment.paymentStatus || 'Unpaid'" />
+              <StatusBadge :status="enrollment?.status || enrollment?.paymentStatus || 'Unpaid'" />
             </div>
           </div>
           <div class="detail-row">
             <span class="summary-label">Last Updated</span>
             <span class="summary-value">{{
-              (enrollment.updatedAt || enrollment.enrollAt || enrollment.createdAt) ? formatDate(enrollment.updatedAt || enrollment.enrollAt || enrollment.createdAt) : 'Never'
+              (enrollment?.updatedAt || enrollment?.enrollAt || enrollment?.createdAt) ? formatDate(enrollment?.updatedAt || enrollment?.enrollAt || enrollment?.createdAt) : 'Never'
             }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Admin Remark</span>
-            <span class="summary-value">{{ enrollment.remark || 'N/A' }}</span>
+            <span class="summary-value">{{ enrollment?.remark || 'N/A' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Transaction ID / Proof</span>
             <span class="summary-value" style="word-break: break-all">
-              {{ enrollment.paymentProof || 'N/A' }}
+              {{ enrollment?.paymentProof || 'N/A' }}
             </span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Payment Date</span>
             <span class="summary-value">
-              {{ enrollment.paymentDate ? formatDate(enrollment.paymentDate) : 'Not Paid' }}
+              {{ enrollment?.paymentDate ? formatDate(enrollment.paymentDate) : 'Not Paid' }}
             </span>
           </div>
         </DetailedSummaryCard>
@@ -381,11 +381,11 @@ onMounted(async () => {
         <DetailedSummaryCard subtitle="Program Summary">
           <div class="detail-row">
             <span class="summary-label">Program</span>
-            <span class="summary-value">{{ program?.title || enrollment.programTitle || enrollment.courseTitle || 'N/A' }}</span>
+            <span class="summary-value">{{ program?.title || enrollment?.programTitle || 'N/A' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Teacher</span>
-            <span class="summary-value">{{ teacher?.fullname || program?.teacherName || enrollment.teacherName || session?.teacherName || 'Not Assigned' }}</span>
+            <span class="summary-value">{{ teacher?.fullname || program?.teacherName || enrollment?.teacherName || session?.teacherName || 'Not Assigned' }}</span>
           </div>
           <div class="detail-row">
             <span class="summary-label">Schedule</span>
@@ -395,7 +395,7 @@ onMounted(async () => {
                   ? (typeof session.schedule === 'string' ? session.schedule : 
                      (session.schedule.day ? session.schedule.day + ': ' : '') + 
                      (session.schedule.timeslot || session.schedule.time || (session.schedule.startTime + ' - ' + session.schedule.endTime)))
-                  : enrollment.sessionSchedule
+                  : enrollment?.sessionSchedule
                   || 'N/A'
               }}
             </span>
@@ -403,8 +403,8 @@ onMounted(async () => {
           <div class="mt-3">
             <span class="summary-label">Term Dates</span>
             <p class="summary-value" style="font-size: 0.9rem; margin-top: 5px">
-              <strong>Start:</strong> {{ enrollment.startDate || program?.startDate ? formatDate(enrollment.startDate || program?.startDate) : 'N/A' }}<br />
-              <strong>End:</strong> {{ enrollment.endDate || program?.endDate ? formatDate(enrollment.endDate || program?.endDate) : 'N/A' }}
+              <strong>Start:</strong> {{ enrollment?.startDate || program?.startDate ? formatDate(enrollment?.startDate || program?.startDate) : 'N/A' }}<br />
+              <strong>End:</strong> {{ enrollment?.endDate || program?.endDate ? formatDate(enrollment?.endDate || program?.endDate) : 'N/A' }}
             </p>
           </div>
         </DetailedSummaryCard>

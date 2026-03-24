@@ -252,7 +252,7 @@ const formatPrice = (val) => {
             { label: 'Cancelled Only', value: 'cancelled' },
           ]" :rowClass="getRowClass" @action="handleTableAction" @row-click="item => {
             if (item.id === newlyCreatedId) newlyCreatedId = null;
-            $router.push(`/enrollment/${item.id}`);
+            $router.push(`/enrollments/${item.id}`);
           }">
           <template #toolbar-actions>
             <AppButton variant="primary" @click="showModal = true">+ New Enrollment</AppButton>

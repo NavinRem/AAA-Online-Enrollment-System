@@ -13,15 +13,15 @@ const db = getFirestore(DATABASE_ID);
  * and makes global renaming easy.
  */
 const COLLECTIONS = {
-  USER: "user",
-  STUDENT: "student",
-  ENROLLMENT: "enrollment",
+  USER: "users",
+  STUDENT: "students",
+  ENROLLMENT: "enrollments",
   PROGRAM: "programs",      // Renamed from 'courses'
-  SESSION: "session",
+  SESSION: "sessions",
   TERM: "terms",          // Standard plural used in your project
   CATEGORY: "categories", // Standard plural used in your project
   LEVEL: "levels",        // Standard plural used in your project
-  PAYMENT: "payment",
+  PAYMENT: "payments",
   ATTENDANCE: "attendance",
   PROGRESS: "progress",
   UPLOAD: "uploads",

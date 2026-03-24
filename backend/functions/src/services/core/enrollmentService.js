@@ -15,7 +15,7 @@ class EnrollmentService {
       const programRef = db.collection(COLLECTIONS.PROGRAM).doc(programId);
 
       const existingEnrollmentQuery = db
-        .collection("enrollment")
+        .collection(COLLECTIONS.ENROLLMENT)
         .where("studentId", "==", studentId)
         .where("sessionId", "==", sessionId);
 
@@ -107,11 +107,12 @@ class EnrollmentService {
       const data = doc.data();
       const parentData = usersMap[data.parentId] || {};
       const studentData = studentsMap[data.studentId] || {};
-      const programData = programsMap[data.programId] || {};
+      const programId = data.programId || data.courseId;
+      const programData = programsMap[programId] || {};
 
       const parentName = parentData.name || parentData.email || data.parentName || "N/A";
       const studentName = studentData.fullName || studentData.name || data.studentName || "N/A";
-      const programTitle = programData.title || programData.name || data.programTitle || "N/A";
+      const programTitle = programData.title || programData.name || data.programTitle || data.courseTitle || "N/A";
 
       const parentProfileURL = parentData.profileURL || "N/A";
       const studentProfileURL = studentData.profileURL || "N/A";
@@ -156,7 +157,7 @@ class EnrollmentService {
     const [userDoc, studentDoc, programDoc, sessionDoc] = await Promise.all([
       data.parentId ? db.collection(COLLECTIONS.USER).doc(data.parentId).get() : Promise.resolve({ exists: false }),
       data.studentId ? db.collection(COLLECTIONS.STUDENT).doc(data.studentId).get() : Promise.resolve({ exists: false }),
-      data.programId ? db.collection(COLLECTIONS.PROGRAM).doc(data.programId).get() : Promise.resolve({ exists: false }),
+      (data.programId || data.courseId) ? db.collection(COLLECTIONS.PROGRAM).doc(data.programId || data.courseId).get() : Promise.resolve({ exists: false }),
       data.sessionId ? db.collection(COLLECTIONS.SESSION).doc(data.sessionId).get() : Promise.resolve({ exists: false }),
     ]);
 
@@ -210,8 +211,9 @@ class EnrollmentService {
         studentData?.fullName || studentData?.name || data.studentName || "N/A",
       studentDob: studentData?.dob || null,
       medicalNote: studentData?.medicalNote || "None",
+      programId: data.programId || data.courseId,
       programTitle:
-        programData?.title || programData?.name || data.programTitle || "N/A",
+        programData?.title || programData?.name || data.programTitle || data.courseTitle || "N/A",
       displayStatus,
       sessionSchedule: sessionSchedule,
       teacherName,

@@ -54,7 +54,7 @@ class StudentService {
 
   async getStudentsByParentID(parentId) {
     const snapshot = await db
-      .collection("student")
+      .collection(COLLECTIONS.STUDENT)
       .where("parentId", "==", parentId)
       .get();
 

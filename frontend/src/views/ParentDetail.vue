@@ -410,12 +410,12 @@ watch(
           <template #outside>
             <div class="profile-header" style="flex-direction: column; align-items: center;">
               <div class="profile-preview">
-                <img :src="parent.profileURL || getImageUrl('profiles/avatar-parent')" alt="Profile" />
+                <img :src="parent?.profileURL || getImageUrl('profiles/avatar-parent')" alt="Profile" />
               </div>
-              <h3 class="profile-name">{{ parent.fullname || parent.name || 'Anonymous' }}</h3>
+              <h3 class="profile-name">{{ parent?.fullname || parent?.name || 'Anonymous' }}</h3>
               <div class="badge-stack">
-                <StatusBadge :status="parent.role || 'parent'" />
-                <StatusBadge :status="parent.status || 'Active'" />
+                <StatusBadge :status="parent?.role || 'parent'" />
+                <StatusBadge :status="parent?.status || 'Active'" />
               </div>
             </div>
           </template>
@@ -424,23 +424,23 @@ watch(
             <div class="detail-info-group">
               <div class="info-item vertical">
                 <span class="info-label">Fullname:</span>
-                <strong>{{ parent.fullname || parent.name }}</strong>
+                <strong>{{ parent?.fullname || parent?.name }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">Phone Number:</span>
-                <strong>{{ parent.phone || 'N/A' }}</strong>
+                <strong>{{ parent?.phone || 'N/A' }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">Email:</span>
-                <strong class="email">{{ parent.email || 'N/A' }}</strong>
+                <strong class="email">{{ parent?.email || 'N/A' }}</strong>
               </div>
               <div class="info-item vertical">
                 <StatusBadge status="Created At" />
-                <strong>{{ formatDate(parent.createdAt) }}</strong>
+                <strong>{{ formatDate(parent?.createdAt) }}</strong>
               </div>
               <div class="info-item vertical">
                 <StatusBadge status="Updated At" />
-                <strong>{{ formatDate(parent.updatedAt || parent.createdAt) }}</strong>
+                <strong>{{ formatDate(parent?.updatedAt || parent?.createdAt) }}</strong>
               </div>
             </div>
           </div>

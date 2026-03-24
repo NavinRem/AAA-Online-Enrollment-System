@@ -103,12 +103,14 @@ const selectSession = (sessionId) => {
   isSessionDropdownOpen.value = false
 }
 
+const sessionInfo = computed(() => {
   if (!formData.value.programId || !formData.value.sessionId) return null
   const program = props.programs.find((c) => c.id === formData.value.programId)
   const session = props.sessions.find((s) => s.id === formData.value.sessionId)
   if (!program || !session) return null
 
   return getSessionCounts(program.startDate, program.endDate, session.schedule)
+})
 
 const selectedProgram = computed(() => {
   return props.programs.find((c) => c.id === formData.value.programId)
