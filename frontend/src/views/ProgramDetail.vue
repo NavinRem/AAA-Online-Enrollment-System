@@ -131,7 +131,7 @@ const sessionInstances = computed(() => {
       const dateStr = current.toISOString().split('T')[0]
       const isToday = dateStr === now.value.toISOString().split('T')[0]
       const isPastDay = current < new Date(now.value.getFullYear(), now.value.getMonth(), now.value.getDate())
-      
+
       let status = 'Scheduled'
       if (isToday) {
         if (isSessionInProgress(session.schedule, now.value)) {
@@ -329,7 +329,8 @@ const handleActionSubmit = async (formData) => {
 
                   <div class="info-item vertical">
                     <span class="info-label">COST PER SESSION:</span>
-                    <strong>${{ (Number(program.price || 0) / (Number(program.numberSessions) || 1)).toFixed(2) }}</strong>
+                    <strong>${{ (Number(program.price || 0) / (Number(program.numberSessions) || 1)).toFixed(2)
+                      }}</strong>
                   </div>
                 </div>
               </div>
@@ -423,7 +424,7 @@ const handleActionSubmit = async (formData) => {
         <div class="profile-header">
           <div class="profile-preview">
             <img
-              :src="program.imageURL || getProgramIcon(program.category || program.title) || getImageUrl('programs/program')"
+              :src="program.profileURL || getProgramIcon(program.category || program.title) || getImageUrl('programs/program')"
               @error="(e) => (e.target.src = getImageUrl('programs/program'))" alt="Program Icon" />
           </div>
           <h2 class="profile-title">{{ program.title }}</h2>

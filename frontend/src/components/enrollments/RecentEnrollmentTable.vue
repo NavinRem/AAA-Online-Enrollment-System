@@ -39,8 +39,6 @@ const navigateToDetail = (item) => {
       <div class="header-left">
         <h3 class="section-title">Recent Enrollment</h3>
       </div>
-      <TableToolbar :hasSearch="true" searchPlaceholder="Search something..." :hasFilter="true"
-        :filterOptions="[{ label: 'All', value: 'all' }]" />
     </div>
 
     <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
@@ -49,7 +47,7 @@ const navigateToDetail = (item) => {
         <td class="bold">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="item.parentProfileURL || getImageUrl('profiles/avatar-parent')" alt="parent" />
+              <img :src="item.parentProfileURL" alt="parent" />
             </div>
             <div class="user-info">
               <span class="user-name">{{ item.parentName || item.parent }}</span>

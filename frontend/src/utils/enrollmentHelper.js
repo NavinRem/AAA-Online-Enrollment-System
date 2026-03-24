@@ -45,7 +45,9 @@ export const enrichEnrollments = (enrollments, parents = [], students = [], prog
       studentName: s?.fullName || s?.name || r.studentName || 'N/A',
       studentProfileURL: s?.profileURL || r.studentProfileURL || getImageUrl('profiles/avatar-student'),
       programTitle: c?.title || r.programTitle || 'N/A',
-      programProfileURL: c?.imageURL || r.programProfileURL || getProgramIcon(c?.category || r.programCategory || r.programTitle || 'program'),
+      programProfileURL: c?.profileURL || getProgramIcon(c?.category || r.programCategory || r.programTitle || 'program'),
+      teacherName: r.teacherName || (c?.teachers?.length > 0 ? c.teachers[0].name : 'Not Assigned'),
+      teacherProfileURL: r.teacherProfileURL || (c?.teachers?.length > 0 ? c.teachers[0].profileURL : null),
       displayStatus: isPaid(r.status || r.paymentStatus) ? 'Paid' : (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : 'Unpaid'),
       academicStatus: getAcademicStatus(r)
     }

@@ -172,9 +172,9 @@
       <div class="form-group full-width" style="margin-bottom: 0;">
         <label>Program Photo (Optional)</label>
         <div class="upload-container">
-          <div v-if="localData.imageURL" class="image-preview">
-            <img :src="localData.imageURL" alt="Preview" />
-            <div class="remove-img" @click="localData.imageURL = ''">Remove image</div>
+          <div v-if="localData.profileURL" class="image-preview">
+            <img :src="localData.profileURL" alt="Preview" />
+            <div class="remove-img" @click="localData.profileURL = ''">Remove image</div>
           </div>
           <div v-if="!isReadOnly" class="upload-placeholder">
             <input type="file" @change="handleFileUpload" accept="image/*" id="file-upload" hidden />
@@ -184,7 +184,7 @@
               <span v-else>Click to upload photo</span>
             </label>
           </div>
-          <div v-else-if="!localData.imageURL" class="upload-placeholder disabled">
+          <div v-else-if="!localData.profileURL" class="upload-placeholder disabled">
             No photo uploaded
           </div>
         </div>
@@ -329,7 +329,7 @@ const getInitialData = () => ({
   startDate: '',
   endDate: '',
   schedule: { day: 'Monday', timeslot: '10:30 - 12:00' },
-  imageURL: '',
+  profileURL: '',
   teachers: [],
   deleteConfirm: '',
 })
@@ -359,7 +359,7 @@ const mapSourceToForm = () => {
     startDate: s.startDate || term?.startDate || '',
     endDate: s.endDate || term?.endDate || '',
     schedule: s.schedule || { day: 'Monday', timeslot: '10:30 - 12:00' },
-    imageURL: s.imageURL || '',
+    profileURL: s.profileURL || '',
     teachers: s.teachers || (s.teacherId ? [{ id: s.teacherId, name: s.teacherName }] : []),
     deleteConfirm: '',
   }
@@ -589,7 +589,7 @@ const handleFileUpload = async (event) => {
   isUploading.value = true
   try {
     const result = await programService.uploadImage(file)
-    localData.value.imageURL = result.imageURL
+    localData.value.profileURL = result.profileURL
   } catch (err) { alert('Upload failed: ' + err.message) }
   finally { isUploading.value = false }
 }

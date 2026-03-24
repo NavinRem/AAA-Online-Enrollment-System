@@ -14,7 +14,7 @@ class ProgramService {
       levelId, 
       termId, 
       schedule, 
-      imageURL, 
+      profileURL, 
       teachers, // Array of { id, name }
       startDate,
       endDate 
@@ -42,13 +42,13 @@ class ProgramService {
       description: description || "",
       price: parseFloat(price) || 0,
       numberSessions: parseInt(numberSessions) || 0,
-      level: level || "beginner",
+      level: level || "level",
       status: status || "Active",
       levelId: levelId || null,
       termId: termId || null,
       schedule: schedule || null,
-      imageURL: imageURL || null,
-      teachers: teachers || [], // Array of { id, name }
+      profileURL: profileURL || null,
+      teachers: teachers || [],
       startDate: startDate || null,
       endDate: endDate || null,
       createdAt: new Date().toISOString(),
@@ -78,18 +78,15 @@ class ProgramService {
     return hydrated[0];
   }
 
-  // Helper method to hydrate program data (Terms, Categories, Levels, Teachers)
   async _hydratePrograms(programs) {
     if (!programs || programs.length === 0) return [];
 
-    // Fetch all terms for mapping
     const termsSnapshot = await db.collection(COLLECTIONS.TERM).get();
     const termsMap = {};
     termsSnapshot.docs.forEach((doc) => {
       termsMap[doc.id] = doc.data().name;
     });
 
-    // Fetch all teachers for hydration
     const usersSnapshot = await db.collection(COLLECTIONS.USER).where("role", "in", ["teacher", "instructor"]).get();
     const teachersMap = {};
     usersSnapshot.docs.forEach((doc) => {
@@ -101,7 +98,6 @@ class ProgramService {
       };
     });
 
-    // Fetch all categories and levels
     const categoriesSnapshot = await db.collection(COLLECTIONS.CATEGORY).get();
     const categoriesMap = {};
     const levelsMap = {};
@@ -121,7 +117,6 @@ class ProgramService {
 
     return programs.map((program) => {
       let rawTeachers = program.teachers || [];
-      // Fallback for legacy data/single teacherId
       if (rawTeachers.length === 0 && (program.teacherId || program.uid)) {
         rawTeachers = [{ id: program.teacherId || program.uid, name: program.teacherName || "Unknown" }];
       }

@@ -91,7 +91,7 @@ const mappedEnrollments = computed(() => {
         studentName: r.studentName || s?.fullName || s?.name || 'N/A',
         studentProfileURL: r.studentProfileURL || s?.profileURL || getImageUrl('profiles/avatar-student'),
         programTitle: r.programTitle || c?.title || 'N/A',
-        programProfileURL: r.programProfileURL || c?.imageURL || getImageUrl('programs/program'),
+        programProfileURL: c?.profileURL || getImageUrl('programs/program'),
         status: r.displayStatus || r.status || 'Pending',
         amount: `$${r.amount}`,
         date: r.enrollAt || r.createdAt

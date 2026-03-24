@@ -118,6 +118,10 @@ class EnrollmentService {
       const studentProfileURL = studentData.profileURL || null;
       const programProfileURL = programData.profileURL || null;
 
+      const teacher = programData.teachers && programData.teachers.length > 0 ? programData.teachers[0] : null;
+      const teacherName = teacher?.name || data.teacherName || "Not Assigned";
+      const teacherProfileURL = teacher?.profileURL || null;
+
       const session = sessionsMap[data.sessionId];
 
       const rStatus = (data.paymentStatus || data.status || "").toLowerCase();
@@ -137,6 +141,8 @@ class EnrollmentService {
         studentProfileURL,
         programTitle,
         programProfileURL,
+        teacherName,
+        teacherProfileURL,
         displayStatus,
         sessionSchedule: session?.scheduleString || "N/A",
         sessionCount: session?.totalSessions || session?.sessionCount || 10,
@@ -157,7 +163,7 @@ class EnrollmentService {
     const [userDoc, studentDoc, programDoc, sessionDoc] = await Promise.all([
       data.parentId ? db.collection(COLLECTIONS.USER).doc(data.parentId).get() : Promise.resolve({ exists: false }),
       data.studentId ? db.collection(COLLECTIONS.STUDENT).doc(data.studentId).get() : Promise.resolve({ exists: false }),
-      (data.programId || data.courseId) ? db.collection(COLLECTIONS.PROGRAM).doc(data.programId || data.courseId).get() : Promise.resolve({ exists: false }),
+      data.programId ? db.collection(COLLECTIONS.PROGRAM).doc(data.programId).get() : Promise.resolve({ exists: false }),
       data.sessionId ? db.collection(COLLECTIONS.SESSION).doc(data.sessionId).get() : Promise.resolve({ exists: false }),
     ]);
 
