@@ -107,8 +107,7 @@ class EnrollmentService {
       const data = doc.data();
       const parentData = usersMap[data.parentId] || {};
       const studentData = studentsMap[data.studentId] || {};
-      const programId = data.programId || data.courseId;
-      const programData = programsMap[programId] || {};
+      const programData = programsMap[data.programId] || {};
 
       const parentName = parentData.name || parentData.email || data.parentName || "N/A";
       const studentName = studentData.fullName || studentData.name || data.studentName || "N/A";
@@ -174,6 +173,13 @@ class EnrollmentService {
     const programData = programDoc.exists ? programDoc.data() : null;
     const sessionData = sessionDoc.exists ? sessionDoc.data() : null;
 
+    // Optional: Fetch Teacher profile if linked in program
+    let teacherData = null;
+    if (programData?.teacherId) {
+      const teacherDoc = await db.collection(COLLECTIONS.USER).doc(programData.teacherId).get();
+      if (teacherDoc.exists) teacherData = teacherDoc.data();
+    }
+
     let sessionSchedule = data.sessionSchedule || "N/A";
     if (sessionData && sessionData.schedule) {
       const scheduleLines = [];
@@ -207,7 +213,38 @@ class EnrollmentService {
     return {
       id: doc.id,
       ...data,
+      // Nested full objects for the "Chosen One" (Detail View)
+      parent: userData ? {
+        id: data.parentId,
+        ...userData,
+        displayName: userData.name
+      } : null,
+      student: studentData ? {
+        id: data.studentId,
+        ...studentData,
+        fullName: studentData.name
+      } : null,
+      program: programData ? {
+        id: data.programId,
+        ...programData,
+        title: programData.title
+      } : null,
+      session: sessionData ? {
+        id: data.sessionId,
+        ...sessionData,
+        scheduleString: sessionSchedule
+      } : null,
+      teacher: teacherData ? {
+        id: programData.teacherId,
+        ...teacherData,
+        fullname: teacherData.name || teacherData.fullName || "N/A"
+      } : null,
+
+      // Convenience top-level fields (Legacy/Compatibility)
+      parentName: userData?.name || userData?.fullName || data.parentName || "N/A",
       parentProfileURL: userData?.profileURL || null,
+      parentEmail: userData?.email || data.parentEmail || "N/A",
+      parentPhone: userData?.phone || userData?.phoneNumber || data.parentPhone || "N/A",
       parentRole: userData?.role
         ? userData.role === "parent"
           ? "Parent"
@@ -218,12 +255,12 @@ class EnrollmentService {
       studentProfileURL: studentData?.profileURL || null,
       studentDob: studentData?.dob || null,
       medicalNote: studentData?.medicalNote || "None",
-      programId: data.programId || data.courseId,
+      programId: data.programId,
       programTitle:
         programData?.title || programData?.name || data.programTitle || data.courseTitle || "N/A",
       programProfileURL: programData?.profileURL || null,
       displayStatus,
-      sessionSchedule: sessionSchedule,
+      sessionSchedule,
       teacherName,
       capacity: sessionData?.capacity || 0,
       numStudent: sessionData?.numStudent || 0,

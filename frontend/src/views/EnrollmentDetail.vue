@@ -7,8 +7,6 @@ import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import DetailCard from '../components/common/cards/DetailCard.vue'
 import DetailedSummaryCard from '../components/common/cards/DetailedSummaryCard.vue'
 import { enrollmentService } from '@/services/enrollmentService'
-import { userService } from '@/services/userService'
-import { programService } from '@/services/programService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 
@@ -149,35 +147,17 @@ onMounted(async () => {
     const id = route.params.id
     if (!id) throw new Error('No Enrollment ID provided')
 
-    // 1. Fetch the primary enrollment data (now enriched from backend)
+    // 1. Fetch the Enriched Enrollment record (Consolidated BFF Pattern)
     const data = await enrollmentService.getEnrollment(id)
     if (!data) throw new Error('Enrollment not found')
+    
+    // 2. Populate all reactive refs from the single unified response
     enrollment.value = data
-
-    // 2. Fetch full related objects in parallel to ensure "real" data in cards
-    const [userRes, studentRes, programRes, sessionsRes] = await Promise.allSettled([
-      userService.getProfile(data.parentId),
-      userService.getStudent(data.studentId),
-      programService.getProgram(data.programId),
-      programService.getSessions(data.programId),
-    ])
-
-    if (userRes.status === 'fulfilled') parent.value = userRes.value
-    if (studentRes.status === 'fulfilled') student.value = studentRes.value
-    if (programRes.status === 'fulfilled') program.value = programRes.value
-    if (sessionsRes.status === 'fulfilled') {
-      session.value = (sessionsRes.value || []).find((s) => s.id === data.sessionId)
-    }
-
-    // 3. Chain fetch Teacher profile if teacherId is present in program
-    if (program.value?.teacherId) {
-      try {
-        const teacherProfile = await userService.getProfile(program.value.teacherId)
-        if (teacherProfile) teacher.value = teacherProfile
-      } catch (err) {
-        console.warn('Teacher profile not found:', err)
-      }
-    }
+    parent.value = data.parent
+    student.value = data.student
+    program.value = data.program
+    session.value = data.session
+    teacher.value = data.teacher
   } catch (error) {
     errorMessage.value = error.message || 'Failed to load details'
   } finally {
