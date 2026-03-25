@@ -10,8 +10,8 @@
 
       <div v-if="hasFilter" class="filter-dropdown-container">
         <AppButton variant="secondary" :class="{ active: currentFilter !== 'all' && currentFilter !== '' }"
-          @click="toggleFilter" @blur="closeFilter">
-          <span style="margin-right: 6px"></span> Filter
+          :style="getStatusTheme(currentFilter)" @click="toggleFilter" @blur="closeFilter">
+          <span style="margin-right: 6px"></span> {{ activeFilterLabel }}
         </AppButton>
         <Teleport to="body">
           <transition name="toast-fade">
@@ -25,19 +25,18 @@
           </transition>
         </Teleport>
       </div>
-
-      <!-- Actions for Add Buttons, etc -->
       <slot name="actions"></slot>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import SearchBox from '@/components/common/data/SearchBox.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import { getStatusTheme } from '@/utils/statusHelper'
 
-defineProps({
+const props = defineProps({
   title: {
     type: String,
     default: '',
@@ -72,6 +71,12 @@ const emit = defineEmits(['update:searchQuery', 'update:currentFilter'])
 
 const isFilterOpen = ref(false)
 const filterMenuStyles = ref({})
+
+const activeFilterLabel = computed(() => {
+  if (props.currentFilter === 'all' || !props.currentFilter) return 'Filter'
+  const option = props.filterOptions.find(o => o.value === props.currentFilter)
+  return option ? option.label : 'Filter'
+})
 
 const toggleFilter = (event) => {
   isFilterOpen.value = !isFilterOpen.value

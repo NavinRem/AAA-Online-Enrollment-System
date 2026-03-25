@@ -1,7 +1,10 @@
 <script setup>
+import { computed } from 'vue'
 import AppTable from '@/components/common/data/AppTable.vue'
 import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import { useTableActions } from '@/composables/useTableActions'
+import StatusBadge from '../ui/StatusBadge.vue'
+import { getStatusCategory, getStatusDisplay } from '@/utils/statusHelper'
 
 const props = defineProps({
   headers: { type: Array, required: true },
@@ -23,6 +26,40 @@ const emit = defineEmits(['update:searchQuery', 'update:currentFilter', 'row-cli
 
 const { activeMenuId, isMenuAbove, menuStyles, toggleMenu, closeMenu } = useTableActions()
 
+const displayEmptyMessage = computed(() => {
+  if (props.loading) return props.loadingMessage
+  return props.emptyMessage
+})
+
+const emptyState = computed(() => {
+  if (props.loading) return { prefix: props.loadingMessage, label: '', suffix: '' }
+
+  if (props.searchQuery) {
+    return {
+      prefix: 'No records matching ',
+      label: `"${props.searchQuery}"`,
+      suffix: ' found.'
+    }
+  }
+
+  if (props.currentFilter !== 'all' && props.filterOptions.length > 0) {
+    const option = props.filterOptions.find(o => o.value === props.currentFilter)
+    if (option) {
+      return {
+        prefix: 'No ',
+        label: option.value,
+        suffix: ' records found.'
+      }
+    }
+  }
+
+  return {
+    prefix: '',
+    label: '',
+    suffix: props.emptyMessage
+  }
+})
+
 const handleAction = (type, item) => {
   emit('action', { type, item })
   closeMenu()
@@ -31,41 +68,36 @@ const handleAction = (type, item) => {
 
 <template>
   <div class="generic-data-table-container">
-    <TableToolbar
-      :hasSearch="hasSearch"
-      :searchQuery="searchQuery"
-      @update:searchQuery="emit('update:searchQuery', $event)"
-      :searchPlaceholder="searchPlaceholder"
-      :hasFilter="hasFilter"
-      :currentFilter="currentFilter"
-      @update:currentFilter="emit('update:currentFilter', $event)"
-      :filterOptions="filterOptions"
-      :title="title"
-    >
+    <TableToolbar :hasSearch="hasSearch" :searchQuery="searchQuery"
+      @update:searchQuery="emit('update:searchQuery', $event)" :searchPlaceholder="searchPlaceholder"
+      :hasFilter="hasFilter" :currentFilter="currentFilter" @update:currentFilter="emit('update:currentFilter', $event)"
+      :filterOptions="filterOptions" :title="title">
       <template #actions>
         <slot name="toolbar-actions"></slot>
       </template>
     </TableToolbar>
 
     <AppTable :headers="headers" :loading="loading" :empty="!items || items.length === 0">
-      <template #loading>{{ loadingMessage }}</template>
-      <template #empty>{{ emptyMessage }}</template>
+      <template #loading>{{ displayEmptyMessage }}</template>
+      <template #empty>
+        <div class="empty-state-banner">
+          <span v-if="emptyState.prefix">{{ emptyState.prefix }}</span>
+          <StatusBadge v-if="emptyState.label" :status="currentFilter" :type="getStatusCategory(currentFilter)">
+            {{ getStatusDisplay(emptyState.label) }}
+          </StatusBadge>
+          <span v-if="emptyState.suffix">{{ emptyState.suffix }}</span>
+        </div>
+      </template>
 
-      <tr
-        v-for="(item, index) in items"
-        :key="item.id || index"
-        class="clickable-row"
-        :class="rowClass(item)"
-        @click="emit('row-click', item)"
-      >
-        <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId" :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction">
+      <tr v-for="(item, index) in items" :key="item.id || index" class="clickable-row" :class="rowClass(item)"
+        @click="emit('row-click', item)">
+        <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId"
+          :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction">
           <!-- Default Row Content if no slot provided -->
-          <td 
-            v-for="(header, hIdx) in headers" 
-            :key="hIdx"
-            :class="typeof header === 'object' && header.align ? `text-${header.align}` : ''"
-          >
-            {{ item[typeof header === 'object' ? header.key || header.label.toLowerCase().replace(' ', '') : header.toLowerCase().replace(' ', '')] }}
+          <td v-for="(header, hIdx) in headers" :key="hIdx"
+            :class="typeof header === 'object' && header.align ? `text-${header.align}` : ''">
+            {{ item[typeof header === 'object' ? header.key || header.label.toLowerCase().replace(' ', '') :
+              header.toLowerCase().replace(' ', '')] }}
           </td>
         </slot>
       </tr>
@@ -78,7 +110,17 @@ const handleAction = (type, item) => {
   cursor: pointer;
   transition: background-color 0.2s;
 }
+
 .clickable-row:hover {
   background-color: #f8fafc;
+}
+
+.empty-state-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.95rem;
 }
 </style>

@@ -26,21 +26,73 @@ export const isPending = (status) => {
  */
 export const getStatusCategory = (status) => {
   const s = String(status).toLowerCase().trim()
-  
-  // 0. Dynamic color prefix (e.g., "blue:Monday" -> blue)
+  const validColors = [
+    'green',
+    'yellow',
+    'red',
+    'blue',
+    'purple',
+    'magenta',
+    'orange',
+    'gray',
+    'emerald',
+    'sky',
+    'rose',
+    'amber',
+  ]
+
+  // 0. Direct color match
+  if (validColors.includes(s)) return s
+
+  // 1. Dynamic color prefix (e.g., "blue:Monday" -> blue)
   if (s.includes(':')) {
     const [color] = s.split(':')
-    const validColors = ['green', 'yellow', 'red', 'blue', 'purple', 'magenta', 'orange', 'gray']
     if (validColors.includes(color)) return color
   }
 
   const categories = {
-    green: ['paid', 'confirmed', 'active', 'on-time', 'present', 'excellent', 'studying', 'parent', 'created at', 'joined at', 'success', 'past', 'full', 'start'],
-    yellow: ['unpaid', 'pending', 'deactivated', 'suspended', 'warning', 'permission', 'inactive', 'upcoming', 'scheduled'],
+    green: [
+      'paid',
+      'confirmed',
+      'active',
+      'on-time',
+      'present',
+      'excellent',
+      'studying',
+      'parent',
+      'created at',
+      'joined at',
+      'success',
+      'past',
+      'full',
+      'start',
+    ],
+    yellow: [
+      'unpaid',
+      'pending',
+      'deactivated',
+      'suspended',
+      'warning',
+      'permission',
+      'inactive',
+      'upcoming',
+      'scheduled',
+    ],
     red: ['canceled', 'cancelled', 'failed', 'stopped', 'absent', 'serious', 'closed'],
-    blue: ['graduated', 'late', 'good', 'fair', 'guardian', 'updated at', 'partial', 'prorated', 'discount', 'end'],
+    blue: [
+      'graduated',
+      'late',
+      'good',
+      'fair',
+      'guardian',
+      'updated at',
+      'partial',
+      'prorated',
+      'discount',
+      'end',
+    ],
     purple: ['make-up', 'makeup', 'intermediate', 'children', 'in progress', 'sponsorship'],
-    magenta: ['unmarked', 'archived']
+    magenta: ['unmarked', 'archived'],
   }
 
   // 1. Exact match
@@ -49,7 +101,8 @@ export const getStatusCategory = (status) => {
   }
 
   // 2. Partial matches for ad-hoc values
-  if (s.includes('$') || /monday|tuesday|wednesday|thursday|friday|saturday|sunday/.test(s)) return 'blue'
+  if (s.includes('$') || /monday|tuesday|wednesday|thursday|friday|saturday|sunday/.test(s))
+    return 'blue'
   if (/:[0-9]{2}\s*(am|pm)/i.test(s)) return 'blue'
 
   return 'gray'
@@ -61,7 +114,7 @@ export const getStatusCategory = (status) => {
 export const getStatusDisplay = (status) => {
   if (status === undefined || status === null) return 'N/A'
   let s = String(status)
-  
+
   // Clean dynamic color prefix if present (e.g., "blue:Monday" -> "Monday")
   if (s.includes(':')) {
     const parts = s.split(':')
@@ -75,12 +128,24 @@ export const getStatusDisplay = (status) => {
   const lower = s.toLowerCase().trim()
 
   const genericTerms = [
-    'active', 'inactive', 'studying', 'graduated', 'stopped', 'suspended',
-    'upcoming', 'in progress', 'archived', 'closed', 'scheduled'
+    'active',
+    'inactive',
+    'studying',
+    'graduated',
+    'stopped',
+    'suspended',
+    'upcoming',
+    'in progress',
+    'archived',
+    'closed',
+    'scheduled',
   ]
 
   if (genericTerms.includes(lower)) {
-    return lower.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+    return lower
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
   }
 
   if (isPaid(lower)) return 'Paid'
@@ -89,4 +154,50 @@ export const getStatusDisplay = (status) => {
   if (isUnpaid(lower)) return 'Unpaid'
 
   return s
+}
+
+/**
+ * Returns a CSS style object for status-aware UI themes.
+ */
+export const getStatusTheme = (status) => {
+  if (status === 'all' || !status) return {}
+
+  const category = getStatusCategory(status)
+
+  const themes = {
+    green: {
+      backgroundColor: '#10b981',
+      color: '#ecfdf5',
+    },
+    yellow: {
+      backgroundColor: '#e2c106ff',
+      color: '#fff7ed',
+    },
+    orange: {
+      backgroundColor: '#f97316',
+      color: '#fff7ed',
+    },
+    red: {
+      backgroundColor: '#ef4444',
+      color: '#fef2f2',
+    },
+    blue: {
+      backgroundColor: '#3b82f6',
+      color: '#eff6ff',
+    },
+    purple: {
+      backgroundColor: '#8b5cf6',
+      color: '#f5f3ff',
+    },
+    magenta: {
+      backgroundColor: '#ec4899',
+      color: '#fdf2f8',
+    },
+    gray: {
+      backgroundColor: '#f8fafc',
+      color: '#475569',
+    },
+  }
+
+  return themes[category] || themes.gray
 }

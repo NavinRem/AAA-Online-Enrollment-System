@@ -1,19 +1,13 @@
 <template>
-  <button
-    class="app-btn"
-    :class="[
-      `variant-${variant}`,
-      `size-${size}`,
-      {
-        'is-loading': loading,
-        'is-disabled': disabled || loading,
-        'has-icon-only': iconOnly,
-      },
-    ]"
-    :type="type"
-    :disabled="disabled || loading"
-    @click="$emit('click', $event)"
-  >
+  <button class="app-btn" :class="[
+    `variant-${variant}`,
+    `size-${size}`,
+    {
+      'is-loading': loading,
+      'is-disabled': disabled || loading,
+      'has-icon-only': iconOnly,
+    },
+  ]" :type="type" :disabled="disabled || loading" @click="$emit('click', $event)">
     <span v-if="loading" class="spinner"></span>
 
     <span v-if="$slots['icon-left'] && !loading" class="icon-span left">
@@ -22,11 +16,7 @@
 
     <span v-if="icon && !loading" class="icon-span material-symbols-rounded">{{ icon }}</span>
 
-    <span
-      v-if="!iconOnly && ($slots.default || text)"
-      class="btn-text"
-      :class="{ 'hidden-text': loading }"
-    >
+    <span v-if="!iconOnly && ($slots.default || text)" class="btn-text" :class="{ 'hidden-text': loading }">
       <slot>{{ text }}</slot>
     </span>
 
@@ -48,11 +38,11 @@ defineProps({
   },
   variant: {
     type: String,
-    default: 'primary', // primary, secondary, outline, subtle, light, danger, cancel, logout
+    default: 'primary',
   },
   size: {
     type: String,
-    default: 'md', // sm, md, lg
+    default: 'md',
   },
   icon: {
     type: String,
