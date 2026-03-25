@@ -23,9 +23,9 @@ const enrollmentHeaders = [
   { label: 'No', width: '30px', align: 'center' },
   { label: 'Parent / Guardian', width: '30%' },
   { label: 'Child', width: '30%' },
-  { label: 'Program', width: '30%' },
-  { label: 'Status', width: '100px', align: 'center' },
-  { label: 'Amount', width: '100px', align: 'center' },
+  { label: 'Program', width: '40%' },
+  { label: 'Status', width: '90px', align: 'center' },
+  { label: 'Amount', width: '90px', align: 'center' },
   { label: 'Enrolled Date', width: '10%', align: 'center' }
 ]
 
@@ -76,7 +76,7 @@ const navigateToDetail = (item) => {
           </div>
         </td>
         <td class="text-center">
-          <StatusBadge :status="item.status" />
+          <StatusBadge :status="item.displayStatus || item.status" />
         </td>
         <td class="bold text-center">
           <StatusBadge :status="item.amount" />

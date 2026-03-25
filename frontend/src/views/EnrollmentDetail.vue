@@ -308,7 +308,7 @@ onMounted(async () => {
           <div class="detail-row align-center">
             <span class="summary-label">Status</span>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-              <StatusBadge :status="enrollment?.status || enrollment?.paymentStatus || 'Unpaid'" />
+              <StatusBadge :status="enrollment?.displayStatus || enrollment?.status || enrollment?.paymentStatus || 'Unpaid'" />
             </div>
           </div>
 

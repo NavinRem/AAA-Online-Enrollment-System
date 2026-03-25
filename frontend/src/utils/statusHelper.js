@@ -100,10 +100,20 @@ export const getStatusCategory = (status) => {
     if (matches.includes(s)) return color
   }
 
-  // 2. Partial matches for ad-hoc values
+  // 2. Numeric dynamic mapping (e.g., age-based coloring)
+  if (s !== '' && !isNaN(s)) {
+    const num = parseFloat(s)
+    if (num < 6) return 'green' // Young children
+    if (num < 10) return 'blue' // Primary students
+    if (num < 15) return 'purple' // Secondary students
+    return 'blue' // Adult / General
+  }
+
+  // 3. Pattern / Partial matches
   if (s.includes('$') || /monday|tuesday|wednesday|thursday|friday|saturday|sunday/.test(s))
     return 'blue'
   if (/:[0-9]{2}\s*(am|pm)/i.test(s)) return 'blue'
+  if (s.includes('years') || s.includes('age')) return 'blue'
 
   return 'gray'
 }

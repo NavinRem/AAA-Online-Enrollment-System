@@ -135,12 +135,14 @@ class EnrollmentService {
 
       const session = sessionsMap[data.sessionId];
 
-      const rStatus = (data.paymentStatus || data.status || "").toLowerCase();
+      const sStatus = (data.status || "").toLowerCase();
+      const pStatus = (data.paymentStatus || "").toLowerCase();
       let displayStatus = "Unpaid";
-      if (["paid", "confirmed", "active", "success"].includes(rStatus)) {
-        displayStatus = "Paid";
-      } else if (["canceled", "cancelled"].includes(rStatus)) {
+
+      if (["canceled", "cancelled"].includes(sStatus)) {
         displayStatus = "Canceled";
+      } else if (["paid", "confirmed", "active", "success"].includes(pStatus) || ["active", "confirmed"].includes(sStatus)) {
+        displayStatus = "Paid";
       }
 
       return {
@@ -226,12 +228,14 @@ class EnrollmentService {
       );
     }
 
-    const rStatus = (data.paymentStatus || data.status || "").toLowerCase();
+    const sStatus = (data.status || "").toLowerCase();
+    const pStatus = (data.paymentStatus || "").toLowerCase();
     let displayStatus = "Unpaid";
-    if (["paid", "confirmed", "active", "success"].includes(rStatus)) {
-      displayStatus = "Paid";
-    } else if (["canceled", "cancelled"].includes(rStatus)) {
+
+    if (["canceled", "cancelled"].includes(sStatus)) {
       displayStatus = "Canceled";
+    } else if (["paid", "confirmed", "active", "success"].includes(pStatus) || ["active", "confirmed"].includes(sStatus)) {
+      displayStatus = "Paid";
     }
 
     return {

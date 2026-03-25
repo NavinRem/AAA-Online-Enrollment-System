@@ -59,7 +59,7 @@ export const enrichEnrollments = (enrollments, parents = [], students = [], prog
       teacherName: r.teacherName || (c?.teachers?.length > 0 ? c.teachers[0].name : ''),
       teacherProfileURL: getTeacherProfileURL(r.teacherProfileURL || (c?.teachers?.length > 0 ? c.teachers[0].profileURL : null)),
       
-      displayStatus: r.displayStatus || (isPaid(r.status || r.paymentStatus) ? 'Paid' : (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : 'Unpaid')),
+      displayStatus: r.displayStatus || (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : (isPaid(r.status || r.paymentStatus) ? 'Paid' : 'Unpaid')),
       academicStatus: getAcademicStatus(r)
     }
   }).sort((a, b) => new Date(b.enrollAt || b.createdAt) - new Date(a.enrollAt || a.createdAt))

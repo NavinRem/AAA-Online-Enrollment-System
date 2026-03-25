@@ -49,12 +49,7 @@ onMounted(() => {
 
     <div class="header-center desktop-only">
       <div class="search-wrapper">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Search something"
-          class="search-input"
-        />
+        <input v-model="searchQuery" type="text" placeholder="Search something" class="search-input" />
         <img :src="getIconUrl('action', 'search-svgrepo.svg')" class="search-icon" />
       </div>
     </div>
@@ -67,13 +62,13 @@ onMounted(() => {
         <img :src="getIconUrl('navigation', 'setting-svgrepo.svg')" alt="Settings" />
       </button>
 
-      <div class="user-profile">
-        <div class="user-info">
-          <span class="user-name">{{ userName }}</span>
-          <span class="user-role">{{ userRole }}</span>
+      <div class="user-profile-topbar">
+        <div class="user-info-topbar">
+          <span class="user-name-topbar">{{ userName }}</span>
+          <span class="user-role-topbar">{{ userRole }}</span>
         </div>
-        <div class="user-avatar">
-              <img :src="getImageUrl('profiles/avatar-admin')" alt="Profile" />
+        <div class="user-avatar-topbar">
+          <img :src="getImageUrl('profiles/avatar-admin')" alt="Profile" />
         </div>
       </div>
     </div>
@@ -125,8 +120,13 @@ onMounted(() => {
   left: 0;
 }
 
-.hamburger::before { top: -8px; }
-.hamburger::after { bottom: -8px; }
+.hamburger::before {
+  top: -8px;
+}
+
+.hamburger::after {
+  bottom: -8px;
+}
 
 .page-title {
   font-size: 1.6rem;
@@ -165,7 +165,7 @@ onMounted(() => {
   opacity: 0.7;
 }
 
-.user-profile {
+.user-profile-topbar {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -176,35 +176,33 @@ onMounted(() => {
   margin-left: 10px;
 }
 
-.user-info {
+.user-info-topbar {
   display: flex;
   flex-direction: column;
   text-align: right;
 }
 
-.user-name {
+.user-name-topbar {
   font-weight: 700;
   font-size: 0.9rem;
   color: #1a1a1a;
 }
 
-.user-role {
+.user-role-topbar {
   font-size: 0.75rem;
   color: #999;
 }
 
-.user-avatar {
+.user-avatar-topbar {
   width: 38px;
   height: 38px;
   border-radius: 50%;
   overflow: hidden;
 }
 
-.user-avatar img {
+.user-avatar-topbar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
-
-
 </style>

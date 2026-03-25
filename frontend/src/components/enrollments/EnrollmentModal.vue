@@ -1,11 +1,12 @@
 <script setup>
-import { ref, computed, toRef } from 'vue'
+import { ref, computed, toRef, watch, onMounted, onUnmounted } from 'vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { useSearch, parentSearchMapper, studentSearchMapper, programSearchMapper } from '@/composables/useSearch'
 import { getImageUrl } from '@/utils/assetHelper'
 import { getSessionCounts } from '@/utils/programHelper'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
+import { calculateAge } from '@/utils/dateFormatter'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -17,6 +18,7 @@ const props = defineProps({
   enrollments: { type: Array, default: () => [] },
   error: { type: String, default: '' },
   success: { type: String, default: '' },
+  hint: { type: String, default: '' },
 })
 
 const emit = defineEmits(['close', 'submit', 'program-change'])
@@ -66,15 +68,89 @@ const selectedParent = computed(() => {
   return props.parents.find((p) => (p.uid || p.id) === formData.value.parentId)
 })
 
+const errors = ref({
+  parentId: '',
+  studentId: '',
+  programId: '',
+  sessionId: ''
+})
+
+const setError = (field, msg) => {
+  closeAllDropdowns() // Close any open dropdowns when an error occurs
+  errors.value[field] = msg
+  // Clear error after 5 seconds
+  setTimeout(() => {
+    if (errors.value[field] === msg) errors.value[field] = ''
+  }, 5000)
+}
+
+const clearErrors = () => {
+  Object.keys(errors.value).forEach(k => errors.value[k] = '')
+}
+
+const closeAllDropdowns = () => {
+  isParentDropdownOpen.value = false
+  isStudentDropdownOpen.value = false
+  isProgramDropdownOpen.value = false
+  isSessionDropdownOpen.value = false
+}
+
+const toggleDropdown = (field) => {
+  const states = {
+    parent: isParentDropdownOpen,
+    student: isStudentDropdownOpen,
+    program: isProgramDropdownOpen,
+    session: isSessionDropdownOpen
+  }
+
+  const targetState = states[field].value
+  closeAllDropdowns()
+  clearErrors() // Clear errors when interacting with any dropdown
+  states[field].value = !targetState
+}
+
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.custom-dropdown')) {
+    closeAllDropdowns()
+    clearErrors() // Clear errors when clicking outside
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleClickOutside)
+})
+
+// Watch parent hint
+watch(() => props.hint, (newVal) => {
+  if (newVal) setError('parentId', newVal)
+})
+
+// Auto-reset when modal opens
+watch(() => props.isOpen, (newVal) => {
+  if (newVal) {
+    clearErrors()
+  }
+})
+
 const selectParent = (uid) => {
   formData.value.parentId = uid
   formData.value.studentId = ''
+  formData.value.programId = ''
+  formData.value.sessionId = ''
   isParentDropdownOpen.value = false
+  errors.value.parentId = ''
 }
 
 const selectStudent = (student) => {
   formData.value.studentId = student.id || student.uid
+  formData.value.programId = ''
+  formData.value.sessionId = ''
   isStudentDropdownOpen.value = false
+  errors.value.studentId = ''
 }
 
 const selectedStudent = computed(() => {
@@ -96,6 +172,7 @@ const handleProgramChange = (programId) => {
   formData.value.programId = programId
   formData.value.sessionId = ''
   isProgramDropdownOpen.value = false
+  errors.value.programId = ''
   emit('program-change', programId)
 }
 
@@ -140,7 +217,6 @@ const calculatedPrice = computed(() => {
     }
   }
 
-  // Apply discount-like logic if sponsorship or manual discount
   return price - (formData.value.discountAmount || 0)
 })
 
@@ -160,6 +236,16 @@ const prorateSavings = computed(() => {
   return (selectedProgramPrice.value / total) * (total - remaining)
 })
 
+const validateAndSubmit = () => {
+  clearErrors()
+  if (!formData.value.parentId) return setError('parentId', 'Choose a parent first.')
+  if (!formData.value.studentId) return setError('studentId', 'Choose a student first.')
+  if (!formData.value.programId) return setError('programId', 'Choose a program first.')
+  if (!formData.value.sessionId) return setError('sessionId', 'Choose a session first.')
+
+  handleSubmit()
+}
+
 const handleSubmit = () => {
   emit('submit', {
     ...formData.value,
@@ -170,289 +256,311 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <AppModal :show="isOpen" title="Create New Enrollment" @close="$emit('close')">
-    <form @submit.prevent="handleSubmit">
+  <AppModal :show="isOpen" @close="$emit('close')" title="Create New Enrollment">
+    <div class="modal-inner-content">
+      <!-- Global Alerts (Only for actual errors/success from server) -->
       <transition name="toast-fade">
-        <div v-if="error" class="alert-box error">
-          {{ error }}
-        </div>
-      </transition>
-      <transition name="toast-fade">
-        <div v-if="success" class="alert-box success">
-          {{ success }}
+        <div v-if="props.error && props.error.length > 0" class="alert-box error" style="margin-bottom: 24px;">
+          {{ props.error }}
         </div>
       </transition>
 
-      <div class="form-grid">
-        <!-- Selection Group 1 -->
-        <div class="form-group custom-dropdown-container">
-          <label>Select Parent / Guardian</label>
-          <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
-            <div class="dropdown-header" @click="isParentDropdownOpen = !isParentDropdownOpen">
-              <template v-if="selectedParent">
-                <div class="selected-parent">
-                  <img :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
-                  <span>{{ selectedParent.name || selectedParent.email }}</span>
-                </div>
-              </template>
-              <template v-else>
-                <span class="placeholder">Choose a parent</span>
-              </template>
-              <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
-            </div>
-            <div class="dropdown-menu" v-if="isParentDropdownOpen">
-              <div class="dropdown-search">
-                <input type="text" v-model="parentSearchQuery" placeholder="Search name or email..." autofocus />
-              </div>
-              <ul class="dropdown-list">
-                <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
-                  :class="{ active: formData.parentId === (p.uid || p.id) }" @click="selectParent(p.uid || p.id)">
-                  <img :src="p.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
-                  <span class="item-name">{{ p.name || p.email }}</span>
-                </li>
-                <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
-                  No matches found.
-                </li>
-              </ul>
-            </div>
-          </div>
+      <transition name="toast-fade">
+        <div v-if="props.success && props.success.length > 0" class="alert-box success" style="margin-bottom: 24px;">
+          {{ props.success }}
         </div>
+      </transition>
 
-        <div class="form-group custom-dropdown-container">
-          <label>Select Student</label>
-          <div class="custom-dropdown" :class="{ open: isStudentDropdownOpen, disabled: !formData.parentId }">
-            <div class="dropdown-header" @click="formData.parentId && (isStudentDropdownOpen = !isStudentDropdownOpen)">
-              <template v-if="selectedStudent">
-                <div class="selected-item">
-                  <img :src="selectedStudent.profileURL || getImageUrl('profiles/avatar-student')"
-                    class="avatar-mini-sm" />
-                  <span>{{ selectedStudent.fullName || selectedStudent.name }}</span>
-                </div>
-              </template>
-              <template v-else>
-                <span class="placeholder">{{ !formData.parentId ? 'Select parent first' : 'Choose a student'
-                }}</span>
-              </template>
-              <span class="chevron" :class="{ up: isStudentDropdownOpen }"></span>
-            </div>
-
-            <div class="dropdown-menu" v-if="isStudentDropdownOpen">
-              <div class="dropdown-search">
-                <input type="text" v-model="studentSearchQuery" placeholder="Search student name..." @click.stop
-                  autofocus />
+      <form @submit.prevent="validateAndSubmit" class="enrollment-form">
+        <div class="form-grid">
+          <div class="form-group custom-dropdown-container">
+            <label>Select Parent / Guardian</label>
+            <div class="custom-dropdown" :class="{ open: isParentDropdownOpen, 'field-error': errors.parentId }">
+              <div class="dropdown-header" @click.stop="toggleDropdown('parent')">
+                <template v-if="selectedParent">
+                  <div class="selected-parent">
+                    <img :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')"
+                      class="avatar-mini-sm" />
+                    <span>{{ selectedParent.name || selectedParent.email }}</span>
+                  </div>
+                </template>
+                <template v-else>
+                  <span class="placeholder">Choose a parent</span>
+                </template>
+                <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
               </div>
-              <ul class="dropdown-list">
-                <li v-for="s in filteredStudentsList" :key="s.id || s.uid" class="dropdown-item"
-                  :class="{ active: formData.studentId === (s.id || s.uid) }" @click="selectStudent(s)">
-                  <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="avatar-mini-sm" />
-                  <span class="item-name">{{ s.fullName || s.name }}</span>
-                </li>
-                <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results">
-                  No students found.
-                </li>
-              </ul>
+              <div class="dropdown-menu" v-if="isParentDropdownOpen">
+                <div class="dropdown-search">
+                  <input type="text" v-model="parentSearchQuery" placeholder="Search name or email..." autofocus />
+                </div>
+                <ul class="dropdown-list">
+                  <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
+                    style="display: flex; justify-content: space-between; align-items: center;"
+                    :class="{ active: formData.parentId === (p.uid || p.id) }" @click="selectParent(p.uid || p.id)">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <img :src="p.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
+                      <span class="item-name">{{ p.name || p.email }}</span>
+                    </div>
+                    <StatusBadge :status="p.role" />
+                  </li>
+                  <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
+                    No matches found.
+                  </li>
+                </ul>
+              </div>
             </div>
+            <div v-if="errors.parentId" class="field-error-msg">{{ errors.parentId }}</div>
           </div>
-        </div>
 
-        <div class="form-group custom-dropdown-container">
-          <label>Select Program</label>
-          <div class="custom-dropdown" :class="{ open: isProgramDropdownOpen }">
-            <div class="dropdown-header" @click="isProgramDropdownOpen = !isProgramDropdownOpen">
-              <template v-if="selectedProgram">
-                <div class="selected-item">
-                  <span>{{ selectedProgram.title || selectedProgram.name }}</span>
+          <div class="form-group custom-dropdown-container">
+            <label>Select Student</label>
+            <div class="custom-dropdown"
+              :class="{ open: isStudentDropdownOpen, 'step-locked': !formData.parentId, 'field-error': errors.studentId }">
+              <div class="dropdown-header"
+                @click.stop="!formData.parentId ? setError('parentId', 'Choose a parent first.') : toggleDropdown('student')">
+                <template v-if="selectedStudent">
+                  <div class="selected-item">
+                    <img :src="selectedStudent.profileURL || getImageUrl('profiles/avatar-student')"
+                      class="avatar-mini-sm" />
+                    <span>{{ selectedStudent.name }}</span>
+                  </div>
+                </template>
+                <template v-else>
+                  <span class="placeholder">{{ !formData.parentId ? 'Select parent first' : 'Choose a student'
+                  }}</span>
+                </template>
+                <span class="chevron" :class="{ up: isStudentDropdownOpen }"></span>
+              </div>
+
+              <div class="dropdown-menu" v-if="isStudentDropdownOpen">
+                <div class="dropdown-search">
+                  <input type="text" v-model="studentSearchQuery" placeholder="Search student name..." @click.stop
+                    autofocus />
+                </div>
+                <ul class="dropdown-list">
+                  <li v-for="s in filteredStudentsList" :key="s.id || s.uid" class="dropdown-item"
+                    style="display: flex; justify-content: space-between; align-items: center;"
+                    :class="{ active: formData.studentId === (s.id || s.uid) }" @click="selectStudent(s)">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="avatar-mini-sm" />
+                      <span class="item-name">{{ s.fullName || s.name }}</span>
+                    </div>
+                    <StatusBadge :status="calculateAge(s.dob)" />
+                  </li>
+                  <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results">
+                    No students found.
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div v-if="errors.studentId" class="field-error-msg">{{ errors.studentId }}</div>
+          </div>
+
+          <div class="form-group custom-dropdown-container">
+            <label>Select Program</label>
+            <div class="custom-dropdown"
+              :class="{ open: isProgramDropdownOpen, 'step-locked': !formData.studentId, 'field-error': errors.programId }">
+              <div class="dropdown-header"
+                @click.stop="!formData.studentId ? setError('studentId', 'Choose a student first.') : toggleDropdown('program')">
+                <template v-if="selectedProgram">
+                  <div class="selected-item">
+                    <img :src="selectedProgram.profileURL" class="avatar-mini-sm" />
+                    <span>{{ selectedProgram.title }}</span>
+                  </div>
                   <StatusBadge :status="selectedProgram.termName" type="blue" />
-                </div>
-              </template>
-              <template v-else>
-                <span class="placeholder">Choose a program</span>
-              </template>
-              <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
-            </div>
-            <div class="dropdown-menu" v-if="isProgramDropdownOpen">
-              <div class="dropdown-search">
-                <input type="text" v-model="programSearchQuery" placeholder="Search program title..." @click.stop
-                  autofocus />
+                </template>
+                <template v-else>
+                  <span class="placeholder">{{ !formData.studentId ? 'Select student first' : 'Select a program'
+                    }}</span>
+                </template>
+                <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
               </div>
-              <ul class="dropdown-list scrollable">
-                <li v-for="c in filteredPrograms" :key="c.id" class="dropdown-item"
-                  :class="{ active: formData.programId === c.id }" @click="handleProgramChange(c.id)">
-                  <span class="item-name">{{ c.title || c.name }}</span>
-                  <StatusBadge :status="c.termName" type="blue" />
-                </li>
-                <li v-if="filteredPrograms.length === 0" class="dropdown-item no-results">
-                  No matches found.
-                </li>
-              </ul>
+              <div class="dropdown-menu" v-if="isProgramDropdownOpen">
+                <div class="dropdown-search">
+                  <input type="text" v-model="programSearchQuery" placeholder="Search program title..." @click.stop
+                    autofocus />
+                </div>
+                <ul class="dropdown-list scrollable">
+                  <li v-for="c in filteredPrograms" :key="c.id" class="dropdown-item"
+                    :class="{ active: formData.programId === c.id }" @click="handleProgramChange(c.id)">
+                    <span class="item-name">{{ c.title || c.name }}</span>
+                    <StatusBadge :status="c.termName" type="blue" />
+                  </li>
+                  <li v-if="filteredPrograms.length === 0" class="dropdown-item no-results">
+                    No matches found.
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div v-if="errors.programId" class="field-error-msg">{{ errors.programId }}</div>
+          </div>
+
+          <div class="form-group custom-dropdown-container">
+            <label>Select Session</label>
+            <div class="custom-dropdown"
+              :class="{ open: isSessionDropdownOpen, 'step-locked': !formData.programId || sessions.length === 0, 'field-error': errors.sessionId }">
+              <div class="dropdown-header"
+                @click.stop="!formData.programId ? setError('programId', 'Choose a program first.') : (sessions.length === 0 ? setError('sessionId', 'This program has no available sessions.') : toggleDropdown('session'))">
+                <template v-if="selectedSession">
+                  <div class="selected-session">
+                    <div class="session-display">
+                      <div class="session-day"><strong>{{ selectedSession.schedule?.day }}</strong></div>
+                      <div class="session-time">{{ selectedSession.schedule?.timeslot }}</div>
+                    </div>
+                  </div>
+                </template>
+                <template v-else>
+                  <span class="placeholder">{{ !formData.programId ? 'Select program first' : (sessions.length === 0
+                    ? 'No sessions' : 'Choose a time') }}</span>
+                </template>
+                <span class="chevron" :class="{ up: isSessionDropdownOpen }"></span>
+              </div>
+              <div class="dropdown-menu" v-if="isSessionDropdownOpen">
+                <ul class="dropdown-list">
+                  <li v-for="s in sessions" :key="s.id" class="dropdown-item session-item" :class="{
+                    active: formData.sessionId === s.id,
+                    disabled: (s.numStudent || 0) >= (s.maxCapacity || 5)
+                  }" @click="(s.numStudent || 0) < (s.maxCapacity || 5) && selectSession(s.id)">
+                    <div class="session-rows">
+                      <div class="session-row-1">
+                        <div class="session-display">
+                          <div class="session-day"><strong>{{ s.schedule?.day }}</strong></div>
+                          <div class="session-time">{{ s.schedule?.timeslot || 'TBD' }}</div>
+                        </div>
+                        <span v-if="(s.numStudent || 0) >= (s.capacity || s.maxCapacity || 5)"
+                          class="full-badge">FULL</span>
+                      </div>
+                      <div class="session-row-2">
+                        <div class="capacity-bar-mini">
+                          <div class="capacity-progress"
+                            :style="{ width: Math.min(100, ((s.numStudent || 0) / (s.maxCapacity || 5)) * 100) + '%' }">
+                          </div>
+                        </div>
+                        <span class="capacity-text">{{ s.numStudent || 0 }} / {{ s.maxCapacity || 5 }}
+                          enrolled</span>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div v-if="errors.sessionId" class="field-error-msg">{{ errors.sessionId }}</div>
+          </div>
+        </div>
+
+        <!-- Program Brief -->
+        <div v-if="selectedProgram" class="form-group full-width" style="margin-top: 16px;">
+          <label>Program Period</label>
+          <div class="period-info-box">
+            <span class="date">{{ selectedProgram.startDate }}</span>
+            <span class="sep">to</span>
+            <span class="date">{{ selectedProgram.endDate }}</span>
+          </div>
+        </div>
+
+        <div v-if="isAlreadyEnrolled" class="alert-box warning">
+          ⚠️ This student is already enrolled in this program.
+        </div>
+
+        <!-- Session Summary & Prorating -->
+        <div v-if="sessionInfo" class="session-summary-card">
+          <div class="summary-main">
+            <div class="summary-top">
+              <div class="summary-icon">📅</div>
+              <div class="summary-content">
+                <div class="summary-label">Sessions Remaining</div>
+                <div class="summary-value">
+                  <strong>{{ sessionInfo.remaining }}</strong>
+                  <small>of {{ sessionInfo.total }} sessions</small>
+                  <span v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
+                    }}/sess)</span>
+                </div>
+              </div>
+              <div v-if="sessionInfo.passed > 0" class="passed-indicator">
+                <span class="passed-tag">{{ sessionInfo.passed }} sessions passed</span>
+              </div>
+            </div>
+
+            <div v-if="sessionInfo.passed > 0" class="prorate-modern">
+              <label class="prorate-toggle">
+                <div class="toggle-text">
+                  <strong>Partial Enrollment</strong>
+                  <p>Only pay for the remaining {{ sessionInfo.remaining }} sessions</p>
+                </div>
+                <div class="toggle-switch">
+                  <input type="checkbox" v-model="formData.isProrated" />
+                  <span class="slider"></span>
+                </div>
+              </label>
             </div>
           </div>
         </div>
 
-              <div class="form-group custom-dropdown-container">
-                <label>Select Session</label>
-                <div class="custom-dropdown"
-                  :class="{ open: isSessionDropdownOpen, disabled: !formData.programId || sessions.length === 0 }">
-                  <div class="dropdown-header"
-                    @click="formData.programId && sessions.length > 0 && (isSessionDropdownOpen = !isSessionDropdownOpen)">
-                    <template v-if="selectedSession">
-                      <div class="selected-session">
-                        <div class="session-display">
-                          <div class="session-day"><strong>{{ selectedSession.schedule?.day }}</strong></div>
-                          <div class="session-time">{{ selectedSession.schedule?.timeslot }}</div>
-                        </div>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <span class="placeholder">{{ !formData.programId ? 'Select program first' : (sessions.length === 0
-                        ? 'No sessions' : 'Choose a time') }}</span>
-                    </template>
-                    <span class="chevron" :class="{ up: isSessionDropdownOpen }"></span>
-                  </div>
-                  <div class="dropdown-menu" v-if="isSessionDropdownOpen">
-                    <ul class="dropdown-list">
-                      <li v-for="s in sessions" :key="s.id" class="dropdown-item session-item" :class="{
-                        active: formData.sessionId === s.id,
-                        disabled: (s.numStudent || 0) >= (s.maxCapacity || 5)
-                      }" @click="(s.numStudent || 0) < (s.maxCapacity || 5) && selectSession(s.id)">
-                        <div class="session-rows">
-                          <div class="session-row-1">
-                            <div class="session-display">
-                              <div class="session-day"><strong>{{ s.schedule?.day }}</strong></div>
-                              <div class="session-time">{{ s.schedule?.timeslot || 'TBD' }}</div>
-                            </div>
-                            <span v-if="(s.numStudent || 0) >= (s.capacity || s.maxCapacity || 5)"
-                              class="full-badge">FULL</span>
-                          </div>
-                          <div class="session-row-2">
-                            <div class="capacity-bar-mini">
-                              <div class="capacity-progress"
-                                :style="{ width: Math.min(100, ((s.numStudent || 0) / (s.maxCapacity || 5)) * 100) + '%' }">
-                              </div>
-                            </div>
-                            <span class="capacity-text">{{ s.numStudent || 0 }} / {{ s.maxCapacity || 5 }}
-                              enrolled</span>
-                          </div>
-                        </div>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+        <!-- Financial Section -->
+        <div class="financial-section" v-if="sessionInfo">
+          <div class="section-title">Payment & Discounts</div>
+          <div class="financial-grid">
+            <div class="form-group">
+              <label>Discount Amount ($)</label>
+              <input type="number" v-model.number="formData.discountAmount" min="0" placeholder="0"
+                @focus="clearErrors" />
+            </div>
+            <div class="form-group sponsor-group">
+              <label class="checkbox-label">
+                <input type="checkbox" v-model="formData.isSponsorship" />
+                Sponsorship / Third-party
+              </label>
+              <input v-if="formData.isSponsorship" type="text" v-model="formData.sponsorName" placeholder="Sponsor Name"
+                class="mini-input" />
+            </div>
+          </div>
+
+          <div class="custom-override">
+            <label class="checkbox-label danger">
+              <input type="checkbox" v-model="formData.isCustomPrice" />
+              Manual Override (Special Case)
+            </label>
+            <input v-if="formData.isCustomPrice" type="number" v-model.number="formData.customPrice"
+              placeholder="Final Price" class="mini-input" @focus="clearErrors" />
+          </div>
+        </div>
+
+        <!-- Remarks -->
+        <div class="form-group full-width" style="margin-top: 16px;">
+          <label>Enrollment Remarks / Special Case</label>
+          <textarea v-model="formData.remark" placeholder="Enter special notes or conditions for this enrollment..."
+            rows="2" @focus="clearErrors"></textarea>
+        </div>
+
+        <!-- Final Amount Preview -->
+        <div v-if="formData.programId && formData.sessionId" class="price-preview">
+          <div class="price-info">
+            <div class="price-header-row">
+              <span class="price-label">Final Amount</span>
+              <StatusBadge v-if="formData.isProrated" status="Partial Enrollment" type="blue" />
+            </div>
+            <div class="price-notes">
+              <div v-if="sessionInfo && sessionInfo.passed > 0 && formData.isProrated" class="price-note">
+                <span class="original-price">${{ formatPrice(selectedProgramPrice) }}</span>
+                <span class="badge discount">-${{ formatPrice(prorateSavings) }} (Prorated)</span>
+              </div>
+              <div v-if="formData.discountAmount > 0" class="price-note">
+                <span class="badge discount">-${{ formatPrice(formData.discountAmount) }} (Discount)</span>
               </div>
             </div>
+          </div>
+          <strong class="price-value">${{ formatPrice(finalAmount) }}</strong>
+        </div>
 
-            <!-- Program Brief -->
-            <div v-if="selectedProgram" class="form-group full-width" style="margin-top: 16px;">
-              <label>Program Period</label>
-              <div class="period-info-box">
-                <span class="date">{{ selectedProgram.startDate }}</span>
-                <span class="sep">to</span>
-                <span class="date">{{ selectedProgram.endDate }}</span>
-              </div>
-            </div>
-
-            <div v-if="isAlreadyEnrolled" class="alert-box warning">
-              ⚠️ This student is already enrolled in this program.
-            </div>
-
-            <!-- Session Summary & Prorating -->
-            <div v-if="sessionInfo" class="session-summary-card">
-              <div class="summary-main">
-                <div class="summary-top">
-                  <div class="summary-icon">📅</div>
-                  <div class="summary-content">
-                    <div class="summary-label">Sessions Remaining</div>
-                    <div class="summary-value">
-                      <strong>{{ sessionInfo.remaining }}</strong>
-                      <small>of {{ sessionInfo.total }} sessions</small>
-                      <span v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
-                        }}/sess)</span>
-                    </div>
-                  </div>
-                  <div v-if="sessionInfo.passed > 0" class="passed-indicator">
-                    <span class="passed-tag">{{ sessionInfo.passed }} sessions passed</span>
-                  </div>
-                </div>
-
-                <div v-if="sessionInfo.passed > 0" class="prorate-modern">
-                  <label class="prorate-toggle">
-                    <div class="toggle-text">
-                      <strong>Partial Enrollment</strong>
-                      <p>Only pay for the remaining {{ sessionInfo.remaining }} sessions</p>
-                    </div>
-                    <div class="toggle-switch">
-                      <input type="checkbox" v-model="formData.isProrated" />
-                      <span class="slider"></span>
-                    </div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <!-- Financial Section -->
-            <div class="financial-section">
-              <div class="section-title">Payment & Discounts</div>
-              <div class="financial-grid">
-                <div class="form-group">
-                  <label>Discount Amount ($)</label>
-                  <input type="number" v-model.number="formData.discountAmount" min="0" placeholder="0" />
-                </div>
-                <div class="form-group sponsor-group">
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="formData.isSponsorship" />
-                    Sponsorship / Third-party
-                  </label>
-                  <input v-if="formData.isSponsorship" type="text" v-model="formData.sponsorName"
-                    placeholder="Sponsor Name" class="mini-input" />
-                </div>
-              </div>
-
-              <div class="custom-override">
-                <label class="checkbox-label danger">
-                  <input type="checkbox" v-model="formData.isCustomPrice" />
-                  Manual Override (Special Case)
-                </label>
-                <input v-if="formData.isCustomPrice" type="number" v-model.number="formData.customPrice"
-                  placeholder="Final Price" class="mini-input" />
-              </div>
-            </div>
-
-            <!-- Remarks -->
-            <div class="form-group full-width" style="margin-top: 16px;">
-              <label>Enrollment Remarks / Special Case</label>
-              <textarea v-model="formData.remark" placeholder="Enter special notes or conditions for this enrollment..."
-                rows="2"></textarea>
-            </div>
-
-            <!-- Final Amount Preview -->
-            <div v-if="formData.programId && formData.sessionId" class="price-preview">
-              <div class="price-info">
-                <div class="price-header-row">
-                  <span class="price-label">Final Amount</span>
-                  <StatusBadge v-if="formData.isProrated" status="Partial Enrollment" type="blue" />
-                </div>
-                <div class="price-notes">
-                  <div v-if="sessionInfo && sessionInfo.passed > 0 && formData.isProrated" class="price-note">
-                    <span class="original-price">${{ formatPrice(selectedProgramPrice) }}</span>
-                    <span class="badge discount">-${{ formatPrice(prorateSavings) }} (Prorated)</span>
-                  </div>
-                  <div v-if="formData.discountAmount > 0" class="price-note">
-                    <span class="badge discount">-${{ formatPrice(formData.discountAmount) }} (Discount)</span>
-                  </div>
-                </div>
-              </div>
-              <strong class="price-value">${{ formatPrice(finalAmount) }}</strong>
-            </div>
-
-      <!-- Hidden submit for Enter key functionality -->
-      <button type="submit" style="display: none;"></button>
-    </form>
+        <!-- Hidden submit for Enter key functionality -->
+        <button type="submit" style="display: none;"></button>
+      </form>
+    </div>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-      <AppButton variant="primary" type="submit" @click="handleSubmit"
-        :disabled="!formData.parentId || !formData.studentId || !formData.programId || !formData.sessionId || loading"
-        :loading="loading">
+      <AppButton variant="primary" type="button" @click.stop="validateAndSubmit" :loading="loading"
+        :class="{ 'button-disabled': !formData.parentId || !formData.studentId || !formData.programId || !formData.sessionId }">
         Confirm Enrollment
       </AppButton>
     </template>
@@ -878,8 +986,7 @@ input:checked+.slider:before {
   background: #fffbeb;
   color: #92400e;
   border: 1px solid #fef3c7;
-  margin-top: 16px;
-  margin-bottom: 0;
+  margin-bottom: 16px;
 }
 
 .alert-box.success {
@@ -914,16 +1021,17 @@ input:checked+.slider:before {
   border-color: #00aeef;
 }
 
-.custom-dropdown.disabled .dropdown-header {
-  cursor: not-allowed;
+.custom-dropdown.step-locked .dropdown-header {
+  cursor: not-allowed !important;
   opacity: 0.7;
+  pointer-events: auto !important;
+  /* Force click events to fire even when locked */
 }
 
-.selected-parent,
 .selected-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
 }
 
 /* Uses global .avatar-mini-sm */
@@ -1121,6 +1229,41 @@ input:checked+.slider:before {
   transform: scale(0.9) translateY(20px);
 }
 
+.enrollment-form {
+  padding-top: 20px;
+}
+
+.field-error {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+.field-error-msg {
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 6px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.button-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  filter: grayscale(0.5);
+}
+
 .toast-fade-enter-active,
 .toast-fade-leave-active {
   transition: all 0.3s ease;
@@ -1130,5 +1273,36 @@ input:checked+.slider:before {
 .toast-fade-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+.shake {
+  animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+@keyframes shake {
+
+  10%,
+  90% {
+    transform: translate3d(-1px, 0, 0);
+  }
+
+  20%,
+  80% {
+    transform: translate3d(2px, 0, 0);
+  }
+
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-4px, 0, 0);
+  }
+
+  40%,
+  60% {
+    transform: translate3d(4px, 0, 0);
+  }
 }
 </style>

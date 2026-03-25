@@ -28,6 +28,7 @@ const showModal = ref(false)
 const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const validationHint = ref('')
 const newlyCreatedId = ref(null)
 
 const getRowClass = (item) => {
@@ -79,6 +80,22 @@ const handleProgramChange = async (programId) => {
   } catch (err) {
     console.error('Failed to load sessions', err)
   }
+}
+
+const isAlreadyEnrolled = (studentId, programId) => {
+  if (!studentId || !programId) return false
+  return enrollments.value.some(
+    (e) => e.studentId === studentId && e.programId === programId && e.status !== 'cancelled'
+  )
+}
+
+let hintTimeout = null
+const setValidationHint = (msg) => {
+  validationHint.value = msg
+  if (hintTimeout) clearTimeout(hintTimeout)
+  hintTimeout = setTimeout(() => {
+    validationHint.value = ''
+  }, 4000)
 }
 
 const handleCreateEnrollment = async (formData) => {
@@ -311,8 +328,7 @@ const formatPrice = (val) => {
               </div>
             </td>
             <td class="text-center">
-              <StatusBadge
-                :status="isPaid(item.status || item.paymentStatus) ? 'Paid' : (isCancelled(item.status || item.paymentStatus) ? 'Cancelled' : 'Unpaid')" />
+              <StatusBadge :status="item.displayStatus || 'Unpaid'" />
             </td>
             <td class="action-cell text-center">
               <div class="menu-container">
@@ -342,8 +358,9 @@ const formatPrice = (val) => {
 
     <EnrollmentModal :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
       :programs="programs" :sessions="sessions" :enrollments="enrollments" :error="errorMessage"
-      :success="successMessage" @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }"
-      @program-change="handleProgramChange" @submit="handleCreateEnrollment" />
+      :success="successMessage" :hint="validationHint" 
+      @close="() => { showModal = false; errorMessage = ''; successMessage = ''; validationHint = ''; }"
+      @program-change="handleProgramChange" @submit="handleCreateEnrollment" @hint="setValidationHint" />
 
     <!-- Action Modals -->
     <AppModal :show="actionModal.isOpen" :title="actionModal.type + ' Enrollment'" variant="action"
