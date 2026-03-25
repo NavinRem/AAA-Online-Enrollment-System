@@ -266,7 +266,7 @@ const formatPrice = (val) => {
             <td class="hide-on-mobile text-center">
               {{ index + 1 }}
             </td>
-            <td class="hide-on-tablet">
+            <td class="hide-on-tablet bold">
               <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent" />
@@ -274,7 +274,7 @@ const formatPrice = (val) => {
                 <span>{{ item.parentName }}</span>
               </div>
             </td>
-            <td>
+            <td class="bold">
               <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="getStudentProfileURL(item.studentProfileURL)" alt="student" />

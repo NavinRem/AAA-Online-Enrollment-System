@@ -47,7 +47,7 @@ class EnrollmentService {
         studentId,
         sessionId,
         programId,
-        parentId: studentDoc.data().parentId, 
+        parentId: studentDoc.data().parentId,
         status: "pending",
         paymentStatus: "unpaid",
         amount: programData.price || 0,
@@ -71,13 +71,14 @@ class EnrollmentService {
   }
 
   async getAllEnrollments() {
-    const [snapshot, usersSnap, studentsSnap, programsSnap, sessionsSnap] = await Promise.all([
-      db.collection(COLLECTIONS.ENROLLMENT).get(),
-      db.collection(COLLECTIONS.USER).get(),
-      db.collection(COLLECTIONS.STUDENT).get(),
-      db.collection(COLLECTIONS.PROGRAM).get(),
-      db.collection(COLLECTIONS.SESSION).get(),
-    ]);
+    const [snapshot, usersSnap, studentsSnap, programsSnap, sessionsSnap] =
+      await Promise.all([
+        db.collection(COLLECTIONS.ENROLLMENT).get(),
+        db.collection(COLLECTIONS.USER).get(),
+        db.collection(COLLECTIONS.STUDENT).get(),
+        db.collection(COLLECTIONS.PROGRAM).get(),
+        db.collection(COLLECTIONS.SESSION).get(),
+      ]);
 
     const usersMap = {};
     usersSnap.forEach((doc) => (usersMap[doc.id] = doc.data()));
@@ -109,16 +110,26 @@ class EnrollmentService {
       const studentData = studentsMap[data.studentId] || {};
       const programData = programsMap[data.programId] || {};
 
-      const parentName = parentData.name || parentData.email || data.parentName || "N/A";
-      const studentName = studentData.fullName || studentData.name || data.studentName || "N/A";
-      const programTitle = programData.title || programData.name || data.programTitle || data.courseTitle || "N/A";
+      const parentName =
+        parentData.name || parentData.email || data.parentName || "N/A";
+      const studentName =
+        studentData.fullName || studentData.name || data.studentName || "N/A";
+      const programTitle =
+        programData.title ||
+        programData.name ||
+        data.programTitle ||
+        data.courseTitle ||
+        "N/A";
       const programCategory = programData.category || "N/A";
 
       const parentProfileURL = parentData.profileURL || null;
       const studentProfileURL = studentData.profileURL || null;
       const programProfileURL = programData.profileURL || null;
 
-      const teacher = programData.teachers && programData.teachers.length > 0 ? programData.teachers[0] : null;
+      const teacher =
+        programData.teachers && programData.teachers.length > 0
+          ? programData.teachers[0]
+          : null;
       const teacherName = teacher?.name || data.teacherName || "Not Assigned";
       const teacherProfileURL = teacher?.profileURL || null;
 
@@ -162,10 +173,18 @@ class EnrollmentService {
     const data = doc.data();
 
     const [userDoc, studentDoc, programDoc, sessionDoc] = await Promise.all([
-      data.parentId ? db.collection(COLLECTIONS.USER).doc(data.parentId).get() : Promise.resolve({ exists: false }),
-      data.studentId ? db.collection(COLLECTIONS.STUDENT).doc(data.studentId).get() : Promise.resolve({ exists: false }),
-      data.programId ? db.collection(COLLECTIONS.PROGRAM).doc(data.programId).get() : Promise.resolve({ exists: false }),
-      data.sessionId ? db.collection(COLLECTIONS.SESSION).doc(data.sessionId).get() : Promise.resolve({ exists: false }),
+      data.parentId
+        ? db.collection(COLLECTIONS.USER).doc(data.parentId).get()
+        : Promise.resolve({ exists: false }),
+      data.studentId
+        ? db.collection(COLLECTIONS.STUDENT).doc(data.studentId).get()
+        : Promise.resolve({ exists: false }),
+      data.programId
+        ? db.collection(COLLECTIONS.PROGRAM).doc(data.programId).get()
+        : Promise.resolve({ exists: false }),
+      data.sessionId
+        ? db.collection(COLLECTIONS.SESSION).doc(data.sessionId).get()
+        : Promise.resolve({ exists: false }),
     ]);
 
     const userData = userDoc.exists ? userDoc.data() : null;
@@ -173,11 +192,16 @@ class EnrollmentService {
     const programData = programDoc.exists ? programDoc.data() : null;
     const sessionData = sessionDoc.exists ? sessionDoc.data() : null;
 
-    // Optional: Fetch Teacher profile if linked in program
-    let teacherData = null;
-    if (programData?.teacherId) {
-      const teacherDoc = await db.collection(COLLECTIONS.USER).doc(programData.teacherId).get();
-      if (teacherDoc.exists) teacherData = teacherDoc.data();
+    // Resolve all teachers linked to the Program
+    let resolvedTeachers = [];
+    if (programData?.teachers && programData.teachers.length > 0) {
+      resolvedTeachers = await Promise.all(
+        programData.teachers.map(async (t) => {
+          const tId = t.id || t;
+          const tDoc = await db.collection(COLLECTIONS.USER).doc(tId).get();
+          return tDoc.exists ? { id: tId, ...tDoc.data() } : { id: tId, name: t.name || "Unassigned" };
+        }),
+      );
     }
 
     let sessionSchedule = data.sessionSchedule || "N/A";
@@ -189,17 +213,17 @@ class EnrollmentService {
       sessionSchedule = scheduleLines.join(", ");
     }
 
-    let teacherName = "Not Assigned";
-    if (sessionData && sessionData.teachers && sessionData.teachers.length > 0) {
-      const first = sessionData.teachers[0];
-      if (first.name) {
-        teacherName = first.name;
-      } else if (first.id) {
-        const instDoc = await db.collection(COLLECTIONS.USER).doc(first.id).get();
-        if (instDoc.exists) {
-          teacherName = instDoc.data().name || instDoc.data().email || "Assigned";
-        }
-      }
+    let sessionTeachers = [];
+    if (sessionData?.teachers && sessionData.teachers.length > 0) {
+      sessionTeachers = await Promise.all(
+        sessionData.teachers.map(async (t) => {
+          if (t.id) {
+            const tDoc = await db.collection(COLLECTIONS.USER).doc(t.id).get();
+            return tDoc.exists ? { id: t.id, ...tDoc.data() } : t;
+          }
+          return t;
+        }),
+      );
     }
 
     const rStatus = (data.paymentStatus || data.status || "").toLowerCase();
@@ -213,63 +237,67 @@ class EnrollmentService {
     return {
       id: doc.id,
       ...data,
-      // Nested full objects for the "Chosen One" (Detail View)
-      parent: userData ? {
-        id: data.parentId,
-        ...userData,
-        displayName: userData.name
-      } : null,
-      student: studentData ? {
-        id: data.studentId,
-        ...studentData,
-        fullName: studentData.name
-      } : null,
-      program: programData ? {
-        id: data.programId,
-        ...programData,
-        title: programData.title
-      } : null,
-      session: sessionData ? {
-        id: data.sessionId,
-        ...sessionData,
-        scheduleString: sessionSchedule
-      } : null,
-      teacher: teacherData ? {
-        id: programData.teacherId,
-        ...teacherData,
-        fullname: teacherData.name || teacherData.fullName || "N/A"
-      } : null,
-
-      // Convenience top-level fields (Legacy/Compatibility)
-      parentName: userData?.name || userData?.fullName || data.parentName || "N/A",
-      parentProfileURL: userData?.profileURL || null,
-      parentEmail: userData?.email || data.parentEmail || "N/A",
-      parentPhone: userData?.phone || userData?.phoneNumber || data.parentPhone || "N/A",
-      parentRole: userData?.role
-        ? userData.role === "parent"
-          ? "Parent"
-          : userData.role.charAt(0).toUpperCase() + userData.role.slice(1)
-        : "Guardian",
-      studentName:
-        studentData?.fullName || studentData?.name || data.studentName || "N/A",
-      studentProfileURL: studentData?.profileURL || null,
-      studentDob: studentData?.dob || null,
-      medicalNote: studentData?.medicalNote || "None",
-      programId: data.programId,
-      programTitle:
-        programData?.title || programData?.name || data.programTitle || data.courseTitle || "N/A",
-      programProfileURL: programData?.profileURL || null,
       displayStatus,
       sessionSchedule,
-      teacherName,
+      // Nested full objects (Use these in the frontend)
+      parent: userData
+        ? {
+            id: data.parentId,
+            ...userData,
+            // Add a computed role or other UI-only logic here if needed
+            roleDisplay:
+              userData.role === "parent"
+                ? "Parent"
+                : userData.role || "Guardian",
+          }
+        : null,
+      student: studentData
+        ? {
+            id: data.studentId,
+            ...studentData,
+          }
+        : null,
+      program: programData
+        ? {
+            id: data.programId,
+            ...programData,
+          }
+        : null,
+      session: sessionData
+        ? {
+            id: data.sessionId,
+            ...sessionData,
+            teachers: sessionTeachers,
+            scheduleString: sessionSchedule,
+          }
+        : null,
+      teacher:
+        resolvedTeachers.length > 0
+          ? {
+              id: resolvedTeachers[0].id,
+              ...resolvedTeachers[0],
+            }
+          : null,
+      // Transaction-specific & Compatibility fields
+      teacherName:
+        resolvedTeachers.length > 0
+          ? resolvedTeachers[0].name
+          : "Not Assigned",
+      teacherProfileURL:
+        resolvedTeachers.length > 0
+          ? resolvedTeachers[0].profileURL
+          : null,
+      numberSessions: data.numberSessions || sessionData?.totalSessions || 10,
+      amount: data.amount || programData?.price || 0,
       capacity: sessionData?.capacity || 0,
       numStudent: sessionData?.numStudent || 0,
-      totalSessions: sessionData?.totalSessions || 10,
     };
   }
 
   async cancelEnrollment(enrollmentId) {
-    const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId);
+    const enrollmentRef = db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .doc(enrollmentId);
     const doc = await enrollmentRef.get();
 
     if (!doc.exists) throw new Error("Enrollment not found");
@@ -298,7 +326,9 @@ class EnrollmentService {
   }
 
   async updateEnrollment(enrollmentId, updateData) {
-    const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId);
+    const enrollmentRef = db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .doc(enrollmentId);
     const doc = await enrollmentRef.get();
 
     if (!doc.exists) throw new Error("Enrollment not found");
@@ -312,7 +342,9 @@ class EnrollmentService {
   }
 
   async deleteEnrollment(enrollmentId) {
-    const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId);
+    const enrollmentRef = db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .doc(enrollmentId);
     const doc = await enrollmentRef.get();
 
     if (!doc.exists) throw new Error("Enrollment not found");
@@ -321,7 +353,9 @@ class EnrollmentService {
 
     if (data.status !== "cancelled" && data.status !== "canceled") {
       await db.runTransaction(async (transaction) => {
-        const sessionRef = db.collection(COLLECTIONS.SESSION).doc(data.sessionId);
+        const sessionRef = db
+          .collection(COLLECTIONS.SESSION)
+          .doc(data.sessionId);
         const sessionDoc = await transaction.get(sessionRef);
 
         if (sessionDoc.exists) {

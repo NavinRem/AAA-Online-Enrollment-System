@@ -45,7 +45,7 @@ const navigateToDetail = (item) => {
     </div>
 
     <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
-      <tr v-for="item in enrollments" :key="item.id || item.no">
+      <tr v-for="item in enrollments" :key="item.id || item.no" style="cursor: pointer;">
         <td class="text-center">{{ item.no }}</td>
         <td class="bold">
           <div class="info-cell clickable" @click="navigateToDetail(item)">

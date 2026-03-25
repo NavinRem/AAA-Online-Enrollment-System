@@ -150,7 +150,7 @@ onMounted(async () => {
     // 1. Fetch the Enriched Enrollment record (Consolidated BFF Pattern)
     const data = await enrollmentService.getEnrollment(id)
     if (!data) throw new Error('Enrollment not found')
-    
+
     // 2. Populate all reactive refs from the single unified response
     enrollment.value = data
     parent.value = data.parent
@@ -193,69 +193,72 @@ onMounted(async () => {
 
       <template #left-content v-if="enrollment">
         <div class="detail-cards-grid">
-          <DetailCard title="Parent/Guardian Information" :avatarUrl="getParentProfileURL(enrollment.parentProfileURL)">
-            <p><strong>Fullname:</strong> {{ enrollment.parentName }}</p>
-            <p><strong>Email:</strong> {{ enrollment.parentEmail }}</p>
-            <p><strong>Phone Number:</strong> {{ enrollment.parentPhone }}</p>
+          <DetailCard title="Parent/Guardian Information" :avatarUrl="getParentProfileURL(parent?.profileURL)">
+            <p><strong>Fullname:</strong> {{ enrollment.parent?.name }}</p>
+            <p><strong>Email:</strong> {{ enrollment.parent?.email }}</p>
+            <p><strong>Phone Number:</strong> {{ enrollment.parent?.phone }}</p>
             <p>
               <strong>Role:</strong>
-              <StatusBadge :status="enrollment.parentRole" />
+              <StatusBadge :status="enrollment.parent?.roleDisplay || 'Guardian'" />
             </p>
           </DetailCard>
 
-          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.studentProfileURL)">
+          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(student?.profileURL)">
             <p>
               <strong>Fullname:</strong>
-              {{ enrollment.studentName }}
+              {{ enrollment.student?.name }}
             </p>
             <p>
               <strong>Date of birth:</strong>
-              {{ formatDateOnly(enrollment.studentDob) }}
+              {{ formatDateOnly(enrollment.student?.dob) }}
             </p>
-            <p><strong>Age:</strong> {{ calculateAge(enrollment.studentDob) }}</p>
+            <p><strong>Age:</strong> {{ calculateAge(enrollment.student?.dob) }}</p>
             <p>
               <strong>Medical Note:</strong>
-              {{ enrollment.medicalNote }}
+              {{ enrollment.student?.medicalNote || 'None' }}
             </p>
           </DetailCard>
 
-          <DetailCard title="Enrollment Information" :avatarUrl="getProgramProfileURL(enrollment.programProfileURL)">
+          <DetailCard title="Program Information"
+            :avatarUrl="getProgramProfileURL(enrollment.program?.profileURL, enrollment.program?.category)">
             <p>
-              <strong>Program title:</strong>
-              {{ enrollment.programTitle || program?.title || 'N/A' }}
+              <strong>Program:</strong>
+              {{ enrollment.program?.title }}
             </p>
-            <div class="session-info-row">
-              <div class="session-day"><strong>{{ getSessionDay(enrollment.sessionSchedule) }}</strong></div>
-              <div class="session-time">{{ getSessionTime(enrollment.sessionSchedule) }}</div>
-            </div>
+            <p>
+              <strong>Schedule:</strong>
+              <StatusBadge :status="'purple:' + getSessionDay(enrollment.sessionSchedule)" />
+              {{ getSessionTime(enrollment.sessionSchedule) }}
+            </p>
             <p>
               <strong>Number Session Enrolled:</strong>
-              {{ enrollment.numberSessions }} Sessions
+              {{ enrollment.numberSessions || program?.totalSessions }} Sessions
             </p>
             <p>
-              <strong>Date:</strong>
+              <strong>Enrolled Date:</strong>
               {{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}
             </p>
           </DetailCard>
 
           <DetailCard title="Session Information"
-            :avatarUrl="getTeacherProfileURL(teacher?.profileURL || enrollment.teacherProfileURL)">
-            <p><strong>Program:</strong> {{ enrollment.programTitle || program?.title || 'N/A' }}</p>
-            <p>
-              <strong>Teacher Name:</strong>
-              {{
-                teacher?.fullname || teacher?.name || teacher?.email ||
-                program?.teacherName || enrollment.teacherName ||
-                (session?.teachers?.length > 0 ? session.teachers[0].name : enrollment.teacherName)
-                || 'Not Assigned'
-              }}
-            </p>
-            <p><strong>Total Student:</strong> {{ session?.capacity || enrollment.capacity || 'N/A' }}</p>
-            <div class="session-info-row">
-              <div class="session-day"><strong>{{ getSessionDay(session?.schedule || enrollment.sessionSchedule)
-              }}</strong></div>
-              <div class="session-time">{{ getSessionTime(session?.schedule || enrollment.sessionSchedule) }}</div>
+            :avatarUrl="getTeacherProfileURL(enrollment.program?.teachers?.[0]?.profileURL)">
+            <p><strong>Program:</strong> {{ enrollment.program?.title || 'N/A' }}</p>
+
+            <p class="teacher-row-aligned">
+              <strong>Teacher(s):</strong>
+            <div v-if="enrollment.program?.teachers?.length > 0" class="teacher-content-inline">
+              <span v-if="enrollment.program.teachers.length === 1" class="teacher-name-solo">
+                {{ enrollment.program.teachers[0].name }}
+              </span>
+              <div v-else class="teacher-avatar-stack-inline">
+                <img v-for="t in enrollment.program.teachers" :key="t.id" :src="getTeacherProfileURL(t.profileURL)"
+                  class="teacher-avatar-stacked" :title="t.name" />
+              </div>
             </div>
+            <span v-else class="not-assigned-label">Not Assigned</span>
+            </p>
+            <p><strong>Student Enrolled:</strong> {{ session?.numStudent }}</p>
+            <p><strong>Max Capacity:</strong> {{ session?.capacity }}</p>
           </DetailCard>
         </div>
       </template>
@@ -289,7 +292,7 @@ onMounted(async () => {
           </div>
 
           <div class="detail-row" v-if="enrollment.remark">
-            <span class="summary-label">Remark</span>
+            <span class="summary-label">Admin Remark</span>
             <span class="summary-value">{{ enrollment.remark }}</span>
           </div>
         </DetailedSummaryCard>
@@ -413,12 +416,12 @@ onMounted(async () => {
               </div>
               <label>Adjust Enrollment Amount ($)</label>
               <span class="original-value" v-if="actionModal.originalAmount">Original: ${{ actionModal.originalAmount
-              }}</span>
+                }}</span>
               <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
 
               <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
               <span class="original-value" v-if="actionModal.originalRemark">Original: {{ actionModal.originalRemark
-              }}</span>
+                }}</span>
               <textarea v-model="actionModal.remark" placeholder="Please write your remark here..."></textarea>
               <div class="preset-chips">
                 <button type="button" class="preset-chip" :class="{ active: isPresetActive('remark', 'VIP Student') }"
@@ -591,6 +594,85 @@ onMounted(async () => {
   flex-direction: column;
   gap: 2px;
   margin-bottom: 12px;
+}
+
+.teacher-row-aligned {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0
+}
+
+.teacher-content-inline {
+  display: flex;
+  align-items: center;
+}
+
+.teacher-name-solo {
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.teacher-avatar-stack-inline {
+  display: flex;
+  align-items: center;
+  margin-left: 5px;
+}
+
+.not-assigned-label {
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.capacity-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.capacity-info p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.capacity-info strong {
+  color: #1e293b;
+}
+
+.teacher-avatar-stack {
+  display: flex;
+  align-items: center;
+  margin-top: 5px;
+}
+
+.teacher-avatar-stacked {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  margin-left: -8px;
+  /* The overlap! */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.teacher-avatar-stacked:first-child {
+  margin-left: 0;
+}
+
+.teacher-avatar-stacked:hover {
+  transform: translateY(-4px) scale(1.1);
+  z-index: 10;
+}
+
+.stack-label {
+  margin-left: 12px;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .modal-overlay {
