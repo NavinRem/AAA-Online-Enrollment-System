@@ -112,9 +112,24 @@
   flex-direction: column;
   gap: 16px;
   height: 100%;
+}
+
+.sticky-sidebar.is-scrollable {
+  max-height: calc(100vh - 100px);
   overflow-y: auto;
+  padding-right: 12px;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.03);
   border-left: 1px solid #f1f5f9;
+}
+
+/* Custom scrollbar for sidebar */
+.sticky-sidebar.is-scrollable::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sticky-sidebar.is-scrollable::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
 }
 
 

@@ -25,13 +25,20 @@ export const isPending = (status) => {
  * Maps a status string to a UI category (color).
  */
 export const getStatusCategory = (status) => {
-  const s = String(status || '').toLowerCase().trim()
+  const s = String(status).toLowerCase().trim()
   
+  // 0. Dynamic color prefix (e.g., "blue:Monday" -> blue)
+  if (s.includes(':')) {
+    const [color] = s.split(':')
+    const validColors = ['green', 'yellow', 'red', 'blue', 'purple', 'magenta', 'orange', 'gray']
+    if (validColors.includes(color)) return color
+  }
+
   const categories = {
-    green: ['paid', 'confirmed', 'active', 'on-time', 'present', 'excellent', 'studying', 'parent', 'created at', 'joined at', 'success', 'past', 'full'],
+    green: ['paid', 'confirmed', 'active', 'on-time', 'present', 'excellent', 'studying', 'parent', 'created at', 'joined at', 'success', 'past', 'full', 'start'],
     yellow: ['unpaid', 'pending', 'deactivated', 'suspended', 'warning', 'permission', 'inactive', 'upcoming', 'scheduled'],
     red: ['canceled', 'cancelled', 'failed', 'stopped', 'absent', 'serious', 'closed'],
-    blue: ['graduated', 'late', 'good', 'fair', 'guardian', 'updated at', 'partial', 'prorated', 'discount'],
+    blue: ['graduated', 'late', 'good', 'fair', 'guardian', 'updated at', 'partial', 'prorated', 'discount', 'end'],
     purple: ['make-up', 'makeup', 'intermediate', 'children', 'in progress', 'sponsorship'],
     magenta: ['unmarked', 'archived']
   }
@@ -53,7 +60,18 @@ export const getStatusCategory = (status) => {
  */
 export const getStatusDisplay = (status) => {
   if (status === undefined || status === null) return 'N/A'
-  const s = String(status)
+  let s = String(status)
+  
+  // Clean dynamic color prefix if present (e.g., "blue:Monday" -> "Monday")
+  if (s.includes(':')) {
+    const parts = s.split(':')
+    const color = parts[0].toLowerCase().trim()
+    const validColors = ['green', 'yellow', 'red', 'blue', 'purple', 'magenta', 'orange', 'gray']
+    if (validColors.includes(color)) {
+      s = parts.slice(1).join(':').trim()
+    }
+  }
+
   const lower = s.toLowerCase().trim()
 
   const genericTerms = [

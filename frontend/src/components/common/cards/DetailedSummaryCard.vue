@@ -31,6 +31,7 @@ defineProps({
   background: transparent;
   padding: 0;
   width: 100%;
+  min-width: 100%;
 }
 
 .summary-title {
@@ -77,7 +78,7 @@ defineProps({
 :deep(.detail-row) {
   display: flex;
   flex-direction: column;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   align-items: flex-start;
 }
 

@@ -22,9 +22,9 @@
           </div>
         </div>
 
-        <div class="right-content-area sticky-sidebar">
+        <aside class="sticky-sidebar" :class="{ 'is-scrollable': rightScrollable }">
           <slot name="right-content"></slot>
-        </div>
+        </aside>
       </div>
     </div>
   </div>
@@ -42,6 +42,10 @@ const props = defineProps({
     default: '/',
   },
   scrollable: {
+    type: Boolean,
+    default: false,
+  },
+  rightScrollable: {
     type: Boolean,
     default: false,
   },

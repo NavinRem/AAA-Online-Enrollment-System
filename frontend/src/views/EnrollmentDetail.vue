@@ -190,7 +190,8 @@ onMounted(async () => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments" :scrollable="true">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments" :scrollable="true"
+      :rightScrollable="true">
       <template #header-actions v-if="enrollment">
         <div class="actions-wrapper">
           <button class="btn-icon edit" title="Edit Enrollment" @click="openActionModal('edit')">
@@ -212,41 +213,33 @@ onMounted(async () => {
 
       <template #left-content v-if="enrollment">
         <div class="detail-cards-grid">
-          <DetailCard title="Parent/Guardian Information"
-            :avatarUrl="getParentProfileURL(enrollment.parentProfileURL || parent?.profileURL)">
-            <p><strong>Fullname:</strong> {{ enrollment.parentName || parent?.fullName || parent?.name || 'N/A' }}</p>
-            <p><strong>Email:</strong> {{ parent?.email || enrollment.parentEmail || 'N/A' }}</p>
-            <p><strong>Phone Number:</strong> {{ parent?.phone || enrollment.parentPhone || 'N/A' }}</p>
+          <DetailCard title="Parent/Guardian Information" :avatarUrl="getParentProfileURL(enrollment.parentProfileURL)">
+            <p><strong>Fullname:</strong> {{ enrollment.parentName }}</p>
+            <p><strong>Email:</strong> {{ enrollment.parentEmail }}</p>
+            <p><strong>Phone Number:</strong> {{ enrollment.parentPhone }}</p>
             <p>
               <strong>Role:</strong>
-              <StatusBadge :status="parent?.role
-                ? parent.role === 'parent'
-                  ? 'Parent'
-                  : parent.role.charAt(0).toUpperCase() + parent.role.slice(1)
-                : enrollment.parentRole">
-              </StatusBadge>
+              <StatusBadge :status="enrollment.parentRole" />
             </p>
           </DetailCard>
 
-          <DetailCard title="Student Information"
-            :avatarUrl="getStudentProfileURL(enrollment.studentProfileURL || student?.profileURL)">
+          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.studentProfileURL)">
             <p>
               <strong>Fullname:</strong>
-              {{ enrollment.studentName || student?.fullName || student?.name || 'N/A' }}
+              {{ enrollment.studentName }}
             </p>
             <p>
               <strong>Date of birth:</strong>
-              {{ formatDateOnly(student?.dob || enrollment.studentDob) }}
+              {{ formatDateOnly(enrollment.studentDob) }}
             </p>
-            <p><strong>Age:</strong> {{ calculateAge(student?.dob || enrollment.studentDob) }}</p>
+            <p><strong>Age:</strong> {{ calculateAge(enrollment.studentDob) }}</p>
             <p>
               <strong>Medical Note:</strong>
-              {{ student?.medicalNote || enrollment.medicalNote || 'None' }}
+              {{ enrollment.medicalNote }}
             </p>
           </DetailCard>
 
-          <DetailCard title="Enrollment Information"
-            :avatarUrl="getProgramProfileURL(enrollment.programProfileURL || program?.profileURL || program?.imageURL)">
+          <DetailCard title="Enrollment Information" :avatarUrl="getProgramProfileURL(enrollment.programProfileURL)">
             <p>
               <strong>Program title:</strong>
               {{ enrollment.programTitle || program?.title || 'N/A' }}
@@ -257,7 +250,7 @@ onMounted(async () => {
             </div>
             <p>
               <strong>Number Session Enrolled:</strong>
-              {{ session?.totalSessions || enrollment.numberSessions || enrollment.totalSessions || '0' }} Sessions
+              {{ enrollment.numberSessions }} Sessions
             </p>
             <p>
               <strong>Date:</strong>
@@ -288,109 +281,118 @@ onMounted(async () => {
       </template>
 
       <template #right-content v-if="enrollment">
-        <DetailedSummaryCard title="Basic Information" subtitle="Enrollment Status">
-          <div class="detail-row align-center mb-2">
+        <DetailedSummaryCard title="Basic Information" subtitle="Enrollment Information">
+          <div class="detail-row align-center">
             <span class="summary-label">Status</span>
-            <StatusBadge :status="enrollment.status === 'cancelled'
-              ? 'Canceled'
-              : enrollment.paymentStatus?.toLowerCase() === 'paid'
-                ? 'Paid'
-                : 'Unpaid'
-              " />
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <StatusBadge :status="enrollment.status === 'cancelled' ? 'Canceled' :
+                enrollment.paymentStatus?.toLowerCase() === 'paid' ? 'Paid' : 'Unpaid'" />
+            </div>
           </div>
-          <div class="detail-row">
-            <span class="summary-label">Last Updated</span>
-            <span class="summary-value">{{
-              enrollment.updatedAt ? formatDate(enrollment.updatedAt) : 'Never'
-            }}</span>
-          </div>
-          <div v-if="
-            enrollment.status === 'cancelled' && (enrollment.cancelReason || enrollment.reason)
-          " class="detail-row mb-3">
-            <span class="summary-label">Cancel Reason</span>
+
+          <div v-if="enrollment.status === 'cancelled' && (enrollment.cancelReason || enrollment.reason)"
+            class="detail-row">
+            <span class="summary-label">Reason</span>
             <span class="summary-value" style="color: #ef4444; font-weight: 600">
               {{ enrollment.cancelReason || enrollment.reason }}
             </span>
           </div>
+
           <div class="detail-row">
-            <span class="summary-label">Enrollment ID</span>
-            <span class="summary-value">{{ enrollment.id }}</span>
+            <span class="summary-label">Enrolled Date</span>
+            <span class="summary-value">{{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}</span>
           </div>
-          <div class="detail-row">
-            <span class="summary-label">Enrollment Date</span>
-            <span class="summary-value">{{
-              formatDate(enrollment.enrollAt || enrollment.createdAt || enrollment.timestamp)
-            }}</span>
+
+          <div class="detail-row" v-if="enrollment.updatedAt">
+            <span class="summary-label">Updated Date</span>
+            <span class="summary-value">{{ formatDate(enrollment.updatedAt) }}</span>
+          </div>
+
+          <div class="detail-row" v-if="enrollment.remark">
+            <span class="summary-label">Remark</span>
+            <span class="summary-value">{{ enrollment.remark }}</span>
           </div>
         </DetailedSummaryCard>
 
-        <DetailedSummaryCard subtitle="Payment Summary">
+        <DetailedSummaryCard subtitle="Payment Information">
           <div class="detail-row align-center">
-            <span class="summary-label">Total Amount</span>
-            <StatusBadge :status="'$' + (enrollment?.amount || 0)" />
+            <span class="summary-label">Total</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <StatusBadge :status="'$' + (enrollment?.amount || 0)" />
+            </div>
           </div>
-          <div class="detail-row">
-            <span class="summary-label">Payment Method</span>
-            <span class="summary-value">
-              {{ enrollment?.paymentMethod || 'Not Specified' }}
-            </span>
-          </div>
-          <div class="detail-row">
+
+          <div class="detail-row align-center">
             <span class="summary-label">Status</span>
-            <div class="summary-value" style="display: flex; justify-content: flex-end;">
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
               <StatusBadge :status="enrollment?.status || enrollment?.paymentStatus || 'Unpaid'" />
             </div>
           </div>
+
           <div class="detail-row">
-            <span class="summary-label">Last Updated</span>
-            <span class="summary-value">{{
-              (enrollment?.updatedAt || enrollment?.enrollAt || enrollment?.createdAt) ?
-                formatDate(enrollment?.updatedAt || enrollment?.enrollAt || enrollment?.createdAt) : 'Never'
-            }}</span>
+            <span class="summary-label">Payment Method</span>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span class="summary-value">{{ enrollment?.paymentMethod || 'Not Specified' }}</span>
+            </div>
           </div>
-          <div class="detail-row">
+
+          <div class="detail-row" v-if="enrollment?.paymentStatus === 'Paid'">
+            <span class="summary-label">Paid Date</span>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span class="summary-value" style="font-size: 0.85rem; opacity: 0.8;">
+                {{ formatDate(enrollment?.paymentDate) }}
+              </span>
+            </div>
+          </div>
+
+          <div class="detail-row" v-if="enrollment?.remark">
             <span class="summary-label">Admin Remark</span>
-            <span class="summary-value">{{ enrollment?.remark || 'N/A' }}</span>
+            <span class="summary-value italic">
+              {{ enrollment?.remark }}
+            </span>
           </div>
-          <div class="detail-row">
+
+          <div class="detail-row" v-if="enrollment?.paymentProof">
             <span class="summary-label">Transaction ID / Proof</span>
-            <span class="summary-value" style="word-break: break-all">
-              {{ enrollment?.paymentProof || 'N/A' }}
+            <span class="summary-value mono" style="word-break: break-all; font-size: 0.8rem;">
+              {{ enrollment?.paymentProof }}
             </span>
           </div>
-          <div class="detail-row">
+
+          <div class="detail-row" v-if="enrollment?.paymentStatus === 'Paid'">
             <span class="summary-label">Payment Date</span>
-            <span class="summary-value">
-              {{ enrollment?.paymentDate ? formatDate(enrollment.paymentDate) : 'Not Paid' }}
-            </span>
+            <span class="summary-value">{{ enrollment?.paymentDate }}</span>
           </div>
         </DetailedSummaryCard>
 
-        <DetailedSummaryCard subtitle="Program Summary">
+        <DetailedSummaryCard subtitle="Program Information">
           <div class="detail-row">
             <span class="summary-label">Program</span>
             <span class="summary-value">{{ program?.title || enrollment?.programTitle || 'N/A' }}</span>
           </div>
+
           <div class="detail-row">
-            <span class="summary-label">Teacher</span>
-            <span class="summary-value">{{ teacher?.fullname || program?.teacherName || enrollment?.teacherName ||
-              session?.teacherName || 'Not Assigned' }}</span>
-          </div>
-          <div class="detail-row">
-            <div class="summary-value" style="display: flex; flex-direction: column; align-items: flex-end;">
-              <div class="session-day"><strong>{{ getSessionDay(session?.schedule || enrollment?.sessionSchedule)
-              }}</strong></div>
-              <div class="session-time">{{ getSessionTime(session?.schedule || enrollment?.sessionSchedule) }}</div>
+            <span class="summary-label">Schedule</span>
+            <div class="summary-value" style="display: flex; gap: 10px; align-items: center;">
+              <StatusBadge class="session-day" :status="'purple:' + getSessionDay(enrollment?.sessionSchedule)" />
+              <span class="session-time">{{ getSessionTime(enrollment?.sessionSchedule) }}</span>
             </div>
           </div>
-          <div class="mt-3">
+
+          <div class="detail-row">
             <span class="summary-label">Term Dates</span>
-            <p class="summary-value" style="font-size: 0.9rem; margin-top: 5px">
-              <strong>Start:</strong> {{ enrollment?.startDate || program?.startDate ? formatDate(enrollment?.startDate
-                || program?.startDate) : 'N/A' }}<br />
-              <strong>End:</strong> {{ enrollment?.endDate || program?.endDate ? formatDate(enrollment?.endDate ||
-                program?.endDate) : 'N/A' }}
-            </p>
+            <div class="summary-value" style="margin-top: 5px; gap: 10px; display: flex; flex-direction: column;">
+              <div style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+                <StatusBadge :status="'green:Start Date'" /> {{ enrollment?.startDate || program?.startDate ?
+                  formatDateOnly(enrollment?.startDate
+                    || program?.startDate) : 'N/A' }}
+              </div>
+              <div style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+                <StatusBadge :status="'blue:End Date'" /> {{ enrollment?.endDate || program?.endDate ?
+                  formatDateOnly(enrollment?.endDate ||
+                    program?.endDate) : 'N/A' }}
+              </div>
+            </div>
           </div>
         </DetailedSummaryCard>
       </template>
@@ -581,7 +583,8 @@ onMounted(async () => {
   grid-template-columns: repeat(2, 1fr);
   width: 100%;
   gap: 24px;
-  align-items: stretch; /* Cards in same row match height */
+  align-items: stretch;
+  /* Cards in same row match height */
   margin-bottom: 30px;
 }
 
@@ -603,33 +606,11 @@ onMounted(async () => {
   height: 100%;
 }
 
-.mt-3 {
-  margin-top: 15px;
-}
-
-.mb-2 {
-  margin-bottom: 8px;
-}
-
-.mb-3 {
-  margin-bottom: 12px;
-}
-
 .session-info-row {
   display: flex;
   flex-direction: column;
   gap: 2px;
   margin-bottom: 12px;
-}
-
-.session-day {
-  font-size: 1rem;
-  color: #1e293b;
-}
-
-.session-time {
-  font-size: 0.9rem;
-  color: #64748b;
 }
 
 .modal-overlay {
