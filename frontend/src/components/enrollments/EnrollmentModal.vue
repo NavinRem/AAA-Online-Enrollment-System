@@ -96,7 +96,9 @@ const closeAllDropdowns = () => {
   isSessionDropdownOpen.value = false
 }
 
-const toggleDropdown = (field) => {
+const dropdownStyles = ref({ top: '0px', left: '0px', width: '0px' })
+
+const toggleDropdown = (field, event) => {
   const states = {
     parent: isParentDropdownOpen,
     student: isStudentDropdownOpen,
@@ -105,13 +107,24 @@ const toggleDropdown = (field) => {
   }
 
   const targetState = states[field].value
+  const wasOpen = targetState
+
   closeAllDropdowns()
-  clearErrors() // Clear errors when interacting with any dropdown
-  states[field].value = !targetState
+  clearErrors()
+
+  if (!wasOpen && event) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    dropdownStyles.value = {
+      top: `${rect.bottom + window.scrollY + 4}px`,
+      left: `${rect.left + window.scrollX}px`,
+      minWidth: `${rect.width}px`
+    }
+    states[field].value = true
+  }
 }
 
 const handleClickOutside = (event) => {
-  if (!event.target.closest('.custom-dropdown')) {
+  if (!event.target.closest('.custom-dropdown') && !event.target.closest('.dropdown-menu')) {
     closeAllDropdowns()
     clearErrors() // Clear errors when clicking outside
   }
@@ -275,10 +288,11 @@ const handleSubmit = () => {
 
       <form @submit.prevent="validateAndSubmit" class="enrollment-form">
         <div class="form-grid">
+          <!-- Parent Selection -->
           <div class="form-group custom-dropdown-container">
             <label>Select Parent / Guardian</label>
             <div class="custom-dropdown" :class="{ open: isParentDropdownOpen, 'field-error': errors.parentId }">
-              <div class="dropdown-header" @click.stop="toggleDropdown('parent')">
+              <div class="dropdown-header" @click.stop="toggleDropdown('parent', $event)">
                 <template v-if="selectedParent">
                   <div class="selected-parent">
                     <img :src="getParentProfileURL(selectedParent.profileURL)" class="avatar-mini-sm" />
@@ -290,7 +304,9 @@ const handleSubmit = () => {
                 </template>
                 <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
               </div>
-              <div class="dropdown-menu" v-if="isParentDropdownOpen">
+            </div>
+            <Teleport to="body">
+              <div class="dropdown-menu" v-if="isParentDropdownOpen" :style="dropdownStyles">
                 <div class="dropdown-search">
                   <input type="text" v-model="parentSearchQuery" placeholder="Search name or email..." autofocus />
                 </div>
@@ -308,16 +324,17 @@ const handleSubmit = () => {
                   </li>
                 </ul>
               </div>
-            </div>
+            </Teleport>
             <div v-if="errors.parentId" class="field-error-msg">{{ errors.parentId }}</div>
           </div>
 
+          <!-- Student Selection -->
           <div class="form-group custom-dropdown-container">
             <label>Select Student</label>
             <div class="custom-dropdown"
               :class="{ open: isStudentDropdownOpen, 'step-locked': !formData.parentId, 'field-error': errors.studentId }">
               <div class="dropdown-header"
-                @click.stop="!formData.parentId ? setError('parentId', 'Choose a parent first.') : toggleDropdown('student')">
+                @click.stop="!formData.parentId ? setError('parentId', 'Choose a parent first.') : toggleDropdown('student', $event)">
                 <template v-if="selectedStudent">
                   <div class="selected-item">
                     <img :src="getStudentProfileURL(selectedStudent.profileURL)" class="avatar-mini-sm" />
@@ -325,13 +342,13 @@ const handleSubmit = () => {
                   </div>
                 </template>
                 <template v-else>
-                  <span class="placeholder">{{ !formData.parentId ? 'Select parent first' : 'Choose a student'
-                    }}</span>
+                  <span class="placeholder">{{ !formData.parentId ? 'Select parent first' : 'Choose a student' }}</span>
                 </template>
                 <span class="chevron" :class="{ up: isStudentDropdownOpen }"></span>
               </div>
-
-              <div class="dropdown-menu" v-if="isStudentDropdownOpen">
+            </div>
+            <Teleport to="body">
+              <div class="dropdown-menu" v-if="isStudentDropdownOpen" :style="dropdownStyles">
                 <div class="dropdown-search">
                   <input type="text" v-model="studentSearchQuery" placeholder="Search student name..." @click.stop
                     autofocus />
@@ -350,16 +367,17 @@ const handleSubmit = () => {
                   </li>
                 </ul>
               </div>
-            </div>
+            </Teleport>
             <div v-if="errors.studentId" class="field-error-msg">{{ errors.studentId }}</div>
           </div>
 
+          <!-- Program Selection -->
           <div class="form-group custom-dropdown-container">
             <label>Select Program</label>
             <div class="custom-dropdown"
               :class="{ open: isProgramDropdownOpen, 'step-locked': !formData.studentId, 'field-error': errors.programId }">
               <div class="dropdown-header"
-                @click.stop="!formData.studentId ? setError('studentId', 'Choose a student first.') : toggleDropdown('program')">
+                @click.stop="!formData.studentId ? setError('studentId', 'Choose a student first.') : toggleDropdown('program', $event)">
                 <template v-if="selectedProgram">
                   <div class="selected-item">
                     <img :src="getProgramProfileURL(selectedProgram.profileURL, selectedProgram.category)"
@@ -373,7 +391,9 @@ const handleSubmit = () => {
                 </template>
                 <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
               </div>
-              <div class="dropdown-menu" v-if="isProgramDropdownOpen">
+            </div>
+            <Teleport to="body">
+              <div class="dropdown-menu" v-if="isProgramDropdownOpen" :style="dropdownStyles">
                 <div class="dropdown-search">
                   <input type="text" v-model="programSearchQuery" placeholder="Search program title..." @click.stop
                     autofocus />
@@ -392,16 +412,17 @@ const handleSubmit = () => {
                   </li>
                 </ul>
               </div>
-            </div>
+            </Teleport>
             <div v-if="errors.programId" class="field-error-msg">{{ errors.programId }}</div>
           </div>
 
+          <!-- Session Selection -->
           <div class="form-group custom-dropdown-container">
             <label>Select Session</label>
             <div class="custom-dropdown"
               :class="{ open: isSessionDropdownOpen, 'step-locked': !formData.programId || sessions.length === 0 || isAlreadyEnrolled, 'field-error': errors.sessionId }">
               <div class="dropdown-header"
-                @click.stop="!formData.programId ? setError('programId', 'Choose a program first.') : (isAlreadyEnrolled ? setError('programId', 'Already enrolled in this program.') : (sessions.length === 0 ? setError('sessionId', 'This program has no available sessions.') : toggleDropdown('session')))">
+                @click.stop="!formData.programId ? setError('programId', 'Choose a program first.') : (isAlreadyEnrolled ? setError('programId', 'Already enrolled in this program.') : (sessions.length === 0 ? setError('sessionId', 'This program has no available sessions.') : toggleDropdown('session', $event)))">
                 <template v-if="selectedSession">
                   <div class="selected-session">
                     <div class="session-display">
@@ -411,12 +432,14 @@ const handleSubmit = () => {
                   </div>
                 </template>
                 <template v-else>
-                  <span class="placeholder">{{ !formData.programId ? 'Select program first' : (sessions.length === 0
-                    ? 'No sessions' : 'Choose a time') }}</span>
+                  <span class="placeholder">{{ !formData.programId ? 'Select program first' : (sessions.length === 0 ?
+                    'No sessions' : 'Choose a time') }}</span>
                 </template>
                 <span class="chevron" :class="{ up: isSessionDropdownOpen }"></span>
               </div>
-              <div class="dropdown-menu" v-if="isSessionDropdownOpen">
+            </div>
+            <Teleport to="body">
+              <div class="dropdown-menu" v-if="isSessionDropdownOpen" :style="dropdownStyles">
                 <ul class="dropdown-list">
                   <li v-for="s in sessions" :key="s.id" class="dropdown-item session-item" :class="{
                     active: formData.sessionId === s.id,
@@ -436,14 +459,13 @@ const handleSubmit = () => {
                             :style="{ width: Math.min(100, ((s.numStudent) / (s.capacity)) * 100) + '%' }">
                           </div>
                         </div>
-                        <span class="capacity-text">{{ s.numStudent }} / {{ s.capacity }}
-                          enrolled</span>
+                        <span class="capacity-text">{{ s.numStudent }} / {{ s.capacity }} enrolled</span>
                       </div>
                     </div>
                   </li>
                 </ul>
               </div>
-            </div>
+            </Teleport>
             <div v-if="errors.sessionId" class="field-error-msg">{{ errors.sessionId }}</div>
           </div>
         </div>
@@ -473,7 +495,7 @@ const handleSubmit = () => {
                   <strong>{{ sessionInfo.remaining }}</strong>
                   <small>of {{ sessionInfo.total }} sessions</small>
                   <span v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
-                  }}/sess)</span>
+                  }}/session)</span>
                 </div>
               </div>
               <div v-if="sessionInfo.passed > 0" class="passed-indicator">
@@ -697,7 +719,6 @@ const handleSubmit = () => {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
 }
 
 .summary-icon {
@@ -1060,16 +1081,13 @@ input:checked+.slider:before {
 
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
   width: max-content;
-  min-width: 100%;
-  max-width: 180%;
+  max-width: 90vw;
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  z-index: 50;
+  z-index: 3000;
   overflow: hidden;
 }
 
@@ -1090,7 +1108,7 @@ input:checked+.slider:before {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 200px;
+  max-height: 250px;
   overflow-y: auto;
 }
 

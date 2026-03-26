@@ -3,25 +3,49 @@
  */
 
 export const getSessionCounts = (startDate, endDate, schedule) => {
-  if (!startDate || !endDate || !schedule) return { total: 0, remaining: 0 }
+  if (!startDate || !endDate || !schedule || !schedule.day) {
+    return { total: 0, passed: 0, remaining: 0 }
+  }
+
   const start = new Date(startDate)
   const end = new Date(endDate)
   const today = new Date()
+  today.setHours(0, 0, 0, 0) // Normalize today to start of day
 
-  if (today < start) return { total: 0, remaining: 0 }
-  if (today > end) return { total: 0, remaining: 0 }
+  // Map day string to Date.getDay() index (0=Sunday, 1=Monday, etc.)
+  const dayMap = {
+    sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+    thursday: 4, friday: 5, saturday: 6
+  }
+  const targetDay = dayMap[schedule.day.toLowerCase().trim()]
+  
+  if (targetDay === undefined) return { total: 0, passed: 0, remaining: 0 }
 
-  const total = Math.floor((end - start) / (1000 * 60 * 60 * 24))
-  const remaining = Math.floor((end - today) / (1000 * 60 * 60 * 24))
+  let total = 0
+  let passed = 0
+  let remaining = 0
 
-  return { total, remaining }
+  const current = new Date(start)
+  while (current <= end) {
+    if (current.getDay() === targetDay) {
+      total++
+      if (current < today) {
+        passed++
+      } else {
+        remaining++
+      }
+    }
+    current.setDate(current.getDate() + 1)
+  }
+
+  return { total, passed, remaining }
 }
 
 export const calculateProgramStats = (program) => {
-  if (!program) return { total: 0, remaining: 0 }
+  if (!program) return { total: 0, passed: 0, remaining: 0 }
   const { startDate, endDate, schedule } = program
-  const { total, remaining } = getSessionCounts(startDate, endDate, schedule)
-  return { total, remaining }
+  const { total, passed, remaining } = getSessionCounts(startDate, endDate, schedule)
+  return { total, passed, remaining }
 }
 
 export const getProgramDisplayStatus = (program) => {
