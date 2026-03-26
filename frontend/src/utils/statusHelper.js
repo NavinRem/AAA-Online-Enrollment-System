@@ -101,19 +101,24 @@ export const getStatusCategory = (status) => {
   }
 
   // 2. Numeric dynamic mapping (e.g., age-based coloring)
-  if (s !== '' && !isNaN(s)) {
-    const num = parseFloat(s)
-    if (num < 6) return 'green' // Young children
-    if (num < 10) return 'blue' // Primary students
-    if (num < 15) return 'purple' // Secondary students
-    return 'blue' // Adult / General
+  let numericValue = s
+  if (s.startsWith('age:')) {
+    numericValue = s.replace('age:', '').trim()
+  }
+
+  if (numericValue !== '' && !isNaN(numericValue)) {
+    const num = parseFloat(numericValue)
+    if (num < 6) return 'green'
+    if (num < 10) return 'blue'
+    if (num < 15) return 'purple'
+    return 'blue'
   }
 
   // 3. Pattern / Partial matches
   if (s.includes('$') || /monday|tuesday|wednesday|thursday|friday|saturday|sunday/.test(s))
     return 'blue'
   if (/:[0-9]{2}\s*(am|pm)/i.test(s)) return 'blue'
-  if (s.includes('years') || s.includes('age')) return 'blue'
+  if (s.includes('years')) return 'blue'
 
   return 'gray'
 }

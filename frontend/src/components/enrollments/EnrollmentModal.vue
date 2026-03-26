@@ -2,7 +2,7 @@
 import { ref, computed, toRef, watch, onMounted, onUnmounted } from 'vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { useSearch, parentSearchMapper, studentSearchMapper, programSearchMapper } from '@/composables/useSearch'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getStudentProfileURL, getParentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
 import { getSessionCounts } from '@/utils/programHelper'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
@@ -41,6 +41,7 @@ const isParentDropdownOpen = ref(false)
 const isStudentDropdownOpen = ref(false)
 const isProgramDropdownOpen = ref(false)
 const isSessionDropdownOpen = ref(false)
+
 const { searchQuery: parentSearchQuery, searchResults: filteredParents } = useSearch(
   toRef(props, 'parents'),
   parentSearchMapper,
@@ -54,7 +55,7 @@ const { searchQuery: programSearchQuery, searchResults: filteredPrograms } = use
 const availableStudents = computed(() => {
   if (!formData.value.parentId) return []
   return props.students.filter(
-    (s) => s.parentId === formData.value.parentId,
+    (s) => s.parentId === formData.value.parentId || s.parentUid === formData.value.parentId,
   )
 })
 
@@ -242,6 +243,7 @@ const validateAndSubmit = () => {
   if (!formData.value.studentId) return setError('studentId', 'Choose a student first.')
   if (!formData.value.programId) return setError('programId', 'Choose a program first.')
   if (!formData.value.sessionId) return setError('sessionId', 'Choose a session first.')
+  if (isAlreadyEnrolled.value) return setError('programId', 'This student is already enrolled in this program.')
 
   handleSubmit()
 }
@@ -279,8 +281,7 @@ const handleSubmit = () => {
               <div class="dropdown-header" @click.stop="toggleDropdown('parent')">
                 <template v-if="selectedParent">
                   <div class="selected-parent">
-                    <img :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')"
-                      class="avatar-mini-sm" />
+                    <img :src="getParentProfileURL(selectedParent.profileURL)" class="avatar-mini-sm" />
                     <span>{{ selectedParent.name || selectedParent.email }}</span>
                   </div>
                 </template>
@@ -295,10 +296,9 @@ const handleSubmit = () => {
                 </div>
                 <ul class="dropdown-list">
                   <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
-                    style="display: flex; justify-content: space-between; align-items: center;"
                     :class="{ active: formData.parentId === (p.uid || p.id) }" @click="selectParent(p.uid || p.id)">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                      <img :src="p.profileURL || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
+                    <div class="item-main">
+                      <img :src="getParentProfileURL(p.profileURL)" class="avatar-mini-sm" />
                       <span class="item-name">{{ p.name || p.email }}</span>
                     </div>
                     <StatusBadge :status="p.role" />
@@ -320,14 +320,13 @@ const handleSubmit = () => {
                 @click.stop="!formData.parentId ? setError('parentId', 'Choose a parent first.') : toggleDropdown('student')">
                 <template v-if="selectedStudent">
                   <div class="selected-item">
-                    <img :src="selectedStudent.profileURL || getImageUrl('profiles/avatar-student')"
-                      class="avatar-mini-sm" />
+                    <img :src="getStudentProfileURL(selectedStudent.profileURL)" class="avatar-mini-sm" />
                     <span>{{ selectedStudent.name }}</span>
                   </div>
                 </template>
                 <template v-else>
                   <span class="placeholder">{{ !formData.parentId ? 'Select parent first' : 'Choose a student'
-                  }}</span>
+                    }}</span>
                 </template>
                 <span class="chevron" :class="{ up: isStudentDropdownOpen }"></span>
               </div>
@@ -339,13 +338,12 @@ const handleSubmit = () => {
                 </div>
                 <ul class="dropdown-list">
                   <li v-for="s in filteredStudentsList" :key="s.id || s.uid" class="dropdown-item"
-                    style="display: flex; justify-content: space-between; align-items: center;"
                     :class="{ active: formData.studentId === (s.id || s.uid) }" @click="selectStudent(s)">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                      <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="avatar-mini-sm" />
-                      <span class="item-name">{{ s.fullName || s.name }}</span>
+                    <div class="item-main">
+                      <img :src="getStudentProfileURL(s.profileURL)" class="avatar-mini-sm" />
+                      <span class="item-name">{{ s.name }}</span>
                     </div>
-                    <StatusBadge :status="calculateAge(s.dob)" />
+                    <StatusBadge :status="'Age: ' + calculateAge(s.dob)" />
                   </li>
                   <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results">
                     No students found.
@@ -364,14 +362,14 @@ const handleSubmit = () => {
                 @click.stop="!formData.studentId ? setError('studentId', 'Choose a student first.') : toggleDropdown('program')">
                 <template v-if="selectedProgram">
                   <div class="selected-item">
-                    <img :src="selectedProgram.profileURL" class="avatar-mini-sm" />
+                    <img :src="getProgramProfileURL(selectedProgram.profileURL, selectedProgram.category)"
+                      class="avatar-mini-sm" />
                     <span>{{ selectedProgram.title }}</span>
                   </div>
-                  <StatusBadge :status="selectedProgram.termName" type="blue" />
                 </template>
                 <template v-else>
                   <span class="placeholder">{{ !formData.studentId ? 'Select student first' : 'Select a program'
-                    }}</span>
+                  }}</span>
                 </template>
                 <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
               </div>
@@ -383,7 +381,10 @@ const handleSubmit = () => {
                 <ul class="dropdown-list scrollable">
                   <li v-for="c in filteredPrograms" :key="c.id" class="dropdown-item"
                     :class="{ active: formData.programId === c.id }" @click="handleProgramChange(c.id)">
-                    <span class="item-name">{{ c.title || c.name }}</span>
+                    <div class="item-main">
+                      <img :src="getProgramProfileURL(c.profileURL, c.category)" class="avatar-mini-sm" />
+                      <span class="item-name">{{ c.title }}</span>
+                    </div>
                     <StatusBadge :status="c.termName" type="blue" />
                   </li>
                   <li v-if="filteredPrograms.length === 0" class="dropdown-item no-results">
@@ -398,9 +399,9 @@ const handleSubmit = () => {
           <div class="form-group custom-dropdown-container">
             <label>Select Session</label>
             <div class="custom-dropdown"
-              :class="{ open: isSessionDropdownOpen, 'step-locked': !formData.programId || sessions.length === 0, 'field-error': errors.sessionId }">
+              :class="{ open: isSessionDropdownOpen, 'step-locked': !formData.programId || sessions.length === 0 || isAlreadyEnrolled, 'field-error': errors.sessionId }">
               <div class="dropdown-header"
-                @click.stop="!formData.programId ? setError('programId', 'Choose a program first.') : (sessions.length === 0 ? setError('sessionId', 'This program has no available sessions.') : toggleDropdown('session'))">
+                @click.stop="!formData.programId ? setError('programId', 'Choose a program first.') : (isAlreadyEnrolled ? setError('programId', 'Already enrolled in this program.') : (sessions.length === 0 ? setError('sessionId', 'This program has no available sessions.') : toggleDropdown('session')))">
                 <template v-if="selectedSession">
                   <div class="selected-session">
                     <div class="session-display">
@@ -419,24 +420,23 @@ const handleSubmit = () => {
                 <ul class="dropdown-list">
                   <li v-for="s in sessions" :key="s.id" class="dropdown-item session-item" :class="{
                     active: formData.sessionId === s.id,
-                    disabled: (s.numStudent || 0) >= (s.maxCapacity || 5)
-                  }" @click="(s.numStudent || 0) < (s.maxCapacity || 5) && selectSession(s.id)">
+                    disabled: (s.numStudent) >= (s.capacity)
+                  }" @click="(s.numStudent) < (s.capacity) && selectSession(s.id)">
                     <div class="session-rows">
                       <div class="session-row-1">
                         <div class="session-display">
                           <div class="session-day"><strong>{{ s.schedule?.day }}</strong></div>
                           <div class="session-time">{{ s.schedule?.timeslot || 'TBD' }}</div>
                         </div>
-                        <span v-if="(s.numStudent || 0) >= (s.capacity || s.maxCapacity || 5)"
-                          class="full-badge">FULL</span>
+                        <span v-if="(s.numStudent) >= (s.capacity)" class="full-badge">FULL</span>
                       </div>
                       <div class="session-row-2">
                         <div class="capacity-bar-mini">
                           <div class="capacity-progress"
-                            :style="{ width: Math.min(100, ((s.numStudent || 0) / (s.maxCapacity || 5)) * 100) + '%' }">
+                            :style="{ width: Math.min(100, ((s.numStudent) / (s.capacity)) * 100) + '%' }">
                           </div>
                         </div>
-                        <span class="capacity-text">{{ s.numStudent || 0 }} / {{ s.maxCapacity || 5 }}
+                        <span class="capacity-text">{{ s.numStudent }} / {{ s.capacity }}
                           enrolled</span>
                       </div>
                     </div>
@@ -463,7 +463,7 @@ const handleSubmit = () => {
         </div>
 
         <!-- Session Summary & Prorating -->
-        <div v-if="sessionInfo" class="session-summary-card">
+        <div v-if="sessionInfo && !isAlreadyEnrolled" class="session-summary-card">
           <div class="summary-main">
             <div class="summary-top">
               <div class="summary-icon">📅</div>
@@ -473,7 +473,7 @@ const handleSubmit = () => {
                   <strong>{{ sessionInfo.remaining }}</strong>
                   <small>of {{ sessionInfo.total }} sessions</small>
                   <span v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
-                    }}/sess)</span>
+                  }}/sess)</span>
                 </div>
               </div>
               <div v-if="sessionInfo.passed > 0" class="passed-indicator">
@@ -497,7 +497,7 @@ const handleSubmit = () => {
         </div>
 
         <!-- Financial Section -->
-        <div class="financial-section" v-if="sessionInfo">
+        <div class="financial-section" v-if="sessionInfo && !isAlreadyEnrolled">
           <div class="section-title">Payment & Discounts</div>
           <div class="financial-grid">
             <div class="form-group">
@@ -526,7 +526,7 @@ const handleSubmit = () => {
         </div>
 
         <!-- Remarks -->
-        <div class="form-group full-width" style="margin-top: 16px;">
+        <div v-if="!isAlreadyEnrolled" class="form-group full-width" style="margin-top: 16px;">
           <label>Enrollment Remarks / Special Case</label>
           <textarea v-model="formData.remark" placeholder="Enter special notes or conditions for this enrollment..."
             rows="2" @focus="clearErrors"></textarea>
@@ -560,7 +560,7 @@ const handleSubmit = () => {
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
       <AppButton variant="primary" type="button" @click.stop="validateAndSubmit" :loading="loading"
-        :class="{ 'button-disabled': !formData.parentId || !formData.studentId || !formData.programId || !formData.sessionId }">
+        :class="{ 'button-disabled': !formData.parentId || !formData.studentId || !formData.programId || !formData.sessionId || isAlreadyEnrolled }">
         Confirm Enrollment
       </AppButton>
     </template>
@@ -1017,6 +1017,10 @@ input:checked+.slider:before {
   min-height: 44px;
 }
 
+.custom-dropdown {
+  border-radius: 8px;
+}
+
 .custom-dropdown.open .dropdown-header {
   border-color: #00aeef;
 }
@@ -1025,7 +1029,6 @@ input:checked+.slider:before {
   cursor: not-allowed !important;
   opacity: 0.7;
   pointer-events: auto !important;
-  /* Force click events to fire even when locked */
 }
 
 .selected-item {
@@ -1059,7 +1062,9 @@ input:checked+.slider:before {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
+  max-width: 180%;
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -1096,10 +1101,17 @@ input:checked+.slider:before {
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
+  gap: 20px;
   padding: 10px 12px;
   cursor: pointer;
   transition: background 0.2s;
+}
+
+.item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .dropdown-item:hover {
@@ -1113,6 +1125,7 @@ input:checked+.slider:before {
 
 .item-name {
   font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .item-content-between {
@@ -1130,8 +1143,7 @@ input:checked+.slider:before {
 
 .session-display {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  gap: 10px;
 }
 
 .session-day {
@@ -1227,10 +1239,6 @@ input:checked+.slider:before {
 
 .modal-fade-enter-from .modal-content {
   transform: scale(0.9) translateY(20px);
-}
-
-.enrollment-form {
-  padding-top: 20px;
 }
 
 .field-error {
