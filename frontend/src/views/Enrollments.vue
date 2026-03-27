@@ -126,7 +126,7 @@ const handleSaveEnrollment = async (formData) => {
       remark: formData.remark || '',
       // Only set these for new enrollments
       ...(!formData.id ? {
-        status: 'pending',
+        status: 'unpaid',
         paymentStatus: 'unpaid',
         enrollAt: new Date().toISOString(),
       } : {})

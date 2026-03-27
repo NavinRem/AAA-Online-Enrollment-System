@@ -154,7 +154,7 @@ watch(() => props.enrollment, (newEnrollment) => {
       isSponsorship: newEnrollment.isSponsorship || false,
       sponsorName: newEnrollment.sponsorName || '',
       isCustomPrice: newEnrollment.isCustomPrice || false,
-      customPrice: newEnrollment.amount || 0, 
+      customPrice: newEnrollment.amount || 0,
       remark: newEnrollment.remark || '',
     }
     // Trigger sessions fetch in parent 
@@ -293,7 +293,7 @@ const isAlreadyEnrolled = computed(() => {
 })
 
 const currentEnrollment = computed(() => {
-  if (isEditMode.value) return props.enrollment 
+  if (isEditMode.value) return props.enrollment
   if (!formData.value.studentId || !formData.value.programId) return null
   return props.enrollments.find(
     (e) =>
@@ -301,6 +301,19 @@ const currentEnrollment = computed(() => {
       e.programId === formData.value.programId &&
       e.status !== 'cancelled'
   )
+})
+
+const displayEnrollmentStatus = computed(() => {
+  const enrollment = currentEnrollment.value
+  if (!enrollment) return 'Unpaid'
+
+  const status = (enrollment.status || '').toLowerCase()
+  const pStatus = (enrollment.paymentStatus || '').toLowerCase()
+
+  if (['cancelled', 'canceled'].includes(status)) return 'Cancelled'
+  if (['paid', 'confirmed', 'active', 'success'].includes(pStatus) || ['active', 'confirmed'].includes(status)) return 'Paid'
+
+  return 'Unpaid'
 })
 
 const calculatedPrice = computed(() => {
@@ -583,7 +596,8 @@ const handleSubmit = () => {
         </div>
 
         <!-- Session Summary & Prorating -->
-        <div v-if="sessionInfo && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width" style="margin-top: 16px;">
+        <div v-if="sessionInfo && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width"
+          style="margin-top: 16px;">
           <label>Session Enrollment Detail</label>
           <div class="session-summary-box">
             <div class="summary-header-row">
@@ -601,7 +615,7 @@ const handleSubmit = () => {
                     }}/session)</div>
                 </div>
               </div>
-              <StatusBadge :status="currentEnrollment?.status || 'Unpaid'" />
+              <StatusBadge :status="displayEnrollmentStatus" />
             </div>
 
             <div v-if="sessionInfo.passed > 0 && !currentEnrollment" class="prorate-modern">
@@ -620,7 +634,8 @@ const handleSubmit = () => {
         </div>
 
         <!-- Financial Section -->
-        <div v-if="sessionInfo && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width" style="margin-top: 16px;">
+        <div v-if="sessionInfo && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width"
+          style="margin-top: 16px;">
           <label>Payment & Discounts</label>
           <div class="financial-section">
             <div class="financial-col">
