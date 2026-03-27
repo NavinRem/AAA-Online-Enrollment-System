@@ -30,6 +30,7 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const validationHint = ref('')
 const newlyCreatedId = ref(null)
+const selectedEnrollment = ref(null) // Enrollment currently being edited
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
@@ -98,7 +99,7 @@ const setValidationHint = (msg) => {
   }, 4000)
 }
 
-const handleCreateEnrollment = async (formData) => {
+const handleSaveEnrollment = async (formData) => {
   submitting.value = true
   errorMessage.value = ''
   try {
@@ -123,22 +124,32 @@ const handleCreateEnrollment = async (formData) => {
       isProrated: formData.isProrated,
       enrollmentType: formData.enrollmentType || 'Full',
       remark: formData.remark || '',
-      status: 'pending',
-      paymentStatus: 'unpaid',
-      enrollAt: new Date().toISOString(),
+      // Only set these for new enrollments
+      ...(!formData.id ? {
+        status: 'pending',
+        paymentStatus: 'unpaid',
+        enrollAt: new Date().toISOString(),
+      } : {})
     }
 
-    const result = await enrollmentService.createEnrollment(payload)
-    successMessage.value = 'Successfully created enrollment!'
-    newlyCreatedId.value = result.id || result.UID
+    if (formData.id) {
+      await enrollmentService.updateEnrollment(formData.id, payload)
+      successMessage.value = 'Successfully updated enrollment!'
+    } else {
+      const result = await enrollmentService.createEnrollment(payload)
+      successMessage.value = 'Successfully created enrollment!'
+      newlyCreatedId.value = result.id || result.UID
+    }
+
     await fetchEnrollments()
 
     setTimeout(() => {
       showModal.value = false
+      selectedEnrollment.value = null
       successMessage.value = ''
     }, 1500)
   } catch (err) {
-    errorMessage.value = err.message || 'Failed to create enrollment.'
+    errorMessage.value = err.message || 'Failed to save enrollment.'
   } finally {
     submitting.value = false
   }
@@ -159,15 +170,15 @@ const enrollmentStats = computed(() => {
 
 const enrollmentHeaders = [
   { label: 'No', width: '30px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Parent / Guardian', class: 'hide-on-tablet', width: '250px' },
-  { label: 'Student', width: '250px' },
-  { label: 'Program', width: '300px' },
-  { label: 'Session', width: '180px' },
-  { label: 'Enrolled Date', width: '100px', align: 'center' },
-  { label: 'Mode', width: '80px', align: 'center' },
-  { label: 'Amount', class: 'hide-on-mobile', align: 'center', width: '80px' },
-  { label: 'Status', align: 'center', width: '80px' },
-  { label: 'Action', width: '50px', align: 'center' }
+  { label: 'Parent / Guardian', class: 'hide-on-tablet', width: '30%' },
+  { label: 'Student', width: '30%' },
+  { label: 'Program', width: '50%' },
+  { label: 'Session' },
+  { label: 'Enrolled Date', align: 'center' },
+  { label: 'Mode', align: 'center' },
+  { label: 'Amount', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Status', align: 'center' },
+  { label: 'Action', align: 'center' }
 ]
 
 const currentFilter = ref('all')
@@ -205,6 +216,13 @@ const actionModal = ref({
 const handleTableAction = ({ type, item }) => {
   errorMessage.value = ''
   successMessage.value = ''
+
+  if (type === 'edit') {
+    selectedEnrollment.value = item
+    showModal.value = true
+    return
+  }
+
   actionModal.value = {
     isOpen: true,
     type,
@@ -229,8 +247,6 @@ const submitActionModal = async () => {
     } else if (type === 'delete') {
       if (deleteConfirm !== 'DELETE') throw new Error('Type DELETE to confirm')
       await enrollmentService.deleteEnrollment(enrollment.id)
-    } else if (type === 'edit') {
-      await enrollmentService.updateEnrollment(enrollment.id, { amount: Number(amount), remark: remark.trim() })
     }
     successMessage.value = 'Action completed successfully.'
     await fetchEnrollments()
@@ -357,10 +373,10 @@ const formatPrice = (val) => {
     </DataPageLayout>
 
     <EnrollmentModal :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
-      :programs="programs" :sessions="sessions" :enrollments="enrollments" :error="errorMessage"
-      :success="successMessage" :hint="validationHint" 
-      @close="() => { showModal = false; errorMessage = ''; successMessage = ''; validationHint = ''; }"
-      @program-change="handleProgramChange" @submit="handleCreateEnrollment" @hint="setValidationHint" />
+      :programs="programs" :sessions="sessions" :enrollments="enrollments" :enrollment="selectedEnrollment"
+      :error="errorMessage" :success="successMessage" :hint="validationHint"
+      @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
+      @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint" />
 
     <!-- Action Modals -->
     <AppModal :show="actionModal.isOpen" :title="actionModal.type + ' Enrollment'" variant="action"
