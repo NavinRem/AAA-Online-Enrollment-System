@@ -122,6 +122,7 @@
 
 .form-group.full-width {
   grid-column: span 2;
+  margin-top: 30px;
 }
 
 .form-group label {
@@ -215,7 +216,6 @@
   font-weight: 500;
   font-size: 0.9rem;
 }
-
 
 .success-banner {
   background: #dcfce7;

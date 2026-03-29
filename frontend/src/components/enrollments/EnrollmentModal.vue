@@ -601,7 +601,7 @@ const handleSubmit = () => {
         </div>
 
         <!-- Program Brief -->
-        <div v-if="selectedProgram && selectedSession" class="form-group full-width" style="margin-top: 16px;">
+        <div v-if="selectedProgram && selectedSession" class="form-group full-width">
           <label>Program Period</label>
           <div class="period-info-box">
             <StatusBadge :status="selectedProgram.termName" type="blue" />
@@ -617,8 +617,7 @@ const handleSubmit = () => {
         </AppAlert>
 
         <!-- Session Summary & Prorating -->
-        <div v-if="sessionInfo && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width"
-          style="margin-top: 16px;">
+        <div v-if="sessionInfo && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width">
           <label>Session Enrollment Detail</label>
           <div class="session-summary-box">
             <div class="summary-header-row">
@@ -655,8 +654,7 @@ const handleSubmit = () => {
         </div>
 
         <!-- Financial Section -->
-        <div v-if="sessionInfo && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width"
-          style="margin-top: 16px;">
+        <div v-if="sessionInfo && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width">
           <label>Payment & Discounts</label>
           <div class="financial-section">
             <div class="financial-col">
@@ -692,8 +690,10 @@ const handleSubmit = () => {
         </div>
 
         <!-- Remarks -->
-        <div v-if="!isAlreadyEnrolled || isEditMode" class="form-group full-width" style="margin-top: 16px;">
+        <div v-if="formData.sessionId && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width">
           <label>Enrollment Remarks / Special Case</label>
+          <input type="text" v-model="formData.remark" placeholder="Input Enrollment Remark (Optional)"
+            class="standard-input" style="margin-bottom: 12px;" />
           <div class="preset-chips chips-div-enrollment">
             <button v-for="preset in remarkPresets" :key="preset" type="button" class="preset-chip"
               :class="{ active: isRemarkPresetActive(preset) }" @click="toggleRemarkPreset(preset)">
@@ -763,7 +763,7 @@ const handleSubmit = () => {
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 24px;
 }
 
 .form-group {
@@ -773,6 +773,7 @@ const handleSubmit = () => {
 
 .form-group.full-width {
   grid-column: span 2;
+  margin-top: 32px;
 }
 
 .form-group label {
@@ -815,7 +816,7 @@ const handleSubmit = () => {
   font-size: 0.875rem;
   color: #334155;
   border: 1px solid #e2e8f0;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .period-info-box .sep {
@@ -1097,7 +1098,7 @@ input:checked+.slider:before {
 }
 
 .form-group {
-  margin: 0;
+  /* Removed local margin: 0 to allow global AppModal.css margin-bottom: 24px */
 }
 
 @keyframes slideIn {
