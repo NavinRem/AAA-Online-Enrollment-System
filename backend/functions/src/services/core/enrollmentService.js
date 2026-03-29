@@ -141,7 +141,10 @@ class EnrollmentService {
 
       if (["canceled", "cancelled"].includes(sStatus)) {
         displayStatus = "Canceled";
-      } else if (["paid", "confirmed", "active", "success"].includes(pStatus) || ["active", "confirmed"].includes(sStatus)) {
+      } else if (
+        ["paid", "confirmed", "active", "success"].includes(pStatus) ||
+        ["active", "confirmed"].includes(sStatus)
+      ) {
         displayStatus = "Paid";
       }
 
@@ -201,7 +204,9 @@ class EnrollmentService {
         programData.teachers.map(async (t) => {
           const tId = t.id || t;
           const tDoc = await db.collection(COLLECTIONS.USER).doc(tId).get();
-          return tDoc.exists ? { id: tId, ...tDoc.data() } : { id: tId, name: t.name || "Unassigned" };
+          return tDoc.exists
+            ? { id: tId, ...tDoc.data() }
+            : { id: tId, name: t.name || "Unassigned" };
         }),
       );
     }
@@ -234,7 +239,10 @@ class EnrollmentService {
 
     if (["canceled", "cancelled"].includes(sStatus)) {
       displayStatus = "Canceled";
-    } else if (["paid", "confirmed", "active", "success"].includes(pStatus) || ["active", "confirmed"].includes(sStatus)) {
+    } else if (
+      ["paid", "confirmed", "active", "success"].includes(pStatus) ||
+      ["active", "confirmed"].includes(sStatus)
+    ) {
       displayStatus = "Paid";
     }
 
@@ -243,12 +251,10 @@ class EnrollmentService {
       ...data,
       displayStatus,
       sessionSchedule,
-      // Nested full objects (Use these in the frontend)
       parent: userData
         ? {
             id: data.parentId,
             ...userData,
-            // Add a computed role or other UI-only logic here if needed
             roleDisplay:
               userData.role === "parent"
                 ? "Parent"
@@ -282,15 +288,10 @@ class EnrollmentService {
               ...resolvedTeachers[0],
             }
           : null,
-      // Transaction-specific & Compatibility fields
       teacherName:
-        resolvedTeachers.length > 0
-          ? resolvedTeachers[0].name
-          : "Not Assigned",
+        resolvedTeachers.length > 0 ? resolvedTeachers[0].name : "Not Assigned",
       teacherProfileURL:
-        resolvedTeachers.length > 0
-          ? resolvedTeachers[0].profileURL
-          : null,
+        resolvedTeachers.length > 0 ? resolvedTeachers[0].profileURL : null,
       numberSessions: data.numberSessions || sessionData?.totalSessions || 10,
       amount: data.amount || programData?.price || 0,
       capacity: sessionData?.capacity || 0,
