@@ -5,6 +5,7 @@ import { useSearch, parentSearchMapper, studentSearchMapper, programSearchMapper
 import { getStudentProfileURL, getParentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
 import { getSessionCounts } from '@/utils/programHelper'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import { calculateAge } from '@/utils/dateFormatter'
 
@@ -149,7 +150,7 @@ watch(() => props.enrollment, (newEnrollment) => {
       studentId: newEnrollment.studentId || '',
       programId: newEnrollment.programId || '',
       sessionId: newEnrollment.sessionId || '',
-      isProrated: newEnrollment.isProrated ?? true,
+      isProrated: newEnrollment.isProrated ?? false,
       discountAmount: newEnrollment.discountAmount || 0,
       isSponsorship: newEnrollment.isSponsorship || false,
       sponsorName: newEnrollment.sponsorName || '',
@@ -157,15 +158,26 @@ watch(() => props.enrollment, (newEnrollment) => {
       customPrice: newEnrollment.amount || 0,
       remark: newEnrollment.remark || '',
     }
+    initialFormData.value = JSON.stringify(formData.value)
     // Trigger sessions fetch in parent 
     emit('program-change', newEnrollment.programId)
   }
 }, { immediate: true })
 
+const initialFormData = ref('')
+const isChanged = computed(() => {
+  if (!isEditMode.value) return true
+  return JSON.stringify(formData.value) !== initialFormData.value
+})
+
+const showValidationHint = ref(false)
+let hintTimeout = null
+
 // Auto-reset when modal opens/closes
 watch(() => props.isOpen, (newVal) => {
   if (newVal) {
     clearErrors()
+    isSubmittingAttempted.value = false
     if (!props.enrollment) {
       // Reset form ONLY for new enrollment
       formData.value = {
@@ -347,26 +359,34 @@ const prorateSavings = computed(() => {
 })
 
 const isFullEnrollment = computed(() => {
-  // Must be full session: Not prorated OR no sessions have passed yet
   const isFullSession = !formData.value.isProrated || (sessionInfo.value?.passed === 0)
-  // Must be full price: No discount AND not a manual custom price override
   const isFullPrice = !formData.value.isCustomPrice && (formData.value.discountAmount || 0) === 0
 
   return isFullSession && isFullPrice
 })
 
-const validateAndSubmit = () => {
-  clearErrors()
-  if (!formData.value.parentId) return setError('parentId', 'Choose a parent first.')
-  if (!formData.value.studentId) return setError('studentId', 'Choose a student first.')
-  if (!formData.value.programId) return setError('programId', 'Choose a program first.')
-  if (!formData.value.sessionId) return setError('sessionId', 'Choose a session first.')
+const isSubmittingAttempted = ref(false)
+const validationHint = computed(() => {
+  if (isEditMode.value && !isChanged.value) return 'No changes detected to update.'
+  if (!formData.value.parentId) return 'Parent selection is required.'
+  if (!formData.value.studentId) return 'Student selection is required.'
+  if (!formData.value.programId) return 'Program selection is required.'
+  if (!formData.value.sessionId) return 'Session selection is required.'
+  if (isAlreadyEnrolled.value && !isEditMode.value) return 'Student is already enrolled in this program.'
+  return ''
+})
 
-  // Only check duplicate if it's NOT the enrollment we are currently editing
-  if (isAlreadyEnrolled.value) {
-    return setError('programId', 'This student is already enrolled in this program.')
+const validateAndSubmit = () => {
+  if (!!validationHint.value) {
+    showValidationHint.value = true
+    if (hintTimeout) clearTimeout(hintTimeout)
+    hintTimeout = setTimeout(() => {
+      showValidationHint.value = false
+    }, 3000)
+    return
   }
 
+  clearErrors()
   handleSubmit()
 }
 
@@ -383,7 +403,6 @@ const handleSubmit = () => {
 <template>
   <AppModal :show="isOpen" @close="$emit('close')" :title="isEditMode ? 'Edit Enrollment' : 'Create New Enrollment'">
     <div class="modal-inner-content">
-      <!-- Global Alerts (Only for actual errors/success from server) -->
       <transition name="toast-fade">
         <div v-if="props.error && props.error.length > 0" class="alert-box error" style="margin-bottom: 24px;">
           {{ props.error }}
@@ -405,7 +424,7 @@ const handleSubmit = () => {
               <div class="dropdown-header" @click.stop="toggleDropdown('parent', $event)">
                 <template v-if="selectedParent">
                   <div class="selected-parent">
-                    <img :src="getParentProfileURL(selectedParent.profileURL)" class="avatar-mini-sm" />
+                    <img :src="getParentProfileURL(selectedParent.profileURL)" class="avatar-mini-enrollment" />
                     <span>{{ selectedParent.name || selectedParent.email }}</span>
                   </div>
                 </template>
@@ -424,7 +443,7 @@ const handleSubmit = () => {
                   <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
                     :class="{ active: formData.parentId === (p.uid || p.id) }" @click="selectParent(p.uid || p.id)">
                     <div class="item-main">
-                      <img :src="getParentProfileURL(p.profileURL)" class="avatar-mini-sm" />
+                      <img :src="getParentProfileURL(p.profileURL)" class="avatar-mini-enrollment" />
                       <span class="item-name">{{ p.name || p.email }}</span>
                     </div>
                     <StatusBadge :status="p.role" />
@@ -447,7 +466,7 @@ const handleSubmit = () => {
                 @click.stop="!formData.parentId ? setError('parentId', 'Choose a parent first.') : toggleDropdown('student', $event)">
                 <template v-if="selectedStudent">
                   <div class="selected-item">
-                    <img :src="getStudentProfileURL(selectedStudent.profileURL)" class="avatar-mini-sm" />
+                    <img :src="getStudentProfileURL(selectedStudent.profileURL)" class="avatar-mini-enrollment" />
                     <span>{{ selectedStudent.name }}</span>
                   </div>
                 </template>
@@ -467,7 +486,7 @@ const handleSubmit = () => {
                   <li v-for="s in filteredStudentsList" :key="s.id || s.uid" class="dropdown-item"
                     :class="{ active: formData.studentId === (s.id || s.uid) }" @click="selectStudent(s)">
                     <div class="item-main">
-                      <img :src="getStudentProfileURL(s.profileURL)" class="avatar-mini-sm" />
+                      <img :src="getStudentProfileURL(s.profileURL)" class="avatar-mini-enrollment" />
                       <span class="item-name">{{ s.name }}</span>
                     </div>
                     <StatusBadge :status="'Age: ' + calculateAge(s.dob)" />
@@ -491,13 +510,13 @@ const handleSubmit = () => {
                 <template v-if="selectedProgram">
                   <div class="selected-item">
                     <img :src="getProgramProfileURL(selectedProgram.profileURL, selectedProgram.category)"
-                      class="avatar-mini-sm" />
+                      class="avatar-mini-enrollment" />
                     <span>{{ selectedProgram.title }}</span>
                   </div>
                 </template>
                 <template v-else>
                   <span class="placeholder">{{ !formData.studentId ? 'Select student first' : 'Select a program'
-                    }}</span>
+                  }}</span>
                 </template>
                 <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
               </div>
@@ -512,7 +531,7 @@ const handleSubmit = () => {
                   <li v-for="c in filteredPrograms" :key="c.id" class="dropdown-item"
                     :class="{ active: formData.programId === c.id }" @click="handleProgramChange(c.id)">
                     <div class="item-main">
-                      <img :src="getProgramProfileURL(c.profileURL, c.category)" class="avatar-mini-sm" />
+                      <img :src="getProgramProfileURL(c.profileURL, c.category)" class="avatar-mini-enrollment" />
                       <span class="item-name">{{ c.title }}</span>
                     </div>
                     <StatusBadge :status="c.termName" type="blue" />
@@ -535,9 +554,10 @@ const handleSubmit = () => {
                 @click.stop="!formData.programId ? setError('programId', 'Choose a program first.') : ((isAlreadyEnrolled && !isEditMode) ? setError('programId', 'Already enrolled in this program.') : (sessions.length === 0 ? setError('sessionId', 'This program has no available sessions.') : toggleDropdown('session', $event)))">
                 <template v-if="selectedSession">
                   <div class="selected-session">
-                    <div class="session-display">
-                      <div class="session-day"><strong>{{ selectedSession.schedule?.day }}</strong></div>
-                      <div class="session-time">{{ selectedSession.schedule?.timeslot }}</div>
+                    <div class="session-display-row">
+                      <span class="icon" style="font-size: 1.1rem; opacity: 0.8;">⏰</span>
+                      <div class="session-day-text"><strong>{{ selectedSession.schedule?.day }}</strong></div>
+                      <div class="session-time-text">{{ selectedSession.schedule?.timeslot }}</div>
                     </div>
                   </div>
                 </template>
@@ -557,9 +577,9 @@ const handleSubmit = () => {
                   }" @click="(s.numStudent) < (s.capacity) && selectSession(s.id)">
                     <div class="session-rows">
                       <div class="session-row-1">
-                        <div class="session-display">
-                          <div class="session-day"><strong>{{ s.schedule?.day }}</strong></div>
-                          <div class="session-time">{{ s.schedule?.timeslot || 'TBD' }}</div>
+                        <div class="session-display-row">
+                          <div class="session-day-text"><strong>{{ s.schedule?.day }}</strong></div>
+                          <div class="session-time-text">{{ s.schedule?.timeslot || 'TBD' }}</div>
                         </div>
                         <span v-if="(s.numStudent) >= (s.capacity)" class="full-badge">FULL</span>
                       </div>
@@ -591,9 +611,10 @@ const handleSubmit = () => {
           </div>
         </div>
 
-        <div v-if="isAlreadyEnrolled && !isEditMode" class="alert-box warning">
-          ⚠️ This student is already enrolled in this program.
-        </div>
+        <AppAlert v-if="isAlreadyEnrolled && !isEditMode" type="warning"
+          :customStyle="{ marginTop: '16px', marginBottom: '0px' }">
+          This student is already enrolled in this program.
+        </AppAlert>
 
         <!-- Session Summary & Prorating -->
         <div v-if="sessionInfo && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width"
@@ -612,7 +633,7 @@ const handleSubmit = () => {
                       passed</span>
                   </div>
                   <div v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
-                    }}/session)</div>
+                  }}/session)</div>
                 </div>
               </div>
               <StatusBadge :status="displayEnrollmentStatus" />
@@ -654,7 +675,7 @@ const handleSubmit = () => {
                     Sponsorship / Third-party
                   </label>
                   <input v-if="formData.isSponsorship" type="text" v-model="formData.sponsorName"
-                    placeholder="Sponsor Name" class="mini-input" />
+                    placeholder="Sponsor Name" class="mini-input-enrollment" />
                 </div>
 
                 <div class="custom-override">
@@ -663,7 +684,7 @@ const handleSubmit = () => {
                     Manual Price (Special Case)
                   </label>
                   <input v-if="formData.isCustomPrice" type="number" v-model.number="formData.customPrice"
-                    placeholder="Final Price" class="mini-input" @focus="clearErrors" />
+                    placeholder="Final Price" class="mini-input-enrollment" @focus="clearErrors" />
                 </div>
               </div>
             </div>
@@ -673,41 +694,37 @@ const handleSubmit = () => {
         <!-- Remarks -->
         <div v-if="!isAlreadyEnrolled || isEditMode" class="form-group full-width" style="margin-top: 16px;">
           <label>Enrollment Remarks / Special Case</label>
-          <div class="preset-chips chips-div">
+          <div class="preset-chips chips-div-enrollment">
             <button v-for="preset in remarkPresets" :key="preset" type="button" class="preset-chip"
               :class="{ active: isRemarkPresetActive(preset) }" @click="toggleRemarkPreset(preset)">
               {{ preset }}
             </button>
           </div>
-          <textarea v-model="formData.remark" placeholder="Enter special notes or conditions for this enrollment..."
-            rows="2" @focus="clearErrors"></textarea>
-          <div v-if="isRemarkPresetActive('Special Occasion Discount')" class="alert-box success"
-            style="margin-top: 10px; margin-bottom: 0; display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 1.2rem;">🎉</span>
+          <AppAlert v-if="isRemarkPresetActive('Special Occasion Discount')" type="success"
+            :customStyle="{ marginTop: '10px', marginBottom: '0px' }">
             <span><strong>Special Occasion Discount:</strong> Please ensure the discount amount is entered in the
-              Payment
-              section below.</span>
-          </div>
+              Payment section below.</span>
+          </AppAlert>
         </div>
 
-        <div v-if="formData.programId && formData.sessionId" class="price-preview">
-          <div class="price-info">
+        <div v-if="formData.programId && formData.sessionId" class="price-preview-box">
+          <div class="price-info-enrollment">
             <div class="price-header-row">
-              <span class="price-label">Final Amount</span>
+              <span class="price-label-enrollment">Final Amount</span>
               <StatusBadge v-if="!isFullEnrollment" status="Partial Enrollment" type="blue" />
               <StatusBadge v-else status="Full Enrollment" type="green" />
             </div>
-            <div class="price-notes">
-              <div v-if="sessionInfo && sessionInfo.passed > 0 && formData.isProrated" class="price-note">
-                <span class="original-price">${{ formatPrice(selectedProgramPrice) }}</span>
-                <span class="badge discount">-${{ formatPrice(prorateSavings) }} (Prorated)</span>
+            <div class="price-notes-enrollment">
+              <div v-if="sessionInfo && sessionInfo.passed > 0 && formData.isProrated" class="price-note-enrollment">
+                <span class="original-price-strikethrough">${{ formatPrice(selectedProgramPrice) }}</span>
+                <span class="discount-badge-mini">-${{ formatPrice(prorateSavings) }} (Prorated)</span>
               </div>
-              <div v-if="formData.discountAmount > 0" class="price-note">
-                <span class="badge discount">-${{ formatPrice(formData.discountAmount) }} (Discount)</span>
+              <div v-if="formData.discountAmount > 0" class="price-note-enrollment">
+                <span class="discount-badge-mini">-${{ formatPrice(formData.discountAmount) }} (Discount)</span>
               </div>
             </div>
           </div>
-          <strong class="price-value">${{ formatPrice(finalAmount) }}</strong>
+          <strong class="price-amount-large">${{ formatPrice(finalAmount) }}</strong>
         </div>
 
         <!-- Hidden submit for Enter key functionality -->
@@ -716,11 +733,22 @@ const handleSubmit = () => {
     </div>
 
     <template #footer>
-      <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-      <AppButton variant="primary" type="button" @click.stop="validateAndSubmit" :loading="loading"
-        :class="{ 'button-disabled': !formData.parentId || !formData.studentId || !formData.programId || !formData.sessionId || (isAlreadyEnrolled && !isEditMode) }">
-        {{ isEditMode ? 'Update Enrollment' : 'Confirm Enrollment' }}
-      </AppButton>
+      <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; gap: 12px;">
+        <!-- Validation Hint Bubble -->
+        <transition name="toast-fade">
+          <div v-if="showValidationHint && validationHint"
+            style="font-size: 0.8rem; color: #ef4444; background: #fef2f2; padding: 6px 12px; border-radius: 6px; border: 1px solid #fee2e2; max-width: fit-content;">
+            ⚠️ {{ validationHint }}
+          </div>
+        </transition>
+        <div style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
+          <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
+          <AppButton variant="primary" type="button" @click.stop="validateAndSubmit" :loading="loading"
+            :class="{ 'button-disabled-visual': !!validationHint }">
+            {{ isEditMode ? 'Update Enrollment' : 'Confirm Enrollment' }}
+          </AppButton>
+        </div>
+      </div>
     </template>
   </AppModal>
 </template>
@@ -1021,14 +1049,6 @@ input:checked+.slider:before {
   border-left: 1px solid #e2e8f0;
 }
 
-.standard-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-}
-
 .financial-grid {
   display: flex;
   flex-direction: column;
@@ -1066,361 +1086,18 @@ input:checked+.slider:before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
 }
 
-.price-preview {
-  margin-top: 24px;
-  padding: 20px;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.price-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.price-label {
-  color: #0369a1;
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.price-header-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.partial-status-tag {
-  background: #00aeef;
-  color: white;
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  box-shadow: 0 2px 4px rgba(0, 174, 239, 0.2);
-}
-
-.price-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.original-price {
-  text-decoration: line-through;
-  color: #64748b;
-  font-size: 0.875rem;
-}
-
-.badge {
-  background: #fff;
-  color: #ef4444;
-  font-size: 0.75rem;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-weight: 700;
-  text-transform: uppercase;
-  border: 1px solid #fee2e2;
-}
-
-.badge.discount {
-  color: #10b981;
-  border-color: #d1fae5;
-  background: #f0fdf4;
-}
-
-.price-value {
-  font-size: 1.75rem;
-  color: #0c4a6e;
-  font-weight: 800;
-}
-
-.alert-box {
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  margin-bottom: 16px;
-}
-
-.alert-box.error {
-  background: #fef2f2;
-  color: #991b1b;
-  border: 1px solid #fee2e2;
-}
-
-.alert-box.warning {
-  background: #fffbeb;
-  color: #92400e;
-  border: 1px solid #fef3c7;
-  margin-bottom: 16px;
-}
-
-.alert-box.success {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #d1fae5;
+.modal-inner-content {
+  padding: 0 4px;
 }
 
 .custom-dropdown-container {
   position: relative;
 }
 
-.custom-dropdown {
-  position: relative;
-  width: 100%;
-}
-
-.dropdown-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  cursor: pointer;
-  min-height: 44px;
-}
-
-.custom-dropdown {
-  border-radius: 8px;
-}
-
-.custom-dropdown.open .dropdown-header {
-  border-color: #00aeef;
-}
-
-.custom-dropdown.step-locked .dropdown-header {
-  cursor: not-allowed !important;
-  opacity: 0.7;
-  pointer-events: auto !important;
-}
-
-.selected-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.placeholder {
-  color: #94a3b8;
-  font-size: 0.95rem;
-}
-
-.chevron {
-  width: 10px;
-  height: 10px;
-  border-right: 2px solid #94a3b8;
-  border-bottom: 2px solid #94a3b8;
-  transform: rotate(45deg);
-  transition: transform 0.2s;
-  margin-right: 4px;
-}
-
-.chevron.up {
-  transform: rotate(-135deg);
-}
-
-.dropdown-menu {
-  position: absolute;
-  width: max-content;
-  max-width: 90vw;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  z-index: 3000;
-  overflow: hidden;
-}
-
-.dropdown-search {
-  padding: 8px;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.dropdown-search input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.875rem;
-}
-
-.dropdown-list {
-  list-style: none;
-  padding: 0;
+.form-group {
   margin: 0;
-  max-height: 250px;
-  overflow-y: auto;
-}
-
-.dropdown-list.scrollable {
-  max-height: 240px;
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.item-main {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.dropdown-item:hover {
-  background: #f1f5f9;
-}
-
-.dropdown-item.active {
-  background: #f0f9ff;
-  color: #00aeef;
-}
-
-.item-name {
-  font-size: 0.9rem;
-  white-space: nowrap;
-}
-
-.item-content-between {
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.selected-session {
-  display: flex;
-  flex-direction: column;
-}
-
-.session-display {
-  display: flex;
-  gap: 10px;
-}
-
-.session-day {
-  font-size: 0.95rem;
-  color: #1e293b;
-  line-height: 1.2;
-}
-
-.session-time {
-  font-size: 0.85rem;
-  color: #64748b;
-  font-weight: normal;
-}
-
-.session-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
-}
-
-.session-row-1 {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.95rem;
-}
-
-.session-row-2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.8rem;
-  color: #64748b;
-}
-
-.full-badge {
-  background: #fee2e2;
-  color: #ef4444;
-  font-size: 0.7rem;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 800;
-}
-
-.capacity-bar-mini {
-  flex: 1;
-  height: 4px;
-  background: #e2e8f0;
-  border-radius: 2px;
-  overflow: hidden;
-  max-width: 80px;
-}
-
-.capacity-progress {
-  height: 100%;
-  background: #10b981;
-  border-radius: 2px;
-}
-
-.dropdown-item.session-item.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background: #f8fafc;
-}
-
-.dropdown-item.session-item.active .capacity-progress {
-  background: #00aeef;
-}
-
-.no-results {
-  padding: 16px;
-  justify-content: center;
-  color: #94a3b8;
-  font-size: 0.875rem;
-  cursor: default;
-}
-
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.modal-fade-enter-active .modal-content {
-  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.modal-fade-enter-from .modal-content {
-  transform: scale(0.9) translateY(20px);
-}
-
-.field-error {
-  border-color: #ef4444 !important;
-  background: #fef2f2 !important;
-}
-
-.field-error-msg {
-  color: #ef4444;
-  font-size: 0.8rem;
-  font-weight: 500;
-  margin-top: 6px;
-  animation: slideIn 0.3s ease;
 }
 
 @keyframes slideIn {
@@ -1433,23 +1110,6 @@ input:checked+.slider:before {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.button-disabled {
-  opacity: 0.5;
-  cursor: not-allowed !important;
-  filter: grayscale(0.5);
-}
-
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
 }
 
 .shake {
@@ -1481,20 +1141,5 @@ input:checked+.slider:before {
   60% {
     transform: translate3d(4px, 0, 0);
   }
-}
-
-.preset-chips {
-  margin: 0;
-}
-
-.form-group {
-  margin: 0;
-}
-
-.chips-div {
-  background-color: #f8fafc;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
 }
 </style>

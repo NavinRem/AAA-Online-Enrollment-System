@@ -91,7 +91,7 @@ export const getStatusCategory = (status) => {
       'discount',
       'end',
     ],
-    purple: ['make-up', 'makeup', 'intermediate', 'children', 'in progress', 'sponsorship'],
+    purple: ['make-up', 'makeup', 'trial', 'intermediate', 'children', 'in progress', 'sponsorship'],
     magenta: ['unmarked', 'archived'],
   }
 
@@ -114,7 +114,15 @@ export const getStatusCategory = (status) => {
     return 'blue'
   }
 
-  // 3. Pattern / Partial matches
+  // 3. Mode/Suffix matches (e.g., "Full Enrollment" -> "full")
+  if (s.includes('enrollment')) {
+    const prefix = s.replace('enrollment', '').trim()
+    for (const [color, matches] of Object.entries(categories)) {
+      if (matches.includes(prefix)) return color
+    }
+  }
+
+  // 4. Pattern / Partial matches
   if (s.includes('$') || /monday|tuesday|wednesday|thursday|friday|saturday|sunday/.test(s))
     return 'blue'
   if (/:[0-9]{2}\s*(am|pm)/i.test(s)) return 'blue'

@@ -2,6 +2,8 @@
    CSS RESET & VARIABLES
    ========================================================================== */
 
+@import "./enrollment-common.css";
+
 :root {
   /* Brand Colors */
   --primary-color: #00aeef;
@@ -39,7 +41,7 @@
   --z-sidebar: 100;
   --z-topbar: 50;
   --z-modal: 2000;
-  --z-dropdown: 1000;
+  --z-dropdown: 3000;
 }
 
 * {
@@ -391,6 +393,30 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
 
 .alert-box.success::before {
   content: "✅";
+  font-size: 1.1rem;
+}
+
+.alert-box.warning {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+}
+
+.alert-box.warning::before {
+  content: "⚠️";
+  font-size: 1.1rem;
+}
+
+.alert-box.info {
+  background: #f0f9ff;
+  color: #0c4a6e;
+  border: 1px solid #bae6fd;
+  border-left: 4px solid #0ea5e9;
+}
+
+.alert-box.info::before {
+  content: "ℹ️";
   font-size: 1.1rem;
 }
 
