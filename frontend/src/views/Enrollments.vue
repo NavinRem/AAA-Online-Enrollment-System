@@ -7,7 +7,8 @@ import AppAlert from '@/components/common/ui/AppAlert.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge.vue'
-import EnrollmentModal from '../components/enrollments/EnrollmentModal.vue'
+import EnrollmentFormModal from '../components/enrollments/EnrollmentFormModal.vue'
+import EnrollmentActionModal from '../components/enrollments/EnrollmentActionModal.vue'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '../services/userService'
 import { programService } from '../services/programService'
@@ -209,20 +210,13 @@ const { searchQuery, searchResults: filteredEnrollments } = useSearch(
 )
 
 // --- Action Modal State ---
-const actionModal = ref({
+const actionState = ref({
   isOpen: false,
   type: '',
   enrollment: null,
-  amount: 0,
-  proof: '',
-  reason: '',
-  remark: '',
-  deleteConfirm: '',
-  paymentMethod: 'online', // 'cash' or 'online'
 })
 
-const showActionHint = ref(false)
-let actionHintTimeout = null
+
 
 const handleTableAction = ({ type, item }) => {
   errorMessage.value = ''
@@ -234,21 +228,16 @@ const handleTableAction = ({ type, item }) => {
     return
   }
 
-  actionModal.value = {
+  actionState.value = {
     isOpen: true,
     type,
     enrollment: item,
-    amount: item.amount || 0,
-    proof: '',
-    reason: '',
-    remark: item.remark || '',
-    deleteConfirm: '',
-    paymentMethod: 'online',
   }
 }
 
-const submitActionModal = async () => {
-  const { type, enrollment, amount, proof, reason, remark, deleteConfirm, paymentMethod } = actionModal.value
+const submitActionModal = async (payload) => {
+  const { type, enrollment } = actionState.value
+  const { proof, reason, paymentMethod } = payload
   submitting.value = true
   try {
     if (type === 'pay') {
@@ -260,7 +249,6 @@ const submitActionModal = async () => {
     } else if (type === 'cancel') {
       await enrollmentService.updateEnrollment(enrollment.id, { status: 'cancelled', cancelReason: reason })
     } else if (type === 'delete') {
-      if (deleteConfirm !== 'DELETE') throw new Error('Type DELETE to confirm')
       await enrollmentService.deleteEnrollment(enrollment.id)
     }
     successMessage.value = 'Action completed successfully.'
@@ -275,51 +263,13 @@ const submitActionModal = async () => {
   }
 }
 
-const handleActionSubmitTrigger = () => {
-  if (!!actionModalValidationHint.value) {
-    showActionHint.value = true
-    if (actionHintTimeout) clearTimeout(actionHintTimeout)
-    actionHintTimeout = setTimeout(() => {
-      showActionHint.value = false
-    }, 3000)
-  } else {
-    submitActionModal()
-  }
-}
-
 const closeActionModal = () => {
-  actionModal.value.isOpen = false
-  showActionHint.value = false
+  actionState.value.isOpen = false
   errorMessage.value = ''
   successMessage.value = ''
 }
 
-const enrollmentSummary = computed(() => {
-  const e = actionModal.value.enrollment
-  if (!e) return null
-
-  return {
-    ...e,
-    parentAvatar: getParentProfileURL(e.parentProfileURL),
-    studentAvatar: getStudentProfileURL(e.studentProfileURL),
-    programAvatar: getProgramProfileURL(e.programProfileURL, e.category),
-    sessionDay: getSessionDay(e.sessionSchedule),
-    sessionTime: getSessionTime(e.sessionSchedule),
-    status: getEnrollmentDisplayStatus(e),
-    mode: getEnrollmentDisplayMode(e),
-    hasDiscount: e.discountAmount > 0,
-    discountText: `($${formatPrice(e.discountAmount)} Disc.)`
-  }
-})
-
-const actionModalValidationHint = computed(() => {
-  const { type, paymentMethod, proof, reason, deleteConfirm } = actionModal.value
-  if (type === 'delete' && deleteConfirm !== 'DELETE') return 'Type DELETE to confirm.'
-  if (type === 'cancel' && !reason?.trim()) return 'Reason for cancellation is required.'
-  if (type === 'pay' && paymentMethod === 'online' && !proof?.trim()) return 'Transaction reference is required for online payments.'
-  return ''
-})
-
+// UI Helpers
 const formatPrice = (val) => {
   if (val === undefined || val === null) return '0'
   return Number.isInteger(val) ? val.toString() : val.toFixed(2)
@@ -426,197 +376,20 @@ const formatPrice = (val) => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentModal :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
+    <EnrollmentFormModal :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
       :programs="programs" :sessions="sessions" :enrollments="enrollments" :enrollment="selectedEnrollment"
       :error="errorMessage" :success="successMessage" :hint="validationHint"
       @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
       @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint" />
 
-    <AppModal :show="actionModal.isOpen"
-      :title="(actionModal.type ? actionModal.type.charAt(0).toUpperCase() + actionModal.type.slice(1) : '') + ' Enrollment'"
-      variant="action" @close="closeActionModal">
-      <AppAlert :show="!!errorMessage" type="error" @close="errorMessage = ''" closable>
-        {{ errorMessage }}
-      </AppAlert>
-      <AppAlert :show="!!successMessage" type="success" @close="successMessage = ''" closable>
-        {{ successMessage }}
-      </AppAlert>
-
-      <div v-if="actionModal.type === 'pay'" class="action-pay-container">
-        <!-- Enrollment Summary Card -->
-        <div class="enrollment-brief-card" v-if="enrollmentSummary">
-          <div class="brief-grid">
-            <!-- Row 1: Parent & Student -->
-            <div class="brief-column">
-              <span class="brief-label">Parent / Guardian</span>
-              <div class="brief-user">
-                <img :src="enrollmentSummary.parentAvatar" class="avatar-mini-enrollment" />
-                <span class="brief-value">{{ enrollmentSummary.parentName }}</span>
-              </div>
-            </div>
-            <div class="brief-column">
-              <span class="brief-label">Student</span>
-              <div class="brief-user">
-                <img :src="enrollmentSummary.studentAvatar" class="avatar-mini-enrollment" />
-                <span class="brief-value">{{ enrollmentSummary.studentName }}</span>
-              </div>
-            </div>
-            <!-- Row 2: Program & Session -->
-            <div class="brief-column">
-              <span class="brief-label">Program</span>
-              <div class="brief-user">
-                <img :src="enrollmentSummary.programAvatar" class="avatar-mini-enrollment" />
-                <span class="brief-value">{{ enrollmentSummary.programTitle }}</span>
-              </div>
-            </div>
-            <div class="brief-column">
-              <span class="brief-label">Session</span>
-              <div class="brief-session">
-                <div class="session-display-row">
-                  <div class="session-day-text"><strong>{{ enrollmentSummary.sessionDay }}</strong></div>
-                  <div class="session-time-text">{{ enrollmentSummary.sessionTime }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tuition Info -->
-          <div class="tuition-panel-modern">
-            <div class="price-info-enrollment">
-              <div class="price-header-row">
-                <span class="price-label-enrollment">Tuition Amount</span>
-                <span class="badge-mode">{{ enrollmentSummary.mode }}</span>
-              </div>
-              <div class="price-status-row">
-                <StatusBadge :status="enrollmentSummary.status" />
-                <span v-if="enrollmentSummary.hasDiscount" class="discount-note-mini">{{ enrollmentSummary.discountText }}</span>
-              </div>
-            </div>
-            <div class="price-amount-large">${{ formatPrice(enrollmentSummary.amount) }}</div>
-          </div>
-        </div>
-
-        <div class="form-group" style="margin-top: 20px;">
-          <label>Payment Method</label>
-          <div class="method-selector">
-            <button type="button" class="method-btn" :class="{ active: actionModal.paymentMethod === 'online' }"
-              @click="actionModal.paymentMethod = 'online'">
-              <span class="icon">💳</span>
-              <span>Online / Transfer</span>
-            </button>
-            <button type="button" class="method-btn" :class="{ active: actionModal.paymentMethod === 'cash' }"
-              @click="actionModal.paymentMethod = 'cash'">
-              <span class="icon">💵</span>
-              <span>Cash Payment</span>
-            </button>
-          </div>
-        </div>
-
-        <div v-if="actionModal.paymentMethod === 'online'" class="form-group" style="margin-top: 16px;">
-          <label>Transaction Reference / Proof</label>
-          <input type="text" v-model="actionModal.proof" placeholder="e.g. ABA Transaction ID or Receipt #"
-            class="standard-input" />
-        </div>
-        <div v-else class="cash-notice">
-          <span class="icon">ℹ️</span>
-          <p>This will mark the enrollment as paid by cash. No reference ID is required.</p>
-        </div>
-      </div>
-
-      <div v-if="actionModal.type === 'cancel'" class="action-cancel-container">
-        <!-- Enrollment Summary Card -->
-        <div class="enrollment-brief-card" v-if="enrollmentSummary">
-          <div class="brief-grid">
-            <!-- Row 1: Parent & Student -->
-            <div class="brief-column">
-              <span class="brief-label">Parent / Guardian</span>
-              <div class="brief-user">
-                <img :src="enrollmentSummary.parentAvatar" class="avatar-mini-enrollment" />
-                <span class="brief-value">{{ enrollmentSummary.parentName }}</span>
-              </div>
-            </div>
-            <div class="brief-column">
-              <span class="brief-label">Student</span>
-              <div class="brief-user">
-                <img :src="enrollmentSummary.studentAvatar" class="avatar-mini-enrollment" />
-                <span class="brief-value">{{ enrollmentSummary.studentName }}</span>
-              </div>
-            </div>
-            <!-- Row 2: Program & Session -->
-            <div class="brief-column">
-              <span class="brief-label">Program</span>
-              <div class="brief-user">
-                <img :src="enrollmentSummary.programAvatar" class="avatar-mini-enrollment" />
-                <span class="brief-value">{{ enrollmentSummary.programTitle }}</span>
-              </div>
-            </div>
-            <div class="brief-column">
-              <span class="brief-label">Session Slot</span>
-              <div class="brief-session">
-                <div class="session-display-row">
-                  <div class="session-day-text"><strong>{{ enrollmentSummary.sessionDay }}</strong></div>
-                  <div class="session-time-text">{{ enrollmentSummary.sessionTime }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <AppAlert type="warning" :customStyle="{ marginTop: '20px', marginBottom: '0px' }">
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <strong style="font-size: 0.95rem;">Security Notice</strong>
-            <span style="font-size: 0.85rem; opacity: 0.9; line-height: 1.2;">
-              This will permanently remove the student and release their session slot.
-            </span>
-          </div>
-        </AppAlert>
-
-        <div class="form-group" style="margin-top: 20px;">
-          <label>Reason for Cancellation</label>
-          <div class="preset-chips" style="margin: 8px 0 12px 0;">
-            <span v-for="preset in ['Schedule Conflict', 'Medical Reason', 'Moved Away', 'Refund Issued', 'Duplicate']"
-              :key="preset" class="chip" @click="actionModal.reason = preset"
-              :class="{ active: actionModal.reason === preset }">
-              {{ preset }}
-            </span>
-          </div>
-          <textarea v-model="actionModal.reason" class="standard-input"
-            placeholder="Provide more details about why this is being cancelled..."
-            style="min-height: 100px;"></textarea>
-        </div>
-      </div>
-
-      <div v-if="actionModal.type === 'delete'" class="form-group">
-        <div class="info-block danger"
-          style="background: #fef2f2; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
-          <p style="color: #991b1b; font-size: 0.9rem;"><strong>Warning:</strong> This action is permanent and cannot be
-            undone.</p>
-        </div>
-        <label>Type <strong class="danger-text">DELETE</strong> to confirm</label>
-        <input type="text" v-model="actionModal.deleteConfirm" placeholder="DELETE" />
-      </div>
-
-      <template #footer>
-        <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; gap: 12px;">
-          <!-- Validation Hint Bubble -->
-          <transition name="toast-fade">
-            <div v-if="showActionHint && actionModalValidationHint"
-              style="font-size: 0.8rem; color: #ef4444; background: #fef2f2; padding: 6px 12px; border-radius: 6px; border: 1px solid #fee2e2; max-width: fit-content;">
-              ⚠️ {{ actionModalValidationHint }}
-            </div>
-          </transition>
-          <div style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
-            <AppButton variant="cancel" @click="closeActionModal">Cancel</AppButton>
-            <AppButton :variant="actionModal.type === 'delete' ? 'danger' : 'primary'"
-              @click="handleActionSubmitTrigger" :loading="submitting"
-              :class="{ 'button-disabled-visual': !!actionModalValidationHint }">
-              {{ actionModal.type === 'pay' ? 'Confirm Payment' : (actionModal.type === 'cancel' ?
-                'Confirm Cancellation' : 'Confirm Action') }}
-            </AppButton>
-          </div>
-        </div>
-      </template>
-    </AppModal>
+    <EnrollmentActionModal
+      v-bind="actionState"
+      :loading="submitting"
+      v-model:error="errorMessage"
+      v-model:success="successMessage"
+      @close="closeActionModal"
+      @submit="submitActionModal"
+    />
   </DashboardLayout>
 </template>
 
@@ -638,109 +411,6 @@ const formatPrice = (val) => {
 .date-text {
   font-size: 0.9rem;
   color: #475569;
-}
-
-/* Payment Action Modal Styles */
-.action-pay-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.badge-mode {
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  border: 1px solid #e2e8f0;
-}
-
-.price-status-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.discount-note-mini {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  font-weight: 500;
-  font-style: italic;
-}
-
-.method-selector {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.method-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: white;
-  border: 2px solid #e2e8f0;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.method-btn .icon {
-  font-size: 1.5rem;
-}
-
-.method-btn span:last-child {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.method-btn:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
-}
-
-.method-btn.active {
-  border-color: #0ea5e9;
-  background: #f0f9ff;
-}
-
-.method-btn.active span:last-child {
-  color: #0369a1;
-}
-
-.cash-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: #f1f5f9;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.cash-notice .icon {
-  font-size: 1.1rem;
-}
-
-.cash-notice p {
-  font-size: 0.85rem;
-  color: #475569;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.amount-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
 }
 
 .prorate-note {

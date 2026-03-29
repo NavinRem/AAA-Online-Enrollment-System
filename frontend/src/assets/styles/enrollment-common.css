@@ -86,13 +86,40 @@
 /* Price & Financials Overrides */
 .price-preview-box,
 .tuition-panel-modern {
-  padding: 20px;
-  background: #f0f9ff;
-  border: 1px solid #bae6fd;
-  border-radius: 14px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1.5px solid #bae6fd;
+  border-radius: 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 174, 239, 0.04);
+}
+
+.price-info-enrollment {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.price-label-enrollment {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #0369a1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.price-notes-enrollment {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-note-enrollment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .price-header-row {
