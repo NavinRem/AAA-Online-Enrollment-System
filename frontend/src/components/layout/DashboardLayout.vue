@@ -33,16 +33,24 @@ const toggleSidebar = () => {
 
 .main-wrapper {
   flex: 1;
-  margin-left: 260px; /* Sidebar width */
+  margin-left: 260px;
+  /* Sidebar width */
   display: flex;
   flex-direction: column;
   transition: margin-left 0.3s ease;
-  min-width: 0; /* Prevent horizontal overflow from content */
+  min-width: 0;
+  /* Prevent horizontal overflow from content */
 }
 
 .content-area {
   padding: 0;
   flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .sidebar-overlay {
@@ -56,6 +64,4 @@ const toggleSidebar = () => {
   backdrop-filter: blur(2px);
   z-index: 90;
 }
-
-
 </style>

@@ -1,9 +1,8 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
-import AppAlert from '@/components/common/ui/AppAlert.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge.vue'
@@ -16,15 +15,11 @@ import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import {
   calculateTotalEnrollment,
   enrichEnrollments,
-  cleanSessionSchedule,
-  getEnrollmentDisplayStatus,
-  getEnrollmentDisplayMode
 } from '../utils/enrollmentHelper'
 import { formatDate } from '../utils/dateFormatter'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
 import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
-import AppModal from '@/components/common/ui/AppModal.vue'
 
 const enrollments = ref([])
 const parents = ref([])
@@ -89,13 +84,6 @@ const handleProgramChange = async (programId) => {
   } catch (err) {
     console.error('Failed to load sessions', err)
   }
-}
-
-const isAlreadyEnrolled = (studentId, programId) => {
-  if (!studentId || !programId) return false
-  return enrollments.value.some(
-    (e) => e.studentId === studentId && e.programId === programId && e.status !== 'cancelled'
-  )
 }
 
 let hintTimeout = null
@@ -177,16 +165,16 @@ const enrollmentStats = computed(() => {
 })
 
 const enrollmentHeaders = [
-  { label: 'No', width: '40px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Parent / Guardian', width: '18%', class: 'hide-on-tablet' },
-  { label: 'Student', width: '18%' },
-  { label: 'Program', width: '30%' },
-  { label: 'Session', width: '10%' },
-  { label: 'Enrolled Date', width: '160px', align: 'center' },
-  { label: 'Mode', width: '80px', align: 'center' },
+  { label: 'No', width: '30px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Parent / Guardian', width: '150px', class: 'hide-on-tablet' },
+  { label: 'Student', width: '150px' },
+  { label: 'Program', width: '150px' },
+  { label: 'Session', width: '100px' },
+  { label: 'Enrolled Date', width: '100px', align: 'center' },
+  { label: 'Mode', width: '60px', align: 'center' },
   { label: 'Amount', width: '80px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Status', width: '110px', align: 'center' },
-  { label: 'Action', width: '50px', align: 'center' }
+  { label: 'Status', width: '80px', align: 'center' },
+  { label: 'Action', width: '60px', align: 'center' }
 ]
 
 const currentFilter = ref('all')
@@ -194,20 +182,40 @@ const currentFilter = ref('all')
 const statusFilteredEnrollments = computed(() => {
   const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, programs.value, sessions.value)
 
-  if (currentFilter.value === 'all') return enriched
+  let filtered = enriched
+  if (currentFilter.value !== 'all') {
+    filtered = enriched.filter(r => {
+      if (currentFilter.value === 'paid') return isPaid(r.status || r.paymentStatus)
+      if (currentFilter.value === 'unpaid') return isUnpaid(r.status || r.paymentStatus)
+      if (currentFilter.value === 'cancelled') return isCancelled(r.status || r.paymentStatus)
+      return true
+    })
+  }
 
-  return enriched.filter(r => {
-    if (currentFilter.value === 'paid') return isPaid(r.status || r.paymentStatus)
-    if (currentFilter.value === 'unpaid') return isUnpaid(r.status || r.paymentStatus)
-    if (currentFilter.value === 'cancelled') return isCancelled(r.status || r.paymentStatus)
-    return true
-  }).sort((a, b) => new Date(b.enrollAt || 0) - new Date(a.enrollAt || 0))
+  // Newest always on top (addresses user feedback: "only show the current enrollment on top")
+  return filtered.sort((a, b) => new Date(b.enrollAt || 0) - new Date(a.enrollAt || 0))
 })
 
 const { searchQuery, searchResults: filteredEnrollments } = useSearch(
   statusFilteredEnrollments,
   enrollmentSearchMapper,
 )
+
+// --- Pagination State ---
+const currentPage = ref(1)
+const pageSize = 10
+const totalItems = computed(() => filteredEnrollments.value.length)
+
+const paginatedEnrollments = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredEnrollments.value.slice(start, end)
+})
+
+// Reset to first page when filtering or searching
+watch([currentFilter, searchQuery], () => {
+  currentPage.value = 1
+})
 
 // --- Action Modal State ---
 const actionState = ref({
@@ -284,9 +292,10 @@ const formatPrice = (val) => {
       </template>
 
       <template #table>
-        <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="filteredEnrollments" :loading="loading"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search Enrollments" :hasFilter="true"
-          v-model:currentFilter="currentFilter" :filterOptions="[
+        <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="paginatedEnrollments"
+          :loading="loading" :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize"
+          :totalItems="totalItems" @update:currentPage="currentPage = $event" v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search Enrollments" :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Enrollments', value: 'all' },
             { label: 'Paid Only', value: 'paid' },
             { label: 'Unpaid Only', value: 'unpaid' },
@@ -299,11 +308,11 @@ const formatPrice = (val) => {
             <AppButton variant="primary" @click="showModal = true">+ New Enrollment</AppButton>
           </template>
 
-          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile text-center">
+          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, headers }">
+            <td class="hide-on-mobile text-center" :style="{ width: headers[0].width }">
               {{ index + 1 }}
             </td>
-            <td class="hide-on-tablet bold">
+            <td class="hide-on-tablet bold" :style="{ width: headers[1].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent" />
@@ -311,7 +320,7 @@ const formatPrice = (val) => {
                 <span>{{ item.parentName }}</span>
               </div>
             </td>
-            <td class="bold">
+            <td class="bold" :style="{ width: headers[2].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="getStudentProfileURL(item.studentProfileURL)" alt="student" />
@@ -319,38 +328,38 @@ const formatPrice = (val) => {
                 <span>{{ item.studentName }}</span>
               </div>
             </td>
-            <td>
+            <td :style="{ width: headers[3].width }">
               <div class="info-cell">
                 <div class="program-icon-mini">
                   <img :src="getProgramProfileURL(item.programProfileURL)" alt="program" />
                 </div>
                 <div class="program-cell">
-                  <div class="program-title">{{ item.programTitle || 'Program' }}</div>
+                  <div class="program-title text-truncate">{{ item.programTitle || 'Program' }}</div>
                 </div>
               </div>
             </td>
-            <td>
+            <td :style="{ width: headers[4].width }">
               <div class="session-cell">
                 <div class="session-day"><strong>{{ getSessionDay(item.sessionSchedule) }}</strong></div>
                 <div class="session-time">{{ getSessionTime(item.sessionSchedule) }}</div>
               </div>
             </td>
-            <td class="text-center">
+            <td class="text-center" :style="{ width: headers[5].width }">
               <span class="date-text">{{ formatDate(item.enrollAt) }}</span>
             </td>
-            <td class="text-center">
+            <td class="text-center" :style="{ width: headers[6].width }">
               <StatusBadge :status="item.enrollmentType || 'Full'" />
             </td>
-            <td class="bold hide-on-mobile text-center">
+            <td class="bold hide-on-mobile text-center" :style="{ width: headers[7].width }">
               <div class="amount-cell">
                 <StatusBadge :status="'$' + formatPrice(item.amount || 0)"></StatusBadge>
                 <div v-if="item.isProrated" class="prorate-note">PRORATED</div>
               </div>
             </td>
-            <td class="text-center">
+            <td class="text-center" :style="{ width: headers[8].width }">
               <StatusBadge :status="item.displayStatus || 'Unpaid'" />
             </td>
-            <td class="action-cell text-center">
+            <td class="action-cell text-center" :style="{ width: headers[9].width }">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
                   <span class="dots-icon">⋮</span>

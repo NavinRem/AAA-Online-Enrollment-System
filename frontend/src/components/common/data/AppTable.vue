@@ -7,26 +7,23 @@
     <table v-else class="data-table">
       <thead>
         <tr>
-          <th 
-            v-for="(col, index) in headers" 
-            :key="index"
-            :style="typeof col === 'object' ? { width: col.width } : {}"
+          <th v-for="(col, index) in headers" :key="index" :style="typeof col === 'object' ? { width: col.width } : {}"
             :class="[
               typeof col === 'object' ? col.class : '',
               typeof col === 'object' && col.align ? `text-${col.align}` : ''
-            ]"
-          >
+            ]">
             {{ typeof col === 'object' ? col.label : col }}
           </th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="table-body">
         <slot></slot>
         <tr v-if="empty">
           <td :colspan="headers?.length || 1" class="empty-state">
             <slot name="empty">No records found.</slot>
           </td>
         </tr>
+        <slot name="footer"></slot>
       </tbody>
     </table>
   </div>

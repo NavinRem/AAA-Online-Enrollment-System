@@ -50,9 +50,16 @@ class EnrollmentService {
         parentId: studentDoc.data().parentId,
         status: "pending",
         paymentStatus: "unpaid",
-        amount: programData.price || 0,
-        totalAmount: programData.price || 0,
         enrollAt: new Date().toISOString(),
+        // New fields for tracking partial vs full enrollment
+        enrollmentType: enrollmentData.enrollmentType || "Full",
+        isProrated: enrollmentData.isProrated || false,
+        isSponsorship: enrollmentData.isSponsorship || false,
+        sponsorName: enrollmentData.sponsorName || "",
+        isCustomPrice: enrollmentData.isCustomPrice || false,
+        discountAmount: enrollmentData.discountAmount || 0,
+        amount: enrollmentData.amount || programData.price || 0,
+        remark: enrollmentData.remark || "",
       };
 
       transaction.set(enrollmentRef, data);
@@ -165,6 +172,11 @@ class EnrollmentService {
         sessionCount: session?.totalSessions || session?.sessionCount || 10,
         dob: studentData.dob || null,
         amount: data.amount || data.totalAmount || programData.price || 0,
+        isProrated: data.isProrated || false,
+        enrollmentType: data.enrollmentType || "Full",
+        remark: data.remark || "",
+        isSponsorship: data.isSponsorship || false,
+        sponsorName: data.sponsorName || "",
       };
     });
   }
@@ -294,6 +306,11 @@ class EnrollmentService {
         resolvedTeachers.length > 0 ? resolvedTeachers[0].profileURL : null,
       numberSessions: data.numberSessions || sessionData?.totalSessions || 10,
       amount: data.amount || programData?.price || 0,
+      isProrated: data.isProrated || false,
+      enrollmentType: data.enrollmentType || "Full",
+      remark: data.remark || "",
+      isSponsorship: data.isSponsorship || false,
+      sponsorName: data.sponsorName || "",
       capacity: sessionData?.capacity || 0,
       numStudent: sessionData?.numStudent || 0,
     };

@@ -49,8 +49,20 @@ const { searchQuery: parentSearchQuery, searchResults: filteredParents } = useSe
   parentSearchMapper,
 )
 
+const availableProgramsForStudent = computed(() => {
+  if (!formData.value.studentId) return props.programs
+  return props.programs.filter(program => {
+    const alreadyEnrolled = props.enrollments.some(e =>
+      e.studentId === formData.value.studentId &&
+      e.programId === program.id &&
+      e.status !== 'cancelled'
+    )
+    return !alreadyEnrolled
+  })
+})
+
 const { searchQuery: programSearchQuery, searchResults: filteredPrograms } = useSearch(
-  toRef(props, 'programs'),
+  availableProgramsForStudent,
   programSearchMapper,
 )
 
@@ -295,6 +307,8 @@ const selectedSession = computed(() => {
 
 const isAlreadyEnrolled = computed(() => {
   if (!formData.value.studentId || !formData.value.programId) return false
+  if (props.success) return false
+
   return props.enrollments.some(
     (e) =>
       e.studentId === formData.value.studentId &&
@@ -516,7 +530,7 @@ const handleSubmit = () => {
                 </template>
                 <template v-else>
                   <span class="placeholder">{{ !formData.studentId ? 'Select student first' : 'Select a program'
-                  }}</span>
+                    }}</span>
                 </template>
                 <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
               </div>
@@ -632,7 +646,7 @@ const handleSubmit = () => {
                       passed</span>
                   </div>
                   <div v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
-                  }}/session)</div>
+                    }}/session)</div>
                 </div>
               </div>
               <StatusBadge :status="displayEnrollmentStatus" />
@@ -1097,9 +1111,6 @@ input:checked+.slider:before {
   position: relative;
 }
 
-.form-group {
-  /* Removed local margin: 0 to allow global AppModal.css margin-bottom: 24px */
-}
 
 @keyframes slideIn {
   from {

@@ -113,7 +113,21 @@ h3 {
   flex-direction: column;
   gap: 25px;
   width: 100%;
+  flex: 1;
+  height: 100%;
+  box-sizing: border-box;
+  align-items: stretch;
   padding: 0 30px 30px 30px;
+  overflow: hidden;
+  min-height: 0; /* Add height constraint */
+}
+
+/* Global Flex Height Stabilizer */
+.flex-grower {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* Layout Responsiveness */
