@@ -20,6 +20,7 @@ import { formatDate } from '../utils/dateFormatter'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
 import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
+import { formatPrice } from '@/utils/currencyFormatter'
 
 const enrollments = ref([])
 const parents = ref([])
@@ -40,8 +41,18 @@ const getRowClass = (item) => {
 }
 
 onMounted(async () => {
-  await fetchEnrollments()
-  await loadFormData()
+  try {
+    loading.value = true
+    await Promise.all([
+      fetchEnrollments(),
+      loadFormData()
+    ])
+    console.log('Enrollments loaded:', enrollments.value.length)
+  } catch (error) {
+    console.error('Initial data load failed', error)
+  } finally {
+    loading.value = false
+  }
 })
 
 const fetchEnrollments = async () => {
@@ -120,6 +131,12 @@ const handleSaveEnrollment = async (formData) => {
       isProrated: formData.isProrated,
       enrollmentType: formData.enrollmentType || 'Full',
       remark: formData.remark || '',
+      // Snapshot of calculations
+      basePrice: formData.basePrice || 0,
+      totalSessions: formData.totalSessions || 0,
+      remainingSessions: formData.remainingSessions || 0,
+      passedSessions: formData.passedSessions || 0,
+      prorateSavings: formData.prorateSavings || 0,
       // Only set these for new enrollments
       ...(!formData.id ? {
         status: 'unpaid',
@@ -278,10 +295,6 @@ const closeActionModal = () => {
 }
 
 // UI Helpers
-const formatPrice = (val) => {
-  if (val === undefined || val === null) return '0'
-  return Number.isInteger(val) ? val.toString() : val.toFixed(2)
-}
 </script>
 
 <template>
@@ -353,7 +366,6 @@ const formatPrice = (val) => {
             <td class="bold hide-on-mobile text-center" :style="{ width: headers[7].width }">
               <div class="amount-cell">
                 <StatusBadge :status="'$' + formatPrice(item.amount || 0)"></StatusBadge>
-                <div v-if="item.isProrated" class="prorate-note">PRORATED</div>
               </div>
             </td>
             <td class="text-center" :style="{ width: headers[8].width }">

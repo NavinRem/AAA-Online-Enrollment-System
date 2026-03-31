@@ -36,22 +36,79 @@ class EnrollmentService {
       }
 
       const sessionData = sessionDoc.data();
+      const studentData = studentDoc.data();
       const programData = programDoc.data();
+
+      // Fetch Parent Data (linked to Student)
+      const parentId = studentData.parentId;
+      if (!parentId) throw new Error("Student has no parentId linked");
+      const parentRef = db.collection(COLLECTIONS.USER).doc(parentId);
+      const parentDoc = await transaction.get(parentRef);
+      if (!parentDoc.exists) throw new Error("Parent not found");
+      const parentData = parentDoc.data();
+
       if ((sessionData.numStudent || 0) >= sessionData.capacity) {
         throw new Error("Session is full");
       }
 
       const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc();
       enrollmentId = enrollmentRef.id;
+
       const data = {
         studentId,
         sessionId,
         programId,
-        parentId: studentDoc.data().parentId,
+        parentId,
+
+        // Snapshot: Parent Information
+        parent: {
+          id: parentId,
+          name: parentData.name || parentData.email || "Parent",
+          email: parentData.email || "N/A",
+          phone: parentData.phone || "N/A",
+          role: parentData.role || "guardian",
+          roleDisplay:
+            parentData.role === "parent"
+              ? "Parent"
+              : parentData.role || "Guardian",
+          profileURL: parentData.profileURL || null,
+        },
+
+        // Snapshot: Student Information
+        student: {
+          id: studentId,
+          name: studentData.fullName || studentData.name || "Student",
+          dob: studentData.dob || null,
+          medicalNote: studentData.medicalNote || "",
+          profileURL: studentData.profileURL || null,
+        },
+
+        // Snapshot: Program Information
+        program: {
+          id: programId,
+          title: programData.title || programData.name || "Program",
+          category: programData.category || "N/A",
+          totalSessions: programData.totalSessions || 10,
+          price: programData.price || 0,
+          startDate: programData.startDate || null,
+          endDate: programData.endDate || null,
+          profileURL: programData.profileURL || null,
+          teachers: programData.teachers || [],
+        },
+
+        // Snapshot: Session Information
+        session: {
+          id: sessionId,
+          day: sessionData.day || "N/A",
+          timeslot: sessionData.timeslot || "N/A",
+          capacity: sessionData.capacity || 0,
+          numStudent: (sessionData.numStudent || 0) + 1, // Included the new student
+          schedule: sessionData.schedule || {},
+        },
+
         status: "pending",
         paymentStatus: "unpaid",
         enrollAt: new Date().toISOString(),
-        // New fields for tracking partial vs full enrollment
         enrollmentType: enrollmentData.enrollmentType || "Full",
         isProrated: enrollmentData.isProrated || false,
         isSponsorship: enrollmentData.isSponsorship || false,
@@ -60,6 +117,14 @@ class EnrollmentService {
         discountAmount: enrollmentData.discountAmount || 0,
         amount: enrollmentData.amount || programData.price || 0,
         remark: enrollmentData.remark || "",
+
+        // New Calculated Info (Snapshot)
+        basePrice: enrollmentData.basePrice || programData.price || 0,
+        totalSessions:
+          enrollmentData.totalSessions || programData.totalSessions || 0,
+        remainingSessions: enrollmentData.remainingSessions || 0,
+        passedSessions: enrollmentData.passedSessions || 0,
+        prorateSavings: enrollmentData.prorateSavings || 0,
       };
 
       transaction.set(enrollmentRef, data);
@@ -283,6 +348,7 @@ class EnrollmentService {
         ? {
             id: data.programId,
             ...programData,
+            teachers: resolvedTeachers,
           }
         : null,
       session: sessionData
@@ -304,7 +370,9 @@ class EnrollmentService {
         resolvedTeachers.length > 0 ? resolvedTeachers[0].name : "Not Assigned",
       teacherProfileURL:
         resolvedTeachers.length > 0 ? resolvedTeachers[0].profileURL : null,
-      numberSessions: data.numberSessions || sessionData?.totalSessions || 10,
+      numberSessions:
+        data.remainingSessions ??
+        (data.numberSessions || sessionData?.totalSessions || 10),
       amount: data.amount || programData?.price || 0,
       isProrated: data.isProrated || false,
       enrollmentType: data.enrollmentType || "Full",
@@ -351,14 +419,70 @@ class EnrollmentService {
     const enrollmentRef = db
       .collection(COLLECTIONS.ENROLLMENT)
       .doc(enrollmentId);
-    const doc = await enrollmentRef.get();
-
-    if (!doc.exists) throw new Error("Enrollment not found");
 
     const safeData = { ...updateData, updatedAt: new Date().toISOString() };
     delete safeData.id;
 
-    await enrollmentRef.update(safeData);
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(enrollmentRef);
+      if (!doc.exists) throw new Error("Enrollment not found");
+
+      const oldData = doc.data();
+      const oldSessionId = oldData.sessionId;
+      const newSessionId = safeData.sessionId || oldSessionId;
+
+      const oldStatus = (oldData.status || "").toLowerCase();
+      const newStatus = (safeData.status || oldStatus).toLowerCase();
+
+      const wasActive = !["cancelled", "canceled"].includes(oldStatus);
+      const isActive = !["cancelled", "canceled"].includes(newStatus);
+
+      // 1. If session changed
+      if (oldSessionId !== newSessionId) {
+        // Decrement old if it was active
+        if (wasActive && oldSessionId) {
+          const oldSessionRef = db
+            .collection(COLLECTIONS.SESSION)
+            .doc(oldSessionId);
+          const oldSessionDoc = await transaction.get(oldSessionRef);
+          if (oldSessionDoc.exists) {
+            const count = oldSessionDoc.data().numStudent || 0;
+            transaction.update(oldSessionRef, {
+              numStudent: Math.max(0, count - 1),
+            });
+          }
+        }
+        // Increment new if it is active
+        if (isActive && newSessionId) {
+          const newSessionRef = db
+            .collection(COLLECTIONS.SESSION)
+            .doc(newSessionId);
+          const newSessionDoc = await transaction.get(newSessionRef);
+          if (newSessionDoc.exists) {
+            const count = newSessionDoc.data().numStudent || 0;
+            transaction.update(newSessionRef, { numStudent: count + 1 });
+          }
+        }
+      } else if (wasActive !== isActive) {
+        // 2. Session same, but status changed between active/cancelled
+        const sessionRef = db.collection(COLLECTIONS.SESSION).doc(oldSessionId);
+        const sessionDoc = await transaction.get(sessionRef);
+        if (sessionDoc.exists) {
+          const count = sessionDoc.data().numStudent || 0;
+          if (isActive) {
+            // Cancelled -> Active
+            transaction.update(sessionRef, { numStudent: count + 1 });
+          } else {
+            // Active -> Cancelled
+            transaction.update(sessionRef, {
+              numStudent: Math.max(0, count - 1),
+            });
+          }
+        }
+      }
+
+      transaction.update(enrollmentRef, safeData);
+    });
 
     return { id: enrollmentId, ...safeData };
   }

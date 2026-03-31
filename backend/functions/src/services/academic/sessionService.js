@@ -99,19 +99,45 @@ class SessionService {
 
   // Sync Student Counts
   async syncStudentCounts(sessionId) {
+    if (!sessionId) throw new Error("sessionId is required");
     const ref = db.collection(COLLECTIONS.SESSION).doc(sessionId);
 
-    // Count enrollments
+    // Fetch all enrollments for this session
     const snapshot = await db
       .collection(COLLECTIONS.ENROLLMENT)
       .where("sessionId", "==", sessionId)
-      .where("status", "in", ["confirmed", "pending"])
       .get();
 
-    const count = snapshot.docs.length;
+    // Filter in-memory to handle various 'cancelled' variants
+    const activeEnrollments = snapshot.docs.filter((doc) => {
+      const status = (doc.data().status || "").toLowerCase();
+      return !["cancelled", "canceled"].includes(status);
+    });
+
+    const count = activeEnrollments.length;
     await ref.update({ numStudent: count });
 
-    return { message: "Student count synced", count };
+    return { id: sessionId, count };
+  }
+
+  // Sync All Sessions
+  async syncAllSessionCounts() {
+    const snapshot = await db.collection(COLLECTIONS.SESSION).get();
+    const results = [];
+
+    for (const doc of snapshot.docs) {
+      try {
+        const result = await this.syncStudentCounts(doc.id);
+        results.push(result);
+      } catch (err) {
+        console.error(`Failed to sync session ${doc.id}:`, err);
+      }
+    }
+
+    return {
+      message: `Synchronized ${results.length} sessions`,
+      details: results,
+    };
   }
 }
 

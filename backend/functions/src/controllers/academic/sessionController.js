@@ -114,3 +114,15 @@ exports.syncStudentCounts = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+/**
+ * @route POST /sessions/sync-all
+ * @description Recalculate student counts for all sessions
+ */
+exports.syncAllSessions = async (req, res) => {
+  try {
+    const result = await sessionService.syncAllSessionCounts();
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

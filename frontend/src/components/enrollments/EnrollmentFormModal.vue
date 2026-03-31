@@ -3,6 +3,7 @@ import { ref, computed, toRef, watch, onMounted, onUnmounted } from 'vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { useSearch, parentSearchMapper, studentSearchMapper, programSearchMapper } from '@/composables/useSearch'
 import { getStudentProfileURL, getParentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
+import { formatPrice } from '@/utils/currencyFormatter'
 import { getSessionCounts } from '@/utils/programHelper'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
@@ -360,11 +361,6 @@ const finalAmount = computed(() => {
   return formData.value.isCustomPrice ? formData.value.customPrice : calculatedPrice.value
 })
 
-const formatPrice = (val) => {
-  if (val === undefined || val === null) return '0'
-  return Number.isInteger(val) ? val.toString() : val.toFixed(2)
-}
-
 const prorateSavings = computed(() => {
   if (!formData.value.isProrated || !sessionInfo.value || !selectedProgramPrice.value) return 0
   const { total, remaining } = sessionInfo.value
@@ -409,7 +405,13 @@ const handleSubmit = () => {
     ...(isEditMode.value ? { id: props.enrollment.id } : {}),
     ...formData.value,
     amount: finalAmount.value,
-    enrollmentType: isFullEnrollment.value ? 'Full' : 'Partial'
+    enrollmentType: isFullEnrollment.value ? 'Full' : 'Partial',
+    // Snapshot of calculations
+    basePrice: selectedProgramPrice.value,
+    totalSessions: sessionInfo.value?.total || 0,
+    remainingSessions: sessionInfo.value?.remaining || 0,
+    passedSessions: sessionInfo.value?.passed || 0,
+    prorateSavings: prorateSavings.value || 0
   })
 }
 </script>
@@ -417,18 +419,6 @@ const handleSubmit = () => {
 <template>
   <AppModal :show="isOpen" @close="$emit('close')" :title="isEditMode ? 'Edit Enrollment' : 'Create New Enrollment'">
     <div class="modal-inner-content">
-      <transition name="toast-fade">
-        <div v-if="props.error && props.error.length > 0" class="alert-box error" style="margin-bottom: 24px;">
-          {{ props.error }}
-        </div>
-      </transition>
-
-      <transition name="toast-fade">
-        <div v-if="props.success && props.success.length > 0" class="alert-box success" style="margin-bottom: 24px;">
-          {{ props.success }}
-        </div>
-      </transition>
-
       <form @submit.prevent="validateAndSubmit" class="enrollment-form">
         <div class="form-grid">
           <!-- Parent Selection -->
@@ -530,7 +520,7 @@ const handleSubmit = () => {
                 </template>
                 <template v-else>
                   <span class="placeholder">{{ !formData.studentId ? 'Select student first' : 'Select a program'
-                    }}</span>
+                  }}</span>
                 </template>
                 <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
               </div>
@@ -646,7 +636,7 @@ const handleSubmit = () => {
                       passed</span>
                   </div>
                   <div v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
-                    }}/session)</div>
+                  }}/session)</div>
                 </div>
               </div>
               <StatusBadge :status="displayEnrollmentStatus" />
@@ -740,15 +730,23 @@ const handleSubmit = () => {
           </div>
           <strong class="price-amount-large">${{ formatPrice(finalAmount) }}</strong>
         </div>
-
-        <!-- Hidden submit for Enter key functionality -->
         <button type="submit" style="display: none;"></button>
       </form>
     </div>
 
     <template #footer>
       <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; gap: 12px;">
-        <!-- Validation Hint Bubble -->
+        <transition name="toast-fade">
+          <div v-if="props.error && props.error.length > 0" class="alert-box error" style="width: 100%; margin-bottom: 0;">
+            {{ props.error }}
+          </div>
+        </transition>
+
+        <transition name="toast-fade">
+          <div v-if="props.success && props.success.length > 0" class="alert-box success" style="width: 100%; margin-bottom: 0;">
+            {{ props.success }}
+          </div>
+        </transition>
         <transition name="toast-fade">
           <div v-if="showValidationHint && validationHint"
             style="font-size: 0.8rem; color: #ef4444; background: #fef2f2; padding: 6px 12px; border-radius: 6px; border: 1px solid #fee2e2; max-width: fit-content;">

@@ -11,13 +11,13 @@ import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 
 import {
-  getImageUrl,
   getProgramProfileURL,
   getParentProfileURL,
   getStudentProfileURL,
   getTeacherProfileURL
 } from '@/utils/assetHelper'
 import { isPaid, isCancelled } from '@/utils/statusHelper'
+import { formatPrice } from '@/utils/currencyFormatter'
 
 const route = useRoute()
 const router = useRouter()
@@ -194,9 +194,9 @@ onMounted(async () => {
       <template #left-content v-if="enrollment">
         <div class="detail-cards-grid">
           <DetailCard title="Parent/Guardian Information" :avatarUrl="getParentProfileURL(parent?.profileURL)">
-            <p><strong>Fullname:</strong> {{ enrollment.parent?.name }}</p>
-            <p><strong>Email:</strong> {{ enrollment.parent?.email }}</p>
-            <p><strong>Phone Number:</strong> {{ enrollment.parent?.phone }}</p>
+            <p><strong>Fullname:</strong> {{ enrollment.parent?.name || enrollment.parentName || 'N/A' }}</p>
+            <p><strong>Email:</strong> {{ enrollment.parent?.email || 'N/A' }}</p>
+            <p><strong>Phone Number:</strong> {{ enrollment.parent?.phone || 'N/A' }}</p>
             <p>
               <strong>Role:</strong>
               <StatusBadge :status="enrollment.parent?.roleDisplay || 'Guardian'" />
@@ -206,7 +206,7 @@ onMounted(async () => {
           <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(student?.profileURL)">
             <p>
               <strong>Fullname:</strong>
-              {{ enrollment.student?.name }}
+              {{ enrollment.student?.name || enrollment.studentName || 'N/A' }}
             </p>
             <p>
               <strong>Date of birth:</strong>
@@ -230,9 +230,17 @@ onMounted(async () => {
               <StatusBadge :status="'purple:' + getSessionDay(enrollment.sessionSchedule)" />
               {{ getSessionTime(enrollment.sessionSchedule) }}
             </p>
-            <p>
+            <p style="display: flex; align-items: center;">
               <strong>Number Session Enrolled:</strong>
-              {{ enrollment.numberSessions || program?.totalSessions }} Sessions
+              <template v-if="enrollment.remainingSessions !== undefined">
+                {{ enrollment.remainingSessions }} Sessions of
+                {{ enrollment.totalSessions || 10 }}
+                <StatusBadge v-if="enrollment.passedSessions > 0" :status="enrollment.passedSessions + ' passed'"
+                  type="red" />
+              </template>
+              <template v-else>
+                {{ enrollment.numberSessions || enrollment.program?.numberSessions || '10' }} Sessions
+              </template>
             </p>
             <p>
               <strong>Enrolled Date:</strong>
@@ -240,8 +248,7 @@ onMounted(async () => {
             </p>
           </DetailCard>
 
-          <DetailCard title="Session Information"
-            :avatarUrl="getTeacherProfileURL(enrollment.program?.teachers?.[0]?.profileURL)">
+          <DetailCard title="Session Information" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)">
             <p><strong>Program:</strong> {{ enrollment.program?.title || 'N/A' }}</p>
 
             <p class="teacher-row-aligned">
@@ -257,8 +264,8 @@ onMounted(async () => {
             </div>
             <span v-else class="not-assigned-label">Not Assigned</span>
             </p>
-            <p><strong>Student Enrolled:</strong> {{ session?.numStudent }}</p>
-            <p><strong>Max Capacity:</strong> {{ session?.capacity }}</p>
+            <p><strong>Student Enrolled:</strong> {{ enrollment.session?.numStudent || 0 }}</p>
+            <p><strong>Max Capacity:</strong> {{ enrollment.session?.capacity || 20 }}</p>
           </DetailCard>
         </div>
       </template>
@@ -270,6 +277,13 @@ onMounted(async () => {
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
               <StatusBadge :status="enrollment.status === 'cancelled' ? 'Canceled' :
                 enrollment.paymentStatus?.toLowerCase() === 'paid' ? 'Paid' : 'Unpaid'" />
+            </div>
+          </div>
+
+          <div class="detail-row align-center">
+            <span class="summary-label">Mode</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <StatusBadge :status="enrollment.enrollmentType" />
             </div>
           </div>
 
@@ -298,17 +312,35 @@ onMounted(async () => {
         </DetailedSummaryCard>
 
         <DetailedSummaryCard subtitle="Payment Information">
-          <div class="detail-row align-center">
-            <span class="summary-label">Total</span>
+          <div class="detail-row align-center" v-if="enrollment?.basePrice">
+            <span class="summary-label">Original Price</span>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-              <StatusBadge :status="'$' + (enrollment?.amount || 0)" />
+              <StatusBadge :status="'$' + formatPrice(enrollment.basePrice)" type="green" />
+            </div>
+          </div>
+
+          <div class="detail-row align-center" v-if="enrollment?.prorateSavings">
+            <span class="summary-label">Prorate Discount</span>
+            <StatusBadge :status="'-$' + formatPrice(enrollment.prorateSavings)" type="magenta" />
+          </div>
+
+          <div class="detail-row align-center" v-if="enrollment?.discountAmount">
+            <span class="summary-label">Manual Discount</span>
+            <StatusBadge :status="'-$' + formatPrice(enrollment.discountAmount)" type="magenta" />
+          </div>
+
+          <div class="detail-row align-center">
+            <span class="summary-label">Total Amount</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <StatusBadge :status="'$' + formatPrice(enrollment?.amount || 0)" />
             </div>
           </div>
 
           <div class="detail-row align-center">
             <span class="summary-label">Status</span>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-              <StatusBadge :status="enrollment?.displayStatus || enrollment?.status || enrollment?.paymentStatus || 'Unpaid'" />
+              <StatusBadge
+                :status="enrollment?.displayStatus || enrollment?.status || enrollment?.paymentStatus || 'Unpaid'" />
             </div>
           </div>
 
@@ -328,10 +360,17 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="detail-row" v-if="enrollment?.remark">
+          <div class="detail-row">
             <span class="summary-label">Admin Remark</span>
             <span class="summary-value italic">
-              {{ enrollment?.remark }}
+              {{ enrollment?.remark || 'None' }}
+            </span>
+          </div>
+
+          <div class="detail-row" v-if="enrollment?.isSponsorship">
+            <span class="summary-label">Sponsorship</span>
+            <span class="summary-value mono" style="word-break: break-all; font-size: 0.8rem;">
+              {{ enrollment?.sponsorName || 'Third-party' }}
             </span>
           </div>
 

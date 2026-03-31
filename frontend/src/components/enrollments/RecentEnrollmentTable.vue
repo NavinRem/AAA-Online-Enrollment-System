@@ -8,6 +8,7 @@ import {
   getParentProfileURL,
   getStudentProfileURL
 } from '@/utils/assetHelper'
+import { formatPrice } from '@/utils/currencyFormatter'
 
 defineProps({
   enrollments: {
@@ -21,12 +22,13 @@ const router = useRouter()
 // Defining headers with widths for even alignment
 const enrollmentHeaders = [
   { label: 'No', width: '30px', align: 'center' },
-  { label: 'Parent / Guardian', width: '30%' },
-  { label: 'Child', width: '30%' },
-  { label: 'Program', width: '40%' },
-  { label: 'Status', width: '90px', align: 'center' },
-  { label: 'Amount', width: '90px', align: 'center' },
-  { label: 'Enrolled Date', width: '10%', align: 'center' }
+  { label: 'Parent / Guardian', width: '120px' },
+  { label: 'Child', width: '120px' },
+  { label: 'Program', width: '120px' },
+  { label: 'Mode', width: '60px', align: 'center' },
+  { label: 'Status', width: '60px', align: 'center' },
+  { label: 'Amount', width: '60px', align: 'center' },
+  { label: 'Enrolled Date', width: '70px', align: 'center' }
 ]
 
 const navigateToDetail = (item) => {
@@ -46,8 +48,8 @@ const navigateToDetail = (item) => {
 
     <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
       <tr v-for="item in enrollments" :key="item.id || item.no" style="cursor: pointer;">
-        <td class="text-center">{{ item.no }}</td>
-        <td class="bold">
+        <td class="text-center" :style="{ width: enrollmentHeaders[0].width }">{{ item.no }}</td>
+        <td class="bold" :style="{ width: enrollmentHeaders[1].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
               <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent" />
@@ -57,7 +59,7 @@ const navigateToDetail = (item) => {
             </div>
           </div>
         </td>
-        <td class="bold">
+        <td class="bold" :style="{ width: enrollmentHeaders[2].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
               <img :src="getStudentProfileURL(item.studentProfileURL)" alt="child" />
@@ -67,21 +69,25 @@ const navigateToDetail = (item) => {
             </div>
           </div>
         </td>
-        <td class="bold">
+        <td class="bold" :style="{ width: enrollmentHeaders[3].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
               <img :src="getProgramProfileURL(item.programProfileURL)" :alt="item.programTitle" />
             </div>
-            <span class="program-name">{{ item.programTitle }}</span>
+            <span class="program-name text-truncate">{{ item.programTitle }}</span>
           </div>
         </td>
-        <td class="text-center">
-          <StatusBadge :status="item.displayStatus || item.status" />
+        <td class="text-center" :style="{ width: enrollmentHeaders[4].width }">
+          <StatusBadge :status="item.mode || 'Full'" />
         </td>
-        <td class="bold text-center">
-          <StatusBadge :status="item.amount" />
+        <td class="text-center" :style="{ width: enrollmentHeaders[5].width }">
+          <StatusBadge :status="item.status" />
         </td>
-        <td class="date-cell text-center bold">{{ formatDate(item.date) }}</td>
+        <td class="bold text-center" :style="{ width: enrollmentHeaders[6].width }">
+          <StatusBadge :status="'$' + formatPrice(item.amount)" />
+        </td>
+        <td class="date-cell text-center bold" :style="{ width: enrollmentHeaders[7].width }">{{ formatDate(item.date)
+          }}</td>
       </tr>
     </AppTable>
   </div>
@@ -136,5 +142,16 @@ const navigateToDetail = (item) => {
 .date-cell {
   color: #666;
   font-size: 0.8rem;
+}
+
+.program-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>

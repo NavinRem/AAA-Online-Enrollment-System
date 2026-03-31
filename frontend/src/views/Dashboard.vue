@@ -34,7 +34,10 @@ const stats = ref({
 
 onMounted(() => {
   authService.onAuthStateChanged(async (currentUser) => {
-    if (!currentUser) return
+    if (!currentUser) {
+      loading.value = false
+      return
+    }
 
     try {
       const profile = await userService.getProfile(currentUser.uid)
@@ -98,7 +101,8 @@ const mappedEnrollments = computed(() => {
         programTitle: r.programTitle || c?.title || 'N/A',
         programProfileURL: getProgramProfileURL(r.programProfileURL || c?.profileURL, r.programCategory || c?.category),
         status: r.displayStatus || r.status || 'Pending',
-        amount: `$${r.amount}`,
+        mode: r.enrollmentType || (r.isProrated ? 'Partial' : 'Full'),
+        amount: r.amount || 0,
         date: r.enrollAt || r.createdAt
       }
     })
