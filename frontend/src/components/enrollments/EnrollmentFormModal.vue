@@ -191,8 +191,26 @@ watch(() => props.isOpen, (newVal) => {
   if (newVal) {
     clearErrors()
     isSubmittingAttempted.value = false
-    if (!props.enrollment) {
-      // Reset form ONLY for new enrollment
+    if (props.enrollment) {
+      // POPULATE form for edit mode
+      formData.value = {
+        parentId: props.enrollment.parentId || '',
+        studentId: props.enrollment.studentId || '',
+        programId: props.enrollment.programId || '',
+        sessionId: props.enrollment.sessionId || '',
+        isProrated: props.enrollment.isProrated ?? false,
+        discountAmount: props.enrollment.discountAmount || 0,
+        isSponsorship: props.enrollment.isSponsorship || false,
+        sponsorName: props.enrollment.sponsorName || '',
+        isCustomPrice: props.enrollment.isCustomPrice || false,
+        customPrice: props.enrollment.amount || 0,
+        remark: props.enrollment.remark || '',
+      }
+      initialFormData.value = JSON.stringify(formData.value)
+      // Trigger sessions fetch in parent 
+      emit('program-change', props.enrollment.programId)
+    } else {
+      // RESET form for new enrollment
       formData.value = {
         parentId: '',
         studentId: '',

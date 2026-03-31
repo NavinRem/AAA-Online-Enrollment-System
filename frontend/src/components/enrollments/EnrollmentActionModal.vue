@@ -136,9 +136,9 @@
 
       <div class="form-group" style="margin-top: 20px;">
         <label>Reason for Cancellation</label>
-        <div class="preset-chips" style="margin: 8px 0 12px 0;">
+        <div class="preset-chips chips-div-enrollment" style="margin: 8px 0 12px 0;">
           <span v-for="preset in ['Schedule Conflict', 'Medical Reason', 'Moved Away', 'Refund Issued', 'Duplicate']"
-            :key="preset" class="chip" @click="localData.reason = preset"
+            :key="preset" class="preset-chip" @click="localData.reason = preset"
             :class="{ active: localData.reason === preset }">
             {{ preset }}
           </span>
@@ -233,15 +233,18 @@ const enrollmentSummary = computed(() => {
 
   return {
     ...e,
-    parentAvatar: getParentProfileURL(e.parentProfileURL),
-    studentAvatar: getStudentProfileURL(e.studentProfileURL),
-    programAvatar: getProgramProfileURL(e.programProfileURL, e.category),
-    sessionDay: getSessionDay(e.sessionSchedule),
-    sessionTime: getSessionTime(e.sessionSchedule),
+    parentName: e.parentName || e.parent?.name || e.parent?.fullName || 'Parent',
+    studentName: e.studentName || e.student?.name || e.student?.fullname || e.student?.fullName || 'Student',
+    programTitle: e.programTitle || e.program?.title || 'Program',
+    parentAvatar: getParentProfileURL(e.parentProfileURL || e.parent?.profileURL),
+    studentAvatar: getStudentProfileURL(e.studentProfileURL || e.student?.profileURL),
+    programAvatar: getProgramProfileURL(e.programProfileURL || e.program?.profileURL, e.category || e.program?.category),
+    sessionDay: getSessionDay(e.sessionSchedule || (e.session?.schedule?.day + ' ' + e.session?.schedule?.timeslot)),
+    sessionTime: getSessionTime(e.sessionSchedule || (e.session?.schedule?.day + ' ' + e.session?.schedule?.timeslot)),
     status: getEnrollmentDisplayStatus(e),
     mode: getEnrollmentDisplayMode(e),
-    hasDiscount: e.discountAmount > 0,
-    discountText: `($${formatPrice(e.discountAmount)} Disc.)`,
+    hasDiscount: (e.discountAmount || 0) > 0,
+    discountText: `($${formatPrice(e.discountAmount || 0)} Disc.)`,
   }
 })
 
@@ -285,6 +288,8 @@ const formatPrice = (val) => {
   flex-direction: column;
   gap: 24px;
 }
+
+/* Price input styles removed as edit moved to FormModal */
 
 .price-status-row {
   display: flex;

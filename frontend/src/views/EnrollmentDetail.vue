@@ -6,7 +6,11 @@ import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import DetailCard from '../components/common/cards/DetailCard.vue'
 import DetailedSummaryCard from '../components/common/cards/DetailedSummaryCard.vue'
+import EnrollmentActionModal from '@/components/enrollments/EnrollmentActionModal.vue'
+import EnrollmentFormModal from '@/components/enrollments/EnrollmentFormModal.vue'
 import { enrollmentService } from '@/services/enrollmentService'
+import { userService } from '@/services/userService'
+import { programService } from '@/services/programService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 
@@ -29,6 +33,13 @@ const program = ref(null)
 const session = ref(null)
 const teacher = ref(null)
 
+// For EnrollmentFormModal
+const parents = ref([])
+const students = ref([])
+const programs = ref([])
+const sessions = ref([])
+const enrollments = ref([]) // To avoid duplicate enrollments check in form
+const formLoading = ref(false)
 const loading = ref(true)
 const errorMessage = ref('')
 
@@ -39,30 +50,27 @@ const modalSuccess = ref('')
 const actionModal = ref({
   isOpen: false,
   type: '',
-  amount: 0,
-  originalAmount: 0,
-  proof: '',
-  reason: '',
-  remark: '',
-  originalRemark: '',
-  deleteConfirm: '',
+  enrollment: null,
 })
+
+const showFormModal = ref(false)
+const validationHint = ref('')
 
 // Status checkers imported from statusHelper
 
 const openActionModal = (type) => {
   modalError.value = ''
   modalSuccess.value = ''
+
+  if (type === 'edit') {
+    showFormModal.value = true
+    return
+  }
+
   actionModal.value = {
     isOpen: true,
     type,
-    amount: enrollment.value.amount || 0,
-    originalAmount: enrollment.value.amount || 0,
-    proof: '',
-    reason: '',
-    remark: enrollment.value.remark || '',
-    originalRemark: enrollment.value.remark || '',
-    deleteConfirm: '',
+    enrollment: enrollment.value,
   }
 }
 
@@ -70,39 +78,39 @@ const closeActionModal = () => {
   actionModal.value.isOpen = false
 }
 
-const submitActionModal = async () => {
-  const { type, amount, proof, reason, remark, deleteConfirm } = actionModal.value
+const handleActionSubmit = async (payload) => {
+  const { type } = actionModal.value
+  const { amount, remark, proof, reason, paymentMethod, deleteConfirm } = payload
   submitting.value = true
   modalError.value = ''
 
   try {
     if (type === 'pay') {
-      if (!proof.trim()) throw new Error('Proof of payment (e.g. Receipt #) is required.')
+      const proofStr = paymentMethod === 'cash' ? 'CASH' : proof
       await enrollmentService.updateEnrollment(enrollment.value.id, {
         paymentStatus: 'paid',
-        paymentProof: proof,
+        paymentProof: proofStr,
       })
       enrollment.value.paymentStatus = 'paid'
-      enrollment.value.paymentProof = proof
+      enrollment.value.paymentProof = proofStr
     } else if (type === 'cancel') {
-      if (!reason.trim()) throw new Error('A reason for cancellation must be provided.')
       await enrollmentService.cancelEnrollment(enrollment.value.id)
       await enrollmentService.updateEnrollment(enrollment.value.id, { cancelReason: reason })
       enrollment.value.status = 'cancelled'
+      enrollment.value.cancelReason = reason
     } else if (type === 'delete') {
-      if (deleteConfirm !== 'DELETE')
-        throw new Error('You must type DELETE specifically to confirm.')
+      if (deleteConfirm !== 'DELETE') throw new Error('You must type DELETE to confirm.')
       await enrollmentService.deleteEnrollment(enrollment.value.id)
-      router.push('/enrollments')
+      modalSuccess.value = 'Enrollment deleted. Redirecting...'
+      setTimeout(() => router.push('/enrollments'), 1500)
       return
     } else if (type === 'edit') {
-      if (amount < 0) throw new Error('Amount cannot be negative.')
       await enrollmentService.updateEnrollment(enrollment.value.id, {
         amount: Number(amount),
-        remark: remark.trim(),
+        remark: remark?.trim(),
       })
       enrollment.value.amount = Number(amount)
-      enrollment.value.remark = remark.trim()
+      enrollment.value.remark = remark?.trim()
     }
 
     modalSuccess.value = 'Action completed successfully.'
@@ -116,30 +124,98 @@ const submitActionModal = async () => {
   }
 }
 
-const togglePreset = (field, chipValue) => {
-  const currentText = actionModal.value[field] || ''
-  let values = currentText
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)
+// UI Logic Handlers removed as handled by modern component
 
-  if (values.includes(chipValue)) {
-    // Remove it
-    values = values.filter((v) => v !== chipValue)
-  } else {
-    // Add it
-    values.push(chipValue)
+const fetchDependencyData = async () => {
+  try {
+    formLoading.value = true
+    const [usersRes, programsRes, studentsRes, enrollmentsRes] = await Promise.all([
+      userService.getAllUsers(),
+      programService.getAllPrograms(),
+      userService.getAllStudents(),
+      enrollmentService.getAllEnrollments(),
+    ])
+    parents.value = Array.isArray(usersRes)
+      ? usersRes.filter((u) => u.role === 'parent' || u.role === 'guardian')
+      : []
+    programs.value = Array.isArray(programsRes) ? programsRes : []
+    students.value = Array.isArray(studentsRes) ? studentsRes : []
+    enrollments.value = Array.isArray(enrollmentsRes) ? enrollmentsRes : []
+  } catch (err) {
+    console.error('Failed to load dependency data for form', err)
+  } finally {
+    formLoading.value = false
   }
-  actionModal.value[field] = values.join(', ')
 }
 
-const isPresetActive = (field, chipValue) => {
-  const currentText = actionModal.value[field] || ''
-  const values = currentText
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)
-  return values.includes(chipValue)
+const handleProgramChange = async (programId) => {
+  if (!programId) {
+    sessions.value = []
+    return
+  }
+  try {
+    const data = await programService.getSessions(programId)
+    sessions.value = Array.isArray(data) ? data : []
+  } catch (err) {
+    console.error('Failed to load sessions', err)
+  }
+}
+
+const handleEditSubmit = async (formData) => {
+  submitting.value = true
+  modalError.value = ''
+  try {
+    // Extract enrichment data (matching Enrollments.vue logic)
+    const pRecord = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
+    const sRecord = students.value.find((s) => s.id === formData.studentId)
+    const progRecord = programs.value.find((c) => c.id === formData.programId)
+    const sessRecord = sessions.value.find((s) => s.id === formData.sessionId)
+
+    const payload = {
+      parentId: pRecord.uid || pRecord.id,
+      parentName: pRecord.name || pRecord.email || 'Parent',
+      studentId: sRecord.id,
+      studentName: sRecord.fullname || sRecord.fullName || sRecord.name || 'Student',
+      programId: progRecord.id,
+      programTitle: progRecord.title || progRecord.name || 'Program',
+      sessionId: sessRecord.id,
+      sessionSchedule: sessRecord.schedule?.day + ' ' + sessRecord.schedule?.timeslot,
+      amount: formData.amount,
+      discountAmount: formData.discountAmount || 0,
+      isSponsorship: formData.isSponsorship || false,
+      sponsorName: formData.sponsorName || '',
+      isProrated: formData.isProrated,
+      enrollmentType: formData.enrollmentType || 'Full',
+      remark: formData.remark || '',
+      basePrice: formData.basePrice || 0,
+      totalSessions: formData.totalSessions || 0,
+      remainingSessions: formData.remainingSessions || 0,
+      passedSessions: formData.passedSessions || 0,
+      prorateSavings: formData.prorateSavings || 0,
+      updatedAt: new Date().toISOString()
+    }
+
+    await enrollmentService.updateEnrollment(enrollment.value.id, payload)
+    modalSuccess.value = 'Enrollment updated successfully!'
+
+    // Refresh current local state from backend
+    const updated = await enrollmentService.getEnrollment(enrollment.value.id)
+    enrollment.value = updated
+    parent.value = updated.parent
+    student.value = updated.student
+    program.value = updated.program
+    session.value = updated.session
+    teacher.value = updated.teacher
+
+    setTimeout(() => {
+      showFormModal.value = false
+      modalSuccess.value = ''
+    }, 1500)
+  } catch (err) {
+    modalError.value = err.message || 'Failed to update enrollment.'
+  } finally {
+    submitting.value = false
+  }
 }
 
 onMounted(async () => {
@@ -147,11 +223,15 @@ onMounted(async () => {
     const id = route.params.id
     if (!id) throw new Error('No Enrollment ID provided')
 
-    // 1. Fetch the Enriched Enrollment record (Consolidated BFF Pattern)
-    const data = await enrollmentService.getEnrollment(id)
+    loading.value = true
+    // Fetch base enrollment and dependency data in parallel
+    const [data] = await Promise.all([
+      enrollmentService.getEnrollment(id),
+      fetchDependencyData()
+    ])
+
     if (!data) throw new Error('Enrollment not found')
 
-    // 2. Populate all reactive refs from the single unified response
     enrollment.value = data
     parent.value = data.parent
     student.value = data.student
@@ -421,179 +501,14 @@ onMounted(async () => {
     </DetailPageLayout>
 
     <!-- Action Modals (Edit, Pay, Cancel, Delete) -->
-    <transition name="modal-fade">
-      <div v-if="actionModal.isOpen" class="modal-overlay" @click.self="closeActionModal">
-        <div class="modal-content action-modal">
-          <div class="modal-header">
-            <h3 v-if="actionModal.type === 'edit'">Edit Enrollment</h3>
-            <h3 v-if="actionModal.type === 'pay'">Mark as Paid</h3>
-            <h3 v-if="actionModal.type === 'cancel'">Cancel Enrollment</h3>
-            <h3 v-if="actionModal.type === 'delete'" class="danger-text">Delete Permanently</h3>
-            <button class="close-btn" @click="closeActionModal">×</button>
-          </div>
+    <EnrollmentFormModal :isOpen="showFormModal" :loading="submitting" :parents="parents" :students="students"
+      :programs="programs" :sessions="sessions" :enrollments="enrollments" :enrollment="enrollment" :error="modalError"
+      :success="modalSuccess" :hint="validationHint"
+      @close="() => { showFormModal = false; modalError = ''; modalSuccess = ''; validationHint = ''; }"
+      @program-change="handleProgramChange" @submit="handleEditSubmit" />
 
-          <form class="modal-body" @submit.prevent="submitActionModal">
-            <transition name="toast-fade">
-              <div v-if="modalError" class="alert-box error">
-                <span class="icon">⚠️</span> {{ modalError }}
-              </div>
-            </transition>
-            <transition name="toast-fade">
-              <div v-if="modalSuccess" class="alert-box success">
-                <span class="icon">✅</span> {{ modalSuccess }}
-              </div>
-            </transition>
-
-            <!-- Edit Amount Form -->
-            <div v-if="actionModal.type === 'edit'" class="form-group full-width">
-              <div class="info-block">
-                <span class="icon">ℹ️</span>
-                <p>
-                  <strong>Update Enrollment:</strong> Adjust the administrative price below or
-                  attach a special remark/note to this specific enrollment.
-                </p>
-              </div>
-              <label>Adjust Enrollment Amount ($)</label>
-              <span class="original-value" v-if="actionModal.originalAmount">Original: ${{ actionModal.originalAmount
-                }}</span>
-              <input type="number" v-model="actionModal.amount" min="0" step="0.01" />
-
-              <label style="margin-top: 15px">Special Remark / Note (Optional)</label>
-              <span class="original-value" v-if="actionModal.originalRemark">Original: {{ actionModal.originalRemark
-                }}</span>
-              <textarea v-model="actionModal.remark" placeholder="Please write your remark here..."></textarea>
-              <div class="preset-chips">
-                <button type="button" class="preset-chip" :class="{ active: isPresetActive('remark', 'VIP Student') }"
-                  @click="togglePreset('remark', 'VIP Student')">
-                  VIP Student
-                </button>
-                <button type="button" class="preset-chip"
-                  :class="{ active: isPresetActive('remark', 'Needs extra attention') }"
-                  @click="togglePreset('remark', 'Needs extra attention')">
-                  Needs extra attention
-                </button>
-                <button type="button" class="preset-chip"
-                  :class="{ active: isPresetActive('remark', 'Parent will pay next week') }"
-                  @click="togglePreset('remark', 'Parent will pay next week')">
-                  Parent will pay next week
-                </button>
-                <button type="button" class="preset-chip"
-                  :class="{ active: isPresetActive('remark', 'Pending partial refund') }"
-                  @click="togglePreset('remark', 'Pending partial refund')">
-                  Pending partial refund
-                </button>
-              </div>
-            </div>
-
-            <!-- Mark Paid Form -->
-            <div v-if="actionModal.type === 'pay'" class="form-group full-width">
-              <div class="info-block">
-                <span class="icon">💡</span>
-                <p>
-                  <strong>How to provide proof:</strong> Please enter the transaction reference
-                  number provided by the bank, or type "Cash" followed by the receipt number you
-                  gave the parent.
-                </p>
-              </div>
-              <label>Proof of Payment Reference <span class="required">*</span></label>
-              <textarea v-model="actionModal.proof"
-                placeholder="Please write the bank reference number or method here..."></textarea>
-              <div class="preset-chips">
-                <button type="button" class="preset-chip" :class="{ active: isPresetActive('proof', 'Paid in Cash') }"
-                  @click="togglePreset('proof', 'Paid in Cash')">
-                  Paid in Cash
-                </button>
-                <button type="button" class="preset-chip" :class="{ active: isPresetActive('proof', 'Paid via Check') }"
-                  @click="togglePreset('proof', 'Paid via Check')">
-                  Paid via Check
-                </button>
-                <button type="button" class="preset-chip"
-                  :class="{ active: isPresetActive('proof', 'Paid via Bank Transfer') }"
-                  @click="togglePreset('proof', 'Paid via Bank Transfer')">
-                  Paid via Bank Transfer
-                </button>
-                <button type="button" class="preset-chip"
-                  :class="{ active: isPresetActive('proof', 'Paid via Credit Card') }"
-                  @click="togglePreset('proof', 'Paid via Credit Card')">
-                  Paid via Credit Card
-                </button>
-              </div>
-            </div>
-
-            <!-- Cancel Form -->
-            <div v-if="actionModal.type === 'cancel'" class="form-group full-width">
-              <div class="info-block warning">
-                <span class="icon">⚠️</span>
-                <p>
-                  <strong>Cancellation Policy:</strong> A cancellation stops this student from
-                  attending the course. You MUST provide the exact reason (e.g., Parent email
-                  request on [Date]).
-                </p>
-              </div>
-              <label>Reason for Cancellation <span class="required">*</span></label>
-              <textarea v-model="actionModal.reason" placeholder="Please write your reason here..."></textarea>
-              <div class="preset-chips">
-                <button type="button" class="preset-chip"
-                  :class="{ active: isPresetActive('reason', 'Parent requested via email') }"
-                  @click="togglePreset('reason', 'Parent requested via email')">
-                  Parent requested via email
-                </button>
-                <button type="button" class="preset-chip"
-                  :class="{ active: isPresetActive('reason', 'Parent requested via phone') }"
-                  @click="togglePreset('reason', 'Parent requested via phone')">
-                  Parent requested via phone
-                </button>
-                <button type="button" class="preset-chip"
-                  :class="{ active: isPresetActive('reason', 'Did not pay on time') }"
-                  @click="togglePreset('reason', 'Did not pay on time')">
-                  Did not pay on time
-                </button>
-                <button type="button" class="preset-chip"
-                  :class="{ active: isPresetActive('reason', 'Program schedule conflict') }"
-                  @click="togglePreset('reason', 'Program schedule conflict')">
-                  Program schedule conflict
-                </button>
-                <button type="button" class="preset-chip"
-                  :class="{ active: isPresetActive('reason', 'Duplicate enrollment') }"
-                  @click="togglePreset('reason', 'Duplicate enrollment')">
-                  Duplicate enrollment
-                </button>
-              </div>
-            </div>
-
-            <!-- Delete Form -->
-            <div v-if="actionModal.type === 'delete'" class="form-group full-width">
-              <div class="info-block danger">
-                <span class="icon">🛑</span>
-                <p>
-                  <strong>Critical Warning:</strong> Deleting an enrollment removes the record
-                  entirely. It can never be recovered. This should only be used for accidental
-                  duplicate enrollments.
-                </p>
-              </div>
-              <label>Confirm Deletion <span class="required">*</span></label>
-              <p style="margin-bottom: 15px; color: #555; font-size: 0.95rem">
-                Please type <strong class="danger-text">DELETE</strong> below to confirm you have
-                authorization to erase this record.
-              </p>
-              <input type="text" v-model="actionModal.deleteConfirm" placeholder="Type DELETE" />
-            </div>
-
-            <!-- Hidden submit for Enter key functionality -->
-            <button type="submit" style="display: none;"></button>
-          </form>
-
-          <div class="modal-footer">
-            <button class="cancel-btn" @click="closeActionModal">Nevermind</button>
-            <button class="save-btn" :class="{
-              'danger-btn': actionModal.type === 'delete' || actionModal.type === 'cancel',
-            }" type="submit" @click="submitActionModal" :disabled="submitting">
-              {{ submitting ? 'Processing...' : 'Confirm Action' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </transition>
+    <EnrollmentActionModal v-bind="actionModal" :loading="submitting" v-model:error="modalError"
+      v-model:success="modalSuccess" @close="closeActionModal" @submit="handleActionSubmit" />
   </DashboardLayout>
 </template>
 
