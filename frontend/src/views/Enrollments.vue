@@ -177,16 +177,16 @@ const enrollmentStats = computed(() => {
 })
 
 const enrollmentHeaders = [
-  { label: 'No', width: '30px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Parent / Guardian', class: 'hide-on-tablet', width: '30%' },
-  { label: 'Student', width: '30%' },
-  { label: 'Program', width: '50%' },
-  { label: 'Session' },
-  { label: 'Enrolled Date', align: 'center' },
-  { label: 'Mode', align: 'center' },
-  { label: 'Amount', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Status', align: 'center' },
-  { label: 'Action', align: 'center' }
+  { label: 'No', width: '40px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Parent / Guardian', width: '18%', class: 'hide-on-tablet' },
+  { label: 'Student', width: '18%' },
+  { label: 'Program', width: '30%' },
+  { label: 'Session', width: '10%' },
+  { label: 'Enrolled Date', width: '160px', align: 'center' },
+  { label: 'Mode', width: '80px', align: 'center' },
+  { label: 'Amount', width: '80px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Status', width: '110px', align: 'center' },
+  { label: 'Action', width: '50px', align: 'center' }
 ]
 
 const currentFilter = ref('all')
@@ -382,14 +382,8 @@ const formatPrice = (val) => {
       @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
       @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint" />
 
-    <EnrollmentActionModal
-      v-bind="actionState"
-      :loading="submitting"
-      v-model:error="errorMessage"
-      v-model:success="successMessage"
-      @close="closeActionModal"
-      @submit="submitActionModal"
-    />
+    <EnrollmentActionModal v-bind="actionState" :loading="submitting" v-model:error="errorMessage"
+      v-model:success="successMessage" @close="closeActionModal" @submit="submitActionModal" />
   </DashboardLayout>
 </template>
 
