@@ -56,7 +56,8 @@ const availableProgramsForStudent = computed(() => {
     const alreadyEnrolled = props.enrollments.some(e =>
       e.studentId === formData.value.studentId &&
       e.programId === program.id &&
-      e.status !== 'cancelled'
+      (e.status || "").toLowerCase() !== "cancelled" &&
+      (e.status || "").toLowerCase() !== "canceled"
     )
     return !alreadyEnrolled
   })
@@ -228,6 +229,24 @@ watch(() => props.isOpen, (newVal) => {
   }
 })
 
+// SYNC: Clear program/session if they become invalid after student change
+watch(() => formData.value.studentId, (newStudentId) => {
+  if (!newStudentId || isEditMode.value) return
+
+  // Check if currently selected program is still available for this new student
+  const isNowInvalid = props.enrollments.some(e =>
+    e.studentId === newStudentId &&
+    e.programId === formData.value.programId &&
+    e.status !== 'cancelled'
+  )
+
+  if (isNowInvalid) {
+    formData.value.programId = ''
+    formData.value.sessionId = ''
+    emit('program-change', '')
+  }
+})
+
 const remarkPresets = [
   'Sibling Discount',
   'Returning Student',
@@ -332,7 +351,8 @@ const isAlreadyEnrolled = computed(() => {
     (e) =>
       e.studentId === formData.value.studentId &&
       e.programId === formData.value.programId &&
-      e.status !== 'cancelled' &&
+      (e.status || "").toLowerCase() !== "cancelled" &&
+      (e.status || "").toLowerCase() !== "canceled" &&
       (!isEditMode.value || e.id !== props.enrollment?.id) // Exclude current record if editing
   )
 })
@@ -344,7 +364,8 @@ const currentEnrollment = computed(() => {
     (e) =>
       e.studentId === formData.value.studentId &&
       e.programId === formData.value.programId &&
-      e.status !== 'cancelled'
+      (e.status || "").toLowerCase() !== "cancelled" &&
+      (e.status || "").toLowerCase() !== "canceled"
   )
 })
 
@@ -419,6 +440,11 @@ const validateAndSubmit = () => {
 }
 
 const handleSubmit = () => {
+  if (isAlreadyEnrolled.value && !isEditMode.value) {
+    setError('programId', 'Student is already enrolled in this program.')
+    return
+  }
+
   emit('submit', {
     ...(isEditMode.value ? { id: props.enrollment.id } : {}),
     ...formData.value,
@@ -780,7 +806,8 @@ const handleSubmit = () => {
         <div style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton variant="primary" type="button" @click.stop="validateAndSubmit" :loading="loading"
-            :class="{ 'button-disabled-visual': !!validationHint }">
+            :disabled="(isAlreadyEnrolled && !isEditMode) || !!validationHint"
+            :class="{ 'button-disabled-visual': (isAlreadyEnrolled && !isEditMode) || !!validationHint }">
             {{ isEditMode ? 'Update Enrollment' : 'Confirm Enrollment' }}
           </AppButton>
         </div>

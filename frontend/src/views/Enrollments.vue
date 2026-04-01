@@ -280,11 +280,16 @@ const submitActionModal = async (payload) => {
     } else if (type === 'delete') {
       await enrollmentService.deleteEnrollment(enrollment.id)
     }
-    successMessage.value = 'Action completed successfully.'
+    const messages = {
+      pay: 'Payment confirmed successfully!',
+      cancel: 'Enrollment has been cancelled.',
+      delete: 'Enrollment record deleted permanently.'
+    }
+    successMessage.value = messages[type] || 'Action completed successfully.'
     await fetchEnrollments()
     setTimeout(() => {
       closeActionModal()
-    }, 1500)
+    }, 2000)
   } catch (err) {
     errorMessage.value = err.message
   } finally {

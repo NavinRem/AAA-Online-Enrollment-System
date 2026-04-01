@@ -32,7 +32,14 @@ class EnrollmentService {
       if (!programDoc.exists) throw new Error("Program not found");
 
       if (!existingEnrollmentSnapshot.empty) {
-        throw new Error("Student already enrolled for this session");
+        const activeEnrollment = existingEnrollmentSnapshot.docs.find((doc) => {
+          const status = (doc.data().status || "").toLowerCase();
+          return status !== "cancelled" && status !== "canceled";
+        });
+
+        if (activeEnrollment) {
+          throw new Error("Student already enrolled for this session");
+        }
       }
 
       const sessionData = sessionDoc.data();

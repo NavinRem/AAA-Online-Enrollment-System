@@ -107,7 +107,7 @@
         </div>
 
         <div class="form-group" style="margin-top: 16px;">
-          <label>Payment Proof (Screenshot / Photo)</label>
+          <label>Payment Proof (Screenshot / Photo) <span style="font-weight: normal; opacity: 0.7; font-size: 0.8rem;">(Optional)</span></label>
           <div class="upload-zone-mini" :class="{ 'has-file': localData.selectedFile }">
             <input type="file" @change="handleFileChange" accept="image/*" class="file-input-hidden"
               id="proof-upload" />
