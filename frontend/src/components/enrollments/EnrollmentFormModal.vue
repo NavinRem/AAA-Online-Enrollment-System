@@ -541,7 +541,7 @@ const handleSubmit = () => {
                 </template>
                 <template v-else>
                   <span class="placeholder">{{ !formData.studentId ? 'Select student first' : 'Select a program'
-                  }}</span>
+                    }}</span>
                 </template>
                 <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
               </div>
@@ -658,7 +658,7 @@ const handleSubmit = () => {
                       passed</span>
                   </div>
                   <div v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
-                  }}/session)</div>
+                    }}/session)</div>
                 </div>
               </div>
               <StatusBadge :status="displayEnrollmentStatus" />
@@ -737,8 +737,8 @@ const handleSubmit = () => {
           <div class="price-info-enrollment">
             <div class="price-header-row">
               <span class="price-label-enrollment">Final Amount</span>
-              <StatusBadge v-if="!isFullEnrollment" status="Partial Enrollment" type="blue" />
-              <StatusBadge v-else status="Full Enrollment" type="green" />
+              <StatusBadge v-if="!isFullEnrollment" status="Partial Enrollment" />
+              <StatusBadge v-else status="Full Enrollment" />
             </div>
             <div class="price-notes-enrollment">
               <div v-if="sessionInfo && sessionInfo.passed > 0 && formData.isProrated" class="price-note-enrollment">
@@ -759,13 +759,15 @@ const handleSubmit = () => {
     <template #footer>
       <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; gap: 12px;">
         <transition name="toast-fade">
-          <div v-if="props.error && props.error.length > 0" class="alert-box error" style="width: 100%; margin-bottom: 0;">
+          <div v-if="props.error && props.error.length > 0" class="alert-box error"
+            style="width: 100%; margin-bottom: 0;">
             {{ props.error }}
           </div>
         </transition>
 
         <transition name="toast-fade">
-          <div v-if="props.success && props.success.length > 0" class="alert-box success" style="width: 100%; margin-bottom: 0;">
+          <div v-if="props.success && props.success.length > 0" class="alert-box success"
+            style="width: 100%; margin-bottom: 0;">
             {{ props.success }}
           </div>
         </transition>

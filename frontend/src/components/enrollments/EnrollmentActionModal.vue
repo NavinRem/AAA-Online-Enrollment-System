@@ -50,8 +50,7 @@
               <span class="price-label-enrollment">Tuition Amount</span>
             </div>
             <div class="price-status-row">
-              <StatusBadge :status="enrollmentSummary.mode === 'Full' ? 'Full Enrollment' : 'Partial Enrollment'"
-                :type="enrollmentSummary.mode === 'Full' ? 'green' : 'blue'" />
+              <StatusBadge :status="enrollmentSummary.mode" />
               <StatusBadge :status="enrollmentSummary.status" />
               <span v-if="enrollmentSummary.hasDiscount" class="discount-note-mini">{{ enrollmentSummary.discountText
                 }}</span>
@@ -81,15 +80,65 @@
         </div>
       </div>
 
-      <div v-if="localData.paymentMethod === 'online'" class="form-group" style="margin-top: 16px;">
-        <label>Transaction Reference / Proof</label>
-        <input type="text" v-model="localData.proof" placeholder="e.g. ABA Transaction ID or Receipt #"
-          class="standard-input" />
+      <div class="form-group" style="margin-top: 16px;">
+        <label>Payment Remark (Internal Note)</label>
+        <textarea v-model="localData.remark" placeholder="Add any notes about this payment..." class="standard-input"
+          style="height: 80px; resize: none;"></textarea>
       </div>
-      <div v-else class="cash-notice">
-        <span class="icon">ℹ️</span>
-        <p>This will mark the enrollment as paid by cash. No reference ID is required.</p>
+
+      <div v-if="localData.paymentMethod === 'online'" class="online-payment-details">
+        <div class="form-grid-mini">
+          <div class="form-group">
+            <label>Bank Name</label>
+            <select v-model="localData.bankName" class="standard-input">
+              <option value="">Select Bank</option>
+              <option value="ABA">ABA Bank</option>
+              <option value="Wing">Wing Bank</option>
+              <option value="ACLEDA">ACLEDA Bank</option>
+              <option value="Sathapana">Sathapana Bank</option>
+              <option value="Canadia">Canadia Bank</option>
+              <option value="Other">Other Bank / Transfer</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Transaction ID</label>
+            <input type="text" v-model="localData.proof" placeholder="e.g. 123456789" class="standard-input" />
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 16px;">
+          <label>Payment Proof (Screenshot / Photo)</label>
+          <div class="upload-zone-mini" :class="{ 'has-file': localData.selectedFile }">
+            <input type="file" @change="handleFileChange" accept="image/*" class="file-input-hidden"
+              id="proof-upload" />
+            <label for="proof-upload" class="upload-label-mini">
+              <div v-if="!localData.proofPreview" class="upload-placeholder">
+                <span class="icon">📷</span>
+                <span>Upload Proof</span>
+              </div>
+              <div v-else class="upload-preview-container">
+                <img :src="localData.proofPreview" class="upload-preview" />
+                <div class="upload-overlay">
+                  <span>Change Photo</span>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
       </div>
+
+      <div v-else class="cash-payment-details">
+        <div class="form-group">
+          <label>Receipt Number</label>
+          <input type="text" v-model="localData.proof" placeholder="e.g. REC-001" class="standard-input" />
+        </div>
+        <div class="cash-notice" style="margin-top: 12px;">
+          <span class="icon">ℹ️</span>
+          <p>Please record the physical receipt number for internal tracking.</p>
+        </div>
+      </div>
+
+
     </div>
 
     <!-- Content for Cancel Action -->
@@ -193,6 +242,7 @@ import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import { getParentProfileURL, getStudentProfileURL, getProgramProfileURL, getActionIcon, getIconUrl } from '@/utils/assetHelper'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getEnrollmentDisplayStatus, getEnrollmentDisplayMode } from '@/utils/enrollmentHelper'
+import { storageService } from '@/services/storageService'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -207,9 +257,13 @@ const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
 
 const localData = ref({
   proof: '',
+  bankName: '',
+  remark: '',
   reason: '',
   deleteConfirm: '',
   paymentMethod: 'online',
+  selectedFile: null,
+  proofPreview: null,
 })
 
 const showHint = ref(false)
@@ -222,9 +276,13 @@ watch(
     if (newVal) {
       localData.value = {
         proof: '',
+        bankName: '',
+        remark: '',
         reason: '',
         deleteConfirm: '',
         paymentMethod: 'online',
+        selectedFile: null,
+        proofPreview: null,
       }
       showHint.value = false
     }
@@ -253,11 +311,15 @@ const enrollmentSummary = computed(() => {
 })
 
 const validationHint = computed(() => {
-  const { proof, reason, deleteConfirm, paymentMethod } = localData.value
+  const { proof, reason, deleteConfirm, paymentMethod, bankName } = localData.value
   if (props.type === 'delete' && deleteConfirm !== 'DELETE') return 'Type DELETE to confirm.'
   if (props.type === 'cancel' && !reason?.trim()) return 'Reason for cancellation is required.'
-  if (props.type === 'pay' && paymentMethod === 'online' && !proof?.trim())
-    return 'Transaction reference is required for online payments.'
+  if (props.type === 'pay') {
+    if (paymentMethod === 'online') {
+      if (!bankName) return 'Please select a Bank Name.'
+      if (!proof?.trim()) return 'Transaction ID is required for online payments.'
+    }
+  }
   return ''
 })
 
@@ -267,7 +329,19 @@ const submitLabel = computed(() => {
   return 'Confirm Action'
 })
 
-const handleSubmitTrigger = () => {
+const handleFileChange = (e) => {
+  const file = e.target.files[0]
+  if (file) {
+    localData.value.selectedFile = file
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      localData.value.proofPreview = event.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
+const handleSubmitTrigger = async () => {
   if (validationHint.value) {
     showHint.value = true
     if (hintTimeout) clearTimeout(hintTimeout)
@@ -275,7 +349,22 @@ const handleSubmitTrigger = () => {
       showHint.value = false
     }, 3000)
   } else {
-    emit('submit', { ...localData.value })
+    try {
+      let finalProofURL = ''
+      if (localData.value.selectedFile && props.enrollment?.id) {
+        // Upload proof to storage if file selected
+        const timestamp = new Date().getTime()
+        const path = `enrollments/proofs/${props.enrollment.id}_${timestamp}`
+        finalProofURL = await storageService.uploadFile(localData.value.selectedFile, path)
+      }
+
+      emit('submit', {
+        ...localData.value,
+        proofURL: finalProofURL
+      })
+    } catch (err) {
+      emit('update:error', 'Failed to upload payment proof. Please try again.')
+    }
   }
 }
 
@@ -292,8 +381,6 @@ const formatPrice = (val) => {
   flex-direction: column;
   gap: 24px;
 }
-
-/* Price input styles removed as edit moved to FormModal */
 
 .price-status-row {
   display: flex;
@@ -395,6 +482,115 @@ const formatPrice = (val) => {
   color: #475569;
   margin: 0;
   line-height: 1.4;
+}
+
+.online-payment-details,
+.cash-payment-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-grid-mini {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 12px;
+}
+
+.upload-zone-mini {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  border: 2px dashed #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.upload-zone-mini:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.upload-zone-mini.has-file {
+  border: 2px solid #0ea5e9;
+  background: white;
+}
+
+.file-input-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.upload-label-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+}
+
+.upload-placeholder .icon {
+  font-size: 1.5rem;
+  margin-bottom: 2px;
+}
+
+.upload-placeholder span:last-child {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.upload-preview-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.upload-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.upload-preview-container:hover .upload-overlay {
+  opacity: 1;
+}
+
+.upload-overlay span {
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
 }
 
 .danger-text {

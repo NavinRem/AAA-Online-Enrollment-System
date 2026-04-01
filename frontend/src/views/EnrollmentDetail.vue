@@ -87,13 +87,22 @@ const handleActionSubmit = async (payload) => {
 
   try {
     if (type === 'pay') {
-      const proofStr = paymentMethod === 'cash' ? 'CASH' : proof
-      await enrollmentService.updateEnrollment(enrollment.value.id, {
+      const { bankName, paymentMethod: methodType, proof, proofURL, remark } = payload
+
+      const updateData = {
         paymentStatus: 'paid',
-        paymentProof: proofStr,
-      })
-      enrollment.value.paymentStatus = 'paid'
-      enrollment.value.paymentProof = proofStr
+        status: 'confirmed',
+        paymentMethod: methodType === 'cash' ? 'Cash' : (bankName || 'Online'),
+        transactionId: proof,
+        paymentProofURL: proofURL || '',
+        paidAt: new Date().toISOString(),
+        remark: remark?.trim() || ''
+      }
+
+      await enrollmentService.updateEnrollment(enrollment.value.id, updateData)
+
+      // Update local state
+      enrollment.value = { ...enrollment.value, ...updateData }
     } else if (type === 'cancel') {
       await enrollmentService.cancelEnrollment(enrollment.value.id)
       await enrollmentService.updateEnrollment(enrollment.value.id, { cancelReason: reason })
@@ -258,7 +267,8 @@ onMounted(async () => {
           <button class="btn-icon-modern btn-edit" title="Edit Enrollment" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" />
           </button>
-          <button v-if="!isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
+          <button
+            v-if="!isPaid(enrollment.status) && !isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
             class="btn-icon-modern btn-pay" title="Pay Enrollment" @click="openActionModal('pay')">
             <img :src="getActionIcon('pay')" />
           </button>
@@ -425,20 +435,37 @@ onMounted(async () => {
             </div>
           </div>
 
-          <div class="detail-row">
+          <div class="detail-row align-center">
             <span class="summary-label">Payment Method</span>
-            <div style="display: flex; flex-direction: column; gap: 2px;">
-              <span class="summary-value">{{ enrollment?.paymentMethod || 'Not Specified' }}</span>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+              <StatusBadge :status="enrollment?.paymentMethod || (isPaid(enrollment?.status || enrollment?.paymentStatus) ? 'Not Specified' : '—')" />
             </div>
           </div>
 
-          <div class="detail-row" v-if="enrollment?.paymentStatus === 'Paid'">
+          <div class="detail-row" v-if="enrollment?.transactionId">
+            <span class="summary-label">{{ enrollment?.paymentMethod === 'Cash' ? 'Receipt Number' : 'Transaction ID'
+            }}</span>
+            <span class="summary-value" style="font-family: monospace; font-weight: 600; color: #0284c7;">
+              {{ enrollment.transactionId }}
+            </span>
+          </div>
+
+          <div class="detail-row" v-if="enrollment?.paidAt">
             <span class="summary-label">Paid Date</span>
-            <div style="display: flex; flex-direction: column; gap: 2px;">
-              <span class="summary-value" style="font-size: 0.85rem; opacity: 0.8;">
-                {{ formatDate(enrollment?.paymentDate) }}
-              </span>
-            </div>
+            <span class="summary-value" style="font-size: 0.85rem; opacity: 0.8;">
+              {{ formatDate(enrollment.paidAt) }}
+            </span>
+          </div>
+
+          <div class="detail-row" v-if="enrollment?.paymentProofURL"
+            style="flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 8px;">
+            <span class="summary-label">Payment Proof</span>
+            <a :href="enrollment.paymentProofURL" target="_blank" class="proof-preview-link">
+              <img :src="enrollment.paymentProofURL" alt="Payment Proof" class="proof-thumbnail" />
+              <div class="proof-overlay">
+                <span>View Full Size</span>
+              </div>
+            </a>
           </div>
 
           <div class="detail-row">
@@ -654,9 +681,11 @@ onMounted(async () => {
   z-index: 1000;
 }
 
-.modal-content.action-modal {
+.modal-content {
   background: #ffffff;
-  width: 450px;
+  width: 600px;
+  max-width: 90vw;
+  max-height: 90vh;
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
@@ -755,6 +784,60 @@ onMounted(async () => {
 
 .danger-btn {
   background: #ef4444 !important;
+}
+
+/* Payment Proof Styling */
+.proof-preview-link {
+  position: relative;
+  width: 100%;
+  max-width: 240px;
+  max-height: 240px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: block;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.proof-preview-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.proof-thumbnail {
+  width: 100%;
+  height: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  background: #f8fafc;
+}
+
+.proof-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  backdrop-filter: blur(2px);
+}
+
+.proof-preview-link:hover .proof-overlay {
+  opacity: 1;
+}
+
+.proof-overlay span {
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 /* Modal Transitions */

@@ -3,6 +3,26 @@ import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject, getBytes,
 
 export const storageService = {
   /**
+   * Uploads a file to a specific storage path.
+   * @param {File|Blob} file - The file data to upload.
+   * @param {string} path - The destination path in Storage (e.g. 'enrollments/proofs/id.jpg')
+   * @returns {Promise<string>} - The download URL.
+   */
+  async uploadFile(file, path) {
+    if (!file) throw new Error('No file provided for upload')
+    try {
+      const storageRefObj = storageRef(storage, path)
+      const snapshot = await uploadBytes(storageRefObj, file)
+      const downloadURL = await getDownloadURL(snapshot.ref)
+      console.log(`File uploaded successfully to: ${path}`)
+      return downloadURL
+    } catch (err) {
+      console.error('Upload failed:', err)
+      throw err
+    }
+  },
+
+  /**
    * Moves a file from one path to another in Storage.
    * Useful for finalizing temporary uploads after a UID is obtained.
    * @param {string} oldURL - The full download URL of the existing file.

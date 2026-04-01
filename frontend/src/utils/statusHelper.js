@@ -66,6 +66,7 @@ export const getStatusCategory = (status) => {
       'past',
       'full',
       'start',
+      'cash',
     ],
     yellow: [
       'unpaid',
@@ -86,12 +87,22 @@ export const getStatusCategory = (status) => {
       'fair',
       'guardian',
       'updated at',
-      'partial',
       'prorated',
       'discount',
       'end',
+      'online',
+      'transfer',
     ],
-    purple: ['make-up', 'makeup', 'trial', 'intermediate', 'children', 'in progress', 'sponsorship'],
+    purple: [
+      'make-up',
+      'makeup',
+      'trial',
+      'intermediate',
+      'children',
+      'in progress',
+      'sponsorship',
+      'partial',
+    ],
     magenta: ['unmarked', 'archived'],
   }
 

@@ -180,16 +180,17 @@ const enrollmentStats = computed(() => {
 })
 
 const enrollmentHeaders = [
-  { label: 'No', width: '30px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Parent / Guardian', width: '150px', class: 'hide-on-tablet' },
-  { label: 'Student', width: '150px' },
-  { label: 'Program', width: '150px' },
-  { label: 'Session', width: '100px' },
-  { label: 'Enrolled Date', width: '100px', align: 'center' },
-  { label: 'Mode', width: '60px', align: 'center' },
-  { label: 'Amount', width: '80px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Status', width: '80px', align: 'center' },
-  { label: 'Action', width: '60px', align: 'center' }
+  { label: 'No', width: '40px', align: 'center' },
+  { label: 'Parent / Guardian', width: '160px' },
+  { label: 'Student', width: '160px' },
+  { label: 'Program', width: '180px' },
+  { label: 'Session', width: '120px' },
+  { label: 'Enrolled Date', width: '120px', align: 'center' },
+  { label: 'Mode', width: '90px', align: 'center', sortable: true, key: 'enrollmentType' },
+  { label: 'Method', width: '100px', align: 'center', sortable: true, key: 'paymentMethod' },
+  { label: 'Amount', width: '100px', align: 'center', sortable: true, key: 'amount' },
+  { label: 'Status', width: '90px', align: 'center' },
+  { label: 'Action', width: '50px', align: 'center' }
 ]
 
 const currentFilter = ref('all')
@@ -260,11 +261,20 @@ const submitActionModal = async (payload) => {
   submitting.value = true
   try {
     if (type === 'pay') {
-      const proofStr = paymentMethod === 'cash' ? 'CASH' : proof
-      await enrollmentService.updateEnrollment(enrollment.id, {
+      const { bankName, paymentMethod: methodType, proof, proofURL, remark } = payload
+
+      // Construct payment info
+      const updateData = {
         paymentStatus: 'paid',
-        paymentProof: proofStr
-      })
+        status: 'confirmed', // Auto-confirm when paid
+        paymentMethod: methodType === 'cash' ? 'Cash' : (bankName || 'Online'),
+        transactionId: proof,
+        paymentProofURL: proofURL || '',
+        paidAt: new Date().toISOString(),
+        remark: remark?.trim() || ''
+      }
+
+      await enrollmentService.updateEnrollment(enrollment.id, updateData)
     } else if (type === 'cancel') {
       await enrollmentService.updateEnrollment(enrollment.id, { status: 'cancelled', cancelReason: reason })
     } else if (type === 'delete') {
@@ -359,15 +369,21 @@ const closeActionModal = () => {
             <td class="text-center" :style="{ width: headers[6].width }">
               <StatusBadge :status="item.enrollmentType || 'Full'" />
             </td>
-            <td class="bold hide-on-mobile text-center" :style="{ width: headers[7].width }">
+            <td class="text-center" :style="{ width: headers[7].width }">
+              <span v-if="!item.paymentMethod && isUnpaid(item.status || item.paymentStatus)"
+                class="not-assigned-label">—</span>
+              <StatusBadge v-else
+                :status="item.paymentMethod || (isPaid(item.status || item.paymentStatus) ? 'Not Specified' : '—')" />
+            </td>
+            <td class="bold hide-on-mobile text-center" :style="{ width: headers[8].width }">
               <div class="amount-cell">
                 <StatusBadge :status="'$' + formatPrice(item.amount || 0)"></StatusBadge>
               </div>
             </td>
-            <td class="text-center" :style="{ width: headers[8].width }">
+            <td class="text-center" :style="{ width: headers[9].width }">
               <StatusBadge :status="item.displayStatus || 'Unpaid'" />
             </td>
-            <td class="action-cell text-center" :style="{ width: headers[9].width }">
+            <td class="action-cell text-center" :style="{ width: headers[10].width }">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
                   <span class="dots-icon">⋮</span>
@@ -379,8 +395,8 @@ const closeActionModal = () => {
                       <button class="btn-edit" @click="handleAction('edit', item)">
                         <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit
                       </button>
-                      <button v-if="isUnpaid(item.status || item.paymentStatus)" class="btn-pay"
-                        @click="handleAction('pay', item)">
+                      <button v-if="!isPaid(item.status) && !isPaid(item.paymentStatus) && !isCancelled(item.status)"
+                        class="btn-pay" @click="handleAction('pay', item)">
                         <img :src="getActionIcon('pay')" class="action-icon-mini" /> Pay
                       </button>
                       <button v-if="!isCancelled(item.status || item.paymentStatus)" class="btn-cancel"
