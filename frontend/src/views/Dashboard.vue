@@ -65,13 +65,13 @@ onMounted(() => {
 const todayStats = computed(() => [
   { label: 'New Registrations Today', value: stats.value.today.reg, image: getImageUrl('dashboard/registration'), color: '#e1f5fe' },
   { label: 'New Enrollments Today', value: stats.value.today.enroll, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
-  { label: "Today's Payments", value: `$${stats.value.today.pay}`, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
+  { label: "Today's Payments", value: `$${formatPrice(stats.value.today.pay)}`, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
 ])
 
 const thisWeekStats = computed(() => [
   { label: 'Total Registrations', value: stats.value.week.reg, image: getImageUrl('dashboard/registration'), color: '#e1f5fe' },
   { label: 'Total Enrollments', value: stats.value.week.enroll, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
-  { label: 'Total Payments', value: `$${stats.value.week.pay}`, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
+  { label: 'Total Payments', value: `$${formatPrice(stats.value.week.pay)}`, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
 ])
 
 const mappedEnrollments = computed(() => {
@@ -98,11 +98,17 @@ const mappedEnrollments = computed(() => {
         programTitle: r.programTitle || c?.title || 'N/A',
         programProfileURL: getProgramProfileURL(r.programProfileURL || c?.profileURL, r.programCategory || c?.category),
         status: r.displayStatus || r.status || 'Pending',
-        amount: `$${r.amount}`,
+        amount: `$${formatPrice(r.amount)}`,
         date: r.enrollAt || r.createdAt
       }
     })
 })
+const formatPrice = (val) => {
+  if (val === undefined || val === null) return '0'
+  const num = parseFloat(String(val).replace(/[^0-9.]/g, ''))
+  if (isNaN(num)) return '0'
+  return Number.isInteger(num) ? num.toString() : num.toFixed(2)
+}
 </script>
 
 <template>

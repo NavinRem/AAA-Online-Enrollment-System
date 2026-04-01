@@ -8,6 +8,7 @@ export const calculateDashboardStats = (allUsers, enrollments, programs, student
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
   const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
+  const startOf7DaysAgo = startOfToday - 7 * 24 * 60 * 60 * 1000
 
   const getExpectedAmount = (r) => {
     let amt = 0
@@ -22,36 +23,65 @@ export const calculateDashboardStats = (allUsers, enrollments, programs, student
   }
 
   const todayAccounts = (allUsers || []).filter((u) => {
-    if (u.role !== 'parent' && u.role !== 'guardian') return false
-    const time = parseDate(u.createdAt || u.updatedAt).getTime()
-    return time >= startOfToday && time <= endOfToday
-  })
+    if (u.role !== "parent" && u.role !== "guardian") return false;
+    const time = parseDate(u.createdAt || u.updatedAt).getTime();
+    return time >= startOfToday && time <= endOfToday;
+  });
+
+  const weeklyAccounts = (allUsers || []).filter((u) => {
+    if (u.role !== "parent" && u.role !== "guardian") return false;
+    const time = parseDate(u.createdAt || u.updatedAt).getTime();
+    return time >= startOf7DaysAgo && time <= endOfToday;
+  });
+
+  const parents = (allUsers || []).filter((u) => u.role === "parent");
+  const guardians = (allUsers || []).filter((u) => u.role === "guardian");
+
+  // Helper to check if a record's relevant activity (enrollment or payment) happened in a window
+  const isRecordInWindow = (r, start, end) => {
+    const enrollTime = parseDate(r.enrollAt || r.createdAt).getTime();
+    const updateTime = parseDate(r.updatedAt).getTime();
+    return (
+      (enrollTime >= start && enrollTime <= end) ||
+      (updateTime >= start && updateTime <= end)
+    );
+  };
 
   const todayEnrollmentsList = (enrollments || []).filter((r) => {
-    const time = parseDate(r.enrollAt || r.createdAt || r.updatedAt).getTime()
-    return time >= startOfToday && time <= endOfToday
-  })
+    const time = parseDate(r.enrollAt || r.createdAt).getTime();
+    return time >= startOfToday && time <= endOfToday;
+  });
 
-  const parents = (allUsers || []).filter((u) => u.role === 'parent')
-  const guardians = (allUsers || []).filter((u) => u.role === 'guardian')
+  const weeklyEnrollmentsList = (enrollments || []).filter((r) => {
+    const time = parseDate(r.enrollAt || r.createdAt).getTime();
+    return time >= startOf7DaysAgo && time <= endOfToday;
+  });
+
+  const todayPaidSum = (enrollments || [])
+    .filter((r) => isPaid(r.status || r.paymentStatus) && isRecordInWindow(r, startOfToday, endOfToday))
+    .reduce((sum, r) => sum + getExpectedAmount(r), 0);
+
+  const weeklyPaidSum = (enrollments || [])
+    .filter((r) => isPaid(r.status || r.paymentStatus) && isRecordInWindow(r, startOf7DaysAgo, endOfToday))
+    .reduce((sum, r) => sum + getExpectedAmount(r), 0);
 
   return {
     today: {
       reg: todayAccounts.length,
       enroll: todayEnrollmentsList.length,
-      pay: todayEnrollmentsList.filter(r => isPaid(r.status || r.paymentStatus)).reduce((sum, r) => sum + getExpectedAmount(r), 0)
+      pay: Math.round(todayPaidSum * 100) / 100,
     },
     week: {
-      reg: parents.length + guardians.length,
-      enroll: (enrollments || []).length,
-      pay: (enrollments || []).filter(r => isPaid(r.status || r.paymentStatus)).reduce((sum, r) => sum + getExpectedAmount(r), 0)
+      reg: weeklyAccounts.length,
+      enroll: weeklyEnrollmentsList.length,
+      pay: Math.round(weeklyPaidSum * 100) / 100,
     },
     totals: {
       accounts: parents.length + guardians.length,
       parents: parents.length,
       guardians: guardians.length,
       students: (students || []).length,
-      programs: (programs || []).length
-    }
-  }
-}
+      programs: (programs || []).length,
+    },
+  };
+};
