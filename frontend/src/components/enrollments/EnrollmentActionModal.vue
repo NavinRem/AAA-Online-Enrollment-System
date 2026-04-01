@@ -1,12 +1,6 @@
 <template>
   <AppModal :show="isOpen" :title="(type ? type.charAt(0).toUpperCase() + type.slice(1) : '') + ' Enrollment'"
     variant="action" @close="$emit('close')" :icon="getActionIcon(type)">
-    <AppAlert :show="!!error" type="error" closable @close="$emit('update:error', '')">
-      {{ error }}
-    </AppAlert>
-    <AppAlert :show="!!success" type="success" closable @close="$emit('update:success', '')">
-      {{ success }}
-    </AppAlert>
 
     <!-- Content for Pay Action -->
     <div v-if="type === 'pay'" class="action-pay-container">
@@ -53,12 +47,21 @@
               <StatusBadge :status="enrollmentSummary.mode" />
               <StatusBadge :status="enrollmentSummary.status" />
               <span v-if="enrollmentSummary.hasDiscount" class="discount-note-mini">{{ enrollmentSummary.discountText
-                }}</span>
+              }}</span>
             </div>
           </div>
           <div class="price-amount-large">${{ formatPrice(enrollmentSummary.amount) }}</div>
         </div>
       </div>
+
+      <AppAlert type="warning" :customStyle="{ marginTop: '10px', marginBottom: '0px' }">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <strong style="font-size: 0.95rem;">No-Refund Policy</strong>
+          <span style="font-size: 0.85rem; opacity: 0.9; line-height: 1.2;">
+            Once payment is confirmed, enrollments are non-refundable. Please verify all details before proceeding.
+          </span>
+        </div>
+      </AppAlert>
 
       <div class="form-group" style="margin-top: 20px;">
         <label>Payment Method</label>
@@ -107,7 +110,8 @@
         </div>
 
         <div class="form-group" style="margin-top: 16px;">
-          <label>Payment Proof (Screenshot / Photo) <span style="font-weight: normal; opacity: 0.7; font-size: 0.8rem;">(Optional)</span></label>
+          <label>Payment Proof (Screenshot / Photo) <span
+              style="font-weight: normal; opacity: 0.7; font-size: 0.8rem;">(Optional)</span></label>
           <div class="upload-zone-mini" :class="{ 'has-file': localData.selectedFile }">
             <input type="file" @change="handleFileChange" accept="image/*" class="file-input-hidden"
               id="proof-upload" />
@@ -187,12 +191,21 @@
         </div>
       </AppAlert>
 
+      <AppAlert v-if="isPaid(enrollment?.status || enrollment?.paymentStatus)" type="warning"
+        :customStyle="{ marginTop: '10px', marginBottom: '0px' }">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <strong style="font-size: 0.95rem;">No-Refund Policy</strong>
+          <span style="font-size: 0.85rem; opacity: 0.9; line-height: 1.2;">
+            This enrollment is already paid. Please note that enrollments are non-refundable upon cancellation.
+          </span>
+        </div>
+      </AppAlert>
+
       <div class="form-group" style="margin-top: 20px;">
         <label>Reason for Cancellation</label>
         <div class="preset-chips chips-div-enrollment" style="margin: 8px 0 12px 0;">
-          <span v-for="preset in ['Schedule Conflict', 'Medical Reason', 'Moved Away', 'Refund Issued', 'Duplicate']"
-            :key="preset" class="preset-chip" @click="localData.reason = preset"
-            :class="{ active: localData.reason === preset }">
+          <span v-for="preset in ['Schedule Conflict', 'Medical Reason', 'Moved Away', 'Duplicate']" :key="preset"
+            class="preset-chip" @click="localData.reason = preset" :class="{ active: localData.reason === preset }">
             {{ preset }}
           </span>
         </div>
@@ -215,6 +228,20 @@
 
     <template #footer>
       <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; gap: 12px;">
+        <transition name="alert-fade">
+          <AppAlert v-if="error" :show="!!error" type="error" closable @close="$emit('update:error', '')"
+            style="width: 100%; margin-bottom: 0;">
+            {{ error }}
+          </AppAlert>
+        </transition>
+
+        <transition name="alert-fade">
+          <AppAlert v-if="success" :show="!!success" type="success" closable @close="$emit('update:success', '')"
+            style="width: 100%; margin-bottom: 0;">
+            {{ success }}
+          </AppAlert>
+        </transition>
+
         <transition name="toast-fade">
           <div v-if="showHint && validationHint"
             style="font-size: 0.8rem; color: #ef4444; background: #fef2f2; padding: 6px 12px; border-radius: 6px; border: 1px solid #fee2e2; max-width: fit-content;">
@@ -243,6 +270,8 @@ import { getParentProfileURL, getStudentProfileURL, getProgramProfileURL, getAct
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getEnrollmentDisplayStatus, getEnrollmentDisplayMode } from '@/utils/enrollmentHelper'
 import { storageService } from '@/services/storageService'
+import { isPaid } from '@/utils/statusHelper'
+
 
 const props = defineProps({
   isOpen: Boolean,
@@ -375,225 +404,5 @@ const formatPrice = (val) => {
 </script>
 
 <style scoped>
-.action-pay-container,
-.action-cancel-container {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.price-status-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.discount-note-mini {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  font-weight: 500;
-  font-style: italic;
-}
-
-.method-selector {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.method-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 12px;
-  background: white;
-  border: 2px solid #e2e8f0;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.method-btn .method-icon-box {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f8fafc;
-  border-radius: 12px;
-  transition: all 0.2s ease;
-}
-
-.method-btn .method-icon-box img {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-  opacity: 0.7;
-}
-
-.method-btn span:last-child {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.method-btn:hover {
-  border-color: #cbd5e1;
-  background: #f8fafc;
-}
-
-.method-btn.active {
-  border-color: #0ea5e9;
-  background: #f0f9ff;
-}
-
-.method-btn.active .method-icon-box {
-  background: white;
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
-}
-
-.method-btn.active .method-icon-box img {
-  opacity: 1;
-  filter: invert(48%) sepia(87%) saturate(2462%) hue-rotate(175deg) brightness(98%) contrast(93%);
-}
-
-.method-btn.active span:last-child {
-  color: #0369a1;
-}
-
-.cash-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: #f1f5f9;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.cash-notice .icon {
-  font-size: 1.1rem;
-}
-
-.cash-notice p {
-  font-size: 0.85rem;
-  color: #475569;
-  margin: 0;
-  line-height: 1.4;
-}
-
-.online-payment-details,
-.cash-payment-details {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-grid-mini {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr;
-  gap: 12px;
-}
-
-.upload-zone-mini {
-  position: relative;
-  width: 100%;
-  height: 120px;
-  border: 2px dashed #e2e8f0;
-  border-radius: 12px;
-  background: #f8fafc;
-  transition: all 0.2s ease;
-  overflow: hidden;
-}
-
-.upload-zone-mini:hover {
-  border-color: #cbd5e1;
-  background: #f1f5f9;
-}
-
-.upload-zone-mini.has-file {
-  border: 2px solid #0ea5e9;
-  background: white;
-}
-
-.file-input-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
-
-.upload-label-mini {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
-}
-
-.upload-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  color: #64748b;
-}
-
-.upload-placeholder .icon {
-  font-size: 1.5rem;
-  margin-bottom: 2px;
-}
-
-.upload-placeholder span:last-child {
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.upload-preview-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.upload-preview {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.upload-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.upload-preview-container:hover .upload-overlay {
-  opacity: 1;
-}
-
-.upload-overlay span {
-  color: white;
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 20px;
-  backdrop-filter: blur(4px);
-}
-
-.danger-text {
-  color: #ef4444;
-}
+@import "@/assets/styles/components/EnrollmentActionModal.css";
 </style>

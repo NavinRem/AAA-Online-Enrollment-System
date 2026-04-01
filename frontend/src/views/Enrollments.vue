@@ -183,14 +183,14 @@ const enrollmentHeaders = [
   { label: 'No', width: '40px', align: 'center' },
   { label: 'Parent / Guardian', width: '160px' },
   { label: 'Student', width: '160px' },
-  { label: 'Program', width: '180px' },
+  { label: 'Program', width: '200px' },
   { label: 'Session', width: '120px' },
   { label: 'Enrolled Date', width: '120px', align: 'center' },
   { label: 'Mode', width: '90px', align: 'center', sortable: true, key: 'enrollmentType' },
   { label: 'Method', width: '100px', align: 'center', sortable: true, key: 'paymentMethod' },
   { label: 'Amount', width: '100px', align: 'center', sortable: true, key: 'amount' },
   { label: 'Status', width: '90px', align: 'center' },
-  { label: 'Action', width: '50px', align: 'center' }
+  { label: 'Action', width: '70px', align: 'center' }
 ]
 
 const currentFilter = ref('all')
