@@ -1,5 +1,5 @@
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')">
+  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="modalIcon">
     <AppAlert :show="!!error" type="error" closable @close="$emit('update:error', '')">
       {{ error }}
     </AppAlert>
@@ -40,6 +40,7 @@
               
               <div class="dropdown-menu" v-if="isParentDropdownOpen">
                 <div class="dropdown-search">
+                  <img :src="getActionIcon('search')" class="search-icon-mini" />
                   <input
                     type="text"
                     v-model="parentSearchQuery"
@@ -262,7 +263,7 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -344,6 +345,12 @@ const modalTitle = computed(() => {
     'enrollment-delete': 'Delete Program Record',
   }
   return titles[props.type] || 'Student Action'
+})
+
+const modalIcon = computed(() => {
+  if (props.type?.includes('delete')) return getActionIcon('delete')
+  if (props.type?.includes('edit') || props.type?.includes('override')) return getActionIcon('edit')
+  return getActionIcon('plus')
 })
 
 const isFormValid = computed(() => {

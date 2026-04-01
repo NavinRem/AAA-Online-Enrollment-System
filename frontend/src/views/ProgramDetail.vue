@@ -12,7 +12,8 @@ import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { 
   getProgramProfileURL, 
-  getImageUrl 
+  getImageUrl,
+  getActionIcon
 } from '@/utils/assetHelper'
 import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
 import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
@@ -240,11 +241,11 @@ const handleActionSubmit = async (formData) => {
     <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/programs" title="Program Detail">
       <template #header-actions v-if="program">
         <div class="actions-wrapper">
-          <button class="btn-icon edit" title="Edit Program" @click="openActionModal('edit')">
-            ✏️
+          <button class="btn-icon-modern btn-edit" title="Edit Program" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" />
           </button>
-          <button class="btn-icon delete" title="Delete Program" @click="openActionModal('delete')">
-            🗑️
+          <button class="btn-icon-modern btn-delete" title="Delete Program" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" />
           </button>
         </div>
       </template>
@@ -342,7 +343,8 @@ const handleActionSubmit = async (formData) => {
           <div v-if="activeTab === 'students'" class="detail-section-card full-width fade-in">
             <div class="section-header">
               <h3>Enrolled Student List</h3>
-              <div class="header-search">
+              <div class="header-search search-wrapper">
+                <img :src="getActionIcon('search')" class="search-icon-mini" />
                 <input type="text" v-model="searchQuery" placeholder="Search students..." />
               </div>
             </div>
@@ -459,6 +461,39 @@ const handleActionSubmit = async (formData) => {
 </template>
 
 <style scoped>
+/* Search in Header */
+.header-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 250px;
+}
+
+.header-search .search-icon-mini {
+  position: absolute;
+  left: 12px;
+  width: 14px;
+  height: 14px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.header-search input {
+  width: 100%;
+  padding: 8px 12px 8px 34px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  font-size: 0.9rem !important;
+  outline: none !important;
+  background: white !important;
+  transition: all 0.2s;
+}
+
+.header-search input:focus {
+  border-color: #00aeef !important;
+  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1) !important;
+}
+
 @import '@/assets/styles/detail-view.css';
 
 /* Program-specific tweaks */

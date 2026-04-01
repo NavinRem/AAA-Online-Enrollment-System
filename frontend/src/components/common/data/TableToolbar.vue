@@ -3,15 +3,14 @@
     <div class="table-title-area">
       <h2 v-if="title" class="table-title">{{ title }}</h2>
     </div>
-
     <div class="table-controls">
       <SearchBox v-if="hasSearch" :modelValue="searchQuery" @update:modelValue="$emit('update:searchQuery', $event)"
         :placeholder="searchPlaceholder" />
-
       <div v-if="hasFilter" class="filter-dropdown-container">
         <AppButton variant="secondary" :class="{ active: currentFilter !== 'all' && currentFilter !== '' }"
           :style="getStatusTheme(currentFilter)" @click="toggleFilter" @blur="closeFilter">
-          <span style="margin-right: 6px"></span> {{ activeFilterLabel }}
+          <img :src="getActionIcon('filter')" class="btn-icon-mini"
+            :class="{ 'reverse-icon': currentFilter !== 'all' && currentFilter !== '' }" /> {{ activeFilterLabel }}
         </AppButton>
         <Teleport to="body">
           <transition name="toast-fade">
@@ -35,6 +34,7 @@ import { ref, computed } from 'vue'
 import SearchBox from '@/components/common/data/SearchBox.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { getStatusTheme } from '@/utils/statusHelper'
+import { getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
   title: {
@@ -104,6 +104,6 @@ const selectFilter = (val) => {
 }
 </script>
 
-<style scoped>
+<style>
 @import '@/assets/styles/components/TableToolbar.css';
 </style>

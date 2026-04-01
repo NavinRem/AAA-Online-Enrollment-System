@@ -59,12 +59,20 @@
   font-weight: 700;
 }
 
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-  transition: all 0.3s ease;
-}
 .toast-fade-enter-from,
 .toast-fade-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+.btn-icon-mini {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.reverse-icon {
+  filter: brightness(0) invert(1);
 }

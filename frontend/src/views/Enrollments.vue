@@ -18,7 +18,7 @@ import {
 } from '../utils/enrollmentHelper'
 import { formatDate } from '../utils/dateFormatter'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
-import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
+import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL, getActionIcon } from '@/utils/assetHelper'
 import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
 import { formatPrice } from '@/utils/currencyFormatter'
 
@@ -34,7 +34,7 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const validationHint = ref('')
 const newlyCreatedId = ref(null)
-const selectedEnrollment = ref(null) // Enrollment currently being edited
+const selectedEnrollment = ref(null)
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
@@ -131,13 +131,11 @@ const handleSaveEnrollment = async (formData) => {
       isProrated: formData.isProrated,
       enrollmentType: formData.enrollmentType || 'Full',
       remark: formData.remark || '',
-      // Snapshot of calculations
       basePrice: formData.basePrice || 0,
       totalSessions: formData.totalSessions || 0,
       remainingSessions: formData.remainingSessions || 0,
       passedSessions: formData.passedSessions || 0,
       prorateSavings: formData.prorateSavings || 0,
-      // Only set these for new enrollments
       ...(!formData.id ? {
         status: 'unpaid',
         paymentStatus: 'unpaid',
@@ -209,7 +207,6 @@ const statusFilteredEnrollments = computed(() => {
     })
   }
 
-  // Newest always on top (addresses user feedback: "only show the current enrollment on top")
   return filtered.sort((a, b) => new Date(b.enrollAt || 0) - new Date(a.enrollAt || 0))
 })
 
@@ -218,7 +215,6 @@ const { searchQuery, searchResults: filteredEnrollments } = useSearch(
   enrollmentSearchMapper,
 )
 
-// --- Pagination State ---
 const currentPage = ref(1)
 const pageSize = 10
 const totalItems = computed(() => filteredEnrollments.value.length)
@@ -229,12 +225,10 @@ const paginatedEnrollments = computed(() => {
   return filteredEnrollments.value.slice(start, end)
 })
 
-// Reset to first page when filtering or searching
 watch([currentFilter, searchQuery], () => {
   currentPage.value = 1
 })
 
-// --- Action Modal State ---
 const actionState = ref({
   isOpen: false,
   type: '',
@@ -318,7 +312,9 @@ const closeActionModal = () => {
             $router.push(`/enrollments/${item.id}`);
           }">
           <template #toolbar-actions>
-            <AppButton variant="primary" @click="showModal = true">+ New Enrollment</AppButton>
+            <AppButton variant="primary" @click="showModal = true">
+              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> New Enrollment
+            </AppButton>
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, headers }">
@@ -380,13 +376,21 @@ const closeActionModal = () => {
                   <transition name="fade">
                     <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
                       :style="menuStyles" @click.stop>
-                      <button @click="handleAction('edit', item)">✏️ Edit</button>
-                      <button v-if="isUnpaid(item.status || item.paymentStatus)" @click="handleAction('pay', item)">💰
-                        Pay</button>
-                      <button v-if="!isCancelled(item.status || item.paymentStatus)"
-                        @click="handleAction('cancel', item)">🚫 Cancel</button>
+                      <button class="btn-edit" @click="handleAction('edit', item)">
+                        <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit
+                      </button>
+                      <button v-if="isUnpaid(item.status || item.paymentStatus)" class="btn-pay"
+                        @click="handleAction('pay', item)">
+                        <img :src="getActionIcon('pay')" class="action-icon-mini" /> Pay
+                      </button>
+                      <button v-if="!isCancelled(item.status || item.paymentStatus)" class="btn-cancel"
+                        @click="handleAction('cancel', item)">
+                        <img :src="getActionIcon('cancel')" class="action-icon-mini" /> Cancel
+                      </button>
                       <div class="menu-divider"></div>
-                      <button class="delete-btn" @click="handleAction('delete', item)">🗑️ Delete</button>
+                      <button class="btn-delete" @click="handleAction('delete', item)">
+                        <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete
+                      </button>
                     </div>
                   </transition>
                 </Teleport>

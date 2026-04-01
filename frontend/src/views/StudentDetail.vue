@@ -17,7 +17,7 @@ import { filterDetailEnrollments, getAcademicStatus } from '@/utils/enrollmentHe
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -498,14 +498,14 @@ watch(
     <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/students" title="Student Details">
       <template #header-actions v-if="student">
         <div class="actions-wrapper">
-          <button class="btn-icon edit" title="Edit Profile" @click="openActionModal('edit')">
-            ✏️
+          <button class="btn-icon-modern btn-edit" title="Edit Profile" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" />
           </button>
-          <button class="btn-icon cancel" title="Override Status" @click="openActionModal('override')">
-            ⏸️
+          <button class="btn-icon-modern btn-cancel" title="Override Status" @click="openActionModal('override')">
+            <img :src="getActionIcon('quick-action')" />
           </button>
-          <button class="btn-icon delete" title="Delete Student" @click="openActionModal('delete')">
-            🗑️
+          <button class="btn-icon-modern btn-delete" title="Delete Student" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" />
           </button>
         </div>
       </template>

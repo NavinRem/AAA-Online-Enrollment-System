@@ -15,6 +15,7 @@
       
       <div class="dropdown-menu" v-if="isOpen" @click.stop>
         <div v-if="searchable" class="dropdown-search">
+          <img :src="getActionIcon('search')" class="search-icon-mini" />
           <input
             type="text"
             v-model="searchQuery"
@@ -46,6 +47,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
   modelValue: [String, Number],
@@ -203,11 +205,23 @@ watch(() => props.modelValue, () => {
 .dropdown-search {
   padding: 8px;
   border-bottom: 1px solid #f1f5f9;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon-mini {
+  position: absolute;
+  left: 16px;
+  width: 14px;
+  height: 14px;
+  opacity: 0.4;
+  pointer-events: none;
 }
 
 .dropdown-search input {
   width: 100%;
-  padding: 6px 12px !important;
+  padding: 6px 12px 6px 30px !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 6px !important;
   font-size: 0.85rem !important;

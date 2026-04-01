@@ -3,14 +3,18 @@
     <div v-if="loading" class="loading-state">Loading details...</div>
     <div v-else-if="errorMessage" class="error-state">
       <p>⚠️ {{ errorMessage }}</p>
-      <AppButton variant="subtle" @click="goBack">Go Back</AppButton>
+      <button class="btn-back" @click="goBack">
+        <img :src="getActionIcon('back')" /> Back
+      </button>
     </div>
 
     <div v-else class="detail-container">
       <div class="content-grid main-layout-grid">
         <div class="left-content-area">
           <div class="header-section">
-            <AppButton variant="light" size="sm" @click="goBack"> Back </AppButton>
+            <button class="btn-back" @click="goBack">
+              <img :src="getActionIcon('back')" /> Back
+            </button>
             <div class="header-actions">
               <slot name="header-actions"></slot>
             </div>
@@ -32,6 +36,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { getActionIcon } from '@/utils/assetHelper'
 import AppButton from '@/components/common/ui/AppButton.vue'
 
 const props = defineProps({
@@ -55,6 +60,10 @@ const router = useRouter()
 const goBack = () => router.push(props.backRoute)
 </script>
 
-<style scoped>
+<style>
 @import '@/assets/styles/components/DetailPageLayout.css';
+
+.header-actions:empty {
+  display: none;
+}
 </style>

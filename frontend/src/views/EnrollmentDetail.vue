@@ -18,7 +18,8 @@ import {
   getProgramProfileURL,
   getParentProfileURL,
   getStudentProfileURL,
-  getTeacherProfileURL
+  getTeacherProfileURL,
+  getActionIcon
 } from '@/utils/assetHelper'
 import { isPaid, isCancelled } from '@/utils/statusHelper'
 import { formatPrice } from '@/utils/currencyFormatter'
@@ -254,19 +255,19 @@ onMounted(async () => {
       :rightScrollable="true">
       <template #header-actions v-if="enrollment">
         <div class="actions-wrapper">
-          <button class="btn-icon edit" title="Edit Enrollment" @click="openActionModal('edit')">
-            ✏️
+          <button class="btn-icon-modern btn-edit" title="Edit Enrollment" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" />
           </button>
-          <button v-if="!isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)" class="btn-icon check"
-            title="Mark as Paid" @click="openActionModal('pay')">
-            ✓
+          <button v-if="!isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
+            class="btn-icon-modern btn-pay" title="Pay Enrollment" @click="openActionModal('pay')">
+            <img :src="getActionIcon('pay')" />
           </button>
-          <button v-if="!isCancelled(enrollment.status)" class="btn-icon cancel" title="Cancel Enrollment"
+          <button v-if="!isCancelled(enrollment.status)" class="btn-icon-modern btn-cancel" title="Cancel Enrollment"
             @click="openActionModal('cancel')">
-            🚫
+            <img :src="getActionIcon('cancel')" />
           </button>
-          <button class="btn-icon delete" title="Delete Permanently" @click="openActionModal('delete')">
-            🗑️
+          <button class="btn-icon-modern btn-delete" title="Delete Enrollment" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" />
           </button>
         </div>
       </template>
@@ -524,6 +525,16 @@ onMounted(async () => {
   /* Cards in same row match height */
   margin-bottom: 30px;
 }
+
+.actions-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* btn-icon-modern styles moved to DetailPageLayout.css */
+
+/* Custom scrollbar for webkit to keep it premium */
 
 /* Custom scrollbar for webkit to keep it premium */
 :deep(.main-cards-grid::-webkit-scrollbar) {

@@ -2,7 +2,7 @@
 import { ref, computed, toRef, watch, onMounted, onUnmounted } from 'vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { useSearch, parentSearchMapper, studentSearchMapper, programSearchMapper } from '@/composables/useSearch'
-import { getStudentProfileURL, getParentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
+import { getStudentProfileURL, getParentProfileURL, getProgramProfileURL, getActionIcon } from '@/utils/assetHelper'
 import { formatPrice } from '@/utils/currencyFormatter'
 import { getSessionCounts } from '@/utils/programHelper'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
@@ -435,7 +435,8 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <AppModal :show="isOpen" @close="$emit('close')" :title="isEditMode ? 'Edit Enrollment' : 'Create New Enrollment'">
+  <AppModal :show="isOpen" @close="$emit('close')" :title="isEditMode ? 'Edit Enrollment' : 'Create New Enrollment'"
+    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')">
     <div class="modal-inner-content">
       <form @submit.prevent="validateAndSubmit" class="enrollment-form">
         <div class="form-grid">
@@ -459,6 +460,7 @@ const handleSubmit = () => {
             <Teleport to="body">
               <div class="dropdown-menu" v-if="isParentDropdownOpen" :style="dropdownStyles">
                 <div class="dropdown-search">
+                  <img :src="getActionIcon('search')" class="search-icon-mini" />
                   <input type="text" v-model="parentSearchQuery" placeholder="Search name or email..." autofocus />
                 </div>
                 <ul class="dropdown-list">
@@ -501,6 +503,7 @@ const handleSubmit = () => {
             <Teleport to="body">
               <div class="dropdown-menu" v-if="isStudentDropdownOpen" :style="dropdownStyles">
                 <div class="dropdown-search">
+                  <img :src="getActionIcon('search')" class="search-icon-mini" />
                   <input type="text" v-model="studentSearchQuery" placeholder="Search student name..." @click.stop
                     autofocus />
                 </div>
@@ -546,6 +549,7 @@ const handleSubmit = () => {
             <Teleport to="body">
               <div class="dropdown-menu" v-if="isProgramDropdownOpen" :style="dropdownStyles">
                 <div class="dropdown-search">
+                  <img :src="getActionIcon('search')" class="search-icon-mini" />
                   <input type="text" v-model="programSearchQuery" placeholder="Search program title..." @click.stop
                     autofocus />
                 </div>

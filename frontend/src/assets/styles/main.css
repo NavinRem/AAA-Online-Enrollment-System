@@ -3,6 +3,7 @@
    ========================================================================== */
 
 @import './enrollment-common.css';
+@import './components/AppButton.css';
 
 :root {
   /* Brand Colors */
@@ -98,8 +99,10 @@ h1 {
   font-size: clamp(1.5rem, 5vw, 2.2rem);
 }
 h2 {
-  font-size: clamp(1.25rem, 4vw, 1.8rem);
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
 }
+
+
 h3 {
   font-size: clamp(1.1rem, 3vw, 1.4rem);
 }
@@ -324,60 +327,9 @@ h3 {
   box-shadow: 0 2px 4px rgba(0, 174, 239, 0.1);
 }
 
-/* Detail Page Header Action Styles */
-.actions-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
 
-.btn-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 12px;
-  border: none !important; /* Force borderless as requested */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  background-color: #f8fafc;
-  color: #64748b;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
 
-.btn-icon:hover {
-  background-color: #f1f5f9;
-  color: #1e293b;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
 
-.btn-icon:active {
-  transform: translateY(0);
-}
-
-.btn-icon.edit:hover {
-  background-color: #e0f2fe;
-  color: #0284c7;
-}
-.btn-icon.cancel:hover {
-  background-color: #fef2f2;
-  color: #ef4444;
-}
-.btn-icon.check:hover {
-  background-color: #f0fdf4;
-  color: #16a34a;
-}
-.btn-icon.delete:hover {
-  background-color: #fff1f2;
-  color: #e11d48;
-}
-.btn-icon.override:hover {
-  background-color: #fff7ed;
-  color: #ea580c;
-}
 
 .form-group input,
 .form-group textarea,
@@ -600,123 +552,7 @@ h3 {
   color: var(--text-dark);
 }
 
-/* ==========================================================================
-   TABLE ACTIONS & DROPDOWNS
-   ========================================================================== */
 
-.action-cell {
-  position: relative;
-  width: 60px;
-}
-
-.menu-container {
-  position: relative;
-  display: flex;
-  justify-content: center;
-}
-
-.btn-dots {
-  background: none;
-  border: none;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: 50%;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-dots:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-}
-
-.action-dropdown {
-  position: fixed;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.1),
-    0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  border: 1px solid #edf2f7;
-  z-index: var(--z-dropdown);
-  padding: 6px;
-  min-width: 180px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: slideDropdown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.action-dropdown button {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-dark);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.action-dropdown button:hover {
-  background: #f1f5f9;
-  color: var(--primary-color);
-  padding-left: 20px; /* Subtle movement on hover */
-}
-
-.action-dropdown .delete-btn {
-  color: var(--error-color);
-}
-
-.action-dropdown .delete-btn:hover {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.menu-divider {
-  height: 1px;
-  background: var(--border-color);
-  margin: 6px 8px;
-}
-
-/* ==========================================================================
-   ANIMATIONS
-   ========================================================================== */
-
-@keyframes slideDropdown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition:
-    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px) scale(0.95);
-}
 
 .user-cell {
   display: flex;

@@ -70,6 +70,14 @@ defineProps({
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  display: block;
+}
+
+/* Specific styling for SVG icons used as avatars to prevent huge scaling */
+.avatar-icon[src$=".svg"] {
+  object-fit: contain;
+  padding: 15px;
+  background: #f8fafc;
 }
 
 .info-block-light {

@@ -1,5 +1,5 @@
 <template>
-  <AppModal :show="isOpen" title="Register New Child" @close="$emit('close')">
+  <AppModal :show="isOpen" title="Register New Child" @close="$emit('close')" :icon="getActionIcon('plus')">
     <div v-if="error" class="alert-box error">{{ error }}</div>
     <div v-if="success" class="alert-box success">{{ success }}</div>
 
@@ -28,6 +28,7 @@
             
             <div class="dropdown-menu" v-if="isDropdownOpen">
               <div class="dropdown-search">
+                <img :src="getActionIcon('search')" class="search-icon-mini" />
                 <input
                   type="text"
                   v-model="searchQuery"
@@ -163,7 +164,7 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: Boolean,

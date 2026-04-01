@@ -2,7 +2,10 @@
   <AppModal :show="isOpen" maxWidth="640px" @close="$emit('close')">
     <template #header>
       <div class="modal-header-main">
-        <h3>{{ modalTitle }}</h3>
+        <div class="modal-title-wrapper">
+          <img v-if="modalIcon" :src="modalIcon" class="modal-title-icon" />
+          <h3>{{ modalTitle }}</h3>
+        </div>
         <AppAlert :show="!!error" type="error" closable @close="$emit('update:error', '')">
           {{ error }}
         </AppAlert>
@@ -144,6 +147,7 @@
 
             <div class="dropdown-menu" v-if="isTeacherDropdownOpen">
               <div class="dropdown-search">
+                <img :src="getActionIcon('search')" class="search-icon-mini" />
                 <input type="text" v-model="teacherSearchQuery" placeholder="Search name or email..." @click.stop
                   autofocus />
               </div>
@@ -225,7 +229,7 @@
     </template>
   </AppModal>
   <AppModal v-if="showDeleteConfirm" :show="showDeleteConfirm" title="Confirm Permanent Deletion"
-    @close="closeDeleteConfirm">
+    @close="closeDeleteConfirm" :icon="getActionIcon('delete')">
     <div class="form-group full-width">
       <div class="identity-card" v-if="teacherToDelete">
         <span class="label">teacher</span>
@@ -266,7 +270,7 @@ import { programService } from '@/services/programService'
 import { userService } from '@/services/userService'
 import { useActionModal } from '@/composables/useActionModal'
 import { useSearch, teacherSearchMapper } from '@/composables/useSearch'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -602,6 +606,13 @@ const handleFileUpload = async (event) => {
 const modalTitle = computed(() => {
   const titles = { add: 'Create New Program', edit: 'Edit Program', delete: 'Delete Program' }
   return titles[props.type] || 'Program Action'
+})
+
+const modalIcon = computed(() => {
+  if (props.type === 'add') return getActionIcon('plus')
+  if (props.type === 'edit') return getActionIcon('edit')
+  if (props.type === 'delete') return getActionIcon('delete')
+  return null
 })
 
 const isFormValid = computed(() => {

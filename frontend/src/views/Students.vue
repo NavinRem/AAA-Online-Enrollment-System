@@ -21,6 +21,7 @@ import {
   getStudentProfileURL,
   getParentProfileURL,
   getImageUrl,
+  getActionIcon,
 } from '@/utils/assetHelper'
 import { calculateTotalStudent, enrichStudents } from '@/utils/studentHelper'
 
@@ -287,7 +288,9 @@ const submitActionModal = async (formData) => {
           ]" :rowClass="getRowClass" @row-click="navigateToDetail"
           @action="({ type, item }) => openActionModal(type, item)">
           <template #toolbar-actions>
-            <AppButton variant="primary" @click="handleOpenAddStudent">+ Add Student</AppButton>
+            <AppButton variant="primary" @click="handleOpenAddStudent">
+              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> Add Student
+            </AppButton>
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
@@ -340,10 +343,16 @@ const submitActionModal = async (formData) => {
                   <transition name="fade">
                     <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
                       :style="menuStyles" @click.stop>
-                      <button @click="handleAction('edit', item)">✏️ Edit</button>
-                      <button @click="handleAction('override', item)">⏸️ Override</button>
+                      <button class="btn-edit" @click="handleAction('edit', item)">
+                        <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit Profile
+                      </button>
+                      <button class="btn-view" @click="handleAction('override', item)">
+                        <img :src="getActionIcon('view')" class="action-icon-mini" /> Override
+                      </button>
                       <div class="menu-divider"></div>
-                      <button class="delete-btn" @click="handleAction('delete', item)">🗑️ Delete</button>
+                      <button class="delete-btn" @click="handleAction('delete', item)">
+                        <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete
+                      </button>
                     </div>
                   </transition>
                 </Teleport>
@@ -381,4 +390,5 @@ const submitActionModal = async (formData) => {
   cursor: pointer;
   gap: 10px;
 }
+
 </style>

@@ -15,7 +15,7 @@ import { formatDate } from '@/utils/dateFormatter'
 import { filterDetailEnrollments } from '@/utils/enrollmentHelper'
 import { enrichStudents } from '@/utils/studentHelper'
 
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -228,22 +228,22 @@ watch(
     <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" title="Parent Details">
       <template #header-actions v-if="parent">
         <div class="actions-wrapper">
-          <button class="btn-icon" style="background-color: #f1f8ff; color: #007aff" title="Register Child"
+          <button class="btn-icon btn-edit" title="Register Child"
             @click="openAddChildModal">
-            👶
+            <img :src="getActionIcon('plus')" />
           </button>
-          <button class="btn-icon edit" title="Edit Parent" @click="openActionModal('edit')">
-            ✏️
+          <button class="btn-icon btn-edit" title="Edit Parent" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" />
           </button>
-          <button v-if="!isInactive" class="btn-icon cancel" title="Deactivate Account"
+          <button v-if="!isInactive" class="btn-icon btn-cancel" title="Deactivate Account"
             @click="openActionModal('deactivate')">
-            🚫
+            <img :src="getActionIcon('cancel')" />
           </button>
-          <button v-else class="btn-icon check" title="Activate Account" @click="openActionModal('activate')">
-            ✅
+          <button v-else class="btn-icon btn-pay" title="Activate Account" @click="openActionModal('activate')">
+            <img :src="getActionIcon('pay')" />
           </button>
-          <button class="btn-icon delete" title="Delete Account" @click="openActionModal('delete')">
-            🗑️
+          <button class="btn-icon btn-delete" title="Delete Account" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" />
           </button>
         </div>
       </template>

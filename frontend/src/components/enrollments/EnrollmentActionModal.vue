@@ -1,6 +1,6 @@
 <template>
   <AppModal :show="isOpen" :title="(type ? type.charAt(0).toUpperCase() + type.slice(1) : '') + ' Enrollment'"
-    variant="action" @close="$emit('close')">
+    variant="action" @close="$emit('close')" :icon="getActionIcon(type)">
     <AppAlert :show="!!error" type="error" closable @close="$emit('update:error', '')">
       {{ error }}
     </AppAlert>
@@ -66,12 +66,16 @@
         <div class="method-selector">
           <button type="button" class="method-btn" :class="{ active: localData.paymentMethod === 'online' }"
             @click="localData.paymentMethod = 'online'">
-            <span class="icon">💳</span>
+            <div class="method-icon-box">
+              <img :src="getActionIcon('pay')" />
+            </div>
             <span>Online / Transfer</span>
           </button>
           <button type="button" class="method-btn" :class="{ active: localData.paymentMethod === 'cash' }"
             @click="localData.paymentMethod = 'cash'">
-            <span class="icon">💵</span>
+            <div class="method-icon-box">
+              <img :src="getIconUrl('navigation/dollar-minimal')" />
+            </div>
             <span>Cash Payment</span>
           </button>
         </div>
@@ -186,7 +190,7 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
-import { getParentProfileURL, getStudentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
+import { getParentProfileURL, getStudentProfileURL, getProgramProfileURL, getActionIcon, getIconUrl } from '@/utils/assetHelper'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getEnrollmentDisplayStatus, getEnrollmentDisplayMode } from '@/utils/enrollmentHelper'
 
@@ -324,8 +328,22 @@ const formatPrice = (val) => {
   transition: all 0.2s ease;
 }
 
-.method-btn .icon {
-  font-size: 1.5rem;
+.method-btn .method-icon-box {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.method-btn .method-icon-box img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  opacity: 0.7;
 }
 
 .method-btn span:last-child {
@@ -342,6 +360,16 @@ const formatPrice = (val) => {
 .method-btn.active {
   border-color: #0ea5e9;
   background: #f0f9ff;
+}
+
+.method-btn.active .method-icon-box {
+  background: white;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.1);
+}
+
+.method-btn.active .method-icon-box img {
+  opacity: 1;
+  filter: invert(48%) sepia(87%) saturate(2462%) hue-rotate(175deg) brightness(98%) contrast(93%);
 }
 
 .method-btn.active span:last-child {
