@@ -138,7 +138,8 @@ const submitActionModal = async (formData) => {
 
   try {
     if (type === 'edit') {
-      await userService.updateUser(user.uid || user.id, { name, phone, email, role, profileURL })
+      const { status } = formData
+      await userService.updateUser(user.uid || user.id, { name, phone, email, role, profileURL, status })
 
       const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
       if (idx !== -1) {
@@ -205,6 +206,11 @@ const submitActionModal = async (formData) => {
           medicalNote,
           status: 'Studying',
           parentId: parentId,
+        })
+
+        // PERMANENT SYNC: Save updated studentProfiles array directly into Parent's Firestore document
+        await userService.updateUser(parentId, {
+          studentProfiles: allUsers.value[userIdx].studentProfiles
         })
       }
       successMessage.value = 'Child registered successfully!'
@@ -274,54 +280,6 @@ const openAddChildModal = (parent) => {
   }
 }
 
-const submitAddChild = async (childData) => {
-  const { parent } = addChildModal.value
-  submitting.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
-
-  try {
-    const parentId = parent.uid || parent.id
-
-    // Finalize Profile Image (if temp)
-    if (childData.profileURL && childData.profileURL.includes('/profiles/temp/')) {
-      const extension = childData.profileURL.split('?')[0].split('.').pop()
-      const sanitizedName = (childData.fullName || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
-      const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
-      childData.profileURL = await storageService.moveProfileImage(childData.profileURL, newPath)
-    }
-
-    const result = await userService.registerStudentProfile(parentId, {
-      ...childData,
-      status: 'Studying', // Explicitly set status for new student
-    })
-
-    // Update local state to reflect the new child immediately
-    const userIdx = allUsers.value.findIndex((u) => (u.uid || u.id) === parentId)
-    if (userIdx !== -1) {
-      if (!allUsers.value[userIdx].studentProfiles) {
-        allUsers.value[userIdx].studentProfiles = []
-      }
-      allUsers.value[userIdx].studentProfiles.push({
-        id: result.id || result.UID,
-        ...childData,
-        status: 'Studying',
-        parentId: parentId,
-      })
-    }
-
-    successMessage.value = 'Child registered successfully!'
-    setTimeout(() => {
-      addChildModal.value.isOpen = false
-    }, 1500)
-  } catch (err) {
-    console.error('Failed to register child', err)
-    errorMessage.value = err.message || 'Error occurred while registering the child'
-  } finally {
-    submitting.value = false
-  }
-}
-
 const navigateToDetail = (item) => {
   if ((item.uid || item.id) === newlyCreatedId.value) {
     newlyCreatedId.value = null
@@ -339,7 +297,7 @@ const navigateToDetail = (item) => {
 
       <template #table>
         <DataTable title="Parents/Guardians List" :headers="parentHeaders" :items="filteredParents" :loading="loading"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search parameters..." :hasFilter="true"
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search Parent/Guardian..." :hasFilter="true"
           v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Users', value: 'all' },
             { label: 'Active Only', value: 'active' },
@@ -354,7 +312,8 @@ const navigateToDetail = (item) => {
             </AppButton>
           </template>
 
-          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, headers }">
+          <template
+            #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
             <td class="hide-on-mobile text-center" :style="{ width: headers[0].width }">
               {{ index + 1 }}
             </td>

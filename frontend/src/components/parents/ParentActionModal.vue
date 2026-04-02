@@ -1,15 +1,22 @@
 <template>
   <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="getActionIcon(type)">
-
-    <!-- Identity Card for Parent Actions -->
-    <div class="identity-card" v-if="user && type !== 'register-child'">
-      <span class="label">{{ user.role || 'parent' }}</span>
-      <strong class="name">{{ user.name || user.email }}</strong>
+    <!-- Identity Card for Parent Actions (Show only for non-edit actions) -->
+    <div v-if="(user || (type === 'register-child' && selectedParent)) && type !== 'edit'" class="parent-identity-panel"
+      :class="parentTheme">
+      <div class="parent-info-content">
+        <div class="parent-avatar-wrapper">
+          <img :src="getParentProfileURL((user || selectedParent).profileURL)" class="parent-avatar-img" />
+        </div>
+        <div class="parent-details">
+          <span class="parent-role-tag">{{ (user || selectedParent).role || 'parent' }}</span>
+          <strong class="parent-name">{{ (user || selectedParent).name || (user || selectedParent).email }}</strong>
+        </div>
+      </div>
     </div>
 
     <!-- Edit Parent Form -->
     <div v-if="type === 'edit'" class="form-grid">
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Full Name</label>
         <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
         <input type="text" v-model="localData.name" placeholder="Enter full name" class="standard-input" />
@@ -27,7 +34,7 @@
         <input type="tel" v-model="localData.phone" placeholder="Enter phone number" class="standard-input" />
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Role</label>
         <span class="original-value" v-if="originalData.role">Original: {{ originalData.role }}</span>
         <select v-model="localData.role" class="standard-input">
@@ -44,8 +51,8 @@
 
     <!-- Register Child Form -->
     <div v-if="type === 'register-child'" class="form-grid">
-      <!-- Parent Selection (if available) -->
-      <div class="form-group full-width" v-if="selectableParents && selectableParents.length > 0">
+      <!-- Parent Selection (Hide if parent already pre-selected from table) -->
+      <div class="form-group full-width" v-if="!user && selectableParents && selectableParents.length > 0">
         <label>Select Parent / Guardian <span class="required">*</span></label>
         <div class="custom-dropdown-container">
           <div class="custom-dropdown" :class="{ open: isDropdownOpen }">
@@ -202,9 +209,9 @@ import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 
 const props = defineProps({
   isOpen: Boolean,
-  type: String, // 'edit', 'deactivate', 'activate', 'delete', 'register-child'
-  user: Object, // Parent user for standard actions
-  selectableParents: Array, // Options for register-child from Students view
+  type: String,
+  user: Object,
+  selectableParents: Array,
   loading: Boolean,
   error: String,
   success: String,
@@ -218,6 +225,7 @@ const getInitialData = () => ({
   phone: '',
   email: '',
   role: 'parent',
+  status: 'Active',
   profileURL: '',
   deleteConfirm: '',
   // Child fields
@@ -232,10 +240,11 @@ const mapSourceToForm = () => {
   const u = props.user || {}
   return {
     ...getInitialData(),
-    name: u.name || '',
-    phone: u.phone || '',
+    name: u.name || u.fullName || '',
+    phone: u.phone || u.phoneNumber || '',
     email: u.email || '',
     role: u.role || 'parent',
+    status: u.status || 'Active',
     profileURL: u.profileURL || u.profileUrl || '',
     parentId: u.uid || u.id || '',
   }
@@ -278,6 +287,15 @@ const handleActionSubmit = () => {
   }
   submitForm(true)
 }
+
+const parentTheme = computed(() => {
+  const p = props.user || selectedParent.value
+  if (!p) return 'theme-default'
+  const url = (p.profileURL || p.profileUrl || '').toLowerCase()
+  if (url.includes('woman') || url.includes('girl')) return 'theme-pink'
+  if (url.includes('man') || url.includes('boy')) return 'theme-blue'
+  return 'theme-default'
+})
 
 const modalTitle = computed(() => {
   const titles = {
@@ -478,5 +496,85 @@ watch(() => props.isOpen, (newVal) => {
 .required {
   color: #ef4444;
   margin-left: 4px;
+}
+
+/* --- Parent Identity Panel Theme --- */
+.parent-identity-panel {
+  padding: 16px 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.parent-info-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.parent-avatar-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 2px solid white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  background: #fff;
+}
+
+.parent-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.parent-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.parent-role-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 2px;
+}
+
+.parent-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* Theme Color logic */
+.theme-blue {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.theme-blue .parent-role-tag {
+  color: #3b82f6;
+}
+
+.theme-pink {
+  background: #fdf2f8;
+  border-color: #fbcfe8;
+}
+
+.theme-pink .parent-role-tag {
+  color: #ec4899;
+}
+
+.theme-default {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.theme-default .parent-role-tag {
+  color: #64748b;
 }
 </style>

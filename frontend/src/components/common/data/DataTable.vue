@@ -98,7 +98,7 @@ const handleAction = (type, item) => {
         <tr v-for="(item, index) in items" :key="item.id || index" class="clickable-row" :class="rowClass(item)"
           @click="emit('row-click', item)">
           <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId"
-            :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction" :headers="headers">
+            :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction" :closeMenu="closeMenu" :headers="headers">
             <td v-for="(header, hIdx) in headers" :key="hIdx"
               :class="typeof header === 'object' && header.align ? `text-${header.align}` : ''"
               :style="typeof header === 'object' ? { width: header.width } : {}">

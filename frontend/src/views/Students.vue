@@ -248,11 +248,51 @@ const submitActionModal = async (formData) => {
           students.value[idx].parentId = parentId
           students.value[idx].parentName = chosenParent.name || chosenParent.email
         }
+
+        // SYNC: Update Student Info in Parent's nested studentProfiles array
+        if (parentId) {
+          try {
+            const parentData = await userService.getProfile(parentId)
+            const updatedProfiles = (parentData.studentProfiles || []).map(p => {
+              if (p.id === (student.id || student.uid)) {
+                return {
+                  ...p,
+                  fullName: fullName || name,
+                  dob,
+                  profileURL,
+                  medicalNote,
+                  status
+                }
+              }
+              return p
+            })
+            await userService.updateUser(parentId, { studentProfiles: updatedProfiles })
+          } catch (syncErr) {
+            console.warn('Sync to parent failed, but student was updated.', syncErr)
+          }
+        }
       }
       newlyCreatedId.value = student.id || student.uid
       modalSuccess.value = 'Student profile updated successfully!'
     } else if (type === 'delete') {
-      students.value = students.value.filter((s) => (s.id || s.uid) !== (student.id || student.uid))
+      const studentId = student.id || student.uid
+      const parentId = student.parentId
+
+      // Actual Delete in Firestore
+      await userService.deleteStudent(studentId)
+
+      // SYNC: Remove from Parent's nested list
+      if (parentId) {
+        try {
+          const parentData = await userService.getProfile(parentId)
+          const updatedProfiles = (parentData.studentProfiles || []).filter(p => p.id !== studentId)
+          await userService.updateUser(parentId, { studentProfiles: updatedProfiles })
+        } catch (syncErr) {
+          console.warn('Removal from parent nested list failed.', syncErr)
+        }
+      }
+
+      students.value = students.value.filter((s) => (s.id || s.uid) !== studentId)
       modalSuccess.value = 'Student record permanently deleted.'
     } else if (type === 'override') {
       const { overrideReason, overrideRemark } = formData
