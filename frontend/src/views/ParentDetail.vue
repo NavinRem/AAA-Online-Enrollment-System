@@ -228,8 +228,7 @@ watch(
     <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" title="Parent Details">
       <template #header-actions v-if="parent">
         <div class="actions-wrapper">
-          <button class="btn-icon btn-edit" title="Register Child"
-            @click="openAddChildModal">
+          <button class="btn-icon btn-pay" title="Register Child" @click="openAddChildModal">
             <img :src="getActionIcon('plus')" />
           </button>
           <button class="btn-icon btn-edit" title="Edit Parent" @click="openActionModal('edit')">
@@ -252,15 +251,15 @@ watch(
         <!-- Custom Tab Navigation -->
         <div class="tabs-navigation-wrapper">
           <div class="tabs-navigation">
-            <AppButton variant="ghost" :class="{ active: activeTab === 'children' }" @click="activeTab = 'children'">
+            <button class="tab-btn" :class="{ active: activeTab === 'children' }" @click="activeTab = 'children'">
               Children & Programs
-            </AppButton>
-            <AppButton variant="ghost" :class="{ active: activeTab === 'payments' }" @click="activeTab = 'payments'">
+            </button>
+            <button class="tab-btn" :class="{ active: activeTab === 'payments' }" @click="activeTab = 'payments'">
               Payment History
-            </AppButton>
-            <AppButton variant="ghost" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
+            </button>
+            <button class="tab-btn" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
               Enrollment Logs
-            </AppButton>
+            </button>
           </div>
 
           <div class="global-filter">
@@ -278,29 +277,24 @@ watch(
             </div>
             <div class="children-layout">
               <div class="child-selector" v-if="students.length > 0">
-                <!-- <button
-                  class="child-chip"
-                  :class="{ active: selectedChildUid === 'all' }"
-                  @click="selectedChildUid = 'all'"
-                >
-                  All Children
-                </button> -->
                 <button v-for="s in students" :key="s.id || s.uid" class="child-chip"
                   :class="{ active: selectedChildUid === (s.id || s.uid) }" @click="selectedChildUid = (s.id || s.uid)"
                   @dblclick="navigateToStudent(s)">
-                  <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
-                  {{ s.fullName || s.fullname || s.name }}
+                  <div class="chip-avatar-wrapper">
+                    <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
+                  </div>
+                  <span class="chip-label">{{ s.fullName || s.fullname || s.name }}</span>
                 </button>
               </div>
               <div class="table-container">
-                <table>
+                <table class="detail-table">
                   <thead>
                     <tr>
-                      <th>No</th>
-                      <th>Category</th>
+                      <th style="width: 50px;">No</th>
+                      <th style="width: 140px;">Category</th>
                       <th>Program</th>
-                      <th>Session</th>
-                      <th>Status</th>
+                      <th style="width: 160px;">Session</th>
+                      <th style="width: 120px;" class="text-center">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -315,11 +309,16 @@ watch(
                       </td>
                     </tr>
                     <tr v-for="(reg, idx) in studentEnrollments" :key="reg.id">
-                      <td>{{ idx + 1 }}</td>
-                      <td>Piano</td>
-                      <td>{{ reg.programTitle || 'N/A' }}</td>
-                      <td>{{ reg.sessionSchedule || 'N/A' }}</td>
+                      <td class="text-center">{{ idx + 1 }}</td>
+                      <td class="bold">Music</td>
+                      <td class="bold">{{ reg.programTitle || 'N/A' }}</td>
                       <td>
+                        <div class="session-cell">
+                          <strong>{{ reg.sessionSchedule?.split(' ')[0] || 'N/A' }}</strong>
+                          <span>{{ reg.sessionSchedule?.split(' ')[1] || 'N/A' }}</span>
+                        </div>
+                      </td>
+                      <td class="text-center">
                         <StatusBadge :status="reg.status || 'Studying'" />
                       </td>
                     </tr>
@@ -335,28 +334,30 @@ watch(
               <h3>Payment Records</h3>
             </div>
             <div class="table-container">
-              <table>
+              <table class="detail-table">
                 <thead>
                   <tr>
-                    <th>No</th>
-                    <th>Transaction ID</th>
+                    <th style="width: 50px;">No</th>
+                    <th style="width: 140px;">Transaction ID</th>
                     <th>Ref ID</th>
-                    <th>Amount</th>
-                    <th>Paid Date</th>
-                    <th>Status</th>
+                    <th style="width: 100px;" class="text-center">Amount</th>
+                    <th style="width: 160px;" class="text-center">Paid Date</th>
+                    <th style="width: 120px;" class="text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="filteredPayments.length === 0">
-                    <td colspan="6" class="text-center">No payment history</td>
+                    <td colspan="6" class="text-center text-muted p-4">No payment history found for this parent.</td>
                   </tr>
                   <tr v-for="(reg, idx) in filteredPayments" :key="'pay-' + reg.id">
-                    <td>{{ idx + 1 }}</td>
+                    <td class="text-center">{{ idx + 1 }}</td>
                     <td class="mono">{{ reg.paymentProof || 'N/A' }}</td>
                     <td class="mono">{{ reg.id.substring(0, 8) + '...' }}</td>
-                    <td class="price">${{ reg.amount }}</td>
-                    <td>{{ formatDate(reg.updatedAt || reg.createdAt) }}</td>
-                    <td>
+                    <td class="text-center bold text-emerald-600">
+                      <StatusBadge :status="'$' + (reg.amount || 0)"></StatusBadge>
+                    </td>
+                    <td class="text-center date-text">{{ formatDate(reg.updatedAt || reg.createdAt) }}</td>
+                    <td class="text-center">
                       <StatusBadge :status="reg.paymentStatus || 'Pending'" />
                     </td>
                   </tr>
@@ -371,30 +372,30 @@ watch(
               <h3>Full Enrollment History</h3>
             </div>
             <div class="table-container">
-              <table>
+              <table class="detail-table">
                 <thead>
                   <tr>
-                    <th>No</th>
-                    <th>Enrollment ID</th>
+                    <th style="width: 50px;">No</th>
+                    <th style="width: 200px;">Enrollment ID</th>
                     <th>Program</th>
-                    <th>Child</th>
-                    <th>Enrolled Date</th>
-                    <th>Status</th>
+                    <th style="width: 160px;">Child</th>
+                    <th style="width: 160px;" class="text-center">Enrolled Date</th>
+                    <th style="width: 120px;" class="text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-if="filteredHistory.length === 0">
-                    <td colspan="6" class="text-center">
-                      No enrollment history.
+                    <td colspan="6" class="text-center text-muted p-4">
+                      No enrollment history records found.
                     </td>
                   </tr>
                   <tr v-for="(reg, idx) in filteredHistory" :key="reg.id">
-                    <td>{{ idx + 1 }}</td>
+                    <td class="text-center">{{ idx + 1 }}</td>
                     <td class="mono">{{ reg.id }}</td>
-                    <td>{{ reg.programTitle }}</td>
-                    <td>{{ reg.studentName }}</td>
-                    <td>{{ formatDate(reg.createdAt) }}</td>
-                    <td>
+                    <td class="bold">{{ reg.programTitle }}</td>
+                    <td class="bold">{{ reg.studentName }}</td>
+                    <td class="text-center date-text">{{ formatDate(reg.createdAt) }}</td>
+                    <td class="text-center">
                       <StatusBadge :status="reg.status?.toLowerCase() === 'confirmed' ? 'Paid' : reg.status" />
                     </td>
                   </tr>
@@ -494,36 +495,98 @@ watch(
 .child-chip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 14px;
-  border: 1px solid #f1f5f9;
-  background: #f8fafc;
+  gap: 12px;
+  padding: 12px 18px;
+  border-radius: 16px;
+  border: 2px solid #f1f5f9;
+  background: white;
   font-size: 0.95rem;
-  font-weight: 500;
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s;
-  color: #475569;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #64748b;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .child-chip:hover {
-  background: #f1f5f9;
-  transform: translateX(4px);
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+}
+
+.chip-avatar-wrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid white;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .chip-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .child-chip.active {
   background: #eff6ff;
   border-color: #00aeef;
   color: #00aeef;
+  box-shadow: 0 10px 15px -3px rgba(0, 174, 239, 0.15);
+}
+
+.child-chip.active .chip-avatar-wrapper {
+  border-color: #00aeef;
+}
+
+.chip-label {
+  white-space: nowrap;
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.detail-table th {
+  padding: 12px 16px;
+  color: #94a3b8;
+  font-size: 0.75rem;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(0, 174, 239, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: none;
+}
+
+.detail-table td {
+  padding: 16px;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;
+  color: #475569;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+.detail-table td:first-child {
+  border-left: 1px solid #f1f5f9;
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.detail-table td:last-child {
+  border-right: 1px solid #f1f5f9;
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.detail-table tr:hover td {
+  background: #f8fafc;
+  border-color: #e2e8f0;
 }
 
 .email {
@@ -554,6 +617,33 @@ watch(
   font-weight: 850;
   color: #1a1a1a;
   letter-spacing: -0.5px;
+}
+
+.text-emerald-600 {
+  color: #059669;
+}
+
+.detail-section-card h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  letter-spacing: -0.3px;
+}
+
+.session-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.session-cell strong {
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.session-cell span {
+  font-size: 0.75rem;
+  color: #64748b;
 }
 
 .timestamp-item p {

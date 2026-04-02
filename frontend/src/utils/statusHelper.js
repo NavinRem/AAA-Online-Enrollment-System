@@ -59,7 +59,6 @@ export const getStatusCategory = (status) => {
       'present',
       'excellent',
       'studying',
-      'parent',
       'created at',
       'joined at',
       'success',
@@ -120,7 +119,7 @@ export const getStatusCategory = (status) => {
       'sponsorship',
       'partial',
     ],
-    magenta: ['unmarked', 'archived'],
+    magenta: ['unmarked', 'archived', 'parent'],
   }
 
   // 1. Exact match

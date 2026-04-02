@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon, getParentProfileURL, getStudentProfileURL } from '@/utils/assetHelper'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
@@ -33,24 +33,24 @@ const {
 const statsCards = computed(() => {
   const s = calculateParentStats(allUsers.value)
   return [
+    { label: 'Total Users', value: s.totalUsers, image: getImageUrl('parent/total-users'), color: '#e1f5fe' },
     { label: 'Total Parents', value: s.parentCount, image: getImageUrl('parent/total-parent'), color: '#e1f5fe' },
     { label: 'Total Guardians', value: s.guardianCount, image: getImageUrl('parent/total-guardian'), color: '#e1f5fe' },
     { label: 'Registered Today', value: s.todayCount, image: getImageUrl('parent/recently-register'), color: '#e1f5fe' },
-    { label: 'Active Now', value: s.activeCount, image: getImageUrl('parent/active-now'), color: '#e1f5fe' },
-    { label: 'Total Users', value: s.totalUsers, image: getImageUrl('parent/total-users'), color: '#e1f5fe' }
+    { label: 'Active Now', value: s.activeCount, image: getImageUrl('parent/active-now'), color: '#e1f5fe' }
   ]
 })
 
 const parentHeaders = [
-  { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Fullname', width: '280px' },
-  { label: 'Child', class: 'hide-on-tablet', width: '200px' },
-  { label: 'Phone Number', class: 'hide-on-mobile', width: '150px' },
-  { label: 'Email', class: 'hide-on-tablet' },
-  { label: 'Joined Date', class: 'hide-on-tablet', width: '300px' },
-  { label: 'Role', class: 'hide-on-mobile', align: 'center', width: '120px' },
-  { label: 'Status', align: 'center', width: '120px' },
-  { label: 'Action', width: '80px', align: 'center' }
+  { label: 'No', width: '60px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Fullname', width: '200px' },
+  { label: 'Child', class: 'hide-on-tablet', width: '150px' },
+  { label: 'Phone Number', class: 'hide-on-mobile', width: '200px' },
+  { label: 'Email', class: 'hide-on-tablet', width: '200px' },
+  { label: 'Joined Date', class: 'hide-on-tablet', width: '200px', align: 'center' },
+  { label: 'Role', class: 'hide-on-mobile', align: 'center', width: '100px' },
+  { label: 'Status', align: 'center', width: '80px' },
+  { label: 'Action', width: '70px', align: 'center' }
 ]
 
 onMounted(async () => {
@@ -71,7 +71,25 @@ onMounted(async () => {
   }
 })
 
-const { searchQuery, searchResults: filteredParents } = useSearch(allUsers, parentSearchMapper)
+const currentFilter = ref('all')
+
+const statusFilteredParents = computed(() => {
+  let filtered = allUsers.value
+
+  if (currentFilter.value !== 'all') {
+    filtered = allUsers.value.filter(u => {
+      if (currentFilter.value === 'active') return (u.status || 'Active').toLowerCase() === 'active'
+      if (currentFilter.value === 'inactive') return (u.status || 'Active').toLowerCase() === 'inactive'
+      if (currentFilter.value === 'parent') return (u.role || 'parent').toLowerCase() === 'parent'
+      if (currentFilter.value === 'guardian') return (u.role || 'parent').toLowerCase() === 'guardian'
+      return true
+    })
+  }
+
+  return filtered
+})
+
+const { searchQuery, searchResults: filteredParents } = useSearch(statusFilteredParents, parentSearchMapper)
 
 const submitting = ref(false)
 const errorMessage = ref('')
@@ -289,52 +307,59 @@ const navigateToDetail = (item) => {
 
       <template #table>
         <DataTable title="Parents/Guardians List" :headers="parentHeaders" :items="filteredParents" :loading="loading"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search parameters..." :hasFilter="true" :filterOptions="[
-            { label: 'All', value: 'all' },
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search parameters..." :hasFilter="true"
+          v-model:currentFilter="currentFilter" :filterOptions="[
+            { label: 'All Users', value: 'all' },
             { label: 'Active Only', value: 'active' },
             { label: 'Inactive Only', value: 'inactive' },
+            { label: 'Parents Only', value: 'parent' },
+            { label: 'Guardians Only', value: 'guardian' },
           ]" :rowClass="getRowClass" @row-click="navigateToDetail"
           @action="({ type, item }) => openActionModal(type, item)">
           <template #toolbar-actions>
             <AppButton variant="primary" @click="showNewParentModal = true">
-              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> New Parent
+              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> New User
             </AppButton>
           </template>
 
-          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile text-center">
+          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, headers }">
+            <td class="hide-on-mobile text-center" :style="{ width: headers[0].width }">
               {{ index + 1 }}
             </td>
-            <td>
+            <td class="bold" :style="{ width: headers[1].width }">
               <div class="user-cell">
                 <div class="user-avatar-small">
-                  <img :src="item.profileURL || getImageUrl('profiles/avatar-parent')" alt="parent avatar" />
+                  <img :src="getParentProfileURL(item.profileURL)" alt="parent avatar" />
                 </div>
-                {{ item.name || 'Parent' }}
+                <span>{{ item.name || 'Parent' }}</span>
               </div>
             </td>
-            <td class="hide-on-tablet">
+            <td class="hide-on-tablet" :style="{ width: headers[2].width }">
               <div class="children-stack">
-                <span v-if="!item.studentProfiles || item.studentProfiles.length === 0" class="text-muted">None</span>
+                <span v-if="!item.studentProfiles || item.studentProfiles.length === 0" class="text-muted">—</span>
                 <template v-else>
                   <div v-for="(child, i) in item.studentProfiles" :key="child.id || i" class="avatar-mini child-avatar"
                     :title="child.fullName || child.name || 'Child ' + (i + 1)"
                     :style="{ zIndex: item.studentProfiles.length - i }">
-                    <img :src="child.profileURL || getImageUrl('profiles/avatar-student')" alt="child" />
+                    <img :src="getStudentProfileURL(child.profileURL)" alt="child" />
                   </div>
                 </template>
               </div>
             </td>
-            <td class="hide-on-mobile">{{ item.phone || 'N/A' }}</td>
-            <td class="hide-on-tablet">{{ item.email || 'N/A' }}</td>
-            <td class="hide-on-tablet">{{ formatDate(item.createdAt) }}</td>
-            <td class="hide-on-mobile text-center">
+            <td class="hide-on-mobile" :style="{ width: headers[3].width }">{{ item.phone || 'N/A' }}</td>
+            <td class="hide-on-tablet" :style="{ width: headers[4].width }">
+              <span class="text-truncate" style="display: block; max-width: 200px;">{{ item.email || 'N/A' }}</span>
+            </td>
+            <td class="hide-on-tablet text-center" :style="{ width: headers[5].width }">
+              <span class="date-text">{{ formatDate(item.createdAt) }}</span>
+            </td>
+            <td class="hide-on-mobile text-center" :style="{ width: headers[6].width }">
               <StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" />
             </td>
-            <td class="text-center">
+            <td class="text-center" :style="{ width: headers[7].width }">
               <StatusBadge :status="item.status || 'Active'" />
             </td>
-            <td class="action-cell text-center">
+            <td class="action-cell text-center" :style="{ width: headers[8].width }">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.uid || item.id)">
                   <span class="dots-icon">⋮</span>
@@ -349,14 +374,15 @@ const navigateToDetail = (item) => {
                       <button class="btn-edit" @click="() => { openActionModal('edit', item); closeMenu(); }">
                         <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit Profile
                       </button>
-                      <button v-if="item.status === 'Inactive'" class="btn-pay" @click="handleAction('activate', item)">
+                      <button v-if="(item.status || 'Active').toLowerCase() === 'inactive'" class="btn-pay"
+                        @click="handleAction('activate', item)">
                         <img :src="getActionIcon('pay')" class="action-icon-mini" /> Reactivate
                       </button>
                       <button v-else class="btn-cancel" @click="handleAction('deactivate', item)">
                         <img :src="getActionIcon('cancel')" class="action-icon-mini" /> Deactivate
                       </button>
                       <div class="menu-divider"></div>
-                      <button class="delete-btn" @click="handleAction('delete', item)">
+                      <button class="btn-delete" @click="handleAction('delete', item)">
                         <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete Account
                       </button>
                     </div>
@@ -407,5 +433,15 @@ const navigateToDetail = (item) => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.date-text {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.bold {
+  font-weight: 600;
+  color: #1a1a1a;
 }
 </style>
