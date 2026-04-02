@@ -201,9 +201,11 @@ const statusFilteredEnrollments = computed(() => {
   let filtered = enriched
   if (currentFilter.value !== 'all') {
     filtered = enriched.filter(r => {
-      if (currentFilter.value === 'paid') return isPaid(r.status || r.paymentStatus)
-      if (currentFilter.value === 'unpaid') return isUnpaid(r.status || r.paymentStatus)
-      if (currentFilter.value === 'cancelled') return isCancelled(r.status || r.paymentStatus)
+      if (currentFilter.value === 'paid') return isPaid(r.paymentStatus) && !isCancelled(r.status)
+      if (currentFilter.value === 'unpaid') return isUnpaid(r.paymentStatus) && !isCancelled(r.status)
+      if (currentFilter.value === 'cancelled') return isCancelled(r.status)
+      if (currentFilter.value === 'full') return (r.enrollmentType || 'Full').toLowerCase() === 'full'
+      if (currentFilter.value === 'partial') return (r.enrollmentType || 'Full').toLowerCase() === 'partial'
       return true
     })
   }
@@ -322,6 +324,8 @@ const closeActionModal = () => {
             { label: 'Paid Only', value: 'paid' },
             { label: 'Unpaid Only', value: 'unpaid' },
             { label: 'Cancelled Only', value: 'cancelled' },
+            { label: 'Full Only', value: 'full' },
+            { label: 'Partial Only', value: 'partial' },
           ]" :rowClass="getRowClass" @action="handleTableAction" @row-click="item => {
             if (item.id === newlyCreatedId) newlyCreatedId = null;
             $router.push(`/enrollments/${item.id}`);
