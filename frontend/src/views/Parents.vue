@@ -10,8 +10,7 @@ import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
-import NewParentModal from '../components/parents/NewParentModal.vue'
-import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
+import ParentFormModal from '../components/parents/ParentFormModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
 import { storageService } from '@/services/storageService'
@@ -43,11 +42,11 @@ const statsCards = computed(() => {
 
 const parentHeaders = [
   { label: 'No', width: '60px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Fullname', width: '200px' },
+  { label: 'Fullname', width: '250px' },
   { label: 'Child', class: 'hide-on-tablet', width: '150px' },
   { label: 'Phone Number', class: 'hide-on-mobile', width: '200px' },
   { label: 'Email', class: 'hide-on-tablet', width: '200px' },
-  { label: 'Joined Date', class: 'hide-on-tablet', width: '200px', align: 'center' },
+  { label: 'Joined Date', class: 'hide-on-tablet', width: '150px', align: 'center' },
   { label: 'Role', class: 'hide-on-mobile', align: 'center', width: '100px' },
   { label: 'Status', align: 'center', width: '80px' },
   { label: 'Action', width: '70px', align: 'center' }
@@ -110,12 +109,6 @@ const actionModal = ref({
 // New Parent Modal State
 const showNewParentModal = ref(false)
 
-// Add Child Modal State
-const addChildModal = ref({
-  isOpen: false,
-  parent: null,
-})
-
 const openActionModal = (type, item) => {
   errorMessage.value = ''
   successMessage.value = ''
@@ -177,6 +170,44 @@ const submitActionModal = async (formData) => {
       await userService.deleteUser(user.uid || user.id)
       allUsers.value = allUsers.value.filter((u) => (u.uid || u.id) !== (user.uid || user.id))
       successMessage.value = 'User deleted successfully!'
+    } else if (type === 'register-child') {
+      const { fullName, dob, childProfileURL, medicalNote } = formData
+      const parentId = user.uid || user.id
+
+      // Finalize Profile Image (if temp)
+      let finalProfileURL = childProfileURL
+      if (childProfileURL && childProfileURL.includes('/profiles/temp/')) {
+        const extension = childProfileURL.split('?')[0].split('.').pop()
+        const sanitizedName = (fullName || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+        const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
+        finalProfileURL = await storageService.moveProfileImage(childProfileURL, newPath)
+      }
+
+      const result = await userService.registerStudentProfile(parentId, {
+        fullName,
+        dob,
+        profileURL: finalProfileURL,
+        medicalNote,
+        status: 'Studying',
+      })
+
+      // Update local state to reflect the new child immediately
+      const userIdx = allUsers.value.findIndex((u) => (u.uid || u.id) === parentId)
+      if (userIdx !== -1) {
+        if (!allUsers.value[userIdx].studentProfiles) {
+          allUsers.value[userIdx].studentProfiles = []
+        }
+        allUsers.value[userIdx].studentProfiles.push({
+          id: result.id || result.UID,
+          fullName,
+          dob,
+          profileURL: finalProfileURL,
+          medicalNote,
+          status: 'Studying',
+          parentId: parentId,
+        })
+      }
+      successMessage.value = 'Child registered successfully!'
     }
 
     setTimeout(() => {
@@ -236,9 +267,10 @@ const submitNewParent = async (data) => {
 const openAddChildModal = (parent) => {
   errorMessage.value = ''
   successMessage.value = ''
-  addChildModal.value = {
+  actionModal.value = {
     isOpen: true,
-    parent,
+    type: 'register-child',
+    user: parent,
   }
 }
 
@@ -368,7 +400,7 @@ const navigateToDetail = (item) => {
                   <transition name="fade">
                     <div v-if="activeMenuId === (item.uid || item.id)" class="action-dropdown"
                       :class="{ 'open-up': isMenuAbove }" :style="menuStyles" @click.stop>
-                      <button @click="() => { openAddChildModal(item); closeMenu(); }">
+                      <button class="btn-add" @click="() => { openAddChildModal(item); closeMenu(); }">
                         <img :src="getActionIcon('plus')" class="action-icon-mini" /> Register Child
                       </button>
                       <button class="btn-edit" @click="() => { openActionModal('edit', item); closeMenu(); }">
@@ -376,7 +408,7 @@ const navigateToDetail = (item) => {
                       </button>
                       <button v-if="(item.status || 'Active').toLowerCase() === 'inactive'" class="btn-pay"
                         @click="handleAction('activate', item)">
-                        <img :src="getActionIcon('pay')" class="action-icon-mini" /> Reactivate
+                        <img :src="getActionIcon('reactivate')" class="action-icon-mini" /> Reactivate
                       </button>
                       <button v-else class="btn-cancel" @click="handleAction('deactivate', item)">
                         <img :src="getActionIcon('cancel')" class="action-icon-mini" /> Deactivate
@@ -400,15 +432,10 @@ const navigateToDetail = (item) => {
       :loading="submitting" :error="errorMessage" :success="successMessage" @close="closeActionModal"
       @submit="submitActionModal" />
 
-    <!-- Create New Parent Modal -->
-    <NewParentModal :isOpen="showNewParentModal" :loading="submitting" :error="errorMessage" :success="successMessage"
+    <!-- Parent Form Modal (Create New) -->
+    <ParentFormModal :isOpen="showNewParentModal" :loading="submitting" :error="errorMessage" :success="successMessage"
       @close="() => { showNewParentModal = false; errorMessage = ''; successMessage = ''; }"
       @submit="submitNewParent" />
-
-    <RegisterChildModal :isOpen="addChildModal.isOpen" :parent="addChildModal.parent" :loading="submitting"
-      :error="errorMessage" :success="successMessage"
-      @close="() => { addChildModal.isOpen = false; errorMessage = ''; successMessage = ''; }"
-      @submit="submitAddChild" />
   </DashboardLayout>
 </template>
 

@@ -9,7 +9,7 @@ import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge.vue'
-import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
+import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import StudentActionModal from '../components/students/StudentActionModal.vue'
 import { userService } from '../services/userService'
 import { authService } from '../services/authService'
@@ -97,18 +97,20 @@ const studentHeaders = [
   { label: 'Action', width: '80px', align: 'center' }
 ]
 
-const showRegisterChildModal = ref(false)
+const parentActionModal = ref({
+  isOpen: false,
+  type: 'register-child',
+})
 const modalLoading = ref(false)
 const modalError = ref('')
 const modalSuccess = ref('')
 const parentsList = ref([])
-const selectedParentForModal = ref(null)
 
 const handleOpenAddStudent = async () => {
   modalError.value = ''
   modalSuccess.value = ''
-  selectedParentForModal.value = null
-  showRegisterChildModal.value = true
+  parentActionModal.value.isOpen = true
+  parentActionModal.value.type = 'register-child'
 
   try {
     const allUsers = await userService.getAllUsers()
@@ -119,25 +121,40 @@ const handleOpenAddStudent = async () => {
   }
 }
 
-const handleRegisterStudent = async (childData) => {
+const handleRegisterStudent = async (formData) => {
   modalLoading.value = true
   modalError.value = ''
   modalSuccess.value = ''
 
   try {
-    const parentId =
-      childData.parentId ||
-      (selectedParentForModal.value &&
-        (selectedParentForModal.value.uid || selectedParentForModal.value.id))
+    const { parentId, fullName, dob, childProfileURL, medicalNote } = formData
     if (!parentId) throw new Error('No parent selected')
 
-    const result = await userService.registerStudentProfile(parentId, childData)
+    // Finalize Profile Image (if temp)
+    let finalProfileURL = childProfileURL
+    if (childProfileURL && childProfileURL.includes('/profiles/temp/')) {
+      const extension = childProfileURL.split('?')[0].split('.').pop()
+      const sanitizedName = (fullName || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
+      finalProfileURL = await storageService.moveProfileImage(childProfileURL, newPath)
+    }
+
+    const result = await userService.registerStudentProfile(parentId, {
+      fullName,
+      dob,
+      profileURL: finalProfileURL,
+      medicalNote,
+      status: 'Inactive',
+    })
 
     const chosenParent = parentsList.value.find((p) => (p.uid || p.id) === parentId)
 
     const newStudent = {
       id: result.id,
-      ...childData,
+      fullName,
+      dob,
+      profileURL: finalProfileURL,
+      medicalNote,
       parentId: parentId,
       parentName: chosenParent ? chosenParent.name || chosenParent.email : 'Parent',
       status: 'Inactive',
@@ -150,7 +167,7 @@ const handleRegisterStudent = async (childData) => {
 
     modalSuccess.value = 'Student registered successfully!'
     setTimeout(() => {
-      showRegisterChildModal.value = false
+      parentActionModal.value.isOpen = false
       fetchStudents()
     }, 1500)
   } catch (err) {
@@ -319,8 +336,7 @@ const submitActionModal = async (formData) => {
               <div class="course-icons">
                 <div v-for="(program, pIdx) in item.programs" :key="pIdx" class="program-icon-mini"
                   :title="program.programTitle">
-                  <img :src="getProgramProfileURL(program.programProfileURL)"
-                    :alt="program.programTitle" />
+                  <img :src="getProgramProfileURL(program.programProfileURL)" :alt="program.programTitle" />
                 </div>
                 <span v-if="!item.programs || item.programs.length === 0" class="text-muted">None</span>
               </div>
@@ -368,9 +384,9 @@ const submitActionModal = async (formData) => {
       :selectableParents="parentsList" :loading="modalLoading" :error="modalError" :success="modalSuccess"
       @close="() => { actionModal.isOpen = false; modalError = ''; modalSuccess = ''; }" @submit="submitActionModal" />
 
-    <RegisterChildModal :isOpen="showRegisterChildModal" :parent="selectedParentForModal"
-      :selectableParents="parentsList" :loading="modalLoading" :error="modalError" :success="modalSuccess"
-      @close="() => { showRegisterChildModal = false; modalError = ''; modalSuccess = ''; }"
+    <ParentActionModal :isOpen="parentActionModal.isOpen" :type="parentActionModal.type"
+      :selectableParents="parentsList" :loading="modalLoading" v-model:error="modalError" v-model:success="modalSuccess"
+      @close="() => { parentActionModal.isOpen = false; modalError = ''; modalSuccess = ''; }"
       @submit="handleRegisterStudent" />
   </DashboardLayout>
 </template>
@@ -390,5 +406,4 @@ const submitActionModal = async (formData) => {
   cursor: pointer;
   gap: 10px;
 }
-
 </style>

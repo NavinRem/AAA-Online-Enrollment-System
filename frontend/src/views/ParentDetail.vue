@@ -8,7 +8,6 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
-import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate } from '@/utils/dateFormatter'
@@ -131,13 +130,8 @@ const globalError = ref('')
 
 const actionModal = ref({
   isOpen: false,
-  type: '', // 'edit', 'deactivate', 'delete'
+  type: '', // 'edit', 'deactivate', 'delete', 'register-child'
   user: null,
-})
-
-const addChildModal = ref({
-  isOpen: false,
-  parent: null,
 })
 
 const openActionModal = (type) => {
@@ -151,9 +145,12 @@ const openActionModal = (type) => {
 }
 
 const openAddChildModal = () => {
-  addChildModal.value = {
+  globalError.value = ''
+  globalSuccess.value = ''
+  actionModal.value = {
     isOpen: true,
-    parent: parent.value,
+    type: 'register-child',
+    user: parent.value,
   }
 }
 
@@ -174,10 +171,12 @@ const submitActionModal = async (formData) => {
       await userService.updateUser(uid, { status: 'Active' })
       globalSuccess.value = 'Account reactivated successfully!'
     } else if (type === 'delete') {
-      if (formData.deleteConfirm !== 'DELETE') throw new Error('Please type DELETE to confirm.')
       await userService.deleteUser(uid)
       router.push('/parents')
       return
+    } else if (type === 'register-child') {
+      await userService.registerStudentProfile(uid, formData)
+      globalSuccess.value = 'Child registered successfully!'
     }
 
     await fetchData(uid)
@@ -189,19 +188,6 @@ const submitActionModal = async (formData) => {
   }
 }
 
-const submitAddChild = async (childData) => {
-  submitting.value = true
-  try {
-    await userService.registerStudentProfile(parent.value.uid || parent.value.id, childData)
-    globalSuccess.value = 'Child registered successfully!'
-    await fetchData(parent.value.uid || parent.value.id)
-    setTimeout(() => (addChildModal.value.isOpen = false), 1500)
-  } catch (err) {
-    globalError.value = err.message || 'Enrollment failed'
-  } finally {
-    submitting.value = false
-  }
-}
 
 const navigateToStudent = (student) => {
   const sId = student.id || student.uid
@@ -466,11 +452,8 @@ watch(
 
     <!-- Admin Action Modals -->
     <ParentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :user="actionModal.user"
-      :loading="submitting" :error="globalError" :success="globalSuccess" @close="actionModal.isOpen = false"
-      @submit="submitActionModal" />
-
-    <RegisterChildModal :isOpen="addChildModal.isOpen" :parent="addChildModal.parent" :loading="submitting"
-      :error="globalError" :success="globalSuccess" @close="addChildModal.isOpen = false" @submit="submitAddChild" />
+      :loading="submitting" v-model:error="globalError" v-model:success="globalSuccess"
+      @close="actionModal.isOpen = false" @submit="submitActionModal" />
   </DashboardLayout>
 </template>
 
