@@ -228,12 +228,20 @@ const submitActionModal = async (formData) => {
       return
     }
 
-    await fetchData(sid)
+    // 1. Set Success Message and Close Modal (UI Priority)
     setTimeout(() => {
       actionModal.value.isOpen = false
       globalSuccess.value = ''
     }, 1500)
+
+    // 2. Background Refresh (Data Priority)
+    try {
+      await fetchData(sid)
+    } catch (fetchErr) {
+      console.warn('Data refreshed partially after modal save:', fetchErr)
+    }
   } catch (err) {
+    console.error('Action failed:', err)
     globalError.value = err.message || 'Action failed'
   } finally {
     submitting.value = false
@@ -436,6 +444,8 @@ const fetchData = async (id) => {
         return {
           ...r,
           programTitle: program?.title || r.programTitle || r.courseTitle || 'Unknown Program',
+          parentName: r.parentName || r.parent?.name || 'Parent',
+          studentName: r.studentName || r.student?.name || 'Student',
           termName: program?.termName || program?.term || r.termName || null,
           schedule: program?.schedule || r.schedule || null,
           startDate: program?.startDate || r.startDate || null,
@@ -467,9 +477,8 @@ const fetchData = async (id) => {
           const program = programs.find(c => (c.id || c.uid) === e.programId)
           return { ...e, programTitle: program?.title || e.programTitle || e.courseTitle || 'Unknown Program' }
         })
+        progressData.value = progress || null
       }
-
-      progressData.value = progress || null
     } catch (e) {
       console.warn('Could not fetch tracking data silently', e)
     }
@@ -778,7 +787,7 @@ watch(
             <div class="detail-info-group">
               <div class="info-item vertical">
                 <span class="info-label">FULLNAME:</span>
-                <strong>{{ student?.fullName || student?.name || 'Unknown' }}</strong>
+                <strong>{{ student?.name || student?.fullName }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">DATE OF BIRTH:</span>

@@ -94,9 +94,9 @@ const mappedEnrollments = computed(() => {
       return {
         id: r.id,
         no: index + 1,
-        parentName: r.parentName || p?.fullName || p?.name || 'N/A',
+        parentName: r.parentName || p?.name || p?.fullName || 'N/A',
         parentProfileURL: getParentProfileURL(r.parentProfileURL || p?.profileURL),
-        studentName: r.studentName || s?.fullName || s?.name || 'N/A',
+        studentName: r.studentName || s?.name || s?.fullName || 'N/A',
         studentProfileURL: getStudentProfileURL(r.studentProfileURL || s?.profileURL),
         programTitle: r.programTitle || c?.title || 'N/A',
         programProfileURL: getProgramProfileURL(r.programProfileURL || c?.profileURL, r.programCategory || c?.category),

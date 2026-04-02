@@ -448,6 +448,9 @@ const handleSubmit = () => {
   emit('submit', {
     ...(isEditMode.value ? { id: props.enrollment.id } : {}),
     ...formData.value,
+    parentName: selectedParent.value?.name || selectedParent.value?.email || 'N/A',
+    studentName: selectedStudent.value?.name || selectedStudent.value?.fullName || 'N/A',
+    programTitle: selectedProgram.value?.title || 'N/A',
     amount: finalAmount.value,
     enrollmentType: isFullEnrollment.value ? 'Full' : 'Partial',
     // Snapshot of calculations

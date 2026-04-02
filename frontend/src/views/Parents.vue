@@ -95,43 +95,31 @@ const errorMessage = ref('')
 const successMessage = ref('')
 
 // Unified Action Modal State
-const actionModal = ref({
-  isOpen: false,
-  type: '', // 'edit', 'deactivate', 'delete'
-  user: null,
-  name: '',
-  phone: '',
-  email: '',
-  role: 'parent',
-  deleteConfirm: '',
-})
+const isActionModalOpen = ref(false)
+const actionModalType = ref('edit')
+const actionModalUser = ref(null)
 
 // New Parent Modal State
 const showNewParentModal = ref(false)
-
-const openActionModal = (type, item) => {
+const openActionModal = (type, user = null) => {
+  console.log(`Opening Action Modal: ${type}`)
   errorMessage.value = ''
   successMessage.value = ''
-  actionModal.value = {
-    isOpen: true,
-    type,
-    user: item,
-    name: item.name || '',
-    phone: item.phone || '',
-    email: item.email || '',
-    role: item.role || 'parent',
-    deleteConfirm: '',
-  }
+  actionModalType.value = type
+  actionModalUser.value = user
+  isActionModalOpen.value = true
 }
 
 const closeActionModal = () => {
-  actionModal.value.isOpen = false
+  console.log('Closing Parent Action Modal...')
+  isActionModalOpen.value = false
   errorMessage.value = ''
   successMessage.value = ''
 }
 
 const submitActionModal = async (formData) => {
-  const { type, user } = actionModal.value
+  const type = actionModalType.value
+  const user = actionModalUser.value
   const { name, phone, email, role, profileURL, deleteConfirm } = formData
   submitting.value = true
   errorMessage.value = ''
@@ -172,20 +160,20 @@ const submitActionModal = async (formData) => {
       allUsers.value = allUsers.value.filter((u) => (u.uid || u.id) !== (user.uid || user.id))
       successMessage.value = 'User deleted successfully!'
     } else if (type === 'register-child') {
-      const { fullName, dob, childProfileURL, medicalNote } = formData
+      const { name, dob, childProfileURL, medicalNote } = formData
       const parentId = user.uid || user.id
 
       // Finalize Profile Image (if temp)
       let finalProfileURL = childProfileURL
       if (childProfileURL && childProfileURL.includes('/profiles/temp/')) {
         const extension = childProfileURL.split('?')[0].split('.').pop()
-        const sanitizedName = (fullName || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+        const sanitizedName = (name || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
         const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
         finalProfileURL = await storageService.moveProfileImage(childProfileURL, newPath)
       }
 
       const result = await userService.registerStudentProfile(parentId, {
-        fullName,
+        name,
         dob,
         profileURL: finalProfileURL,
         medicalNote,
@@ -200,7 +188,7 @@ const submitActionModal = async (formData) => {
         }
         allUsers.value[userIdx].studentProfiles.push({
           id: result.id || result.UID,
-          fullName,
+          name,
           dob,
           profileURL: finalProfileURL,
           medicalNote,
@@ -213,14 +201,17 @@ const submitActionModal = async (formData) => {
           studentProfiles: allUsers.value[userIdx].studentProfiles
         })
       }
-      successMessage.value = 'Child registered successfully!'
     }
+    // 1. UI Feedback and Closure
+    successMessage.value = type === 'edit' ? 'Parent updated successfully!' :
+      type === 'register-child' ? 'Child registered successfully!' :
+        `Parent ${type}d successfully!`
 
     setTimeout(() => {
       closeActionModal()
     }, 1500)
   } catch (err) {
-    console.error(`Failed to handle ${type} parent`, err)
+    console.error(`Failed to handle ${type} parent:`, err)
     errorMessage.value = err.message || `Failed to ${type} parent. Please try again.`
   } finally {
     submitting.value = false
@@ -256,15 +247,17 @@ const submitNewParent = async (data) => {
     }
     allUsers.value.unshift(newUser)
 
+    // Finalize Success
     successMessage.value = 'New account created successfully!'
-    newlyCreatedId.value = actualUid
 
     setTimeout(() => {
       showNewParentModal.value = false
+      errorMessage.value = ''
+      successMessage.value = ''
     }, 1500)
   } catch (err) {
     console.error('Failed to create parent account', err)
-    errorMessage.value = err.message || 'Error occurred while creating the account'
+    errorMessage.value = err.message || 'Failed to create parent account.'
   } finally {
     submitting.value = false
   }
@@ -330,7 +323,7 @@ const navigateToDetail = (item) => {
                 <span v-if="!item.studentProfiles || item.studentProfiles.length === 0" class="text-muted">—</span>
                 <template v-else>
                   <div v-for="(child, i) in item.studentProfiles" :key="child.id || i" class="avatar-mini child-avatar"
-                    :title="child.fullName || child.name || 'Child ' + (i + 1)"
+                    :title="child.name || child.fullName || 'Child ' + (i + 1)"
                     :style="{ zIndex: item.studentProfiles.length - i }">
                     <img :src="getStudentProfileURL(child.profileURL)" alt="child" />
                   </div>
@@ -387,9 +380,16 @@ const navigateToDetail = (item) => {
     </DataPageLayout>
 
     <!-- Unified Action Modal (Reusable Page-Specific Component) -->
-    <ParentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :user="actionModal.user"
-      :loading="submitting" :error="errorMessage" :success="successMessage" @close="closeActionModal"
-      @submit="submitActionModal" />
+    <ParentActionModal 
+      :isOpen="isActionModalOpen" 
+      :type="actionModalType" 
+      :user="actionModalUser"
+      :loading="submitting" 
+      :error="errorMessage" 
+      :success="successMessage" 
+      @close="closeActionModal"
+      @submit="submitActionModal" 
+    />
 
     <!-- Parent Form Modal (Create New) -->
     <ParentFormModal :isOpen="showNewParentModal" :loading="submitting" :error="errorMessage" :success="successMessage"

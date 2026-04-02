@@ -127,20 +127,20 @@ const handleRegisterStudent = async (formData) => {
   modalSuccess.value = ''
 
   try {
-    const { parentId, fullName, dob, childProfileURL, medicalNote } = formData
+    const { parentId, name, dob, childProfileURL, medicalNote } = formData
     if (!parentId) throw new Error('No parent selected')
 
     // Finalize Profile Image (if temp)
     let finalProfileURL = childProfileURL
     if (childProfileURL && childProfileURL.includes('/profiles/temp/')) {
       const extension = childProfileURL.split('?')[0].split('.').pop()
-      const sanitizedName = (fullName || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      const sanitizedName = (name || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
       const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
       finalProfileURL = await storageService.moveProfileImage(childProfileURL, newPath)
     }
 
     const result = await userService.registerStudentProfile(parentId, {
-      fullName,
+      name,
       dob,
       profileURL: finalProfileURL,
       medicalNote,
@@ -151,7 +151,7 @@ const handleRegisterStudent = async (formData) => {
 
     const newStudent = {
       id: result.id,
-      fullName,
+      name,
       dob,
       profileURL: finalProfileURL,
       medicalNote,
@@ -168,8 +168,15 @@ const handleRegisterStudent = async (formData) => {
     modalSuccess.value = 'Student registered successfully!'
     setTimeout(() => {
       parentActionModal.value.isOpen = false
-      fetchStudents()
+      modalSuccess.value = ''
     }, 1500)
+
+    // Background Refresh
+    try {
+      fetchStudents()
+    } catch (err) {
+      console.warn('Silent refresh error:', err)
+    }
   } catch (err) {
     console.error('Failed to register child', err)
     modalError.value = err.message || 'Error creating student account.'
@@ -219,7 +226,7 @@ const openActionModal = async (type, studentItem) => {
 
 const submitActionModal = async (formData) => {
   const { type, student } = actionModal.value
-  const { fullName, name, medicalNote, status, parentId, dob, profileURL } = formData
+  const { name, medicalNote, status, parentId, dob, profileURL } = formData
   modalLoading.value = true
   modalError.value = ''
   modalSuccess.value = ''
@@ -239,7 +246,7 @@ const submitActionModal = async (formData) => {
       if (idx !== -1) {
         const chosenParent = parentsList.value.find((p) => (p.uid || p.id) === parentId)
 
-        students.value[idx].fullName = fullName || name
+        students.value[idx].name = name
         students.value[idx].medicalNote = medicalNote
         students.value[idx].status = status
         if (dob) students.value[idx].dob = dob
@@ -257,7 +264,7 @@ const submitActionModal = async (formData) => {
               if (p.id === (student.id || student.uid)) {
                 return {
                   ...p,
-                  fullName: fullName || name,
+                  name: name,
                   dob,
                   profileURL,
                   medicalNote,
@@ -360,7 +367,7 @@ const submitActionModal = async (formData) => {
                   <img :src="getStudentProfileURL(item.profileURL)" alt="avatar" />
                 </div>
                 <div class="user-info" @click="navigateToDetail(item)">
-                  <span class="user-name">{{ item.fullName }}</span>
+                  <span class="user-name">{{ item.name || item.fullName }}</span>
                 </div>
               </div>
             </td>

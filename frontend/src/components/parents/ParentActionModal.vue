@@ -16,36 +16,45 @@
 
     <!-- Edit Parent Form -->
     <div v-if="type === 'edit'" class="form-grid">
-      <div class="form-group">
-        <label>Full Name</label>
+      <div class="form-group full-width">
+        <label>Full Name <span class="required">*</span></label>
         <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
-        <input type="text" v-model="localData.name" placeholder="Enter full name" class="standard-input" />
+        <input type="text" v-model="localData.name" placeholder="Enter full name" class="standard-input"
+          :class="{ 'field-error': errors.name }" />
+        <div v-if="errors.name" class="field-error-msg">{{ errors.name }}</div>
       </div>
 
       <div class="form-group">
-        <label>Email Address</label>
+        <label>Email Address <span class="required">*</span></label>
         <span class="original-value" v-if="originalData.email">Original: {{ originalData.email }}</span>
-        <input type="email" v-model="localData.email" placeholder="Enter email" class="standard-input" />
+        <input type="email" v-model="localData.email" placeholder="email@example.com" class="standard-input"
+          :class="{ 'field-error': errors.email }" />
+        <div v-if="errors.email" class="field-error-msg">{{ errors.email }}</div>
       </div>
 
       <div class="form-group">
-        <label>Phone Number</label>
+        <label>Phone Number <span class="required">*</span></label>
         <span class="original-value" v-if="originalData.phone">Original: {{ originalData.phone }}</span>
-        <input type="tel" v-model="localData.phone" placeholder="Enter phone number" class="standard-input" />
+        <input type="tel" v-model="localData.phone" placeholder="Enter phone number" class="standard-input"
+          :class="{ 'field-error': errors.phone }" />
+        <div v-if="errors.phone" class="field-error-msg">{{ errors.phone }}</div>
       </div>
 
       <div class="form-group">
-        <label>Role</label>
+        <label>Role <span class="required">*</span></label>
         <span class="original-value" v-if="originalData.role">Original: {{ originalData.role }}</span>
-        <select v-model="localData.role" class="standard-input">
+        <select v-model="localData.role" class="standard-input" :class="{ 'field-error': errors.role }">
           <option value="parent">Parent</option>
           <option value="guardian">Guardian</option>
         </select>
+        <div v-if="errors.role" class="field-error-msg">{{ errors.role }}</div>
       </div>
 
       <div class="form-group full-width">
+        <label>Profile Avatar <span class="required">*</span></label>
         <AvatarSelector v-model="localData.profileURL" :role="localData.role" :uid="user?.uid || user?.id"
           :customFileName="`${localData.name}_${localData.role}`" />
+        <div v-if="errors.profileURL" class="field-error-msg">{{ errors.profileURL }}</div>
       </div>
     </div>
 
@@ -96,17 +105,21 @@
 
       <div class="form-group">
         <label>Child's Full Name <span class="required">*</span></label>
-        <input type="text" v-model="localData.fullName" placeholder="Enter child's full name" class="standard-input" />
+        <input type="text" v-model="localData.name" placeholder="Enter child's full name" class="standard-input"
+          :class="{ 'field-error': errors.name }" />
+        <div v-if="errors.name" class="field-error-msg">{{ errors.name }}</div>
       </div>
 
       <div class="form-group">
         <label>Date of Birth <span class="required">*</span></label>
-        <input type="date" v-model="localData.dob" class="standard-input" />
+        <input type="date" v-model="localData.dob" class="standard-input" :class="{ 'field-error': errors.dob }" />
+        <div v-if="errors.dob" class="field-error-msg">{{ errors.dob }}</div>
       </div>
 
       <div class="form-group full-width">
         <AvatarSelector v-model="localData.childProfileURL" role="student"
-          :customFileName="`${localData.fullName}_student`" />
+          :customFileName="`${localData.name}_student`" />
+        <div v-if="errors.childProfileURL" class="field-error-msg">{{ errors.childProfileURL }}</div>
       </div>
 
       <div class="form-group full-width">
@@ -179,16 +192,11 @@
           </AppAlert>
         </transition>
 
-        <transition name="toast-fade">
-          <div v-if="showHint && validationHint" class="validation-hint-toast">
-            ⚠️ {{ validationHint }}
-          </div>
-        </transition>
-
         <div style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
-          <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
+          <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success">Cancel</AppButton>
           <AppButton :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
-            @click="handleActionSubmit" :loading="loading">
+            @click="handleActionSubmit" :loading="loading" :disabled="isFormInvalid || !!success"
+            :class="{ 'button-disabled-visual': isFormInvalid || !!success }">
             {{ submitLabel }}
           </AppButton>
         </div>
@@ -204,7 +212,7 @@ import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { useActionModal } from '@/composables/useActionModal'
-import { getActionIcon, getParentProfileURL, getImageUrl } from '@/utils/assetHelper'
+import { getActionIcon, getParentProfileURL } from '@/utils/assetHelper'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 
 const props = defineProps({
@@ -230,9 +238,9 @@ const getInitialData = () => ({
   deleteConfirm: '',
   // Child fields
   parentId: props.user?.uid || props.user?.id || '',
-  fullName: '',
+  name: '',
   dob: '',
-  childProfileURL: getImageUrl('profiles/avatar-boy'),
+  childProfileURL: '', // Force selection
   medicalNote: '',
 })
 
@@ -255,36 +263,39 @@ const { localData, originalData, submitForm } = useActionModal(props, emit, {
   mapSourceToForm,
 })
 
-// Validation & UI State
-const showHint = ref(false)
-let hintTimeout = null
+const errors = ref({})
 
 const validationHint = computed(() => {
+  const data = localData.value
+  const errs = {}
+
   if (props.type === 'edit') {
-    if (!localData.value.name.trim()) return 'Please enter a full name.'
-    if (!localData.value.email.includes('@')) return 'Please enter a valid email.'
-    if (!localData.value.phone.trim()) return 'Phone number is required.'
+    if (!data.name?.trim()) errs.name = 'Full name is required.'
+    if (!data.email?.trim() || !data.email.includes('@')) errs.email = 'Valid email is required.'
+    if (!data.phone?.trim()) errs.phone = 'Phone number is required.'
+    if (!data.role) errs.role = 'Role is required.'
+    if (!data.profileURL) errs.profileURL = 'Please select a profile avatar.'
+  } else if (props.type === 'register-child') {
+    if (!data.parentId) errs.parentId = 'Please select a parent.'
+    if (!data.name?.trim()) errs.name = "Child's name is required."
+    if (!data.dob) errs.dob = 'Date of birth is required.'
+    if (!data.childProfileURL) errs.childProfileURL = 'Please select an avatar.'
+  } else if (props.type === 'delete') {
+    if (data.deleteConfirm !== 'DELETE') return 'Type DELETE to confirm.'
   }
-  if (props.type === 'delete') {
-    if (localData.value.deleteConfirm !== 'DELETE') return 'Type DELETE specifically to confirm.'
-  }
-  if (props.type === 'register-child') {
-    if (!localData.value.parentId) return 'Please select a parent / guardian.'
-    if (!localData.value.fullName.trim()) return 'Child full name is required.'
-    if (!localData.value.dob) return 'Date of birth is required.'
-  }
-  return ''
+
+  errors.value = errs
+  return Object.values(errs)[0] || ''
 })
 
-const isFormValid = computed(() => !validationHint.value)
+const isFormInvalid = computed(() => {
+  if (props.type === 'delete') return localData.value.deleteConfirm !== 'DELETE'
+  if (props.type === 'deactivate' || props.type === 'activate') return false
+  return !!validationHint.value
+})
 
 const handleActionSubmit = () => {
-  if (!isFormValid.value) {
-    showHint.value = true
-    if (hintTimeout) clearTimeout(hintTimeout)
-    hintTimeout = setTimeout(() => (showHint.value = false), 3000)
-    return
-  }
+  if (isFormInvalid.value) return
   submitForm(true)
 }
 
@@ -360,7 +371,6 @@ const isPresetActive = (field, chipValue) => {
 watch(() => props.isOpen, (newVal) => {
   if (!newVal) {
     isDropdownOpen.value = false
-    showHint.value = false
   }
 })
 </script>

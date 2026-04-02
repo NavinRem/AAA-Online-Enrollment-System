@@ -179,9 +179,20 @@ const submitActionModal = async (formData) => {
       globalSuccess.value = 'Child registered successfully!'
     }
 
-    await fetchData(uid)
-    setTimeout(() => (actionModal.value.isOpen = false), 1500)
+    // 1. Set Success Message and Close Modal (UI Priority)
+    setTimeout(() => {
+      actionModal.value.isOpen = false
+      globalSuccess.value = ''
+    }, 1500)
+
+    // 2. Background Refresh (Data Priority)
+    try {
+      await fetchData(uid)
+    } catch (fetchErr) {
+      console.warn('Data refreshed partially after modal save:', fetchErr)
+    }
   } catch (err) {
+    console.error('Action failed:', err)
     globalError.value = err.message || 'Action failed'
   } finally {
     submitting.value = false
