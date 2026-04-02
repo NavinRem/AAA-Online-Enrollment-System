@@ -14,6 +14,10 @@ const db = getFirestore(DATABASE_ID);
  */
 const COLLECTIONS = {
   USER: "users",
+  PARENT: "parents",
+  GUARDIAN: "guardians",
+  ADMIN: "admins",
+  TEACHER: "teachers",
   STUDENT: "students",
   ENROLLMENT: "enrollments",
   PROGRAM: "programs",      // Renamed from 'courses'
