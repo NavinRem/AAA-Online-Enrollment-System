@@ -18,9 +18,11 @@ export const calculateTotalEnrollment = (enrollments) => {
   const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
 
   const total = enrollments.length
-  const paidCount = enrollments.filter(r => isPaid(r.status || r.paymentStatus)).length
-  const unpaidCount = enrollments.filter(r => isUnpaid(r.status || r.paymentStatus)).length
-  const cancelledCount = enrollments.filter(r => isCancelled(r.status || r.paymentStatus)).length
+  // Rule: Paid/Unpaid is controlled by paymentStatus, but exclude cancelled
+  const paidCount = enrollments.filter(r => isPaid(r.paymentStatus) && !isCancelled(r.status)).length
+  const unpaidCount = enrollments.filter(r => isUnpaid(r.paymentStatus) && !isCancelled(r.status)).length
+  // Rule: Cancelled is controlled by Enrollment status
+  const cancelledCount = enrollments.filter(r => isCancelled(r.status)).length
   const todayCount = enrollments.filter(r => {
     const time = parseDate(r.enrollAt || r.createdAt).getTime()
     return time >= startOfToday && time <= endOfToday
@@ -63,7 +65,8 @@ export const enrichEnrollments = (enrollments, parents = [], students = [], prog
       teacherName: r.teacherName || (c?.teachers?.length > 0 ? c.teachers[0].name : ''),
       teacherProfileURL: getTeacherProfileURL(r.teacherProfileURL || (c?.teachers?.length > 0 ? c.teachers[0].profileURL : null)),
       
-      displayStatus: r.displayStatus || (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : (isPaid(r.status || r.paymentStatus) ? 'Paid' : 'Unpaid')),
+      // Rule: Display is based on Enrollment Status (Cancelled wins) or Payment Status (Paid/Unpaid)
+      displayStatus: r.displayStatus || (isCancelled(r.status) ? 'Cancelled' : (isPaid(r.paymentStatus) ? 'Paid' : 'Unpaid')),
       academicStatus: getAcademicStatus(r)
     }
   }).sort((a, b) => new Date(b.enrollAt || b.createdAt) - new Date(a.enrollAt || a.createdAt))
