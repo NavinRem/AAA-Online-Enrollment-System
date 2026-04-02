@@ -18,5 +18,6 @@ router.get("/:id", sessionController.getSession);
 router.patch("/:id/teacher", sessionController.assignTeacher);
 router.get("/:id/teachers", sessionController.getSessionTeachers);
 router.post("/sync-counts", sessionController.syncStudentCounts);
+router.post("/sync-all", sessionController.syncAllSessions);
 
 module.exports = router;

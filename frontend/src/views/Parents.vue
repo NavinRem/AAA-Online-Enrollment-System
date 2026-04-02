@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
@@ -20,7 +20,6 @@ import { enrichParents, calculateParentStats } from '../utils/parentHelper'
 import { formatDate } from '../utils/dateFormatter'
 
 const router = useRouter()
-
 const allUsers = ref([])
 const loading = ref(true)
 const newlyCreatedId = ref(null)
@@ -180,7 +179,7 @@ const submitNewParent = async (data) => {
 
   try {
     const payload = { ...data, status: 'Active' }
-    
+
     // Finalize Profile Image (if temp)
     if (payload.profileURL && payload.profileURL.includes('/profiles/temp/')) {
       const extension = payload.profileURL.split('?')[0].split('.').pop()
@@ -204,7 +203,7 @@ const submitNewParent = async (data) => {
 
     successMessage.value = 'New account created successfully!'
     newlyCreatedId.value = actualUid
-    
+
     setTimeout(() => {
       showNewParentModal.value = false
     }, 1500)
@@ -233,7 +232,7 @@ const submitAddChild = async (childData) => {
 
   try {
     const parentId = parent.uid || parent.id
-    
+
     // Finalize Profile Image (if temp)
     if (childData.profileURL && childData.profileURL.includes('/profiles/temp/')) {
       const extension = childData.profileURL.split('?')[0].split('.').pop()
@@ -289,25 +288,17 @@ const navigateToDetail = (item) => {
       </template>
 
       <template #table>
-        <DataTable
-          title="Parents/Guardians List"
-          :headers="parentHeaders"
-          :items="filteredParents"
-          :loading="loading"
-          v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search parameters..."
-          :hasFilter="true"
-          :filterOptions="[
+        <DataTable title="Parents/Guardians List" :headers="parentHeaders" :items="filteredParents" :loading="loading"
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search parameters..." :hasFilter="true" :filterOptions="[
             { label: 'All', value: 'all' },
             { label: 'Active Only', value: 'active' },
             { label: 'Inactive Only', value: 'inactive' },
-          ]"
-          :rowClass="getRowClass"
-          @row-click="navigateToDetail"
-          @action="({ type, item }) => openActionModal(type, item)"
-        >
+          ]" :rowClass="getRowClass" @row-click="navigateToDetail"
+          @action="({ type, item }) => openActionModal(type, item)">
           <template #toolbar-actions>
-            <AppButton variant="primary" @click="showNewParentModal = true">+ New Parent</AppButton>
+            <AppButton variant="primary" @click="showNewParentModal = true">
+              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> New Parent
+            </AppButton>
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
@@ -326,13 +317,9 @@ const navigateToDetail = (item) => {
               <div class="children-stack">
                 <span v-if="!item.studentProfiles || item.studentProfiles.length === 0" class="text-muted">None</span>
                 <template v-else>
-                  <div
-                    v-for="(child, i) in item.studentProfiles"
-                    :key="child.id || i"
-                    class="avatar-mini child-avatar"
+                  <div v-for="(child, i) in item.studentProfiles" :key="child.id || i" class="avatar-mini child-avatar"
                     :title="child.fullName || child.name || 'Child ' + (i + 1)"
-                    :style="{ zIndex: item.studentProfiles.length - i }"
-                  >
+                    :style="{ zIndex: item.studentProfiles.length - i }">
                     <img :src="child.profileURL || getImageUrl('profiles/avatar-student')" alt="child" />
                   </div>
                 </template>
@@ -341,8 +328,12 @@ const navigateToDetail = (item) => {
             <td class="hide-on-mobile">{{ item.phone || 'N/A' }}</td>
             <td class="hide-on-tablet">{{ item.email || 'N/A' }}</td>
             <td class="hide-on-tablet">{{ formatDate(item.createdAt) }}</td>
-            <td class="hide-on-mobile text-center"><StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" /></td>
-            <td class="text-center"><StatusBadge :status="item.status || 'Active'" /></td>
+            <td class="hide-on-mobile text-center">
+              <StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" />
+            </td>
+            <td class="text-center">
+              <StatusBadge :status="item.status || 'Active'" />
+            </td>
             <td class="action-cell text-center">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.uid || item.id)">
@@ -350,13 +341,24 @@ const navigateToDetail = (item) => {
                 </button>
                 <Teleport to="body">
                   <transition name="fade">
-                    <div v-if="activeMenuId === (item.uid || item.id)" class="action-dropdown" :class="{ 'open-up': isMenuAbove }" :style="menuStyles" @click.stop>
-                      <button @click="() => { openAddChildModal(item); closeMenu(); }">👶 Register Child</button>
-                      <button @click="handleAction('edit', item)">✏️ Edit Profile</button>
-                      <button v-if="item.status === 'Inactive'" @click="handleAction('activate', item)">✅ Reactivate</button>
-                      <button v-else @click="handleAction('deactivate', item)">🚫 Deactivate</button>
+                    <div v-if="activeMenuId === (item.uid || item.id)" class="action-dropdown"
+                      :class="{ 'open-up': isMenuAbove }" :style="menuStyles" @click.stop>
+                      <button @click="() => { openAddChildModal(item); closeMenu(); }">
+                        <img :src="getActionIcon('plus')" class="action-icon-mini" /> Register Child
+                      </button>
+                      <button class="btn-edit" @click="() => { openActionModal('edit', item); closeMenu(); }">
+                        <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit Profile
+                      </button>
+                      <button v-if="item.status === 'Inactive'" class="btn-pay" @click="handleAction('activate', item)">
+                        <img :src="getActionIcon('pay')" class="action-icon-mini" /> Reactivate
+                      </button>
+                      <button v-else class="btn-cancel" @click="handleAction('deactivate', item)">
+                        <img :src="getActionIcon('cancel')" class="action-icon-mini" /> Deactivate
+                      </button>
                       <div class="menu-divider"></div>
-                      <button class="delete-btn" @click="handleAction('delete', item)">🗑️ Delete Account</button>
+                      <button class="delete-btn" @click="handleAction('delete', item)">
+                        <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete Account
+                      </button>
                     </div>
                   </transition>
                 </Teleport>
@@ -368,36 +370,19 @@ const navigateToDetail = (item) => {
     </DataPageLayout>
 
     <!-- Unified Action Modal (Reusable Page-Specific Component) -->
-    <ParentActionModal
-      :isOpen="actionModal.isOpen"
-      :type="actionModal.type"
-      :user="actionModal.user"
-      :loading="submitting"
-      :error="errorMessage"
-      :success="successMessage"
-      @close="closeActionModal"
-      @submit="submitActionModal"
-    />
+    <ParentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :user="actionModal.user"
+      :loading="submitting" :error="errorMessage" :success="successMessage" @close="closeActionModal"
+      @submit="submitActionModal" />
 
     <!-- Create New Parent Modal -->
-    <NewParentModal
-      :isOpen="showNewParentModal"
-      :loading="submitting"
-      :error="errorMessage"
-      :success="successMessage"
+    <NewParentModal :isOpen="showNewParentModal" :loading="submitting" :error="errorMessage" :success="successMessage"
       @close="() => { showNewParentModal = false; errorMessage = ''; successMessage = ''; }"
-      @submit="submitNewParent"
-    />
+      @submit="submitNewParent" />
 
-    <RegisterChildModal
-      :isOpen="addChildModal.isOpen"
-      :parent="addChildModal.parent"
-      :loading="submitting"
-      :error="errorMessage"
-      :success="successMessage"
+    <RegisterChildModal :isOpen="addChildModal.isOpen" :parent="addChildModal.parent" :loading="submitting"
+      :error="errorMessage" :success="successMessage"
       @close="() => { addChildModal.isOpen = false; errorMessage = ''; successMessage = ''; }"
-      @submit="submitAddChild"
-    />
+      @submit="submitAddChild" />
   </DashboardLayout>
 </template>
 
@@ -416,6 +401,7 @@ const navigateToDetail = (item) => {
   border-radius: 50%;
   overflow: hidden;
 }
+
 
 .child-avatar img {
   width: 100%;

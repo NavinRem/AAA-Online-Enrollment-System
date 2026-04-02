@@ -167,3 +167,332 @@
   }
 }
 
+/* ------------------
+   Icon & Table Actions (Moved from main.css)
+   ------------------ */
+
+.action-icon-mini {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  margin-right: 8px;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.btn-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 12px;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: #f8fafc;
+  color: #64748b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.btn-icon:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.btn-icon:active {
+  transform: translateY(0);
+}
+
+.btn-icon.edit:hover {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+.btn-icon.cancel:hover {
+  background-color: #fef2f2;
+  color: #ef4444;
+}
+.btn-icon.check:hover {
+  background-color: #f0fdf4;
+  color: #16a34a;
+}
+.btn-icon.delete:hover {
+  background-color: #fff1f2;
+  color: #e11d48;
+}
+.btn-icon.override:hover {
+  background-color: #fff7ed;
+  color: #ea580c;
+}
+
+.btn-dots {
+  background: none;
+  border: none;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-dots:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* ------------------
+   Dropdown Menus
+   ------------------ */
+
+.action-dropdown {
+  position: fixed;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #edf2f7;
+  z-index: var(--z-dropdown);
+  padding: 6px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideDropdown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.action-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-dropdown button:hover {
+  background: #f1f5f9;
+  color: var(--primary-color);
+  padding-left: 20px;
+}
+
+.action-dropdown .btn-edit:hover {
+  background: #f0f9ff;
+  color: #0284c7;
+}
+
+.action-dropdown .btn-pay:hover {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.action-dropdown .btn-cancel:hover {
+  background: #fff7ed;
+  color: #f97316;
+}
+
+.action-dropdown .btn-delete,
+.action-dropdown .btn-delete:hover {
+  color: #dc2626;
+}
+
+.action-dropdown .btn-delete img,
+.action-dropdown .btn-delete:hover img {
+  filter: invert(27%) sepia(91%) saturate(2352%) hue-rotate(345deg) brightness(95%) contrast(88%);
+}
+
+.action-dropdown .btn-delete:hover {
+  background: #fef2f2;
+}
+
+/*Icon Tint*/
+.action-dropdown button:hover img {
+  filter: none;
+}
+
+.action-dropdown .btn-edit:hover img {
+  filter: invert(36%) sepia(87%) saturate(2462%) hue-rotate(175deg) brightness(98%) contrast(93%);
+}
+.action-dropdown .btn-pay:hover img {
+  filter: invert(53%) sepia(61%) saturate(543%) hue-rotate(113deg) brightness(97%) contrast(91%);
+}
+.action-dropdown .btn-cancel:hover img {
+  filter: invert(57%) sepia(61%) saturate(2132%) hue-rotate(345deg) brightness(101%) contrast(96%);
+}
+
+/* ------------------
+   Specialty Buttons
+   ------------------ */
+
+/* Primary Styled Back Button (Matching Add Enrollment) */
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  background: #00aeef;
+  color: #ffffff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 174, 239, 0.2);
+}
+
+.btn-back:hover {
+  background: #0098d1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 174, 239, 0.25);
+}
+
+.btn-back img {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) invert(1); /* Pure White Icon */
+  transition: transform 0.2s ease;
+  opacity: 1;
+}
+
+.btn-back:hover img {
+  transform: translateX(-2px);
+}
+
+.btn-icon-modern {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.btn-icon-modern img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  opacity: 0.8;
+  transition: all 0.2s ease;
+}
+
+.btn-icon-modern:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.btn-icon-modern:hover img {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* btn-icon-modern color overrides */
+.btn-icon-modern.btn-edit:hover {
+  border-color: #0ea5e9;
+  background: #f0f9ff;
+}
+.btn-icon-modern.btn-edit:hover img {
+  filter: invert(36%) sepia(87%) saturate(2462%) hue-rotate(175deg) brightness(98%) contrast(93%);
+}
+
+.btn-icon-modern.btn-pay:hover {
+  border-color: #10b981;
+  background: #ecfdf5;
+}
+.btn-icon-modern.btn-pay:hover img {
+  filter: invert(53%) sepia(61%) saturate(543%) hue-rotate(113deg) brightness(97%) contrast(91%);
+}
+
+.btn-icon-modern.btn-cancel:hover {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+.btn-icon-modern.btn-cancel:hover img {
+  filter: invert(57%) sepia(61%) saturate(2132%) hue-rotate(345deg) brightness(101%) contrast(96%);
+}
+
+.btn-icon-modern.btn-delete:hover {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+.btn-icon-modern.btn-delete:hover img {
+  filter: invert(27%) sepia(91%) saturate(2352%) hue-rotate(345deg) brightness(95%) contrast(88%);
+}
+
+/* ------------------
+   Button Layout Helpers
+   ------------------ */
+
+.actions-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.action-cell {
+  position: relative;
+  width: 60px;
+}
+
+.menu-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.menu-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 6px 8px;
+}
+
+/* ------------------
+   Transitions & Animations
+   ------------------ */
+
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+}
+
+@keyframes slideDropdown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

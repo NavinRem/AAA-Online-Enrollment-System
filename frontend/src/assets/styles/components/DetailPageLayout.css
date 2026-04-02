@@ -52,7 +52,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
+  min-height: 48px;
 }
 
 .header-actions {
@@ -70,7 +71,7 @@
 .left-content-area {
   padding: 30px 40px;
   height: 100%;
-  overflow: hidden;
+  overflow: hidden; /* Revert back to hidden to keep it a fixed container */
   display: flex;
   flex-direction: column;
 }
@@ -83,6 +84,33 @@
   gap: 24px;
 }
 
+.main-cards-grid.is-scrollable {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-right: 15px;
+  max-height: calc(100vh - 200px);
+  align-content: start;
+}
+
+/* Custom scrollbar for premium look */
+.main-cards-grid.is-scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-cards-grid.is-scrollable::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.main-cards-grid.is-scrollable::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
 .sticky-sidebar {
   background: white;
   padding: 20px;
@@ -90,9 +118,26 @@
   flex-direction: column;
   gap: 16px;
   height: 100%;
+}
+
+.sticky-sidebar.is-scrollable {
+  max-height: calc(100vh - 100px);
   overflow-y: auto;
+  padding-right: 12px;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.03);
   border-left: 1px solid #f1f5f9;
 }
 
+/* Custom scrollbar for sidebar */
+.sticky-sidebar.is-scrollable::-webkit-scrollbar {
+  width: 5px;
+}
 
+.sticky-sidebar.is-scrollable::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+
+
+/* btn-icon-modern styles moved to main.css */

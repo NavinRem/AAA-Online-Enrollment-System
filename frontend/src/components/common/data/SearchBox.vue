@@ -1,7 +1,6 @@
 <template>
   <div class="search-box">
-    <!-- <span class="search-icon">🔍</span> -->
-    <img :src="getIconUrl('action', 'search-svgrepo.svg')" class="search-icon" />
+    <img :src="getActionIcon('search')" class="search-icon" />
     <input
       :value="modelValue"
       @input="$emit('update:modelValue', $event.target.value)"
@@ -12,7 +11,7 @@
 </template>
 
 <script setup>
-import { getIconUrl } from '@/utils/assetHelper'
+import { getActionIcon } from '@/utils/assetHelper'
 defineProps({
   modelValue: {
     type: String,

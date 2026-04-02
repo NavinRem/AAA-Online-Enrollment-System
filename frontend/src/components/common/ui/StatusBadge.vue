@@ -1,6 +1,6 @@
 <template>
   <span :class="badgeClass">
-    {{ displayStatus }}
+    <slot>{{ displayStatus }}</slot>
   </span>
 </template>
 

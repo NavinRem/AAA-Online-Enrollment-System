@@ -41,6 +41,19 @@
   letter-spacing: -0.5px;
 }
 
+.modal-title-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-title-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  opacity: 0.8;
+}
+
 .close-btn {
   background: #f0f4f8;
   border: none;
@@ -60,6 +73,20 @@
   background: #e2e8f0;
   color: #1e293b;
   transform: rotate(90deg);
+}
+
+.close-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  margin: 0;
+  display: block;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.close-btn:hover .close-icon {
+  opacity: 1;
 }
 
 .modal-body {
@@ -122,6 +149,7 @@
 
 .form-group.full-width {
   grid-column: span 2;
+  margin-top: 30px;
 }
 
 .form-group label {
@@ -215,7 +243,6 @@
   font-weight: 500;
   font-size: 0.9rem;
 }
-
 
 .success-banner {
   background: #dcfce7;

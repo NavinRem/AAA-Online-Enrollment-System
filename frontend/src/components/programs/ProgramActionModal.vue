@@ -2,9 +2,16 @@
   <AppModal :show="isOpen" maxWidth="640px" @close="$emit('close')">
     <template #header>
       <div class="modal-header-main">
-        <h3>{{ modalTitle }}</h3>
-        <div v-if="error" class="alert-box error stationary-alert">{{ error }}</div>
-        <div v-if="success" class="alert-box success stationary-alert">{{ success }}</div>
+        <div class="modal-title-wrapper">
+          <img v-if="modalIcon" :src="modalIcon" class="modal-title-icon" />
+          <h3>{{ modalTitle }}</h3>
+        </div>
+        <AppAlert :show="!!error" type="error" closable @close="$emit('update:error', '')">
+          {{ error }}
+        </AppAlert>
+        <AppAlert :show="!!success" type="success" closable @close="$emit('update:success', '')">
+          {{ success }}
+        </AppAlert>
       </div>
     </template>
 
@@ -12,9 +19,9 @@
       <div class="form-group full-width">
         <label>Program Title <span class="required">*</span></label>
         <input type="text" v-model="localData.title" :placeholder="titlePlaceholder" required :disabled="isReadOnly" />
-        <div v-if="titleValidation.warning" class="input-warning">
+        <AppAlert v-if="titleValidation.warning" type="warning" :customStyle="{ marginTop: '8px' }">
           {{ titleValidation.warning }}
-        </div>
+        </AppAlert>
       </div>
 
       <div class="form-group">
@@ -89,9 +96,9 @@
           <input type="date" v-model="localData.startDate" required :disabled="isReadOnly" />
           <input type="date" v-model="localData.endDate" required :disabled="isReadOnly" />
         </div>
-        <div v-if="dateValidation.warning" class="date-warning">
-          <span class="icon">⚠️</span> {{ dateValidation.warning }}
-        </div>
+        <AppAlert v-if="dateValidation.warning" type="warning" :customStyle="{ marginTop: '8px' }">
+          {{ dateValidation.warning }}
+        </AppAlert>
       </div>
 
       <div class="form-group">
@@ -140,6 +147,7 @@
 
             <div class="dropdown-menu" v-if="isTeacherDropdownOpen">
               <div class="dropdown-search">
+                <img :src="getActionIcon('search')" class="search-icon-mini" />
                 <input type="text" v-model="teacherSearchQuery" placeholder="Search name or email..." @click.stop
                   autofocus />
               </div>
@@ -221,7 +229,7 @@
     </template>
   </AppModal>
   <AppModal v-if="showDeleteConfirm" :show="showDeleteConfirm" title="Confirm Permanent Deletion"
-    @close="closeDeleteConfirm">
+    @close="closeDeleteConfirm" :icon="getActionIcon('delete')">
     <div class="form-group full-width">
       <div class="identity-card" v-if="teacherToDelete">
         <span class="label">teacher</span>
@@ -255,13 +263,14 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import { programService } from '@/services/programService'
 import { userService } from '@/services/userService'
 import { useActionModal } from '@/composables/useActionModal'
 import { useSearch, teacherSearchMapper } from '@/composables/useSearch'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -597,6 +606,13 @@ const handleFileUpload = async (event) => {
 const modalTitle = computed(() => {
   const titles = { add: 'Create New Program', edit: 'Edit Program', delete: 'Delete Program' }
   return titles[props.type] || 'Program Action'
+})
+
+const modalIcon = computed(() => {
+  if (props.type === 'add') return getActionIcon('plus')
+  if (props.type === 'edit') return getActionIcon('edit')
+  if (props.type === 'delete') return getActionIcon('delete')
+  return null
 })
 
 const isFormValid = computed(() => {

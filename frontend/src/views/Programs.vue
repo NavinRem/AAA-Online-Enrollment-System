@@ -13,7 +13,8 @@ import { useSearch, programSearchMapper } from '../composables/useSearch'
 import {
   getProgramProfileURL,
   getTeacherProfileURL,
-  getImageUrl
+  getImageUrl,
+  getActionIcon
 } from '@/utils/assetHelper'
 import { calculateProgramStats, getProgramDisplayStatus } from '@/utils/programHelper'
 
@@ -295,7 +296,9 @@ const onRowClick = (item) => {
                 </transition>
               </Teleport>
             </div>
-            <AppButton variant="primary" @click="openModal('add')">+ Add Program</AppButton>
+            <AppButton variant="primary" @click="openModal('add')">
+              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> Add Program
+            </AppButton>
           </template>
 
           <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
@@ -358,9 +361,13 @@ const onRowClick = (item) => {
                   <transition name="fade">
                     <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
                       :style="menuStyles" @click.stop>
-                      <button @click="handleAction('edit', item)">✏️ Edit</button>
+                      <button class="btn-edit" @click="handleAction('edit', item)">
+                        <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit
+                      </button>
                       <div class="menu-divider"></div>
-                      <button class="delete-btn" @click="handleAction('delete', item)">🗑️ Delete</button>
+                      <button class="delete-btn" @click="handleAction('delete', item)">
+                        <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete
+                      </button>
                     </div>
                   </transition>
                 </Teleport>
@@ -517,4 +524,5 @@ const onRowClick = (item) => {
   font-weight: 600;
   text-transform: uppercase;
 }
+
 </style>

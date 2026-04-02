@@ -110,4 +110,9 @@ export const programService = {
       body: JSON.stringify(data),
     })
   },
+  syncAllSessions() {
+    return request('/sessions/sync-all', {
+      method: 'POST',
+    })
+  },
 }

@@ -4,9 +4,14 @@
       <div class="modal-content" :class="variant">
         <div class="modal-header">
           <slot name="header">
-            <h3>{{ title }}</h3>
+            <div class="modal-title-wrapper">
+              <img v-if="icon" :src="icon" class="modal-title-icon" />
+              <h3>{{ title }}</h3>
+            </div>
           </slot>
-          <button class="close-btn" @click="$emit('close')">×</button>
+          <button class="close-btn" @click="$emit('close')">
+            <img :src="getActionIcon('close')" class="close-icon" />
+          </button>
         </div>
 
         <div class="modal-body">
@@ -22,6 +27,8 @@
 </template>
 
 <script setup>
+import { getActionIcon } from '@/utils/assetHelper'
+
 defineProps({
   show: {
     type: Boolean,
@@ -34,6 +41,10 @@ defineProps({
   variant: {
     type: String,
     default: '', // 'action', etc
+  },
+  icon: {
+    type: String,
+    default: '',
   },
 })
 

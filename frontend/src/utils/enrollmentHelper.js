@@ -37,13 +37,15 @@ export const calculateTotalEnrollment = (enrollments) => {
 /**
  * Enriches enrollment data with parent/student info and icons.
  */
-export const enrichEnrollments = (enrollments, parents = [], students = [], programs = []) => {
+export const enrichEnrollments = (enrollments, parents = [], students = [], programs = [], sessions = []) => {
   return enrollments.map((r) => {
     const p = parents.find(p => (p.uid || p.id) === r.parentId)
     const s = students.find(s => (s.uid || s.id) === r.studentId)
     const c = programs.find(c => (c.id || c.uid) === r.programId)
+    const sess = sessions.find(sess => sess.id === r.sessionId)
 
     const programCategory = r.programCategory || c?.category || 'program'
+    const sessionSchedule = r.sessionSchedule || (sess?.schedule ? `${sess.schedule.day} ${sess.schedule.timeslot}` : 'N/A')
 
     return {
       ...r,
@@ -56,10 +58,12 @@ export const enrichEnrollments = (enrollments, parents = [], students = [], prog
       programTitle: r.programTitle || c?.title || 'N/A',
       programProfileURL: getProgramProfileURL(r.programProfileURL || c?.profileURL, programCategory),
       
+      sessionSchedule,
+
       teacherName: r.teacherName || (c?.teachers?.length > 0 ? c.teachers[0].name : ''),
       teacherProfileURL: getTeacherProfileURL(r.teacherProfileURL || (c?.teachers?.length > 0 ? c.teachers[0].profileURL : null)),
       
-      displayStatus: r.displayStatus || (isPaid(r.status || r.paymentStatus) ? 'Paid' : (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : 'Unpaid')),
+      displayStatus: r.displayStatus || (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : (isPaid(r.status || r.paymentStatus) ? 'Paid' : 'Unpaid')),
       academicStatus: getAcademicStatus(r)
     }
   }).sort((a, b) => new Date(b.enrollAt || b.createdAt) - new Date(a.enrollAt || a.createdAt))
@@ -118,4 +122,29 @@ export const filterDetailEnrollments = (enrollments, options = {}) => {
   }
 
   return list
+}
+
+/**
+ * Cleans the session schedule string for display.
+ */
+export const cleanSessionSchedule = (schedule) => {
+  if (!schedule) return 'N/A'
+  return schedule.replace(/day:|timeslot:/gi, '').replace(/,/g, '').trim()
+}
+
+/**
+ * Gets the display status of an enrollment.
+ */
+export const getEnrollmentDisplayStatus = (r) => {
+  if (!r) return 'Unpaid'
+  return r.displayStatus || (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : (isPaid(r.status || r.paymentStatus) ? 'Paid' : 'Unpaid'))
+}
+
+/**
+ * Gets the display mode of an enrollment (Full, Partial, Trial).
+ */
+export const getEnrollmentDisplayMode = (r) => {
+  if (!r) return 'Full'
+  if (r.isProrated) return 'Partial'
+  return r.enrollmentType || 'Full'
 }

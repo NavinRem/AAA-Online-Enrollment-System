@@ -1,7 +1,11 @@
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')">
-    <div v-if="error" class="alert-box error">{{ error }}</div>
-    <div v-if="success" class="alert-box success">{{ success }}</div>
+  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="modalIcon">
+    <AppAlert :show="!!error" type="error" closable @close="$emit('update:error', '')">
+      {{ error }}
+    </AppAlert>
+    <AppAlert :show="!!success" type="success" closable @close="$emit('update:success', '')">
+      {{ success }}
+    </AppAlert>
 
     <div class="identity-card" v-if="student || enrollment">
       <span class="label">{{ type === 'enrollment-override' || type === 'enrollment-delete' ? 'enrollment' : 'student' }}</span>
@@ -36,6 +40,7 @@
               
               <div class="dropdown-menu" v-if="isParentDropdownOpen">
                 <div class="dropdown-search">
+                  <img :src="getActionIcon('search')" class="search-icon-mini" />
                   <input
                     type="text"
                     v-model="parentSearchQuery"
@@ -162,19 +167,13 @@
       <!-- Manual Status Override Form (Student or Enrollment) -->
       <div v-if="type === 'override' || type === 'enrollment-override'" class="form-grid">
         <div class="form-group full-width">
-          <div class="info-block warning">
-            <div class="icon">⚠️</div>
-            <div class="text">
-              <strong
-                >Manual
-                {{ type === 'enrollment-override' ? 'Program' : 'Status' }} Override</strong
-              >
-              <p>
-                This will manually force a status that ignores the automatic system calculations.
-                Useful for specific parent requests or administrative pauses.
-              </p>
-            </div>
-          </div>
+          <AppAlert type="warning">
+            <strong>Manual {{ type === 'enrollment-override' ? 'Program' : 'Status' }} Override</strong>
+            <p style="margin-top: 4px; font-size: 0.9rem; opacity: 0.9;">
+              This will manually force a status that ignores the automatic system calculations.
+              Useful for specific parent requests or administrative pauses.
+            </p>
+          </AppAlert>
         </div>
 
         <div class="form-group full-width">
@@ -259,11 +258,12 @@
 <script setup>
 import { computed, ref, toRef } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -345,6 +345,12 @@ const modalTitle = computed(() => {
     'enrollment-delete': 'Delete Program Record',
   }
   return titles[props.type] || 'Student Action'
+})
+
+const modalIcon = computed(() => {
+  if (props.type?.includes('delete')) return getActionIcon('delete')
+  if (props.type?.includes('edit') || props.type?.includes('override')) return getActionIcon('edit')
+  return getActionIcon('plus')
 })
 
 const isFormValid = computed(() => {

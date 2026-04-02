@@ -2,12 +2,15 @@
    CSS RESET & VARIABLES
    ========================================================================== */
 
+@import './enrollment-common.css';
+@import './components/AppButton.css';
+
 :root {
   /* Brand Colors */
   --primary-color: #00aeef;
   --primary-hover: #0096d1;
   --secondary-color: #64748b;
-  
+
   /* Status Colors */
   --success-color: #10b981;
   --error-color: #ef4444;
@@ -20,7 +23,7 @@
   --border-color: #e2e8f0;
   --text-dark: #1e293b;
   --text-muted: #64748b;
-  
+
   /* Shared Defaults */
   --border-radius: 12px;
   --border-radius-sm: 8px;
@@ -39,7 +42,7 @@
   --z-sidebar: 100;
   --z-topbar: 50;
   --z-modal: 2000;
-  --z-dropdown: 1000;
+  --z-dropdown: 3000;
 }
 
 * {
@@ -60,15 +63,27 @@ body {
    TYPOGRAPHY
    ========================================================================== */
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   font-weight: 700;
   color: var(--text-dark);
 }
 
-.bold { font-weight: 600; }
-.capitalize { text-transform: capitalize; }
-.text-muted { color: var(--text-muted); }
-.danger-text { color: var(--error-color); margin-bottom: 8px; }
+.bold {
+  font-weight: 600;
+}
+.capitalize {
+  text-transform: capitalize;
+}
+.text-muted {
+  color: var(--text-muted);
+}
+.danger-text {
+  color: var(--error-color);
+  margin-bottom: 8px;
+}
 
 .mono {
   font-family: 'JetBrains Mono', 'Courier New', monospace;
@@ -80,11 +95,17 @@ h1, h2, h3, h4 {
 }
 
 /* Fluid Typography */
-h1 { font-size: clamp(1.5rem, 5vw, 2.2rem); }
-h2 { font-size: clamp(1.25rem, 4vw, 1.8rem); }
-h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
+h1 {
+  font-size: clamp(1.5rem, 5vw, 2.2rem);
+}
+h2 {
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+}
 
 
+h3 {
+  font-size: clamp(1.1rem, 3vw, 1.4rem);
+}
 
 /* ==========================================================================
    LAYOUT UTILITIES
@@ -95,16 +116,31 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
   flex-direction: column;
   gap: 25px;
   width: 100%;
+  flex: 1;
+  height: 100%;
+  box-sizing: border-box;
+  align-items: stretch;
   padding: 0 30px 30px 30px;
+  overflow: hidden;
+  min-height: 0; /* Add height constraint */
+}
+
+/* Global Flex Height Stabilizer */
+.flex-grower {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* Layout Responsiveness */
 
-
-.mobile-only { display: none !important; }
-.desktop-only { display: block !important; }
-
-
+.mobile-only {
+  display: none !important;
+}
+.desktop-only {
+  display: block !important;
+}
 
 .user-info {
   display: flex;
@@ -115,6 +151,32 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
   font-weight: 800;
   color: var(--text-dark);
   font-size: 1rem;
+}
+
+/* Universal Scrollable Utility */
+.scrollable-v {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  padding-right: 4px; /* Space for scrollbar */
+}
+
+/* Custom Scrollbar for Webkit */
+.scrollable-v::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollable-v::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollable-v::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.scrollable-v::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 /* ==========================================================================
@@ -236,7 +298,6 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
 }
 
 .preset-chip {
@@ -266,48 +327,12 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
   box-shadow: 0 2px 4px rgba(0, 174, 239, 0.1);
 }
 
-/* Detail Page Header Action Styles */
-.actions-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
 
-.btn-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 12px;
-  border: none !important; /* Force borderless as requested */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  background-color: #f8fafc;
-  color: #64748b;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
 
-.btn-icon:hover {
-  background-color: #f1f5f9;
-  color: #1e293b;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
 
-.btn-icon:active {
-  transform: translateY(0);
-}
 
-.btn-icon.edit:hover { background-color: #e0f2fe; color: #0284c7; }
-.btn-icon.cancel:hover { background-color: #fef2f2; color: #ef4444; }
-.btn-icon.check:hover { background-color: #f0fdf4; color: #16a34a; }
-.btn-icon.delete:hover { background-color: #fff1f2; color: #e11d48; }
-.btn-icon.override:hover { background-color: #fff7ed; color: #ea580c; }
-
-.form-group input, 
-.form-group textarea, 
+.form-group input,
+.form-group textarea,
 .form-group select {
   padding: 10px 12px;
   border: 1px solid var(--border-color);
@@ -317,8 +342,8 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
   transition: border-color 0.2s;
 }
 
-.form-group input:focus, 
-.form-group textarea:focus, 
+.form-group input:focus,
+.form-group textarea:focus,
 .form-group select:focus {
   outline: none;
   border-color: var(--primary-color);
@@ -340,8 +365,14 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
 }
 
 @keyframes slide-down {
-  from { opacity: 0; transform: translateY(-8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .alert-box.error {
@@ -352,7 +383,7 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
 }
 
 .alert-box.error::before {
-  content: "⚠️";
+  content: '⚠️';
   font-size: 1.1rem;
 }
 
@@ -364,7 +395,31 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
 }
 
 .alert-box.success::before {
-  content: "✅";
+  content: '✅';
+  font-size: 1.1rem;
+}
+
+.alert-box.warning {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  border-left: 4px solid #f59e0b;
+}
+
+.alert-box.warning::before {
+  content: '⚠️';
+  font-size: 1.1rem;
+}
+
+.alert-box.info {
+  background: #f0f9ff;
+  color: #0c4a6e;
+  border: 1px solid #bae6fd;
+  border-left: 4px solid #0ea5e9;
+}
+
+.alert-box.info::before {
+  content: 'ℹ️';
   font-size: 1.1rem;
 }
 
@@ -439,8 +494,10 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
 
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: rgba(0, 0, 0, 0.4);
   backdrop-filter: blur(4px);
   display: flex;
@@ -495,111 +552,7 @@ h3 { font-size: clamp(1.1rem, 3vw, 1.4rem); }
   color: var(--text-dark);
 }
 
-/* ==========================================================================
-   TABLE ACTIONS & DROPDOWNS
-   ========================================================================== */
 
-.action-cell {
-  position: relative;
-  width: 60px;
-}
-
-.menu-container {
-  position: relative;
-  display: flex;
-  justify-content: center;
-}
-
-.btn-dots {
-  background: none;
-  border: none;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  border-radius: 50%;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-dots:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-}
-
-.action-dropdown {
-  position: fixed;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  border: 1px solid #edf2f7;
-  z-index: var(--z-dropdown);
-  padding: 6px;
-  min-width: 180px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  animation: slideDropdown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.action-dropdown button {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  border: none;
-  background: none;
-  width: 100%;
-  text-align: left;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-dark);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.action-dropdown button:hover {
-  background: #f1f5f9;
-  color: var(--primary-color);
-  padding-left: 20px; /* Subtle movement on hover */
-}
-
-.action-dropdown .delete-btn {
-  color: var(--error-color);
-}
-
-.action-dropdown .delete-btn:hover {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.menu-divider {
-  height: 1px;
-  background: var(--border-color);
-  margin: 6px 8px;
-}
-
-/* ==========================================================================
-   ANIMATIONS
-   ========================================================================== */
-
-@keyframes slideDropdown {
-  from { opacity: 0; transform: translateY(-10px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.fade-enter-from, .fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px) scale(0.95);
-}
 
 .user-cell {
   display: flex;

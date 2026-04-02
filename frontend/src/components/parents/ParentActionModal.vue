@@ -1,7 +1,11 @@
 <template>
   <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')">
-    <div v-if="error" class="alert-box error">{{ error }}</div>
-    <div v-if="success" class="alert-box success">{{ success }}</div>
+    <AppAlert :show="!!error" type="error" closable @close="$emit('update:error', '')">
+      {{ error }}
+    </AppAlert>
+    <AppAlert :show="!!success" type="success" closable @close="$emit('update:success', '')">
+      {{ success }}
+    </AppAlert>
 
     <div class="identity-card" v-if="user">
       <span class="label">{{ user.role || 'parent' }}</span>
@@ -50,30 +54,24 @@
 
       <!-- Deactivate Form -->
       <div v-if="type === 'deactivate'" class="form-group full-width">
-        <div class="info-block warning">
-          <div class="icon">⚠️</div>
-          <div class="text">
-            <strong>Deactivation Warning</strong>
-            <p>
-              Deactivating an account will prevent the user from logging in. This family's child
-              records will remain untouched, and you can reactivate them at any time.
-            </p>
-          </div>
-        </div>
+        <AppAlert type="warning">
+          <strong>Deactivation Warning</strong>
+          <p style="margin-top: 4px; font-size: 0.9rem; opacity: 0.9;">
+            Deactivating an account will prevent the user from logging in. This family's child
+            records will remain untouched, and you can reactivate them at any time.
+          </p>
+        </AppAlert>
       </div>
 
       <!-- Activate Form -->
       <div v-if="type === 'activate'" class="form-group full-width">
-        <div class="info-block active-info">
-          <div class="icon">✅</div>
-          <div class="text">
-            <strong>Account Reactivation</strong>
-            <p>
-              Reactivating this account will restore the user's ability to log in and manage their
-              children's enrollments immediately.
-            </p>
-          </div>
-        </div>
+        <AppAlert type="success">
+          <strong>Account Reactivation</strong>
+          <p style="margin-top: 4px; font-size: 0.9rem; opacity: 0.9;">
+            Reactivating this account will restore the user's ability to log in and manage their
+            children's enrollments immediately.
+          </p>
+        </AppAlert>
       </div>
       <!-- Hidden submit for Enter key functionality -->
       <button type="submit" style="display: none;"></button>
@@ -118,6 +116,7 @@
 <script setup>
 import { computed } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { useActionModal } from '@/composables/useActionModal'

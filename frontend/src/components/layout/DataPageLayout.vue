@@ -1,6 +1,5 @@
 <template>
   <div class="page-container">
-    <!-- Overview Section -->
     <section v-if="$slots.overview" class="overview-section card-box">
       <h2 class="section-title">{{ overviewTitle }}</h2>
       <div class="cards-row">
@@ -8,9 +7,8 @@
       </div>
     </section>
 
-    <!-- List Section -->
-    <section class="table-section card-box">
-      <div class="table-responsive">
+    <section class="table-section card-box flex-grower">
+      <div class="table-responsive flex-grower">
         <slot name="table"></slot>
       </div>
     </section>
@@ -73,12 +71,13 @@ defineProps({
   width: 100%;
 }
 
-
-
-
-
 .table-responsive {
   width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+  display: flex;
+  flex-direction: column;
 }
+
+
 </style>

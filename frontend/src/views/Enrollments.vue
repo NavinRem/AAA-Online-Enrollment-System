@@ -1,20 +1,26 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge.vue'
-import EnrollmentForm from '../components/enrollments/EnrollmentForm.vue'
+import EnrollmentFormModal from '../components/enrollments/EnrollmentFormModal.vue'
+import EnrollmentActionModal from '../components/enrollments/EnrollmentActionModal.vue'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '../services/userService'
 import { programService } from '../services/programService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
-import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
-import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
+import {
+  calculateTotalEnrollment,
+  enrichEnrollments,
+} from '../utils/enrollmentHelper'
+import { formatDate } from '../utils/dateFormatter'
+import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
+import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL, getActionIcon } from '@/utils/assetHelper'
 import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
-import AppModal from '@/components/common/ui/AppModal.vue'
+import { formatPrice } from '@/utils/currencyFormatter'
 
 const enrollments = ref([])
 const parents = ref([])
@@ -26,15 +32,27 @@ const showModal = ref(false)
 const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
+const validationHint = ref('')
 const newlyCreatedId = ref(null)
+const selectedEnrollment = ref(null)
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
 }
 
 onMounted(async () => {
-  await fetchEnrollments()
-  await loadFormData()
+  try {
+    loading.value = true
+    await Promise.all([
+      fetchEnrollments(),
+      loadFormData()
+    ])
+    console.log('Enrollments loaded:', enrollments.value.length)
+  } catch (error) {
+    console.error('Initial data load failed', error)
+  } finally {
+    loading.value = false
+  }
 })
 
 const fetchEnrollments = async () => {
@@ -79,7 +97,16 @@ const handleProgramChange = async (programId) => {
   }
 }
 
-const handleCreateEnrollment = async (formData) => {
+let hintTimeout = null
+const setValidationHint = (msg) => {
+  validationHint.value = msg
+  if (hintTimeout) clearTimeout(hintTimeout)
+  hintTimeout = setTimeout(() => {
+    validationHint.value = ''
+  }, 4000)
+}
+
+const handleSaveEnrollment = async (formData) => {
   submitting.value = true
   errorMessage.value = ''
   try {
@@ -104,22 +131,36 @@ const handleCreateEnrollment = async (formData) => {
       isProrated: formData.isProrated,
       enrollmentType: formData.enrollmentType || 'Full',
       remark: formData.remark || '',
-      status: 'pending',
-      paymentStatus: 'unpaid',
-      enrollAt: new Date().toISOString(),
+      basePrice: formData.basePrice || 0,
+      totalSessions: formData.totalSessions || 0,
+      remainingSessions: formData.remainingSessions || 0,
+      passedSessions: formData.passedSessions || 0,
+      prorateSavings: formData.prorateSavings || 0,
+      ...(!formData.id ? {
+        status: 'unpaid',
+        paymentStatus: 'unpaid',
+        enrollAt: new Date().toISOString(),
+      } : {})
     }
 
-    const result = await enrollmentService.createEnrollment(payload)
-    successMessage.value = 'Successfully created enrollment!'
-    newlyCreatedId.value = result.id || result.UID
+    if (formData.id) {
+      await enrollmentService.updateEnrollment(formData.id, payload)
+      successMessage.value = 'Successfully updated enrollment!'
+    } else {
+      const result = await enrollmentService.createEnrollment(payload)
+      successMessage.value = 'Successfully created enrollment!'
+      newlyCreatedId.value = result.id || result.UID
+    }
+
     await fetchEnrollments()
 
     setTimeout(() => {
       showModal.value = false
+      selectedEnrollment.value = null
       successMessage.value = ''
     }, 1500)
   } catch (err) {
-    errorMessage.value = err.message || 'Failed to create enrollment.'
+    errorMessage.value = err.message || 'Failed to save enrollment.'
   } finally {
     submitting.value = false
   }
@@ -139,29 +180,35 @@ const enrollmentStats = computed(() => {
 })
 
 const enrollmentHeaders = [
-  { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Parent / Guardian', class: 'hide-on-tablet', width: '220px' },
-  { label: 'Student', width: '200px' },
-  { label: 'Program & Session' },
-  { label: 'Mode', width: '100px', align: 'center' },
-  { label: 'Amount', class: 'hide-on-mobile', align: 'center', width: '120px' },
-  { label: 'Status', align: 'center', width: '120px' },
-  { label: 'Action', width: '80px', align: 'center' }
+  { label: 'No', width: '40px', align: 'center' },
+  { label: 'Parent / Guardian', width: '160px' },
+  { label: 'Student', width: '160px' },
+  { label: 'Program', width: '200px' },
+  { label: 'Session', width: '120px' },
+  { label: 'Enrolled Date', width: '120px', align: 'center' },
+  { label: 'Mode', width: '90px', align: 'center', sortable: true, key: 'enrollmentType' },
+  { label: 'Method', width: '100px', align: 'center', sortable: true, key: 'paymentMethod' },
+  { label: 'Amount', width: '100px', align: 'center', sortable: true, key: 'amount' },
+  { label: 'Status', width: '90px', align: 'center' },
+  { label: 'Action', width: '70px', align: 'center' }
 ]
 
 const currentFilter = ref('all')
 
 const statusFilteredEnrollments = computed(() => {
-  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, programs.value)
+  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, programs.value, sessions.value)
 
-  if (currentFilter.value === 'all') return enriched
+  let filtered = enriched
+  if (currentFilter.value !== 'all') {
+    filtered = enriched.filter(r => {
+      if (currentFilter.value === 'paid') return isPaid(r.status || r.paymentStatus)
+      if (currentFilter.value === 'unpaid') return isUnpaid(r.status || r.paymentStatus)
+      if (currentFilter.value === 'cancelled') return isCancelled(r.status || r.paymentStatus)
+      return true
+    })
+  }
 
-  return enriched.filter(r => {
-    if (currentFilter.value === 'paid') return isPaid(r.status || r.paymentStatus)
-    if (currentFilter.value === 'unpaid') return isUnpaid(r.status || r.paymentStatus)
-    if (currentFilter.value === 'cancelled') return isCancelled(r.status || r.paymentStatus)
-    return true
-  }).sort((a, b) => new Date(b.enrollAt || 0) - new Date(a.enrollAt || 0))
+  return filtered.sort((a, b) => new Date(b.enrollAt || 0) - new Date(a.enrollAt || 0))
 })
 
 const { searchQuery, searchResults: filteredEnrollments } = useSearch(
@@ -169,53 +216,80 @@ const { searchQuery, searchResults: filteredEnrollments } = useSearch(
   enrollmentSearchMapper,
 )
 
-// --- Action Modal State ---
-const actionModal = ref({
+const currentPage = ref(1)
+const pageSize = 10
+const totalItems = computed(() => filteredEnrollments.value.length)
+
+const paginatedEnrollments = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredEnrollments.value.slice(start, end)
+})
+
+watch([currentFilter, searchQuery], () => {
+  currentPage.value = 1
+})
+
+const actionState = ref({
   isOpen: false,
   type: '',
   enrollment: null,
-  amount: 0,
-  proof: '',
-  reason: '',
-  remark: '',
-  deleteConfirm: '',
 })
+
+
 
 const handleTableAction = ({ type, item }) => {
   errorMessage.value = ''
   successMessage.value = ''
-  actionModal.value = {
+
+  if (type === 'edit') {
+    selectedEnrollment.value = item
+    showModal.value = true
+    return
+  }
+
+  actionState.value = {
     isOpen: true,
     type,
     enrollment: item,
-    amount: item.amount || 0,
-    proof: '',
-    reason: '',
-    remark: item.remark || '',
-    deleteConfirm: '',
   }
 }
 
-const submitActionModal = async () => {
-  const { type, enrollment, amount, proof, reason, remark, deleteConfirm } = actionModal.value
+const submitActionModal = async (payload) => {
+  const { type, enrollment } = actionState.value
+  const { proof, reason, paymentMethod } = payload
   submitting.value = true
   try {
     if (type === 'pay') {
-      await enrollmentService.updateEnrollment(enrollment.id, { paymentStatus: 'paid', paymentProof: proof })
+      const { bankName, paymentMethod: methodType, proof, proofURL, remark } = payload
+
+      // Construct payment info
+      const updateData = {
+        paymentStatus: 'paid',
+        status: 'confirmed', // Auto-confirm when paid
+        paymentMethod: methodType === 'cash' ? 'Cash' : (bankName || 'Online'),
+        transactionId: proof,
+        paymentProofURL: proofURL || '',
+        paidAt: new Date().toISOString(),
+        remark: remark?.trim() || ''
+      }
+
+      await enrollmentService.updateEnrollment(enrollment.id, updateData)
     } else if (type === 'cancel') {
-      await enrollmentService.cancelEnrollment(enrollment.id)
-      await enrollmentService.updateEnrollment(enrollment.id, { cancelReason: reason })
+      await enrollmentService.updateEnrollment(enrollment.id, { status: 'cancelled', cancelReason: reason })
     } else if (type === 'delete') {
-      if (deleteConfirm !== 'DELETE') throw new Error('Type DELETE to confirm')
       await enrollmentService.deleteEnrollment(enrollment.id)
-    } else if (type === 'edit') {
-      await enrollmentService.updateEnrollment(enrollment.id, { amount: Number(amount), remark: remark.trim() })
     }
-    successMessage.value = 'Action completed successfully.'
+    const messages = {
+      pay: 'Payment confirmed successfully!',
+      cancel: 'Enrollment has been cancelled.',
+      delete: 'Enrollment record deleted permanently.'
+    }
+    successMessage.value = messages[type] || 'Action completed successfully.'
     await fetchEnrollments()
     setTimeout(() => {
       closeActionModal()
-    }, 1500)
+    }, 2000)
   } catch (err) {
     errorMessage.value = err.message
   } finally {
@@ -224,15 +298,12 @@ const submitActionModal = async () => {
 }
 
 const closeActionModal = () => {
-  actionModal.value.isOpen = false
+  actionState.value.isOpen = false
   errorMessage.value = ''
   successMessage.value = ''
 }
 
-const formatPrice = (val) => {
-  if (val === undefined || val === null) return '0'
-  return Number.isInteger(val) ? val.toString() : val.toFixed(2)
-}
+// UI Helpers
 </script>
 
 <template>
@@ -243,9 +314,10 @@ const formatPrice = (val) => {
       </template>
 
       <template #table>
-        <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="filteredEnrollments" :loading="loading"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search Enrollments" :hasFilter="true"
-          v-model:currentFilter="currentFilter" :filterOptions="[
+        <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="paginatedEnrollments"
+          :loading="loading" :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize"
+          :totalItems="totalItems" @update:currentPage="currentPage = $event" v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search Enrollments" :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Enrollments', value: 'all' },
             { label: 'Paid Only', value: 'paid' },
             { label: 'Unpaid Only', value: 'unpaid' },
@@ -255,14 +327,16 @@ const formatPrice = (val) => {
             $router.push(`/enrollments/${item.id}`);
           }">
           <template #toolbar-actions>
-            <AppButton variant="primary" @click="showModal = true">+ New Enrollment</AppButton>
+            <AppButton variant="primary" @click="showModal = true">
+              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> New Enrollment
+            </AppButton>
           </template>
 
-          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile text-center">
+          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, headers }">
+            <td class="hide-on-mobile text-center" :style="{ width: headers[0].width }">
               {{ index + 1 }}
             </td>
-            <td class="hide-on-tablet">
+            <td class="hide-on-tablet bold" :style="{ width: headers[1].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent" />
@@ -270,7 +344,7 @@ const formatPrice = (val) => {
                 <span>{{ item.parentName }}</span>
               </div>
             </td>
-            <td>
+            <td class="bold" :style="{ width: headers[2].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="getStudentProfileURL(item.studentProfileURL)" alt="student" />
@@ -278,33 +352,43 @@ const formatPrice = (val) => {
                 <span>{{ item.studentName }}</span>
               </div>
             </td>
-            <td>
+            <td :style="{ width: headers[3].width }">
               <div class="info-cell">
                 <div class="program-icon-mini">
                   <img :src="getProgramProfileURL(item.programProfileURL)" alt="program" />
                 </div>
                 <div class="program-cell">
-                  <div class="program-title">{{ item.programTitle || 'Program' }}</div>
-                  <div class="session-subtitle">{{ item.sessionSchedule || 'TBD' }}</div>
+                  <div class="program-title text-truncate">{{ item.programTitle || 'Program' }}</div>
                 </div>
               </div>
             </td>
-            <td class="text-center">
-              <span class="type-badge" :class="item.enrollmentType?.toLowerCase()">
-                {{ item.enrollmentType || 'Full' }}
-              </span>
-            </td>
-            <td class="bold hide-on-mobile text-center">
-              <div class="amount-cell">
-                <StatusBadge :status="'$' + formatPrice(item.amount || 0)"></StatusBadge>
-                <div v-if="item.isProrated" class="prorate-note">PRORATED</div>
+            <td :style="{ width: headers[4].width }">
+              <div class="session-cell">
+                <div class="session-day"><strong>{{ getSessionDay(item.sessionSchedule) }}</strong></div>
+                <div class="session-time">{{ getSessionTime(item.sessionSchedule) }}</div>
               </div>
             </td>
-            <td class="text-center">
-              <StatusBadge
-                :status="isPaid(item.status || item.paymentStatus) ? 'Paid' : (isCancelled(item.status || item.paymentStatus) ? 'Cancelled' : 'Unpaid')" />
+            <td class="text-center" :style="{ width: headers[5].width }">
+              <span class="date-text">{{ formatDate(item.enrollAt) }}</span>
             </td>
-            <td class="action-cell text-center">
+            <td class="text-center" :style="{ width: headers[6].width }">
+              <StatusBadge :status="item.enrollmentType || 'Full'" />
+            </td>
+            <td class="text-center" :style="{ width: headers[7].width }">
+              <span v-if="!item.paymentMethod && isUnpaid(item.status || item.paymentStatus)"
+                class="not-assigned-label">—</span>
+              <StatusBadge v-else
+                :status="item.paymentMethod || (isPaid(item.status || item.paymentStatus) ? 'Not Specified' : '—')" />
+            </td>
+            <td class="bold hide-on-mobile text-center" :style="{ width: headers[8].width }">
+              <div class="amount-cell">
+                <StatusBadge :status="'$' + formatPrice(item.amount || 0)"></StatusBadge>
+              </div>
+            </td>
+            <td class="text-center" :style="{ width: headers[9].width }">
+              <StatusBadge :status="item.displayStatus || 'Unpaid'" />
+            </td>
+            <td class="action-cell text-center" :style="{ width: headers[10].width }">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
                   <span class="dots-icon">⋮</span>
@@ -313,13 +397,21 @@ const formatPrice = (val) => {
                   <transition name="fade">
                     <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
                       :style="menuStyles" @click.stop>
-                      <button @click="handleAction('edit', item)">✏️ Edit</button>
-                      <button v-if="isUnpaid(item.status || item.paymentStatus)" @click="handleAction('pay', item)">💰
-                        Pay</button>
-                      <button v-if="!isCancelled(item.status || item.paymentStatus)"
-                        @click="handleAction('cancel', item)">🚫 Cancel</button>
+                      <button class="btn-edit" @click="handleAction('edit', item)">
+                        <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit
+                      </button>
+                      <button v-if="!isPaid(item.status) && !isPaid(item.paymentStatus) && !isCancelled(item.status)"
+                        class="btn-pay" @click="handleAction('pay', item)">
+                        <img :src="getActionIcon('pay')" class="action-icon-mini" /> Pay
+                      </button>
+                      <button v-if="!isCancelled(item.status || item.paymentStatus)" class="btn-cancel"
+                        @click="handleAction('cancel', item)">
+                        <img :src="getActionIcon('cancel')" class="action-icon-mini" /> Cancel
+                      </button>
                       <div class="menu-divider"></div>
-                      <button class="delete-btn" @click="handleAction('delete', item)">🗑️ Delete</button>
+                      <button class="btn-delete" @click="handleAction('delete', item)">
+                        <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete
+                      </button>
                     </div>
                   </transition>
                 </Teleport>
@@ -330,50 +422,14 @@ const formatPrice = (val) => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentForm :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
-      :programs="programs" :sessions="sessions" :enrollments="enrollments" :error="errorMessage"
-      :success="successMessage" @close="() => { showModal = false; errorMessage = ''; successMessage = ''; }"
-      @program-change="handleProgramChange" @submit="handleCreateEnrollment" />
+    <EnrollmentFormModal :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
+      :programs="programs" :sessions="sessions" :enrollments="enrollments" :enrollment="selectedEnrollment"
+      :error="errorMessage" :success="successMessage" :hint="validationHint"
+      @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
+      @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint" />
 
-    <!-- Action Modals -->
-    <AppModal :show="actionModal.isOpen" :title="actionModal.type + ' Enrollment'" variant="action"
-      @close="closeActionModal">
-      <div v-if="errorMessage" class="alert-box error">{{ errorMessage }}</div>
-      <div v-if="successMessage" class="alert-box success">{{ successMessage }}</div>
-
-      <div v-if="actionModal.type === 'edit'" class="form-group">
-        <label>Amount ($)</label>
-        <input type="number" v-model="actionModal.amount" />
-        <label>Remark</label>
-        <textarea v-model="actionModal.remark" placeholder="Enter administrative remarks..."></textarea>
-      </div>
-      <div v-if="actionModal.type === 'pay'" class="form-group">
-        <label>Proof of Payment</label>
-        <input type="text" v-model="actionModal.proof" placeholder="Receipt or Transaction ID" />
-      </div>
-      <div v-if="actionModal.type === 'cancel'" class="form-group">
-        <label>Reason for Cancellation</label>
-        <textarea v-model="actionModal.reason" placeholder="Why is this enrollment being cancelled?"></textarea>
-      </div>
-      <div v-if="actionModal.type === 'delete'" class="form-group">
-        <div class="info-block danger"
-          style="background: #fef2f2; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
-          <p style="color: #991b1b; font-size: 0.9rem;"><strong>Warning:</strong> This action is permanent and cannot be
-            undone.</p>
-        </div>
-        <label>Type <strong class="danger-text">DELETE</strong> to confirm</label>
-        <input type="text" v-model="actionModal.deleteConfirm" placeholder="DELETE" />
-      </div>
-
-      <template #footer>
-        <AppButton variant="cancel" @click="closeActionModal">Cancel</AppButton>
-        <AppButton :variant="actionModal.type === 'delete' ? 'danger' : 'primary'" @click="submitActionModal"
-          :loading="submitting"
-          :disabled="submitting || (actionModal.type === 'delete' && actionModal.deleteConfirm !== 'DELETE')">
-          Confirm action
-        </AppButton>
-      </template>
-    </AppModal>
+    <EnrollmentActionModal v-bind="actionState" :loading="submitting" v-model:error="errorMessage"
+      v-model:success="successMessage" @close="closeActionModal" @submit="submitActionModal" />
   </DashboardLayout>
 </template>
 
@@ -382,42 +438,19 @@ const formatPrice = (val) => {
   padding: 24px;
 }
 
-.bold {
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
 .user-info {
   cursor: pointer;
 }
 
-.type-badge {
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.type-badge.prorated {
-  background: #f0f9ff;
-  color: #00aeef;
-  border: 1px solid #e0f2fe;
-}
-
-.type-badge.full {
-  background: #f0fdf4;
-  color: #166534;
-  border: 1px solid #dcfce7;
-}
-
-.amount-cell {
+.session-cell {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 2px;
+}
+
+.date-text {
+  font-size: 0.9rem;
+  color: #475569;
 }
 
 .prorate-note {
