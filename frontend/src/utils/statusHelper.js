@@ -64,10 +64,8 @@ export const getStatusCategory = (status) => {
       'joined at',
       'success',
       'past',
-      'full',
       'start',
       'cash',
-      'emerald',
     ],
     yellow: [
       'unpaid',
@@ -120,7 +118,7 @@ export const getStatusCategory = (status) => {
       'sponsorship',
       'partial',
     ],
-    magenta: ['unmarked', 'archived'],
+    magenta: ['unmarked', 'archived', 'full'],
   }
 
   // 1. Exact match
