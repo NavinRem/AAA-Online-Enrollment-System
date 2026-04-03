@@ -5,9 +5,6 @@ const userController = require("../../controllers/management/userController");
 // Register Parent Account
 router.post("/registerParentAccount", userController.registerParentAccount);
 
-// Get User Role
-router.get("/:uid/role", userController.getUserRole);
-
 // Register Student Profile
 router.post(
   "/:uid/registerStudentProfile",

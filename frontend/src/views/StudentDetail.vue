@@ -778,24 +778,24 @@ watch(
           <template #outside>
             <div class="profile-header">
               <div class="profile-preview">
-                <img :src="student?.profileURL || getImageUrl('profiles/avatar-student')" alt="Student Profile" />
+                <img :src="student?.profile || getImageUrl('profiles/avatar-student')" alt="Student Profile" />
               </div>
             </div>
           </template>
-
+ 
           <div class="scrollable-info-body">
             <div class="detail-info-group">
               <div class="info-item vertical">
                 <span class="info-label">FULLNAME:</span>
-                <strong>{{ student?.name || student?.fullName }}</strong>
+                <strong>{{ student?.name }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">DATE OF BIRTH:</span>
-                <strong>{{ formatDateOnly(student?.dob || student?.DoB) || '-' }}</strong>
+                <strong>{{ formatDateOnly(student?.dob) || '-' }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">AGE:</span>
-                <strong>{{ calculateAge(student?.dob || student?.DoB) || '-' }}</strong>
+                <strong>{{ calculateAge(student?.dob) || '-' }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">MEDICAL NOTE:</span>
@@ -830,40 +830,28 @@ watch(
 
         <DetailedSummaryCard subtitle="Relationships">
           <div class="relationships-list scrollable-info-body">
-            <div class="relationship-category ">
+            <div class="relationship-category">
               <span class="category-title">Parent</span>
-              <div class="relationship-item" v-if="primaryParent">
-                <img :src="primaryParent?.profileURL || getImageUrl('profiles/avatar-parent')" alt="Parent Avatar"
+              <div class="relationship-item" v-if="student?.parentId">
+                <img :src="student?.parentProfile || getImageUrl('profiles/avatar-parent')" alt="Parent Avatar"
                   class="small-avatar" />
                 <div class="child-info">
-                  <strong>{{
-                    primaryParent?.name ||
-                    'Parent Name'
-                    }}</strong>
+                  <strong>{{ student?.parentName || 'Parent Name' }}</strong>
                 </div>
               </div>
               <div v-else class="empty-relation-box">
                 <!-- <p>No parent mapped.</p> -->
               </div>
             </div>
-            <div class="relationship-category" style="margin-top: 5px">
+
+            <div class="relationship-category" style="margin-top: 5px" v-if="primaryGuardian">
               <span class="category-title">Guardian</span>
-              <div class="relationship-item" v-if="primaryGuardian">
-                <img :src="primaryGuardian?.profileURL || getImageUrl('profiles/avatar-guardian')" alt="Guardian Avatar"
+              <div class="relationship-item">
+                <img :src="primaryGuardian?.profile || getImageUrl('profiles/avatar-guardian')" alt="Guardian Avatar"
                   class="small-avatar" />
                 <div class="child-info">
-                  <strong>{{
-                    primaryGuardian?.name ||
-                    primaryGuardian?.fullName ||
-                    primaryGuardian?.fullname ||
-                    primaryGuardian?.displayName ||
-                    primaryGuardian?.email ||
-                    'Guardian Name'
-                    }}</strong>
+                  <strong>{{ primaryGuardian?.name }}</strong>
                 </div>
-              </div>
-              <div v-else class="empty-relation-box">
-                <!-- <p>No guardian mapped.</p> -->
               </div>
             </div>
           </div>

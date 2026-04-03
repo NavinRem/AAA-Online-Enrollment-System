@@ -34,9 +34,9 @@
 
             <div class="form-group full-width">
                 <label>Profile Avatar <span class="required">*</span></label>
-                <AvatarSelector v-model="formData.profileURL" :role="formData.role"
+                <AvatarSelector v-model="formData.profile" :role="formData.role"
                     :customFileName="`${formData.name}_${formData.role}`" />
-                <div v-if="errors.profileURL" class="field-error-msg">{{ errors.profileURL }}</div>
+                <div v-if="errors.profile" class="field-error-msg">{{ errors.profile }}</div>
             </div>
 
             <div class="form-group full-width">
@@ -96,7 +96,7 @@ const formData = ref({
     email: '',
     phone: '',
     role: 'parent',
-    profileURL: '',
+    profile: '',
     password: '',
 })
 
@@ -110,7 +110,7 @@ watch(() => props.isOpen, (newVal) => {
             email: '',
             phone: '',
             role: 'parent',
-            profileURL: '',
+            profile: '',
             password: '',
         }
         showHint.value = false
@@ -127,7 +127,7 @@ const validationHint = computed(() => {
     if (!data.email?.trim() || !data.email.includes('@')) errs.email = 'Valid email is required.'
     if (!data.phone?.trim()) errs.phone = 'Phone number is required.'
     if (!data.role) errs.role = 'Role is required.'
-    if (!data.profileURL) errs.profileURL = 'Please select a profile avatar.'
+    if (!data.profile || data.profile === '') errs.profile = 'Please select a profile avatar.'
 
     errors.value = errs
     return Object.values(errs)[0] || ''

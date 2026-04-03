@@ -5,7 +5,7 @@
       :class="parentTheme">
       <div class="parent-info-content">
         <div class="parent-avatar-wrapper">
-          <img :src="getParentProfileURL((user || selectedParent).profileURL)" class="parent-avatar-img" />
+          <img :src="getParentProfileURL((user || selectedParent).profile)" class="parent-avatar-img" />
         </div>
         <div class="parent-details">
           <span class="parent-role-tag">{{ (user || selectedParent).role || 'parent' }}</span>
@@ -52,9 +52,9 @@
 
       <div class="form-group full-width">
         <label>Profile Avatar <span class="required">*</span></label>
-        <AvatarSelector v-model="localData.profileURL" :role="localData.role" :uid="user?.uid || user?.id"
+        <AvatarSelector v-model="localData.profile" :role="localData.role" :uid="user?.uid || user?.id"
           :customFileName="`${localData.name}_${localData.role}`" />
-        <div v-if="errors.profileURL" class="field-error-msg">{{ errors.profileURL }}</div>
+        <div v-if="errors.profile" class="field-error-msg">{{ errors.profile }}</div>
       </div>
     </div>
 
@@ -68,7 +68,7 @@
             <div class="dropdown-header" @click="isDropdownOpen = !isDropdownOpen">
               <template v-if="selectedParent">
                 <div class="selected-parent">
-                  <img :src="getParentProfileURL(selectedParent.profileURL)" class="avatar-mini-sm" />
+                  <img :src="getParentProfileURL(selectedParent.profile)" class="avatar-mini-sm" />
                   <span>{{ selectedParent.name || selectedParent.email }}</span>
                 </div>
               </template>
@@ -88,7 +88,7 @@
                 <ul class="dropdown-list">
                   <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
                     :class="{ active: localData.parentId === (p.uid || p.id) }" @click="selectParent(p)">
-                    <img :src="getParentProfileURL(p.profileURL)" class="avatar-mini-sm" />
+                    <img :src="getParentProfileURL(p.profile)" class="avatar-mini-sm" />
                     <div class="item-info">
                       <span class="item-name">{{ p.name || p.email }}</span>
                     </div>
@@ -117,9 +117,9 @@
       </div>
 
       <div class="form-group full-width">
-        <AvatarSelector v-model="localData.childProfileURL" role="student"
+        <AvatarSelector v-model="localData.profile" role="student"
           :customFileName="`${localData.name}_student`" />
-        <div v-if="errors.childProfileURL" class="field-error-msg">{{ errors.childProfileURL }}</div>
+        <div v-if="errors.profile" class="field-error-msg">{{ errors.profile }}</div>
       </div>
 
       <div class="form-group full-width">
@@ -234,13 +234,13 @@ const getInitialData = () => ({
   email: '',
   role: 'parent',
   status: 'Active',
-  profileURL: '',
+  profile: '',
   deleteConfirm: '',
   // Child fields
   parentId: props.user?.uid || props.user?.id || '',
   name: '',
   dob: '',
-  childProfileURL: '', // Force selection
+  profile: '', // Force selection
   medicalNote: '',
 })
 
@@ -248,12 +248,12 @@ const mapSourceToForm = () => {
   const u = props.user || {}
   return {
     ...getInitialData(),
-    name: u.name || u.fullName || '',
+    name: u.name || '',
     phone: u.phone || u.phoneNumber || '',
     email: u.email || '',
     role: u.role || 'parent',
     status: u.status || 'Active',
-    profileURL: u.profileURL || u.profileUrl || '',
+    profile: u.profile || '',
     parentId: u.uid || u.id || '',
   }
 }
@@ -279,7 +279,7 @@ const validationHint = computed(() => {
     if (!data.parentId) errs.parentId = 'Please select a parent.'
     if (!data.name?.trim()) errs.name = "Child's name is required."
     if (!data.dob) errs.dob = 'Date of birth is required.'
-    if (!data.childProfileURL) errs.childProfileURL = 'Please select an avatar.'
+    if (!data.profile) errs.profile = 'Please select an avatar.'
   } else if (props.type === 'delete') {
     if (data.deleteConfirm !== 'DELETE') return 'Type DELETE to confirm.'
   }
@@ -302,7 +302,7 @@ const handleActionSubmit = () => {
 const parentTheme = computed(() => {
   const p = props.user || selectedParent.value
   if (!p) return 'theme-default'
-  const url = (p.profileURL || p.profileUrl || '').toLowerCase()
+  const url = (p.profile || '').toLowerCase()
   if (url.includes('woman') || url.includes('girl')) return 'theme-pink'
   if (url.includes('man') || url.includes('boy')) return 'theme-blue'
   return 'theme-default'

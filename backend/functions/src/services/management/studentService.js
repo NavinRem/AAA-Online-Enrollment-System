@@ -15,24 +15,30 @@ class StudentService {
   }
 
   async createStudent(studentData) {
-    const { parentId, fullName, dob, medicalNote, childProfileURL } = studentData;
+    const { parentId, name, dob, medicalNote, profile } = studentData;
 
-    if (!parentId || !fullName || !dob) {
-      throw new Error("Parent ID, Full Name, and Date of Birth are required");
+    if (!parentId || !name || !dob) {
+      throw new Error("Parent ID, Name, and Date of Birth are required");
     }
 
     const parentCol = await this._resolveParentCollection(parentId);
+    const parentDoc = await db.collection(parentCol).doc(parentId).get();
+    const pData = parentDoc.data();
+    const parentName = pData.name || "Unknown Parent";
+    const parentProfile = pData.profile || null;
+
     const studentId = db.collection(COLLECTIONS.STUDENT).doc().id;
     
     const data = {
       parentId,
-      fullName,
-      name: fullName, // Sync with name for naming consistency fix
+      parentName,
+      parentProfile,
+      name,
       dob,
       medicalNote: medicalNote || "None",
-      childProfileURL: childProfileURL || null,
+      profile: profile || null,
       status: "Inactive",
-      createdAt: new Date().toISOString(),
+      created: new Date().toISOString(),
     };
 
     const batch = db.batch();
@@ -45,8 +51,13 @@ class StudentService {
     const subRef = db.collection(parentCol).doc(parentId).collection("students").doc(studentId);
     batch.set(subRef, data);
 
+    // 3. Update Parent's mirrored children array
+    const currentChildren = parentDoc.data().children || [];
+    currentChildren.push({ id: studentId, name });
+    batch.update(db.collection(parentCol).doc(parentId), { children: currentChildren });
+
     await batch.commit();
-    return { id: studentId, message: "Student registered successfully in both global and parent records" };
+    return { id: studentId, message: "Student registered successfully with parent mirroring" };
   }
 
   async getStudent(id) {
@@ -66,7 +77,7 @@ class StudentService {
 
     const mergedData = {
       ...updateData,
-      updatedAt: new Date().toISOString(),
+      updated: new Date().toISOString(),
     };
 
     // Clean undefined
@@ -83,13 +94,19 @@ class StudentService {
     const subRef = db.collection(parentCol).doc(parentId).collection("students").doc(id);
     batch.update(subRef, mergedData);
 
+    // Update Parent's mirrored children array if name changed
+    if (updateData.name) {
+      const parentDoc = await db.collection(parentCol).doc(parentId).get();
+      let children = parentDoc.data().children || [];
+      children = children.map(c => c.id === id ? { ...c, name: updateData.name } : c);
+      batch.update(db.collection(parentCol).doc(parentId), { children });
+    }
+
     await batch.commit();
-    return { message: "Student updated successfully in all locations" };
+    return { message: "Student updated successfully and synced with parent" };
   }
 
   async getStudentsByParentID(parentId) {
-    // We can now try to read from sub-collections directly if we want, 
-    // but the where query on global is still fine and very reliable.
     try {
       const parentCol = await this._resolveParentCollection(parentId);
       const snapshot = await db.collection(parentCol).doc(parentId).collection("students").get();
@@ -100,32 +117,16 @@ class StudentService {
       console.warn("Falling back to global search for students:", e.message);
     }
 
-    // Fallback to global search
     const snapshot = await db.collection(COLLECTIONS.STUDENT).where("parentId", "==", parentId).get();
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   }
 
   async getAllStudents() {
     const studentsSnapshot = await db.collection(COLLECTIONS.STUDENT).get();
-    
-    // Fetch all parents and guardians to get names
-    const [parentsSnap, guardiansSnap] = await Promise.all([
-      db.collection(COLLECTIONS.PARENT).get(),
-      db.collection(COLLECTIONS.GUARDIAN).get()
-    ]);
-
-    const parentsMap = {};
-    parentsSnap.forEach(doc => parentsMap[doc.id] = doc.data().name || "Unknown Parent");
-    guardiansSnap.forEach(doc => parentsMap[doc.id] = doc.data().name || "Unknown Guardian");
-
-    return studentsSnapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        parentName: parentsMap[data.parentId] || "N/A",
-        ...data,
-      };
-    });
+    return studentsSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
   }
 
   async updateMedicalInfo(id, medicalNote) {

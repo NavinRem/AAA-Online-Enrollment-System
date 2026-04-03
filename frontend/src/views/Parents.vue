@@ -120,22 +120,22 @@ const closeActionModal = () => {
 const submitActionModal = async (formData) => {
   const type = actionModalType.value
   const user = actionModalUser.value
-  const { name, phone, email, role, profileURL, deleteConfirm } = formData
+  const { name, phone, email, role, profile, deleteConfirm } = formData
   submitting.value = true
   errorMessage.value = ''
-
+ 
   try {
     if (type === 'edit') {
       const { status } = formData
-      await userService.updateUser(user.uid || user.id, { name, phone, email, role, profileURL, status })
-
+      await userService.updateUser(user.uid || user.id, { name, phone, email, role, profile, status })
+ 
       const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
       if (idx !== -1) {
         allUsers.value[idx].name = name
         allUsers.value[idx].phone = phone
         allUsers.value[idx].email = email
         allUsers.value[idx].role = role
-        if (profileURL) allUsers.value[idx].profileURL = profileURL
+        if (profile) allUsers.value[idx].profile = profile
       }
       successMessage.value = 'User updated successfully!'
     } else if (type === 'deactivate') {
@@ -160,22 +160,22 @@ const submitActionModal = async (formData) => {
       allUsers.value = allUsers.value.filter((u) => (u.uid || u.id) !== (user.uid || user.id))
       successMessage.value = 'User deleted successfully!'
     } else if (type === 'register-child') {
-      const { name, dob, childProfileURL, medicalNote } = formData
+      const { name, dob, profile, medicalNote } = formData
       const parentId = user.uid || user.id
-
+ 
       // Finalize Profile Image (if temp)
-      let finalProfileURL = childProfileURL
-      if (childProfileURL && childProfileURL.includes('/profiles/temp/')) {
-        const extension = childProfileURL.split('?')[0].split('.').pop()
+      let finalProfile = profile
+      if (profile && profile.includes('/profiles/temp/')) {
+        const extension = profile.split('?')[0].split('.').pop()
         const sanitizedName = (name || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
         const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
-        finalProfileURL = await storageService.moveProfileImage(childProfileURL, newPath)
+        finalProfile = await storageService.moveProfileImage(profile, newPath)
       }
-
+ 
       const result = await userService.registerStudentProfile(parentId, {
         name,
         dob,
-        profileURL: finalProfileURL,
+        profile: finalProfile,
         medicalNote,
         status: 'Studying',
       })
@@ -190,7 +190,7 @@ const submitActionModal = async (formData) => {
           id: result.id || result.UID,
           name,
           dob,
-          profileURL: finalProfileURL,
+          profile: finalProfile,
           medicalNote,
           status: 'Studying',
           parentId: parentId,
@@ -227,13 +227,13 @@ const submitNewParent = async (data) => {
     const payload = { ...data, status: 'Active' }
 
     // Finalize Profile Image (if temp)
-    if (payload.profileURL && payload.profileURL.includes('/profiles/temp/')) {
-      const extension = payload.profileURL.split('?')[0].split('.').pop()
+    if (payload.profile && payload.profile.includes('/profiles/temp/')) {
+      const extension = payload.profile.split('?')[0].split('.').pop()
       const sanitizedName = payload.name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
       const newPath = `profiles/new_parent/${sanitizedName}_${payload.role}.${extension}`
-      payload.profileURL = await storageService.moveProfileImage(payload.profileURL, newPath)
+      payload.profile = await storageService.moveProfileImage(payload.profile, newPath)
     }
-
+ 
     const result = await userService.registerParentAccount(payload)
 
     // Use the actual UID from the backend response
@@ -313,7 +313,7 @@ const navigateToDetail = (item) => {
             <td class="bold" :style="{ width: headers[1].width }">
               <div class="user-cell">
                 <div class="user-avatar-small">
-                  <img :src="getParentProfileURL(item.profileURL)" alt="parent avatar" />
+                  <img :src="getParentProfileURL(item.profile)" alt="parent avatar" />
                 </div>
                 <span>{{ item.name || 'Parent' }}</span>
               </div>
@@ -323,9 +323,9 @@ const navigateToDetail = (item) => {
                 <span v-if="!item.studentProfiles || item.studentProfiles.length === 0" class="text-muted">—</span>
                 <template v-else>
                   <div v-for="(child, i) in item.studentProfiles" :key="child.id || i" class="avatar-mini child-avatar"
-                    :title="child.name || child.fullName || 'Child ' + (i + 1)"
+                    :title="child.name || 'Child ' + (i + 1)"
                     :style="{ zIndex: item.studentProfiles.length - i }">
-                    <img :src="getStudentProfileURL(child.profileURL)" alt="child" />
+                    <img :src="getStudentProfileURL(child.profile)" alt="child" />
                   </div>
                 </template>
               </div>

@@ -25,7 +25,7 @@ class UserService {
   }
 
   async registerParentAccount(userData) {
-    let { uid, email, role, name, profileURL, phone, password } = userData;
+    let { uid, email, role, name, profile, phone, password } = userData;
     const targetRole = role || "parent";
 
     // Auth logic remains the same
@@ -61,12 +61,12 @@ class UserService {
       email,
       role: targetRole,
       name: name || null,
-      profileURL: profileURL || null,
+      profile: profile || null,
       phone: phone || null,
       status: userData.status || "Active",
       updatedAt: new Date().toISOString(),
     };
-
+ 
     const doc = await userRef.get();
     if (!doc.exists) {
       data.createdAt = new Date().toISOString();

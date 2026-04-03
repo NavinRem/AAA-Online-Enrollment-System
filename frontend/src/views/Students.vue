@@ -127,22 +127,22 @@ const handleRegisterStudent = async (formData) => {
   modalSuccess.value = ''
 
   try {
-    const { parentId, name, dob, childProfileURL, medicalNote } = formData
+    const { parentId, name, dob, profile, medicalNote } = formData
     if (!parentId) throw new Error('No parent selected')
-
+ 
     // Finalize Profile Image (if temp)
-    let finalProfileURL = childProfileURL
-    if (childProfileURL && childProfileURL.includes('/profiles/temp/')) {
-      const extension = childProfileURL.split('?')[0].split('.').pop()
+    let finalProfile = profile
+    if (profile && profile.includes('/profiles/temp/')) {
+      const extension = profile.split('?')[0].split('.').pop()
       const sanitizedName = (name || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
       const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
-      finalProfileURL = await storageService.moveProfileImage(childProfileURL, newPath)
+      finalProfile = await storageService.moveProfileImage(profile, newPath)
     }
-
+ 
     const result = await userService.registerStudentProfile(parentId, {
       name,
       dob,
-      profileURL: finalProfileURL,
+      profile: finalProfile,
       medicalNote,
       status: 'Inactive',
     })
@@ -153,12 +153,13 @@ const handleRegisterStudent = async (formData) => {
       id: result.id,
       name,
       dob,
-      profileURL: finalProfileURL,
+      profile: finalProfile,
       medicalNote,
       parentId: parentId,
-      parentName: chosenParent ? chosenParent.name || chosenParent.email : 'Parent',
+      parentName: chosenParent ? (chosenParent.name || chosenParent.email) : 'Parent',
+      parentProfile: chosenParent ? chosenParent.profile : null,
       status: 'Inactive',
-      createdAt: new Date().toISOString(),
+      created: new Date().toISOString(),
       programs: [],
     }
 
@@ -239,7 +240,7 @@ const submitActionModal = async (formData) => {
         status,
         dob,
         parentId: parentId,
-        profileURL: profileURL,
+        profile: profile,
       })
 
       const idx = students.value.findIndex((s) => s.id === student.id || s.uid === student.uid)
@@ -250,10 +251,11 @@ const submitActionModal = async (formData) => {
         students.value[idx].medicalNote = medicalNote
         students.value[idx].status = status
         if (dob) students.value[idx].dob = dob
-        if (profileURL) students.value[idx].profileURL = profileURL
+        if (profile) students.value[idx].profile = profile
         if (chosenParent) {
           students.value[idx].parentId = parentId
           students.value[idx].parentName = chosenParent.name || chosenParent.email
+          students.value[idx].parentProfile = chosenParent.profile
         }
 
         // SYNC: Update Student Info in Parent's nested studentProfiles array
@@ -266,7 +268,7 @@ const submitActionModal = async (formData) => {
                   ...p,
                   name: name,
                   dob,
-                  profileURL,
+                  profile,
                   medicalNote,
                   status
                 }
@@ -364,17 +366,17 @@ const submitActionModal = async (formData) => {
             <td class="bold" @click="navigateToDetail(item)">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="getStudentProfileURL(item.profileURL)" alt="avatar" />
+                  <img :src="getStudentProfileURL(item.profile)" alt="avatar" />
                 </div>
                 <div class="user-info" @click="navigateToDetail(item)">
-                  <span class="user-name">{{ item.name || item.fullName }}</span>
+                  <span class="user-name">{{ item.name }}</span>
                 </div>
               </div>
             </td>
             <td>
               <div class="user-cell">
                 <div class="user-avatar-small">
-                  <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent avatar" />
+                  <img :src="getParentProfileURL(item.parentProfile)" alt="parent avatar" />
                 </div>
                 {{ item.parentName || 'Parent' }}
               </div>

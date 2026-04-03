@@ -14,7 +14,7 @@ class ProgramService {
       levelId, 
       termId, 
       schedule, 
-      profileURL, 
+      profile, 
       teachers, // Array of { id, name }
       startDate,
       endDate 
@@ -47,7 +47,7 @@ class ProgramService {
       levelId: levelId || null,
       termId: termId || null,
       schedule: schedule || null,
-      profileURL: profileURL || null,
+      profile: profile || null,
       teachers: teachers || [],
       startDate: startDate || null,
       endDate: endDate || null,
@@ -94,7 +94,7 @@ class ProgramService {
       teachersMap[doc.id] = {
         id: doc.id,
         name: userData.name || userData.email || "Unknown",
-        profileURL: userData.profileURL || null
+        profile: userData.profile || null
       };
     });
 
@@ -125,7 +125,7 @@ class ProgramService {
         const teacherId = typeof t === 'string' ? t : (t.id || t.uid);
         if (!teacherId) return null;
         
-        return teachersMap[teacherId] || (typeof t === 'object' ? { ...t, profileURL: "" } : { id: t, name: "Unknown", profileURL: "" });
+        return teachersMap[teacherId] || (typeof t === 'object' ? { ...t, profile: "" } : { id: t, name: "Unknown", profile: "" });
       }).filter(Boolean);
 
       return {
