@@ -267,11 +267,9 @@ const submitNewParent = async (data) => {
 const openAddChildModal = (parent) => {
   errorMessage.value = ''
   successMessage.value = ''
-  actionModal.value = {
-    isOpen: true,
-    type: 'register-child',
-    user: parent,
-  }
+  actionModalType.value = 'register-child'
+  actionModalUser.value = parent
+  isActionModalOpen.value = true
 }
 
 const navigateToDetail = (item) => {
