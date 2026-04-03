@@ -26,18 +26,20 @@ class UserService {
       const doc = await db.collection(col).doc(uid).get();
       if (doc.exists) return col;
     }
-    
+
     // Last resort for new accounts with no role hint
     return COLLECTIONS.PARENT;
   }
 
   async registerParentAccount(userData) {
     let { uid, email, name, profile, phone, password } = userData;
-    
+
     // SECURITY: Strictly enforce role for public registration
     // If no role specified, default to parent. If role is provided, only allow parent/guardian.
     const requestedRole = (userData.role || "parent").toLowerCase();
-    const targetRole = ["parent", "guardian"].includes(requestedRole) ? requestedRole : "parent";
+    const targetRole = ["parent", "guardian"].includes(requestedRole)
+      ? requestedRole
+      : "parent";
 
     // Auth logic remains the same
     if (!uid) {
@@ -106,7 +108,10 @@ class UserService {
     if (!uid) {
       if (!email) throw new Error("Email is required for staff account");
       try {
-        const userRecord = await getAuth().createUser({ email, displayName: name || null });
+        const userRecord = await getAuth().createUser({
+          email,
+          displayName: name || null,
+        });
         uid = userRecord.uid;
       } catch (err) {
         if (err.code === "auth/email-already-exists") {
@@ -136,7 +141,11 @@ class UserService {
     if (!doc.exists) data.createdAt = new Date().toISOString();
 
     await userRef.set(data, { merge: true });
-    return { uid, role: targetRole, message: "Staff account created successfully" };
+    return {
+      uid,
+      role: targetRole,
+      message: "Staff account created successfully",
+    };
   }
 
   async getUserRole(uid) {
@@ -186,22 +195,23 @@ class UserService {
 
   async getUser(uid) {
     if (!uid) throw new Error("User ID (uid) is required");
-    
+
     const collections = [
       COLLECTIONS.PARENT,
       COLLECTIONS.GUARDIAN,
       COLLECTIONS.ADMIN,
       COLLECTIONS.TEACHER,
     ];
-    
+
     for (const col of collections) {
       const doc = await db.collection(col).doc(uid).get();
       if (doc.exists) {
-        return { 
-          uid: doc.id, 
+        return {
+          uid: doc.id,
           ...doc.data(),
           name: doc.data().name || "User",
-          profile: doc.data().profile || "/src/assets/images/profiles/avatar-man.png"
+          profile:
+            doc.data().profile || "/src/assets/images/profiles/avatar-man.png",
         };
       }
     }
@@ -211,62 +221,93 @@ class UserService {
   async updateUser(uid, updateData) {
     if (!uid) throw new Error("User ID (uid) is required");
 
-    // Determine which collection they belong to
-    const collectionName = await this._resolveTargetCollection(
+    // 1. Determine Current vs Target Location
+    const oldCollection = await this._resolveTargetCollection(uid);
+    const newCollection = await this._resolveTargetCollection(
       uid,
       updateData.role,
     );
-    const userRef = db.collection(collectionName).doc(uid);
+    const isMoving = oldCollection !== newCollection;
 
-    // Sync custom claims if role is changed
-    if (updateData.role) {
-      try {
-        await getAuth().setCustomUserClaims(uid, { role: updateData.role });
-      } catch (err) {
-        console.warn(
-          `Failed to sync custom claims on update for ${uid}:`,
-          err.message,
-        );
-      }
-    }
+    const oldRef = db.collection(oldCollection).doc(uid);
+    const newRef = db.collection(newCollection).doc(uid);
 
-    const cleanData = { 
+    const batch = db.batch();
+    const now = new Date().toISOString();
+
+    // 2. Prepare Clean Data
+    const cleanData = {
       ...updateData,
-      updatedAt: new Date().toISOString()
+      updatedAt: now,
     };
-    
-    // Eliminate all legacy fields from being re-written
     delete cleanData.uid;
     delete cleanData.fullName;
     delete cleanData.username;
     delete cleanData.profileURL;
     delete cleanData.childProfileURL;
 
-    const batch = db.batch();
-    batch.set(userRef, cleanData, { merge: true });
+    // 3. Handle Migration if Role Changes
+    if (isMoving) {
+      console.log(`🚀 Migrating user ${uid} from ${oldCollection} to ${newCollection}`);
+      
+      const oldDoc = await oldRef.get();
+      const oldData = oldDoc.data() || {};
+      
+      // Write to NEW location
+      batch.set(newRef, { ...oldData, ...cleanData }, { merge: true });
+      
+      // Delete from OLD location
+      batch.delete(oldRef);
 
-    // Sync to linked students if relevant fields changed
+      // Migrate Students Sub-collection
+      const studentsSubSnap = await oldRef.collection("students").get();
+      for (const sDoc of studentsSubSnap.docs) {
+        const sData = sDoc.data();
+        // Create in new sub-collection
+        batch.set(newRef.collection("students").doc(sDoc.id), sData);
+        // Delete from old sub-collection
+        batch.delete(sDoc.ref);
+      }
+
+      // Sync Custom Claims (Role Key)
+      if (updateData.role) {
+        try {
+          await getAuth().setCustomUserClaims(uid, { role: updateData.role });
+        } catch (err) {
+          console.warn(`Failed to sync custom claims for ${uid}:`, err.message);
+        }
+      }
+    } else {
+      // Standard Update (Same Collection)
+      batch.set(oldRef, cleanData, { merge: true });
+      
+      // Sync Custom Claims if role was explicitly provided but hasn't changed collection
+      if (updateData.role) {
+        await getAuth().setCustomUserClaims(uid, { role: updateData.role });
+      }
+    }
+
+    // 4. Sync Mirrored Data in Global Collections
     const syncFields = ["name", "email", "phone", "role", "profile"];
     const shouldSync = Object.keys(updateData).some((key) =>
       syncFields.includes(key),
     );
 
     if (shouldSync) {
-      const userDoc = await userRef.get();
+      const userDoc = await (isMoving ? newRef : oldRef).get();
       const userData = { ...userDoc.data(), ...updateData };
 
-      // Standardize the mirroring snapshot
       const parentInfo = {
         id: uid,
         name: userData.name || userData.email || "Parent",
         email: userData.email || "N/A",
         phone: userData.phone || "N/A",
-        role: userData.role || "guardian",
-        roleDisplay: userData.role === "parent" ? "Parent" : (userData.role || "Guardian"),
+        role: userData.role || (newCollection === COLLECTIONS.GUARDIAN ? "guardian" : "parent"),
+        roleDisplay: userData.role === "parent" ? "Parent" : userData.role || "Guardian",
         profile: userData.profile || "/src/assets/images/profiles/avatar-man.png",
       };
 
-      // Find all students for this parent
+      // Find all students for this parent in the GLOBAL collection
       const studentsSnap = await db
         .collection(COLLECTIONS.STUDENT)
         .where("parentId", "==", uid)
@@ -274,30 +315,21 @@ class UserService {
 
       studentsSnap.forEach((sDoc) => {
         // Update global student record
-        batch.update(sDoc.ref, {
-          parentInfo,
-        });
+        batch.update(sDoc.ref, { parentInfo });
 
-        // Update sub-collection record
-        const subRef = db
-          .collection(collectionName)
-          .doc(uid)
-          .collection("students")
-          .doc(sDoc.id);
-        batch.set(
-          subRef,
-          {
-            parentInfo,
-          },
-          { merge: true },
-        );
+        // Update local sub-collection record (in the NEW location)
+        const subRef = newRef.collection("students").doc(sDoc.id);
+        batch.set(subRef, { parentInfo }, { merge: true });
       });
     }
 
     await batch.commit();
     return {
       uid,
-      message: "User updated and mirrored to all student records successfully",
+      moved: isMoving,
+      message: isMoving 
+        ? `User successfully migrated from ${oldCollection} to ${newCollection}`
+        : "User updated successfully",
     };
   }
 
