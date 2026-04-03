@@ -278,9 +278,9 @@ watch(
                   :class="{ active: selectedChildUid === (s.id || s.uid) }" @click="selectedChildUid = (s.id || s.uid)"
                   @dblclick="navigateToStudent(s)">
                   <div class="chip-avatar-wrapper">
-                    <img :src="s.profile || s.profileURL || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
+                    <img :src="s.profile || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
                   </div>
-                  <span class="chip-label">{{ s.name || s.fullName || s.fullname }}</span>
+                  <span class="chip-label">{{ s.name || 'Student' }}</span>
                 </button>
               </div>
               <div class="table-container">
@@ -408,9 +408,9 @@ watch(
           <template #outside>
             <div class="profile-header" style="flex-direction: column; align-items: center;">
               <div class="profile-preview">
-                <img :src="parent?.profile || parent?.profileURL || getImageUrl('profiles/avatar-parent')" alt="Profile" />
+                <img :src="parent?.profile || getImageUrl('profiles/avatar-parent')" alt="Profile" />
               </div>
-              <h3 class="profile-name">{{ parent?.name || parent?.fullname || 'Anonymous' }}</h3>
+              <h3 class="profile-name">{{ parent?.name || 'Anonymous' }}</h3>
               <div class="badge-stack">
                 <StatusBadge :status="parent?.role || 'parent'" />
                 <StatusBadge :status="parent?.status || 'Active'" />
@@ -448,9 +448,9 @@ watch(
           <div class="relationships-list">
             <div v-for="s in students" :key="s.id || s.uid" class="relationship-item clickable"
               @click="navigateToStudent(s)">
-              <img :src="s.profile || s.profileURL || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
+              <img :src="s.profile || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
               <div class="child-info">
-                <strong>{{ s.name || s.fullName || s.fullname }}</strong>
+                <strong>{{ s.name || 'Student' }}</strong>
               </div>
             </div>
             <div v-if="students.length === 0" class="text-muted text-center">

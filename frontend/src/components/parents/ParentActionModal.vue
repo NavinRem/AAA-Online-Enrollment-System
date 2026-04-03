@@ -274,7 +274,7 @@ const validationHint = computed(() => {
     if (!data.email?.trim() || !data.email.includes('@')) errs.email = 'Valid email is required.'
     if (!data.phone?.trim()) errs.phone = 'Phone number is required.'
     if (!data.role) errs.role = 'Role is required.'
-    if (!data.profileURL) errs.profileURL = 'Please select a profile avatar.'
+    if (!data.profile) errs.profile = 'Please select a profile avatar.'
   } else if (props.type === 'register-child') {
     if (!data.parentId) errs.parentId = 'Please select a parent.'
     if (!data.name?.trim()) errs.name = "Child's name is required."
