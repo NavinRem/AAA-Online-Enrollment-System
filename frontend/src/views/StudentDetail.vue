@@ -443,9 +443,9 @@ const fetchData = async (id) => {
         const program = programs.find(c => (c.id || c.uid) === r.programId)
         return {
           ...r,
-          programTitle: program?.title || r.programTitle || r.courseTitle || 'Unknown Program',
-          parentName: r.parentName || r.parent?.name || 'Parent',
-          studentName: r.studentName || r.student?.name || 'Student',
+          programTitle: program?.title || r.program?.title || r.programTitle || r.courseTitle || 'Unknown Program',
+          parentName: r.parent?.name || r.parentName || 'Parent',
+          studentName: r.student?.name || r.studentName || 'Student',
           termName: program?.termName || program?.term || r.termName || null,
           schedule: program?.schedule || r.schedule || null,
           startDate: program?.startDate || r.startDate || null,
@@ -832,11 +832,11 @@ watch(
           <div class="relationships-list scrollable-info-body">
             <div class="relationship-category">
               <span class="category-title">Parent</span>
-              <div class="relationship-item" v-if="student?.parentId">
-                <img :src="student?.parentProfile || getImageUrl('profiles/avatar-parent')" alt="Parent Avatar"
+              <div class="relationship-item" v-if="student?.parentInfo || student?.parentId">
+                <img :src="student?.parentInfo?.profile || student?.parentProfile || getImageUrl('profiles/avatar-parent')" alt="Parent Avatar"
                   class="small-avatar" />
                 <div class="child-info">
-                  <strong>{{ student?.parentName || 'Parent Name' }}</strong>
+                  <strong>{{ student?.parentInfo?.name || student?.parentName || 'Parent Name' }}</strong>
                 </div>
               </div>
               <div v-else class="empty-relation-box">

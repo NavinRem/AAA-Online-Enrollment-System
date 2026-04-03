@@ -183,12 +183,28 @@ const handleEditSubmit = async (formData) => {
 
     const payload = {
       parentId: pRecord.uid || pRecord.id,
-      parentName: pRecord.name || pRecord.email || 'Parent',
       studentId: sRecord.id,
-      studentName: sRecord.fullname || sRecord.fullName || sRecord.name || 'Student',
       programId: progRecord.id,
-      programTitle: progRecord.title || progRecord.name || 'Program',
       sessionId: sessRecord.id,
+      parent: {
+        id: pRecord.uid || pRecord.id,
+        name: pRecord.name || pRecord.email || 'Parent',
+        profile: pRecord.profile || null
+      },
+      student: {
+        id: sRecord.id,
+        name: sRecord.fullname || sRecord.fullName || sRecord.name || 'Student',
+        profile: sRecord.profile || sRecord.profileURL || sRecord.childProfileURL || null
+      },
+      program: {
+        id: progRecord.id,
+        title: progRecord.title || progRecord.name || 'Program',
+        profile: progRecord.profile || null
+      },
+      session: {
+        id: sessRecord.id,
+        schedule: sessRecord.schedule?.day + ' ' + sessRecord.schedule?.timeslot
+      },
       sessionSchedule: sessRecord.schedule?.day + ' ' + sessRecord.schedule?.timeslot,
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
@@ -284,20 +300,20 @@ onMounted(async () => {
 
       <template #left-content v-if="enrollment">
         <div class="detail-cards-grid">
-          <DetailCard title="Parent/Guardian Information" :avatarUrl="getParentProfileURL(parent?.profileURL)">
-            <p><strong>Fullname:</strong> {{ enrollment.parent?.name || enrollment.parentName || 'N/A' }}</p>
+          <DetailCard title="Parent/Guardian Information" :avatarUrl="getParentProfileURL(enrollment.parent?.profile)">
+            <p><strong>Fullname:</strong> {{ enrollment.parent?.name || 'N/A' }}</p>
             <p><strong>Email:</strong> {{ enrollment.parent?.email || 'N/A' }}</p>
             <p><strong>Phone Number:</strong> {{ enrollment.parent?.phone || 'N/A' }}</p>
             <p>
               <strong>Role:</strong>
-              <StatusBadge :status="enrollment.parent?.roleDisplay || 'Guardian'" />
+              <StatusBadge :status="enrollment.parent?.roleDisplay || enrollment.parent?.role || 'Guardian'" />
             </p>
           </DetailCard>
 
-          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(student?.profileURL)">
+          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.student?.profile)">
             <p>
               <strong>Fullname:</strong>
-              {{ enrollment.student?.name || enrollment.studentName || 'N/A' }}
+              {{ enrollment.student?.name || 'N/A' }}
             </p>
             <p>
               <strong>Date of birth:</strong>
@@ -311,7 +327,7 @@ onMounted(async () => {
           </DetailCard>
 
           <DetailCard title="Program Information"
-            :avatarUrl="getProgramProfileURL(enrollment.program?.profileURL, enrollment.program?.category)">
+            :avatarUrl="getProgramProfileURL(enrollment.program?.profile || enrollment.program?.profileURL, enrollment.program?.category)">
             <p>
               <strong>Program:</strong>
               {{ enrollment.program?.title }}
@@ -339,7 +355,7 @@ onMounted(async () => {
             </p>
           </DetailCard>
 
-          <DetailCard title="Session Information" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)">
+          <DetailCard title="Session Information" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profile || enrollment.teacher?.profileURL)">
             <p><strong>Program:</strong> {{ enrollment.program?.title || 'N/A' }}</p>
 
             <p class="teacher-row-aligned">

@@ -117,12 +117,28 @@ const handleSaveEnrollment = async (formData) => {
 
     const payload = {
       parentId: parent.uid || parent.id,
-      parentName: parent.name || parent.email || 'Parent',
       studentId: student.id,
-      studentName: student.fullname || student.fullName || student.name || 'Student',
       programId: program.id,
-      programTitle: program.title || program.name || 'Program',
       sessionId: session.id,
+      parent: {
+        id: parent.uid || parent.id,
+        name: parent.name || parent.email || 'Parent',
+        profile: parent.profile || null
+      },
+      student: {
+        id: student.id,
+        name: student.name || student.fullName || student.fullname || 'Student',
+        profile: student.profile || student.profileURL || student.childProfileURL || null
+      },
+      program: {
+        id: program.id,
+        title: program.title || program.name || 'Program',
+        profile: program.profile || null
+      },
+      session: {
+        id: session.id,
+        schedule: session.schedule?.day + ' ' + session.schedule?.timeslot
+      },
       sessionSchedule: session.schedule?.day + ' ' + session.schedule?.timeslot,
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
@@ -201,9 +217,11 @@ const statusFilteredEnrollments = computed(() => {
   let filtered = enriched
   if (currentFilter.value !== 'all') {
     filtered = enriched.filter(r => {
-      if (currentFilter.value === 'paid') return isPaid(r.status || r.paymentStatus)
-      if (currentFilter.value === 'unpaid') return isUnpaid(r.status || r.paymentStatus)
-      if (currentFilter.value === 'cancelled') return isCancelled(r.status || r.paymentStatus)
+      if (currentFilter.value === 'paid') return isPaid(r.paymentStatus) && !isCancelled(r.status)
+      if (currentFilter.value === 'unpaid') return isUnpaid(r.paymentStatus) && !isCancelled(r.status)
+      if (currentFilter.value === 'cancelled') return isCancelled(r.status)
+      if (currentFilter.value === 'full') return (r.enrollmentType || 'Full').toLowerCase() === 'full'
+      if (currentFilter.value === 'partial') return (r.enrollmentType || 'Full').toLowerCase() === 'partial'
       return true
     })
   }
@@ -322,6 +340,8 @@ const closeActionModal = () => {
             { label: 'Paid Only', value: 'paid' },
             { label: 'Unpaid Only', value: 'unpaid' },
             { label: 'Cancelled Only', value: 'cancelled' },
+            { label: 'Full Only', value: 'full' },
+            { label: 'Partial Only', value: 'partial' },
           ]" :rowClass="getRowClass" @action="handleTableAction" @row-click="item => {
             if (item.id === newlyCreatedId) newlyCreatedId = null;
             $router.push(`/enrollments/${item.id}`);
@@ -339,26 +359,26 @@ const closeActionModal = () => {
             <td class="hide-on-tablet bold" :style="{ width: headers[1].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent" />
+                  <img :src="getParentProfileURL(item.parent?.profile || item.parentProfileURL)" alt="parent" />
                 </div>
-                <span>{{ item.parentName }}</span>
+                <span>{{ item.parent?.name || item.parentName }}</span>
               </div>
             </td>
             <td class="bold" :style="{ width: headers[2].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="getStudentProfileURL(item.studentProfileURL)" alt="student" />
+                  <img :src="getStudentProfileURL(item.student?.profile || item.studentProfileURL)" alt="student" />
                 </div>
-                <span>{{ item.studentName }}</span>
+                <span>{{ item.student?.name || item.studentName }}</span>
               </div>
             </td>
             <td :style="{ width: headers[3].width }">
               <div class="info-cell">
                 <div class="program-icon-mini">
-                  <img :src="getProgramProfileURL(item.programProfileURL)" alt="program" />
+                  <img :src="getProgramProfileURL(item.program?.profile || item.programProfileURL)" alt="program" />
                 </div>
                 <div class="program-cell">
-                  <div class="program-title text-truncate">{{ item.programTitle || 'Program' }}</div>
+                  <div class="program-title text-truncate">{{ item.program?.title || item.programTitle || 'Program' }}</div>
                 </div>
               </div>
             </td>

@@ -52,29 +52,29 @@ const navigateToDetail = (item) => {
         <td class="bold" :style="{ width: enrollmentHeaders[1].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent" />
+              <img :src="getParentProfileURL(item.parent?.profile || item.parentProfileURL)" alt="parent" />
             </div>
             <div class="user-info">
-              <span class="user-name">{{ item.parentName }}</span>
+              <span class="user-name">{{ item.parent?.name || item.parentName }}</span>
             </div>
           </div>
         </td>
         <td class="bold" :style="{ width: enrollmentHeaders[2].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="getStudentProfileURL(item.studentProfileURL)" alt="child" />
+              <img :src="getStudentProfileURL(item.student?.profile || item.studentProfileURL)" alt="child" />
             </div>
             <div class="user-info">
-              <span class="user-name">{{ item.studentName }}</span>
+              <span class="user-name">{{ item.student?.name || item.studentName }}</span>
             </div>
           </div>
         </td>
         <td class="bold" :style="{ width: enrollmentHeaders[3].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="getProgramProfileURL(item.programProfileURL)" :alt="item.programTitle" />
+              <img :src="getProgramProfileURL(item.program?.profile || item.programProfileURL)" :alt="item.program?.title || item.programTitle" />
             </div>
-            <span class="program-name text-truncate">{{ item.programTitle }}</span>
+            <span class="program-name text-truncate">{{ item.program?.title || item.programTitle }}</span>
           </div>
         </td>
         <td class="text-center" :style="{ width: enrollmentHeaders[4].width }">

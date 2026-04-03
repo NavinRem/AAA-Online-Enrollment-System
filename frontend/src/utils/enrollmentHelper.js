@@ -18,9 +18,11 @@ export const calculateTotalEnrollment = (enrollments) => {
   const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
 
   const total = enrollments.length
-  const paidCount = enrollments.filter(r => isPaid(r.status || r.paymentStatus)).length
-  const unpaidCount = enrollments.filter(r => isUnpaid(r.status || r.paymentStatus)).length
-  const cancelledCount = enrollments.filter(r => isCancelled(r.status || r.paymentStatus)).length
+  // Rule: Paid/Unpaid is controlled by paymentStatus, but exclude cancelled
+  const paidCount = enrollments.filter(r => isPaid(r.paymentStatus) && !isCancelled(r.status)).length
+  const unpaidCount = enrollments.filter(r => isUnpaid(r.paymentStatus) && !isCancelled(r.status)).length
+  // Rule: Cancelled is controlled by Enrollment status
+  const cancelledCount = enrollments.filter(r => isCancelled(r.status)).length
   const todayCount = enrollments.filter(r => {
     const time = parseDate(r.enrollAt || r.createdAt).getTime()
     return time >= startOfToday && time <= endOfToday
@@ -39,31 +41,49 @@ export const calculateTotalEnrollment = (enrollments) => {
  */
 export const enrichEnrollments = (enrollments, parents = [], students = [], programs = [], sessions = []) => {
   return enrollments.map((r) => {
-    const p = parents.find(p => (p.uid || p.id) === r.parentId)
-    const s = students.find(s => (s.uid || s.id) === r.studentId)
-    const c = programs.find(c => (c.id || c.uid) === r.programId)
+    const parent = r.parent || parents.find(p => (p.uid || p.id) === r.parentId)
+    const student = r.student || students.find(s => (s.uid || s.id) === r.studentId)
+    const program = r.program || programs.find(c => (c.id || c.uid) === r.programId)
     const sess = sessions.find(sess => sess.id === r.sessionId)
 
-    const programCategory = r.programCategory || c?.category || 'program'
+    const programCategory = r.programCategory || program?.category || 'program'
     const sessionSchedule = r.sessionSchedule || (sess?.schedule ? `${sess.schedule.day} ${sess.schedule.timeslot}` : 'N/A')
 
     return {
       ...r,
-      parentName: r.parentName || p?.fullName || p?.name || 'N/A',
-      parentProfileURL: getParentProfileURL(r.parentProfileURL || p?.profileURL),
+      parent: parent ? {
+        id: parent.id || parent.uid,
+        name: parent.name || parent.fullName || 'Parent',
+        profile: parent.profile || parent.profileURL || null
+      } : null,
+      student: student ? {
+        id: student.id || student.uid,
+        name: student.name || student.fullName || 'Student',
+        profile: student.profile || student.profileURL || null
+      } : null,
+      program: program ? {
+        id: program.id || program.uid,
+        title: program.title || program.name || 'Program',
+        profile: program.profile || program.profileURL || null
+      } : null,
       
-      studentName: r.studentName || s?.fullName || s?.name || 'N/A',
-      studentProfileURL: getStudentProfileURL(r.studentProfileURL || s?.profileURL),
+      // Legacy compatibility for UI components not yet refactored
+      parentName: parent?.name || parent?.fullName || r.parentName || 'N/A',
+      parentProfileURL: getParentProfileURL(r.parentProfileURL || parent?.profile || parent?.profileURL),
       
-      programTitle: r.programTitle || c?.title || 'N/A',
-      programProfileURL: getProgramProfileURL(r.programProfileURL || c?.profileURL, programCategory),
+      studentName: student?.name || student?.fullName || r.studentName || 'N/A',
+      studentProfileURL: getStudentProfileURL(r.studentProfileURL || student?.profile || student?.profileURL),
+      
+      programTitle: program?.title || program?.name || r.programTitle || 'N/A',
+      programProfileURL: getProgramProfileURL(r.programProfileURL || program?.profile || program?.profileURL, programCategory),
       
       sessionSchedule,
 
-      teacherName: r.teacherName || (c?.teachers?.length > 0 ? c.teachers[0].name : ''),
-      teacherProfileURL: getTeacherProfileURL(r.teacherProfileURL || (c?.teachers?.length > 0 ? c.teachers[0].profileURL : null)),
+      teacherName: r.teacherName || (program?.teachers?.length > 0 ? program.teachers[0].name : ''),
+      teacherProfileURL: getTeacherProfileURL(r.teacherProfileURL || (program?.teachers?.length > 0 ? program.teachers[0].profileURL : null)),
       
-      displayStatus: r.displayStatus || (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : (isPaid(r.status || r.paymentStatus) ? 'Paid' : 'Unpaid')),
+      // Rule: Display is based on Enrollment Status (Cancelled wins) or Payment Status (Paid/Unpaid)
+      displayStatus: r.displayStatus || (isCancelled(r.status) ? 'Cancelled' : (isPaid(r.paymentStatus) ? 'Paid' : 'Unpaid')),
       academicStatus: getAcademicStatus(r)
     }
   }).sort((a, b) => new Date(b.enrollAt || b.createdAt) - new Date(a.enrollAt || a.createdAt))

@@ -2,11 +2,20 @@
  * Enriches parent/guardian data with linked students.
  */
 export const enrichParents = (users = [], students = []) => {
-  const studentsByParent = students.reduce((acc, s) => {
-    const pId = s.parentId
-    if (pId) {
-      if (!acc[pId]) acc[pId] = []
-      acc[pId].push(s)
+  const studentsByParent = students.reduce((acc, student) => {
+    const parentId = student.parentId
+    if (parentId) {
+      if (!acc[parentId]) acc[parentId] = []
+      
+      // Standardize the snapshot data
+      acc[parentId].push({
+        id: student.id || student.uid,
+        name: student.name || student.fullName || 'Student',
+        dob: student.dob || student.DoB,
+        profile: student.profile || student.profileURL || student.childProfileURL || null,
+        medicalNote: student.medicalNote || 'None',
+        status: student.status || 'Active'
+      })
     }
     return acc
   }, {})
@@ -15,7 +24,7 @@ export const enrichParents = (users = [], students = []) => {
     .filter(u => u.role === 'parent' || u.role === 'guardian')
     .map(u => ({
       ...u,
-      studentProfiles: studentsByParent[u.uid || u.id] || []
+      studentInfo: studentsByParent[u.uid || u.id] || u.studentInfo || []
     }))
 }
 

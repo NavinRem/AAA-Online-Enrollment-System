@@ -1,4 +1,5 @@
 const { db, COLLECTIONS } = require("../../config/database");
+const userService = require("../management/userService");
 
 class SessionService {
   async createSession(sessionData) {
@@ -40,16 +41,17 @@ class SessionService {
       ...doc.data(),
     }));
 
-    // Basic hydration (Teachers)
-    const usersSnapshot = await db.collection(COLLECTIONS.USER).where("role", "in", ["teacher", "instructor"]).get();
+    // Smart hydration (Teachers)
+    const allUsers = await userService.getAllUsers();
     const teachersMap = {};
-    usersSnapshot.docs.forEach(doc => {
-      const userData = doc.data();
-      teachersMap[doc.id] = {
-        id: doc.id,
-        name: userData.name || userData.email || "Unknown",
-        profileURL: userData.profileURL || ""
-      };
+    allUsers.forEach((u) => {
+      if (["teacher", "instructor", "admin"].includes(u.role)) {
+        teachersMap[u.uid] = {
+          id: u.uid,
+          name: u.name || u.email || "Unknown",
+          profile: u.profile || null
+        };
+      }
     });
 
     return sessions.map(s => ({

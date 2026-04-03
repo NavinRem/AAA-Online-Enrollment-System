@@ -278,9 +278,9 @@ watch(
                   :class="{ active: selectedChildUid === (s.id || s.uid) }" @click="selectedChildUid = (s.id || s.uid)"
                   @dblclick="navigateToStudent(s)">
                   <div class="chip-avatar-wrapper">
-                    <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
+                    <img :src="s.profile || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
                   </div>
-                  <span class="chip-label">{{ s.fullName || s.fullname || s.name }}</span>
+                  <span class="chip-label">{{ s.name || 'Student' }}</span>
                 </button>
               </div>
               <div class="table-container">
@@ -408,9 +408,9 @@ watch(
           <template #outside>
             <div class="profile-header" style="flex-direction: column; align-items: center;">
               <div class="profile-preview">
-                <img :src="parent?.profileURL || getImageUrl('profiles/avatar-parent')" alt="Profile" />
+                <img :src="parent?.profile || getImageUrl('profiles/avatar-parent')" alt="Profile" />
               </div>
-              <h3 class="profile-name">{{ parent?.fullname || parent?.name || 'Anonymous' }}</h3>
+              <h3 class="profile-name">{{ parent?.name || 'Anonymous' }}</h3>
               <div class="badge-stack">
                 <StatusBadge :status="parent?.role || 'parent'" />
                 <StatusBadge :status="parent?.status || 'Active'" />
@@ -422,7 +422,7 @@ watch(
             <div class="detail-info-group">
               <div class="info-item vertical">
                 <span class="info-label">Fullname:</span>
-                <strong>{{ parent?.fullname || parent?.name }}</strong>
+                <strong>{{ parent?.name || parent?.fullname }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">Phone Number:</span>
@@ -448,9 +448,9 @@ watch(
           <div class="relationships-list">
             <div v-for="s in students" :key="s.id || s.uid" class="relationship-item clickable"
               @click="navigateToStudent(s)">
-              <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
+              <img :src="s.profile || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
               <div class="child-info">
-                <strong>{{ s.fullName || s.fullname || s.name }}</strong>
+                <strong>{{ s.name || 'Student' }}</strong>
               </div>
             </div>
             <div v-if="students.length === 0" class="text-muted text-center">

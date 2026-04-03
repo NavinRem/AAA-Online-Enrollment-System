@@ -183,22 +183,23 @@ const submitActionModal = async (formData) => {
       // Update local state to reflect the new child immediately
       const userIdx = allUsers.value.findIndex((u) => (u.uid || u.id) === parentId)
       if (userIdx !== -1) {
-        if (!allUsers.value[userIdx].studentProfiles) {
-          allUsers.value[userIdx].studentProfiles = []
+        if (!allUsers.value[userIdx].studentInfo) {
+          allUsers.value[userIdx].studentInfo = []
         }
-        allUsers.value[userIdx].studentProfiles.push({
+        const studentInfoSnapshot = {
           id: result.id || result.UID,
           name,
           dob,
           profile: finalProfile,
-          medicalNote,
+          medicalNote: medicalNote || 'None',
           status: 'Studying',
           parentId: parentId,
-        })
+        }
+        allUsers.value[userIdx].studentInfo.push(studentInfoSnapshot)
 
-        // PERMANENT SYNC: Save updated studentProfiles array directly into Parent's Firestore document
+        // PERMANENT SYNC: Save updated studentInfo array directly
         await userService.updateUser(parentId, {
-          studentProfiles: allUsers.value[userIdx].studentProfiles
+          studentInfo: allUsers.value[userIdx].studentInfo
         })
       }
     }
@@ -243,7 +244,7 @@ const submitNewParent = async (data) => {
       ...data,
       status: 'Active',
       createdAt: new Date().toISOString(),
-      studentProfiles: [],
+      studentInfo: [],
     }
     allUsers.value.unshift(newUser)
 
@@ -318,10 +319,11 @@ const navigateToDetail = (item) => {
             </td>
             <td class="hide-on-tablet" :style="{ width: headers[2].width }">
               <div class="children-stack">
-                <span v-if="!item.studentProfiles || item.studentProfiles.length === 0" class="text-muted">—</span>
+                <span v-if="!item.studentInfo || item.studentInfo.length === 0" class="text-muted">—</span>
                 <template v-else>
-                  <div v-for="(child, i) in item.studentProfiles" :key="child.id || i" class="avatar-mini child-avatar"
-                    :title="child.name || 'Child ' + (i + 1)" :style="{ zIndex: item.studentProfiles.length - i }">
+                  <div v-for="(child, i) in item.studentInfo" :key="child.id || i" class="avatar-mini child-avatar"
+                    :title="child.name || 'Child ' + (i + 1)"
+                    :style="{ zIndex: item.studentInfo.length - i }">
                     <img :src="getStudentProfileURL(child.profile)" alt="child" />
                   </div>
                 </template>

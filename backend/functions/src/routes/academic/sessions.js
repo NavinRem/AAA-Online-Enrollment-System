@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const sessionController = require("../../controllers/academic/sessionController");
+const { verifyToken, isAdmin } = require("../../middleware/authMiddleware");
 
-// Create Session
-router.post("/", sessionController.createSession);
+// Create Session (Admin Only)
+router.post("/", verifyToken, isAdmin, sessionController.createSession);
 
 // Get All Sessions
 router.get("/", sessionController.getAllSessions);
@@ -14,10 +15,10 @@ router.get("/:id/validateCapacity", sessionController.validateCapacity);
 // Get Session by ID
 router.get("/:id", sessionController.getSession);
 
-// Teacher Management
-router.patch("/:id/teacher", sessionController.assignTeacher);
+// Teacher Management (Admin Only)
+router.patch("/:id/teacher", verifyToken, isAdmin, sessionController.assignTeacher);
 router.get("/:id/teachers", sessionController.getSessionTeachers);
-router.post("/sync-counts", sessionController.syncStudentCounts);
-router.post("/sync-all", sessionController.syncAllSessions);
+router.post("/sync-counts", verifyToken, isAdmin, sessionController.syncStudentCounts);
+router.post("/sync-all", verifyToken, isAdmin, sessionController.syncAllSessions);
 
 module.exports = router;

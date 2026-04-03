@@ -1,4 +1,5 @@
 const { db, COLLECTIONS } = require("../../config/database");
+const userService = require("../management/userService");
 
 class EnrollmentService {
   async createEnrollment(enrollmentData) {
@@ -49,10 +50,10 @@ class EnrollmentService {
       // Fetch Parent Data (linked to Student)
       const parentId = studentData.parentId;
       if (!parentId) throw new Error("Student has no parentId linked");
-      const parentRef = db.collection(COLLECTIONS.USER).doc(parentId);
-      const parentDoc = await transaction.get(parentRef);
-      if (!parentDoc.exists) throw new Error("Parent not found");
-      const parentData = parentDoc.data();
+      
+      // Use the smart userService lookup instead of the centralized collection
+      const parentData = await userService.getUser(parentId);
+      if (!parentData) throw new Error("Parent not found in any collection");
 
       if ((sessionData.numStudent || 0) >= sessionData.capacity) {
         throw new Error("Session is full");
@@ -78,16 +79,16 @@ class EnrollmentService {
             parentData.role === "parent"
               ? "Parent"
               : parentData.role || "Guardian",
-          profileURL: parentData.profileURL || null,
+          profile: parentData.profile || null,
         },
 
         // Snapshot: Student Information
         student: {
           id: studentId,
-          name: studentData.fullName || studentData.name || "Student",
+          name: studentData.name || "Student",
           dob: studentData.dob || null,
           medicalNote: studentData.medicalNote || "",
-          profileURL: studentData.profileURL || null,
+          profile: studentData.profile || null,
         },
 
         // Snapshot: Program Information
@@ -99,7 +100,7 @@ class EnrollmentService {
           price: programData.price || 0,
           startDate: programData.startDate || null,
           endDate: programData.endDate || null,
-          profileURL: programData.profileURL || null,
+          profile: programData.profile || null,
           teachers: programData.teachers || [],
         },
 
@@ -150,17 +151,17 @@ class EnrollmentService {
   }
 
   async getAllEnrollments() {
-    const [snapshot, usersSnap, studentsSnap, programsSnap, sessionsSnap] =
+    const [snapshot, allUsers, studentsSnap, programsSnap, sessionsSnap] =
       await Promise.all([
         db.collection(COLLECTIONS.ENROLLMENT).get(),
-        db.collection(COLLECTIONS.USER).get(),
+        userService.getAllUsers(),
         db.collection(COLLECTIONS.STUDENT).get(),
         db.collection(COLLECTIONS.PROGRAM).get(),
         db.collection(COLLECTIONS.SESSION).get(),
       ]);
 
     const usersMap = {};
-    usersSnap.forEach((doc) => (usersMap[doc.id] = doc.data()));
+    allUsers.forEach((u) => (usersMap[u.uid] = u));
 
     const studentsMap = {};
     studentsSnap.forEach((doc) => (studentsMap[doc.id] = doc.data()));
@@ -188,30 +189,6 @@ class EnrollmentService {
       const parentData = usersMap[data.parentId] || {};
       const studentData = studentsMap[data.studentId] || {};
       const programData = programsMap[data.programId] || {};
-
-      const parentName =
-        parentData.name || parentData.email || data.parentName || "N/A";
-      const studentName =
-        studentData.fullName || studentData.name || data.studentName || "N/A";
-      const programTitle =
-        programData.title ||
-        programData.name ||
-        data.programTitle ||
-        data.courseTitle ||
-        "N/A";
-      const programCategory = programData.category || "N/A";
-
-      const parentProfileURL = parentData.profileURL || null;
-      const studentProfileURL = studentData.profileURL || null;
-      const programProfileURL = programData.profileURL || null;
-
-      const teacher =
-        programData.teachers && programData.teachers.length > 0
-          ? programData.teachers[0]
-          : null;
-      const teacherName = teacher?.name || data.teacherName || "Not Assigned";
-      const teacherProfileURL = teacher?.profileURL || null;
-
       const session = sessionsMap[data.sessionId];
 
       const sStatus = (data.status || "").toLowerCase();
@@ -230,25 +207,10 @@ class EnrollmentService {
       return {
         id: doc.id,
         ...data,
-        parentName,
-        parentProfileURL,
-        studentName,
-        studentProfileURL,
-        programTitle,
-        programCategory,
-        programProfileURL,
-        teacherName,
-        teacherProfileURL,
         displayStatus,
         sessionSchedule: session?.scheduleString || "N/A",
         sessionCount: session?.totalSessions || session?.sessionCount || 10,
-        dob: studentData.dob || null,
         amount: data.amount || data.totalAmount || programData.price || 0,
-        isProrated: data.isProrated || false,
-        enrollmentType: data.enrollmentType || "Full",
-        remark: data.remark || "",
-        isSponsorship: data.isSponsorship || false,
-        sponsorName: data.sponsorName || "",
       };
     });
   }
@@ -261,10 +223,10 @@ class EnrollmentService {
 
     const data = doc.data();
 
-    const [userDoc, studentDoc, programDoc, sessionDoc] = await Promise.all([
+    const [parentData, studentDoc, programDoc, sessionDoc] = await Promise.all([
       data.parentId
-        ? db.collection(COLLECTIONS.USER).doc(data.parentId).get()
-        : Promise.resolve({ exists: false }),
+        ? userService.getUser(data.parentId).catch(() => null)
+        : Promise.resolve(null),
       data.studentId
         ? db.collection(COLLECTIONS.STUDENT).doc(data.studentId).get()
         : Promise.resolve({ exists: false }),
@@ -276,7 +238,6 @@ class EnrollmentService {
         : Promise.resolve({ exists: false }),
     ]);
 
-    const userData = userDoc.exists ? userDoc.data() : null;
     const studentData = studentDoc.exists ? studentDoc.data() : null;
     const programData = programDoc.exists ? programDoc.data() : null;
     const sessionData = sessionDoc.exists ? sessionDoc.data() : null;
@@ -287,10 +248,11 @@ class EnrollmentService {
       resolvedTeachers = await Promise.all(
         programData.teachers.map(async (t) => {
           const tId = t.id || t;
-          const tDoc = await db.collection(COLLECTIONS.USER).doc(tId).get();
-          return tDoc.exists
-            ? { id: tId, ...tDoc.data() }
-            : { id: tId, name: t.name || "Unassigned" };
+          try {
+            return await userService.getUser(tId);
+          } catch (err) {
+            return { id: tId, name: t.name || "Unassigned" };
+          }
         }),
       );
     }
@@ -308,11 +270,12 @@ class EnrollmentService {
     if (sessionData?.teachers && sessionData.teachers.length > 0) {
       sessionTeachers = await Promise.all(
         sessionData.teachers.map(async (t) => {
-          if (t.id) {
-            const tDoc = await db.collection(COLLECTIONS.USER).doc(t.id).get();
-            return tDoc.exists ? { id: t.id, ...tDoc.data() } : t;
+          const tId = t.id || t;
+          try {
+            return await userService.getUser(tId);
+          } catch (err) {
+            return typeof t === "object" ? t : { id: tId, name: "Unassigned" };
           }
-          return t;
         }),
       );
     }
@@ -335,14 +298,14 @@ class EnrollmentService {
       ...data,
       displayStatus,
       sessionSchedule,
-      parent: userData
+      parent: parentData
         ? {
             id: data.parentId,
-            ...userData,
+            ...parentData,
             roleDisplay:
-              userData.role === "parent"
+              parentData.role === "parent"
                 ? "Parent"
-                : userData.role || "Guardian",
+                : parentData.role || "Guardian",
           }
         : null,
       student: studentData
@@ -373,21 +336,10 @@ class EnrollmentService {
               ...resolvedTeachers[0],
             }
           : null,
-      teacherName:
-        resolvedTeachers.length > 0 ? resolvedTeachers[0].name : "Not Assigned",
-      teacherProfileURL:
-        resolvedTeachers.length > 0 ? resolvedTeachers[0].profileURL : null,
       numberSessions:
         data.remainingSessions ??
         (data.numberSessions || sessionData?.totalSessions || 10),
       amount: data.amount || programData?.price || 0,
-      isProrated: data.isProrated || false,
-      enrollmentType: data.enrollmentType || "Full",
-      remark: data.remark || "",
-      isSponsorship: data.isSponsorship || false,
-      sponsorName: data.sponsorName || "",
-      capacity: sessionData?.capacity || 0,
-      numStudent: sessionData?.numStudent || 0,
     };
   }
 
