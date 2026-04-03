@@ -16,7 +16,12 @@ class UserService {
     }
 
     // Fallback: Check all collections if no role hint
-    const collections = [COLLECTIONS.PARENT, COLLECTIONS.GUARDIAN, COLLECTIONS.ADMIN, COLLECTIONS.TEACHER];
+    const collections = [
+      COLLECTIONS.PARENT,
+      COLLECTIONS.GUARDIAN,
+      COLLECTIONS.ADMIN,
+      COLLECTIONS.TEACHER,
+    ];
     for (const col of collections) {
       const doc = await db.collection(col).doc(uid).get();
       if (doc.exists) return col;
@@ -37,7 +42,7 @@ class UserService {
         const userRecord = await getAuth().createUser(userConfig);
         uid = userRecord.uid;
       } catch (error) {
-        if (error.code === 'auth/email-already-exists') {
+        if (error.code === "auth/email-already-exists") {
           const userRecord = await getAuth().getUserByEmail(email);
           uid = userRecord.uid;
         } else {
@@ -48,7 +53,7 @@ class UserService {
 
     const collectionName = await this._resolveTargetCollection(uid, targetRole);
     const userRef = db.collection(collectionName).doc(uid);
-    
+
     // Set custom claims for role-based security
     try {
       await getAuth().setCustomUserClaims(uid, { role: targetRole });
@@ -66,14 +71,18 @@ class UserService {
       status: userData.status || "Active",
       updatedAt: new Date().toISOString(),
     };
- 
+
     const doc = await userRef.get();
     if (!doc.exists) {
       data.createdAt = new Date().toISOString();
     }
 
     await userRef.set(data, { merge: true });
-    return { uid, message: "Parent account registered successfully", isNew: !doc.exists };
+    return {
+      uid,
+      message: "Parent account registered successfully",
+      isNew: !doc.exists,
+    };
   }
 
   async getUserRole(uid) {
@@ -88,7 +97,12 @@ class UserService {
     }
 
     // Fallback to Firestore scan
-    const collections = [COLLECTIONS.PARENT, COLLECTIONS.GUARDIAN, COLLECTIONS.ADMIN, COLLECTIONS.TEACHER];
+    const collections = [
+      COLLECTIONS.PARENT,
+      COLLECTIONS.GUARDIAN,
+      COLLECTIONS.ADMIN,
+      COLLECTIONS.TEACHER,
+    ];
     for (const col of collections) {
       const doc = await db.collection(col).doc(uid).get();
       if (doc.exists) return { uid: doc.id, role: doc.data().role || "parent" };
@@ -97,12 +111,19 @@ class UserService {
   }
 
   async getAllUsers() {
-    const collections = [COLLECTIONS.PARENT, COLLECTIONS.GUARDIAN, COLLECTIONS.ADMIN, COLLECTIONS.TEACHER];
-    const results = await Promise.all(collections.map(col => db.collection(col).get()));
-    
+    const collections = [
+      COLLECTIONS.PARENT,
+      COLLECTIONS.GUARDIAN,
+      COLLECTIONS.ADMIN,
+      COLLECTIONS.TEACHER,
+    ];
+    const results = await Promise.all(
+      collections.map((col) => db.collection(col).get()),
+    );
+
     const allUsers = [];
-    results.forEach(snapshot => {
-      snapshot.docs.forEach(doc => {
+    results.forEach((snapshot) => {
+      snapshot.docs.forEach((doc) => {
         allUsers.push({ uid: doc.id, ...doc.data() });
       });
     });
@@ -110,7 +131,12 @@ class UserService {
   }
 
   async getUser(uid) {
-    const collections = [COLLECTIONS.PARENT, COLLECTIONS.GUARDIAN, COLLECTIONS.ADMIN, COLLECTIONS.TEACHER];
+    const collections = [
+      COLLECTIONS.PARENT,
+      COLLECTIONS.GUARDIAN,
+      COLLECTIONS.ADMIN,
+      COLLECTIONS.TEACHER,
+    ];
     for (const col of collections) {
       const doc = await db.collection(col).doc(uid).get();
       if (doc.exists) return { uid: doc.id, ...doc.data() };
@@ -120,17 +146,23 @@ class UserService {
 
   async updateUser(uid, updateData) {
     if (!uid) throw new Error("User ID (uid) is required");
-    
+
     // Determine which collection they belong to
-    const collectionName = await this._resolveTargetCollection(uid, updateData.role);
+    const collectionName = await this._resolveTargetCollection(
+      uid,
+      updateData.role,
+    );
     const userRef = db.collection(collectionName).doc(uid);
-    
+
     // Sync custom claims if role is changed
     if (updateData.role) {
       try {
         await getAuth().setCustomUserClaims(uid, { role: updateData.role });
       } catch (err) {
-        console.warn(`Failed to sync custom claims on update for ${uid}:`, err.message);
+        console.warn(
+          `Failed to sync custom claims on update for ${uid}:`,
+          err.message,
+        );
       }
     }
 
@@ -138,16 +170,71 @@ class UserService {
     delete cleanData.uid;
     cleanData.updatedAt = new Date().toISOString();
 
-    await userRef.set(cleanData, { merge: true });
-    return { uid, message: "User updated successfully" };
+    const batch = db.batch();
+    batch.set(userRef, cleanData, { merge: true });
+
+    // Sync to linked students if relevant fields changed
+    const syncFields = ["name", "email", "phone", "role", "profile"];
+    const shouldSync = Object.keys(updateData).some((key) =>
+      syncFields.includes(key),
+    );
+
+    if (shouldSync) {
+      const userDoc = await userRef.get();
+      const userData = { ...userDoc.data(), ...updateData };
+
+      const profile = userData.profile || userData.profileURL || "/src/assets/images/profiles/avatar-man.png";
+      const parentInfo = {
+        id: uid,
+        name: userData.name || userData.email || "Parent",
+        email: userData.email || "N/A",
+        phone: userData.phone || "N/A",
+        role: userData.role || "guardian",
+        roleDisplay: userData.role === "parent" ? "Parent" : (userData.role || "Guardian"),
+        profile: profile,
+      };
+
+      // Find all students for this parent
+      const studentsSnap = await db
+        .collection(COLLECTIONS.STUDENT)
+        .where("parentId", "==", uid)
+        .get();
+
+      studentsSnap.forEach((sDoc) => {
+        // Update global student record
+        batch.update(sDoc.ref, {
+          parentInfo,
+        });
+
+        // Update sub-collection record
+        const subRef = db
+          .collection(collectionName)
+          .doc(uid)
+          .collection("students")
+          .doc(sDoc.id);
+        batch.set(
+          subRef,
+          {
+            parentInfo,
+          },
+          { merge: true },
+        );
+      });
+    }
+
+    await batch.commit();
+    return {
+      uid,
+      message: "User updated and mirrored to all student records successfully",
+    };
   }
 
   async deleteUser(uid) {
     if (!uid) throw new Error("User ID (uid) is required");
-    
+
     const collectionName = await this._resolveTargetCollection(uid);
     const userRef = db.collection(collectionName).doc(uid);
-    
+
     try {
       await getAuth().deleteUser(uid);
     } catch (error) {

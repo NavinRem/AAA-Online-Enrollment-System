@@ -86,7 +86,6 @@ const mappedEnrollments = computed(() => {
     })
     .slice(0, 5)
     .map((r, index) => {
-      // Prioritize backend-provided hydrated names and URLs or use local lookup as fallback
       const p = users.value.find(u => u.uid === r.parentId)
       const s = students.value.find(s => s.id === r.studentId)
       const c = programs.value.find(prog => prog.id === (r.programId || r.courseId))
@@ -94,12 +93,18 @@ const mappedEnrollments = computed(() => {
       return {
         id: r.id,
         no: index + 1,
-        parentName: r.parentName || p?.name || p?.fullName || 'N/A',
-        parentProfileURL: getParentProfileURL(r.parentProfileURL || p?.profileURL),
-        studentName: r.studentName || s?.name || s?.fullName || 'N/A',
-        studentProfileURL: getStudentProfileURL(r.studentProfileURL || s?.profileURL),
-        programTitle: r.programTitle || c?.title || 'N/A',
-        programProfileURL: getProgramProfileURL(r.programProfileURL || c?.profileURL, r.programCategory || c?.category),
+        parent: r.parent || (p ? { id: p.uid, name: p.name || p.fullName, profile: p.profile || p.profileURL } : null),
+        student: r.student || (s ? { id: s.id || s.uid, name: s.name || s.fullName, profile: s.profile || s.profileURL } : null),
+        program: r.program || (c ? { id: c.id, title: c.title || c.name, profile: c.profile || c.profileURL } : null),
+        
+        // Legacy fallbacks
+        parentName: r.parent?.name || r.parentName || p?.name || 'N/A',
+        parentProfileURL: getParentProfileURL(r.parent?.profile || r.parentProfileURL || p?.profileURL),
+        studentName: r.student?.name || r.studentName || s?.name || 'N/A',
+        studentProfileURL: getStudentProfileURL(r.student?.profile || r.studentProfileURL || s?.profileURL),
+        programTitle: r.program?.title || r.programTitle || c?.title || 'N/A',
+        programProfileURL: getProgramProfileURL(r.program?.profile || r.programProfileURL || c?.profileURL, r.programCategory || c?.category),
+        
         status: r.displayStatus || r.status || 'Pending',
         mode: r.enrollmentType || (r.isProrated ? 'Partial' : 'Full'),
         amount: r.amount || 0,

@@ -156,8 +156,11 @@ const handleRegisterStudent = async (formData) => {
       profile: finalProfile,
       medicalNote,
       parentId: parentId,
-      parentName: chosenParent ? (chosenParent.name || chosenParent.email) : 'Parent',
-      parentProfile: chosenParent ? chosenParent.profile : null,
+      parentInfo: chosenParent ? {
+        id: parentId,
+        name: chosenParent.name || chosenParent.email,
+        profile: chosenParent.profile
+      } : null,
       status: 'Inactive',
       created: new Date().toISOString(),
       programs: [],
@@ -254,8 +257,11 @@ const submitActionModal = async (formData) => {
         if (profile) students.value[idx].profile = profile
         if (chosenParent) {
           students.value[idx].parentId = parentId
-          students.value[idx].parentName = chosenParent.name || chosenParent.email
-          students.value[idx].parentProfile = chosenParent.profile
+          students.value[idx].parentInfo = {
+            id: parentId,
+            name: chosenParent.name || chosenParent.email,
+            profile: chosenParent.profile
+          }
         }
 
         // SYNC: Update Student Info in Parent's nested studentProfiles array
@@ -376,9 +382,9 @@ const submitActionModal = async (formData) => {
             <td>
               <div class="user-cell">
                 <div class="user-avatar-small">
-                  <img :src="getParentProfileURL(item.parentProfile)" alt="parent avatar" />
+                  <img :src="getParentProfileURL(item.parentInfo?.profile)" alt="parent avatar" />
                 </div>
-                {{ item.parentName || 'Parent' }}
+                {{ item.parentInfo?.name || 'Parent' }}
               </div>
             </td>
             <td class="hide-on-tablet">
