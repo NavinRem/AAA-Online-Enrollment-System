@@ -4,6 +4,7 @@ const admin = require("firebase-admin");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 
 admin.initializeApp();
 // Force deploy trigger
@@ -31,9 +32,23 @@ const uploadRoutes = require("./src/routes/tracking/uploads");
 
 const app = express();
 
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // limit each IP to 200 requests per window
+  message: "Too many requests from this IP, please try again later"
+});
+
+const registrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // limit each IP to 10 registration attempts per hour
+  message: "Too many accounts created from this IP, please try again in an hour"
+});
+
 // Middleware
 app.use(helmet());
 app.use(cors({ origin: true }));
+app.use(limiter);
 app.use(express.json());
 
 const apiRouter = express.Router();
@@ -44,7 +59,7 @@ apiRouter.use("/payments", paymentRoutes);
 
 // --- Student & Parent Management ---
 apiRouter.use("/students", studentRoutes);
-apiRouter.use("/users", userRoutes);
+apiRouter.use("/users", registrationLimiter, userRoutes);
 
 // --- Academic Content ---
 apiRouter.use("/programs", programRoutes);

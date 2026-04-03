@@ -20,6 +20,19 @@ exports.registerParentAccount = async (req, res) => {
 };
 
 /**
+ * @route POST /users/registerStaffAccount
+ * @description Create a staff account (Admin only)
+ */
+exports.registerStaffAccount = async (req, res) => {
+  try {
+    const result = await userService.registerStaffAccount(req.body);
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
  * @route GET /users
  * @description Get all users
  */
@@ -236,15 +249,16 @@ exports.runStandardization = async (req, res) => {
       processedCount++;
     }
 
-    // 3. Mirror Student list in Parents/Guardians
+    // 3. Mirror Student list in Parents/Guardians (Modern snapshot array)
     for (const parentId in parentChildrenMap) {
       // Find which collection the parent belongs to
       let parentCol = COLLECTIONS.PARENT;
       const gDoc = await db.collection(COLLECTIONS.GUARDIAN).doc(parentId).get();
       if (gDoc.exists) parentCol = COLLECTIONS.GUARDIAN;
       
+      // We use the full snapshots from the map
       await db.collection(parentCol).doc(parentId).set({
-        children: parentChildrenMap[parentId]
+        studentInfo: parentChildrenMap[parentId]
       }, { merge: true });
     }
 

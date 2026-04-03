@@ -12,10 +12,10 @@ class UserService {
       if (role === "admin") return COLLECTIONS.ADMIN;
       if (role === "teacher") return COLLECTIONS.TEACHER;
       if (role === "guardian") return COLLECTIONS.GUARDIAN;
-      return COLLECTIONS.PARENT;
+      if (role === "parent") return COLLECTIONS.PARENT;
     }
 
-    // Fallback: Check all collections if no role hint
+    // Comprehensive Fallback: Scan all role-specific collections
     const collections = [
       COLLECTIONS.PARENT,
       COLLECTIONS.GUARDIAN,
@@ -26,12 +26,18 @@ class UserService {
       const doc = await db.collection(col).doc(uid).get();
       if (doc.exists) return col;
     }
-    return COLLECTIONS.PARENT; // Default fallback for new creations
+    
+    // Last resort for new accounts with no role hint
+    return COLLECTIONS.PARENT;
   }
 
   async registerParentAccount(userData) {
-    let { uid, email, role, name, profile, phone, password } = userData;
-    const targetRole = role || "parent";
+    let { uid, email, name, profile, phone, password } = userData;
+    
+    // SECURITY: Strictly enforce role for public registration
+    // If no role specified, default to parent. If role is provided, only allow parent/guardian.
+    const requestedRole = (userData.role || "parent").toLowerCase();
+    const targetRole = ["parent", "guardian"].includes(requestedRole) ? requestedRole : "parent";
 
     // Auth logic remains the same
     if (!uid) {
@@ -85,6 +91,54 @@ class UserService {
     };
   }
 
+  /**
+   * Protected method for creating Admin/Teacher accounts
+   */
+  async registerStaffAccount(userData) {
+    let { uid, email, role, name, profile, phone } = userData;
+    const targetRole = (role || "teacher").toLowerCase();
+
+    if (!["admin", "teacher", "instructor"].includes(targetRole)) {
+      throw new Error("Invalid staff role provided");
+    }
+
+    // Ensure user exists in Auth, or create them
+    if (!uid) {
+      if (!email) throw new Error("Email is required for staff account");
+      try {
+        const userRecord = await getAuth().createUser({ email, displayName: name || null });
+        uid = userRecord.uid;
+      } catch (err) {
+        if (err.code === "auth/email-already-exists") {
+          const userRecord = await getAuth().getUserByEmail(email);
+          uid = userRecord.uid;
+        } else throw err;
+      }
+    }
+
+    const collectionName = await this._resolveTargetCollection(uid, targetRole);
+    const userRef = db.collection(collectionName).doc(uid);
+
+    // Securely set the role claim
+    await getAuth().setCustomUserClaims(uid, { role: targetRole });
+
+    const data = {
+      email,
+      role: targetRole,
+      name: name || null,
+      profile: profile || null,
+      phone: phone || null,
+      status: "Active",
+      updatedAt: new Date().toISOString(),
+    };
+
+    const doc = await userRef.get();
+    if (!doc.exists) data.createdAt = new Date().toISOString();
+
+    await userRef.set(data, { merge: true });
+    return { uid, role: targetRole, message: "Staff account created successfully" };
+  }
+
   async getUserRole(uid) {
     // Try to get role from custom claims first (fastest)
     try {
@@ -131,17 +185,27 @@ class UserService {
   }
 
   async getUser(uid) {
+    if (!uid) throw new Error("User ID (uid) is required");
+    
     const collections = [
       COLLECTIONS.PARENT,
       COLLECTIONS.GUARDIAN,
       COLLECTIONS.ADMIN,
       COLLECTIONS.TEACHER,
     ];
+    
     for (const col of collections) {
       const doc = await db.collection(col).doc(uid).get();
-      if (doc.exists) return { uid: doc.id, ...doc.data() };
+      if (doc.exists) {
+        return { 
+          uid: doc.id, 
+          ...doc.data(),
+          name: doc.data().name || "User",
+          profile: doc.data().profile || "/src/assets/images/profiles/avatar-man.png"
+        };
+      }
     }
-    throw new Error("User not found");
+    throw new Error(`User not found with ID: ${uid}`);
   }
 
   async updateUser(uid, updateData) {
@@ -166,9 +230,17 @@ class UserService {
       }
     }
 
-    const cleanData = { ...updateData };
+    const cleanData = { 
+      ...updateData,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Eliminate all legacy fields from being re-written
     delete cleanData.uid;
-    cleanData.updatedAt = new Date().toISOString();
+    delete cleanData.fullName;
+    delete cleanData.username;
+    delete cleanData.profileURL;
+    delete cleanData.childProfileURL;
 
     const batch = db.batch();
     batch.set(userRef, cleanData, { merge: true });
@@ -183,7 +255,7 @@ class UserService {
       const userDoc = await userRef.get();
       const userData = { ...userDoc.data(), ...updateData };
 
-      const profile = userData.profile || userData.profileURL || "/src/assets/images/profiles/avatar-man.png";
+      // Standardize the mirroring snapshot
       const parentInfo = {
         id: uid,
         name: userData.name || userData.email || "Parent",
@@ -191,7 +263,7 @@ class UserService {
         phone: userData.phone || "N/A",
         role: userData.role || "guardian",
         roleDisplay: userData.role === "parent" ? "Parent" : (userData.role || "Guardian"),
-        profile: profile,
+        profile: userData.profile || "/src/assets/images/profiles/avatar-man.png",
       };
 
       // Find all students for this parent

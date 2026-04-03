@@ -244,7 +244,7 @@ const submitNewParent = async (data) => {
       ...data,
       status: 'Active',
       createdAt: new Date().toISOString(),
-      studentProfiles: [],
+      studentInfo: [],
     }
     allUsers.value.unshift(newUser)
 

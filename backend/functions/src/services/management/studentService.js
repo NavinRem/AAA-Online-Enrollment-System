@@ -5,27 +5,22 @@ class StudentService {
    * Helper to find which collection the parent belongs to (parents or guardians)
    */
   async _resolveParentCollection(parentId) {
-    const parentDoc = await db
-      .collection(COLLECTIONS.PARENT)
-      .doc(parentId)
-      .get();
-    if (parentDoc.exists) return COLLECTIONS.PARENT;
-
-    const guardianDoc = await db
-      .collection(COLLECTIONS.GUARDIAN)
-      .doc(parentId)
-      .get();
-    if (guardianDoc.exists) return COLLECTIONS.GUARDIAN;
-
-    throw new Error("Parent or Guardian not found");
+    if (!parentId) throw new Error("Parent ID is required");
+    
+    // Scan all possible parent-like collections
+    const collections = [COLLECTIONS.PARENT, COLLECTIONS.GUARDIAN];
+    for (const col of collections) {
+      const doc = await db.collection(col).doc(parentId).get();
+      if (doc.exists) return col;
+    }
+    
+    throw new Error(`Parent or Guardian not found with ID: ${parentId}`);
   }
 
   /**
    * Snapshot Helpers (Standardized across the system)
    */
   _getParentSnapshot(parentId, pData) {
-    // Standardizes profile with fallback to profileURL and then to a default avatar
-    const profile = pData.profile || pData.profileURL || "/src/assets/images/profiles/avatar-man.png";
     return {
       id: parentId,
       name: pData.name || pData.email || "Parent",
@@ -34,19 +29,17 @@ class StudentService {
       role: pData.role || "guardian",
       roleDisplay:
         pData.role === "parent" ? "Parent" : pData.role || "Guardian",
-      profile: profile,
+      profile: pData.profile || "/src/assets/images/profiles/avatar-man.png",
     };
   }
 
   _getStudentSnapshot(studentId, sData) {
-    // Standardizes profile logic for student with default avatar
-    const profile = sData.profile || sData.profileURL || sData.childProfileURL || "/src/assets/images/profiles/avatar-boy.png";
     return {
       id: studentId,
       name: sData.name || "Student",
       dob: sData.dob || null,
       medicalNote: sData.medicalNote || "None",
-      profile: profile,
+      profile: sData.profile || "/src/assets/images/profiles/avatar-boy.png",
     };
   }
 

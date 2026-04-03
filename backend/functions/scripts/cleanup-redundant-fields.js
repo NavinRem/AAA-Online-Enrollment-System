@@ -71,11 +71,13 @@ async function cleanup() {
       if (data.username && !data.name) updates.name = data.username;
       if (data.profileURL && !data.profile) updates.profile = data.profileURL;
 
+      // Purge legacy mirroring and duplication: Remove old arrays in favor of studentInfo
+      updates.children = FieldValue.delete();
+      updates.studentProfiles = FieldValue.delete();
+      
       updates.fullName = FieldValue.delete();
       updates.username = FieldValue.delete();
       updates.profileURL = FieldValue.delete();
-      updates.children = FieldValue.delete();
-      updates.studentProfiles = FieldValue.delete();
 
       batch.update(doc.ref, updates);
       count++;
@@ -97,17 +99,16 @@ async function cleanup() {
     const updates = {};
 
     // Remove all legacy flat fields as we now use nested snapshots
-    updates.parentName = FieldValue.delete();
-    updates.parentProfileURL = FieldValue.delete();
-    updates.studentName = FieldValue.delete();
-    updates.studentProfileURL = FieldValue.delete();
-    updates.programTitle = FieldValue.delete();
-    updates.programProfileURL = FieldValue.delete();
-    updates.programCategory = FieldValue.delete();
-    updates.courseTitle = FieldValue.delete();
-    updates.courseId = FieldValue.delete();
-    updates.teacherName = FieldValue.delete();
-    updates.teacherProfileURL = FieldValue.delete();
+    const legacyFields = [
+      "parentName", "parentProfileURL", "studentName", "studentProfileURL",
+      "programTitle", "programProfileURL", "programCategory", "courseTitle",
+      "courseId", "teacherName", "teacherProfileURL", "id", "fullName",
+      "profileURL", "childProfileURL", "academicStatus", "paymentStatusDisplay"
+    ];
+
+    legacyFields.forEach(field => {
+      updates[field] = FieldValue.delete();
+    });
 
     batch.update(doc.ref, updates);
     count++;
