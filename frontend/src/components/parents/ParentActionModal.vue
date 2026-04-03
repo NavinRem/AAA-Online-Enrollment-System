@@ -117,8 +117,7 @@
       </div>
 
       <div class="form-group full-width">
-        <AvatarSelector v-model="localData.profile" role="student"
-          :customFileName="`${localData.name}_student`" />
+        <AvatarSelector v-model="localData.profile" role="student" :customFileName="`${localData.name}_student`" />
         <div v-if="errors.profile" class="field-error-msg">{{ errors.profile }}</div>
       </div>
 
@@ -321,6 +320,9 @@ const modalTitle = computed(() => {
 
 const submitLabel = computed(() => {
   if (props.type === 'register-child') return 'Register Child'
+  if (props.type === 'deactivate') return 'Deactivate'
+  if (props.type === 'activate') return 'Reactivate'
+  if (props.type === 'edit') return 'Update Profile'
   if (props.type === 'delete') return 'Permanently Delete'
   return 'Confirm Action'
 })

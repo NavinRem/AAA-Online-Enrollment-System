@@ -123,12 +123,12 @@ const submitActionModal = async (formData) => {
   const { name, phone, email, role, profile, deleteConfirm } = formData
   submitting.value = true
   errorMessage.value = ''
- 
+
   try {
     if (type === 'edit') {
       const { status } = formData
       await userService.updateUser(user.uid || user.id, { name, phone, email, role, profile, status })
- 
+
       const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
       if (idx !== -1) {
         allUsers.value[idx].name = name
@@ -162,7 +162,7 @@ const submitActionModal = async (formData) => {
     } else if (type === 'register-child') {
       const { name, dob, profile, medicalNote } = formData
       const parentId = user.uid || user.id
- 
+
       // Finalize Profile Image (if temp)
       let finalProfile = profile
       if (profile && profile.includes('/profiles/temp/')) {
@@ -171,7 +171,7 @@ const submitActionModal = async (formData) => {
         const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
         finalProfile = await storageService.moveProfileImage(profile, newPath)
       }
- 
+
       const result = await userService.registerStudentProfile(parentId, {
         name,
         dob,
@@ -233,7 +233,7 @@ const submitNewParent = async (data) => {
       const newPath = `profiles/new_parent/${sanitizedName}_${payload.role}.${extension}`
       payload.profile = await storageService.moveProfileImage(payload.profile, newPath)
     }
- 
+
     const result = await userService.registerParentAccount(payload)
 
     // Use the actual UID from the backend response
@@ -266,11 +266,9 @@ const submitNewParent = async (data) => {
 const openAddChildModal = (parent) => {
   errorMessage.value = ''
   successMessage.value = ''
-  actionModal.value = {
-    isOpen: true,
-    type: 'register-child',
-    user: parent,
-  }
+  actionModalType.value = 'register-child'
+  actionModalUser.value = parent
+  isActionModalOpen.value = true
 }
 
 const navigateToDetail = (item) => {
@@ -323,8 +321,7 @@ const navigateToDetail = (item) => {
                 <span v-if="!item.studentProfiles || item.studentProfiles.length === 0" class="text-muted">—</span>
                 <template v-else>
                   <div v-for="(child, i) in item.studentProfiles" :key="child.id || i" class="avatar-mini child-avatar"
-                    :title="child.name || 'Child ' + (i + 1)"
-                    :style="{ zIndex: item.studentProfiles.length - i }">
+                    :title="child.name || 'Child ' + (i + 1)" :style="{ zIndex: item.studentProfiles.length - i }">
                     <img :src="getStudentProfileURL(child.profile)" alt="child" />
                   </div>
                 </template>
@@ -380,16 +377,8 @@ const navigateToDetail = (item) => {
     </DataPageLayout>
 
     <!-- Unified Action Modal (Reusable Page-Specific Component) -->
-    <ParentActionModal 
-      :isOpen="isActionModalOpen" 
-      :type="actionModalType" 
-      :user="actionModalUser"
-      :loading="submitting" 
-      :error="errorMessage" 
-      :success="successMessage" 
-      @close="closeActionModal"
-      @submit="submitActionModal" 
-    />
+    <ParentActionModal :isOpen="isActionModalOpen" :type="actionModalType" :user="actionModalUser" :loading="submitting"
+      :error="errorMessage" :success="successMessage" @close="closeActionModal" @submit="submitActionModal" />
 
     <!-- Parent Form Modal (Create New) -->
     <ParentFormModal :isOpen="showNewParentModal" :loading="submitting" :error="errorMessage" :success="successMessage"
