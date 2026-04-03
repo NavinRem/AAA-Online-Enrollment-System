@@ -12,7 +12,7 @@
       <strong class="name">{{
         enrollment
           ? enrollment.programTitle || enrollment.courseTitle
-          : student?.name || student?.fullName || student?.fullname || student?.email || 'Unknown'
+          : student?.name || student?.email || 'Unknown'
       }}</strong>
     </div>
 
@@ -26,7 +26,7 @@
                 <template v-if="selectedParent">
                   <div class="selected-parent">
                     <img
-                      :src="selectedParent.profileURL || getImageUrl('profiles/avatar-parent')"
+                      :src="selectedParent.profile || getImageUrl('profiles/avatar-parent')"
                       class="avatar-mini-sm"
                     />
                     <span>{{ selectedParent.name || selectedParent.email }}</span>
@@ -58,7 +58,7 @@
                     @click="selectParent(p)"
                   >
                     <img
-                      :src="p.profileURL || getImageUrl('profiles/avatar-parent')"
+                      :src="p.profile || getImageUrl('profiles/avatar-parent')"
                       class="avatar-mini-sm"
                     />
                     <div class="item-info">
@@ -156,7 +156,7 @@
 
         <div class="form-group full-width">
           <AvatarSelector 
-            v-model="localData.profileURL" 
+            v-model="localData.profile" 
             role="student" 
             :uid="student?.id || enrollment?.studentId"
             :customFileName="`${localData.name}_student`"
@@ -226,7 +226,7 @@
           This will remove all grades and attendance history for this session.
         </p>
         <p v-else>
-          You are about to permanently delete the profile for <strong>{{ student?.name || student?.fullName || student?.fullname }}</strong>. 
+          You are about to permanently delete the profile for <strong>{{ student?.name }}</strong>. 
           This will remove all their personal data and program history.
         </p>
       </div>
@@ -282,7 +282,7 @@ const getInitialData = () => ({
   parentId: '',
   name: '',
   dob: '',
-  profileURL: '',
+  profile: '',
   medicalNote: 'None',
   status: '',
   deleteConfirm: '',
@@ -294,9 +294,9 @@ const mapSourceToForm = () => {
   const source = props.enrollment || props.student || {}
   return {
     parentId: source.parentId || '',
-    name: source.name || source.fullName || source.fullname || '',
+    name: source.name || '',
     dob: source.dob || '',
-    profileURL: source.profileURL || '',
+    profile: source.profile || '',
     medicalNote: source.medicalNote || 'None',
     status:
       source.status ||

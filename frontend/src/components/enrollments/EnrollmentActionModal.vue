@@ -324,12 +324,12 @@ const enrollmentSummary = computed(() => {
 
   return {
     ...e,
-    parentName: e.parentName || e.parent?.name || e.parent?.fullName || 'Parent',
-    studentName: e.studentName || e.student?.name || e.student?.fullname || e.student?.fullName || 'Student',
-    programTitle: e.programTitle || e.program?.title || 'Program',
-    parentAvatar: getParentProfileURL(e.parentProfileURL || e.parent?.profileURL),
-    studentAvatar: getStudentProfileURL(e.studentProfileURL || e.student?.profileURL),
-    programAvatar: getProgramProfileURL(e.programProfileURL || e.program?.profileURL, e.category || e.program?.category),
+    parentName: e.parent?.name || e.parentName || 'Parent',
+    studentName: e.student?.name || e.studentName || 'Student',
+    programTitle: e.program?.title || e.programTitle || 'Program',
+    parentAvatar: getParentProfileURL(e.parent?.profile || e.parentProfileURL),
+    studentAvatar: getStudentProfileURL(e.student?.profile || e.studentProfileURL),
+    programAvatar: getProgramProfileURL(e.program?.profile || e.programProfileURL, e.category || e.program?.category),
     sessionDay: getSessionDay(e.sessionSchedule || (e.session?.schedule?.day + ' ' + e.session?.schedule?.timeslot)),
     sessionTime: getSessionTime(e.sessionSchedule || (e.session?.schedule?.day + ' ' + e.session?.schedule?.timeslot)),
     status: getEnrollmentDisplayStatus(e),

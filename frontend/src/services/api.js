@@ -1,5 +1,5 @@
 import { getCachedData, setCachedData, clearCachePrefix } from './cache'
-
+import { auth } from '../firebase'
 import { config } from '../config'
 
 const API_URL = config.api.baseUrl
@@ -20,6 +20,16 @@ export async function request(endpoint, options = {}) {
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
+  }
+
+  // 0. Inject ID Token if user is logged in
+  if (auth.currentUser) {
+    try {
+      const token = await auth.currentUser.getIdToken();
+      headers['Authorization'] = `Bearer ${token}`;
+    } catch (err) {
+      console.warn('Failed to get auth token:', err);
+    }
   }
 
   // Allow removing Content-Type (e.g. for FormData)

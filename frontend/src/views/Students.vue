@@ -9,7 +9,7 @@ import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import StatusBadge from '../components/common/ui/StatusBadge.vue'
-import RegisterChildModal from '../components/parents/RegisterChildModal.vue'
+import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import StudentActionModal from '../components/students/StudentActionModal.vue'
 import { userService } from '../services/userService'
 import { authService } from '../services/authService'
@@ -97,18 +97,20 @@ const studentHeaders = [
   { label: 'Action', width: '80px', align: 'center' }
 ]
 
-const showRegisterChildModal = ref(false)
+const parentActionModal = ref({
+  isOpen: false,
+  type: 'register-child',
+})
 const modalLoading = ref(false)
 const modalError = ref('')
 const modalSuccess = ref('')
 const parentsList = ref([])
-const selectedParentForModal = ref(null)
 
 const handleOpenAddStudent = async () => {
   modalError.value = ''
   modalSuccess.value = ''
-  selectedParentForModal.value = null
-  showRegisterChildModal.value = true
+  parentActionModal.value.isOpen = true
+  parentActionModal.value.type = 'register-child'
 
   try {
     const allUsers = await userService.getAllUsers()
@@ -119,29 +121,48 @@ const handleOpenAddStudent = async () => {
   }
 }
 
-const handleRegisterStudent = async (childData) => {
+const handleRegisterStudent = async (formData) => {
   modalLoading.value = true
   modalError.value = ''
   modalSuccess.value = ''
 
   try {
-    const parentId =
-      childData.parentId ||
-      (selectedParentForModal.value &&
-        (selectedParentForModal.value.uid || selectedParentForModal.value.id))
+    const { parentId, name, dob, profile, medicalNote } = formData
     if (!parentId) throw new Error('No parent selected')
-
-    const result = await userService.registerStudentProfile(parentId, childData)
+ 
+    // Finalize Profile Image (if temp)
+    let finalProfile = profile
+    if (profile && profile.includes('/profiles/temp/')) {
+      const extension = profile.split('?')[0].split('.').pop()
+      const sanitizedName = (name || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
+      finalProfile = await storageService.moveProfileImage(profile, newPath)
+    }
+ 
+    const result = await userService.registerStudentProfile(parentId, {
+      name,
+      dob,
+      profile: finalProfile,
+      medicalNote,
+      status: 'Inactive',
+    })
 
     const chosenParent = parentsList.value.find((p) => (p.uid || p.id) === parentId)
 
     const newStudent = {
       id: result.id,
-      ...childData,
+      name,
+      dob,
+      profile: finalProfile,
+      medicalNote,
       parentId: parentId,
-      parentName: chosenParent ? chosenParent.name || chosenParent.email : 'Parent',
+      parentInfo: chosenParent ? {
+        id: parentId,
+        name: chosenParent.name || chosenParent.email,
+        profile: chosenParent.profile
+      } : null,
       status: 'Inactive',
-      createdAt: new Date().toISOString(),
+      created: new Date().toISOString(),
       programs: [],
     }
 
@@ -150,9 +171,16 @@ const handleRegisterStudent = async (childData) => {
 
     modalSuccess.value = 'Student registered successfully!'
     setTimeout(() => {
-      showRegisterChildModal.value = false
-      fetchStudents()
+      parentActionModal.value.isOpen = false
+      modalSuccess.value = ''
     }, 1500)
+
+    // Background Refresh
+    try {
+      fetchStudents()
+    } catch (err) {
+      console.warn('Silent refresh error:', err)
+    }
   } catch (err) {
     console.error('Failed to register child', err)
     modalError.value = err.message || 'Error creating student account.'
@@ -202,7 +230,7 @@ const openActionModal = async (type, studentItem) => {
 
 const submitActionModal = async (formData) => {
   const { type, student } = actionModal.value
-  const { fullName, name, medicalNote, status, parentId, dob, profileURL } = formData
+  const { name, medicalNote, status, parentId, dob, profileURL } = formData
   modalLoading.value = true
   modalError.value = ''
   modalSuccess.value = ''
@@ -215,27 +243,71 @@ const submitActionModal = async (formData) => {
         status,
         dob,
         parentId: parentId,
-        profileURL: profileURL,
+        profile: profile,
       })
 
       const idx = students.value.findIndex((s) => s.id === student.id || s.uid === student.uid)
       if (idx !== -1) {
         const chosenParent = parentsList.value.find((p) => (p.uid || p.id) === parentId)
 
-        students.value[idx].fullName = fullName || name
+        students.value[idx].name = name
         students.value[idx].medicalNote = medicalNote
         students.value[idx].status = status
         if (dob) students.value[idx].dob = dob
-        if (profileURL) students.value[idx].profileURL = profileURL
+        if (profile) students.value[idx].profile = profile
         if (chosenParent) {
           students.value[idx].parentId = parentId
-          students.value[idx].parentName = chosenParent.name || chosenParent.email
+          students.value[idx].parentInfo = {
+            id: parentId,
+            name: chosenParent.name || chosenParent.email,
+            profile: chosenParent.profile
+          }
+        }
+
+        // SYNC: Update Student Info in Parent's nested studentProfiles array
+        if (parentId) {
+          try {
+            const parentData = await userService.getProfile(parentId)
+            const updatedProfiles = (parentData.studentProfiles || []).map(p => {
+              if (p.id === (student.id || student.uid)) {
+                return {
+                  ...p,
+                  name: name,
+                  dob,
+                  profile,
+                  medicalNote,
+                  status
+                }
+              }
+              return p
+            })
+            await userService.updateUser(parentId, { studentProfiles: updatedProfiles })
+          } catch (syncErr) {
+            console.warn('Sync to parent failed, but student was updated.', syncErr)
+          }
         }
       }
       newlyCreatedId.value = student.id || student.uid
       modalSuccess.value = 'Student profile updated successfully!'
     } else if (type === 'delete') {
-      students.value = students.value.filter((s) => (s.id || s.uid) !== (student.id || student.uid))
+      const studentId = student.id || student.uid
+      const parentId = student.parentId
+
+      // Actual Delete in Firestore
+      await userService.deleteStudent(studentId)
+
+      // SYNC: Remove from Parent's nested list
+      if (parentId) {
+        try {
+          const parentData = await userService.getProfile(parentId)
+          const updatedProfiles = (parentData.studentProfiles || []).filter(p => p.id !== studentId)
+          await userService.updateUser(parentId, { studentProfiles: updatedProfiles })
+        } catch (syncErr) {
+          console.warn('Removal from parent nested list failed.', syncErr)
+        }
+      }
+
+      students.value = students.value.filter((s) => (s.id || s.uid) !== studentId)
       modalSuccess.value = 'Student record permanently deleted.'
     } else if (type === 'override') {
       const { overrideReason, overrideRemark } = formData
@@ -300,27 +372,26 @@ const submitActionModal = async (formData) => {
             <td class="bold" @click="navigateToDetail(item)">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="getStudentProfileURL(item.profileURL)" alt="avatar" />
+                  <img :src="getStudentProfileURL(item.profile)" alt="avatar" />
                 </div>
                 <div class="user-info" @click="navigateToDetail(item)">
-                  <span class="user-name">{{ item.fullName }}</span>
+                  <span class="user-name">{{ item.name }}</span>
                 </div>
               </div>
             </td>
             <td>
               <div class="user-cell">
                 <div class="user-avatar-small">
-                  <img :src="getParentProfileURL(item.parentProfileURL)" alt="parent avatar" />
+                  <img :src="getParentProfileURL(item.parentInfo?.profile)" alt="parent avatar" />
                 </div>
-                {{ item.parentName || 'Parent' }}
+                {{ item.parentInfo?.name || 'Parent' }}
               </div>
             </td>
             <td class="hide-on-tablet">
               <div class="course-icons">
                 <div v-for="(program, pIdx) in item.programs" :key="pIdx" class="program-icon-mini"
                   :title="program.programTitle">
-                  <img :src="getProgramProfileURL(program.programProfileURL)"
-                    :alt="program.programTitle" />
+                  <img :src="getProgramProfileURL(program.programProfileURL)" :alt="program.programTitle" />
                 </div>
                 <span v-if="!item.programs || item.programs.length === 0" class="text-muted">None</span>
               </div>
@@ -368,9 +439,9 @@ const submitActionModal = async (formData) => {
       :selectableParents="parentsList" :loading="modalLoading" :error="modalError" :success="modalSuccess"
       @close="() => { actionModal.isOpen = false; modalError = ''; modalSuccess = ''; }" @submit="submitActionModal" />
 
-    <RegisterChildModal :isOpen="showRegisterChildModal" :parent="selectedParentForModal"
-      :selectableParents="parentsList" :loading="modalLoading" :error="modalError" :success="modalSuccess"
-      @close="() => { showRegisterChildModal = false; modalError = ''; modalSuccess = ''; }"
+    <ParentActionModal :isOpen="parentActionModal.isOpen" :type="parentActionModal.type"
+      :selectableParents="parentsList" :loading="modalLoading" v-model:error="modalError" v-model:success="modalSuccess"
+      @close="() => { parentActionModal.isOpen = false; modalError = ''; modalSuccess = ''; }"
       @submit="handleRegisterStudent" />
   </DashboardLayout>
 </template>
@@ -390,5 +461,4 @@ const submitActionModal = async (formData) => {
   cursor: pointer;
   gap: 10px;
 }
-
 </style>

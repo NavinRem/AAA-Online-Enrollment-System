@@ -1,4 +1,5 @@
 const { db, COLLECTIONS } = require("../../config/database");
+const userService = require("../management/userService");
 
 class ProgramService {
   async createProgram(programData) {
@@ -14,7 +15,7 @@ class ProgramService {
       levelId, 
       termId, 
       schedule, 
-      profileURL, 
+      profile, 
       teachers, // Array of { id, name }
       startDate,
       endDate 
@@ -47,7 +48,7 @@ class ProgramService {
       levelId: levelId || null,
       termId: termId || null,
       schedule: schedule || null,
-      profileURL: profileURL || null,
+      profile: profile || null,
       teachers: teachers || [],
       startDate: startDate || null,
       endDate: endDate || null,
@@ -87,15 +88,16 @@ class ProgramService {
       termsMap[doc.id] = doc.data().name;
     });
 
-    const usersSnapshot = await db.collection(COLLECTIONS.USER).where("role", "in", ["teacher", "instructor"]).get();
+    const allUsers = await userService.getAllUsers();
     const teachersMap = {};
-    usersSnapshot.docs.forEach((doc) => {
-      const userData = doc.data();
-      teachersMap[doc.id] = {
-        id: doc.id,
-        name: userData.name || userData.email || "Unknown",
-        profileURL: userData.profileURL || null
-      };
+    allUsers.forEach((u) => {
+      if (["teacher", "instructor", "admin"].includes(u.role)) {
+        teachersMap[u.uid] = {
+          id: u.uid,
+          name: u.name || u.email || "Unknown",
+          profile: u.profile || null
+        };
+      }
     });
 
     const categoriesSnapshot = await db.collection(COLLECTIONS.CATEGORY).get();
@@ -125,7 +127,7 @@ class ProgramService {
         const teacherId = typeof t === 'string' ? t : (t.id || t.uid);
         if (!teacherId) return null;
         
-        return teachersMap[teacherId] || (typeof t === 'object' ? { ...t, profileURL: "" } : { id: t, name: "Unknown", profileURL: "" });
+        return teachersMap[teacherId] || (typeof t === 'object' ? { ...t, profile: "" } : { id: t, name: "Unknown", profile: "" });
       }).filter(Boolean);
 
       return {

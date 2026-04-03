@@ -78,4 +78,11 @@ export const userService = {
     })
   },
 
+  // Delete Student Record
+  deleteStudent(studentId) {
+    return request(`/students/${studentId}`, {
+      method: 'DELETE',
+    })
+  },
+
 }
