@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { getImageUrl, getActionIcon, getParentProfileURL, getStudentProfileURL } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon, getParentProfileURL, getStudentProfileURL, isSameProfileAsset } from '@/utils/assetHelper'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
@@ -13,9 +13,14 @@ import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import ParentFormModal from '../components/parents/ParentFormModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
-import { storageService } from '@/services/storageService'
 import { useTableActions } from '../composables/useTableActions'
 import { enrichParents, calculateParentStats } from '../utils/parentHelper'
+import {
+  processUserProfileImage,
+  processStudentProfileImage,
+  prepareUserPayload,
+  prepareStudentPayload
+} from '../utils/userHelper'
 import { formatDate } from '../utils/dateFormatter'
 
 const router = useRouter()
@@ -120,100 +125,71 @@ const closeActionModal = () => {
 const submitActionModal = async (formData) => {
   const type = actionModalType.value
   const user = actionModalUser.value
-  const { name, phone, email, role, profile, deleteConfirm } = formData
+  const uid = user?.uid || user?.id
   submitting.value = true
   errorMessage.value = ''
 
   try {
     if (type === 'edit') {
-      const { status } = formData
-      await userService.updateUser(user.uid || user.id, { name, phone, email, role, profile, status })
+      const finalProfile = await processUserProfileImage(
+        formData.profile,
+        formData.name,
+        formData.role,
+        user.profile
+      )
 
-      const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
-      if (idx !== -1) {
-        allUsers.value[idx].name = name
-        allUsers.value[idx].phone = phone
-        allUsers.value[idx].email = email
-        allUsers.value[idx].role = role
-        if (profile) allUsers.value[idx].profile = profile
-      }
-      successMessage.value = 'User updated successfully!'
-    } else if (type === 'deactivate') {
-      await userService.updateUser(user.uid || user.id, { status: 'Inactive' })
-      const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
-      if (idx !== -1) {
-        allUsers.value[idx].status = 'Inactive'
-      }
-      successMessage.value = 'User deactivated successfully!'
-    } else if (type === 'activate') {
-      await userService.updateUser(user.uid || user.id, { status: 'Active' })
-      const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === (user.uid || user.id))
-      if (idx !== -1) {
-        allUsers.value[idx].status = 'Active'
-      }
-      successMessage.value = 'User reactivated successfully!'
-    } else if (type === 'delete') {
-      if (deleteConfirm !== 'DELETE') {
-        throw new Error('You must type DELETE specifically to confirm.')
-      }
-      await userService.deleteUser(user.uid || user.id)
-      allUsers.value = allUsers.value.filter((u) => (u.uid || u.id) !== (user.uid || user.id))
-      successMessage.value = 'User deleted successfully!'
-    } else if (type === 'register-child') {
-      const { name, dob, profile, medicalNote } = formData
-      const parentId = user.uid || user.id
+      const payload = prepareUserPayload({ ...formData, profile: finalProfile })
+      await userService.updateUser(uid, payload)
 
-      // Finalize Profile Image (if temp)
-      let finalProfile = profile
-      if (profile && profile.includes('/profiles/temp/')) {
-        const extension = profile.split('?')[0].split('.').pop()
-        const sanitizedName = (name || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
-        const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
-        finalProfile = await storageService.moveProfileImage(profile, newPath)
-      }
-
-      const result = await userService.registerStudentProfile(parentId, {
-        name,
-        dob,
-        profile: finalProfile,
-        medicalNote,
-        status: 'Studying',
-      })
-
-      // Update local state to reflect the new child immediately
-      const userIdx = allUsers.value.findIndex((u) => (u.uid || u.id) === parentId)
+      const userIdx = allUsers.value.findIndex((u) => (u.uid || u.id) === uid)
       if (userIdx !== -1) {
-        if (!allUsers.value[userIdx].studentInfo) {
-          allUsers.value[userIdx].studentInfo = []
-        }
-        const studentInfoSnapshot = {
-          id: result.id || result.UID,
-          name,
-          dob,
-          profile: finalProfile,
-          medicalNote: medicalNote || 'None',
-          status: 'Studying',
-          parentId: parentId,
-        }
-        allUsers.value[userIdx].studentInfo.push(studentInfoSnapshot)
+        allUsers.value[userIdx] = { ...allUsers.value[userIdx], ...payload }
+      }
+      successMessage.value = 'Profile updated successfully!'
+    } else if (type === 'deactivate' || type === 'activate') {
+      const newStatus = type === 'activate' ? 'Active' : 'Inactive'
+      await userService.updateUser(uid, { status: newStatus })
+      const idx = allUsers.value.findIndex((u) => (u.uid || u.id) === uid)
+      if (idx !== -1) {
+        allUsers.value[idx].status = newStatus
+      }
+      successMessage.value = `Account ${type === 'activate' ? 'reactivated' : 'deactivated'} successfully!`
+    } else if (type === 'delete') {
+      await userService.deleteUser(uid)
+      allUsers.value = allUsers.value.filter((u) => (u.uid || u.id) !== uid)
+      successMessage.value = 'Account deleted successfully!'
+    } else if (type === 'register-child') {
+      const finalProfile = await processStudentProfileImage(formData.profile, formData.name)
+      const payload = prepareStudentPayload({ ...formData, profile: finalProfile })
 
-        // PERMANENT SYNC: Save updated studentInfo array directly
-        await userService.updateUser(parentId, {
+      const result = await userService.registerStudentProfile(uid, payload)
+
+      // Update local state and sync parent's studentInfo array
+      const userIdx = allUsers.value.findIndex((u) => (u.uid || u.id) === uid)
+      if (userIdx !== -1) {
+        if (!allUsers.value[userIdx].studentInfo) allUsers.value[userIdx].studentInfo = []
+
+        const newChild = {
+          id: result.id || result.UID,
+          ...payload,
+          parentId: uid
+        }
+        allUsers.value[userIdx].studentInfo.push(newChild)
+
+        // Sync with backend to ensure the relationship is fully persisted in the user object too
+        await userService.updateUser(uid, {
           studentInfo: allUsers.value[userIdx].studentInfo
         })
       }
+      successMessage.value = 'Child registered successfully!'
     }
-    // 1. UI Feedback and Closure
-    successMessage.value = type === 'edit' ? 'Parent updated successfully!' :
-      type === 'register-child' ? 'Child registered successfully!' :
-        `Parent ${type}d successfully!`
 
     setTimeout(() => {
       closeActionModal()
     }, 1500)
   } catch (err) {
-    console.error(`Failed to handle ${type} parent:`, err)
-    errorMessage.value = err.message || `Failed to ${type} parent. Please try again.`
+    console.error(`Failed to handle ${type} action:`, err)
+    errorMessage.value = err.message || `Failed to ${type} action. Please try again.`
   } finally {
     submitting.value = false
   }
@@ -225,30 +201,24 @@ const submitNewParent = async (data) => {
   successMessage.value = ''
 
   try {
-    const payload = { ...data, status: 'Active' }
+    const finalProfile = await processUserProfileImage(data.profile, data.name, data.role)
+    const payload = prepareUserPayload({ ...data, profile: finalProfile })
 
-    // Finalize Profile Image (if temp)
-    if (payload.profile && payload.profile.includes('/profiles/temp/')) {
-      const extension = payload.profile.split('?')[0].split('.').pop()
-      const sanitizedName = payload.name.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
-      const newPath = `profiles/new_parent/${sanitizedName}_${payload.role}.${extension}`
-      payload.profile = await storageService.moveProfileImage(payload.profile, newPath)
-    }
+    // Add temp password if provided (handled by service normally, but passed here)
+    if (data.password) payload.password = data.password
 
     const result = await userService.registerParentAccount(payload)
-
-    // Use the actual UID from the backend response
     const actualUid = result.uid || result.id || result.UID
+
     const newUser = {
       uid: actualUid,
-      ...data,
-      status: 'Active',
+      ...payload,
       createdAt: new Date().toISOString(),
       studentInfo: [],
     }
     allUsers.value.unshift(newUser)
+    newlyCreatedId.value = actualUid
 
-    // Finalize Success
     successMessage.value = 'New account created successfully!'
 
     setTimeout(() => {
@@ -257,7 +227,7 @@ const submitNewParent = async (data) => {
       successMessage.value = ''
     }, 1500)
   } catch (err) {
-    console.error('Failed to create parent account', err)
+    console.error('Failed to create parent account:', err)
     errorMessage.value = err.message || 'Failed to create parent account.'
   } finally {
     submitting.value = false
@@ -311,8 +281,8 @@ const navigateToDetail = (item) => {
             </td>
             <td class="bold" :style="{ width: headers[1].width }">
               <div class="user-cell">
-                <div class="user-avatar-small">
-                  <img :src="getParentProfileURL(item.profile)" alt="parent avatar" />
+                <div class="avatar-mini">
+                  <img :src="item.profileURL || item.profile" alt="avatar" />
                 </div>
                 <span>{{ item.name || 'Parent' }}</span>
               </div>
@@ -322,9 +292,8 @@ const navigateToDetail = (item) => {
                 <span v-if="!item.studentInfo || item.studentInfo.length === 0" class="text-muted">—</span>
                 <template v-else>
                   <div v-for="(child, i) in item.studentInfo" :key="child.id || i" class="avatar-mini child-avatar"
-                    :title="child.name || 'Child ' + (i + 1)"
-                    :style="{ zIndex: item.studentInfo.length - i }">
-                    <img :src="getStudentProfileURL(child.profile)" alt="child" />
+                    :title="child.name || 'Child ' + (i + 1)" :style="{ zIndex: item.studentInfo.length - i }">
+                    <img :src="child.profileURL || child.profile" alt="child" />
                   </div>
                 </template>
               </div>

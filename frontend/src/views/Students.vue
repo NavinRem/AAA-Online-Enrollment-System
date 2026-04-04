@@ -129,7 +129,7 @@ const handleRegisterStudent = async (formData) => {
   try {
     const { parentId, name, dob, profile, medicalNote } = formData
     if (!parentId) throw new Error('No parent selected')
- 
+
     // Finalize Profile Image (if temp)
     let finalProfile = profile
     if (profile && profile.includes('/profiles/temp/')) {
@@ -138,7 +138,7 @@ const handleRegisterStudent = async (formData) => {
       const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
       finalProfile = await storageService.moveProfileImage(profile, newPath)
     }
- 
+
     const result = await userService.registerStudentProfile(parentId, {
       name,
       dob,
@@ -268,7 +268,7 @@ const submitActionModal = async (formData) => {
         if (parentId) {
           try {
             const parentData = await userService.getProfile(parentId)
-            const updatedProfiles = (parentData.studentProfiles || []).map(p => {
+            const updatedProfiles = (parentData.studentInfo || []).map(p => {
               if (p.id === (student.id || student.uid)) {
                 return {
                   ...p,
@@ -281,7 +281,7 @@ const submitActionModal = async (formData) => {
               }
               return p
             })
-            await userService.updateUser(parentId, { studentProfiles: updatedProfiles })
+            await userService.updateUser(parentId, { studentInfo: updatedProfiles })
           } catch (syncErr) {
             console.warn('Sync to parent failed, but student was updated.', syncErr)
           }
@@ -300,8 +300,8 @@ const submitActionModal = async (formData) => {
       if (parentId) {
         try {
           const parentData = await userService.getProfile(parentId)
-          const updatedProfiles = (parentData.studentProfiles || []).filter(p => p.id !== studentId)
-          await userService.updateUser(parentId, { studentProfiles: updatedProfiles })
+          const updatedProfiles = (parentData.studentInfo || []).filter(p => p.id !== studentId)
+          await userService.updateUser(parentId, { studentInfo: updatedProfiles })
         } catch (syncErr) {
           console.warn('Removal from parent nested list failed.', syncErr)
         }
@@ -372,7 +372,7 @@ const submitActionModal = async (formData) => {
             <td class="bold" @click="navigateToDetail(item)">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="getStudentProfileURL(item.profile)" alt="avatar" />
+                  <img :src="item.profileURL || item.profile" alt="avatar" />
                 </div>
                 <div class="user-info" @click="navigateToDetail(item)">
                   <span class="user-name">{{ item.name }}</span>
@@ -382,7 +382,7 @@ const submitActionModal = async (formData) => {
             <td>
               <div class="user-cell">
                 <div class="user-avatar-small">
-                  <img :src="getParentProfileURL(item.parentInfo?.profile)" alt="parent avatar" />
+                  <img :src="item.parentInfo?.profileURL || item.parentInfo?.profile" alt="parent avatar" />
                 </div>
                 {{ item.parentInfo?.name || 'Parent' }}
               </div>

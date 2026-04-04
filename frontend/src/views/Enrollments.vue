@@ -359,7 +359,7 @@ const closeActionModal = () => {
             <td class="hide-on-tablet bold" :style="{ width: headers[1].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="getParentProfileURL(item.parent?.profile || item.parentProfileURL)" alt="parent" />
+                  <img :src="item.parent?.profileURL || item.parent?.profile || item.parentProfileURL" alt="parent" />
                 </div>
                 <span>{{ item.parent?.name || item.parentName }}</span>
               </div>
@@ -367,7 +367,7 @@ const closeActionModal = () => {
             <td class="bold" :style="{ width: headers[2].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="getStudentProfileURL(item.student?.profile || item.studentProfileURL)" alt="student" />
+                  <img :src="item.student?.profileURL || item.student?.profile || item.studentProfileURL" alt="student" />
                 </div>
                 <span>{{ item.student?.name || item.studentName }}</span>
               </div>
@@ -375,7 +375,7 @@ const closeActionModal = () => {
             <td :style="{ width: headers[3].width }">
               <div class="info-cell">
                 <div class="program-icon-mini">
-                  <img :src="getProgramProfileURL(item.program?.profile || item.programProfileURL)" alt="program" />
+                  <img :src="item.program?.profileURL || item.program?.profile || item.programProfileURL" alt="program" />
                 </div>
                 <div class="program-cell">
                   <div class="program-title text-truncate">{{ item.program?.title || item.programTitle || 'Program' }}</div>

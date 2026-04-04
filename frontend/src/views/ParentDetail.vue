@@ -13,7 +13,12 @@ import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate } from '@/utils/dateFormatter'
 import { filterDetailEnrollments } from '@/utils/enrollmentHelper'
 import { enrichStudents } from '@/utils/studentHelper'
-
+import { 
+  processUserProfileImage, 
+  processStudentProfileImage, 
+  prepareUserPayload, 
+  prepareStudentPayload 
+} from '../utils/userHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const route = useRoute()
@@ -156,13 +161,20 @@ const openAddChildModal = () => {
 
 const submitActionModal = async (formData) => {
   const { type, user } = actionModal.value
+  const uid = user.uid || user.id
   submitting.value = true
   globalError.value = ''
 
   try {
-    const uid = user.uid || user.id
     if (type === 'edit') {
-      await userService.updateUser(uid, formData)
+      const finalProfile = await processUserProfileImage(
+        formData.profile, 
+        formData.name, 
+        formData.role, 
+        user.profile
+      )
+      const payload = prepareUserPayload({ ...formData, profile: finalProfile })
+      await userService.updateUser(uid, payload)
       globalSuccess.value = 'Profile updated successfully!'
     } else if (type === 'deactivate') {
       await userService.updateUser(uid, { status: 'Inactive' })
@@ -175,7 +187,19 @@ const submitActionModal = async (formData) => {
       router.push('/parents')
       return
     } else if (type === 'register-child') {
-      await userService.registerStudentProfile(uid, formData)
+      const finalProfile = await processStudentProfileImage(formData.profile, formData.name)
+      const payload = prepareStudentPayload({ ...formData, profile: finalProfile })
+      
+      const result = await userService.registerStudentProfile(uid, payload)
+      
+      // Sync parent's studentInfo array
+      const currentStudentInfo = parent.value.studentInfo || []
+      const newChild = { id: result.id || result.UID, ...payload, parentId: uid }
+      
+      await userService.updateUser(uid, {
+        studentInfo: [...currentStudentInfo, newChild]
+      })
+      
       globalSuccess.value = 'Child registered successfully!'
     }
 
@@ -408,7 +432,7 @@ watch(
           <template #outside>
             <div class="profile-header" style="flex-direction: column; align-items: center;">
               <div class="profile-preview">
-                <img :src="parent?.profile || getImageUrl('profiles/avatar-parent')" alt="Profile" />
+                <img :src="parent?.profileURL || parent?.profile" alt="Profile" />
               </div>
               <h3 class="profile-name">{{ parent?.name || 'Anonymous' }}</h3>
               <div class="badge-stack">

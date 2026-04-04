@@ -121,15 +121,15 @@ export const getProgramProfileURL = (profileURL, category) => {
 }
 
 export const getParentProfileURL = (profileURL) => {
-  return getImageUrl(profileURL) || getImageUrl('profiles/avatar-man')
+  return getImageUrl(profileURL)
 }
 
 export const getStudentProfileURL = (profileURL) => {
-  return getImageUrl(profileURL) || getImageUrl('profiles/avatar-boy')
+  return getImageUrl(profileURL)
 }
 
 export const getTeacherProfileURL = (profileURL) => {
-  return getImageUrl(profileURL) || getImageUrl('profiles/avatar-teacher-man')
+  return getImageUrl(profileURL)
 }
 
 /**
@@ -168,6 +168,36 @@ export const ACTION_ICONS = {
   save: 'action/cloud-upload',
   back: 'action/back',
   close: 'action/close',
+}
+
+/**
+ * Compares two profile identifiers (URLs or Asset Paths) to see if they refer to the same logical file.
+ * Strips tokens, query params, and common storage prefixes.
+ */
+export const isSameProfileAsset = (asset1, asset2) => {
+  if (!asset1 || !asset2) return asset1 === asset2
+
+  const normalize = (val) => {
+    if (typeof val !== 'string') return val
+    let core = val.split('?')[0].split('#')[0]
+
+    // Extract path from storage URL if applicable
+    if (core.includes('firebasestorage.googleapis.com')) {
+      const parts = core.split('/o/')
+      if (parts.length > 1) {
+        // Remove bucket prefix and decode URI components
+        core = decodeURIComponent(parts[1]).split('/').slice(1).join('/')
+      }
+    }
+    
+    // Cleanup slashes and whitespace
+    return core.toLowerCase().replace(/\/$/, '').trim()
+  }
+
+  const n1 = normalize(asset1)
+  const n2 = normalize(asset2)
+  
+  return n1 === n2
 }
 
 /**

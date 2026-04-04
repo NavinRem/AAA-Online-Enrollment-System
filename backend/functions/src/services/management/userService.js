@@ -211,7 +211,8 @@ class UserService {
           ...doc.data(),
           name: doc.data().name || "User",
           profile:
-            doc.data().profile || "/src/assets/images/profiles/avatar-man.png",
+            doc.data().profile || doc.data().profileURL || null,
+          profileURL: doc.data().profileURL || doc.data().profile || null,
         };
       }
     }
@@ -243,7 +244,7 @@ class UserService {
     delete cleanData.uid;
     delete cleanData.fullName;
     delete cleanData.username;
-    delete cleanData.profileURL;
+    // delete cleanData.profileURL; // Stop deleting profileURL
     delete cleanData.childProfileURL;
 
     // 3. Handle Migration if Role Changes
@@ -304,7 +305,8 @@ class UserService {
         phone: userData.phone || "N/A",
         role: userData.role || (newCollection === COLLECTIONS.GUARDIAN ? "guardian" : "parent"),
         roleDisplay: userData.role === "parent" ? "Parent" : userData.role || "Guardian",
-        profile: userData.profile || "/src/assets/images/profiles/avatar-man.png",
+        profile: userData.profile || userData.profileURL || null,
+        profileURL: userData.profileURL || userData.profile || null,
       };
 
       // Find all students for this parent in the GLOBAL collection

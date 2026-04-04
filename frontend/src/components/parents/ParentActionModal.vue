@@ -5,11 +5,13 @@
       :class="parentTheme">
       <div class="parent-info-content">
         <div class="parent-avatar-wrapper">
-          <img :src="getParentProfileURL((user || selectedParent).profile)" class="parent-avatar-img" />
+          <img :src="(user || selectedParent).profileURL || (user || selectedParent).profile" class="parent-avatar-img" />
         </div>
         <div class="parent-details">
           <span class="parent-role-tag">{{ (user || selectedParent).role || 'parent' }}</span>
           <strong class="parent-name">{{ (user || selectedParent).name || (user || selectedParent).email }}</strong>
+          <span class="parent-email-sub" v-if="(user || selectedParent).name">{{ (user || selectedParent).email
+            }}</span>
         </div>
       </div>
     </div>
@@ -20,41 +22,43 @@
         <label>Full Name <span class="required">*</span></label>
         <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
         <input type="text" v-model="localData.name" placeholder="Enter full name" class="standard-input"
-          :class="{ 'field-error': errors.name }" />
-        <div v-if="errors.name" class="field-error-msg">{{ errors.name }}</div>
+          :class="{ 'field-error': isSubmittingAttempted && errors.name }" />
+        <div v-if="isSubmittingAttempted && errors.name" class="field-error-msg">{{ errors.name }}</div>
       </div>
 
       <div class="form-group">
         <label>Email Address <span class="required">*</span></label>
         <span class="original-value" v-if="originalData.email">Original: {{ originalData.email }}</span>
         <input type="email" v-model="localData.email" placeholder="email@example.com" class="standard-input"
-          :class="{ 'field-error': errors.email }" />
-        <div v-if="errors.email" class="field-error-msg">{{ errors.email }}</div>
+          :class="{ 'field-error': isSubmittingAttempted && errors.email }" />
+        <div v-if="isSubmittingAttempted && errors.email" class="field-error-msg">{{ errors.email }}</div>
       </div>
 
       <div class="form-group">
         <label>Phone Number <span class="required">*</span></label>
         <span class="original-value" v-if="originalData.phone">Original: {{ originalData.phone }}</span>
         <input type="tel" v-model="localData.phone" placeholder="Enter phone number" class="standard-input"
-          :class="{ 'field-error': errors.phone }" />
-        <div v-if="errors.phone" class="field-error-msg">{{ errors.phone }}</div>
+          :class="{ 'field-error': isSubmittingAttempted && errors.phone }" />
+        <div v-if="isSubmittingAttempted && errors.phone" class="field-error-msg">{{ errors.phone }}</div>
       </div>
 
       <div class="form-group">
         <label>Role <span class="required">*</span></label>
         <span class="original-value" v-if="originalData.role">Original: {{ originalData.role }}</span>
-        <select v-model="localData.role" class="standard-input" :class="{ 'field-error': errors.role }">
+        <select v-model="localData.role" class="standard-input"
+          :class="{ 'field-error': isSubmittingAttempted && errors.role }">
           <option value="parent">Parent</option>
           <option value="guardian">Guardian</option>
         </select>
-        <div v-if="errors.role" class="field-error-msg">{{ errors.role }}</div>
+        <div v-if="isSubmittingAttempted && errors.role" class="field-error-msg">{{ errors.role }}</div>
       </div>
 
       <div class="form-group full-width">
         <label>Profile Avatar <span class="required">*</span></label>
         <AvatarSelector v-model="localData.profile" :role="localData.role" :uid="user?.uid || user?.id"
           :customFileName="`${localData.name}_${localData.role}`" />
-        <div v-if="errors.profile" class="field-error-msg">{{ errors.profile }}</div>
+        <p class="avatar-guidance">Only .jpg, .png, and .webp images are accepted.</p>
+        <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg">{{ errors.profile }}</div>
       </div>
     </div>
 
@@ -68,7 +72,7 @@
             <div class="dropdown-header" @click="isDropdownOpen = !isDropdownOpen">
               <template v-if="selectedParent">
                 <div class="selected-parent">
-                  <img :src="getParentProfileURL(selectedParent.profile)" class="avatar-mini-sm" />
+                  <img :src="selectedParent.profileURL || getParentProfileURL(selectedParent.profile)" class="avatar-mini-sm" />
                   <span>{{ selectedParent.name || selectedParent.email }}</span>
                 </div>
               </template>
@@ -106,24 +110,27 @@
       <div class="form-group">
         <label>Child's Full Name <span class="required">*</span></label>
         <input type="text" v-model="localData.name" placeholder="Enter child's full name" class="standard-input"
-          :class="{ 'field-error': errors.name }" />
-        <div v-if="errors.name" class="field-error-msg">{{ errors.name }}</div>
+          :class="{ 'field-error': isSubmittingAttempted && errors.name }" />
+        <div v-if="isSubmittingAttempted && errors.name" class="field-error-msg">{{ errors.name }}</div>
       </div>
 
       <div class="form-group">
         <label>Date of Birth <span class="required">*</span></label>
-        <input type="date" v-model="localData.dob" class="standard-input" :class="{ 'field-error': errors.dob }" />
-        <div v-if="errors.dob" class="field-error-msg">{{ errors.dob }}</div>
+        <input type="date" v-model="localData.dob" class="standard-input"
+          :class="{ 'field-error': isSubmittingAttempted && errors.dob }" />
+        <div v-if="isSubmittingAttempted && errors.dob" class="field-error-msg">{{ errors.dob }}</div>
       </div>
 
       <div class="form-group full-width">
+        <label>Child Profile Avatar <span class="required">*</span></label>
         <AvatarSelector v-model="localData.profile" role="student" :customFileName="`${localData.name}_student`" />
-        <div v-if="errors.profile" class="field-error-msg">{{ errors.profile }}</div>
+        <p class="avatar-guidance">Only .jpg, .png, and .webp images are accepted.</p>
+        <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg">{{ errors.profile }}</div>
       </div>
 
       <div class="form-group full-width">
-        <label>Medical Notes / Allergies</label>
-        <textarea v-model="localData.medicalNote" placeholder="e.g. Nut allergy, Asthma, or 'None'" rows="3"
+        <label>Personal Bio / Notes</label>
+        <textarea v-model="localData.medicalNote" placeholder="e.g. Nut allergy, ADHD, or any medical notes..." rows="3"
           class="standard-input"></textarea>
         <div class="preset-chips">
           <button v-for="preset in ['None', 'G6PD Deficiency', 'ADHD', 'Dyslexia', 'Asthma', 'Vision Impairment']"
@@ -162,13 +169,15 @@
 
     <!-- Delete Confirmation -->
     <div v-if="type === 'delete'" class="form-group full-width">
-      <div class="warning-icon-centered">⚠️</div>
       <div class="danger-box-standard">
-        <strong>Critical Permanent Account Deletion</strong>
-        <p>
-          Deleting an account removes the record entirely. It can never be recovered. This should only be used for
-          accidental entries.
-        </p>
+        <div class="danger-icon-large">⚠️</div>
+        <div class="danger-content">
+          <strong>Critical Permanent Account Deletion</strong>
+          <p>
+            Deleting an account removes the record entirely. It can never be recovered. This should only be used for
+            accidental entries.
+          </p>
+        </div>
       </div>
       <div class="confirm-label-standard">To confirm, type <strong>DELETE</strong> below:</div>
       <input type="text" v-model="localData.deleteConfirm" class="confirm-input-standard"
@@ -177,25 +186,31 @@
 
     <template #footer>
       <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; gap: 12px;">
-        <transition name="alert-fade">
-          <AppAlert v-if="error" :show="!!error" type="error" closable @close="$emit('update:error', '')"
-            style="width: 100%; margin-bottom: 0;">
-            {{ error }}
-          </AppAlert>
+        <transition name="toast-fade">
+          <div v-if="showValidationHint && validationHint" class="validation-hint-toast">
+            ⚠️ {{ validationHint }}
+          </div>
         </transition>
 
-        <transition name="alert-fade">
-          <AppAlert v-if="success" :show="!!success" type="success" closable @close="$emit('update:success', '')"
-            style="width: 100%; margin-bottom: 0;">
-            {{ success }}
-          </AppAlert>
-        </transition>
+        <div v-if="error || success" style="width: 100%;">
+          <transition name="alert-fade">
+            <AppAlert v-if="error" :show="!!error" type="error" closable @close="$emit('update:error', '')">
+              {{ error }}
+            </AppAlert>
+          </transition>
+
+          <transition name="alert-fade">
+            <AppAlert v-if="success" :show="!!success" type="success" closable @close="$emit('update:success', '')">
+              {{ success }}
+            </AppAlert>
+          </transition>
+        </div>
 
         <div style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
           <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success">Cancel</AppButton>
           <AppButton :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
-            @click="handleActionSubmit" :loading="loading" :disabled="isFormInvalid || !!success"
-            :class="{ 'button-disabled-visual': isFormInvalid || !!success }">
+            @click="handleActionSubmit" :loading="loading" :disabled="loading || !!success"
+            :class="{ 'button-disabled-visual': isFormInvalid || (type === 'edit' && !isChanged) || !!success }">
             {{ submitLabel }}
           </AppButton>
         </div>
@@ -211,7 +226,7 @@ import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { useActionModal } from '@/composables/useActionModal'
-import { getActionIcon, getParentProfileURL } from '@/utils/assetHelper'
+import { getActionIcon, getParentProfileURL, isSameProfileAsset } from '@/utils/assetHelper'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 
 const props = defineProps({
@@ -227,7 +242,6 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
 
 const getInitialData = () => ({
-  // Parent fields
   name: '',
   phone: '',
   email: '',
@@ -245,15 +259,24 @@ const getInitialData = () => ({
 
 const mapSourceToForm = () => {
   const u = props.user || {}
+  const base = getInitialData()
+
+  if (props.type === 'register-child') {
+    return {
+      ...base,
+      parentId: u.uid || u.id || '',
+      profile: 'boy',
+    }
+  }
+
   return {
-    ...getInitialData(),
+    ...base,
     name: u.name || '',
     phone: u.phone || u.phoneNumber || '',
     email: u.email || '',
     role: u.role || 'parent',
     status: u.status || 'Active',
-    profile: u.profile || '',
-    parentId: u.uid || u.id || '',
+    profile: u.profile || 'man',
   }
 }
 
@@ -262,6 +285,9 @@ const { localData, originalData, submitForm } = useActionModal(props, emit, {
   mapSourceToForm,
 })
 
+const isSubmittingAttempted = ref(false)
+const showValidationHint = ref(false)
+let hintTimeout = null
 const errors = ref({})
 
 const validationHint = computed(() => {
@@ -279,6 +305,8 @@ const validationHint = computed(() => {
     if (!data.name?.trim()) errs.name = "Child's name is required."
     if (!data.dob) errs.dob = 'Date of birth is required.'
     if (!data.profile) errs.profile = 'Please select an avatar.'
+  } else if (props.type === 'edit' && !isChanged.value) {
+    return 'No changes detected to update.'
   } else if (props.type === 'delete') {
     if (data.deleteConfirm !== 'DELETE') return 'Type DELETE to confirm.'
   }
@@ -293,8 +321,37 @@ const isFormInvalid = computed(() => {
   return !!validationHint.value
 })
 
+const isChanged = computed(() => {
+  if (props.type !== 'edit') return true
+
+  // Custom equality check to handle tokens in profile URLs
+  const d = localData.value
+  const o = originalData.value
+
+  const hasProfileChanged = !isSameProfileAsset(d.profile, o.profile)
+  const hasNameChanged = d.name !== o.name
+  const hasEmailChanged = d.email !== o.email
+  const hasPhoneChanged = d.phone !== o.phone
+  const hasRoleChanged = d.role !== o.role
+  const hasStatusChanged = d.status !== o.status
+
+  return hasProfileChanged || hasNameChanged || hasEmailChanged || hasPhoneChanged || hasRoleChanged || hasStatusChanged
+})
+
 const handleActionSubmit = () => {
-  if (isFormInvalid.value) return
+  isSubmittingAttempted.value = true
+
+  const isActuallyInvalid = isFormInvalid.value || (props.type === 'edit' && !isChanged.value)
+
+  if (isActuallyInvalid) {
+    showValidationHint.value = true
+    if (hintTimeout) clearTimeout(hintTimeout)
+    hintTimeout = setTimeout(() => {
+      showValidationHint.value = false
+    }, 3000)
+    return
+  }
+
   submitForm(true)
 }
 
@@ -369,33 +426,27 @@ const isPresetActive = (field, chipValue) => {
   return (localData.value[field] || '').split(',').map(v => v.trim()).includes(chipValue)
 }
 
-// Reset Dropdown on close
+// Reset Dropdown and attempt flag on close
 watch(() => props.isOpen, (newVal) => {
   if (!newVal) {
     isDropdownOpen.value = false
+    isSubmittingAttempted.value = false
+    showValidationHint.value = false
   }
 })
 </script>
 
 <style scoped>
-.original-value {
-  display: block;
-  font-size: 0.75rem;
-  color: #94a3b8;
-  margin-top: -4px;
-  margin-bottom: 4px;
-  font-style: italic;
-}
-
 .validation-hint-toast {
   font-size: 0.8rem;
   color: #ef4444;
   background: #fef2f2;
-  padding: 6px 12px;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
   border: 1px solid #fee2e2;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   max-width: fit-content;
-  animation: shake 0.4s ease;
+  animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
 }
 
 @keyframes shake {
@@ -422,119 +473,113 @@ watch(() => props.isOpen, (newVal) => {
   }
 }
 
-.identity-card {
-  margin-bottom: 24px;
+.toast-fade-enter-active,
+.toast-fade-leave-active {
+  transition: all 0.3s ease;
 }
 
-.warning-icon-centered {
-  font-size: 2.5rem;
-  text-align: center;
-  margin-bottom: 12px;
+.toast-fade-enter-from,
+.toast-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 .danger-box-standard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   background: #fef2f2;
   border: 1px solid #fee2e2;
-  padding: 16px;
-  border-radius: 12px;
-  margin-bottom: 20px;
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 24px;
 }
 
-.danger-box-standard strong {
+.danger-icon-large {
+  font-size: 2rem;
+}
+
+.danger-content strong {
   display: block;
   color: #991b1b;
   margin-bottom: 4px;
+  font-size: 1rem;
 }
 
-.danger-box-standard p {
+.danger-content p {
   font-size: 0.85rem;
   color: #b91c1c;
   line-height: 1.4;
   margin: 0;
+  opacity: 0.8;
 }
 
 .confirm-label-standard {
   font-size: 0.9rem;
   color: #475569;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  text-align: center;
 }
 
 .confirm-input-standard {
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   border: 2px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
   text-align: center;
   font-weight: 700;
   letter-spacing: 2px;
-  transition: all 0.2s;
+  transition: all 0.25s;
+  background: #f8fafc;
+  font-family: inherit;
 }
 
 .confirm-input-standard:focus {
   border-color: #ef4444;
   outline: none;
-  background: #fffafa;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
 }
 
-.preset-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.preset-chip {
-  padding: 6px 14px;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  color: #64748b;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.preset-chip:hover {
-  background: #e2e8f0;
-  color: #475569;
-}
-
-.preset-chip.active {
-  background: #0ea5e9;
-  border-color: #0ea5e9;
-  color: white;
-}
-
-.required {
-  color: #ef4444;
-  margin-left: 4px;
-}
-
-/* --- Parent Identity Panel Theme --- */
 .parent-identity-panel {
-  padding: 16px 20px;
-  border-radius: 16px;
+  padding: 20px 24px;
+  border-radius: 20px;
   margin-bottom: 24px;
   border: 1px solid transparent;
   display: flex;
   align-items: center;
-  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+.parent-identity-panel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0.2), transparent);
+  pointer-events: none;
 }
 
 .parent-info-content {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
+  z-index: 1;
 }
 
 .parent-avatar-wrapper {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
   overflow: hidden;
-  border: 2px solid white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 3px solid white;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
   background: #fff;
+  flex-shrink: 0;
 }
 
 .parent-avatar-img {
@@ -549,44 +594,72 @@ watch(() => props.isOpen, (newVal) => {
 }
 
 .parent-role-tag {
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: 0.65rem;
+  font-weight: 850;
   text-transform: uppercase;
-  letter-spacing: 0.8px;
-  margin-bottom: 2px;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+  padding: 4px 10px;
+  background: white;
+  border-radius: 8px;
+  width: fit-content;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .parent-name {
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-size: 1.35rem;
+  font-weight: 850;
   color: #1e293b;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.parent-email-sub {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 2px;
+  font-weight: 500;
 }
 
 /* Theme Color logic */
 .theme-blue {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-color: #bae6fd;
 }
 
 .theme-blue .parent-role-tag {
-  color: #3b82f6;
+  color: #0284c7;
 }
 
 .theme-pink {
-  background: #fdf2f8;
+  background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
   border-color: #fbcfe8;
 }
 
 .theme-pink .parent-role-tag {
-  color: #ec4899;
+  color: #db2777;
 }
 
 .theme-default {
-  background: #f8fafc;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-color: #e2e8f0;
 }
 
 .theme-default .parent-role-tag {
   color: #64748b;
+}
+
+.avatar-guidance {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 6px;
+  font-style: italic;
+  display: block;
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 2px;
+  font-weight: bold;
 }
 </style>

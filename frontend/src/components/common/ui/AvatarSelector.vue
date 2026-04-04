@@ -61,7 +61,7 @@
 import { ref, computed } from 'vue'
 import { storage } from '@/firebase'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { getImageUrl, ALL_BUILTIN_AVATARS } from '@/utils/assetHelper'
+import { getImageUrl, ALL_BUILTIN_AVATARS, isSameProfileAsset } from '@/utils/assetHelper'
 
 const props = defineProps({
   modelValue: String,
@@ -103,13 +103,22 @@ const availableAvatars = computed(() => {
   ]
 })
 
+const isOptionActive = (avatar) => {
+  if (!props.modelValue) return false
+  // Robust check for path variations
+  return isSameProfileAsset(props.modelValue, avatar.url)
+}
+
 const isCustomUrl = computed(() => {
   if (!props.modelValue) return false
+  // Resolve URL to check against built-ins
+  const resolved = getImageUrl(props.modelValue)
   // It's custom ONLY if it's NOT one of the official built-in avatars
-  return !ALL_BUILTIN_AVATARS.includes(props.modelValue)
+  return !ALL_BUILTIN_AVATARS.some(builtin => isSameProfileAsset(resolved, builtin))
 })
 
 const selectAvatar = (url) => {
+  // Save the full original asset URL per user request
   emit('update:modelValue', url)
   error.value = ''
   success.value = false
