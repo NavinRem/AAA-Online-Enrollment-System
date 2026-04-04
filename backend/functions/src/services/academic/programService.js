@@ -42,13 +42,13 @@ class ProgramService {
       category: category || "Other",
       description: description || "",
       price: parseFloat(price) || 0,
-      numberSessions: parseInt(numberSessions) || 0,
+      totalSessions: parseInt(numberSessions) || 0, // Standardize naming
       level: level || "level",
       status: status || "Active",
       levelId: levelId || null,
       termId: termId || null,
       schedule: schedule || null,
-      profile: profile || null,
+      profileURL: profile || programData.profileURL || null,
       teachers: teachers || [],
       startDate: startDate || null,
       endDate: endDate || null,
@@ -58,6 +58,23 @@ class ProgramService {
 
     const docRef = await db.collection(COLLECTIONS.PROGRAM).add(data);
     return { id: docRef.id, message: "Program created successfully" };
+  }
+
+  /**
+   * Standardized Program Snapshot for Mirroring
+   */
+  _getProgramSnapshot(programId, data) {
+    return {
+      id: programId,
+      title: data.title || "Program",
+      category: data.category || "N/A",
+      totalSessions: data.totalSessions || 10,
+      price: data.price || 0,
+      startDate: data.startDate || null,
+      endDate: data.endDate || null,
+      profileURL: data.profileURL || data.profile || null,
+      teachers: data.teachers || [],
+    };
   }
 
   async getAllPrograms() {
@@ -95,7 +112,7 @@ class ProgramService {
         teachersMap[u.uid] = {
           id: u.uid,
           name: u.name || u.email || "Unknown",
-          profile: u.profile || null
+          profileURL: u.profileURL || u.profile || null
         };
       }
     });
@@ -146,8 +163,45 @@ class ProgramService {
       ...updateData,
       updatedAt: new Date().toISOString(),
     };
+    
+    // Standardize profileURL if profile passed
+    if (updateData.profile && !updateData.profileURL) {
+      data.profileURL = updateData.profile;
+      delete data.profile;
+    }
+
     await ref.update(data);
+
+    // Cascading sync to Enrollments
+    if (updateData.title || updateData.category || updateData.price || updateData.profileURL || updateData.profile) {
+      await this._syncProgramMirrors(id);
+    }
+
     return { id, message: "Program updated successfully" };
+  }
+
+  /**
+   * Deep Mirrored Sync for Programs
+   * Cascades Program changes to linked Enrollments.
+   */
+  async _syncProgramMirrors(pid) {
+    const programDoc = await db.collection(COLLECTIONS.PROGRAM).doc(pid).get();
+    if (!programDoc.exists) return;
+
+    const program = this._getProgramSnapshot(pid, programDoc.data());
+    const batch = db.batch();
+
+    const enrollmentsSnap = await db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .where("programId", "==", pid)
+      .get();
+
+    enrollmentsSnap.forEach((doc) => {
+      batch.update(doc.ref, { program });
+    });
+
+    await batch.commit();
+    console.log(`✅ Cascading Program sync completed for ${pid} across ${enrollmentsSnap.size} enrollments.`);
   }
 
   async deleteProgram(id) {

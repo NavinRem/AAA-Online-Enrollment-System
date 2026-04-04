@@ -1,47 +1,25 @@
 const { db, COLLECTIONS } = require("../../config/database");
 
 class StudentService {
-  /**
-   * Helper to find which collection the parent belongs to (parents or guardians)
-   */
-  async _resolveParentCollection(parentId) {
-    if (!parentId) throw new Error("Parent ID is required");
-    
-    // Scan all possible parent-like collections
-    const collections = [COLLECTIONS.PARENT, COLLECTIONS.GUARDIAN];
-    for (const col of collections) {
-      const doc = await db.collection(col).doc(parentId).get();
-      if (doc.exists) return col;
-    }
-    
-    throw new Error(`Parent or Guardian not found with ID: ${parentId}`);
-  }
-
-  /**
-   * Snapshot Helpers (Standardized across the system)
-   */
-  _getParentSnapshot(parentId, pData) {
+  _getStudentSnapshot(sid, sData) {
     return {
-      id: parentId,
-      name: pData.name || pData.email || "Parent",
-      email: pData.email || "N/A",
-      phone: pData.phone || "N/A",
-      role: pData.role || "guardian",
-      roleDisplay:
-        pData.role === "parent" ? "Parent" : pData.role || "Guardian",
-      profile: pData.profile || pData.profileURL || null,
-      profileURL: pData.profileURL || pData.profile || null,
-    };
-  }
-
-  _getStudentSnapshot(studentId, sData) {
-    return {
-      id: studentId,
+      id: sid,
       name: sData.name || "Student",
       dob: sData.dob || null,
       medicalNote: sData.medicalNote || "None",
-      profile: sData.profile || sData.profileURL || null,
       profileURL: sData.profileURL || sData.profile || null,
+    };
+  }
+
+  _getParentSnapshot(pid, pData) {
+    return {
+      id: pid,
+      name: pData.name || pData.email || "Parent",
+      email: pData.email || "N/A",
+      phone: pData.phone || "N/A",
+      role: "parent",
+      roleDisplay: "Parent",
+      profileURL: pData.profileURL || pData.profile || null,
     };
   }
 
@@ -52,57 +30,44 @@ class StudentService {
       throw new Error("Parent ID, Name, and Date of Birth are required");
     }
 
-    const parentCol = await this._resolveParentCollection(parentId);
-    const parentDoc = await db.collection(parentCol).doc(parentId).get();
-    const pData = parentDoc.data();
+    const parentDoc = await db
+      .collection(COLLECTIONS.PARENT)
+      .doc(parentId)
+      .get();
+    if (!parentDoc.exists)
+      throw new Error(`Parent not found with ID: ${parentId}`);
 
+    const pData = parentDoc.data();
     const parentInfo = this._getParentSnapshot(parentId, pData);
 
     const studentId = db.collection(COLLECTIONS.STUDENT).doc().id;
+    const now = new Date().toISOString();
 
-    // Support all possible profile source fields during creation
-    const profileVal = profile || studentData.profileURL || studentData.childProfileURL || "/src/assets/images/profiles/avatar-boy.png";
     const data = {
       parentId,
-      parentInfo, // Mirror full snapshot
+      parentInfo,
       name,
       dob,
       medicalNote: medicalNote || "None",
-      profile: profileVal,
+      profileURL: profile || studentData.profileURL,
       status: "Inactive",
-      created: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
 
     const batch = db.batch();
+    batch.set(db.collection(COLLECTIONS.STUDENT).doc(studentId), data);
 
-    // 1. Save to global students collection
-    const globalRef = db.collection(COLLECTIONS.STUDENT).doc(studentId);
-    batch.set(globalRef, data);
-
-    // 2. Save to parent sub-collection
-    const subRef = db
-      .collection(parentCol)
-      .doc(parentId)
-      .collection("students")
-      .doc(studentId);
-    batch.set(subRef, data);
-
-    // 3. Update Parent's mirrored info
     const studentSnapshot = this._getStudentSnapshot(studentId, data);
+    const studentInfo = pData.studentInfo || [];
+    studentInfo.push(studentSnapshot);
 
-    // New 'studentInfo' array snapshot
-    const currentStudentInfo = pData.studentInfo || [];
-    currentStudentInfo.push(studentSnapshot);
-
-    batch.update(db.collection(parentCol).doc(parentId), {
-      studentInfo: currentStudentInfo,
+    batch.update(db.collection(COLLECTIONS.PARENT).doc(parentId), {
+      studentInfo,
     });
 
     await batch.commit();
-    return {
-      id: studentId,
-      message: "Student registered successfully with integrated mirroring",
-    };
+    return { id: studentId, message: "Student registered successfully" };
   }
 
   async getStudent(id) {
@@ -118,81 +83,34 @@ class StudentService {
 
     const currentData = doc.data();
     const parentId = currentData.parentId;
-    const parentCol = await this._resolveParentCollection(parentId);
+    const now = new Date().toISOString();
 
-    const mergedData = {
-      ...updateData,
-      updated: new Date().toISOString(),
-    };
+    const mergedData = { ...updateData, updatedAt: now };
 
-    // Clean undefined
     Object.keys(mergedData).forEach(
       (key) => mergedData[key] === undefined && delete mergedData[key],
     );
 
     const batch = db.batch();
-
-    // Update global
     batch.update(studentRef, mergedData);
+    const syncFields = ["name", "dob", "medicalNote", "profileURL"];
+    const shouldSync = Object.keys(updateData).some((key) =>
+      syncFields.includes(key),
+    );
 
-    // Update parent sub-collection
-    const subRef = db
-      .collection(parentCol)
-      .doc(parentId)
-      .collection("students")
-      .doc(id);
-    batch.update(subRef, mergedData);
-
-    // Update Parent's mirrored snapshots if profile changes
-    if (
-      updateData.name ||
-      updateData.dob ||
-      updateData.medicalNote ||
-      updateData.profile ||
-      updateData.profileURL ||
-      updateData.childProfileURL
-    ) {
-      const parentDoc = await db.collection(parentCol).doc(parentId).get();
-      const pData = parentDoc.data();
-
-      const newSnapshot = this._getStudentSnapshot(id, {
+    if (shouldSync) {
+      const snapshot = this._getStudentSnapshot(id, {
         ...currentData,
         ...updateData,
       });
-
-      // Update new 'studentInfo' array with THE FULL SNAPSHOT
-      let studentInfo = pData.studentInfo || [];
-      studentInfo = studentInfo.map((s) => (s.id === id ? newSnapshot : s));
-
-      // If for some reason it's not in the array yet, add it
-      if (!studentInfo.find((s) => s.id === id)) {
-        studentInfo.push(newSnapshot);
-      }
-
-      batch.update(db.collection(parentCol).doc(parentId), { studentInfo });
+      await this._syncStudentMirrors(id, snapshot, parentId, batch);
     }
 
     await batch.commit();
-    return {
-      message: "Student updated successfully across all mirrored collections",
-    };
+    return { message: "Student updated successfully" };
   }
 
   async getStudentsByParentID(parentId) {
-    try {
-      const parentCol = await this._resolveParentCollection(parentId);
-      const snapshot = await db
-        .collection(parentCol)
-        .doc(parentId)
-        .collection("students")
-        .get();
-      if (!snapshot.empty) {
-        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      }
-    } catch (e) {
-      console.warn("Falling back to global search for students:", e.message);
-    }
-
     const snapshot = await db
       .collection(COLLECTIONS.STUDENT)
       .where("parentId", "==", parentId)
@@ -201,15 +119,35 @@ class StudentService {
   }
 
   async getAllStudents() {
-    const studentsSnapshot = await db.collection(COLLECTIONS.STUDENT).get();
-    return studentsSnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const snapshot = await db.collection(COLLECTIONS.STUDENT).get();
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   }
 
-  async updateMedicalInfo(id, medicalNote) {
-    return this.updateStudent(id, { medicalNote: medicalNote || "None" });
+  async _syncStudentMirrors(sid, snapshot, parentId, batch) {
+    const parentRef = db.collection(COLLECTIONS.PARENT).doc(parentId);
+    const parentDoc = await parentRef.get();
+    if (parentDoc.exists) {
+      let studentInfo = parentDoc.data().studentInfo || [];
+      const index = studentInfo.findIndex((s) => s.id === sid);
+      if (index !== -1) {
+        studentInfo[index] = snapshot;
+      } else {
+        studentInfo.push(snapshot);
+      }
+      batch.update(parentRef, { studentInfo });
+    }
+
+    const enrollmentsSnap = await db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .where("studentId", "==", sid)
+      .get();
+    enrollmentsSnap.forEach((eDoc) =>
+      batch.update(eDoc.ref, { student: snapshot }),
+    );
+
+    console.log(
+      `✅ Cascading Student sync for ${sid} (Parent: ${parentId}, Enrollments: ${enrollmentsSnap.size})`,
+    );
   }
 }
 

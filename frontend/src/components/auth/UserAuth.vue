@@ -1,57 +1,21 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '@/services/authService'
 import { userService } from '@/services/userService'
 
 import AppButton from '@/components/common/ui/AppButton.vue'
-import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import { getImageUrl, ALL_BUILTIN_AVATARS } from '@/utils/assetHelper'
-import { storageService } from '@/services/storageService'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const router = useRouter()
 
-const isLogin = ref(true)
 const isResetMode = ref(false)
 const email = ref('')
 const password = ref('')
-const phone = ref('')
-const role = ref('parent')
-const name = ref('')
-const profileURL = ref(getImageUrl('profiles/avatar-man'))
 const showPassword = ref(false)
 const error = ref('')
 const message = ref('')
 const loading = ref(false)
-
-// Automatically switch default avatar when role changes
-watch(role, (newRole) => {
-  // ONLY switch if the current image is one of the defaults
-  // If it's a custom upload, leave it alone!
-  if (ALL_BUILTIN_AVATARS.includes(profileURL.value)) {
-    if (newRole === 'student') {
-      profileURL.value = getImageUrl('profiles/avatar-boy')
-    } else if (newRole === 'teacher') {
-      profileURL.value = getImageUrl('profiles/avatar-teacher-man')
-    } else {
-      profileURL.value = getImageUrl('profiles/avatar-man')
-    }
-  }
-})
-
-const toggleMode = () => {
-  isLogin.value = !isLogin.value
-  isResetMode.value = false
-  // Clear fields
-  email.value = ''
-  password.value = ''
-  name.value = ''
-  phone.value = ''
-  role.value = 'parent'
-  profileURL.value = getImageUrl('profiles/avatar-man')
-  error.value = ''
-  message.value = ''
-}
 
 const toggleResetMode = () => {
   isResetMode.value = !isResetMode.value
@@ -75,66 +39,32 @@ const handleSubmit = async () => {
       return
     }
 
-    if (isLogin.value) {
-      // 1. Sign in
-      const user = await authService.login(email.value, password.value)
+    // --- Admin Portal Login Only ---
+    // 1. Sign in
+    const user = await authService.login(email.value, password.value)
 
-      // 2. Strict Role Check: ONLY 'admin' allowed
-      try {
-        const profile = await userService.getProfile(user.uid)
-        if (!profile || profile.role !== 'admin') {
-          await authService.logout()
-          error.value = 'Permission Denied: Only administrators can access this portal.'
-          loading.value = false
-          return
-        }
-      } catch (profileError) {
+    // 2. Strict Role Check: ONLY 'admin' allowed in this portal
+    try {
+      const profile = await userService.getProfile(user.uid)
+      if (!profile || profile.role !== 'admin') {
         await authService.logout()
-        error.value = 'Auth Error: Failed to verify your permissions.'
+        error.value = 'Access Denied: This portal is reserved for administrators only.'
         loading.value = false
         return
       }
-
-      message.value = 'Logged in successfully! Redirecting...'
-      console.log('Login success - pausing for 3s before redirect...')
-      
-      // Redirect to Dashboard
-      setTimeout(() => {
-        console.log('3s over - moving to dashboard')
-        router.push('/dashboard')
-      }, 3000)
-    } else {
-      // 1. Create Auth User
-      const user = await authService.register(email.value, password.value)
-
-      // 2. Finalize Profile Image (if temp)
-      let finalProfileURL = profileURL.value
-      if (finalProfileURL && finalProfileURL.includes('/profiles/temp/')) {
-        const extension = finalProfileURL.split('?')[0].split('.').pop()
-        const sanitizedName = name.value.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
-        const newPath = `profiles/${user.uid}/${sanitizedName}_${role.value}.${extension}`
-        finalProfileURL = await storageService.moveProfileImage(finalProfileURL, newPath)
-      }
-
-      // 3. Create Profile
-      await userService.registerParentAccount({
-        uid: user.uid,
-        email: email.value,
-        name: name.value,
-        phone: phone.value,
-        role: role.value,
-        profileURL: finalProfileURL,
-      })
-
-      // 3. Forced Logout & Sign In Redirect
+    } catch (profileError) {
       await authService.logout()
-      
-      // Success State
-      message.value = 'Account created! Please sign in with your new credentials.'
-      isLogin.value = true
-      // Optional: Clear sensitive fields
-      password.value = ''
+      error.value = 'Auth Error: Could not verify administrator permissions.'
+      loading.value = false
+      return
     }
+
+    message.value = 'Logged in successfully! Redirecting...'
+    
+    // Redirect to Dashboard
+    setTimeout(() => {
+      router.push('/dashboard')
+    }, 1500)
   } catch (err) {
     error.value = err.message
   } finally {
@@ -146,9 +76,7 @@ const handleSubmit = async () => {
 <template>
   <div class="split-screen">
     <!-- Left side: Image -->
-    <div class="image-panel">
-      <!-- Image is set via CSS background for better control -->
-    </div>
+    <div class="image-panel"></div>
 
     <!-- Right side: Form -->
     <div class="form-panel">
@@ -159,63 +87,23 @@ const handleSubmit = async () => {
         </div>
 
         <h2 class="title">
-          {{
-            isResetMode ? 'Reset Password' : isLogin ? 'Sign in to account' : 'Create your account'
-          }}
+          {{ isResetMode ? 'Reset Password' : 'Admin Portal Login' }}
         </h2>
 
         <form @submit.prevent="handleSubmit" class="auth-form">
-          <div v-if="!isLogin && !isResetMode" class="form-group">
-            <label>Full Name <span class="required">*</span></label>
-            <input v-model="name" type="text" placeholder="Enter your full name" required />
-          </div>
-
-          <div v-if="!isLogin && !isResetMode" class="form-group">
-            <label>Phone Number <span class="required">*</span></label>
-            <input v-model="phone" type="tel" placeholder="Enter your phone number" required />
-          </div>
-
-          <div v-if="!isLogin && !isResetMode" class="form-group">
-            <label>Role <span class="required">*</span></label>
-            <select v-model="role" required>
-              <option value="parent">Parent</option>
-              <option value="guardian">Guardian</option>
-              <option value="teacher">Teacher</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          
-          <div v-if="!isLogin && !isResetMode" class="form-group">
-            <AvatarSelector 
-              v-model="profileURL" 
-              :role="role" 
-              :customFileName="`${name}_${role}`"
-            />
-          </div>
-
           <div class="form-group">
-            <label>Email <span class="required">*</span></label>
+            <label>Administrator Email <span class="required">*</span></label>
             <input v-model="email" type="email" placeholder="Enter your email" required />
           </div>
 
           <div v-if="!isResetMode" class="form-group">
             <label>Password <span class="required">*</span></label>
             <div class="password-input">
-              <input
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="Enter your password"
-                required
-              />
+              <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="Enter your password" required />
               <button type="button" @click="showPassword = !showPassword" class="eye-btn">
                 {{ showPassword ? '🙈' : '👁️' }}
               </button>
             </div>
-          </div>
-
-          <div v-if="!isLogin && !isResetMode" class="terms">
-            <input type="checkbox" id="terms" required />
-            <label for="terms">I accept <a href="#">Terms and Conditions</a></label>
           </div>
 
           <AppButton
@@ -225,44 +113,18 @@ const handleSubmit = async () => {
             variant="primary"
             style="width: 100%; border-radius: 8px"
           >
-            {{ isResetMode ? 'Send Reset Link' : isLogin ? 'Sign in' : 'Continue' }}
+            {{ isResetMode ? 'Send Reset Link' : 'Sign in' }}
           </AppButton>
         </form>
 
-        <div v-if="isLogin && !isResetMode" class="separator">
-          <span>OR</span>
+        <div v-if="!isResetMode" class="separator">
+          <span>SECURE ACCESS</span>
         </div>
 
-        <AppButton
-          v-if="isLogin && !isResetMode"
-          variant="subtle"
-          type="button"
-          style="width: 100%; border-radius: 8px; justify-content: center; gap: 10px;"
-        >
-          <template #icon-left>
-            <img
-              src="../../assets/icons/other/google-logo.svg"
-              alt="Google"
-              style="width: 20px; height: 20px; display: block;"
-            />
-          </template>
-          Continue with Google
-        </AppButton>
-
         <p class="toggle-text">
-          <template v-if="isResetMode">
-            <a href="#" @click.prevent="toggleResetMode">Back to Login</a>
-          </template>
-          <template v-else>
-            {{ isLogin ? "Don't have an account yet?" : 'Already have an account?' }}
-            <a href="#" @click.prevent="isResetMode ? toggleResetMode() : toggleMode()">
-              {{ isLogin ? 'Sign Up' : 'Log in' }}
-            </a>
-          </template>
-        </p>
-
-        <p v-if="isLogin && !isResetMode" class="forgot-link">
-          <a href="#" @click.prevent="toggleResetMode">Forgot Password?</a>
+          <a href="#" @click.prevent="toggleResetMode">
+            {{ isResetMode ? 'Back to Login' : 'Forgot Password?' }}
+          </a>
         </p>
 
         <p v-if="error" class="error-msg">{{ error }}</p>
@@ -286,14 +148,10 @@ const handleSubmit = async () => {
   border-right: 1px solid #e0e0e0;
 }
 
-/* Creating the blue overlay effect if the image isn't perfect */
 .image-panel::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 174, 239, 0.03);
 }
 
@@ -317,14 +175,8 @@ const handleSubmit = async () => {
   text-align: center;
 }
 
-.logo {
-  margin-bottom: 25px;
-}
-.logo-img {
-  width: 100%;
-  max-width: 140px;
-  height: auto;
-}
+.logo { margin-bottom: 25px; }
+.logo-img { width: 100%; max-width: 140px; height: auto; }
 
 .title {
   font-size: 1.5rem;
@@ -333,111 +185,32 @@ const handleSubmit = async () => {
   color: #1a1a1a;
 }
 
-.form-group {
-  text-align: left;
-  margin-bottom: 15px;
-}
+.form-group { text-align: left; margin-bottom: 15px; }
+.form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: #444; }
 
-.form-group label {
-  display: block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #444;
-}
-
-input,
-select {
+input {
   width: 100%;
   padding: 12px 16px;
   background: #f3f4f6;
   border: 1px solid transparent;
   border-radius: 8px;
   font-size: 0.95rem;
-  transition: all 0.2s;
 }
 
-input:focus,
-select:focus {
+input:focus {
   outline: none;
   background: #fff;
   border-color: #00aeef;
-  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
 }
 
-.password-input {
-  position: relative;
-}
+.password-input { position: relative; }
+.eye-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; }
 
-.eye-btn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 1.2rem;
-  padding: 5px;
-}
+.separator { margin: 25px 0; position: relative; text-align: center; }
+.separator::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #eee; }
+.separator span { position: relative; background: #fff; padding: 0 10px; font-size: 0.75rem; font-weight: 700; color: #999; }
 
-.terms {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 20px 0;
-  font-size: 0.85rem;
-  color: #666;
-}
-.terms input {
-  width: auto;
-}
-
-.separator {
-  margin: 25px 0;
-  position: relative;
-  text-align: center;
-}
-.separator::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: #eee;
-}
-.separator span {
-  position: relative;
-  background: #fff;
-  padding: 0 10px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #999;
-}
-
-.toggle-text {
-  font-size: 0.9rem;
-  color: #666;
-  margin-top: 15px;
-}
-
-.forgot-link {
-  margin-top: 15px;
-  font-size: 0.9rem;
-}
-
-.error-msg {
-  color: #e63946;
-  font-size: 0.85rem;
-  margin-top: 15px;
-}
-
-.success-msg {
-  color: #2a9d8f;
-  font-size: 0.85rem;
-  margin-top: 15px;
-}
-
-
+.toggle-text { font-size: 0.9rem; color: #666; margin-top: 15px; }
+.error-msg { color: #e63946; font-size: 0.85rem; margin-top: 15px; }
+.success-msg { color: #2a9d8f; font-size: 0.85rem; margin-top: 15px; }
 </style>

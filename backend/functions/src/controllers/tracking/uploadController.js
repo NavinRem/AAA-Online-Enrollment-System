@@ -1,9 +1,9 @@
 const admin = require("firebase-admin");
 const logger = require("firebase-functions/logger");
-const bucket = admin.storage().bucket();
 
 exports.uploadImage = async (req, res) => {
   try {
+    const bucket = admin.storage().bucket();
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }

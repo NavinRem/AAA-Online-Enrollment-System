@@ -1,39 +1,34 @@
+const admin = require("firebase-admin");
 const { getFirestore } = require("firebase-admin/firestore");
 
-/**
- * Centralized Firestore configuration.
- * Change DATABASE_ID to "(default)" or your specific DB ID.
- */
+if (admin.apps.length === 0) {
+  admin.initializeApp({
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  });
+}
+
 const DATABASE_ID = "(default)";
 const db = getFirestore(DATABASE_ID);
 
-/**
- * Single Source of Truth for all Collection Names.
- * Standardizing these prevents pluralization bugs (enrollment vs enrollments)
- * and makes global renaming easy.
- */
 const COLLECTIONS = {
-  USER: "users",
-  PARENT: "parents",
-  GUARDIAN: "guardians",
   ADMIN: "admins",
-  TEACHER: "teachers",
+  PARENT: "parents",
   STUDENT: "students",
   ENROLLMENT: "enrollments",
-  PROGRAM: "programs",      // Renamed from 'courses'
+  PROGRAM: "programs",
   SESSION: "sessions",
-  TERM: "terms",          // Standard plural used in your project
-  CATEGORY: "categories", // Standard plural used in your project
-  LEVEL: "levels",        // Standard plural used in your project
+  TERM: "terms",
+  CATEGORY: "categories",
+  LEVEL: "levels",
   PAYMENT: "payments",
   ATTENDANCE: "attendance",
   PROGRESS: "progress",
   UPLOAD: "uploads",
-  REQUEST: "requests"
+  REQUEST: "requests",
 };
 
 module.exports = {
   db,
   COLLECTIONS,
-  DATABASE_ID
+  DATABASE_ID,
 };

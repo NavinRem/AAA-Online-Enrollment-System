@@ -1,5 +1,7 @@
 const { db, COLLECTIONS } = require("../../config/database");
 const userService = require("../management/userService");
+const studentService = require("../management/studentService");
+const programService = require("../academic/programService");
 
 class EnrollmentService {
   async createEnrollment(enrollmentData) {
@@ -69,40 +71,13 @@ class EnrollmentService {
         parentId,
 
         // Snapshot: Parent Information
-        parent: {
-          id: parentId,
-          name: parentData.name || parentData.email || "Parent",
-          email: parentData.email || "N/A",
-          phone: parentData.phone || "N/A",
-          role: parentData.role || "guardian",
-          roleDisplay:
-            parentData.role === "parent"
-              ? "Parent"
-              : parentData.role || "Guardian",
-          profile: parentData.profile || null,
-        },
+        parent: userService._getUserSnapshot(parentId, parentData),
 
         // Snapshot: Student Information
-        student: {
-          id: studentId,
-          name: studentData.name || "Student",
-          dob: studentData.dob || null,
-          medicalNote: studentData.medicalNote || "",
-          profile: studentData.profile || null,
-        },
+        student: studentService._getStudentSnapshot(studentId, studentData),
 
         // Snapshot: Program Information
-        program: {
-          id: programId,
-          title: programData.title || programData.name || "Program",
-          category: programData.category || "N/A",
-          totalSessions: programData.totalSessions || 10,
-          price: programData.price || 0,
-          startDate: programData.startDate || null,
-          endDate: programData.endDate || null,
-          profile: programData.profile || null,
-          teachers: programData.teachers || [],
-        },
+        program: programService._getProgramSnapshot(programId, programData),
 
         // Snapshot: Session Information
         session: {
@@ -302,10 +277,7 @@ class EnrollmentService {
         ? {
             id: data.parentId,
             ...parentData,
-            roleDisplay:
-              parentData.role === "parent"
-                ? "Parent"
-                : parentData.role || "Guardian",
+            roleDisplay: "Parent",
           }
         : null,
       student: studentData

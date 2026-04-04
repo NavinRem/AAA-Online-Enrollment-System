@@ -49,14 +49,14 @@ class SessionService {
         teachersMap[u.uid] = {
           id: u.uid,
           name: u.name || u.email || "Unknown",
-          profile: u.profile || null
+          profileURL: u.profileURL,
         };
       }
     });
 
-    return sessions.map(s => ({
+    return sessions.map((s) => ({
       ...s,
-      teachers: (s.teachers || []).map(t => teachersMap[t.id] || t)
+      teachers: (s.teachers || []).map((t) => teachersMap[t.id] || t),
     }));
   }
 

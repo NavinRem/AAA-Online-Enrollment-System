@@ -30,29 +30,24 @@ const verifyToken = async (req, res, next) => {
 };
 
 /**
- * Middleware to check for Admin role
+ * Middleware to check for Admin role (Full Management Access)
  */
 const isAdmin = (req, res, next) => {
   if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({
       error: "Forbidden",
-      message: "Administrative privileges are required for this operation"
+      message: "Access Denied: Only administrators can access this portal."
     });
   }
   next();
 };
 
 /**
- * Middleware to check for Staff role (Admin or Teacher)
+ * Middleware to check for Staff/Admin role (Web Portal Access)
  */
 const isStaff = (req, res, next) => {
-  if (!req.user || !["admin", "teacher", "instructor"].includes(req.user.role)) {
-    return res.status(403).json({
-      error: "Forbidden",
-      message: "Staff privileges are required for this operation"
-    });
-  }
-  next();
+  // For now, in this Admin-only system, isStaff is synonymous with isAdmin
+  return isAdmin(req, res, next);
 };
 
 /**

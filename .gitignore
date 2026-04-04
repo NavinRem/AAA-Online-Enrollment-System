@@ -27,6 +27,9 @@ firebase-data/
 backend/functions/node_modules/
 backend/functions/.npm/
 backend/functions/.eslintcache
+backend/functions/.env
+backend/functions/.env.local
+backend/functions/*.log
 backend/functions/firebase-debug.log*
 backend/functions/firebase-debug.*.log*
 backend/functions/*.local

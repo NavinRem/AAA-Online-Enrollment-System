@@ -1,13 +1,11 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
+const { db, COLLECTIONS } = require("./src/config/database");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-
-admin.initializeApp();
-// Force deploy trigger
 
 // Import Routes
 // --- Core Enrollment & Payments ---
