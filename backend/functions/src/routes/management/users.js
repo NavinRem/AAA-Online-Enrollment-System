@@ -38,4 +38,7 @@ router.delete("/:uid", verifyToken, isOwnerOrAdmin, userController.deleteUser);
 // Get All Students for Parent (Owner or Admin)
 router.get("/:uid/students", verifyToken, isOwnerOrAdmin, userController.getStudentsByParentID);
 
+// Run Data Standardization and Mirroring Sync (Admin Only)
+router.post("/run-standardization", verifyToken, isAdmin, userController.runStandardization);
+
 module.exports = router;

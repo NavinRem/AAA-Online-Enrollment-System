@@ -183,109 +183,129 @@ exports.getAllStudents = async (req, res) => {
  */
 exports.runStandardization = async (req, res) => {
   try {
-    console.log("Starting data standardization and mirroring...");
+    console.log("Starting deep data synchronization and mirroring...");
     const userRoleCollections = [COLLECTIONS.PARENT, COLLECTIONS.GUARDIAN, COLLECTIONS.ADMIN, COLLECTIONS.TEACHER];
-    const userMap = {}; // uid -> { name, profile }
+    const parentMap = {}; // uid -> ParentSnapshot
+    const studentMap = {}; // studentId -> StudentSnapshot
     let processedCount = 0;
 
-    // 1. Process all user collections
+    // 1. Map all Users (Parents/Guardians/Staff)
     for (const col of userRoleCollections) {
       const snap = await db.collection(col).get();
       for (const doc of snap.docs) {
         const data = doc.data();
-        const updateData = {};
+        const uid = doc.id;
         
-        // Rename fullName/username -> name
-        if (data.fullName) { updateData.name = data.fullName; updateData.fullName = null; }
-        if (data.username) { updateData.name = data.username; updateData.username = null; }
-        
-        // Rename profileURL -> profile
-        if (data.profileURL) { updateData.profile = data.profileURL; updateData.profileURL = null; }
-        
-        if (Object.keys(updateData).length > 0) {
-          await db.collection(col).doc(doc.id).set(updateData, { merge: true });
-        }
-        
-        userMap[doc.id] = {
-          name: updateData.name || data.name || data.fullName || "Unknown",
-          profile: updateData.profile || data.profile || data.profileURL || null
+        // Ensure name exists
+        const name = data.name || data.fullName || data.username || "User";
+        const email = data.email || "N/A";
+        const phone = data.phone || "N/A";
+        const role = data.role || (col === COLLECTIONS.GUARDIAN ? "guardian" : "parent");
+        const profile = data.profile || data.profileURL || null;
+        const profileURL = data.profileURL || data.profile || null;
+
+        parentMap[uid] = {
+          id: uid,
+          name,
+          email,
+          phone,
+          role,
+          roleDisplay: role === "parent" ? "Parent" : role.charAt(0).toUpperCase() + role.slice(1),
+          profile,
+          profileURL
         };
+
+        // Standardize top-level fields while we are here
+        await doc.ref.update({
+          name,
+          profile,
+          profileURL,
+          role
+        });
         processedCount++;
       }
     }
 
-    // 2. Process Students collection and Mirror Parent Info
+    // 2. Map all Students
     const studentsSnap = await db.collection(COLLECTIONS.STUDENT).get();
-    const parentChildrenMap = {}; // parentId -> [ {id, name} ]
-
     for (const doc of studentsSnap.docs) {
       const data = doc.data();
-      const updateData = {};
+      const sid = doc.id;
       
-      // Rename fullName -> name
-      if (data.fullName) { updateData.name = data.fullName; updateData.fullName = null; }
-      
-      // Rename childProfileURL -> profile
-      if (data.childProfileURL) { updateData.profile = data.childProfileURL; updateData.childProfileURL = null; }
-      
-      // Mirror Parent Info
-      if (data.parentId && userMap[data.parentId]) {
-        updateData.parentName = userMap[data.parentId].name;
-        updateData.parentProfile = userMap[data.parentId].profile;
-      }
-      
-      if (Object.keys(updateData).length > 0) {
-        await db.collection(COLLECTIONS.STUDENT).doc(doc.id).set(updateData, { merge: true });
-      }
+      const name = data.name || data.fullName || "Student";
+      const dob = data.dob || data.DoB || null;
+      const medicalNote = data.medicalNote || "None";
+      const profile = data.profile || data.profileURL || data.childProfileURL || null;
+      const profileURL = data.profileURL || data.profile || data.childProfileURL || null;
+      const parentId = data.parentId;
 
-      // Prepare for Parent mirroring
-      if (data.parentId) {
-        if (!parentChildrenMap[data.parentId]) parentChildrenMap[data.parentId] = [];
-        parentChildrenMap[data.parentId].push({
-          id: doc.id,
-          name: updateData.name || data.name || data.fullName || "Unknown Child"
-        });
-      }
+      studentMap[sid] = {
+        id: sid,
+        name,
+        dob,
+        medicalNote,
+        profile,
+        profileURL,
+        parentId
+      };
+
+      // Standardize top-level fields
+      await doc.ref.update({
+        name,
+        dob,
+        medicalNote,
+        profile,
+        profileURL
+      });
       processedCount++;
     }
 
-    // 3. Mirror Student list in Parents/Guardians (Modern snapshot array)
-    for (const parentId in parentChildrenMap) {
-      // Find which collection the parent belongs to
-      let parentCol = COLLECTIONS.PARENT;
-      const gDoc = await db.collection(COLLECTIONS.GUARDIAN).doc(parentId).get();
-      if (gDoc.exists) parentCol = COLLECTIONS.GUARDIAN;
-      
-      // We use the full snapshots from the map
-      await db.collection(parentCol).doc(parentId).set({
-        studentInfo: parentChildrenMap[parentId]
-      }, { merge: true });
+    // 3. Mirror Parent Info INTO Students
+    const studentIds = Object.keys(studentMap);
+    for (const sid of studentIds) {
+      const sData = studentMap[sid];
+      if (sData.parentId && parentMap[sData.parentId]) {
+        const parentInfo = parentMap[sData.parentId];
+        await db.collection(COLLECTIONS.STUDENT).doc(sid).set({ parentInfo }, { merge: true });
+        
+        // Also update sub-collection if it exists
+        const parentCol = await studentService._resolveParentCollection(sData.parentId);
+        const subRef = db.collection(parentCol).doc(sData.parentId).collection("students").doc(sid);
+        const subDoc = await subRef.get();
+        if (subDoc.exists) {
+          await subRef.set({ parentInfo }, { merge: true });
+        }
+      }
     }
 
-    // 4. Standardize PROGRAMS
-    const programSnapshot = await db.collection(COLLECTIONS.PROGRAM).get();
-    for (const doc of programSnapshot.docs) {
-      const data = doc.data();
-      const updateData = {};
+    // 4. Mirror Student List INTO Parents/Guardians
+    const parentIds = Object.keys(parentMap);
+    for (const uid of parentIds) {
+      const studentsForParent = Object.values(studentMap)
+        .filter(s => s.parentId === uid)
+        .map(s => ({
+          id: s.id,
+          name: s.name,
+          dob: s.dob,
+          medicalNote: s.medicalNote,
+          profile: s.profile,
+          profileURL: s.profileURL
+        }));
       
-      if (data.profileURL) {
-        updateData.profile = data.profileURL;
-        updateData.profileURL = null;
-      }
-
-      if (Object.keys(updateData).length > 0) {
-        await doc.ref.update(updateData);
-        processedCount++;
+      if (studentsForParent.length > 0) {
+        const parentCol = parentMap[uid].role === "guardian" ? COLLECTIONS.GUARDIAN : COLLECTIONS.PARENT;
+        await db.collection(parentCol).doc(uid).update({
+          studentInfo: studentsForParent
+        });
       }
     }
 
     res.status(200).json({
-      message: "Refactor & Mirroring completed successfully",
-      totalProcessed: processedCount,
+      message: "Deep Data Synchronization & Mirroring completed successfully",
       stats: {
-        users: Object.keys(userMap).length,
-        students: studentsSnap.size,
-        programs: programSnapshot.size
+        totalProcessed: processedCount,
+        parentsMapped: Object.keys(parentMap).length,
+        studentsMapped: Object.keys(studentMap).length
       }
     });
   } catch (err) {

@@ -2,10 +2,6 @@ const { getAuth } = require("firebase-admin/auth");
 const { db, COLLECTIONS } = require("../../config/database");
 
 class UserService {
-  /**
-   * Helper to resolve the correct collection for a user
-   * If role is unknown, it will try to find the user in all collections
-   */
   async _resolveTargetCollection(uid, roleHint = null) {
     if (roleHint) {
       const role = roleHint.toLowerCase();
@@ -210,8 +206,7 @@ class UserService {
           uid: doc.id,
           ...doc.data(),
           name: doc.data().name || "User",
-          profile:
-            doc.data().profile || doc.data().profileURL || null,
+          profile: doc.data().profile || doc.data().profileURL || null,
           profileURL: doc.data().profileURL || doc.data().profile || null,
         };
       }
@@ -249,14 +244,16 @@ class UserService {
 
     // 3. Handle Migration if Role Changes
     if (isMoving) {
-      console.log(`🚀 Migrating user ${uid} from ${oldCollection} to ${newCollection}`);
-      
+      console.log(
+        `🚀 Migrating user ${uid} from ${oldCollection} to ${newCollection}`,
+      );
+
       const oldDoc = await oldRef.get();
       const oldData = oldDoc.data() || {};
-      
+
       // Write to NEW location
       batch.set(newRef, { ...oldData, ...cleanData }, { merge: true });
-      
+
       // Delete from OLD location
       batch.delete(oldRef);
 
@@ -281,7 +278,7 @@ class UserService {
     } else {
       // Standard Update (Same Collection)
       batch.set(oldRef, cleanData, { merge: true });
-      
+
       // Sync Custom Claims if role was explicitly provided but hasn't changed collection
       if (updateData.role) {
         await getAuth().setCustomUserClaims(uid, { role: updateData.role });
@@ -289,7 +286,7 @@ class UserService {
     }
 
     // 4. Sync Mirrored Data in Global Collections
-    const syncFields = ["name", "email", "phone", "role", "profile"];
+    const syncFields = ["name", "email", "phone", "role", "profileURL"];
     const shouldSync = Object.keys(updateData).some((key) =>
       syncFields.includes(key),
     );
@@ -303,8 +300,11 @@ class UserService {
         name: userData.name || userData.email || "Parent",
         email: userData.email || "N/A",
         phone: userData.phone || "N/A",
-        role: userData.role || (newCollection === COLLECTIONS.GUARDIAN ? "guardian" : "parent"),
-        roleDisplay: userData.role === "parent" ? "Parent" : userData.role || "Guardian",
+        role:
+          userData.role ||
+          (newCollection === COLLECTIONS.GUARDIAN ? "guardian" : "parent"),
+        roleDisplay:
+          userData.role === "parent" ? "Parent" : userData.role || "Guardian",
         profile: userData.profile || userData.profileURL || null,
         profileURL: userData.profileURL || userData.profile || null,
       };
@@ -329,7 +329,7 @@ class UserService {
     return {
       uid,
       moved: isMoving,
-      message: isMoving 
+      message: isMoving
         ? `User successfully migrated from ${oldCollection} to ${newCollection}`
         : "User updated successfully",
     };

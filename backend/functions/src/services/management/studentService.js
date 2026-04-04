@@ -29,7 +29,8 @@ class StudentService {
       role: pData.role || "guardian",
       roleDisplay:
         pData.role === "parent" ? "Parent" : pData.role || "Guardian",
-      profile: pData.profile || "/src/assets/images/profiles/avatar-man.png",
+      profile: pData.profile || pData.profileURL || null,
+      profileURL: pData.profileURL || pData.profile || null,
     };
   }
 
@@ -39,7 +40,8 @@ class StudentService {
       name: sData.name || "Student",
       dob: sData.dob || null,
       medicalNote: sData.medicalNote || "None",
-      profile: sData.profile || "/src/assets/images/profiles/avatar-boy.png",
+      profile: sData.profile || sData.profileURL || null,
+      profileURL: sData.profileURL || sData.profile || null,
     };
   }
 
