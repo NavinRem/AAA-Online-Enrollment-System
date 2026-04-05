@@ -306,7 +306,7 @@ const navigateToDetail = (item) => {
               <span class="date-text">{{ formatDate(item.createdAt) }}</span>
             </td>
             <td class="hide-on-mobile text-center" :style="{ width: headers[6].width }">
-              <StatusBadge :status="item.role === 'parent' ? 'Parent' : 'Guardian'" />
+              <StatusBadge :status="item.role" />
             </td>
             <td class="text-center" :style="{ width: headers[7].width }">
               <StatusBadge :status="item.status || 'Active'" />

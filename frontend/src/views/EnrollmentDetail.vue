@@ -305,7 +305,7 @@ onMounted(async () => {
             <p><strong>Phone Number:</strong> {{ enrollment.parent?.phone || 'N/A' }}</p>
             <p>
               <strong>Role:</strong>
-              <StatusBadge :status="enrollment.parent?.roleDisplay || enrollment.parent?.role || 'Guardian'" />
+              <StatusBadge :status="enrollment.parent?.role || 'Guardian'" />
             </p>
           </DetailCard>
 
@@ -354,7 +354,8 @@ onMounted(async () => {
             </p>
           </DetailCard>
 
-          <DetailCard title="Session Information" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profile || enrollment.teacher?.profileURL)">
+          <DetailCard title="Session Information"
+            :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profile || enrollment.teacher?.profileURL)">
             <p><strong>Program:</strong> {{ enrollment.program?.title || 'N/A' }}</p>
 
             <p class="teacher-row-aligned">
@@ -453,7 +454,8 @@ onMounted(async () => {
           <div class="detail-row align-center">
             <span class="summary-label">Payment Method</span>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-              <StatusBadge :status="enrollment?.paymentMethod || (isPaid(enrollment?.status || enrollment?.paymentStatus) ? 'Not Specified' : '—')" />
+              <StatusBadge
+                :status="enrollment?.paymentMethod || (isPaid(enrollment?.status || enrollment?.paymentStatus) ? 'Not Specified' : '—')" />
             </div>
           </div>
 

@@ -7,6 +7,7 @@ import { getImageUrl, getIconUrl, getActionIcon } from '@/utils/assetHelper'
 
 const route = useRoute()
 const searchQuery = ref('')
+const userProfile = ref(null)
 const userName = ref('Loading...')
 const userRole = ref('...')
 
@@ -14,16 +15,21 @@ const emit = defineEmits(['toggle-menu'])
 
 const pageTitle = computed(() => route.meta.title || 'Dashboard')
 
+const avatarUrl = computed(() => {
+  if (userProfile.value?.profileURL) return userProfile.value.profileURL
+  const role = userProfile.value?.role?.toLowerCase()
+  return getImageUrl('profiles', `avatar-${role}`)
+})
+
 onMounted(() => {
   authService.onAuthStateChanged(async (user) => {
     if (user) {
       try {
-        const userProfile = await userService.getProfile(user.uid)
-        if (userProfile) {
-          userName.value = userProfile.name || userProfile.email || 'User'
-          userRole.value = userProfile.role
-            ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)
-            : 'User'
+        const profile = await userService.getProfile(user.uid)
+        if (profile) {
+          userProfile.value = profile
+          userName.value = profile.name
+          userRole.value = profile.role
         }
       } catch (e) {
         console.warn('Failed to load profile for topbar', e)
@@ -32,7 +38,7 @@ onMounted(() => {
       }
     } else {
       userName.value = 'Guest'
-      userRole.value = ''
+      userRole.value = 'Guest'
     }
   })
 })
@@ -59,7 +65,7 @@ onMounted(() => {
         <img :src="getIconUrl('action', 'bell-svgrepo.svg')" alt="Notifications" />
       </button>
       <button class="icon-btn">
-        <img :src="getIconUrl('navigation', 'setting-svgrepo.svg')" alt="Settings" />
+        <img :src="getIconUrl('navigation', 'setting.svg')" alt="Settings" />
       </button>
 
       <div class="user-profile-topbar">
@@ -68,7 +74,7 @@ onMounted(() => {
           <span class="user-role-topbar">{{ userRole }}</span>
         </div>
         <div class="user-avatar-topbar">
-          <img :src="getImageUrl('profiles/avatar-admin')" alt="Profile" />
+          <img :src="avatarUrl" alt="Profile" />
         </div>
       </div>
     </div>
@@ -81,7 +87,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 15px 30px;
-  background: #f7f9fc;
+  background: var(--bg-light);
   width: 100%;
   position: sticky;
   top: 0;
@@ -170,7 +176,7 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   background: white;
-  padding: 5px 5px 5px 15px;
+  padding: 10px 10px 10px 25px;
   border-radius: 30px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
   margin-left: 10px;

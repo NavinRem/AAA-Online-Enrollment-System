@@ -13,11 +13,11 @@ import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate } from '@/utils/formatUtils'
 import { filterDetailEnrollments } from '@/utils/enrollmentHelper'
 import { enrichStudents } from '@/utils/studentHelper'
-import { 
-  processUserProfileImage, 
-  processStudentProfileImage, 
-  prepareUserPayload, 
-  prepareStudentPayload 
+import {
+  processUserProfileImage,
+  processStudentProfileImage,
+  prepareUserPayload,
+  prepareStudentPayload
 } from '../utils/userHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
@@ -27,16 +27,14 @@ const router = useRouter()
 const parent = ref(null)
 const students = ref([])
 const enrollments = ref([])
-const selectedChildUid = ref('all') // Default to 'all'
-const activeTab = ref('children') // 'children', 'payments', 'history'
+const selectedChildUid = ref('all')
+const activeTab = ref('children')
 const currentFilter = ref('all')
 
-// Reset filter when navigating tabs
 watch(activeTab, () => {
   currentFilter.value = 'all'
 })
 
-// Dynamic filter options based on tab
 const filterOptions = computed(() => {
   if (activeTab.value === 'children') {
     return [
@@ -92,13 +90,10 @@ const fetchData = async (id) => {
     loading.value = true
     errorMessage.value = ''
 
-    // Fetch Parent
     const parentData = await userService.getProfile(id)
     if (!parentData) throw new Error('Parent not found')
 
     parent.value = parentData
-
-    // Fetch Students and Enrollments in parallel
     const [studentsData, allEnrollments] = await Promise.all([
       userService.getStudentsByParentID(id),
       enrollmentService.getAllEnrollments(),
@@ -106,7 +101,6 @@ const fetchData = async (id) => {
 
     students.value = enrichStudents(studentsData || [], [], [])
 
-    // Pre-select the first child by default if children exist
     if (
       students.value.length > 0 &&
       (selectedChildUid.value === 'all' || !selectedChildUid.value)
@@ -168,9 +162,9 @@ const submitActionModal = async (formData) => {
   try {
     if (type === 'edit') {
       const finalProfile = await processUserProfileImage(
-        formData.profile, 
-        formData.name, 
-        formData.role, 
+        formData.profile,
+        formData.name,
+        formData.role,
         user.profile
       )
       const payload = prepareUserPayload({ ...formData, profile: finalProfile })
@@ -189,17 +183,17 @@ const submitActionModal = async (formData) => {
     } else if (type === 'register-child') {
       const finalProfile = await processStudentProfileImage(formData.profile, formData.name)
       const payload = prepareStudentPayload({ ...formData, profile: finalProfile })
-      
+
       const result = await userService.registerStudentProfile(uid, payload)
-      
+
       // Sync parent's studentInfo array
       const currentStudentInfo = parent.value.studentInfo || []
       const newChild = { id: result.id || result.UID, ...payload, parentId: uid }
-      
+
       await userService.updateUser(uid, {
         studentInfo: [...currentStudentInfo, newChild]
       })
-      
+
       globalSuccess.value = 'Child registered successfully!'
     }
 

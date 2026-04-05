@@ -85,3 +85,4 @@ export const prepareStudentPayload = (data) => {
     updatedAt: new Date().toISOString(),
   }
 }
+
