@@ -95,7 +95,8 @@ const handleSubmit = async () => {
               <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="Enter your password"
                 required />
               <button type="button" @click="showPassword = !showPassword" class="eye-btn">
-                {{ showPassword ? getActionIcon('eye-close') : getActionIcon('eye-open') }}
+                <img :src="showPassword ? getActionIcon('eye-close') : getActionIcon('eye-open')"
+                  alt="Toggle password visibility" class="eye-icon" />
               </button>
             </div>
           </div>
@@ -224,6 +225,20 @@ input:focus {
   background: none;
   border: none;
   cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.eye-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.eye-btn:hover .eye-icon {
+  opacity: 0.9;
 }
 
 .separator {

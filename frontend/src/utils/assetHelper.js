@@ -98,6 +98,8 @@ export const ACTION_ICONS = {
   save: 'action/cloud-upload',
   back: 'action/back',
   close: 'action/close',
+  'eye-open': 'action/eye-open',
+  'eye-close': 'action/eye-close',
 }
 
 /**
