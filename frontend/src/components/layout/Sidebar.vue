@@ -19,24 +19,22 @@ const route = useRoute()
 const logoutMessage = ref('')
 
 const menuItems = [
-  { name: 'Dashboard', path: '/dashboard', icon: 'navigation/dashboard-svgrepo.svg' },
-  { name: 'Enrollment', path: '/enrollments', icon: 'navigation/enrollment-svgrepo.svg' },
-  { name: 'Parent / Guardian', path: '/parents', icon: 'navigation/guardian-svgrepo.svg' },
-  { name: 'Students', path: '/students', icon: 'navigation/student-svgrepo.svg' },
-  { name: 'Programs', path: '/programs', icon: 'navigation/program-svgrepo.svg' },
-  { name: 'Payment', path: '/payment', icon: 'navigation/dollar-minimal.svg' },
-  { name: 'Setting', path: '/settings', icon: 'navigation/setting-svgrepo.svg' },
+  { name: 'Dashboard', path: '/dashboard', icon: 'navigation/dashboard.svg' },
+  { name: 'Enrollments', path: '/enrollments', icon: 'navigation/enrollment.svg' },
+  { name: 'Parents', path: '/parents', icon: 'navigation/parent.svg' },
+  { name: 'Students', path: '/students', icon: 'navigation/student.svg' },
+  { name: 'Programs', path: '/programs', icon: 'navigation/program.svg' },
+  { name: 'Payments', path: '/payment', icon: 'navigation/dollar.svg' },
+  { name: 'Setting', path: '/settings', icon: 'navigation/setting.svg' },
 ]
 
 const handleLogout = async () => {
   if (logoutMessage.value) return
-  
+
   try {
     logoutMessage.value = 'Logging out...'
     console.log('Logout pause started (3s)...')
-    
-    // We wait first, THEN log out and move. 
-    // This stops background listeners from reacting too early.
+
     setTimeout(async () => {
       try {
         console.log('Pause finished - clearing session and redirecting...')
@@ -52,8 +50,6 @@ const handleLogout = async () => {
     console.error('Logout initiation failed', error)
   }
 }
-
-// Removed local getIconPath in favor of getIconUrl from assetHelper
 
 const handleNavClick = () => {
   if (window.innerWidth <= 1024) {
@@ -71,14 +67,8 @@ const handleNavClick = () => {
     </div>
 
     <nav class="nav-menu">
-      <router-link
-        v-for="item in menuItems"
-        :key="item.name"
-        :to="item.path"
-        class="nav-item"
-        :class="{ active: route.path === item.path }"
-        @click="handleNavClick"
-      >
+      <router-link v-for="item in menuItems" :key="item.name" :to="item.path" class="nav-item"
+        :class="{ active: route.path === item.path }" @click="handleNavClick">
         <img :src="getIconUrl(item.icon)" :alt="item.name" class="nav-icon" />
         <span class="nav-text">{{ item.name }}</span>
       </router-link>
@@ -199,10 +189,16 @@ const handleNavClick = () => {
 }
 
 @keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.6; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
-
-
 </style>
