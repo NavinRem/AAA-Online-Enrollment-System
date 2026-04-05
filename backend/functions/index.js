@@ -33,13 +33,14 @@ const app = express();
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 200, // limit each IP to 200 requests per window
-  message: "Too many requests from this IP, please try again later"
+  message: "Too many requests from this IP, please try again later",
 });
 
 const registrationLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 10, // limit each IP to 10 registration attempts per hour
-  message: "Too many accounts created from this IP, please try again in an hour"
+  message:
+    "Too many accounts created from this IP, please try again in an hour",
 });
 
 // Middleware
@@ -81,12 +82,12 @@ app.use((req, res, next) => {
   logger.warn("404 Not Found:", {
     method: req.method,
     url: req.originalUrl,
-    path: req.path
+    path: req.path,
   });
   res.status(404).json({
     error: true,
     message: `Cannot ${req.method} ${req.originalUrl}`,
-    suggestion: "Check your VITE_API_URL or endpoint paths."
+    suggestion: "Check your VITE_API_URL or endpoint paths.",
   });
 });
 
@@ -96,13 +97,13 @@ app.use((err, req, res, next) => {
     message: err.message,
     stack: err.stack,
     path: req.path,
-    method: req.method
+    method: req.method,
   });
-  
+
   res.status(err.status || 500).json({
     error: true,
     message: err.message || "Internal Server Error",
-    path: req.path
+    path: req.path,
   });
 });
 

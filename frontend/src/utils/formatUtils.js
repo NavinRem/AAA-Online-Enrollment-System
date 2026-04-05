@@ -1,7 +1,3 @@
-/**
- * Unified Formatting Utilities (Date, Time, Currency)
- */
-
 // 1. Date Logic
 export const parseDate = (val) => {
   if (!val) return new Date(0)
@@ -13,7 +9,7 @@ export const formatDate = (val) => {
   if (!val) return 'N/A'
   const date = parseDate(val)
   if (isNaN(date.getTime())) return 'N/A'
-  
+
   const d = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
   const t = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
   return `${d} at ${t}`
@@ -22,7 +18,9 @@ export const formatDate = (val) => {
 export const formatDateOnly = (val) => {
   if (!val) return 'N/A'
   const date = parseDate(val)
-  return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  return isNaN(date.getTime())
+    ? 'N/A'
+    : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 export const calculateAge = (val) => {
@@ -31,7 +29,11 @@ export const calculateAge = (val) => {
   if (isNaN(date.getTime())) return 'N/A'
   const today = new Date()
   let age = today.getFullYear() - date.getFullYear()
-  if (today.getMonth() < date.getMonth() || (today.getMonth() === date.getMonth() && today.getDate() < date.getDate())) age--
+  if (
+    today.getMonth() < date.getMonth() ||
+    (today.getMonth() === date.getMonth() && today.getDate() < date.getDate())
+  )
+    age--
   return age
 }
 
@@ -48,10 +50,12 @@ export const minutesToTime = (m) => {
   return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
 }
 
-export const calculateEndTime = (start, duration) => minutesToTime(timeToMinutes(start) + parseInt(duration || 0))
+export const calculateEndTime = (start, duration) =>
+  minutesToTime(timeToMinutes(start) + parseInt(duration || 0))
 
 export const calculateDuration = (start, end) => {
-  let s = timeToMinutes(start), e = timeToMinutes(end)
+  let s = timeToMinutes(start),
+    e = timeToMinutes(end)
   if (e < s) e += 1440
   return e - s
 }

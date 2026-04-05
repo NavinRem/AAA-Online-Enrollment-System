@@ -91,7 +91,7 @@ async function syncAllData() {
     for (const doc of programsSnap.docs) {
       const data = doc.data();
       const pid = doc.id;
-      const snapshot = programService._getProgramSnapshot(pid, data);
+      const snapshot = programService.getProgramSnapshot(pid, data);
       programMap[pid] = snapshot;
 
       const cleanData = {

@@ -52,7 +52,7 @@ class ProfileHelper {
   /**
    * Standardized Program Snapshot for Mirroring
    */
-  _getProgramSnapshot(programId, data) {
+  getProgramSnapshot(programId, data) {
     if (!programId || !data) return null;
 
     return {

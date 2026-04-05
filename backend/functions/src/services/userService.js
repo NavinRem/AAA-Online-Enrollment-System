@@ -166,7 +166,6 @@ class UserService {
     const userData = userDoc.data();
     const snapshot = profileHelper.getUserSnapshot(uid, userData);
 
-    // We update both the legacy 'parent' and new 'parentInfo' fields for compatibility
     const batch = incomingBatch || db.batch();
 
     const studentsSnap = await db

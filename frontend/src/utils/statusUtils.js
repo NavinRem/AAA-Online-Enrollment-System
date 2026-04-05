@@ -1,6 +1,17 @@
-/**
- * Unified Status Utilities (Checks, Themes, Logic)
- */
+import { formatPrice } from './formatUtils'
+
+export const isPriceValue = (val) => {
+  if (val === null || val === undefined || val === '') return false
+  const s = String(val).trim()
+  return /^[฿$€£¥₩]?\s?\d+([,.]\d+)*$/.test(s) || /^\d+([,.]\d+)*\s?[฿$€£¥₩]?$/.test(s)
+}
+
+export const getPriceBadge = (val, symbol = '$') => ({
+  label: formatPrice(val, symbol),
+  category: 'teal',
+})
+
+export { formatPrice }
 
 // 1. Core Pattern Lookups
 export const isPaid = (s) =>
@@ -70,17 +81,24 @@ const STATUS_CATEGORIES = {
 }
 
 const THEMES = {
-  green: { backgroundColor: '#10b981', color: '#ecfdf5' },
-  yellow: { backgroundColor: '#e2c106ff', color: '#fff7ed' },
-  orange: { backgroundColor: '#f97316', color: '#fff7ed' },
-  red: { backgroundColor: '#ef4444', color: '#fef2f2' },
-  blue: { backgroundColor: '#3b82f6', color: '#eff6ff' },
-  purple: { backgroundColor: '#8b5cf6', color: '#f5f3ff' },
-  magenta: { backgroundColor: '#ec4899', color: '#fdf2f8' },
+  green: { backgroundColor: '#e6f8ea', color: '#2e7d32' },
+  yellow: { backgroundColor: '#fff8e1', color: '#c49000' },
+  orange: { backgroundColor: '#fff3e0', color: '#e65100' },
+  red: { backgroundColor: '#ffebee', color: '#c62828' },
+  blue: { backgroundColor: '#e3f2fd', color: '#0d47a1' },
+  purple: { backgroundColor: '#f3e5f5', color: '#6a1b9a' },
+  magenta: { backgroundColor: '#fce4ec', color: '#c2185b' },
+  teal: { backgroundColor: '#ccfbf1', color: '#0f766e' },
+  gray: { backgroundColor: '#f1f3f4', color: '#5f6368' },
 }
+
+export { THEMES }
 
 export const getStatusCategory = (status) => {
   if (!status) return 'gray'
+
+  if (isPriceValue(status)) return 'blue'
+
   const s = String(status).toLowerCase().trim().split(':')[0]
   for (const [color, matches] of Object.entries(STATUS_CATEGORIES)) {
     if (matches.includes(s)) return color
@@ -99,8 +117,10 @@ export const getStatusDisplay = (s) => {
   return clean.charAt(0).toUpperCase() + clean.slice(1)
 }
 
-export const getStatusTheme = (s) =>
-  THEMES[getStatusCategory(s)] || { backgroundColor: '#f8fafc', color: '#475569' }
+export const getStatusTheme = (s, overrideCategory = null) => {
+  const category = overrideCategory || getStatusCategory(s)
+  return THEMES[category] || THEMES.gray
+}
 
 // 3. Entity-specific Logic
 export const isEnrollmentActive = (r) => {

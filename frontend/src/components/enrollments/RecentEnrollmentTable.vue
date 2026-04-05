@@ -18,7 +18,6 @@ defineProps({
 
 const router = useRouter()
 
-// Defining headers with widths for even alignment
 const enrollmentHeaders = [
   { label: 'No', width: '30px', align: 'center' },
   { label: 'Parent / Guardian', width: '120px' },
@@ -27,7 +26,7 @@ const enrollmentHeaders = [
   { label: 'Mode', width: '60px', align: 'center' },
   { label: 'Status', width: '60px', align: 'center' },
   { label: 'Amount', width: '60px', align: 'center' },
-  { label: 'Enrolled Date', width: '70px', align: 'center' }
+  { label: 'Enrolled Date', width: '90px', align: 'center' }
 ]
 
 const navigateToDetail = (item) => {
@@ -71,7 +70,8 @@ const navigateToDetail = (item) => {
         <td class="bold" :style="{ width: enrollmentHeaders[3].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="getProgramProfileURL(item.program?.profile || item.programProfileURL)" :alt="item.program?.title || item.programTitle" />
+              <img :src="getProgramProfileURL(item.program?.profile || item.programProfileURL)"
+                :alt="item.program?.title || item.programTitle" />
             </div>
             <span class="program-name text-truncate">{{ item.program?.title || item.programTitle }}</span>
           </div>
@@ -99,9 +99,7 @@ const navigateToDetail = (item) => {
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
   height: auto !important;
-  /* Force fit content height */
   overflow: visible !important;
-  /* Ensure no scrollbar */
 }
 
 .table-header {

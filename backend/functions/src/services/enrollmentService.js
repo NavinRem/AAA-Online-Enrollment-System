@@ -76,7 +76,7 @@ class EnrollmentService {
         student: profileHelper.getStudentSnapshot(studentId, studentData),
 
         // Snapshot: Program Information
-        program: profileHelper._getProgramSnapshot(programId, programData),
+        program: profileHelper.getProgramSnapshot(programId, programData),
 
         // Snapshot: Session Information
         session: {

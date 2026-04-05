@@ -192,7 +192,7 @@ class ProgramService {
     const programDoc = await db.collection(COLLECTIONS.PROGRAM).doc(pid).get();
     if (!programDoc.exists) return;
 
-    const program = profileHelper._getProgramSnapshot(pid, programDoc.data());
+    const program = profileHelper.getProgramSnapshot(pid, programDoc.data());
     const batch = db.batch();
 
     const enrollmentsSnap = await db
