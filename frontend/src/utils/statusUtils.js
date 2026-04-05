@@ -120,3 +120,22 @@ export const calculateStudentStatus = (student, regs = []) => {
   if (sRegs.some((r) => isCancelled(r.status || r.paymentStatus))) return 'Stopped'
   return 'Inactive'
 }
+
+export const getEnrollmentDisplayStatus = (r) => {
+  if (!r) return 'Unpaid'
+  const s = (r.status || '').toLowerCase()
+  const p = (r.paymentStatus || '').toLowerCase()
+  if (['cancelled', 'canceled'].includes(s)) return 'Cancelled'
+  if (
+    ['paid', 'confirmed', 'active', 'success', 'graduated'].includes(p) ||
+    ['active', 'confirmed', 'graduated'].includes(s)
+  )
+    return 'Paid'
+  return 'Unpaid'
+}
+
+export const getEnrollmentDisplayMode = (r) => {
+  if (!r) return 'Full'
+  const mode = r.enrollmentType || 'Full'
+  return mode.charAt(0).toUpperCase() + mode.slice(1).toLowerCase()
+}

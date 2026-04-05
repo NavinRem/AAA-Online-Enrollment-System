@@ -8,6 +8,7 @@ import { getSessionCounts } from '@/utils/programHelper'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
+import { getEnrollmentDisplayStatus } from '@/utils/statusUtils'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -368,18 +369,7 @@ const currentEnrollment = computed(() => {
   )
 })
 
-const displayEnrollmentStatus = computed(() => {
-  const enrollment = currentEnrollment.value
-  if (!enrollment) return 'Unpaid'
-
-  const status = (enrollment.status || '').toLowerCase()
-  const pStatus = (enrollment.paymentStatus || '').toLowerCase()
-
-  if (['cancelled', 'canceled'].includes(status)) return 'Cancelled'
-  if (['paid', 'confirmed', 'active', 'success'].includes(pStatus) || ['active', 'confirmed'].includes(status)) return 'Paid'
-
-  return 'Unpaid'
-})
+const displayEnrollmentStatus = computed(() => getEnrollmentDisplayStatus(currentEnrollment.value))
 
 const calculatedPrice = computed(() => {
   const basePrice = selectedProgramPrice.value

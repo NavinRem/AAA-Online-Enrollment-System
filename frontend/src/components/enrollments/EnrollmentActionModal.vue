@@ -47,7 +47,7 @@
               <StatusBadge :status="enrollmentSummary.mode" />
               <StatusBadge :status="enrollmentSummary.status" />
               <span v-if="enrollmentSummary.hasDiscount" class="discount-note-mini">{{ enrollmentSummary.discountText
-              }}</span>
+                }}</span>
             </div>
           </div>
           <div class="price-amount-large">${{ formatPrice(enrollmentSummary.amount) }}</div>
@@ -262,15 +262,20 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useActionModal } from '@/composables/useActionModal'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import { getParentProfileURL, getStudentProfileURL, getProgramProfileURL, getActionIcon, getIconUrl } from '@/utils/assetHelper'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
-import { getEnrollmentDisplayStatus, getEnrollmentDisplayMode } from '@/utils/enrollmentHelper'
+import {
+  getEnrollmentDisplayStatus,
+  getEnrollmentDisplayMode,
+  isPaid,
+} from '@/utils/statusUtils'
 import { storageService } from '@/services/storageService'
-import { isPaid } from '@/utils/statusUtils'
+import { formatPrice } from '@/utils/formatUtils'
 
 
 const props = defineProps({
@@ -284,7 +289,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
 
-const localData = ref({
+const getInitialData = () => ({
   proof: '',
   bankName: '',
   remark: '',
@@ -295,28 +300,18 @@ const localData = ref({
   proofPreview: null,
 })
 
+const { localData, isDirty, sync } = useActionModal(props, emit, {
+  getInitialData,
+  sourceKey: 'enrollment' // Resync if enrollment prop changes
+})
+
 const showHint = ref(false)
 let hintTimeout = null
 
-// Reset local data when modal opens
-watch(
-  () => props.isOpen,
-  (newVal) => {
-    if (newVal) {
-      localData.value = {
-        proof: '',
-        bankName: '',
-        remark: '',
-        reason: '',
-        deleteConfirm: '',
-        paymentMethod: 'online',
-        selectedFile: null,
-        proofPreview: null,
-      }
-      showHint.value = false
-    }
-  },
-)
+// Additional reset for hint state
+watch(() => props.isOpen, (isOpen) => {
+  if (isOpen) showHint.value = false
+})
 
 const enrollmentSummary = computed(() => {
   const e = props.enrollment
@@ -395,11 +390,6 @@ const handleSubmitTrigger = async () => {
       emit('update:error', 'Failed to upload payment proof. Please try again.')
     }
   }
-}
-
-const formatPrice = (val) => {
-  if (val === undefined || val === null) return '0'
-  return Number.isInteger(val) ? val.toString() : val.toFixed(2)
 }
 </script>
 
