@@ -64,5 +64,5 @@ export const calculateDuration = (start, end) => {
 export const formatPrice = (val) => {
   const num = Number(val)
   if (isNaN(num) || val === '' || val === null) return '0'
-  return Number.isInteger(num) ? num.toString() : num.toFixed(2)
+  return Number(num.toFixed(2)).toString()
 }
