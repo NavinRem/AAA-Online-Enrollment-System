@@ -1,4 +1,17 @@
 const admin = require("firebase-admin");
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "../../.env") });
+
+// Ensure Project ID is available for firebase-admin
+process.env.GOOGLE_CLOUD_PROJECT = process.env.INTERNAL_PROJECT_ID;
+
+if (admin.apps.length === 0) {
+  admin.initializeApp({
+    projectId: process.env.INTERNAL_PROJECT_ID,
+    storageBucket: process.env.INTERNAL_STORAGE_BUCKET,
+  });
+}
+
 const { db, COLLECTIONS } = require("../config/database");
 
 /**
@@ -6,19 +19,17 @@ const { db, COLLECTIONS } = require("../config/database");
  * This should be run ONCE after a fresh system wipe.
  */
 async function seedAdmin() {
-  process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
-  process.env.FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099";
-
-  if (admin.apps.length === 0) {
-    admin.initializeApp({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-    });
-  }
+  // Map INTERNAL_ vars to the SDK-expected emulator host vars
+  process.env.FIRESTORE_EMULATOR_HOST =
+    process.env.INTERNAL_FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080";
+  process.env.FIREBASE_AUTH_EMULATOR_HOST =
+    process.env.INTERNAL_AUTH_EMULATOR_HOST || "127.0.0.1:9099";
 
   const adminData = {
     email: process.env.INITIAL_ADMIN_EMAIL,
     password: process.env.INITIAL_ADMIN_PASSWORD,
     name: process.env.INITIAL_ADMIN_NAME,
+    profileURL: process.env.INITIAL_ADMIN_PROFILE_URL || "",
     role: "admin",
     status: "Active",
   };
@@ -55,6 +66,7 @@ async function seedAdmin() {
         status: "Active",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        profileURL: adminData.profileURL,
       },
       { merge: true },
     );

@@ -46,7 +46,14 @@ const isAdmin = (req, res, next) => {
  * Middleware to check for Staff/Admin role (Web Portal Access)
  */
 const isStaff = (req, res, next) => {
-  return isAdmin(req, res, next);
+  if (!req.user || (req.user.role !== "admin" && req.user.role !== "staff")) {
+    return res.status(403).json({
+      error: "Forbidden",
+      message:
+        "Access Denied: Only staff members and administrators can access this portal.",
+    });
+  }
+  next();
 };
 
 /**

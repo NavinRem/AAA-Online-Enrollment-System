@@ -1,5 +1,5 @@
 const { db, COLLECTIONS } = require("../config/database");
-const userService = require("../management/userService");
+const userService = require("./userService");
 
 class SessionService {
   async createSession(sessionData) {

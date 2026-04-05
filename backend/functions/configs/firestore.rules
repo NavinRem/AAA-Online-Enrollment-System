@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- HELPER FUNCTIONS ---
+    
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // High-performance role check using Firebase Auth Custom Claims
+    function hasRole(role) {
+      return isSignedIn() && request.auth.token.role == role;
+    }
+
+    function isAdmin() {
+      return hasRole('admin');
+    }
+
+    // --- COLLECTION RULES ---
+
+    // 1. User Profiles (Parents, Guardians, Teachers, Admins)
+    match /parents/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin(); // Admin manages all profile creations via backend
+    }
+    match /guardians/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+    match /teachers/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+    match /admins/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // 2. student: Parents manage their kids; Staff/Admins can view
+    match /students/{studentId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.parentId || 
+        isAdmin() || hasRole('teacher')
+      );
+      allow write: if isAdmin(); // Global student writes handled by backend
+    }
+
+    // 3. programs & sessions: Publicly readable; Only Admins can modify
+    match /programs/{programId} {
+      allow read: if true; 
+      allow write: if isAdmin();
+    }
+    match /sessions/{sessionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 4. enrollment: Parents view their own; Admins manage
+    match /enrollments/{enrollId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.parentId || 
+        isAdmin()
+      );
+      allow write: if isAdmin(); // Enrollment logic is complex, handled by backend transaction
+    }
+
+    // 5. Academic Tracking (Attendance & Progress)
+    match /attendance/{atId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == get(/databases/$(database)/documents/students/$(resource.data.studentId)).data.parentId || 
+        isAdmin() || hasRole('teacher')
+      );
+      allow write: if isAdmin() || hasRole('teacher');
+    }
+
+    // 6. payments: Restricted financial records
+    match /payments/{paymentId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.parentId || 
+        isAdmin()
+      );
+      allow write: if isAdmin(); // Managed by backend payment flow
+    }
+
+    // 7. Support Collections (Terms, Categories, etc.)
+    match /terms/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /categories/{id} { 
+      allow read: if true; allow write: if isAdmin(); 
+      match /levels/{lvlId} { allow read: if true; allow write: if isAdmin(); }
+    }
+  }
+}

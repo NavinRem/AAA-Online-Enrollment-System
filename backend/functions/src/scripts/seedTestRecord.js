@@ -17,9 +17,11 @@ const paymentService = require("../services/paymentService");
  * Creates 1 record in every collection using the Service layer.
  */
 async function seedFullSystem() {
-  // Ensure we are targeting the emulator
-  process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
-  process.env.FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099";
+  // Map INTERNAL_ vars to the SDK-expected emulator host vars
+  process.env.FIRESTORE_EMULATOR_HOST =
+    process.env.INTERNAL_FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080";
+  process.env.FIREBASE_AUTH_EMULATOR_HOST =
+    process.env.INTERNAL_AUTH_EMULATOR_HOST || "127.0.0.1:9099";
 
   console.log("🧪 Starting Full System Integration Seed...");
 

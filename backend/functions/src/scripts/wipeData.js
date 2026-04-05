@@ -10,10 +10,11 @@ const admin = require("firebase-admin");
 async function wipeData() {
   const projectId = process.env.FIREBASE_PROJECT_ID;
 
-  // These are usually set via shell, but we can default them for safety
-  process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST;
+  // Map INTERNAL_ vars to the SDK-expected emulator host vars
+  process.env.FIRESTORE_EMULATOR_HOST =
+    process.env.INTERNAL_FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080";
   process.env.FIREBASE_AUTH_EMULATOR_HOST =
-    process.env.FIREBASE_AUTH_EMULATOR_HOST;
+    process.env.INTERNAL_AUTH_EMULATOR_HOST || "127.0.0.1:9099";
 
   console.log(
     `🔥 Starting Full System Wipe on Emulator [Project: ${projectId}]...`,

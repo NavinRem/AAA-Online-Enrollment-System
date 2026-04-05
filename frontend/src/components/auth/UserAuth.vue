@@ -5,7 +5,7 @@ import { authService } from '@/services/authService'
 import { userService } from '@/services/userService'
 
 import AppButton from '@/components/common/ui/AppButton.vue'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 
 const router = useRouter()
 
@@ -19,7 +19,6 @@ const loading = ref(false)
 
 const toggleResetMode = () => {
   isResetMode.value = !isResetMode.value
-  // Clear fields
   email.value = ''
   password.value = ''
   error.value = ''
@@ -39,11 +38,7 @@ const handleSubmit = async () => {
       return
     }
 
-    // --- Admin Portal Login Only ---
-    // 1. Sign in
     const user = await authService.login(email.value, password.value)
-
-    // 2. Strict Role Check: ONLY 'admin' allowed in this portal
     try {
       const profile = await userService.getProfile(user.uid)
       if (!profile || profile.role !== 'admin') {
@@ -54,14 +49,12 @@ const handleSubmit = async () => {
       }
     } catch (profileError) {
       await authService.logout()
-      error.value = 'Auth Error: Could not verify administrator permissions.'
+      error.value = `Auth Error: ${profileError.message || 'Could not verify administrator permissions.'}`
       loading.value = false
       return
     }
 
     message.value = 'Logged in successfully! Redirecting...'
-    
-    // Redirect to Dashboard
     setTimeout(() => {
       router.push('/dashboard')
     }, 1500)
@@ -99,20 +92,16 @@ const handleSubmit = async () => {
           <div v-if="!isResetMode" class="form-group">
             <label>Password <span class="required">*</span></label>
             <div class="password-input">
-              <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="Enter your password" required />
+              <input v-model="password" :type="showPassword ? 'text' : 'password'" placeholder="Enter your password"
+                required />
               <button type="button" @click="showPassword = !showPassword" class="eye-btn">
-                {{ showPassword ? '🙈' : '👁️' }}
+                {{ showPassword ? getActionIcon('eye-close') : getActionIcon('eye-open') }}
               </button>
             </div>
           </div>
 
-          <AppButton
-            :loading="loading"
-            :disabled="loading"
-            type="submit"
-            variant="primary"
-            style="width: 100%; border-radius: 8px"
-          >
+          <AppButton :loading="loading" :disabled="loading" type="submit" variant="primary"
+            style="width: 100%; border-radius: 8px">
             {{ isResetMode ? 'Send Reset Link' : 'Sign in' }}
           </AppButton>
         </form>
@@ -151,7 +140,10 @@ const handleSubmit = async () => {
 .image-panel::after {
   content: '';
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 174, 239, 0.03);
 }
 
@@ -175,8 +167,15 @@ const handleSubmit = async () => {
   text-align: center;
 }
 
-.logo { margin-bottom: 25px; }
-.logo-img { width: 100%; max-width: 140px; height: auto; }
+.logo {
+  margin-bottom: 25px;
+}
+
+.logo-img {
+  width: 100%;
+  max-width: 140px;
+  height: auto;
+}
 
 .title {
   font-size: 1.5rem;
@@ -185,8 +184,18 @@ const handleSubmit = async () => {
   color: #1a1a1a;
 }
 
-.form-group { text-align: left; margin-bottom: 15px; }
-.form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: #444; }
+.form-group {
+  text-align: left;
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #444;
+}
 
 input {
   width: 100%;
@@ -203,14 +212,60 @@ input:focus {
   border-color: #00aeef;
 }
 
-.password-input { position: relative; }
-.eye-btn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; }
+.password-input {
+  position: relative;
+}
 
-.separator { margin: 25px 0; position: relative; text-align: center; }
-.separator::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #eee; }
-.separator span { position: relative; background: #fff; padding: 0 10px; font-size: 0.75rem; font-weight: 700; color: #999; }
+.eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
 
-.toggle-text { font-size: 0.9rem; color: #666; margin-top: 15px; }
-.error-msg { color: #e63946; font-size: 0.85rem; margin-top: 15px; }
-.success-msg { color: #2a9d8f; font-size: 0.85rem; margin-top: 15px; }
+.separator {
+  margin: 25px 0;
+  position: relative;
+  text-align: center;
+}
+
+.separator::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #eee;
+}
+
+.separator span {
+  position: relative;
+  background: #fff;
+  padding: 0 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #999;
+}
+
+.toggle-text {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 15px;
+}
+
+.error-msg {
+  color: #e63946;
+  font-size: 0.85rem;
+  margin-top: 15px;
+}
+
+.success-msg {
+  color: #2a9d8f;
+  font-size: 0.85rem;
+  margin-top: 15px;
+}
 </style>

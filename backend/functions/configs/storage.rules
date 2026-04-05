@@ -1,0 +1,19 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 1. Allow public read access to all files
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+    
+    // 2. Allow public write to temp profiles (for registration phase)
+    match /profiles/temp/{filename} {
+      allow write: if true;
+    }
+
+    // 3. Allow authenticated write for all other paths
+    match /{allPaths=**} {
+      allow write: if request.auth != null;
+    }
+  }
+}

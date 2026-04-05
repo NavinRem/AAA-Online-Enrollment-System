@@ -1,6 +1,6 @@
 const { db, COLLECTIONS } = require("../config/database");
-const userService = require("../management/userService");
-const programService = require("../academic/programService");
+const userService = require("./userService");
+const programService = require("./programService");
 const profileHelper = require("../utils/profileHelper");
 
 class EnrollmentService {
@@ -76,7 +76,7 @@ class EnrollmentService {
         student: profileHelper.getStudentSnapshot(studentId, studentData),
 
         // Snapshot: Program Information
-        program: programService._getProgramSnapshot(programId, programData),
+        program: profileHelper._getProgramSnapshot(programId, programData),
 
         // Snapshot: Session Information
         session: {

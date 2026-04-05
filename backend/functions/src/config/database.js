@@ -3,7 +3,7 @@ const { getFirestore } = require("firebase-admin/firestore");
 
 if (admin.apps.length === 0) {
   admin.initializeApp({
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    storageBucket: process.env.INTERNAL_STORAGE_BUCKET,
   });
 }
 
