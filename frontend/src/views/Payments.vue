@@ -1,13 +1,13 @@
 <script setup>
 import { ref, computed } from 'vue'
-import { formatDate } from '../utils/dateFormatter'
-import DashboardLayout from '../components/layout/DashboardLayout.vue'
-import StatusBadge from '../components/common/ui/StatusBadge.vue'
-import DataMetrics from '../components/common/data/DataMetrics.vue'
-import DataTable from '../components/common/data/DataTable.vue'
-import DataPageLayout from '../components/layout/DataPageLayout.vue'
-import { paymentStatCard } from '../utils/paymentHelper'
-import { getImageUrl } from '../utils/assetHelper'
+import { formatDate } from '@/utils/formatUtils'
+import DashboardLayout from '@/components/layout/DashboardLayout.vue'
+import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import DataMetrics from '@/components/common/data/DataMetrics.vue'
+import DataTable from '@/components/common/data/DataTable.vue'
+import DataPageLayout from '@/components/layout/DataPageLayout.vue'
+import { paymentStatCard } from '@/utils/paymentHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const payments = ref([])
 

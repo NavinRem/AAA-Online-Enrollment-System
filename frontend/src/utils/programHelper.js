@@ -10,20 +10,23 @@ export const getSessionCounts = (startDate, endDate, schedule) => {
   const start = new Date(startDate)
   const end = new Date(endDate)
   const today = new Date()
-  today.setHours(0, 0, 0, 0) // Normalize today to start of day
+  today.setHours(0, 0, 0, 0)
 
-  // Handle both { day: 'Monday' } and { Monday: '09:00' } formats
-  let dayName = schedule.day;
+  let dayName = schedule.day
   if (!dayName) {
-    // If no 'day' property, take the first key from the schedule map
-    dayName = Object.keys(schedule)[0];
+    dayName = Object.keys(schedule)[0]
   }
 
   if (!dayName) return { total: 0, passed: 0, remaining: 0 }
 
   const dayMap = {
-    sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-    thursday: 4, friday: 5, saturday: 6
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
   }
   const targetDay = dayMap[dayName.toLowerCase().trim()]
 
@@ -78,6 +81,3 @@ export const isSessionInProgress = (session) => {
 
   return now >= sessionDate && now >= sessionStartTime && now <= sessionEndTime
 }
-
-
-  

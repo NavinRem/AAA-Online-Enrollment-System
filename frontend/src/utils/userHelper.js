@@ -9,17 +9,19 @@ export const processUserProfileImage = async (profile, name, role, currentProfil
   if (!profile || !profile.includes('/profiles/temp/')) {
     return profile
   }
-
-  // If the profile hasn't actually changed from what's already saved, don't move it again
   if (currentProfile && isSameProfileAsset(profile, currentProfile)) {
     return currentProfile
   }
 
   try {
     const extension = profile.split('?')[0].split('.').pop() || 'jpg'
-    const sanitizedName = (name || 'user').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+    const sanitizedName = (name || 'user')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
     const newPath = `profiles/parent/${sanitizedName}_${role}.${extension}`
-    
+
     return await storageService.moveProfileImage(profile, newPath)
   } catch (err) {
     console.warn('Failed to process user profile image, fallback to temp:', err)
@@ -35,17 +37,19 @@ export const processStudentProfileImage = async (profile, name, currentProfile =
   if (!profile || !profile.includes('/profiles/temp/')) {
     return profile
   }
-
-  // If the profile hasn't actually changed from what's already saved, don't move it again
   if (currentProfile && isSameProfileAsset(profile, currentProfile)) {
     return currentProfile
   }
 
   try {
     const extension = profile.split('?')[0].split('.').pop() || 'jpg'
-    const sanitizedName = (name || 'student').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+    const sanitizedName = (name || 'student')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
     const newPath = `profiles/student/${sanitizedName}_student.${extension}`
-    
+
     return await storageService.moveProfileImage(profile, newPath)
   } catch (err) {
     console.warn('Failed to process student profile image, fallback to temp:', err)
@@ -64,7 +68,7 @@ export const prepareUserPayload = (data) => {
     role: data.role || 'parent',
     profile: data.profile,
     status: data.status || 'Active',
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   }
 }
 
@@ -78,6 +82,6 @@ export const prepareStudentPayload = (data) => {
     profile: data.profile,
     medicalNote: data.medicalNote?.trim() || 'None',
     status: data.status || 'Studying',
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   }
 }

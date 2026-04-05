@@ -10,9 +10,11 @@
 export const getSessionDay = (schedule) => {
   if (!schedule) return ''
   if (typeof schedule === 'object' && schedule.day) return schedule.day
-  
-  // Clean potential labels and extra characters
-  const day = String(schedule).replace(/Day:/i, '').trim().split(/[\s,:]/)[0]
+
+  const day = String(schedule)
+    .replace(/Day:/i, '')
+    .trim()
+    .split(/[\s,:]/)[0]
   return day
 }
 
@@ -24,16 +26,17 @@ export const getSessionDay = (schedule) => {
 export const getSessionTime = (schedule) => {
   if (!schedule) return ''
   if (typeof schedule === 'object') {
-    return schedule.timeslot || schedule.time || (schedule.startTime + ' - ' + schedule.endTime) || 'TBD'
+    return (
+      schedule.timeslot || schedule.time || schedule.startTime + ' - ' + schedule.endTime || 'TBD'
+    )
   }
-  
+
   const dayPart = getSessionDay(schedule)
-  // Remove day and any leading labels/punctuation
   const time = String(schedule)
     .replace(/Timeslot:|Time:|Day:/gi, '')
     .replace(dayPart, '')
     .replace(/^[\s,:]+/, '')
     .trim()
-    
+
   return time
 }

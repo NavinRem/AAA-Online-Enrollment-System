@@ -1,13 +1,13 @@
-export const paymentStatCard = (payments) => {
-  const total_transactions = payments.length
-  const total_revenue = payments.reduce((acc, payment) => acc + payment.amount, 0)
-  const pending_payments = payments.filter((payment) => payment.status === 'Pending').length
-  const refunded_payments = payments.filter((payment) => payment.status === 'Refunded').length
-  
+export const paymentStatCard = (payments = []) => {
+  const totalTransactions = payments.length
+  const totalRevenue = payments.reduce((acc, p) => acc + (p.amount || 0), 0)
+  const pendingPayments = payments.filter((p) => (p.status || '').toLowerCase() === 'pending').length
+  const refundedPayments = payments.filter((p) => (p.status || '').toLowerCase() === 'refunded').length
+
   return {
-    total_transactions,
-    total_revenue,
-    pending_payments,
-    refunded_payments,
+    totalTransactions,
+    totalRevenue,
+    pendingPayments,
+    refundedPayments,
   }
 }
