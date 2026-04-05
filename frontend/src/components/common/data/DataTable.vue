@@ -5,7 +5,7 @@ import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import { useTableActions } from '@/composables/useTableActions'
 import StatusBadge from '../ui/StatusBadge.vue'
 import TablePagination from './TablePagination.vue'
-import { getStatusCategory, getStatusDisplay } from '@/utils/statusHelper'
+import { getStatusCategory, getStatusDisplay } from '@/utils/statusUtils'
 
 const props = defineProps({
   headers: { type: Array, required: true },

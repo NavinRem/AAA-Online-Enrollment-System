@@ -1,7 +1,6 @@
 import { request } from './api'
 
 export const userService = {
-  // Register Parent Account
   registerParentAccount(userData) {
     return request('/users/registerParentAccount', {
       method: 'POST',
@@ -9,22 +8,14 @@ export const userService = {
     })
   },
 
-  // Get User Profile by UID
   getProfile(uid) {
     return request(`/users/${uid}`)
   },
 
-  // Get User Role
-  getUserRole(uid) {
-    return request(`/users/${uid}/role`)
-  },
-
-  // Get All Users (Admin primarily)
   getAllUsers() {
     return request('/users')
   },
 
-  // Register Student Profile
   registerStudentProfile(uid, studentData) {
     return request(`/users/${uid}/registerStudentProfile`, {
       method: 'POST',
@@ -32,7 +23,6 @@ export const userService = {
     })
   },
 
-  // Update Medical Info
   updateMedicalInfo(studentId, note) {
     return request(`/users/students/${studentId}/medical`, {
       method: 'PATCH',
@@ -40,7 +30,6 @@ export const userService = {
     })
   },
 
-  // Update Student Profile Details or Status
   updateStudent(studentId, updateData) {
     return request(`/students/${studentId}`, {
       method: 'PATCH',
@@ -48,22 +37,18 @@ export const userService = {
     })
   },
 
-  // Get Individual Student
   getStudent(studentId) {
     return request(`/students/${studentId}`)
   },
 
-  // Get Students by Parent
   getStudentsByParentID(uid) {
     return request(`/users/${uid}/students`)
   },
 
-  // Get All Students (Admin)
   getAllStudents() {
     return request('/users/allStudents')
   },
 
-  // Update User Profile (Admin)
   updateUser(uid, updateData) {
     return request(`/users/${uid}`, {
       method: 'PATCH',
@@ -71,18 +56,15 @@ export const userService = {
     })
   },
 
-  // Delete User Account (Admin)
   deleteUser(uid) {
     return request(`/users/${uid}`, {
       method: 'DELETE',
     })
   },
 
-  // Delete Student Record
   deleteStudent(studentId) {
     return request(`/students/${studentId}`, {
       method: 'DELETE',
     })
   },
-
 }

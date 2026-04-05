@@ -33,7 +33,7 @@
 import { ref, computed } from 'vue'
 import SearchBox from '@/components/common/data/SearchBox.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import { getStatusTheme } from '@/utils/statusHelper'
+import { getStatusTheme } from '@/utils/statusUtils'
 import { getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({

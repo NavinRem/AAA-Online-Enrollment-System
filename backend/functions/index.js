@@ -9,24 +9,23 @@ const rateLimit = require("express-rate-limit");
 
 // Import Routes
 // --- Core Enrollment & Payments ---
-const enrollmentRoutes = require("./src/routes/core/enrollments");
-const paymentRoutes = require("./src/routes/core/payments");
+const enrollmentRoutes = require("./src/routes/enrollments");
+const paymentRoutes = require("./src/routes/payments");
 
 // --- Student & Parent Management ---
-const studentRoutes = require("./src/routes/management/students");
-const userRoutes = require("./src/routes/management/users");
+const studentRoutes = require("./src/routes/students");
+const userRoutes = require("./src/routes/users");
 
 // --- Academic Content ---
-const programRoutes = require("./src/routes/academic/programs");
-const sessionRoutes = require("./src/routes/academic/sessions");
-const categoryRoutes = require("./src/routes/academic/categories");
-const levelRoutes = require("./src/routes/academic/levels");
-const termRoutes = require("./src/routes/academic/terms");
+const programRoutes = require("./src/routes/programs");
+const sessionRoutes = require("./src/routes/sessions");
+const categoryRoutes = require("./src/routes/categories");
+const levelRoutes = require("./src/routes/levels");
+const termRoutes = require("./src/routes/terms");
 
 // --- Administrative & Academic Tracking ---
-const attendanceRoutes = require("./src/routes/tracking/attendance");
-const progressRoutes = require("./src/routes/tracking/progress");
-const uploadRoutes = require("./src/routes/tracking/uploads");
+// NOTE: attendance and progress routes were removed/flattened
+const uploadRoutes = require("./src/routes/uploads");
 
 const app = express();
 
@@ -63,12 +62,9 @@ apiRouter.use("/users", registrationLimiter, userRoutes);
 apiRouter.use("/programs", programRoutes);
 apiRouter.use("/sessions", sessionRoutes);
 apiRouter.use("/categories", categoryRoutes);
-apiRouter.use("/levels", levelRoutes);
 apiRouter.use("/terms", termRoutes);
 
-// --- Administrative & Academic Tracking ---
-apiRouter.use("/attendance", attendanceRoutes);
-apiRouter.use("/progress", progressRoutes);
+// --- Administrative & Academic Recording ---
 apiRouter.use("/uploads", uploadRoutes);
 
 // Main app uses both prefixed and non-prefixed routes for maximum compatibility

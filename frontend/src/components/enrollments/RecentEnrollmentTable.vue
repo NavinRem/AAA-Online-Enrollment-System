@@ -2,13 +2,12 @@
 import { useRouter } from 'vue-router'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppTable from '@/components/common/data/AppTable.vue'
-import { formatDate } from '@/utils/dateFormatter'
+import { formatDate, formatPrice } from '@/utils/formatUtils'
 import {
   getProgramProfileURL,
   getParentProfileURL,
   getStudentProfileURL
 } from '@/utils/assetHelper'
-import { formatPrice } from '@/utils/currencyFormatter'
 
 defineProps({
   enrollments: {

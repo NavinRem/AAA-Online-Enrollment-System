@@ -6,7 +6,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { getStatusCategory, getStatusDisplay } from '@/utils/statusHelper'
+import { getStatusCategory, getStatusDisplay, getStatusTheme } from '@/utils/statusUtils'
 
 const props = defineProps({
   status: {

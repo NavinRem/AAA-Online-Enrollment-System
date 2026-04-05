@@ -7,9 +7,9 @@ if (admin.apps.length === 0) {
 
 const db = admin.firestore();
 
-const userService = require("../services/management/userService");
-const studentService = require("../services/management/studentService");
-const programService = require("../services/academic/programService");
+const userService = require("../services/userService");
+const studentService = require("../services/studentService");
+const programService = require("../services/programService");
 
 async function syncAllData() {
   console.log("🚀 Starting Unified Data Standardization & Mirroring Sync...");

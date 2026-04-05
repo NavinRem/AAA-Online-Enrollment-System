@@ -11,8 +11,9 @@ import EnrollmentFormModal from '@/components/enrollments/EnrollmentFormModal.vu
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { programService } from '@/services/programService'
-import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
+import { formatDate, formatPrice } from '@/utils/formatUtils'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
+import { isPaid, isCancelled } from '@/utils/statusUtils'
 
 import {
   getProgramProfileURL,
@@ -21,8 +22,6 @@ import {
   getTeacherProfileURL,
   getActionIcon
 } from '@/utils/assetHelper'
-import { isPaid, isCancelled } from '@/utils/statusHelper'
-import { formatPrice } from '@/utils/currencyFormatter'
 
 const route = useRoute()
 const router = useRouter()

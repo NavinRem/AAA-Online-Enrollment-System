@@ -1,41 +1,29 @@
-import { calculateStudentStatus, isEnrollmentActive } from './studentStatusHelper'
+import { calculateStudentStatus, isEnrollmentActive } from './statusUtils'
 
 /**
  * Enriches student data for the list view.
  */
 export const enrichStudents = (students = [], enrollments = [], users = []) => {
-  return students.map(student => {
-    const s = { ...student }
+  return students.map(s => {
     const id = String(s.id || s.uid || '')
     const regs = enrollments.filter(r => String(r.studentId || '') === id)
+    const p = users.find(u => String(u.uid || u.id || '') === String(s.parentId || ''))
     
-    // Resolve Parent Info if missing or for enrichment
-    const parentId = s.parentId || (s.parentInfo && s.parentInfo.id)
-    const p = users.find(u => String(u.uid || u.id || '') === String(parentId || ''))
-    
-    // Standardize Name & Profile
-    const name = s.name || s.fullName || s.fullname || 'Student'
-    const profile = s.profile || s.profileURL || s.childProfileURL || null
-    
-    // Robust Parent Snapshot
-    const parentInfo = s.parentInfo || (p ? {
-      id: p.uid || p.id,
-      name: p.name || p.email || 'Parent',
-      email: p.email || 'N/A',
-      phone: p.phone || 'N/A',
-      role: p.role || 'guardian',
-      profile: p.profile || p.profileURL || null
-    } : null)
-
     return {
       ...s,
       id,
-      name,
-      profile,
-      parentInfo,
+      name: s.name || s.fullName || 'Student',
+      profileURL: s.profileURL || s.profile || null,
+      parentInfo: s.parentInfo || (p ? {
+        id: p.uid || p.id,
+        name: p.name || 'Parent',
+        email: p.email || 'N/A',
+        phone: p.phone || 'N/A',
+        role: 'parent',
+        profileURL: p.profileURL || null
+      } : null),
       status: calculateStudentStatus(s, regs),
-      programs: regs.filter(isEnrollmentActive),
-      dob: s.dob || s.DoB,
+      activePrograms: regs.filter(isEnrollmentActive),
     }
   })
 }
@@ -43,18 +31,9 @@ export const enrichStudents = (students = [], enrollments = [], users = []) => {
 /**
  * Calculates student statistics.
  */
-export const calculateTotalStudent = (students) => {
-  const totalStudent = students.length
-  const currentlyEnrolled = students.filter(s => String(s.status || '').toLowerCase() === 'studying').length
-  const notCurrentlyEnrolled = students.filter(s => String(s.status || '').toLowerCase() !== 'studying').length
-  const stopEnrolled = students.filter(s => String(s.status || '').toLowerCase() === 'stopped').length
-  const graduated = students.filter(s => String(s.status || '').toLowerCase() === 'graduated').length
-
-  return {
-    totalStudent,
-    currentlyEnrolled,
-    notCurrentlyEnrolled,
-    stopEnrolled,
-    graduated
-  }
-}
+export const calculateTotalStudent = (students) => ({
+  total: students.length,
+  studying: students.filter(s => s.status === 'Studying').length,
+  inactive: students.filter(s => s.status === 'Inactive').length,
+  graduated: students.filter(s => s.status === 'Graduated').length,
+})

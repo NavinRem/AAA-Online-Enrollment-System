@@ -10,7 +10,7 @@ import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.v
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
-import { formatDate } from '@/utils/dateFormatter'
+import { formatDate } from '@/utils/formatUtils'
 import { filterDetailEnrollments } from '@/utils/enrollmentHelper'
 import { enrichStudents } from '@/utils/studentHelper'
 import { 

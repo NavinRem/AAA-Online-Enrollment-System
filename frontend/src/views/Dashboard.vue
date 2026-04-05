@@ -10,8 +10,8 @@ import {
   getParentProfileURL,
   getStudentProfileURL
 } from '@/utils/assetHelper'
-import { parseDate } from '../utils/dateFormatter'
-import { calculateDashboardStats } from '../utils/statsHelper'
+import { parseDate, formatPrice } from '@/utils/formatUtils'
+import { calculateDashboardStats } from '@/utils/statsHelper'
 
 // UI Components
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
@@ -112,12 +112,7 @@ const mappedEnrollments = computed(() => {
       }
     })
 })
-const formatPrice = (val) => {
-  if (val === undefined || val === null) return '0'
-  const num = parseFloat(String(val).replace(/[^0-9.]/g, ''))
-  if (isNaN(num)) return '0'
-  return Number.isInteger(num) ? num.toString() : num.toFixed(2)
-}
+// Using imported formatPrice
 </script>
 
 <template>

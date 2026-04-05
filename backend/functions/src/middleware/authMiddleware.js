@@ -10,7 +10,7 @@ const verifyToken = async (req, res, next) => {
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({
       error: "Unauthorized",
-      message: "No authentication token provided"
+      message: "No authentication token provided",
     });
   }
 
@@ -18,13 +18,13 @@ const verifyToken = async (req, res, next) => {
 
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
-    req.user = decodedToken; // { uid, email, role, etc. }
+    req.user = decodedToken;
     next();
   } catch (error) {
     logger.error("Token verification failed:", error.message);
     return res.status(401).json({
       error: "Unauthorized",
-      message: "Invalid or expired authentication token"
+      message: "Invalid or expired authentication token",
     });
   }
 };
@@ -36,7 +36,7 @@ const isAdmin = (req, res, next) => {
   if (!req.user || req.user.role !== "admin") {
     return res.status(403).json({
       error: "Forbidden",
-      message: "Access Denied: Only administrators can access this portal."
+      message: "Access Denied: Only administrators can access this portal.",
     });
   }
   next();
@@ -46,7 +46,6 @@ const isAdmin = (req, res, next) => {
  * Middleware to check for Staff/Admin role (Web Portal Access)
  */
 const isStaff = (req, res, next) => {
-  // For now, in this Admin-only system, isStaff is synonymous with isAdmin
   return isAdmin(req, res, next);
 };
 
@@ -63,7 +62,7 @@ const isOwnerOrAdmin = (req, res, next) => {
   } else {
     return res.status(403).json({
       error: "Forbidden",
-      message: "You do not have permission to access this resource"
+      message: "You do not have permission to access this resource",
     });
   }
 };
@@ -72,5 +71,5 @@ module.exports = {
   verifyToken,
   isAdmin,
   isStaff,
-  isOwnerOrAdmin
+  isOwnerOrAdmin,
 };

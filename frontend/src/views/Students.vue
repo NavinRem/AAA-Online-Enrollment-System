@@ -14,8 +14,8 @@ import StudentActionModal from '../components/students/StudentActionModal.vue'
 import { userService } from '../services/userService'
 import { authService } from '../services/authService'
 import { enrollmentService } from '../services/enrollmentService'
-import { useSearch, studentSearchMapper } from '../composables/useSearch'
-import { formatDate } from '../utils/dateFormatter'
+import { useSearch, studentSearchMapper } from '@/composables/useSearch'
+import { formatDate } from '@/utils/formatUtils'
 import {
   getProgramProfileURL,
   getStudentProfileURL,
@@ -78,11 +78,10 @@ const filteredStudents = computed(() => {
 const statsCards = computed(() => {
   const s = calculateTotalStudent(students.value)
   return [
-    { label: 'Total Students', value: s.totalStudent, image: getImageUrl('student/total-student'), color: '#e1f5fe' },
-    { label: 'Currently Enrolled', value: s.currentlyEnrolled, image: getImageUrl('student/currently-enrolled'), color: '#e1f5fe' },
-    { label: 'Not Currently Enrolled', value: s.notCurrentlyEnrolled, image: getImageUrl('student/currently-not-enrolled'), color: '#e1f5fe' },
-    { label: 'Stopped Students', value: s.stopEnrolled, image: getImageUrl('student/stopped-enrolled'), color: '#e1f5fe' },
-    { label: 'Graduated Students', value: s.graduated, image: getImageUrl('student/graduated'), color: '#e1f5fe' }
+    { label: 'Total Students', value: s.total, image: getImageUrl('student/total-student'), color: '#e1f5fe' },
+    { label: 'Currently Studying', value: s.studying, image: getImageUrl('student/currently-enrolled'), color: '#e1f5fe' },
+    { label: 'Inactive / Pending', value: s.inactive, image: getImageUrl('student/currently-not-enrolled'), color: '#e1f5fe' },
+    { label: 'Graduated', value: s.graduated, image: getImageUrl('student/graduated'), color: '#e1f5fe' }
   ]
 })
 

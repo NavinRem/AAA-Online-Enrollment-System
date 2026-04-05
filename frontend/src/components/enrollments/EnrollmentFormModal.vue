@@ -3,12 +3,11 @@ import { ref, computed, toRef, watch, onMounted, onUnmounted } from 'vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { useSearch, parentSearchMapper, studentSearchMapper, programSearchMapper } from '@/composables/useSearch'
 import { getStudentProfileURL, getParentProfileURL, getProgramProfileURL, getActionIcon } from '@/utils/assetHelper'
-import { formatPrice } from '@/utils/currencyFormatter'
+import { formatPrice, calculateAge } from '@/utils/formatUtils'
 import { getSessionCounts } from '@/utils/programHelper'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
-import { calculateAge } from '@/utils/dateFormatter'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },

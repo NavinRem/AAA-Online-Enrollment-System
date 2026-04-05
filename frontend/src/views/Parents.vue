@@ -14,14 +14,14 @@ import ParentFormModal from '../components/parents/ParentFormModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
 import { useTableActions } from '../composables/useTableActions'
-import { enrichParents, calculateParentStats } from '../utils/parentHelper'
+import { enrichParents, calculateParentStats } from '@/utils/parentHelper'
 import {
   processUserProfileImage,
   processStudentProfileImage,
   prepareUserPayload,
   prepareStudentPayload
-} from '../utils/userHelper'
-import { formatDate } from '../utils/dateFormatter'
+} from '@/utils/userHelper'
+import { formatDate } from '@/utils/formatUtils'
 
 const router = useRouter()
 const allUsers = ref([])

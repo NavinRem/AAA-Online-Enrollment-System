@@ -16,11 +16,10 @@ import {
   calculateTotalEnrollment,
   enrichEnrollments,
 } from '../utils/enrollmentHelper'
-import { formatDate } from '../utils/dateFormatter'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL, getActionIcon } from '@/utils/assetHelper'
-import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
-import { formatPrice } from '@/utils/currencyFormatter'
+import { isPaid, isUnpaid, isCancelled } from '@/utils/statusUtils'
+import { formatPrice, formatDate } from '@/utils/formatUtils'
 
 const enrollments = ref([])
 const parents = ref([])

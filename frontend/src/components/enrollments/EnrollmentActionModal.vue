@@ -270,7 +270,7 @@ import { getParentProfileURL, getStudentProfileURL, getProgramProfileURL, getAct
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getEnrollmentDisplayStatus, getEnrollmentDisplayMode } from '@/utils/enrollmentHelper'
 import { storageService } from '@/services/storageService'
-import { isPaid } from '@/utils/statusHelper'
+import { isPaid } from '@/utils/statusUtils'
 
 
 const props = defineProps({
