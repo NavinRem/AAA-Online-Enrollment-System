@@ -4,7 +4,7 @@ import { userService } from '../services/userService'
 import { programService } from '../services/programService'
 import { enrollmentService } from '../services/enrollmentService'
 import { ref, onMounted, computed } from 'vue'
-import { 
+import {
   getImageUrl,
   getProgramProfileURL,
   getParentProfileURL,
@@ -12,6 +12,7 @@ import {
 } from '@/utils/assetHelper'
 import { parseDate, formatPrice } from '@/utils/formatUtils'
 import { calculateDashboardStats } from '@/utils/statsHelper'
+import { getAvatarUrl } from '@/utils/profileHelper'
 
 // UI Components
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
@@ -29,12 +30,17 @@ const loading = ref(true)
 const stats = ref({
   today: { reg: 0, enroll: 0, pay: 0 },
   week: { reg: 0, enroll: 0, pay: 0 },
-  totals: { accounts: 0, parents: 0, guardians: 0, students: 0, programs: 0 }
+  totals: { accounts: 0, parents: 0, students: 0, programs: 0 }
 })
 
 onMounted(() => {
   authService.onAuthStateChanged(async (currentUser) => {
     if (!currentUser) {
+      userProfile.value = {
+        name: 'Guest',
+        role: 'Guest',
+        profileURL: getImageUrl('profiles', 'avatar-guest')
+      }
       loading.value = false
       return
     }
@@ -65,16 +71,18 @@ onMounted(() => {
   })
 })
 
+const profileImageUrl = computed(() => getAvatarUrl(userProfile.value))
+
 const todayStats = computed(() => [
-  { label: 'New Registrations Today', value: stats.value.today.reg, image: getImageUrl('dashboard/registration'), color: '#e1f5fe' },
-  { label: 'New Enrollments Today', value: stats.value.today.enroll, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
-  { label: "Today's Payments", value: `$${formatPrice(stats.value.today.pay)}`, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
+  { label: 'New Registrations Today', value: stats.value.today.reg, image: getImageUrl('dashboard/registration'), color: 'var(--accent-light)' },
+  { label: 'New Enrollments Today', value: stats.value.today.enroll, image: getImageUrl('dashboard/enrollment'), color: 'var(--accent-light)' },
+  { label: "Today's Payments", value: `$${formatPrice(stats.value.today.pay)}`, image: getImageUrl('dashboard/payment'), color: 'var(--accent-light)' }
 ])
 
 const thisWeekStats = computed(() => [
-  { label: 'Total Registrations', value: stats.value.week.reg, image: getImageUrl('dashboard/registration'), color: '#e1f5fe' },
-  { label: 'Total Enrollments', value: stats.value.week.enroll, image: getImageUrl('dashboard/enrollment'), color: '#e1f5fe' },
-  { label: 'Total Payments', value: `$${formatPrice(stats.value.week.pay)}`, image: getImageUrl('dashboard/payment'), color: '#e1f5fe' }
+  { label: 'Total Registrations', value: stats.value.week.reg, image: getImageUrl('dashboard/registration'), color: 'var(--accent-light)' },
+  { label: 'Total Enrollments', value: stats.value.week.enroll, image: getImageUrl('dashboard/enrollment'), color: 'var(--accent-light)' },
+  { label: 'Total Payments', value: `$${formatPrice(stats.value.week.pay)}`, image: getImageUrl('dashboard/payment'), color: 'var(--accent-light)' }
 ])
 
 const mappedEnrollments = computed(() => {
@@ -96,15 +104,14 @@ const mappedEnrollments = computed(() => {
         parent: r.parent || (p ? { id: p.uid, name: p.name || p.fullName, profile: p.profile || p.profileURL } : null),
         student: r.student || (s ? { id: s.id || s.uid, name: s.name || s.fullName, profile: s.profile || s.profileURL } : null),
         program: r.program || (c ? { id: c.id, title: c.title || c.name, profile: c.profile || c.profileURL } : null),
-        
-        // Legacy fallbacks
+
         parentName: r.parent?.name || r.parentName || p?.name || 'N/A',
         parentProfileURL: getParentProfileURL(r.parent?.profile || r.parentProfileURL || p?.profileURL),
         studentName: r.student?.name || r.studentName || s?.name || 'N/A',
         studentProfileURL: getStudentProfileURL(r.student?.profile || r.studentProfileURL || s?.profileURL),
         programTitle: r.program?.title || r.programTitle || c?.title || 'N/A',
         programProfileURL: getProgramProfileURL(r.program?.profile || r.programProfileURL || c?.profileURL, r.programCategory || c?.category),
-        
+
         status: r.displayStatus || r.status || 'Pending',
         mode: r.enrollmentType || (r.isProrated ? 'Partial' : 'Full'),
         amount: r.amount || 0,
@@ -112,7 +119,6 @@ const mappedEnrollments = computed(() => {
       }
     })
 })
-// Using imported formatPrice
 </script>
 
 <template>
@@ -139,22 +145,25 @@ const mappedEnrollments = computed(() => {
       <div class="right-column">
         <div class="profile-overview">
           <div class="profile-card">
-            <div class="profile-image-large">
-              <img :src="userProfile?.profileURL || getImageUrl('profiles/avatar-admin')" alt="User" />
+            <div class="profile-image-wrapper">
+              <div class="profile-image-large">
+                <img :src="profileImageUrl" alt="User" />
+              </div>
             </div>
-            <h3 class="welcome-text">Welcome Back!<br />{{ userProfile?.name || 'Username' }}</h3>
-            <p class="sub-text">Here is the overview</p>
+            <div class="profile-info-content">
+              <h3 class="welcome-name">{{ userProfile?.name }}</h3>
+              <p class="status-text">{{ userProfile?.role }}</p>
+            </div>
           </div>
-
           <div class="basic-info">
-            <h3 class="info-title">Basic Information</h3>
+            <h3 class="info-title">
+              Basic Information
+            </h3>
             <div class="mini-cards-stack">
               <MiniCard title="Total Accounts" :value="stats.totals.accounts"
                 :image="getImageUrl('dashboard/card-account')" />
               <MiniCard title="Total Parents" :value="stats.totals.parents"
                 :image="getImageUrl('dashboard/card-parent')" />
-              <MiniCard title="Total Guardians" :value="stats.totals.guardians"
-                :image="getImageUrl('dashboard/card-guardian')" />
               <MiniCard title="Total Students" :value="stats.totals.students"
                 :image="getImageUrl('dashboard/card-student')" />
               <MiniCard title="Total Programs" :value="stats.totals.programs"
@@ -184,10 +193,8 @@ const mappedEnrollments = computed(() => {
   overflow-y: auto;
   padding-right: 15px;
   min-height: 0;
-  /* Critical for children height calculation in flex-scroll */
 }
 
-/* Adaptive Responsive Layout */
 @media (max-width: 1024px) {
   .dashboard-grid {
     grid-template-columns: 1fr;
@@ -212,7 +219,7 @@ const mappedEnrollments = computed(() => {
 .section-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #333;
+  color: var(--text-dark);
   margin-bottom: 20px;
   display: flex;
   align-items: center;
@@ -229,58 +236,80 @@ const mappedEnrollments = computed(() => {
 .profile-overview {
   background: white;
   border-radius: 20px;
-  padding: 30px 20px;
+  padding: 20px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
+  justify-content: baseline;
   gap: 30px;
   position: sticky;
   top: 90px;
+  height: 100%;
 }
 
 .profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
+  padding: 20px 0;
+  border-radius: 20px;
+  box-shadow: none;
+  transition: transform 0.3s ease;
+}
+
+.profile-image-wrapper {
+  margin-bottom: 20px;
 }
 
 .profile-image-large {
-  width: 120px;
-  height: 120px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  margin: 0 auto 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 2px solid var(--primary-color);
+  background-color: var(--accent-light);
 }
 
 .profile-image-large img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
   object-fit: cover;
 }
 
-.welcome-text {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: #1a1a1a;
-  line-height: 1.2;
+.profile-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
-.sub-text {
-  font-size: 0.85rem;
-  color: #999;
-  margin-top: 5px;
+.welcome-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin: 0;
 }
+
+.status-text {
+  font-size: 0.9rem;
+  color: #a0a0a0;
+  font-weight: 500;
+}
+
+
 
 .info-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1a1a1a;
   margin-bottom: 20px;
   text-align: center;
 }
 
+
+
 .mini-cards-stack {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 .dashboard-loading {

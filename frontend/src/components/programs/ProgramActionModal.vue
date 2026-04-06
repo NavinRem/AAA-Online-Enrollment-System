@@ -753,7 +753,7 @@ const handleSubmit = () => submitForm(isFormValid.value)
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
   font-size: 0.9rem;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   outline: none;
 }
 
@@ -773,7 +773,7 @@ const handleSubmit = () => submitForm(isFormValid.value)
 .duration-input {
   display: flex;
   flex: 1;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
   overflow: hidden;
@@ -801,7 +801,7 @@ const handleSubmit = () => submitForm(isFormValid.value)
   padding: 12px;
   border: 1.5px dashed #e2e8f0;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   text-align: center;
 }
 

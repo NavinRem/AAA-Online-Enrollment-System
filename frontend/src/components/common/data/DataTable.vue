@@ -162,7 +162,7 @@ const handleAction = (type, item) => {
 }
 
 .clickable-row:hover {
-  background-color: #f8fafc;
+  background-color: var(--bg-subtle);
 }
 
 .empty-state-banner {

@@ -523,7 +523,7 @@ watch(
 
 .child-chip:hover {
   border-color: #e2e8f0;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   transform: translateY(-2px);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
 }
@@ -597,7 +597,7 @@ watch(
 }
 
 .detail-table tr:hover td {
-  background: #f8fafc;
+  background: var(--bg-subtle);
   border-color: #e2e8f0;
 }
 
@@ -627,7 +627,7 @@ watch(
   margin: 12px 0 10px;
   font-size: 1.4rem;
   font-weight: 850;
-  color: #1a1a1a;
+  color: var(--text-deep);
   letter-spacing: -0.5px;
 }
 
@@ -638,7 +638,7 @@ watch(
 .detail-section-card h3 {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-deep);
   letter-spacing: -0.3px;
 }
 
@@ -691,7 +691,7 @@ watch(
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   border-radius: 16px;
   border: 1px solid #f1f5f9;
   transition: all 0.2s;

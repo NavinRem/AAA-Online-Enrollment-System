@@ -118,7 +118,7 @@ const navigateToDetail = (item) => {
 .section-title {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-deep);
   white-space: nowrap;
 }
 
@@ -133,7 +133,7 @@ const navigateToDetail = (item) => {
 
 .bold {
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-deep);
 }
 
 .date-cell {

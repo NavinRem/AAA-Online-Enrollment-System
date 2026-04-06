@@ -530,7 +530,7 @@ watch(() => props.isOpen, (newVal) => {
   font-weight: 700;
   letter-spacing: 2px;
   transition: all 0.25s;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   font-family: inherit;
 }
 
@@ -641,7 +641,7 @@ watch(() => props.isOpen, (newVal) => {
 }
 
 .theme-default {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: linear-gradient(135deg, var(--bg-subtle) 0%, #f1f5f9 100%);
   border-color: #e2e8f0;
 }
 

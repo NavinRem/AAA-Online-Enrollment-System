@@ -40,7 +40,7 @@ import DashboardLayout from '../components/layout/DashboardLayout.vue'
 .icon-wrapper {
   font-size: 3rem;
   margin-bottom: 5px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   width: 80px;
   height: 80px;
   display: flex;
@@ -51,7 +51,7 @@ import DashboardLayout from '../components/layout/DashboardLayout.vue'
 
 h2 {
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-deep);
   margin: 0;
 }
 

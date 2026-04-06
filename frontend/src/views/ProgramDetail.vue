@@ -91,7 +91,7 @@ const statsCards = computed(() => {
     { label: 'Total Enrolled', value: paidEnrollmentsCount, image: getImageUrl('data-metric-card/total-enrolled'), color: '#e0f2fe' },
     { label: 'Program Revenue', value: `$${totalRevenue.toLocaleString()}`, image: getImageUrl('data-metric-card/program-revenue'), color: '#f0fdf4' },
     { label: 'Remaining Sessions', value: scheduledCount, image: getImageUrl('data-metric-card/remaining-sessions'), color: '#fff7ed' },
-    { label: 'Enrollment Capacity', value: remainingCapacity, image: getImageUrl('data-metric-card/enrollment-capacity'), color: remainingCapacity < 2 ? '#fef2f2' : '#f8fafc' }
+    { label: 'Enrollment Capacity', value: remainingCapacity, image: getImageUrl('data-metric-card/enrollment-capacity'), color: remainingCapacity < 2 ? '#fef2f2' : 'var(--bg-subtle)' }
   ]
 })
 
@@ -529,7 +529,7 @@ const handleActionSubmit = async (formData) => {
 }
 
 .schedule-summary-box {
-  background: #f8fafc;
+  background: var(--bg-subtle);
   padding: 20px;
   border-radius: 16px;
   text-align: center;
@@ -589,7 +589,7 @@ const handleActionSubmit = async (formData) => {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   border-radius: 16px;
   border: 1px solid #f1f5f9;
   transition: all 0.2s;
@@ -694,7 +694,7 @@ const handleActionSubmit = async (formData) => {
   top: 0;
   background: white;
   z-index: 10;
-  box-shadow: inset 0 -2px 0 #f8fafc;
+  box-shadow: inset 0 -2px 0 var(--bg-subtle);
 }
 
 /* Custom Scrollbar */

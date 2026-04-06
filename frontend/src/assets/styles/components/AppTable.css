@@ -155,7 +155,7 @@
 }
 
 .data-table tbody tr:hover td {
-  background-color: #f8fafc;
+  background-color: var(--bg-subtle);
   border-color: #e2e8f0;
 }
 

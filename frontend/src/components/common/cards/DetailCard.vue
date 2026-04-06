@@ -56,7 +56,7 @@ defineProps({
   height: 100px;
   margin: 0 auto 20px;
   border-radius: 50%;
-  border: 2px solid #e1f5fe;
+  border: 2px solid var(--accent-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -77,7 +77,7 @@ defineProps({
 .avatar-icon[src$=".svg"] {
   object-fit: contain;
   padding: 15px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
 }
 
 .info-block-light {
@@ -91,7 +91,7 @@ defineProps({
 :deep(p) {
   margin: 0 0 12px;
   font-size: 1rem;
-  color: #1a1a1a;
+  color: var(--text-deep);
   line-height: 1.5;
   display: flex;
   flex-direction: row;

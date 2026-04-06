@@ -136,7 +136,7 @@ watch(() => props.modelValue, () => {
   position: relative;
   border: 1.5px solid #e2e8f0;
   border-radius: 8px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   cursor: pointer;
   transition: all 0.2s;
 }

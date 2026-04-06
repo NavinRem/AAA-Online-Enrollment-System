@@ -2,11 +2,11 @@
 defineProps({
   title: String,
   value: [String, Number],
-  image: String, // Expects a resolved asset URL
+  image: String,
 })
 
 const handleImageError = (e) => {
-  e.target.style.display = 'none' // Hide if fails, or could set a fallback src
+  e.target.style.display = 'none'
 }
 </script>
 
@@ -27,7 +27,7 @@ const handleImageError = (e) => {
   display: flex;
   align-items: center;
   gap: 15px;
-  background: #e1f5fe;
+  background: var(--accent-light);
   padding: 15px 20px;
   border-radius: 15px;
   width: 100%;
@@ -55,14 +55,14 @@ const handleImageError = (e) => {
 .mini-title {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-dark);
   margin-bottom: 2px;
 }
 
 .mini-value {
   font-size: 1.4rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-dark);
   line-height: 1;
 }
 </style>

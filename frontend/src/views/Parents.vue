@@ -37,11 +37,11 @@ const {
 const statsCards = computed(() => {
   const s = calculateParentStats(allUsers.value)
   return [
-    { label: 'Total Users', value: s.totalUsers, image: getImageUrl('parent/total-users'), color: '#e1f5fe' },
-    { label: 'Total Parents', value: s.parentCount, image: getImageUrl('parent/total-parent'), color: '#e1f5fe' },
-    { label: 'Total Guardians', value: s.guardianCount, image: getImageUrl('parent/total-guardian'), color: '#e1f5fe' },
-    { label: 'Registered Today', value: s.todayCount, image: getImageUrl('parent/recently-register'), color: '#e1f5fe' },
-    { label: 'Active Now', value: s.activeCount, image: getImageUrl('parent/active-now'), color: '#e1f5fe' }
+    { label: 'Total Users', value: s.totalUsers, image: getImageUrl('parent/total-users'), color: 'var(--accent-light)' },
+    { label: 'Total Parents', value: s.parentCount, image: getImageUrl('parent/total-parent'), color: 'var(--accent-light)' },
+    { label: 'Total Guardians', value: s.guardianCount, image: getImageUrl('parent/total-guardian'), color: 'var(--accent-light)' },
+    { label: 'Registered Today', value: s.todayCount, image: getImageUrl('parent/recently-register'), color: 'var(--accent-light)' },
+    { label: 'Active Now', value: s.activeCount, image: getImageUrl('parent/active-now'), color: 'var(--accent-light)' }
   ]
 })
 
@@ -388,6 +388,6 @@ const navigateToDetail = (item) => {
 
 .bold {
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-deep);
 }
 </style>

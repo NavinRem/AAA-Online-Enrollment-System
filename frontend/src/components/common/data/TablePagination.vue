@@ -73,7 +73,7 @@ const changePage = (page) => {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 0.85rem;

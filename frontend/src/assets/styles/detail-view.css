@@ -38,7 +38,7 @@
   height: 20px;
   border-radius: 8px;
   border: none;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -111,7 +111,7 @@
 
 .sub-tab-btn {
   padding: 6px 16px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   border: 1px solid #e2e8f0;
   border-radius: 20px;
   font-size: 0.85rem;
@@ -155,7 +155,7 @@
   margin: 0;
   font-size: 1.25rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-deep);
 }
 
 .header-search input {
@@ -242,7 +242,7 @@
 
 .table-scroll-container td {
   padding: 12px 15px;
-  border-bottom: 1px solid #f8fafc;
+  border-bottom: 1px solid var(--bg-subtle);
   vertical-align: middle;
 }
 
@@ -258,7 +258,7 @@ th {
   color: #94a3b8;
   text-transform: uppercase;
   padding: 16px 12px;
-  border-bottom: 2px solid #f8fafc;
+  border-bottom: 2px solid var(--bg-subtle);
 }
 
 td {
@@ -275,7 +275,7 @@ td {
 }
 
 .clickable-row:hover {
-  background: #f8fafc;
+  background: var(--bg-subtle);
 }
 
 .user-info {
@@ -296,7 +296,7 @@ td {
 .profile-title {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-deep);
   text-align: center;
   margin: 0;
 }
@@ -473,7 +473,7 @@ td {
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   border-radius: 12px;
   border: 1px solid #f1f5f9;
   transition: all 0.2s;

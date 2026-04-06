@@ -841,7 +841,7 @@ const handleSubmit = () => {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   font-size: 0.95rem;
-  background-color: #f8fafc;
+  background-color: var(--bg-subtle);
   outline: none;
   transition: all 0.2s;
 }
@@ -862,7 +862,7 @@ const handleSubmit = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 0.875rem;
@@ -904,7 +904,7 @@ const handleSubmit = () => {
 }
 
 .session-summary-box {
-  background: #f8fafc;
+  background: var(--bg-subtle);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px;
@@ -1084,7 +1084,7 @@ input:checked+.slider:before {
 
 .financial-section {
   padding: 16px;
-  background: #f8fafc;
+  background: var(--bg-subtle);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   display: flex;

@@ -130,7 +130,7 @@ const handleNavClick = () => {
 .brand-name {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-deep);
   line-height: 1.2;
 }
 
@@ -160,7 +160,7 @@ const handleNavClick = () => {
 }
 
 .nav-item.active {
-  background: #e1f5fe;
+  background: var(--accent-light);
   color: #00aeef;
 }
 

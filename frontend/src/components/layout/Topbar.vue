@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { authService } from '@/services/authService'
 import { userService } from '@/services/userService'
 import { getImageUrl, getIconUrl, getActionIcon } from '@/utils/assetHelper'
+import { getAvatarUrl } from '@/utils/profileHelper'
 
 const route = useRoute()
 const searchQuery = ref('')
@@ -14,12 +15,7 @@ const userRole = ref('...')
 const emit = defineEmits(['toggle-menu'])
 
 const pageTitle = computed(() => route.meta.title || 'Dashboard')
-
-const avatarUrl = computed(() => {
-  if (userProfile.value?.profileURL) return userProfile.value.profileURL
-  const role = userProfile.value?.role?.toLowerCase()
-  return getImageUrl('profiles', `avatar-${role}`)
-})
+const avatarUrl = computed(() => getAvatarUrl(userProfile.value))
 
 onMounted(() => {
   authService.onAuthStateChanged(async (user) => {
@@ -39,6 +35,10 @@ onMounted(() => {
     } else {
       userName.value = 'Guest'
       userRole.value = 'Guest'
+      userProfile.value = {
+        profileURL: getImageUrl('profiles', 'avatar-guest'),
+        role: 'Guest'
+      }
     }
   })
 })
@@ -137,7 +137,7 @@ onMounted(() => {
 .page-title {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-dark);
   white-space: nowrap;
 }
 
@@ -191,12 +191,12 @@ onMounted(() => {
 .user-name-topbar {
   font-weight: 700;
   font-size: 0.9rem;
-  color: #1a1a1a;
+  color: var(--text-dark);
 }
 
 .user-role-topbar {
   font-size: 0.75rem;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .user-avatar-topbar {
@@ -204,6 +204,8 @@ onMounted(() => {
   height: 38px;
   border-radius: 50%;
   overflow: hidden;
+  border: 1px solid #e5e5e5;
+  background-color: var(--accent-light);
 }
 
 .user-avatar-topbar img {

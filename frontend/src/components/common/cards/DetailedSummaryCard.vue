@@ -39,7 +39,7 @@ defineProps({
   margin: 0;
   font-size: 1.6rem;
   font-weight: 850;
-  color: #1a1a1a;
+  color: var(--text-deep);
   letter-spacing: -0.6px;
   text-align: center;
 }
@@ -61,7 +61,7 @@ defineProps({
 .content-subtitle {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-deep);
   letter-spacing: -0.2px;
   text-align: left;
   margin: 0 0 0 4px;
@@ -91,7 +91,7 @@ defineProps({
 :deep(.summary-label) {
   font-size: 1.05rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-deep);
   margin: 0 0 6px;
 }
 

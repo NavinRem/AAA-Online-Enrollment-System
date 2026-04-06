@@ -78,10 +78,10 @@ const filteredStudents = computed(() => {
 const statsCards = computed(() => {
   const s = calculateTotalStudent(students.value)
   return [
-    { label: 'Total Students', value: s.total, image: getImageUrl('student/total-student'), color: '#e1f5fe' },
-    { label: 'Currently Studying', value: s.studying, image: getImageUrl('student/currently-enrolled'), color: '#e1f5fe' },
-    { label: 'Inactive / Pending', value: s.inactive, image: getImageUrl('student/currently-not-enrolled'), color: '#e1f5fe' },
-    { label: 'Graduated', value: s.graduated, image: getImageUrl('student/graduated'), color: '#e1f5fe' }
+    { label: 'Total Students', value: s.total, image: getImageUrl('student/total-student'), color: 'var(--accent-light)' },
+    { label: 'Currently Studying', value: s.studying, image: getImageUrl('student/currently-enrolled'), color: 'var(--accent-light)' },
+    { label: 'Inactive / Pending', value: s.inactive, image: getImageUrl('student/currently-not-enrolled'), color: 'var(--accent-light)' },
+    { label: 'Graduated', value: s.graduated, image: getImageUrl('student/graduated'), color: 'var(--accent-light)' }
   ]
 })
 

@@ -17,12 +17,17 @@
   --warning-color: #f59e0b;
   --info-color: #3b82f6;
 
-  /* Neutrals */
+  /* Layout & Surfaces */
   --bg-light: #f2f4f7;
+  --bg-subtle: #f8fafc;
+  --accent-light: #e1f5fe;
   --white: #ffffff;
   --border-color: #e2e8f0;
+
+  /* Neutrals */
   --text-dark: #1e293b;
   --text-muted: #64748b;
+  --text-deep: #1a1a1a;
 
   /* Shared Defaults */
   --border-radius: 12px;

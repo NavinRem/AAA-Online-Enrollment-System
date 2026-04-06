@@ -65,7 +65,7 @@
 /* Secondary (Info): Light blue (e.g. Filter button) */
 .variant-secondary {
   background: #81d4fa;
-  color: #1a1a1a;
+  color: var(--text-deep);
 }
 .variant-secondary:hover {
   opacity: 0.8;
@@ -131,7 +131,7 @@
 }
 .variant-ghost:hover {
   background: #f8f9fa;
-  color: #1a1a1a;
+  color: var(--text-deep);
 }
 
 /* ------------------
@@ -191,7 +191,7 @@
   font-size: 1.1rem;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  background-color: #f8fafc;
+  background-color: var(--bg-subtle);
   color: #64748b;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }

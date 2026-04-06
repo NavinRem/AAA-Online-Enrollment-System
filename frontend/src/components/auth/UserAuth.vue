@@ -182,7 +182,7 @@ const handleSubmit = async () => {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 30px;
-  color: #1a1a1a;
+  color: var(--text-deep);
 }
 
 .form-group {

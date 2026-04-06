@@ -49,11 +49,11 @@ const actionModal = ref({
 const statsCards = computed(() => {
   const s = calculateProgramStats(programs.value, enrollments.value, sessions.value, now.value)
   return [
-    { label: 'Total Programs', value: s.total, image: getImageUrl('programs/total-program'), color: '#e1f5fe' },
-    { label: 'Active Programs', value: s.activeCount, image: getImageUrl('programs/active-program'), color: '#e1f5fe' },
-    { label: 'Upcoming Programs', value: s.upcomingCount, image: getImageUrl('programs/upcoming-program'), color: '#e1f5fe' },
-    { label: 'In Progress', value: s.inProgressCount, image: getImageUrl('programs/in-progress-program'), color: '#e1f5fe' },
-    { label: 'Archived', value: s.archivedCount, image: getImageUrl('programs/archived-program'), color: '#e1f5fe' }
+    { label: 'Total Programs', value: s.total, image: getImageUrl('programs/total-program'), color: 'var(--accent-light)' },
+    { label: 'Active Programs', value: s.activeCount, image: getImageUrl('programs/active-program'), color: 'var(--accent-light)' },
+    { label: 'Upcoming Programs', value: s.upcomingCount, image: getImageUrl('programs/upcoming-program'), color: 'var(--accent-light)' },
+    { label: 'In Progress', value: s.inProgressCount, image: getImageUrl('programs/in-progress-program'), color: 'var(--accent-light)' },
+    { label: 'Archived', value: s.archivedCount, image: getImageUrl('programs/archived-program'), color: 'var(--accent-light)' }
   ]
 })
 
@@ -454,7 +454,7 @@ const onRowClick = (item) => {
 }
 
 .filter-option.active {
-  background: #e1f5fe;
+  background: var(--accent-light);
   color: #00aeef;
   font-weight: 700;
 }

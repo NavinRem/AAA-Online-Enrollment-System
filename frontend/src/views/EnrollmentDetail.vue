@@ -722,7 +722,7 @@ onMounted(async () => {
 .modal-header h3 {
   margin: 0;
   font-size: 1.25rem;
-  color: #1a1a1a;
+  color: var(--text-deep);
 }
 
 .close-btn {
@@ -828,7 +828,7 @@ onMounted(async () => {
   height: 100%;
   max-height: 240px;
   object-fit: contain;
-  background: #f8fafc;
+  background: var(--bg-subtle);
 }
 
 .proof-overlay {
