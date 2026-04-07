@@ -21,7 +21,11 @@ exports.createSession = async (req, res) => {
  */
 exports.getAvailableSessions = async (req, res) => {
   try {
-    const sessions = await sessionService.getAvailableSessions(req.params.id);
+    const { branchId } = req.query;
+    const sessions = await sessionService.getAvailableSessions(
+      req.params.id,
+      branchId,
+    );
     res.status(200).json(sessions);
   } catch (error) {
     res.status(500).json({ error: error.message });

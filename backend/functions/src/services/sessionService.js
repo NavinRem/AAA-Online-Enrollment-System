@@ -3,7 +3,7 @@ const userService = require("./userService");
 
 class SessionService {
   async createSession(sessionData) {
-    const { programId, teachers, schedule, capacity } = sessionData;
+    const { programId, teachers, schedule, capacity, branch } = sessionData;
 
     if (!programId) {
       throw new Error("programId is required");
@@ -11,9 +11,10 @@ class SessionService {
 
     const data = {
       programId,
-      teachers: teachers,
-      schedule: schedule,
-      capacity: parseInt(capacity),
+      branch: branch || null, // Snapshot: { id, name, abbr }
+      teachers: teachers || [],
+      schedule: schedule || {},
+      capacity: parseInt(capacity || 15),
       numStudent: 0,
       createdAt: new Date().toISOString(),
     };
@@ -22,11 +23,16 @@ class SessionService {
     return { id: docRef.id, message: "Session created successfully" };
   }
 
-  async getAvailableSessions(programId) {
-    const snapshot = await db
+  async getAvailableSessions(programId, branchId = null) {
+    let query = db
       .collection(COLLECTIONS.SESSION)
-      .where("programId", "==", programId)
-      .get();
+      .where("programId", "==", programId);
+
+    if (branchId) {
+      query = query.where("branch.id", "==", branchId);
+    }
+
+    const snapshot = await query.get();
 
     return snapshot.docs.map((doc) => ({
       id: doc.id,
