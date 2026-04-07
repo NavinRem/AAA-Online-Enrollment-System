@@ -38,7 +38,7 @@ const router = createRouter({
       path: '/parents',
       name: 'parents',
       component: () => import('../views/Parents.vue'),
-      meta: { title: 'Parent / Guardian' },
+      meta: { title: 'Parents' },
     },
     {
       path: '/parents/:id',

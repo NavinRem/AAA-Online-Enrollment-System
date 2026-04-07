@@ -14,7 +14,7 @@ const userRole = ref('...')
 
 const emit = defineEmits(['toggle-menu'])
 
-const pageTitle = computed(() => route.meta.title || 'Dashboard')
+const pageTitle = computed(() => route.meta.title)
 const avatarUrl = computed(() => getAvatarUrl(userProfile.value))
 
 onMounted(() => {
