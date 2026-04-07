@@ -130,6 +130,7 @@ class UserService {
 
     const batch = db.batch();
     const now = new Date().toISOString();
+    
     const cleanData = { ...updateData, updatedAt: now };
 
     delete cleanData.uid;
@@ -141,7 +142,7 @@ class UserService {
 
     batch.set(docRef, cleanData, { merge: true });
 
-    const syncFields = ["name", "email", "phone", "profileURL", "role"];
+    const syncFields = ["name", "email", "phone", "profileURL", "role", "status"];
     const shouldSync = Object.keys(updateData).some((key) =>
       syncFields.includes(key),
     );

@@ -49,10 +49,10 @@ const statsCards = computed(() => {
 const parentHeaders = [
   { label: 'No', width: '60px', class: 'hide-on-mobile', align: 'center' },
   { label: 'Fullname', width: '250px' },
-  { label: 'Child', class: 'hide-on-tablet', width: '150px' },
-  { label: 'Phone Number', class: 'hide-on-mobile', width: '200px' },
+  { label: 'Child', class: 'hide-on-tablet', width: '100px' },
+  { label: 'Phone Number', class: 'hide-on-mobile', width: '150px' },
   { label: 'Email', class: 'hide-on-tablet', width: '200px' },
-  { label: 'Joined Date', class: 'hide-on-tablet', width: '150px', align: 'center' },
+  { label: 'Joined Date', class: 'hide-on-tablet', width: '200px', align: 'center' },
   { label: 'Role', class: 'hide-on-mobile', align: 'center', width: '100px' },
   { label: 'Status', align: 'center', width: '80px' },
   { label: 'Action', width: '70px', align: 'center' }

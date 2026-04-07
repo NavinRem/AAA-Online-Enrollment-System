@@ -64,3 +64,48 @@ export const enrichEnrollments = (
         parseDate(a.enrollAt || a.createdAt).getTime(),
     )
 }
+
+/**
+ * Returns the logical academic status of an enrollment.
+ */
+export const getAcademicStatus = (r) => {
+  if (!r) return 'Stopped'
+  return r.academicStatus || r.status || 'Studying'
+}
+
+/**
+ * Advanced filtering for Detail pages (Parent/Student).
+ */
+export const filterDetailEnrollments = (enrollments, filters = {}) => {
+  if (!enrollments || !Array.isArray(enrollments)) return []
+
+  return enrollments.filter((e) => {
+    // 1. Filter by Student ID
+    if (filters.studentId && filters.studentId !== 'all') {
+      const sid = String(e.studentId || e.student?.id || '')
+      if (sid !== String(filters.studentId)) return false
+    }
+
+    // 2. Filter by Academic Status
+    if (filters.academicStatus && filters.academicStatus !== 'all') {
+      const status = getAcademicStatus(e).toLowerCase()
+      if (status !== filters.academicStatus.toLowerCase()) return false
+    }
+
+    // 3. Filter by Payment Status
+    if (filters.paymentStatus && filters.paymentStatus !== 'all') {
+      const pStatus = (e.paymentStatus || 'unpaid').toLowerCase()
+      if (filters.paymentStatus === 'paid') {
+        if (!isPaid(pStatus)) return false
+      } else if (filters.paymentStatus === 'pending') {
+        if (!isUnpaid(pStatus)) return false
+      } else if (filters.paymentStatus === 'cancelled') {
+        if (!isCancelled(e.status) && !isCancelled(e.paymentStatus)) return false
+      } else {
+        if (pStatus !== filters.paymentStatus.toLowerCase()) return false
+      }
+    }
+
+    return true
+  })
+}

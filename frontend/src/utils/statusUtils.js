@@ -49,7 +49,7 @@ const STATUS_CATEGORIES = {
     'scheduled',
     'wing',
   ],
-  red: ['canceled', 'cancelled', 'failed', 'stopped', 'absent', 'serious', 'closed'],
+  magenta: ['unmarked', 'archived', 'full', 'parent', 'ocic'],
   blue: [
     'graduated',
     'late',
@@ -66,6 +66,7 @@ const STATUS_CATEGORIES = {
     'acleda',
     'sathapana',
     'sky',
+    'aeon',
   ],
   purple: [
     'make-up',
@@ -76,8 +77,34 @@ const STATUS_CATEGORIES = {
     'in progress',
     'sponsorship',
     'partial',
+    'cm',
+    'chip mong',
   ],
-  magenta: ['unmarked', 'archived', 'full', 'parent'],
+  red: [
+    'canceled',
+    'cancelled',
+    'failed',
+    'stopped',
+    'absent',
+    'serious',
+    'closed',
+    'fm',
+    'funmall',
+  ],
+  green: [
+    'paid',
+    'confirmed',
+    'active',
+    'success',
+    'on-time',
+    'present',
+    'excellent',
+    'studying',
+    'start',
+    'cash',
+    'ph',
+    'peng hout',
+  ],
 }
 
 const THEMES = {
@@ -98,8 +125,10 @@ const THEME_FILTERS = {
   orange: 'invert(35%) sepia(87%) saturate(2470%) hue-rotate(15deg) brightness(95%) contrast(105%)',
   red: 'invert(19%) sepia(91%) saturate(3015%) hue-rotate(352deg) brightness(85%) contrast(101%)',
   blue: 'invert(18%) sepia(93%) saturate(3147%) hue-rotate(211deg) brightness(91%) contrast(101%)',
-  purple: 'invert(14%) sepia(91%) saturate(4174%) hue-rotate(274deg) brightness(88%) contrast(101%)',
-  magenta: 'invert(12%) sepia(97%) saturate(5451%) hue-rotate(328deg) brightness(86%) contrast(101%)',
+  purple:
+    'invert(14%) sepia(91%) saturate(4174%) hue-rotate(274deg) brightness(88%) contrast(101%)',
+  magenta:
+    'invert(12%) sepia(97%) saturate(5451%) hue-rotate(328deg) brightness(86%) contrast(101%)',
   teal: 'invert(34%) sepia(21%) saturate(3014%) hue-rotate(136deg) brightness(92%) contrast(93%)',
   gray: 'invert(41%) sepia(4%) saturate(546%) hue-rotate(173deg) brightness(94%) contrast(91%)',
 }
@@ -122,6 +151,10 @@ export const getStatusDisplay = (s) => {
   if (!s) return 'N/A'
   const clean = s.includes(':') ? s.split(':')[1].trim() : s
   const lower = clean.toLowerCase()
+
+  if (lower === 'active') return 'Active'
+  if (lower === 'inactive') return 'Inactive'
+
   if (isPaid(lower)) return 'Paid'
   if (isCancelled(lower)) return 'Cancelled'
   if (isPending(lower)) return 'Pending'
