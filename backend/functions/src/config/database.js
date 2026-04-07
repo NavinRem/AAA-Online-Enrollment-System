@@ -1,34 +1,46 @@
 const admin = require("firebase-admin");
 const { getFirestore } = require("firebase-admin/firestore");
+const path = require("path");
+require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
+
+// Set emulator hosts if provided in .env
+if (process.env.INTERNAL_FIRESTORE_EMULATOR_HOST) {
+  process.env.FIRESTORE_EMULATOR_HOST = process.env.INTERNAL_FIRESTORE_EMULATOR_HOST;
+}
+if (process.env.INTERNAL_AUTH_EMULATOR_HOST) {
+  process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.INTERNAL_AUTH_EMULATOR_HOST;
+}
 
 if (admin.apps.length === 0) {
   admin.initializeApp({
+    projectId: process.env.INTERNAL_PROJECT_ID,
     storageBucket: process.env.INTERNAL_STORAGE_BUCKET,
   });
 }
 
-const DATABASE_ID = "(default)";
-const db = getFirestore(DATABASE_ID);
+const db = getFirestore();
+db.settings({ ignoreUndefinedProperties: true });
 
 const COLLECTIONS = {
   ADMIN: "admins",
-  PARENT: "parents",
-  STUDENT: "students",
+  CATEGORY: "categories",
   ENROLLMENT: "enrollments",
+  PARENT: "parents",
   PROGRAM: "programs",
   SESSION: "sessions",
+  STUDENT: "students",
+  TEACHER: "teachers",
   TERM: "terms",
-  CATEGORY: "categories",
   LEVEL: "levels",
   PAYMENT: "payments",
   ATTENDANCE: "attendance",
   PROGRESS: "progress",
   UPLOAD: "uploads",
   REQUEST: "requests",
+  BRANCH: "branches",
 };
 
 module.exports = {
   db,
   COLLECTIONS,
-  DATABASE_ID,
 };

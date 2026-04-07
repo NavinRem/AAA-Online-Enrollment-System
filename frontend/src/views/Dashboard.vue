@@ -4,7 +4,7 @@ import { userService } from '../services/userService'
 import { programService } from '../services/programService'
 import { enrollmentService } from '../services/enrollmentService'
 import { ref, onMounted, computed } from 'vue'
-import { 
+import {
   getImageUrl,
   getProgramProfileURL,
   getParentProfileURL,
@@ -96,16 +96,7 @@ const mappedEnrollments = computed(() => {
         parent: r.parent || (p ? { id: p.uid, name: p.name || p.fullName, profile: p.profile || p.profileURL } : null),
         student: r.student || (s ? { id: s.id || s.uid, name: s.name || s.fullName, profile: s.profile || s.profileURL } : null),
         program: r.program || (c ? { id: c.id, title: c.title || c.name, profile: c.profile || c.profileURL } : null),
-        
-        // Legacy fallbacks
-        parentName: r.parent?.name || r.parentName || p?.name || 'N/A',
-        parentProfileURL: getParentProfileURL(r.parent?.profile || r.parentProfileURL || p?.profileURL),
-        studentName: r.student?.name || r.studentName || s?.name || 'N/A',
-        studentProfileURL: getStudentProfileURL(r.student?.profile || r.studentProfileURL || s?.profileURL),
-        programTitle: r.program?.title || r.programTitle || c?.title || 'N/A',
-        programProfileURL: getProgramProfileURL(r.program?.profile || r.programProfileURL || c?.profileURL, r.programCategory || c?.category),
-        
-        status: r.displayStatus || r.status || 'Pending',
+
         mode: r.enrollmentType || (r.isProrated ? 'Partial' : 'Full'),
         amount: r.amount || 0,
         date: r.enrollAt || r.createdAt
@@ -184,7 +175,6 @@ const mappedEnrollments = computed(() => {
   overflow-y: auto;
   padding-right: 15px;
   min-height: 0;
-  /* Critical for children height calculation in flex-scroll */
 }
 
 /* Adaptive Responsive Layout */

@@ -13,6 +13,7 @@ import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import ParentFormModal from '../components/parents/ParentFormModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
+import branchService from '../services/branchService'
 import { useTableActions } from '../composables/useTableActions'
 import { enrichParents, calculateParentStats } from '@/utils/parentHelper'
 import {
@@ -27,6 +28,8 @@ const router = useRouter()
 const allUsers = ref([])
 const loading = ref(true)
 const newlyCreatedId = ref(null)
+const branches = ref([])
+
 const getRowClass = (item) => {
   return newlyCreatedId.value === (item.uid || item.id) ? 'new-row-highlight' : ''
 }
@@ -59,17 +62,20 @@ const parentHeaders = [
 
 onMounted(async () => {
   try {
-    const [data, allStudents] = await Promise.all([
+    const [data, allStudents, fetchedBranches] = await Promise.all([
       userService.getAllUsers(),
       userService.getAllStudents(),
+      branchService.getAllBranches()
     ])
+
+    branches.value = fetchedBranches
 
     if (Array.isArray(data)) {
       const enriched = enrichParents(data, allStudents || [])
       allUsers.value = enriched.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
     }
   } catch (error) {
-    console.error('Failed to fetch parents', error)
+    console.error('Failed to fetch initial data', error)
   } finally {
     loading.value = false
   }
@@ -348,8 +354,9 @@ const navigateToDetail = (item) => {
     </DataPageLayout>
 
     <!-- Unified Action Modal (Reusable Page-Specific Component) -->
-    <ParentActionModal :isOpen="isActionModalOpen" :type="actionModalType" :user="actionModalUser" :loading="submitting"
-      :error="errorMessage" :success="successMessage" @close="closeActionModal" @submit="submitActionModal" />
+    <ParentActionModal :isOpen="isActionModalOpen" :type="actionModalType" :user="actionModalUser" :branches="branches"
+      :loading="submitting" :error="errorMessage" :success="successMessage" @close="closeActionModal"
+      @submit="submitActionModal" />
 
     <!-- Parent Form Modal (Create New) -->
     <ParentFormModal :isOpen="showNewParentModal" :loading="submitting" :error="errorMessage" :success="successMessage"

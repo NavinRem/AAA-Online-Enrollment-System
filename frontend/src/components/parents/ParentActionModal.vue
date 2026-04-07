@@ -140,6 +140,23 @@
           </button>
         </div>
       </div>
+
+      <div class="form-group full-width" style="margin-top: 20px;">
+        <label>School Branch <span class="required">*</span></label>
+        <div class="branch-select-grid">
+          <div v-for="branch in branches" :key="branch.id" class="branch-card"
+            :class="{ active: localData.branch?.id === branch.id }" @click="localData.branch = branch">
+            <div class="branch-badge">{{ branch.abbr }}</div>
+            <div class="branch-info">
+              <span class="branch-name">{{ branch.name }}</span>
+            </div>
+            <div class="branch-radio">
+              <div class="radio-inner"></div>
+            </div>
+          </div>
+        </div>
+        <div v-if="isSubmittingAttempted && errors.branch" class="field-error-msg">{{ errors.branch }}</div>
+      </div>
     </div>
 
     <!-- Activation/Deactivation Alerts -->
@@ -234,6 +251,10 @@ const props = defineProps({
   type: String,
   user: Object,
   selectableParents: Array,
+  branches: {
+    type: Array,
+    default: () => []
+  },
   loading: Boolean,
   error: String,
   success: String,
@@ -255,6 +276,7 @@ const getInitialData = () => ({
   dob: '',
   profile: '', // Force selection
   medicalNote: '',
+  branch: null,
 })
 
 const mapSourceToForm = () => {
@@ -266,6 +288,7 @@ const mapSourceToForm = () => {
       ...base,
       parentId: u.uid || u.id || '',
       profile: 'boy',
+      branch: branches.value?.[0] || null,
     }
   }
 
@@ -305,6 +328,7 @@ const validationHint = computed(() => {
     if (!data.name?.trim()) errs.name = "Child's name is required."
     if (!data.dob) errs.dob = 'Date of birth is required.'
     if (!data.profile) errs.profile = 'Please select an avatar.'
+    if (!data.branch) errs.branch = 'Please select a school branch.'
   } else if (props.type === 'edit' && !isChanged.value) {
     return 'No changes detected to update.'
   } else if (props.type === 'delete') {
@@ -661,5 +685,97 @@ watch(() => props.isOpen, (newVal) => {
   color: #ef4444;
   margin-left: 2px;
   font-weight: bold;
+}
+
+/* Branch Selection Styles */
+.branch-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.branch-card {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  gap: 12px;
+}
+
+.branch-card:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.branch-card.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.branch-badge {
+  width: 36px;
+  height: 36px;
+  background: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 850;
+  color: #3b82f6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.active .branch-badge {
+  background: #3b82f6;
+  color: white;
+}
+
+.branch-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.branch-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.branch-radio {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.active .branch-radio {
+  border-color: #3b82f6;
+}
+
+.radio-inner {
+  width: 10px;
+  height: 10px;
+  background: #3b82f6;
+  border-radius: 50%;
+  transform: scale(0);
+  transition: transform 0.2s;
+}
+
+.active .radio-inner {
+  transform: scale(1);
 }
 </style>
