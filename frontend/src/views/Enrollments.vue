@@ -83,13 +83,13 @@ const loadFormData = async () => {
   }
 }
 
-const handleProgramChange = async (programId) => {
+const handleProgramChange = async (programId, branchId = null) => {
   if (!programId) {
     sessions.value = []
     return
   }
   try {
-    const data = await programService.getSessions(programId)
+    const data = await programService.getSessions(programId, branchId)
     sessions.value = Array.isArray(data) ? data : []
   } catch (err) {
     console.error('Failed to load sessions', err)

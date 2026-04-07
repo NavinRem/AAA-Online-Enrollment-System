@@ -3,7 +3,7 @@ const profileHelper = require("../utils/profileHelper");
 
 class StudentService {
   async createStudent(studentData) {
-    const { parentId, name, dob, medicalNote } = studentData;
+    const { parentId, name, dob, medicalNote, branch } = studentData;
 
     if (!parentId || !name || !dob) {
       throw new Error("Parent ID, Name, and Date of Birth are required");
@@ -28,6 +28,7 @@ class StudentService {
       name,
       dob,
       medicalNote: medicalNote || "None",
+      branch: branch || null,
       profileURL: studentData.profileURL || studentData.profile || null,
       status: "Inactive",
       createdAt: now,
@@ -73,7 +74,7 @@ class StudentService {
     const batch = db.batch();
     batch.update(studentRef, mergedData);
 
-    const syncFields = ["name", "dob", "medicalNote", "profileURL"];
+    const syncFields = ["name", "dob", "medicalNote", "profileURL", "branch"];
     const shouldSync = Object.keys(updateData).some((key) =>
       syncFields.includes(key),
     );
@@ -124,10 +125,6 @@ class StudentService {
       .get();
     enrollmentsSnap.forEach((eDoc) =>
       batch.update(eDoc.ref, { student: snapshot }),
-    );
-
-    console.log(
-      `Cascading Student sync for ${sid} (Parent: ${parentId}, Enrollments: ${enrollmentsSnap.size})`,
     );
   }
 }

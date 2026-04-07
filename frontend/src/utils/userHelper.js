@@ -81,6 +81,7 @@ export const prepareStudentPayload = (data) => {
     dob: data.dob,
     profile: data.profile,
     medicalNote: data.medicalNote?.trim() || 'None',
+    branch: data.branch || null,
     status: data.status || 'Studying',
     updatedAt: new Date().toISOString(),
   }

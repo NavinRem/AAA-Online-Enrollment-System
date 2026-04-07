@@ -178,7 +178,8 @@ const handleActionSubmit = async (formData) => {
       // Auto-create initial session if schedule exists
       if (formData.schedule) {
         await programService.createSession({
-          program_id: result.id,
+          programId: result.id,
+          branch: { id: 'FM', name: 'Funmall', abbr: 'FM' }, // Default to Funmall for now
           schedule: {
             day: formData.schedule.day,
             timeslot: formData.schedule.timeslot

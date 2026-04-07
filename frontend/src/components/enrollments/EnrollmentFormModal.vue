@@ -317,7 +317,9 @@ const handleProgramChange = (programId) => {
   formData.value.sessionId = ''
   isProgramDropdownOpen.value = false
   errors.value.programId = ''
-  emit('program-change', programId)
+  
+  const branchId = selectedStudent.value?.branch?.id
+  emit('program-change', programId, branchId)
 }
 
 const selectSession = (sessionId) => {
