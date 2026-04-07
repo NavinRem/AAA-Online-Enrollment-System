@@ -13,18 +13,30 @@ class BranchService {
   }
 
   async createBranch(data) {
-    const id = data.abbr || data.id;
-    if (!id) throw new Error("Branch ID or Abbreviation is required");
+    const id = data.abbr?.toUpperCase().trim();
+    if (!id) throw new Error("Branch Abbreviation is required");
+    if (!data.name) throw new Error("Branch Name is required");
 
     const ref = db.collection(COLLECTIONS.BRANCH).doc(id);
     const doc = await ref.get();
-    if (doc.exists) throw new Error("Branch with this Abbreviation already exists");
+    if (doc.exists)
+      throw new Error(`Branch with abbreviation "${id}" already exists`);
 
     const branchData = {
-      ...data,
+      name: data.name.trim(),
+      abbr: id,
+      location: data.location?.trim() || "",
+      // Calculated stats — initialized at 0, auto-updated by event triggers
+      studentCount: 0,
+      programCount: 0,
+      sessionCount: 0,
+      newTodayCount: 0,
+      totalRevenue: 0,
+      pendingRevenue: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+
     await ref.set(branchData);
     return { id, ...branchData };
   }
@@ -34,12 +46,15 @@ class BranchService {
     const doc = await ref.get();
     if (!doc.exists) throw new Error("Branch not found");
 
+    // Only allow updating editable fields — stats are managed by event triggers
     const updateData = {
-      ...data,
+      ...(data.name && { name: data.name.trim() }),
+      ...(data.location !== undefined && { location: data.location.trim() }),
       updatedAt: new Date().toISOString(),
     };
+
     await ref.update(updateData);
-    return { id, ...updateData };
+    return { id, ...doc.data(), ...updateData };
   }
 
   async deleteBranch(id) {
@@ -52,36 +67,83 @@ class BranchService {
   }
 
   /**
-   * Standardized Branch Snapshot for Mirroring in Student records
+   * Returns a minimal branch snapshot for embedding in Student records.
    */
   getBranchSnapshot(id, data) {
     if (!id || !data) return null;
-    return {
-      id: id,
-      name: data.name,
-      abbr: data.abbr,
-    };
+    return { id, name: data.name, abbr: data.abbr };
   }
 
-  async seedBranches() {
-    const branches = [
-      { id: "FM", name: "Funmall", abbr: "FM" },
-      { id: "OCIC", name: "OCIC", abbr: "OCIC" },
-      { id: "AEON", name: "AEON", abbr: "AEON" },
-      { id: "PH", name: "Peng Hout", abbr: "PH" },
-      { id: "CM", name: "Chip Mong", abbr: "CM" },
-    ];
+  /**
+   * Recalculates and persists all stats for a single branch.
+   * Called automatically by event triggers (student/enrollment/payment/session changes).
+   */
+  async calculateAndSyncStats(branchId) {
+    if (!branchId) return;
+    const today = new Date().toISOString().split("T")[0];
 
-    for (const branch of branches) {
-      const { id, ...data } = branch;
-      const ref = db.collection(COLLECTIONS.BRANCH).doc(id);
-      await ref.set({
-        ...data,
-        updatedAt: new Date().toISOString(),
-      });
-    }
+    // Fetch all relevant collections in parallel
+    const [allStudents, allEnrollments, allSessions] = await Promise.all([
+      db.collection(COLLECTIONS.STUDENT).get(),
+      db.collection(COLLECTIONS.ENROLLMENT).get(),
+      db.collection(COLLECTIONS.SESSION).get(),
+    ]);
 
-    console.log("✅ Branches seeded successfully");
+    // Filter in JS to handle both 'branch.id' and 'branchId' field variants
+    const students = allStudents.docs.filter((d) => {
+      const data = d.data();
+      return data.branchId === branchId || data.branch?.id === branchId;
+    });
+
+    const enrollments = allEnrollments.docs.filter((d) => {
+      const data = d.data();
+      return data.branchId === branchId || data.branch?.id === branchId;
+    });
+
+    const sessions = allSessions.docs.filter((d) => {
+      const data = d.data();
+      return data.branchId === branchId || data.branch?.id === branchId;
+    });
+
+    // Unique program IDs from sessions
+    const programIds = new Set(
+      sessions.map((d) => d.data().programId).filter(Boolean)
+    );
+
+    let newTodayCount = 0;
+    let totalRevenue = 0;
+    let pendingRevenue = 0;
+
+    enrollments.forEach((doc) => {
+      const data = doc.data();
+      const status = (data.paymentStatus || "").toLowerCase();
+      const amount = data.amount || 0;
+
+      if (["paid", "confirmed", "active", "success"].includes(status)) {
+        totalRevenue += amount;
+      } else {
+        pendingRevenue += amount;
+      }
+
+      const createdAt = data.createdAt?.toDate
+        ? data.createdAt.toDate().toISOString().split("T")[0]
+        : (data.createdAt || "").split("T")[0];
+      if (createdAt === today) newTodayCount++;
+    });
+
+    const stats = {
+      studentCount: students.length,
+      programCount: programIds.size,
+      sessionCount: sessions.length,
+      newTodayCount,
+      totalRevenue,
+      pendingRevenue,
+      lastUpdate: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await db.collection(COLLECTIONS.BRANCH).doc(branchId).update(stats);
+    return stats;
   }
 }
 

@@ -1,5 +1,6 @@
 const { db, COLLECTIONS } = require("../config/database");
 const profileHelper = require("../utils/profileHelper");
+const branchService = require("./branchService");
 
 class StudentService {
   async createStudent(studentData) {
@@ -47,6 +48,10 @@ class StudentService {
     });
 
     await batch.commit();
+
+    const bId = branch?.id || branch;
+    if (bId) await branchService.calculateAndSyncStats(bId);
+
     return { id: studentId, message: "Student registered successfully" };
   }
 
@@ -88,6 +93,17 @@ class StudentService {
     }
 
     await batch.commit();
+
+    const oldBId = currentData.branch?.id || currentData.branch;
+    const newBId = updateData.branch?.id || updateData.branch;
+
+    if (newBId && newBId !== oldBId) {
+      await branchService.calculateAndSyncStats(newBId);
+      if (oldBId) await branchService.calculateAndSyncStats(oldBId);
+    } else if (newBId || oldBId) {
+      await branchService.calculateAndSyncStats(newBId || oldBId);
+    }
+
     return { message: "Student updated successfully" };
   }
 

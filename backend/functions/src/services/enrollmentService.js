@@ -2,6 +2,7 @@ const { db, COLLECTIONS } = require("../config/database");
 const userService = require("./userService");
 const programService = require("./programService");
 const profileHelper = require("../utils/profileHelper");
+const branchService = require("./branchService");
 
 class EnrollmentService {
   async createEnrollment(enrollmentData) {
@@ -104,6 +105,7 @@ class EnrollmentService {
         remainingSessions: enrollmentData.remainingSessions,
         passedSessions: enrollmentData.passedSessions,
         prorateSavings: enrollmentData.prorateSavings,
+        branchId: sessionData.branchId || null,
       };
 
       transaction.set(enrollmentRef, data);
@@ -112,6 +114,15 @@ class EnrollmentService {
         numStudent: (sessionData.numStudent || 0) + 1,
       });
     });
+
+    if (enrollmentId) {
+      const enrollmentDoc = await db
+        .collection(COLLECTIONS.ENROLLMENT)
+        .doc(enrollmentId)
+        .get();
+      const bId = enrollmentDoc.data()?.branchId;
+      if (bId) await branchService.calculateAndSyncStats(bId);
+    }
 
     return { id: enrollmentId, message: "Enrollment created successfully" };
   }

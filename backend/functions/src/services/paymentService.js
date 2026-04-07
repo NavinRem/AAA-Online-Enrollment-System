@@ -1,15 +1,12 @@
 const { db, COLLECTIONS } = require("../config/database");
 
 class PaymentService {
-  // Initiate Payment
   async initiatePayment(paymentData) {
     const { enrollmentId, amount, method, parentId } = paymentData;
-    // Placeholder: Integrate with Stripe/PayPal here
-
     const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc();
     const data = {
       enrollmentId,
-      parentId, // Required by Security Rules
+      parentId,
       amount,
       method: method || "credit_card",
       status: "pending",
@@ -24,35 +21,38 @@ class PaymentService {
     };
   }
 
-  // Verify Payment
   async verifyPayment(transactionId) {
     const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc(transactionId);
     const doc = await paymentRef.get();
 
     if (!doc.exists) throw new Error("Transaction not found");
 
-    // Placeholder verification logic
     await paymentRef.update({
       status: "completed",
       updatedAt: new Date().toISOString(),
     });
 
-    // Update Enrollment Status
     const payment = doc.data();
     if (payment.enrollmentId) {
-      await db
+      const enrollmentRef = db
         .collection(COLLECTIONS.ENROLLMENT)
-        .doc(payment.enrollmentId)
-        .update({
-          paymentStatus: "paid",
-          status: "confirmed",
-        });
+        .doc(payment.enrollmentId);
+      await enrollmentRef.update({
+        paymentStatus: "paid",
+        status: "confirmed",
+      });
+
+      const enrollmentDoc = await enrollmentRef.get();
+      const bId = enrollmentDoc.data()?.branchId;
+      if (bId) {
+        const branchService = require("./branchService");
+        await branchService.calculateAndSyncStats(bId);
+      }
     }
 
     return { status: "success", message: "Payment verified" };
   }
 
-  // Get Payment History
   async getPaymentHistory(userId) {
     if (!userId) {
       throw new Error("User ID is required to fetch payment history");
@@ -66,7 +66,6 @@ class PaymentService {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   }
 
-  // Admin: Get All Payments
   async getAllPayments() {
     const snapshot = await db.collection(COLLECTIONS.PAYMENT).get();
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));

@@ -11,7 +11,7 @@ class SessionService {
 
     const data = {
       programId,
-      branch: branch || null, // Snapshot: { id, name, abbr }
+      branch: branch || null,
       teachers: teachers || [],
       schedule: schedule || {},
       capacity: parseInt(capacity || 15),
@@ -20,6 +20,13 @@ class SessionService {
     };
 
     const docRef = await db.collection(COLLECTIONS.SESSION).add(data);
+
+    const bId = branch?.id || branch;
+    if (bId) {
+      const branchService = require("./branchService");
+      await branchService.calculateAndSyncStats(bId);
+    }
+
     return { id: docRef.id, message: "Session created successfully" };
   }
 
@@ -90,32 +97,26 @@ class SessionService {
     return { id: doc.id, ...doc.data() };
   }
 
-  // Assign Teacher
   async assignTeacher(sessionId, teachers) {
     const ref = db.collection(COLLECTIONS.SESSION).doc(sessionId);
     await ref.update({ teachers });
     return { message: "Teachers assigned successfully" };
   }
 
-  // Get Session Teachers
   async getSessionTeachers(sessionId) {
     const doc = await db.collection(COLLECTIONS.SESSION).doc(sessionId).get();
     if (!doc.exists) throw new Error("Session not found");
     return doc.data().teachers || [];
   }
 
-  // Sync Student Counts
   async syncStudentCounts(sessionId) {
     if (!sessionId) throw new Error("sessionId is required");
     const ref = db.collection(COLLECTIONS.SESSION).doc(sessionId);
-
-    // Fetch all enrollments for this session
     const snapshot = await db
       .collection(COLLECTIONS.ENROLLMENT)
       .where("sessionId", "==", sessionId)
       .get();
 
-    // Filter in-memory to handle various 'cancelled' variants
     const activeEnrollments = snapshot.docs.filter((doc) => {
       const status = (doc.data().status || "").toLowerCase();
       return !["cancelled", "canceled"].includes(status);
@@ -127,7 +128,6 @@ class SessionService {
     return { id: sessionId, count };
   }
 
-  // Sync All Sessions
   async syncAllSessionCounts() {
     const snapshot = await db.collection(COLLECTIONS.SESSION).get();
     const results = [];
