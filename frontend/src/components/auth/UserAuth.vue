@@ -57,7 +57,7 @@ const handleSubmit = async () => {
     message.value = 'Logged in successfully! Redirecting...'
     setTimeout(() => {
       router.push('/dashboard')
-    }, 1500)
+    }, 300)
   } catch (err) {
     error.value = err.message
   } finally {
@@ -68,13 +68,9 @@ const handleSubmit = async () => {
 
 <template>
   <div class="split-screen">
-    <!-- Left side: Image -->
     <div class="image-panel"></div>
-
-    <!-- Right side: Form -->
     <div class="form-panel">
       <div class="form-container">
-        <!-- Minimalist Logo -->
         <div class="logo">
           <img :src="getImageUrl('common/logo-main')" alt="Active Kids Academy" class="logo-img" />
         </div>

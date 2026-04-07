@@ -7,14 +7,21 @@ const {
   isOwnerOrAdmin,
 } = require("../middleware/authMiddleware");
 
+const { registrationLimiter } = require("../config/limiters");
+
 // Register Parent Account (Publicly accessible, but role-guarded in service)
-router.post("/registerParentAccount", userController.registerParentAccount);
+router.post(
+  "/registerParentAccount",
+  registrationLimiter,
+  userController.registerParentAccount,
+);
 
 // Register Admin Account (Admin Only)
 router.post(
   "/registerStaffAccount",
   verifyToken,
   isAdmin,
+  registrationLimiter,
   userController.registerStaffAccount,
 );
 
@@ -23,6 +30,7 @@ router.post(
   "/:uid/registerStudentProfile",
   verifyToken,
   isOwnerOrAdmin,
+  registrationLimiter,
   userController.registerStudentProfile,
 );
 

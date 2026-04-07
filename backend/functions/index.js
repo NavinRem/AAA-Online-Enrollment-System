@@ -5,7 +5,9 @@ const { db, COLLECTIONS } = require("./src/config/database");
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
+const app = express();
+
+const { limiter } = require("./src/config/limiters");
 
 // Import Routes
 // --- Core Enrollment & Payments ---
@@ -20,29 +22,11 @@ const userRoutes = require("./src/routes/users");
 const programRoutes = require("./src/routes/programs");
 const sessionRoutes = require("./src/routes/sessions");
 const categoryRoutes = require("./src/routes/categories");
-const levelRoutes = require("./src/routes/levels");
 const termRoutes = require("./src/routes/terms");
 const branchRoutes = require("./src/routes/branches");
 
 // --- Administrative & Academic Tracking ---
-// NOTE: attendance and progress routes were removed/flattened
 const uploadRoutes = require("./src/routes/uploads");
-
-const app = express();
-
-// Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // limit each IP to 200 requests per window
-  message: "Too many requests from this IP, please try again later",
-});
-
-const registrationLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // limit each IP to 10 registration attempts per hour
-  message:
-    "Too many accounts created from this IP, please try again in an hour",
-});
 
 // Middleware
 app.use(helmet());
@@ -58,7 +42,7 @@ apiRouter.use("/payments", paymentRoutes);
 
 // --- Student & Parent Management ---
 apiRouter.use("/students", studentRoutes);
-apiRouter.use("/users", registrationLimiter, userRoutes);
+apiRouter.use("/users", userRoutes);
 
 // --- Academic Content ---
 apiRouter.use("/programs", programRoutes);

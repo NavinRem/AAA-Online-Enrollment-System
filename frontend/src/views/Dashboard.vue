@@ -34,19 +34,12 @@ const stats = ref({
   today: { reg: 0, enroll: 0, pay: 0 },
   week: { reg: 0, enroll: 0, pay: 0 },
   totals: {
-    accounts: 0,
     parents: 0,
     students: 0,
     programs: 0,
-    mostPopular: 'None',
-    mostPopularCount: 0,
-    leastPopular: 'None',
-    leastPopularCount: 0,
-    fullPrograms: 0,
-    almostFullPrograms: 0,
-    availablePrograms: 0,
-    topBranch: 'None',
-    topBranchCount: 0
+    branches: 0,
+    enrollments: 0,
+    totalRevenue: 0,
   }
 })
 
@@ -187,17 +180,19 @@ const mappedEnrollments = computed(() => {
               Basic Information
             </h3>
             <div class="mini-cards-stack">
-              <MiniCard title="Top Enrolled Program" :value="stats.totals.mostPopular"
-                :subtitle="`${stats.totals.mostPopularCount} Total Enrollments`"
+              <MiniCard title="All-time Enrollments" :value="stats.totals.enrollments"
                 :image="getImageUrl('dashboard/card-top-program')" />
-              <MiniCard title="Full-Enrolled Programs" :value="stats.totals.fullPrograms"
-                subtitle="Accepting no more students" :image="getImageUrl('dashboard/card-full-program')" />
-              <MiniCard title="Nearing-Full Programs" :value="stats.totals.almostFullPrograms"
-                subtitle="High enrollment reached" :image="getImageUrl('dashboard/card-nearlyfull-program')" />
-              <MiniCard title="Available Programs" :value="stats.totals.availablePrograms"
-                subtitle="Programs with open slots" :image="getImageUrl('dashboard/card-available-program')" />
-              <MiniCard title="Top Branch" :value="stats.totals.topBranch"
-                :subtitle="`${stats.totals.topBranchCount} Students`" :image="getImageUrl('dashboard/card-branch')" />
+              <MiniCard title="Total Parents" :value="stats.totals.parents"
+                :image="getImageUrl('parent/total-parent')" />
+              <MiniCard title="Total Students" :value="stats.totals.students"
+                :image="getImageUrl('student/total-student')" />
+              <MiniCard title="Total Branches" :value="stats.totals.branches"
+                :image="getImageUrl('dashboard/card-branch')" />
+              <MiniCard title="Total Programs" :value="stats.totals.programs"
+                :image="getImageUrl('dashboard/card-available-program')" />
+              <MiniCard title="All-time Total Revenue" :value="`$${formatPrice(stats.totals.totalRevenue)}`"
+                :image="getImageUrl('dashboard/card-revenue')" />
+
             </div>
           </div>
         </div>
