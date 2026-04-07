@@ -21,6 +21,7 @@ const logoutMessage = ref('')
 const menuItems = [
   { name: 'Dashboard', path: '/dashboard', icon: 'navigation/dashboard.svg' },
   { name: 'Enrollments', path: '/enrollments', icon: 'navigation/enrollment.svg' },
+  { name: 'Branches', path: '/branches', icon: 'navigation/branch.svg' },
   { name: 'Parents', path: '/parents', icon: 'navigation/parent.svg' },
   { name: 'Students', path: '/students', icon: 'navigation/student.svg' },
   { name: 'Programs', path: '/programs', icon: 'navigation/program.svg' },

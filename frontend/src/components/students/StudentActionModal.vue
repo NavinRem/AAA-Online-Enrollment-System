@@ -162,6 +162,19 @@
             :customFileName="`${localData.name}_student`"
           />
         </div>
+
+        <div class="form-group full-width" style="margin-top: 10px;">
+          <label>Assigned Branch <span class="required">*</span></label>
+          <div class="branch-select-grid">
+            <BranchMiniCard 
+              v-for="branch in branches" 
+              :key="branch.id" 
+              :branch="branch"
+              :isSelected="localData.branch?.id === branch.id"
+              @click="localData.branch = branch"
+            />
+          </div>
+        </div>
       </div>
 
       <!-- Manual Status Override Form (Student or Enrollment) -->
@@ -263,6 +276,7 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
+import BranchMiniCard from '@/components/common/cards/BranchMiniCard.vue'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
@@ -271,6 +285,7 @@ const props = defineProps({
   student: Object,
   enrollment: Object,
   selectableParents: { type: Array, default: () => [] },
+  branches: { type: Array, default: () => [] },
   loading: Boolean,
   error: String,
   success: String,
@@ -285,6 +300,7 @@ const getInitialData = () => ({
   profile: '',
   medicalNote: 'None',
   status: '',
+  branch: null,
   deleteConfirm: '',
   overrideReason: '',
   overrideRemark: '',
@@ -303,6 +319,7 @@ const mapSourceToForm = () => {
       (props.type === 'enrollment-override'
         ? props.enrollment?.displayStatus || 'Studying'
         : 'Studying'),
+    branch: source.branch || null,
     deleteConfirm: '',
     overrideReason:
       source.overrideReason ||
@@ -427,6 +444,13 @@ const isPresetActive = (field, chipValue) => {
 
 .danger-text {
   color: #ef4444;
+}
+
+.branch-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
 }
 
 </style>

@@ -18,6 +18,7 @@ import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import { branchService } from '@/services/branchService'
 
 const route = useRoute()
 const router = useRouter()
@@ -27,6 +28,7 @@ const parent = ref(null)
 const enrollments = ref([])
 const attendanceHistory = ref([])
 const progressData = ref(null)
+const branches = ref([])
 
 const computedStatus = computed(() => {
   if (!student.value) return 'Inactive'
@@ -411,10 +413,14 @@ const fetchData = async (id) => {
     loading.value = true
     errorMessage.value = ''
 
-    // 1. Fetch Student Profile
-    const studentData = await userService.getStudent(id)
+    // 1. Fetch Student Profile & Branches
+    const [studentData, branchData] = await Promise.all([
+      userService.getStudent(id),
+      branchService.getAllBranches()
+    ])
     if (!studentData) throw new Error('Student not found')
     student.value = studentData
+    branches.value = branchData || []
 
     // 2. Fetch associated Parent profile if reference exists
     const pId = studentData.parentId
@@ -782,7 +788,7 @@ watch(
               </div>
             </div>
           </template>
- 
+
           <div class="scrollable-info-body">
             <div class="detail-info-group">
               <div class="info-item vertical">
@@ -813,6 +819,12 @@ watch(
                 <span class="info-label">OVERRIDE REMARK:</span>
                 <strong>{{ student?.overrideRemark }}</strong>
               </div>
+              <div class="info-item vertical" v-if="student?.branch">
+                <span class="info-label">ASSIGNED BRANCH:</span>
+                <div style="margin-top: 8px;">
+                  <BranchMiniCard :branch="student.branch" :isEditable="false" />
+                </div>
+              </div>
             </div>
 
             <div class="timestamp-group" style="margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
@@ -833,8 +845,9 @@ watch(
             <div class="relationship-category">
               <span class="category-title">Parent</span>
               <div class="relationship-item" v-if="student?.parentInfo || student?.parentId">
-                <img :src="student?.parentInfo?.profile || student?.parentProfile || getImageUrl('profiles/avatar-parent')" alt="Parent Avatar"
-                  class="small-avatar" />
+                <img
+                  :src="student?.parentInfo?.profile || student?.parentProfile || getImageUrl('profiles/avatar-parent')"
+                  alt="Parent Avatar" class="small-avatar" />
                 <div class="child-info">
                   <strong>{{ student?.parentInfo?.name || student?.parentName || 'Parent Name' }}</strong>
                 </div>
@@ -861,7 +874,7 @@ watch(
 
     <StudentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :student="actionModal.student"
       :enrollment="actionModal.enrollment" :loading="submitting" :error="globalError" :success="globalSuccess"
-      @close="actionModal.isOpen = false" @submit="submitActionModal" />
+      :branches="branches" @close="actionModal.isOpen = false" @submit="submitActionModal" />
   </DashboardLayout>
 </template>
 

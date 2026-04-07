@@ -13,6 +13,7 @@ import {
 import { parseDate, formatPrice } from '@/utils/formatUtils'
 import { calculateDashboardStats } from '@/utils/statsHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
+import branchService from '../services/branchService'
 
 // UI Components
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
@@ -24,13 +25,29 @@ const userProfile = ref(null)
 const students = ref([])
 const programs = ref([])
 const enrollments = ref([])
+const sessions = ref([])
+const branches = ref([])
 const users = ref([])
 const loading = ref(true)
 
 const stats = ref({
   today: { reg: 0, enroll: 0, pay: 0 },
   week: { reg: 0, enroll: 0, pay: 0 },
-  totals: { accounts: 0, parents: 0, students: 0, programs: 0 }
+  totals: {
+    accounts: 0,
+    parents: 0,
+    students: 0,
+    programs: 0,
+    mostPopular: 'None',
+    mostPopularCount: 0,
+    leastPopular: 'None',
+    leastPopularCount: 0,
+    fullPrograms: 0,
+    almostFullPrograms: 0,
+    availablePrograms: 0,
+    topBranch: 'None',
+    topBranchCount: 0
+  }
 })
 
 onMounted(() => {
@@ -49,20 +66,30 @@ onMounted(() => {
       const profile = await userService.getProfile(currentUser.uid)
       userProfile.value = profile
 
-      const [uData, rData, pData, sData] = await Promise.all([
+      const [uData, rData, pData, sData, sessData, bData] = await Promise.all([
         userService.getAllUsers(),
         enrollmentService.getAllEnrollments(),
         programService.getAllPrograms(),
         userService.getAllStudents(),
-        userService.getStudentsByParentID(currentUser.uid)
+        programService.getAllSessions(),
+        branchService.getAllBranches()
       ])
 
       users.value = Array.isArray(uData) ? uData : []
       enrollments.value = Array.isArray(rData) ? rData : []
       programs.value = Array.isArray(pData) ? pData : []
       students.value = Array.isArray(sData) ? sData : []
+      sessions.value = Array.isArray(sessData) ? sessData : []
+      branches.value = Array.isArray(bData) ? bData : []
 
-      stats.value = calculateDashboardStats(users.value, enrollments.value, programs.value, students.value)
+      stats.value = calculateDashboardStats(
+        users.value,
+        enrollments.value,
+        programs.value,
+        students.value,
+        sessions.value,
+        branches.value
+      )
     } catch (err) {
       console.error('Dashboard error:', err)
     } finally {
@@ -160,14 +187,17 @@ const mappedEnrollments = computed(() => {
               Basic Information
             </h3>
             <div class="mini-cards-stack">
-              <MiniCard title="Total Accounts" :value="stats.totals.accounts"
-                :image="getImageUrl('dashboard/card-account')" />
-              <MiniCard title="Total Parents" :value="stats.totals.parents"
-                :image="getImageUrl('dashboard/card-parent')" />
-              <MiniCard title="Total Students" :value="stats.totals.students"
-                :image="getImageUrl('dashboard/card-student')" />
-              <MiniCard title="Total Programs" :value="stats.totals.programs"
-                :image="getImageUrl('dashboard/card-program')" />
+              <MiniCard title="Top Enrolled Program" :value="stats.totals.mostPopular"
+                :subtitle="`${stats.totals.mostPopularCount} Total Enrollments`"
+                :image="getImageUrl('dashboard/card-top-program')" />
+              <MiniCard title="Full-Enrolled Programs" :value="stats.totals.fullPrograms"
+                subtitle="Accepting no more students" :image="getImageUrl('dashboard/card-full-program')" />
+              <MiniCard title="Nearing-Full Programs" :value="stats.totals.almostFullPrograms"
+                subtitle="High enrollment reached" :image="getImageUrl('dashboard/card-nearlyfull-program')" />
+              <MiniCard title="Available Programs" :value="stats.totals.availablePrograms"
+                subtitle="Programs with open slots" :image="getImageUrl('dashboard/card-available-program')" />
+              <MiniCard title="Top Branch" :value="stats.totals.topBranch"
+                :subtitle="`${stats.totals.topBranchCount} Students`" :image="getImageUrl('dashboard/card-branch')" />
             </div>
           </div>
         </div>
@@ -240,8 +270,7 @@ const mappedEnrollments = computed(() => {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
-  justify-content: baseline;
-  gap: 30px;
+  gap: 10px;
   position: sticky;
   top: 90px;
   height: 100%;
@@ -297,10 +326,14 @@ const mappedEnrollments = computed(() => {
   font-weight: 500;
 }
 
-
+.basic-info {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  height: 100%;
+}
 
 .info-title {
-  margin-bottom: 20px;
   text-align: center;
 }
 
