@@ -22,6 +22,7 @@ const sessionRoutes = require("./src/routes/sessions");
 const categoryRoutes = require("./src/routes/categories");
 const levelRoutes = require("./src/routes/levels");
 const termRoutes = require("./src/routes/terms");
+const branchRoutes = require("./src/routes/branches");
 
 // --- Administrative & Academic Tracking ---
 // NOTE: attendance and progress routes were removed/flattened
@@ -64,6 +65,7 @@ apiRouter.use("/programs", programRoutes);
 apiRouter.use("/sessions", sessionRoutes);
 apiRouter.use("/categories", categoryRoutes);
 apiRouter.use("/terms", termRoutes);
+apiRouter.use("/branches", branchRoutes);
 
 // --- Administrative & Academic Recording ---
 apiRouter.use("/uploads", uploadRoutes);

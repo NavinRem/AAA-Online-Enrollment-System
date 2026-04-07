@@ -4,7 +4,7 @@ const categoryController = require("../controllers/categoryController");
 const { verifyToken, isAdmin } = require("../middleware/authMiddleware");
 
 // Get All Categories
-router.get("/", categoryController.getAllCategories);
+router.get("/", verifyToken, categoryController.getAllCategories);
 
 // Create Category (Admin Only)
 router.post("/", verifyToken, isAdmin, categoryController.createCategory);

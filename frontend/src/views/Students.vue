@@ -18,8 +18,6 @@ import { useSearch, studentSearchMapper } from '@/composables/useSearch'
 import { formatDate } from '@/utils/formatUtils'
 import {
   getProgramProfileURL,
-  getStudentProfileURL,
-  getParentProfileURL,
   getImageUrl,
   getActionIcon,
 } from '@/utils/assetHelper'
@@ -37,7 +35,10 @@ const getRowClass = (item) => {
 const fetchStudents = async () => {
   loading.value = true
   const currentUser = authService.getCurrentUser()
-  if (!currentUser) return router.push('/')
+  if (!currentUser) {
+    loading.value = false
+    return
+  }
 
   try {
     const profile = await userService.getProfile(currentUser.uid)

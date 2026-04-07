@@ -5,7 +5,8 @@
       :class="parentTheme">
       <div class="parent-info-content">
         <div class="parent-avatar-wrapper">
-          <img :src="(user || selectedParent).profileURL || (user || selectedParent).profile" class="parent-avatar-img" />
+          <img :src="(user || selectedParent).profileURL || (user || selectedParent).profile"
+            class="parent-avatar-img" />
         </div>
         <div class="parent-details">
           <span class="parent-role-tag">{{ (user || selectedParent).role || 'parent' }}</span>
@@ -72,7 +73,8 @@
             <div class="dropdown-header" @click="isDropdownOpen = !isDropdownOpen">
               <template v-if="selectedParent">
                 <div class="selected-parent">
-                  <img :src="selectedParent.profileURL || getParentProfileURL(selectedParent.profile)" class="avatar-mini-sm" />
+                  <img :src="selectedParent.profileURL || getParentProfileURL(selectedParent.profile)"
+                    class="avatar-mini-sm" />
                   <span>{{ selectedParent.name || selectedParent.email }}</span>
                 </div>
               </template>
@@ -141,22 +143,9 @@
         </div>
       </div>
 
-      <div class="form-group full-width" style="margin-top: 20px;">
-        <label>School Branch <span class="required">*</span></label>
-        <div class="branch-select-grid">
-          <BranchMiniCard 
-            v-for="branch in branches" 
-            :key="branch.id" 
-            :branch="branch"
-            :isSelected="localData.branch?.id === branch.id"
-            @click="localData.branch = branch"
-          />
-        </div>
-        <div v-if="isSubmittingAttempted && errors.branch" class="field-error-msg">{{ errors.branch }}</div>
-      </div>
+
     </div>
 
-    <!-- Activation/Deactivation Alerts -->
     <div v-if="type === 'deactivate'" class="form-group full-width">
       <AppAlert type="warning">
         <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -181,7 +170,6 @@
       </AppAlert>
     </div>
 
-    <!-- Delete Confirmation -->
     <div v-if="type === 'delete'" class="form-group full-width">
       <div class="danger-box-standard">
         <div class="danger-icon-large">⚠️</div>
@@ -239,7 +227,6 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import BranchMiniCard from '@/components/common/cards/BranchMiniCard.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { getActionIcon, getParentProfileURL, isSameProfileAsset } from '@/utils/assetHelper'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'

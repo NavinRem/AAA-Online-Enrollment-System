@@ -40,9 +40,7 @@ const {
 const statsCards = computed(() => {
   const s = calculateParentStats(allUsers.value)
   return [
-    { label: 'Total Users', value: s.totalUsers, image: getImageUrl('parent/total-users'), color: 'var(--accent-light)' },
     { label: 'Total Parents', value: s.parentCount, image: getImageUrl('parent/total-parent'), color: 'var(--accent-light)' },
-    { label: 'Total Guardians', value: s.guardianCount, image: getImageUrl('parent/total-guardian'), color: 'var(--accent-light)' },
     { label: 'Registered Today', value: s.todayCount, image: getImageUrl('parent/recently-register'), color: 'var(--accent-light)' },
     { label: 'Active Now', value: s.activeCount, image: getImageUrl('parent/active-now'), color: 'var(--accent-light)' }
   ]
@@ -90,8 +88,6 @@ const statusFilteredParents = computed(() => {
     filtered = allUsers.value.filter(u => {
       if (currentFilter.value === 'active') return (u.status || 'Active').toLowerCase() === 'active'
       if (currentFilter.value === 'inactive') return (u.status || 'Active').toLowerCase() === 'inactive'
-      if (currentFilter.value === 'parent') return (u.role || 'parent').toLowerCase() === 'parent'
-      if (currentFilter.value === 'guardian') return (u.role || 'parent').toLowerCase() === 'guardian'
       return true
     })
   }
@@ -105,12 +101,10 @@ const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 
-// Unified Action Modal State
 const isActionModalOpen = ref(false)
 const actionModalType = ref('edit')
 const actionModalUser = ref(null)
 
-// New Parent Modal State
 const showNewParentModal = ref(false)
 const openActionModal = (type, user = null) => {
   console.log(`Opening Action Modal: ${type}`)
@@ -210,7 +204,6 @@ const submitNewParent = async (data) => {
     const finalProfile = await processUserProfileImage(data.profile, data.name, data.role)
     const payload = prepareUserPayload({ ...data, profile: finalProfile })
 
-    // Add temp password if provided (handled by service normally, but passed here)
     if (data.password) payload.password = data.password
 
     const result = await userService.registerParentAccount(payload)
@@ -258,20 +251,18 @@ const navigateToDetail = (item) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Parent / Guardian Overview">
+    <DataPageLayout overviewTitle="Parent Overview">
       <template #overview>
         <DataMetrics :stats="statsCards" />
       </template>
 
       <template #table>
-        <DataTable title="Parents/Guardians List" :headers="parentHeaders" :items="filteredParents" :loading="loading"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search Parent/Guardian..." :hasFilter="true"
+        <DataTable title="Parents List" :headers="parentHeaders" :items="filteredParents" :loading="loading"
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search Parent..." :hasFilter="true"
           v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Users', value: 'all' },
             { label: 'Active Only', value: 'active' },
             { label: 'Inactive Only', value: 'inactive' },
-            { label: 'Parents Only', value: 'parent' },
-            { label: 'Guardians Only', value: 'guardian' },
           ]" :rowClass="getRowClass" @row-click="navigateToDetail"
           @action="({ type, item }) => openActionModal(type, item)">
           <template #toolbar-actions>

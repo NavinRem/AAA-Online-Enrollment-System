@@ -8,16 +8,16 @@ const { verifyToken, isAdmin } = require("../middleware/authMiddleware");
 router.post("/", verifyToken, isAdmin, programController.createProgram);
 
 // Get All Programs
-router.get("/", programController.getAllPrograms);
+router.get("/", verifyToken, programController.getAllPrograms);
 
 // Get Sessions for a Program (getAvailableSessions)
-router.get("/:id/sessions", sessionController.getAvailableSessions);
+router.get("/:id/sessions", verifyToken, sessionController.getAvailableSessions);
 
 // Alias or specific endpoint if client requests "/getAvailableSessions"
-router.get("/:id/getAvailableSessions", sessionController.getAvailableSessions);
+router.get("/:id/getAvailableSessions", verifyToken, sessionController.getAvailableSessions);
 
 // Get Single Program
-router.get("/:id", programController.getProgram);
+router.get("/:id", verifyToken, programController.getProgram);
 
 // Update/Delete (Manage) (Admin Only)
 router.patch("/:id", verifyToken, isAdmin, programController.updateProgram);

@@ -83,13 +83,13 @@ const loadFormData = async () => {
   }
 }
 
-const handleProgramChange = async (programId, branchId = null) => {
+const handleProgramChange = async (programId) => {
   if (!programId) {
     sessions.value = []
     return
   }
   try {
-    const data = await programService.getSessions(programId, branchId)
+    const data = await programService.getSessions(programId)
     sessions.value = Array.isArray(data) ? data : []
   } catch (err) {
     console.error('Failed to load sessions', err)
@@ -366,7 +366,8 @@ const closeActionModal = () => {
             <td class="bold" :style="{ width: headers[2].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="item.student?.profileURL || item.student?.profile || item.studentProfileURL" alt="student" />
+                  <img :src="item.student?.profileURL || item.student?.profile || item.studentProfileURL"
+                    alt="student" />
                 </div>
                 <span>{{ item.student?.name || item.studentName }}</span>
               </div>
@@ -374,10 +375,12 @@ const closeActionModal = () => {
             <td :style="{ width: headers[3].width }">
               <div class="info-cell">
                 <div class="program-icon-mini">
-                  <img :src="item.program?.profileURL || item.program?.profile || item.programProfileURL" alt="program" />
+                  <img :src="item.program?.profileURL || item.program?.profile || item.programProfileURL"
+                    alt="program" />
                 </div>
                 <div class="program-cell">
-                  <div class="program-title text-truncate">{{ item.program?.title || item.programTitle || 'Program' }}</div>
+                  <div class="program-title text-truncate">{{ item.program?.title || item.programTitle || 'Program' }}
+                  </div>
                 </div>
               </div>
             </td>

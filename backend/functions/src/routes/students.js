@@ -2,22 +2,24 @@ const express = require("express");
 const router = express.Router();
 const studentController = require("../controllers/studentController");
 
+const { verifyToken, isAdmin } = require("../middleware/authMiddleware");
+
 // Create Student
-router.post("/", studentController.createStudent);
+router.post("/", verifyToken, studentController.createStudent);
 
 // Get Student by ID
-router.get("/:id", studentController.getStudent);
+router.get("/:id", verifyToken, studentController.getStudent);
 
 // Update Student (General)
-router.patch("/:id", studentController.updateStudent);
+router.patch("/:id", verifyToken, studentController.updateStudent);
 
 // Update Medical Info (Specific)
-router.patch("/:id/medical", studentController.updateMedicalInfo);
+router.patch("/:id/medical", verifyToken, studentController.updateMedicalInfo);
 
 // Get Students by Parent ID
-router.get("/parent/:parentId", studentController.getStudentsByParentID);
+router.get("/parent/:parentId", verifyToken, studentController.getStudentsByParentID);
 
 // Get ALL Students
-router.get("/", studentController.getAllStudents);
+router.get("/", verifyToken, isAdmin, studentController.getAllStudents);
 
 module.exports = router;

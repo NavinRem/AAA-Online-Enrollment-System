@@ -8,7 +8,8 @@
     </AppAlert>
 
     <div class="identity-card" v-if="student || enrollment">
-      <span class="label">{{ type === 'enrollment-override' || type === 'enrollment-delete' ? 'enrollment' : 'student' }}</span>
+      <span class="label">{{ type === 'enrollment-override' || type === 'enrollment-delete' ? 'enrollment' : 'student'
+      }}</span>
       <strong class="name">{{
         enrollment
           ? enrollment.programTitle || enrollment.courseTitle
@@ -16,7 +17,8 @@
       }}</strong>
     </div>
 
-    <form v-if="type === 'edit' || type === 'override' || type === 'enrollment-override'" @submit.prevent="handleSubmit">
+    <form v-if="type === 'edit' || type === 'override' || type === 'enrollment-override'"
+      @submit.prevent="handleSubmit">
       <div v-if="type === 'edit'" class="form-grid">
         <div class="form-group full-width" v-if="selectableParents && selectableParents.length > 0">
           <label>Update Parent / Guardian <span class="required">*</span></label>
@@ -25,10 +27,8 @@
               <div class="dropdown-header" @click="isParentDropdownOpen = !isParentDropdownOpen">
                 <template v-if="selectedParent">
                   <div class="selected-parent">
-                    <img
-                      :src="selectedParent.profile || getImageUrl('profiles/avatar-parent')"
-                      class="avatar-mini-sm"
-                    />
+                    <img :src="selectedParent.profile || getImageUrl('profiles/avatar-parent')"
+                      class="avatar-mini-sm" />
                     <span>{{ selectedParent.name || selectedParent.email }}</span>
                   </div>
                 </template>
@@ -37,30 +37,17 @@
                 </template>
                 <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
               </div>
-              
+
               <div class="dropdown-menu" v-if="isParentDropdownOpen">
                 <div class="dropdown-search">
                   <img :src="getActionIcon('search')" class="search-icon-mini" />
-                  <input
-                    type="text"
-                    v-model="parentSearchQuery"
-                    placeholder="Search name or email..."
-                    @click.stop
-                    autofocus
-                  />
+                  <input type="text" v-model="parentSearchQuery" placeholder="Search name or email..." @click.stop
+                    autofocus />
                 </div>
                 <ul class="dropdown-list">
-                  <li
-                    v-for="p in filteredParents"
-                    :key="p.uid || p.id"
-                    class="dropdown-item"
-                    :class="{ active: localData.parentId === (p.uid || p.id) }"
-                    @click="selectParent(p)"
-                  >
-                    <img
-                      :src="p.profile || getImageUrl('profiles/avatar-parent')"
-                      class="avatar-mini-sm"
-                    />
+                  <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
+                    :class="{ active: localData.parentId === (p.uid || p.id) }" @click="selectParent(p)">
+                    <img :src="p.profile || getImageUrl('profiles/avatar-parent')" class="avatar-mini-sm" />
                     <div class="item-info">
                       <span class="item-name">{{ p.name || p.email }}</span>
                     </div>
@@ -89,51 +76,29 @@
         <div class="form-group full-width">
           <label>Medical Notes / Allergies</label>
           <span class="original-value" v-if="originalData.medicalNote">Original: {{ originalData.medicalNote }}</span>
-          <textarea
-            v-model="localData.medicalNote"
-            placeholder="e.g. Nut allergy, Asthma, or 'None'"
-            rows="3"
-          ></textarea>
+          <textarea v-model="localData.medicalNote" placeholder="e.g. Nut allergy, Asthma, or 'None'"
+            rows="3"></textarea>
           <!-- Adding preset chips for admin convenience -->
           <div class="preset-chips">
-            <button
-              type="button"
-              class="preset-chip"
-              :class="{ active: isPresetActive('medicalNote', 'None') }"
-              @click="togglePreset('medicalNote', 'None')"
-            >
+            <button type="button" class="preset-chip" :class="{ active: isPresetActive('medicalNote', 'None') }"
+              @click="togglePreset('medicalNote', 'None')">
               None
             </button>
-            <button
-              type="button"
-              class="preset-chip"
+            <button type="button" class="preset-chip"
               :class="{ active: isPresetActive('medicalNote', 'G6PD Deficiency') }"
-              @click="togglePreset('medicalNote', 'G6PD Deficiency')"
-            >
+              @click="togglePreset('medicalNote', 'G6PD Deficiency')">
               G6PD
             </button>
-            <button
-              type="button"
-              class="preset-chip"
-              :class="{ active: isPresetActive('medicalNote', 'ADHD') }"
-              @click="togglePreset('medicalNote', 'ADHD')"
-            >
+            <button type="button" class="preset-chip" :class="{ active: isPresetActive('medicalNote', 'ADHD') }"
+              @click="togglePreset('medicalNote', 'ADHD')">
               ADHD
             </button>
-            <button
-              type="button"
-              class="preset-chip"
-              :class="{ active: isPresetActive('medicalNote', 'Dyslexia') }"
-              @click="togglePreset('medicalNote', 'Dyslexia')"
-            >
+            <button type="button" class="preset-chip" :class="{ active: isPresetActive('medicalNote', 'Dyslexia') }"
+              @click="togglePreset('medicalNote', 'Dyslexia')">
               Dyslexia
             </button>
-            <button
-              type="button"
-              class="preset-chip"
-              :class="{ active: isPresetActive('medicalNote', 'Asthma') }"
-              @click="togglePreset('medicalNote', 'Asthma')"
-            >
+            <button type="button" class="preset-chip" :class="{ active: isPresetActive('medicalNote', 'Asthma') }"
+              @click="togglePreset('medicalNote', 'Asthma')">
               Asthma
             </button>
           </div>
@@ -155,26 +120,11 @@
         </div>
 
         <div class="form-group full-width">
-          <AvatarSelector 
-            v-model="localData.profile" 
-            role="student" 
-            :uid="student?.id || enrollment?.studentId"
-            :customFileName="`${localData.name}_student`"
-          />
+          <AvatarSelector v-model="localData.profile" role="student" :uid="student?.id || enrollment?.studentId"
+            :customFileName="`${localData.name}_student`" />
         </div>
 
-        <div class="form-group full-width" style="margin-top: 10px;">
-          <label>Assigned Branch <span class="required">*</span></label>
-          <div class="branch-select-grid">
-            <BranchMiniCard 
-              v-for="branch in branches" 
-              :key="branch.id" 
-              :branch="branch"
-              :isSelected="localData.branch?.id === branch.id"
-              @click="localData.branch = branch"
-            />
-          </div>
-        </div>
+
       </div>
 
       <!-- Manual Status Override Form (Student or Enrollment) -->
@@ -201,7 +151,8 @@
 
         <div class="form-group full-width">
           <label>Reason Category <span class="required">*</span></label>
-          <span class="original-value" v-if="originalData.overrideReason">Current: {{ originalData.overrideReason }}</span>
+          <span class="original-value" v-if="originalData.overrideReason">Current: {{ originalData.overrideReason
+          }}</span>
           <select v-model="localData.overrideReason" class="form-select" required>
             <option disabled value="">-- Select Reason --</option>
             <option value="Parent Request">Parent Request</option>
@@ -215,19 +166,16 @@
 
         <div class="form-group full-width">
           <label>Administrative Remarks <span class="required">*</span></label>
-          <span class="original-value" v-if="originalData.overrideRemark">Current: {{ originalData.overrideRemark }}</span>
-          <textarea
-            v-model="localData.overrideRemark"
-            placeholder="Enter detailed reason for record keeping... (Required)"
-            rows="4"
-            required
-          ></textarea>
+          <span class="original-value" v-if="originalData.overrideRemark">Current: {{ originalData.overrideRemark
+          }}</span>
+          <textarea v-model="localData.overrideRemark"
+            placeholder="Enter detailed reason for record keeping... (Required)" rows="4" required></textarea>
         </div>
       </div>
       <!-- Hidden submit for Enter key functionality -->
       <button type="submit" style="display: none;"></button>
     </form>
-    
+
     <!-- Delete Form (Student or Enrollment) -->
     <div v-if="type === 'delete' || type === 'enrollment-delete'" class="form-group full-width">
       <div class="warning-icon-centered">⚠️</div>
@@ -235,33 +183,26 @@
       <div class="danger-box-standard">
         <strong>Critical Permanent Record Deletion</strong>
         <p v-if="type === 'enrollment-delete'">
-          You are about to delete the enrollment record for <strong>{{ enrollment?.programTitle || enrollment?.courseTitle }}</strong>. 
+          You are about to delete the enrollment record for <strong>{{ enrollment?.programTitle ||
+            enrollment?.courseTitle
+          }}</strong>.
           This will remove all grades and attendance history for this session.
         </p>
         <p v-else>
-          You are about to permanently delete the profile for <strong>{{ student?.name }}</strong>. 
+          You are about to permanently delete the profile for <strong>{{ student?.name }}</strong>.
           This will remove all their personal data and program history.
         </p>
       </div>
 
       <div class="confirm-label-standard">To confirm, type <strong>DELETE</strong> below:</div>
-      <input 
-        type="text" 
-        v-model="localData.deleteConfirm" 
-        class="confirm-input-standard" 
-        placeholder="TYPE DELETE HERE" 
-      />
+      <input type="text" v-model="localData.deleteConfirm" class="confirm-input-standard"
+        placeholder="TYPE DELETE HERE" />
     </div>
 
     <template #footer>
       <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-      <AppButton
-        :variant="type === 'delete' || type === 'enrollment-delete' ? 'danger' : 'primary'"
-        type="submit"
-        @click="handleSubmit"
-        :loading="loading"
-        :disabled="loading || !isFormValid"
-      >
+      <AppButton :variant="type === 'delete' || type === 'enrollment-delete' ? 'danger' : 'primary'" type="submit"
+        @click="handleSubmit" :loading="loading" :disabled="loading || !isFormValid">
         Confirm Action
       </AppButton>
     </template>
@@ -276,7 +217,6 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import BranchMiniCard from '@/components/common/cards/BranchMiniCard.vue'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
@@ -452,5 +392,4 @@ const isPresetActive = (field, chipValue) => {
   gap: 12px;
   margin-top: 10px;
 }
-
 </style>

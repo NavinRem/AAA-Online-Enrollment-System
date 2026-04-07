@@ -819,12 +819,6 @@ watch(
                 <span class="info-label">OVERRIDE REMARK:</span>
                 <strong>{{ student?.overrideRemark }}</strong>
               </div>
-              <div class="info-item vertical" v-if="student?.branch">
-                <span class="info-label">ASSIGNED BRANCH:</span>
-                <div style="margin-top: 8px;">
-                  <BranchMiniCard :branch="student.branch" :isEditable="false" />
-                </div>
-              </div>
             </div>
 
             <div class="timestamp-group" style="margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 20px;">

@@ -1,46 +1,14 @@
-import { firestore } from '@/firebase';
-import { 
-  collection, 
-  getDocs, 
-  getDoc, 
-  doc 
-} from 'firebase/firestore';
+import { request } from './api'
 
 class BranchService {
-  constructor() {
-    this.db = firestore;
-    this.collectionName = 'branches';
+  getAllBranches() {
+    return request('/branches')
   }
 
-  async getAllBranches() {
-    try {
-      const querySnapshot = await getDocs(collection(this.db, this.collectionName));
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })).sort((a, b) => a.name.localeCompare(b.name));
-    } catch (error) {
-      console.error('Error fetching branches:', error);
-      throw error;
-    }
+  getBranch(id) {
+    return request(`/branches/${id}`)
   }
 
-  async getBranch(id) {
-    try {
-      const docSnap = await getDoc(doc(this.db, this.collectionName, id));
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() };
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching branch:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Standardized Branch Snapshot for Student records
-   */
   getBranchSnapshot(branch) {
     if (!branch) return null;
     return {
@@ -49,6 +17,28 @@ class BranchService {
       abbr: branch.abbr
     };
   }
+
+  createBranch(data) {
+    return request('/branches', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  updateBranch(id, data) {
+    return request(`/branches/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  deleteBranch(id) {
+    return request(`/branches/${id}`, {
+      method: 'DELETE',
+    })
+  }
 }
 
-export default new BranchService();
+const branchService = new BranchService();
+export { branchService };
+export default branchService;

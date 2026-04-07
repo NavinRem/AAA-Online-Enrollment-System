@@ -7,13 +7,13 @@ const { verifyToken, isAdmin } = require("../middleware/authMiddleware");
 router.post("/", verifyToken, isAdmin, sessionController.createSession);
 
 // Get All Sessions
-router.get("/", sessionController.getAllSessions);
+router.get("/", verifyToken, sessionController.getAllSessions);
 
 // Validate Capacity
-router.get("/:id/validateCapacity", sessionController.validateCapacity);
+router.get("/:id/validateCapacity", verifyToken, sessionController.validateCapacity);
 
 // Get Session by ID
-router.get("/:id", sessionController.getSession);
+router.get("/:id", verifyToken, sessionController.getSession);
 
 // Teacher Management (Admin Only)
 router.patch(
@@ -22,7 +22,7 @@ router.patch(
   isAdmin,
   sessionController.assignTeacher,
 );
-router.get("/:id/teachers", sessionController.getSessionTeachers);
+router.get("/:id/teachers", verifyToken, sessionController.getSessionTeachers);
 router.post(
   "/sync-counts",
   verifyToken,

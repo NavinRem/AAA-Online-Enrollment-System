@@ -12,6 +12,45 @@ class BranchService {
     return { id: doc.id, ...doc.data() };
   }
 
+  async createBranch(data) {
+    const id = data.abbr || data.id;
+    if (!id) throw new Error("Branch ID or Abbreviation is required");
+
+    const ref = db.collection(COLLECTIONS.BRANCH).doc(id);
+    const doc = await ref.get();
+    if (doc.exists) throw new Error("Branch with this Abbreviation already exists");
+
+    const branchData = {
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await ref.set(branchData);
+    return { id, ...branchData };
+  }
+
+  async updateBranch(id, data) {
+    const ref = db.collection(COLLECTIONS.BRANCH).doc(id);
+    const doc = await ref.get();
+    if (!doc.exists) throw new Error("Branch not found");
+
+    const updateData = {
+      ...data,
+      updatedAt: new Date().toISOString(),
+    };
+    await ref.update(updateData);
+    return { id, ...updateData };
+  }
+
+  async deleteBranch(id) {
+    const ref = db.collection(COLLECTIONS.BRANCH).doc(id);
+    const doc = await ref.get();
+    if (!doc.exists) throw new Error("Branch not found");
+
+    await ref.delete();
+    return { id, message: "Branch deleted successfully" };
+  }
+
   /**
    * Standardized Branch Snapshot for Mirroring in Student records
    */

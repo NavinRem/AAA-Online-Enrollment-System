@@ -92,6 +92,18 @@ const THEMES = {
   gray: { backgroundColor: '#f1f3f4', color: '#5f6368' },
 }
 
+const THEME_FILTERS = {
+  green: 'invert(34%) sepia(35%) saturate(1005%) hue-rotate(85deg) brightness(97%) contrast(85%)',
+  yellow: 'invert(53%) sepia(99%) saturate(718%) hue-rotate(5deg) brightness(96%) contrast(102%)',
+  orange: 'invert(35%) sepia(87%) saturate(2470%) hue-rotate(15deg) brightness(95%) contrast(105%)',
+  red: 'invert(19%) sepia(91%) saturate(3015%) hue-rotate(352deg) brightness(85%) contrast(101%)',
+  blue: 'invert(18%) sepia(93%) saturate(3147%) hue-rotate(211deg) brightness(91%) contrast(101%)',
+  purple: 'invert(14%) sepia(91%) saturate(4174%) hue-rotate(274deg) brightness(88%) contrast(101%)',
+  magenta: 'invert(12%) sepia(97%) saturate(5451%) hue-rotate(328deg) brightness(86%) contrast(101%)',
+  teal: 'invert(34%) sepia(21%) saturate(3014%) hue-rotate(136deg) brightness(92%) contrast(93%)',
+  gray: 'invert(41%) sepia(4%) saturate(546%) hue-rotate(173deg) brightness(94%) contrast(91%)',
+}
+
 export { THEMES }
 
 export const getStatusCategory = (status) => {
@@ -120,6 +132,11 @@ export const getStatusDisplay = (s) => {
 export const getStatusTheme = (s, overrideCategory = null) => {
   const category = overrideCategory || getStatusCategory(s)
   return THEMES[category] || THEMES.gray
+}
+
+export const getStatusFilter = (s) => {
+  const category = getStatusCategory(s)
+  return THEME_FILTERS[category] || 'none'
 }
 
 // 3. Entity-specific Logic

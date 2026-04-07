@@ -5,9 +5,8 @@ export const programService = {
     return request('/programs')
   },
 
-  getSessions(programId, branchId = null) {
-    const url = `/programs/${programId}/sessions${branchId ? `?branchId=${branchId}` : ''}`
-    return request(url)
+  getSessions(programId) {
+    return request(`/programs/${programId}/sessions`)
   },
 
   getAllSessions() {

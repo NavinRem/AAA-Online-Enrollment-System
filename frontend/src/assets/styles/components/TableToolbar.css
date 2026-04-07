@@ -33,10 +33,7 @@
   border: 1px solid #e0e0e0;
   z-index: 100;
   overflow: hidden;
-  min-width: 180px;
-}
-
-.scrollable-menu {
+  max-width: 180px;
   max-height: 400px;
   overflow-y: auto !important;
 }

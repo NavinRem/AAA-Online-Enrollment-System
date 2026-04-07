@@ -9,7 +9,8 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024, // 5MB
   },
 });
+const { verifyToken } = require("../middleware/authMiddleware");
 
-router.post("/", upload.single("image"), uploadController.uploadImage);
+router.post("/", verifyToken, upload.single("image"), uploadController.uploadImage);
 
 module.exports = router;
