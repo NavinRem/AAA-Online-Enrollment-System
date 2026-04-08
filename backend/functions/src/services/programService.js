@@ -1,71 +1,73 @@
 const { db, COLLECTIONS } = require("../config/database");
-const userService = require("./userService");
 const profileHelper = require("../utils/profileHelper");
 
 class ProgramService {
+  /**
+   * Create a new Program (Model Product)
+   */
   async createProgram(programData) {
     const {
-      title,
-      category,
+      name,
       categoryId,
       description,
-      price,
-      numberSessions,
-      level,
-      status,
+      sessionNumber,
+      weeksNumber,
+      basePrice,
+      maxCapacity,
+      type,
+      profileURL,
       levelId,
-      termId,
-      schedule,
-      profile,
-      teachers,
-      startDate,
-      endDate,
     } = programData;
 
-    if (!title || !termId || !levelId) {
-      throw new Error("Title, Term, and Level are required");
+    if (!name || !categoryId) {
+      throw new Error("Program Name and Category are required");
     }
 
-    const snapshot = await db
-      .collection(COLLECTIONS.PROGRAM)
-      .where("title", "==", title.trim())
-      .where("termId", "==", termId)
-      .where("levelId", "==", levelId)
-      .get();
+    // Authoritative check for Category Name
+    const catDoc = await db.collection(COLLECTIONS.CATEGORY).doc(categoryId).get();
+    if (!catDoc.exists) throw new Error("Category not found");
+    const categoryName = catDoc.data().name;
 
-    if (!snapshot.empty) {
-      throw new Error(
-        `A program with title "${title}" already exists for this term and level`,
-      );
+    // Authoritative check for Level Name
+    let levelName = null;
+    if (levelId) {
+      const lvlDoc = await db
+        .collection(COLLECTIONS.CATEGORY)
+        .doc(categoryId)
+        .collection(COLLECTIONS.LEVEL)
+        .doc(levelId)
+        .get();
+      if (lvlDoc.exists) levelName = lvlDoc.data().name;
     }
 
     const data = {
-      title: title.trim(),
-      categoryId: categoryId,
-      category: category,
-      description: description,
-      price: parseFloat(price),
-      totalSessions: parseInt(numberSessions),
-      level: level,
-      status: status,
-      levelId: levelId,
-      termId: termId,
-      schedule: schedule,
-      profileURL: profile,
-      teachers: teachers,
-      startDate: startDate,
-      endDate: endDate,
+      name: name.trim(),
+      categoryId,
+      category: categoryName,
+      description: description || "",
+      levelId: levelId || null,
+      level: levelName,
+      sessionNumber: parseInt(sessionNumber || 0),
+      weeksNumber: parseInt(weeksNumber || 0),
+      basePrice: parseFloat(basePrice || 0),
+      maxCapacity: parseInt(maxCapacity || 15),
+      type: type || "group",
+      profileURL: profileURL || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     const docRef = await db.collection(COLLECTIONS.PROGRAM).add(data);
-    return { id: docRef.id, message: "Program created successfully" };
+    return { id: docRef.id, ...data };
   }
 
+
+  /**
+   * Get all Programs (Products)
+   */
   async getAllPrograms() {
-    const programsSnapshot = await db.collection(COLLECTIONS.PROGRAM).get();
-    const programs = programsSnapshot.docs.map((doc) => ({
+    const snapshot = await db.collection(COLLECTIONS.PROGRAM).get();
+    const programs = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
@@ -73,8 +75,8 @@ class ProgramService {
     return this._hydratePrograms(programs);
   }
 
-  async getProgram(programId) {
-    const doc = await db.collection(COLLECTIONS.PROGRAM).doc(programId).get();
+  async getProgram(id) {
+    const doc = await db.collection(COLLECTIONS.PROGRAM).doc(id).get();
     if (!doc.exists) throw new Error("Program not found");
 
     const programs = [{ id: doc.id, ...doc.data() }];
@@ -82,26 +84,11 @@ class ProgramService {
     return hydrated[0];
   }
 
+  /**
+   * Hydrates category and level names
+   */
   async _hydratePrograms(programs) {
     if (!programs || programs.length === 0) return [];
-
-    const termsSnapshot = await db.collection(COLLECTIONS.TERM).get();
-    const termsMap = {};
-    termsSnapshot.docs.forEach((doc) => {
-      termsMap[doc.id] = doc.data().name;
-    });
-
-    const allUsers = await userService.getAllUsers();
-    const teachersMap = {};
-    allUsers.forEach((u) => {
-      if (["teacher", "instructor", "admin"].includes(u.role)) {
-        teachersMap[u.uid] = {
-          id: u.uid,
-          name: u.name,
-          profileURL: u.profileURL,
-        };
-      }
-    });
 
     const categoriesSnapshot = await db.collection(COLLECTIONS.CATEGORY).get();
     const categoriesMap = {};
@@ -122,97 +109,84 @@ class ProgramService {
       }),
     );
 
-    return programs.map((program) => {
-      let rawTeachers = program.teachers || [];
-      if (rawTeachers.length === 0 && (program.teacherId || program.uid)) {
-        rawTeachers = [
-          {
-            id: program.teacherId,
-            name: program.teacherName,
-          },
-        ];
-      }
-
-      const hydratedTeachers = rawTeachers
-        .map((t) => {
-          const teacherId = typeof t === "string" ? t : t.id;
-          if (!teacherId) return null;
-
-          return (
-            teachersMap[teacherId] ||
-            (typeof t === "object"
-              ? { ...t, profile: "" }
-              : { id: t, name: "Unknown", profile: "" })
-          );
-        })
-        .filter(Boolean);
-
-      return {
-        ...program,
-        teachers: hydratedTeachers,
-        category: categoriesMap[program.categoryId] || program.category,
-        levelName: levelsMap[program.levelId] || program.level,
-        termName: termsMap[program.termId],
-      };
-    });
+    return programs.map((p) => ({
+      ...p,
+      category: categoriesMap[p.categoryId] || p.category,
+      levelName: levelsMap[p.levelId] || p.level,
+    }));
   }
 
   async updateProgram(id, updateData) {
     const ref = db.collection(COLLECTIONS.PROGRAM).doc(id);
-    const data = {
-      ...updateData,
-      updatedAt: new Date().toISOString(),
-    };
+    const updates = { ...updateData };
 
-    if (updateData.profile && !updateData.profileURL) {
-      data.profileURL = updateData.profile;
-      delete data.profile;
+    // If ID changed, fetch authoritative name
+    if (updateData.categoryId) {
+      const catDoc = await db.collection(COLLECTIONS.CATEGORY).doc(updateData.categoryId).get();
+      if (catDoc.exists) updates.category = catDoc.data().name;
     }
 
-    await ref.update(data);
-
-    if (
-      updateData.title ||
-      updateData.category ||
-      updateData.price ||
-      updateData.profileURL ||
-      updateData.profile
-    ) {
-      await this._syncProgramMirrors(id);
+    if (updateData.levelId && updateData.categoryId) {
+      const lvlDoc = await db
+        .collection(COLLECTIONS.CATEGORY)
+        .doc(updateData.categoryId)
+        .collection(COLLECTIONS.LEVEL)
+        .doc(updateData.levelId)
+        .get();
+      if (lvlDoc.exists) updates.level = lvlDoc.data().name;
     }
 
-    return { id, message: "Program updated successfully" };
+    updates.updatedAt = new Date().toISOString();
+    await ref.set(updates, { merge: true });
+    
+    return { id, ...updates };
   }
 
-  /**
-   * Deep Mirrored Sync for Programs
-   * Cascades Program changes to linked Enrollments.
-   */
-  async _syncProgramMirrors(pid) {
-    const programDoc = await db.collection(COLLECTIONS.PROGRAM).doc(pid).get();
-    if (!programDoc.exists) return;
-
-    const program = profileHelper.getProgramSnapshot(pid, programDoc.data());
-    const batch = db.batch();
-
-    const enrollmentsSnap = await db
-      .collection(COLLECTIONS.ENROLLMENT)
-      .where("programId", "==", pid)
-      .get();
-
-    enrollmentsSnap.forEach((doc) => {
-      batch.update(doc.ref, { program });
-    });
-
-    await batch.commit();
-    console.log(
-      `Cascading Program sync completed for ${pid} across ${enrollmentsSnap.size} enrollments.`,
-    );
-  }
 
   async deleteProgram(id) {
     await db.collection(COLLECTIONS.PROGRAM).doc(id).delete();
     return { message: "Program deleted successfully" };
+  }
+
+  async addSchedule(programId, scheduleData) {
+    const { day, timeslot } = scheduleData;
+    if (!day || !timeslot) throw new Error("Day and Timeslot are required");
+
+    const ref = db
+      .collection(COLLECTIONS.PROGRAM)
+      .doc(programId)
+      .collection(COLLECTIONS.SCHEDULE);
+    
+    const docRef = await ref.add({
+      day,
+      timeslot,
+      createdAt: new Date().toISOString(),
+    });
+
+    return { id: docRef.id, day, timeslot };
+  }
+
+  async getSchedules(programId) {
+    const snapshot = await db
+      .collection(COLLECTIONS.PROGRAM)
+      .doc(programId)
+      .collection(COLLECTIONS.SCHEDULE)
+      .get();
+
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  }
+
+  async removeSchedule(programId, scheduleId) {
+    await db
+      .collection(COLLECTIONS.PROGRAM)
+      .doc(programId)
+      .collection(COLLECTIONS.SCHEDULE)
+      .doc(scheduleId)
+      .delete();
+    return { message: "Schedule removed" };
   }
 }
 

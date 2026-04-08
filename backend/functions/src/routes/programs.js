@@ -23,4 +23,10 @@ router.get("/:id", verifyToken, programController.getProgram);
 router.patch("/:id", verifyToken, isAdmin, programController.updateProgram);
 router.delete("/:id", verifyToken, isAdmin, programController.deleteProgram);
 
+// Schedule Management
+router.post("/:id/schedules", verifyToken, isAdmin, programController.addSchedule);
+router.get("/:id/schedules", verifyToken, programController.getSchedules);
+router.delete("/:id/schedules/:scheduleId", verifyToken, isAdmin, programController.removeSchedule);
+
+
 module.exports = router;

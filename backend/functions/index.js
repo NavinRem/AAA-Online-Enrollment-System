@@ -24,6 +24,8 @@ const sessionRoutes = require("./src/routes/sessions");
 const categoryRoutes = require("./src/routes/categories");
 const termRoutes = require("./src/routes/terms");
 const branchRoutes = require("./src/routes/branches");
+const classRoutes = require("./src/routes/classes");
+
 
 // --- Administrative & Academic Tracking ---
 const uploadRoutes = require("./src/routes/uploads");
@@ -50,6 +52,8 @@ apiRouter.use("/sessions", sessionRoutes);
 apiRouter.use("/categories", categoryRoutes);
 apiRouter.use("/terms", termRoutes);
 apiRouter.use("/branches", branchRoutes);
+apiRouter.use("/classes", classRoutes);
+
 
 // --- Administrative & Academic Recording ---
 apiRouter.use("/uploads", uploadRoutes);

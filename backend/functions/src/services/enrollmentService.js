@@ -6,34 +6,34 @@ const branchService = require("./branchService");
 
 class EnrollmentService {
   async createEnrollment(enrollmentData) {
-    const { studentId, programId, sessionId } = enrollmentData;
+    const { studentId, programId, classId } = enrollmentData;
 
-    if (!studentId || !programId || !sessionId) {
-      throw new Error("studentId, programId, and sessionId are required");
+    if (!studentId || !programId || !classId) {
+      throw new Error("studentId, programId, and classId are required");
     }
 
     let enrollmentId;
     await db.runTransaction(async (transaction) => {
-      const sessionRef = db.collection(COLLECTIONS.SESSION).doc(sessionId);
+      const classRef = db.collection(COLLECTIONS.CLASS).doc(classId);
       const studentRef = db.collection(COLLECTIONS.STUDENT).doc(studentId);
       const programRef = db.collection(COLLECTIONS.PROGRAM).doc(programId);
 
       const existingEnrollmentQuery = db
         .collection(COLLECTIONS.ENROLLMENT)
         .where("studentId", "==", studentId)
-        .where("sessionId", "==", sessionId);
+        .where("classId", "==", classId);
 
-      const [sessionDoc, studentDoc, programDoc, existingEnrollmentSnapshot] =
+      const [classDoc, studentDoc, programDoc, existingEnrollmentSnapshot] =
         await Promise.all([
-          transaction.get(sessionRef),
+          transaction.get(classRef),
           transaction.get(studentRef),
           transaction.get(programRef),
           transaction.get(existingEnrollmentQuery),
         ]);
 
-      if (!sessionDoc.exists) throw new Error("Session not found");
+      if (!classDoc.exists) throw new Error("Class instance not found");
       if (!studentDoc.exists) throw new Error("Student not found");
-      if (!programDoc.exists) throw new Error("Program not found");
+      if (!programDoc.exists) throw new Error("Program model not found");
 
       if (!existingEnrollmentSnapshot.empty) {
         const activeEnrollment = existingEnrollmentSnapshot.docs.find((doc) => {
@@ -42,11 +42,11 @@ class EnrollmentService {
         });
 
         if (activeEnrollment) {
-          throw new Error("Student already enrolled for this session");
+          throw new Error("Student already enrolled for this class instance");
         }
       }
 
-      const sessionData = sessionDoc.data();
+      const classData = classDoc.data();
       const studentData = studentDoc.data();
       const programData = programDoc.data();
 
@@ -57,8 +57,11 @@ class EnrollmentService {
       const parentData = await userService.getUser(parentId);
       if (!parentData) throw new Error("Parent not found in any collection");
 
-      if ((sessionData.numStudent || 0) >= sessionData.capacity) {
-        throw new Error("Session is full");
+      if (
+        (classData.numStudent || 0) >=
+        (classData.capacity || programData.maxCapacity)
+      ) {
+        throw new Error("Class is at full capacity");
       }
 
       const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc();
@@ -66,8 +69,9 @@ class EnrollmentService {
 
       const data = {
         studentId,
-        sessionId,
+        classId,
         programId,
+
         parentId,
 
         // Snapshot: Parent Information (Mirrored)
@@ -79,15 +83,11 @@ class EnrollmentService {
         // Snapshot: Program Information
         program: profileHelper.getProgramSnapshot(programId, programData),
 
-        // Snapshot: Session Information
-        session: {
-          id: sessionId,
-          day: sessionData.day || "N/A",
-          timeslot: sessionData.timeslot || "N/A",
-          capacity: sessionData.capacity || 0,
-          numStudent: (sessionData.numStudent || 0) + 1,
-          schedule: sessionData.schedule || {},
-        },
+        // Snapshot: Class Information (Mirrored)
+        class: profileHelper.getClassSnapshot(classId, {
+          ...classData,
+          numStudent: (classData.numStudent || 0) + 1,
+        }),
 
         status: "pending",
         paymentStatus: "unpaid",
@@ -100,18 +100,25 @@ class EnrollmentService {
         discountAmount: enrollmentData.discountAmount,
         amount: enrollmentData.amount,
         remark: enrollmentData.remark,
-        basePrice: enrollmentData.basePrice,
-        totalSessions: enrollmentData.totalSessions,
-        remainingSessions: enrollmentData.remainingSessions,
-        passedSessions: enrollmentData.passedSessions,
-        prorateSavings: enrollmentData.prorateSavings,
-        branchId: sessionData.branchId || null,
+        basePrice: enrollmentData.basePrice || programData.basePrice,
+        totalSessions:
+          enrollmentData.totalSessions || programData.sessionNumber,
+        remainingSessions:
+          enrollmentData.remainingSessions || programData.sessionNumber,
+        passedSessions: enrollmentData.passedSessions || 0,
+        numberSessions: enrollmentData.isProrated
+          ? enrollmentData.remainingSessions || programData.sessionNumber
+          : enrollmentData.totalSessions || programData.sessionNumber,
+        prorateSavings: enrollmentData.prorateSavings || 0,
+        branchId: classData.branchId || null,
+        branch: classData.branch || null,
+        term: classData.term || null,
       };
 
       transaction.set(enrollmentRef, data);
 
-      transaction.update(sessionRef, {
-        numStudent: (sessionData.numStudent || 0) + 1,
+      transaction.update(classRef, {
+        numStudent: (classData.numStudent || 0) + 1,
       });
     });
 
@@ -131,34 +138,28 @@ class EnrollmentService {
    * Optimized: Uses mirrored snapshots instead of massive cross-collection fetches
    */
   async getAllEnrollments() {
-    const [snapshot, programsSnap, sessionsSnap] = await Promise.all([
+    const [snapshot, programsSnap, classesSnap] = await Promise.all([
       db.collection(COLLECTIONS.ENROLLMENT).get(),
       db.collection(COLLECTIONS.PROGRAM).get(),
-      db.collection(COLLECTIONS.SESSION).get(),
+      db.collection(COLLECTIONS.CLASS).get(),
     ]);
 
     const programsMap = {};
     programsSnap.forEach((doc) => (programsMap[doc.id] = doc.data()));
 
-    const sessionsMap = {};
-    sessionsSnap.forEach((doc) => {
-      const s = doc.data();
-      const scheduleLines = [];
-      if (s.schedule) {
-        Object.keys(s.schedule).forEach((day) => {
-          scheduleLines.push(`${day}: ${s.schedule[day]}`);
-        });
-      }
-      sessionsMap[doc.id] = {
-        ...s,
-        scheduleString: scheduleLines.join(", ") || "N/A",
+    const classesMap = {};
+    classesSnap.forEach((doc) => {
+      const c = doc.data();
+      classesMap[doc.id] = {
+        ...c,
+        scheduleString: `${c.day}: ${c.timeslot}`,
       };
     });
 
     return snapshot.docs.map((doc) => {
       const data = doc.data();
       const programData = programsMap[data.programId] || {};
-      const session = sessionsMap[data.sessionId];
+      const classInstance = classesMap[data.classId];
 
       // Computed Status
       const sStatus = (data.status || "").toLowerCase();
@@ -178,9 +179,10 @@ class EnrollmentService {
         id: doc.id,
         ...data,
         displayStatus,
-        sessionSchedule: session?.scheduleString || "N/A",
-        sessionCount: session?.totalSessions || session?.sessionCount || 10,
-        amount: data.amount || data.totalAmount || programData.price || 0,
+        classSchedule: classInstance?.scheduleString || "N/A",
+        sessionCount:
+          classInstance?.sessionNumber || programData?.sessionNumber || 10,
+        amount: data.amount || data.totalAmount || programData.basePrice || 0,
       };
     });
   }
@@ -191,18 +193,18 @@ class EnrollmentService {
 
     const data = doc.data();
 
-    // Fetch live data for detail refresh (optional but recommended for Detail views)
-    const [programDoc, sessionDoc] = await Promise.all([
+    // Fetch live data for detail refresh
+    const [programDoc, classDoc] = await Promise.all([
       data.programId
         ? db.collection(COLLECTIONS.PROGRAM).doc(data.programId).get()
         : Promise.resolve({ exists: false }),
-      data.sessionId
-        ? db.collection(COLLECTIONS.SESSION).doc(data.sessionId).get()
+      data.classId
+        ? db.collection(COLLECTIONS.CLASS).doc(data.classId).get()
         : Promise.resolve({ exists: false }),
     ]);
 
     const programData = programDoc.exists ? programDoc.data() : null;
-    const sessionData = sessionDoc.exists ? sessionDoc.data() : null;
+    const classData = classDoc.exists ? classDoc.data() : null;
 
     // Resolve teachers
     let resolvedTeachers = [];
@@ -219,13 +221,9 @@ class EnrollmentService {
       );
     }
 
-    let sessionSchedule = data.sessionSchedule || "N/A";
-    if (sessionData?.schedule) {
-      const scheduleLines = [];
-      Object.keys(sessionData.schedule).forEach((day) => {
-        scheduleLines.push(`${day}: ${sessionData.schedule[day]}`);
-      });
-      sessionSchedule = scheduleLines.join(", ");
+    let classSchedule = data.classSchedule || "N/A";
+    if (classData) {
+      classSchedule = `${classData.day}: ${classData.timeslot}`;
     }
 
     const sStatus = (data.status || "").toLowerCase();
@@ -245,21 +243,21 @@ class EnrollmentService {
       id: doc.id,
       ...data,
       displayStatus,
-      sessionSchedule,
+      classSchedule,
       program: programData
         ? { id: data.programId, ...programData, teachers: resolvedTeachers }
         : null,
-      session: sessionData
+      class: classData
         ? {
-            id: data.sessionId,
-            ...sessionData,
-            scheduleString: sessionSchedule,
+            id: data.classId,
+            ...classData,
+            scheduleString: classSchedule,
           }
         : null,
       numberSessions:
         data.remainingSessions ??
-        (data.numberSessions || sessionData?.totalSessions || 10),
-      amount: data.amount || programData?.price || 0,
+        (data.numberSessions || programData?.sessionNumber || 10),
+      amount: data.amount || programData?.basePrice || 0,
     };
   }
 
@@ -274,18 +272,18 @@ class EnrollmentService {
     if (data.status === "cancelled") throw new Error("Already cancelled");
 
     await db.runTransaction(async (transaction) => {
-      const sessionRef = db.collection(COLLECTIONS.SESSION).doc(data.sessionId);
-      const sessionDoc = await transaction.get(sessionRef);
+      const classRef = db.collection(COLLECTIONS.CLASS).doc(data.classId);
+      const classDoc = await transaction.get(classRef);
 
       transaction.update(enrollmentRef, {
         status: "cancelled",
         updatedAt: new Date().toISOString(),
       });
 
-      if (sessionDoc.exists) {
-        const currentCount = sessionDoc.data().numStudent || 0;
+      if (classDoc.exists) {
+        const currentCount = classDoc.data().numStudent || 0;
         if (currentCount > 0) {
-          transaction.update(sessionRef, { numStudent: currentCount - 1 });
+          transaction.update(classRef, { numStudent: currentCount - 1 });
         }
       }
     });
@@ -305,8 +303,8 @@ class EnrollmentService {
       if (!doc.exists) throw new Error("Enrollment not found");
 
       const oldData = doc.data();
-      const oldSessionId = oldData.sessionId;
-      const newSessionId = safeData.sessionId || oldSessionId;
+      const oldClassId = oldData.classId;
+      const newClassId = safeData.classId || oldClassId;
 
       const oldStatus = (oldData.status || "").toLowerCase();
       const newStatus = (safeData.status || oldStatus).toLowerCase();
@@ -314,38 +312,34 @@ class EnrollmentService {
       const wasActive = !["cancelled", "canceled"].includes(oldStatus);
       const isActive = !["cancelled", "canceled"].includes(newStatus);
 
-      if (oldSessionId !== newSessionId) {
-        if (wasActive && oldSessionId) {
-          const oldSessionRef = db
-            .collection(COLLECTIONS.SESSION)
-            .doc(oldSessionId);
-          const oldSessionDoc = await transaction.get(oldSessionRef);
-          if (oldSessionDoc.exists) {
-            const count = oldSessionDoc.data().numStudent || 0;
-            transaction.update(oldSessionRef, {
+      if (oldClassId !== newClassId) {
+        if (wasActive && oldClassId) {
+          const oldClassRef = db.collection(COLLECTIONS.CLASS).doc(oldClassId);
+          const oldClassDoc = await transaction.get(oldClassRef);
+          if (oldClassDoc.exists) {
+            const count = oldClassDoc.data().numStudent || 0;
+            transaction.update(oldClassRef, {
               numStudent: Math.max(0, count - 1),
             });
           }
         }
-        if (isActive && newSessionId) {
-          const newSessionRef = db
-            .collection(COLLECTIONS.SESSION)
-            .doc(newSessionId);
-          const newSessionDoc = await transaction.get(newSessionRef);
-          if (newSessionDoc.exists) {
-            const count = newSessionDoc.data().numStudent || 0;
-            transaction.update(newSessionRef, { numStudent: count + 1 });
+        if (isActive && newClassId) {
+          const newClassRef = db.collection(COLLECTIONS.CLASS).doc(newClassId);
+          const newClassDoc = await transaction.get(newClassRef);
+          if (newClassDoc.exists) {
+            const count = newClassDoc.data().numStudent || 0;
+            transaction.update(newClassRef, { numStudent: count + 1 });
           }
         }
       } else if (wasActive !== isActive) {
-        const sessionRef = db.collection(COLLECTIONS.SESSION).doc(oldSessionId);
-        const sessionDoc = await transaction.get(sessionRef);
-        if (sessionDoc.exists) {
-          const count = sessionDoc.data().numStudent || 0;
+        const classRef = db.collection(COLLECTIONS.CLASS).doc(oldClassId);
+        const classDoc = await transaction.get(classRef);
+        if (classDoc.exists) {
+          const count = classDoc.data().numStudent || 0;
           if (isActive) {
-            transaction.update(sessionRef, { numStudent: count + 1 });
+            transaction.update(classRef, { numStudent: count + 1 });
           } else {
-            transaction.update(sessionRef, {
+            transaction.update(classRef, {
               numStudent: Math.max(0, count - 1),
             });
           }
@@ -369,15 +363,13 @@ class EnrollmentService {
 
     if (data.status !== "cancelled" && data.status !== "canceled") {
       await db.runTransaction(async (transaction) => {
-        const sessionRef = db
-          .collection(COLLECTIONS.SESSION)
-          .doc(data.sessionId);
-        const sessionDoc = await transaction.get(sessionRef);
+        const classRef = db.collection(COLLECTIONS.CLASS).doc(data.classId);
+        const classDoc = await transaction.get(classRef);
 
-        if (sessionDoc.exists) {
-          const currentCount = sessionDoc.data().numStudent || 0;
+        if (classDoc.exists) {
+          const currentCount = classDoc.data().numStudent || 0;
           if (currentCount > 0) {
-            transaction.update(sessionRef, { numStudent: currentCount - 1 });
+            transaction.update(classRef, { numStudent: currentCount - 1 });
           }
         }
         transaction.delete(enrollmentRef);

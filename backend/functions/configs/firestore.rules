@@ -19,14 +19,10 @@ service cloud.firestore {
 
     // --- COLLECTION RULES ---
 
-    // 1. User Profiles (Parents, Guardians, Teachers, Admins)
+    // 1. User Profiles (Parents, Teachers, Admins)
     match /parents/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow write: if isAdmin(); // Admin manages all profile creations via backend
-    }
-    match /guardians/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin();
     }
     match /teachers/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());

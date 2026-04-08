@@ -5,10 +5,12 @@ require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
 // Set emulator hosts if provided in .env
 if (process.env.INTERNAL_FIRESTORE_EMULATOR_HOST) {
-  process.env.FIRESTORE_EMULATOR_HOST = process.env.INTERNAL_FIRESTORE_EMULATOR_HOST;
+  process.env.FIRESTORE_EMULATOR_HOST =
+    process.env.INTERNAL_FIRESTORE_EMULATOR_HOST;
 }
 if (process.env.INTERNAL_AUTH_EMULATOR_HOST) {
-  process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.INTERNAL_AUTH_EMULATOR_HOST;
+  process.env.FIREBASE_AUTH_EMULATOR_HOST =
+    process.env.INTERNAL_AUTH_EMULATOR_HOST;
 }
 
 if (admin.apps.length === 0) {
@@ -23,6 +25,7 @@ db.settings({ ignoreUndefinedProperties: true });
 
 const COLLECTIONS = {
   ADMIN: "admins",
+  BRANCH: "branches",
   CATEGORY: "categories",
   ENROLLMENT: "enrollments",
   PARENT: "parents",
@@ -37,7 +40,8 @@ const COLLECTIONS = {
   PROGRESS: "progress",
   UPLOAD: "uploads",
   REQUEST: "requests",
-  BRANCH: "branches",
+  SCHEDULE: "schedules",
+  CLASS: "classes",
 };
 
 module.exports = {

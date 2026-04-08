@@ -23,13 +23,23 @@ class StudentService {
     const studentId = db.collection(COLLECTIONS.STUDENT).doc().id;
     const now = new Date().toISOString();
 
+    const bId = studentData.branchId || branch?.id || branch;
+    let branchInfo = null;
+    if (bId) {
+      const branchDoc = await db.collection(COLLECTIONS.BRANCH).doc(bId).get();
+      if (branchDoc.exists) {
+        branchInfo = profileHelper.getBranchSnapshot(bId, branchDoc.get());
+      }
+    }
+
     const data = {
       parentId,
       parentInfo,
       name,
       dob,
       medicalNote: medicalNote || "None",
-      branch: branch || null,
+      branchId: bId || null,
+      branch: branchInfo || null,
       profileURL: studentData.profileURL || studentData.profile || null,
       status: "Inactive",
       createdAt: now,
@@ -49,8 +59,8 @@ class StudentService {
 
     await batch.commit();
 
-    const bId = branch?.id || branch;
     if (bId) await branchService.calculateAndSyncStats(bId);
+
 
     return { id: studentId, message: "Student registered successfully" };
   }
@@ -94,10 +104,24 @@ class StudentService {
 
     await batch.commit();
 
-    const oldBId = currentData.branch?.id || currentData.branch;
-    const newBId = updateData.branch?.id || updateData.branch;
+    const oldBId =
+      currentData.branchId || currentData.branch?.id || currentData.branch;
+    const newBId =
+      updateData.branchId || updateData.branch?.id || updateData.branch;
 
     if (newBId && newBId !== oldBId) {
+      const branchDoc = await db
+        .collection(COLLECTIONS.BRANCH)
+        .doc(newBId)
+        .get();
+      if (branchDoc.exists) {
+        const branchInfo = profileHelper.getBranchSnapshot(
+          newBId,
+          branchDoc.data(),
+        );
+        batch.update(studentRef, { branchId: newBId, branch: branchInfo });
+      }
+
       await branchService.calculateAndSyncStats(newBId);
       if (oldBId) await branchService.calculateAndSyncStats(oldBId);
     } else if (newBId || oldBId) {

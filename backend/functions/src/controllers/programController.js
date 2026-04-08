@@ -47,3 +47,36 @@ exports.deleteProgram = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// --- Schedule Management ---
+
+exports.addSchedule = async (req, res) => {
+  try {
+    const result = await programService.addSchedule(req.params.id, req.body);
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getSchedules = async (req, res) => {
+  try {
+    const schedules = await programService.getSchedules(req.params.id);
+    res.status(200).json(schedules);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.removeSchedule = async (req, res) => {
+  try {
+    const result = await programService.removeSchedule(
+      req.params.id,
+      req.params.scheduleId
+    );
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

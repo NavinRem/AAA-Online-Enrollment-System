@@ -76,38 +76,25 @@ class BranchService {
 
   /**
    * Recalculates and persists all stats for a single branch.
-   * Called automatically by event triggers (student/enrollment/payment/session changes).
+   * Optimized to use filtered queries instead of fetching full collections.
    */
   async calculateAndSyncStats(branchId) {
     if (!branchId) return;
     const today = new Date().toISOString().split("T")[0];
 
-    // Fetch all relevant collections in parallel
-    const [allStudents, allEnrollments, allSessions] = await Promise.all([
-      db.collection(COLLECTIONS.STUDENT).get(),
-      db.collection(COLLECTIONS.ENROLLMENT).get(),
-      db.collection(COLLECTIONS.SESSION).get(),
+    // Build optimized queries
+    const [studentsSnap, enrollmentsSnap, classesSnap] = await Promise.all([
+      db.collection(COLLECTIONS.STUDENT).where("branchId", "==", branchId).get(),
+      db.collection(COLLECTIONS.ENROLLMENT).where("branchId", "==", branchId).get(),
+      db.collection(COLLECTIONS.CLASS).where("branchId", "==", branchId).get(),
     ]);
 
-    // Filter in JS to handle both 'branch.id' and 'branchId' field variants
-    const students = allStudents.docs.filter((d) => {
-      const data = d.data();
-      return data.branchId === branchId || data.branch?.id === branchId;
-    });
+    const students = studentsSnap.docs;
+    const enrollments = enrollmentsSnap.docs;
+    const classes = classesSnap.docs;
 
-    const enrollments = allEnrollments.docs.filter((d) => {
-      const data = d.data();
-      return data.branchId === branchId || data.branch?.id === branchId;
-    });
-
-    const sessions = allSessions.docs.filter((d) => {
-      const data = d.data();
-      return data.branchId === branchId || data.branch?.id === branchId;
-    });
-
-    // Unique program IDs from sessions
     const programIds = new Set(
-      sessions.map((d) => d.data().programId).filter(Boolean)
+      classes.map((d) => d.data().programId).filter(Boolean),
     );
 
     let newTodayCount = 0;
@@ -134,7 +121,7 @@ class BranchService {
     const stats = {
       studentCount: students.length,
       programCount: programIds.size,
-      sessionCount: sessions.length,
+      classCount: classes.length,
       newTodayCount,
       totalRevenue,
       pendingRevenue,
