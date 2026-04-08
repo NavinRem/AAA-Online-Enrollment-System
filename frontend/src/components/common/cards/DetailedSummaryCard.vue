@@ -49,7 +49,7 @@ defineProps({
 }
 
 .summary-content {
-  background: var(--primary-soft);
+  background: var(--accent-light);
   padding: 12px 20px 20px 20px;
   border-radius: 16px;
   display: flex;

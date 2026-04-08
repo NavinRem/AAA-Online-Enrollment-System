@@ -1,17 +1,14 @@
 <template>
-  <div class="search-box">
+  <div class="search-box-wrapper" :class="[`variant-${variant}`]">
     <img :src="getActionIcon('search')" class="search-icon" />
-    <input
-      :value="modelValue"
-      @input="$emit('update:modelValue', $event.target.value)"
-      type="text"
-      :placeholder="placeholder"
-    />
+    <input :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" type="text" class="search-input"
+      :placeholder="placeholder" />
   </div>
 </template>
 
 <script setup>
 import { getActionIcon } from '@/utils/assetHelper'
+
 defineProps({
   modelValue: {
     type: String,
@@ -20,6 +17,10 @@ defineProps({
   placeholder: {
     type: String,
     default: 'Search...',
+  },
+  variant: {
+    type: String,
+    default: 'default',
   },
 })
 

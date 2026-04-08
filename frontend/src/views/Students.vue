@@ -110,7 +110,7 @@ const handleOpenAddStudent = async () => {
   modalError.value = ''
   modalSuccess.value = ''
   parentActionModal.value.isOpen = true
-  parentActionModal.value.type = 'register-child'
+  parentActionModal.value.type = 'plus'
 
   try {
     const allUsers = await userService.getAllUsers()

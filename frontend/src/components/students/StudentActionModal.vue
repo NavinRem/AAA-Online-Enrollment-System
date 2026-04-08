@@ -9,7 +9,7 @@
 
     <div class="identity-card" v-if="student || enrollment">
       <span class="label">{{ type === 'enrollment-override' || type === 'enrollment-delete' ? 'enrollment' : 'student'
-      }}</span>
+        }}</span>
       <strong class="name">{{
         enrollment
           ? enrollment.programTitle || enrollment.courseTitle
@@ -154,7 +154,7 @@
         <div class="form-group full-width">
           <label>Reason Category <span class="required">*</span></label>
           <span class="original-value" v-if="originalData.overrideReason">Current: {{ originalData.overrideReason
-          }}</span>
+            }}</span>
           <select v-model="localData.overrideReason" class="form-select" required>
             <option disabled value="">-- Select Reason --</option>
             <option value="Parent Request">Parent Request</option>
@@ -169,7 +169,7 @@
         <div class="form-group full-width">
           <label>Administrative Remarks <span class="required">*</span></label>
           <span class="original-value" v-if="originalData.overrideRemark">Current: {{ originalData.overrideRemark
-          }}</span>
+            }}</span>
           <textarea v-model="localData.overrideRemark"
             placeholder="Enter detailed reason for record keeping... (Required)" rows="4" required></textarea>
         </div>
@@ -187,7 +187,7 @@
         <p v-if="type === 'enrollment-delete'">
           You are about to delete the enrollment record for <strong>{{ enrollment?.programTitle ||
             enrollment?.courseTitle
-          }}</strong>.
+            }}</strong>.
           This will remove all grades and attendance history for this session.
         </p>
         <p v-else>
@@ -369,22 +369,7 @@ const isPresetActive = (field, chipValue) => {
   line-height: 1.4;
 }
 
-.original-value {
-  display: block;
-  font-size: var(--text-xs);
-  color: var(--text-light);
-  margin-top: -4px;
-  margin-bottom: var(--space-3xs);
-  font-style: italic;
-}
-
-.original-value.changed {
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
 .danger-text {
   color: var(--error-color);
 }
-
 </style>

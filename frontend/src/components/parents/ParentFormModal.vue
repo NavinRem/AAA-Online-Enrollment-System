@@ -99,7 +99,7 @@ const formData = ref({
     name: '',
     email: '',
     phone: '',
-    profileURL: 'man',
+    profileURL: '',
     status: 'Active',
     password: '',
 })
@@ -110,7 +110,7 @@ watch(() => props.isOpen, (newVal) => {
             name: '',
             email: '',
             phone: '',
-            profileURL: 'man',
+            profileURL: '',
             password: '',
         }
         isSubmittingAttempted.value = false

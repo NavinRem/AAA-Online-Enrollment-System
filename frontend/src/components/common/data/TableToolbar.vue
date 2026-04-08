@@ -5,9 +5,10 @@
     </div>
     <div class="table-controls">
       <SearchBox v-if="hasSearch" :modelValue="searchQuery" @update:modelValue="$emit('update:searchQuery', $event)"
-        :placeholder="searchPlaceholder" />
+        :placeholder="searchPlaceholder" variant="light" />
       <div v-if="hasFilter" class="filter-dropdown-container">
-        <AppButton ref="filterToggleRef" variant="secondary" :class="{ active: currentFilter !== 'all' && currentFilter !== '' }"
+        <AppButton ref="filterToggleRef" variant="secondary"
+          :class="{ active: currentFilter !== 'all' && currentFilter !== '' }"
           :style="currentFilter !== 'all' && currentFilter !== '' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color, borderColor: getStatusTheme(currentFilter).color + '33' } : {}"
           @click="toggleFilter">
           <img :src="getActionIcon('filter')" class="btn-icon-mini"
@@ -16,10 +17,10 @@
         </AppButton>
         <Teleport to="body">
           <transition name="toast-fade">
-            <div v-if="isFilterOpen" class="filter-dropdown-menu"
-              :style="filterMenuStyles" @mousedown.stop>
+            <div v-if="isFilterOpen" class="filter-dropdown-menu" :style="filterMenuStyles" @mousedown.stop>
               <div v-for="option in filterOptions" :key="option.value" class="filter-option"
-                :class="{ active: currentFilter === option.value }" @click.stop="selectFilter(option.value)">
+                :class="{ active: currentFilter === option.value }"
+                @click.stop="selectFilter(option.value)">
                 {{ option.label }}
               </div>
             </div>
@@ -98,10 +99,10 @@ const toggleFilter = (event) => {
 const handleClickOutside = (event) => {
   const toggleBtn = filterToggleRef.value?.$el || filterToggleRef.value
   const menu = document.querySelector('.filter-dropdown-menu')
-  
-  if (isFilterOpen.value && 
-      toggleBtn && !toggleBtn.contains(event.target) && 
-      menu && !menu.contains(event.target)) {
+
+  if (isFilterOpen.value &&
+    toggleBtn && !toggleBtn.contains(event.target) &&
+    menu && !menu.contains(event.target)) {
     isFilterOpen.value = false
   }
 }
@@ -118,6 +119,8 @@ const selectFilter = (val) => {
   emit('update:currentFilter', val)
   isFilterOpen.value = false
 }
+
+
 </script>
 
 <style>
