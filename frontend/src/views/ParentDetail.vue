@@ -10,7 +10,7 @@ import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.v
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
-import { formatDate } from '@/utils/formatUtils'
+import { formatDate, formatPrice } from '@/utils/formatUtils'
 import { filterDetailEnrollments } from '@/utils/enrollmentHelper'
 import { enrichStudents } from '@/utils/studentHelper'
 import {
@@ -42,6 +42,8 @@ const filterOptions = computed(() => {
       { label: 'Studying', value: 'studying' },
       { label: 'Completed', value: 'completed' },
       { label: 'Cancelled', value: 'cancelled' },
+      { label: 'Registration: Newest First', value: 'date-desc' },
+      { label: 'Registration: Oldest First', value: 'date-asc' },
     ]
   } else if (activeTab.value === 'payments') {
     return [
@@ -62,12 +64,12 @@ const filterOptions = computed(() => {
 const loading = ref(true)
 const errorMessage = ref('')
 
-const studentEnrollments = computed(() =>
-  filterDetailEnrollments(enrollments.value, {
+const studentEnrollments = computed(() => {
+  return filterDetailEnrollments(enrollments.value, {
     studentId: selectedChildUid.value,
-    academicStatus: currentFilter.value
+    academicStatus: 'studying'
   })
-)
+})
 
 const filteredPayments = computed(() =>
   filterDetailEnrollments(enrollments.value, {
@@ -264,53 +266,41 @@ watch(
       </template>
 
       <template #left-content>
-        <!-- Custom Tab Navigation -->
-        <div class="tabs-navigation-wrapper">
-          <div class="tabs-navigation">
-            <AppButton variant="ghost" :class="{ active: activeTab === 'children' }" @click="activeTab = 'children'">
-              Children & Programs
-            </AppButton>
-            <AppButton variant="ghost" :class="{ active: activeTab === 'payments' }" @click="activeTab = 'payments'">
-              Payment History
-            </AppButton>
-            <AppButton variant="ghost" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
-              Enrollment Logs
-            </AppButton>
-          </div>
-
-          <div class="global-filter">
-            <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
-              @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
-          </div>
-        </div>
-
-        <!-- Tab Content -->
         <div class="tab-content-container">
-          <!-- Children List Tab -->
+          <div class="modern-tabs-nav">
+            <button class="nav-tab-chip" :class="{ active: activeTab === 'children' }" @click="activeTab = 'children'">
+              Children & Programs
+            </button>
+            <button class="nav-tab-chip" :class="{ active: activeTab === 'payments' }" @click="activeTab = 'payments'">
+              Payment History
+            </button>
+            <button class="nav-tab-chip" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
+              Enrollment Logs
+            </button>
+          </div>
           <div v-if="activeTab === 'children'" class="detail-section-card full-width">
-            <div class="section-header">
+            <div class="section-header-compact">
               <h3>Children's Programs</h3>
             </div>
 
             <!-- Child Selector Chips -->
-            <div class="child-selector" v-if="students.length > 0">
+            <div class="child-selector spaced-below" v-if="students.length > 0">
               <button v-for="s in students" :key="s.id || s.uid" class="child-chip"
                 :class="{ active: selectedChildUid === (s.id || s.uid) }" @click="selectedChildUid = (s.id || s.uid)"
                 @dblclick="navigateToStudent(s)">
                 <div class="chip-avatar-wrapper">
-                  <img :src="s.profile || s.profileURL" class="chip-avatar"
+                  <img :src="s.profileURL" class="chip-avatar"
                     @error="e => e.target.src = getImageUrl('profiles/avatar-student')" />
                 </div>
-                <span class="chip-label">{{ s.name || 'Student' }}</span>
+                <span class="chip-label">{{ s.name }}</span>
               </button>
             </div>
 
-            <!-- Programs Table -->
-            <div class="table-container mt-3">
+            <div class="table-container">
               <table class="detail-table">
                 <thead>
                   <tr>
-                    <th style="width: 50px;">No</th>
+                    <th style="width: 50px;" class="text-center">No</th>
                     <th>Program</th>
                     <th style="width: 160px;">Session</th>
                     <th style="width: 120px;" class="text-center">Amount</th>
@@ -338,7 +328,7 @@ watch(
                       </div>
                     </td>
                     <td class="text-center">
-                      <StatusBadge :status="'$' + (reg.amount || 0)" />
+                      <StatusBadge :status="'$' + formatPrice(reg.amount || 0)" />
                     </td>
                     <td class="text-center">
                       <StatusBadge :status="reg.displayStatus || reg.status || 'Unpaid'" />
@@ -349,19 +339,22 @@ watch(
             </div>
           </div>
 
-          <!-- Payment History Tab -->
           <div v-if="activeTab === 'payments'" class="detail-section-card full-width">
-            <div class="section-header">
-              <h3>Payment Records</h3>
+            <div class="section-header-compact">
+              <h3>Payment History</h3>
+              <div class="tab-actions">
+                <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
+                  @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
+              </div>
             </div>
             <div class="table-container">
               <table class="detail-table">
                 <thead>
                   <tr>
-                    <th style="width: 50px;">No</th>
+                    <th style="width: 50px;" class="text-center">No</th>
                     <th style="width: 140px;">Transaction ID</th>
                     <th>Ref ID</th>
-                    <th style="width: 100px;" class="text-center">Amount</th>
+                    <th style="width: 120px;" class="text-center">Amount</th>
                     <th style="width: 160px;" class="text-center">Paid Date</th>
                     <th style="width: 120px;" class="text-center">Status</th>
                   </tr>
@@ -375,7 +368,7 @@ watch(
                     <td class="mono">{{ reg.paymentProof || 'N/A' }}</td>
                     <td class="mono">{{ reg.id.substring(0, 8) + '...' }}</td>
                     <td class="text-center bold text-emerald-600">
-                      <StatusBadge :status="'$' + (reg.amount || 0)"></StatusBadge>
+                      <StatusBadge :status="'$' + formatPrice(reg.amount || 0)"></StatusBadge>
                     </td>
                     <td class="text-center date-text">{{ formatDate(reg.updatedAt || reg.createdAt) }}</td>
                     <td class="text-center">
@@ -387,16 +380,19 @@ watch(
             </div>
           </div>
 
-          <!-- History/Logs Tab -->
           <div v-if="activeTab === 'history'" class="detail-section-card full-width">
-            <div class="section-header">
-              <h3>Full Enrollment History</h3>
+            <div class="section-header-compact">
+              <h3>Enrollment History</h3>
+              <div class="tab-actions">
+                <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
+                  @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
+              </div>
             </div>
             <div class="table-container">
               <table class="detail-table">
                 <thead>
                   <tr>
-                    <th style="width: 50px;">No</th>
+                    <th style="width: 50px;" class="text-center">No</th>
                     <th style="width: 200px;">Enrollment ID</th>
                     <th>Program</th>
                     <th style="width: 160px;">Child</th>
@@ -431,14 +427,10 @@ watch(
         <DetailedSummaryCard title="Basic Information" subtitle="Parent Information">
           <template #outside>
             <div class="profile-header flex-stack flex-center">
-              <div class="profile-preview">
-                <img :src="parent?.profileURL || parent?.profile" alt="Profile"
-                  @error="e => e.target.src = getImageUrl('profiles/avatar-admin')" />
-              </div>
-              <h3 class="profile-name">{{ parent?.name || 'Anonymous' }}</h3>
-              <div class="badge-stack">
-                <StatusBadge :status="parent?.role || 'parent'" />
-                <StatusBadge :status="parent?.status || 'Active'" />
+              <div class="profile-preview-wrapper shadow-premium">
+                <img :src="parent?.profileURL" alt="Profile"
+                  @error="e => e.target.src = getImageUrl('profiles/avatar-admin')" class="profile-avatar" />
+                <div class="status-indicator" :class="{ inactive: isInactive }"></div>
               </div>
             </div>
           </template>
@@ -447,15 +439,15 @@ watch(
             <div class="detail-info-group">
               <div class="info-item vertical">
                 <span class="info-label">Fullname:</span>
-                <strong>{{ parent?.name || parent?.fullname }}</strong>
+                <strong>{{ parent?.name }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">Phone Number:</span>
-                <strong>{{ parent?.phone || 'N/A' }}</strong>
+                <strong>{{ parent?.phone }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">Email:</span>
-                <strong class="email">{{ parent?.email || 'N/A' }}</strong>
+                <strong class="email">{{ parent?.email }}</strong>
               </div>
               <div class="info-item vertical">
                 <StatusBadge status="Created At" />
@@ -473,9 +465,9 @@ watch(
           <div class="relationships-list">
             <div v-for="s in students" :key="s.id || s.uid" class="relationship-item clickable"
               @click="navigateToStudent(s)">
-              <img :src="s.profile || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
+              <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
               <div class="child-info">
-                <strong>{{ s.name || 'Student' }}</strong>
+                <strong>{{ s.name }}</strong>
               </div>
             </div>
             <div v-if="students.length === 0" class="text-muted text-center">
@@ -500,10 +492,7 @@ watch(
 .child-selector {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-  padding-bottom: var(--space-md);
-  border-bottom: 1px solid var(--bg-light);
+  gap: var(--space-xs);
 }
 
 .child-chip {
@@ -512,7 +501,7 @@ watch(
   gap: var(--space-sm);
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--border-radius-lg);
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--primary-light);
   background: var(--white);
   font-size: var(--text-sm);
   font-weight: 700;
@@ -522,17 +511,17 @@ watch(
 }
 
 .child-chip:hover {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-  background: var(--primary-soft);
+  background: var(--primary-light);
 }
 
 .chip-avatar-wrapper {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   overflow: hidden;
   flex-shrink: 0;
+  background: var(--white);
+  border: 1px solid var(--border-color);
 }
 
 .chip-avatar {
@@ -542,10 +531,10 @@ watch(
 }
 
 .child-chip.active {
-  background: var(--primary-color);
+  background: var(--accent-light);
   border-color: var(--primary-color);
-  color: var(--white);
-  box-shadow: 0 4px 12px rgba(0, 174, 239, 0.3);
+  color: var(--primary-color);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .chip-label {
@@ -617,12 +606,88 @@ watch(
   justify-content: center;
 }
 
+.section-header-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.profile-role-text {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-light);
+  margin-bottom: var(--space-md);
+}
+
+.profile-preview-wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: var(--border-radius-round);
+  background: var(--white);
+  padding: 4px;
+  border: 4px solid var(--primary-color);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.profile-preview-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 36px;
+  background: linear-gradient(135deg, var(--primary-color), var(--magenta-color));
+  z-index: -1;
+  opacity: 0.15;
+}
+
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--border-radius-round);
+  object-fit: cover;
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 24px;
+  height: 24px;
+  background: var(--success-color);
+  border: 5px solid var(--white);
+  border-radius: var(--border-radius-round);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  animation: pulse-green 2s infinite;
+}
+
+.status-indicator.inactive {
+  background: var(--gray-color);
+  animation: none;
+}
+
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
 .profile-name {
-  margin: var(--space-sm) 0 var(--space-xs);
+  margin: var(--space-md) 0 2px;
   font-size: var(--text-2xl);
-  font-weight: 850;
+  font-weight: 900;
   color: var(--text-deep);
-  letter-spacing: -0.5px;
+  letter-spacing: -0.8px;
 }
 
 .text-emerald-600 {
@@ -668,7 +733,6 @@ watch(
 
 .relationship-item.clickable:hover {
   background: var(--bg-light);
-  /* This was #f1f8ff in instruction, #f1f5f9 in original. Keeping #f1f5f9 from instruction. */
   transform: translateX(4px);
 }
 
@@ -692,14 +756,6 @@ watch(
 .relationship-item:hover {
   background: var(--bg-light);
   border-color: var(--border-color);
-}
-
-.small-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 2px solid var(--white);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .child-info {
@@ -736,14 +792,73 @@ watch(
   padding: var(--space-sm);
 }
 
+.modern-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  background: var(--bg-subtle);
+  border-radius: var(--border-radius-2xl);
+  border: 1.5px solid var(--bg-light);
+  width: fit-content;
+}
+
+.nav-tab-chip {
+  background: transparent;
+  border: 1.5px solid transparent;
+  padding: var(--space-sm) var(--space-xl);
+  cursor: pointer;
+  border-radius: var(--border-radius-lg);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-tab-chip:hover {
+  background: var(--bg-light);
+  color: var(--text-dark);
+}
+
+.nav-tab-chip.active {
+  background: var(--accent-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+
+
+.relationship-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--primary-soft);
+  border-radius: 16px;
+  border: 1.5px solid var(--bg-light);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .relationship-item.clickable {
   cursor: pointer;
-  transition: background 0.2s;
-  padding: var(--space-xs);
-  border-radius: var(--border-radius);
 }
 
 .relationship-item.clickable:hover {
   background: var(--primary-soft);
+  border-color: var(--primary-light);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.small-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--border-radius-round);
+  border: 2px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  object-fit: cover;
+  background-color: var(--white);
 }
 </style>
