@@ -1,6 +1,7 @@
 <template>
   <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="getActionIcon(type)">
-    <div v-if="(type === 'register-child' && selectedParent)" class="parent-identity-panel" :class="parentTheme">
+    <div v-if="(type === 'register-child' && selectedParent || type === 'plus')" class="parent-identity-panel"
+      :class="parentTheme">
       <div class="parent-info-content">
         <div class="parent-avatar-wrapper">
           <img :src="(selectedParent).profileURL" class="parent-avatar-img" />
@@ -11,6 +12,8 @@
             <StatusBadge :status="(selectedParent).status" size="sm" />
           </div>
           <span class="parent-email-sub" v-if="(selectedParent).name">{{ selectedParent.email }}</span>
+          <span class="parent-email-sub" v-if="(selectedParent).name && (selectedParent).phone">{{ selectedParent.phone
+            }}</span>
         </div>
       </div>
     </div>
@@ -130,17 +133,6 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <label>School Branch <span class="required">*</span></label>
-        <div class="branch-select-grid">
-          <button v-for="br in branches" :key="br.id" type="button" class="branch-card-mini"
-            :class="{ active: localData.branch?.id === br.id }" @click="localData.branch = br">
-            <div class="branch-mini-name">{{ br.name }}</div>
-            <div class="branch-mini-abbr">{{ br.abbr }}</div>
-          </button>
-        </div>
-        <div v-if="isSubmittingAttempted && errors.branch" class="field-error-msg">{{ errors.branch }}</div>
-      </div>
 
 
     </div>
@@ -239,10 +231,6 @@ const props = defineProps({
   loading: Boolean,
   error: String,
   success: String,
-  branches: {
-    type: Array,
-    default: () => []
-  }
 })
 
 const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
@@ -258,7 +246,6 @@ const getInitialData = () => ({
   parentId: props.user?.uid || props.user?.id || '',
   dob: '',
   medicalNote: '',
-  branch: null,
 })
 
 const mapSourceToForm = () => {
@@ -270,7 +257,6 @@ const mapSourceToForm = () => {
       ...base,
       parentId: u.uid || u.id || '',
       profile: '',
-      branch: props.branches?.[0] || null,
       medicalNote: '',
     }
   }
@@ -311,7 +297,6 @@ const validationHint = computed(() => {
     if (!data.name?.trim()) errs.name = "Child's name is required."
     if (!data.dob) errs.dob = 'Date of birth is required.'
     if (!data.profile) errs.profile = 'Please select an avatar.'
-    if (!data.branch) errs.branch = 'Please select a school branch.'
   } else if (props.type === 'edit' && !isChanged.value) {
     return 'No changes detected to update.'
   } else if (props.type === 'delete') {
@@ -673,63 +658,5 @@ watch(() => props.isOpen, (newVal) => {
   color: var(--error-color);
   margin-left: 2px;
   font-weight: bold;
-}
-
-/* Branch Selection Styles */
-.branch-select-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: var(--space-sm);
-  margin-top: var(--space-xs);
-}
-
-.original-value {
-  display: inline-block;
-  font-size: var(--text-3xs);
-  color: var(--primary-color);
-  background: var(--primary-soft);
-  padding: 1px 6px;
-  border-radius: var(--border-radius-xs);
-  margin-left: 8px;
-  font-weight: 700;
-  vertical-align: middle;
-}
-
-.branch-card-mini {
-  background: var(--bg-light);
-  border: 1px solid var(--border-color);
-  padding: var(--space-md);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  transition: all 0.2s ease;
-}
-
-.branch-card-mini:hover {
-  border-color: var(--primary-color);
-  background: var(--white);
-  transform: translateY(-2px);
-}
-
-.branch-card-mini.active {
-  background: var(--primary-soft);
-  border-color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1);
-}
-
-.branch-mini-name {
-  font-size: var(--text-xs);
-  font-weight: 800;
-  color: var(--text-dark);
-}
-
-.branch-mini-abbr {
-  font-size: var(--text-3xs);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 </style>

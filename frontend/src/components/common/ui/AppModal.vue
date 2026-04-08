@@ -40,7 +40,7 @@ defineProps({
   },
   variant: {
     type: String,
-    default: '', // 'action', etc
+    default: '',
   },
   icon: {
     type: String,

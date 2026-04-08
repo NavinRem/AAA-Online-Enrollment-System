@@ -229,7 +229,6 @@ const props = defineProps({
   student: Object,
   enrollment: Object,
   selectableParents: { type: Array, default: () => [] },
-  branches: { type: Array, default: () => [] },
   loading: Boolean,
   error: String,
   success: String,
@@ -244,7 +243,6 @@ const getInitialData = () => ({
   profile: '',
   medicalNote: 'None',
   status: '',
-  branch: null,
   deleteConfirm: '',
   overrideReason: '',
   overrideRemark: '',
@@ -263,7 +261,6 @@ const mapSourceToForm = () => {
       (props.type === 'enrollment-override'
         ? props.enrollment?.displayStatus || 'Studying'
         : 'Studying'),
-    branch: source.branch || null,
     deleteConfirm: '',
     overrideReason:
       source.overrideReason ||
@@ -390,10 +387,4 @@ const isPresetActive = (field, chipValue) => {
   color: var(--error-color);
 }
 
-.branch-select-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: var(--space-sm);
-  margin-top: var(--space-sm);
-}
 </style>
