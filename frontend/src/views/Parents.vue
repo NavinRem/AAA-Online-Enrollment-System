@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { getImageUrl, getActionIcon, getParentProfileURL, getStudentProfileURL, isSameProfileAsset } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
@@ -13,9 +13,16 @@ import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import ParentFormModal from '../components/parents/ParentFormModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import { userService } from '../services/userService'
+import { enrollmentService } from '../services/enrollmentService'
 import branchService from '../services/branchService'
 import { useTableActions } from '../composables/useTableActions'
-import { enrichParents, calculateParentStats } from '@/utils/parentHelper'
+import {
+  enrichParents,
+  calculateParentStats,
+  isRegisteredToday,
+  hasPaidToday,
+  filterParents
+} from '@/utils/parentHelper'
 import {
   processUserProfileImage,
   processStudentProfileImage,
@@ -26,6 +33,7 @@ import { formatDate } from '@/utils/formatUtils'
 
 const router = useRouter()
 const allUsers = ref([])
+const enrollments = ref([])
 const loading = ref(true)
 const newlyCreatedId = ref(null)
 const branches = ref([])
@@ -38,10 +46,11 @@ const {
 } = useTableActions()
 
 const statsCards = computed(() => {
-  const s = calculateParentStats(allUsers.value)
+  const s = calculateParentStats(allUsers.value, enrollments.value)
   return [
     { label: 'Total Parents', value: s.parentCount, image: getImageUrl('parent/total-parent'), color: 'var(--accent-light)' },
     { label: 'Registered Today', value: s.todayCount, image: getImageUrl('parent/recently-register'), color: 'var(--accent-light)' },
+    { label: 'Paid Today', value: s.paidTodayCount, image: getImageUrl('parent/paid-today'), color: 'var(--accent-light)' },
     { label: 'Active Now', value: s.activeCount, image: getImageUrl('parent/active-now'), color: 'var(--accent-light)' }
   ]
 })
@@ -53,20 +62,21 @@ const parentHeaders = [
   { label: 'Phone Number', class: 'hide-on-mobile', width: '150px' },
   { label: 'Email', class: 'hide-on-tablet', width: '200px' },
   { label: 'Joined Date', class: 'hide-on-tablet', width: '200px', align: 'center' },
-  { label: 'Role', class: 'hide-on-mobile', align: 'center', width: '100px' },
   { label: 'Status', align: 'center', width: '80px' },
   { label: 'Action', width: '70px', align: 'center' }
 ]
 
 onMounted(async () => {
   try {
-    const [data, allStudents, fetchedBranches] = await Promise.all([
+    const [data, allStudents, fetchedBranches, fetchedEnrollments] = await Promise.all([
       userService.getAllUsers(),
       userService.getAllStudents(),
-      branchService.getAllBranches()
+      branchService.getAllBranches(),
+      enrollmentService.getAllEnrollments()
     ])
 
     branches.value = fetchedBranches
+    enrollments.value = fetchedEnrollments || []
 
     if (Array.isArray(data)) {
       const enriched = enrichParents(data, allStudents || [])
@@ -82,17 +92,7 @@ onMounted(async () => {
 const currentFilter = ref('all')
 
 const statusFilteredParents = computed(() => {
-  let filtered = allUsers.value
-
-  if (currentFilter.value !== 'all') {
-    filtered = allUsers.value.filter(u => {
-      if (currentFilter.value === 'active') return (u.status || 'Active').toLowerCase() === 'active'
-      if (currentFilter.value === 'inactive') return (u.status || 'Active').toLowerCase() === 'inactive'
-      return true
-    })
-  }
-
-  return filtered
+  return filterParents(allUsers.value, enrollments.value, currentFilter.value)
 })
 
 const { searchQuery, searchResults: filteredParents } = useSearch(statusFilteredParents, parentSearchMapper)
@@ -164,7 +164,6 @@ const submitActionModal = async (formData) => {
 
       const result = await userService.registerStudentProfile(uid, payload)
 
-      // Update local state and sync parent's studentInfo array
       const userIdx = allUsers.value.findIndex((u) => (u.uid || u.id) === uid)
       if (userIdx !== -1) {
         if (!allUsers.value[userIdx].studentInfo) allUsers.value[userIdx].studentInfo = []
@@ -176,7 +175,6 @@ const submitActionModal = async (formData) => {
         }
         allUsers.value[userIdx].studentInfo.push(newChild)
 
-        // Sync with backend to ensure the relationship is fully persisted in the user object too
         await userService.updateUser(uid, {
           studentInfo: allUsers.value[userIdx].studentInfo
         })
@@ -260,14 +258,16 @@ const navigateToDetail = (item) => {
         <DataTable title="Parents List" :headers="parentHeaders" :items="filteredParents" :loading="loading"
           v-model:searchQuery="searchQuery" searchPlaceholder="Search Parent..." :hasFilter="true"
           v-model:currentFilter="currentFilter" :filterOptions="[
-            { label: 'All Users', value: 'all' },
+            { label: 'All Parents', value: 'all' },
+            { label: 'Registered Today', value: 'registered-today' },
+            { label: 'Paid Today', value: 'paid-today' },
             { label: 'Active Only', value: 'active' },
             { label: 'Inactive Only', value: 'inactive' },
           ]" :rowClass="getRowClass" @row-click="navigateToDetail"
           @action="({ type, item }) => openActionModal(type, item)">
           <template #toolbar-actions>
             <AppButton variant="primary" @click="showNewParentModal = true">
-              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> New User
+              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> New Parent
             </AppButton>
           </template>
 
@@ -281,7 +281,7 @@ const navigateToDetail = (item) => {
                 <div class="avatar-mini">
                   <img :src="item.profileURL || item.profile" alt="avatar" />
                 </div>
-                <span>{{ item.name || 'Parent' }}</span>
+                <span>{{ item.name }}</span>
               </div>
             </td>
             <td class="hide-on-tablet" :style="{ width: headers[2].width }">
@@ -290,25 +290,22 @@ const navigateToDetail = (item) => {
                 <template v-else>
                   <div v-for="(child, i) in item.studentInfo" :key="child.id || i" class="avatar-mini child-avatar"
                     :title="child.name || 'Child ' + (i + 1)" :style="{ zIndex: item.studentInfo.length - i }">
-                    <img :src="child.profileURL || child.profile" alt="child" />
+                    <img :src="child.profileURL" alt="child" />
                   </div>
                 </template>
               </div>
             </td>
-            <td class="hide-on-mobile" :style="{ width: headers[3].width }">{{ item.phone || 'N/A' }}</td>
+            <td class="hide-on-mobile" :style="{ width: headers[3].width }">{{ item.phone }}</td>
             <td class="hide-on-tablet" :style="{ width: headers[4].width }">
-              <span class="text-truncate" style="display: block; max-width: 200px;">{{ item.email || 'N/A' }}</span>
+              <span class="text-truncate block-max-200">{{ item.email }}</span>
             </td>
             <td class="hide-on-tablet text-center" :style="{ width: headers[5].width }">
               <span class="date-text">{{ formatDate(item.createdAt) }}</span>
             </td>
-            <td class="hide-on-mobile text-center" :style="{ width: headers[6].width }">
-              <StatusBadge :status="item.role" />
+            <td class="text-center" :style="{ width: headers[6].width }">
+              <StatusBadge :status="item.status" />
             </td>
-            <td class="text-center" :style="{ width: headers[7].width }">
-              <StatusBadge :status="item.status || 'Active'" />
-            </td>
-            <td class="action-cell text-center" :style="{ width: headers[8].width }">
+            <td class="action-cell text-center" :style="{ width: headers[7].width }">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.uid || item.id)">
                   <span class="dots-icon">⋮</span>
@@ -367,7 +364,7 @@ const navigateToDetail = (item) => {
   width: 28px;
   height: 28px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  border: 2px solid white;
+  border: 2px solid var(--white);
   border-radius: 50%;
   overflow: hidden;
 }
@@ -380,8 +377,8 @@ const navigateToDetail = (item) => {
 }
 
 .date-text {
-  font-size: 0.85rem;
-  color: #475569;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
 }
 
 .bold {

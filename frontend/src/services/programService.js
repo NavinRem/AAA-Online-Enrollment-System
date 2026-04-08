@@ -5,13 +5,14 @@ export const programService = {
     return request('/programs')
   },
 
-  getSessions(programId) {
-    return request(`/programs/${programId}/sessions`)
+  getClasses(programId) {
+    return request(`/classes?programId=${programId}`)
   },
 
-  getAllSessions() {
-    return request('/sessions')
+  getAllClasses() {
+    return request('/classes')
   },
+
 
   getProgram(programId) {
     return request(`/programs/${programId}`)
@@ -89,16 +90,44 @@ export const programService = {
     })
   },
 
-  createSession(data) {
-    return request('/sessions', {
+  // --- Schedule Management (Sub-collection under Program) ---
+  addSchedule(programId, data) {
+    return request(`/programs/${programId}/schedules`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
   },
 
-  syncAllSessions() {
-    return request('/sessions/sync-all', {
+  getSchedules(programId) {
+    return request(`/programs/${programId}/schedules`)
+  },
+
+  removeSchedule(programId, scheduleId) {
+    return request(`/programs/${programId}/schedules/${scheduleId}`, {
+      method: 'DELETE',
+    })
+  },
+
+  // --- Classes (Operational Instances) ---
+  createClass(data) {
+    return request('/classes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  duplicateClasses(data) {
+    return request('/classes/duplicate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  syncAllClasses() {
+    // This would be the updated version of syncAllSessions
+    return request('/classes/sync-all', {
       method: 'POST',
     })
   },
 }
+

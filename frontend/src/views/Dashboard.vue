@@ -213,8 +213,8 @@ const mappedEnrollments = computed(() => {
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 320px;
-  gap: 30px;
-  padding: 0 30px 30px 30px;
+  gap: var(--space-2xl);
+  padding: 0 var(--space-2xl) var(--space-2xl) var(--space-2xl);
   height: calc(100vh - 90px);
   overflow: hidden;
 }
@@ -222,9 +222,9 @@ const mappedEnrollments = computed(() => {
 .main-column {
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: var(--space-2xl);
   overflow-y: auto;
-  padding-right: 15px;
+  padding-right: var(--space-md);
   min-height: 0;
 }
 
@@ -243,17 +243,17 @@ const mappedEnrollments = computed(() => {
 }
 
 .summary-section {
-  background: white;
-  border-radius: 20px;
-  padding: 25px;
+  background: var(--white);
+  border-radius: var(--border-radius);
+  padding: var(--space-xl);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
 }
 
 .section-title {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--text-dark);
-  margin-bottom: 20px;
+  margin-bottom: var(--space-lg);
   display: flex;
   align-items: center;
 }
@@ -261,19 +261,19 @@ const mappedEnrollments = computed(() => {
 .section-title::after {
   content: '';
   flex: 1;
-  margin-left: 20px;
+  margin-left: var(--space-lg);
   height: 1px;
-  background-color: #eee;
+  background-color: var(--bg-light);
 }
 
 .profile-overview {
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
+  background: var(--white);
+  border-radius: var(--border-radius);
+  padding: var(--space-lg);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-sm);
   position: sticky;
   top: 90px;
   height: 100%;
@@ -284,14 +284,14 @@ const mappedEnrollments = computed(() => {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 20px 0;
-  border-radius: 20px;
+  padding: var(--space-lg) 0;
+  border-radius: var(--border-radius);
   box-shadow: none;
   transition: transform 0.3s ease;
 }
 
 .profile-image-wrapper {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-lg);
 }
 
 .profile-image-large {
@@ -316,22 +316,22 @@ const mappedEnrollments = computed(() => {
 }
 
 .welcome-name {
-  font-size: 1.5rem;
+  font-size: var(--text-3xl);
   font-weight: 800;
   color: var(--text-dark);
   margin: 0;
 }
 
 .status-text {
-  font-size: 0.9rem;
-  color: #a0a0a0;
+  font-size: var(--text-sm);
+  color: var(--text-light);
   font-weight: 500;
 }
 
 .basic-info {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--space-md);
   height: 100%;
 }
 
@@ -344,7 +344,7 @@ const mappedEnrollments = computed(() => {
 .mini-cards-stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .dashboard-loading {
@@ -353,16 +353,16 @@ const mappedEnrollments = computed(() => {
   align-items: center;
   justify-content: center;
   height: 60vh;
-  gap: 20px;
-  color: #666;
+  gap: var(--space-lg);
+  color: var(--text-muted);
 }
 
 .loader {
   width: 50px;
   aspect-ratio: 1;
   border-radius: 50%;
-  border: 4px solid #f3f3f3;
-  border-right-color: #00aeef;
+  border: 4px solid var(--border-color);
+  border-right-color: var(--primary-color);
   animation: l2 1s infinite linear;
 }
 

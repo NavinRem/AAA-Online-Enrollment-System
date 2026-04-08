@@ -25,7 +25,8 @@ const enrollments = ref([])
 const parents = ref([])
 const students = ref([])
 const programs = ref([])
-const sessions = ref([])
+const classes = ref([])
+
 const loading = ref(true)
 const showModal = ref(false)
 const submitting = ref(false)
@@ -74,7 +75,7 @@ const loadFormData = async () => {
       userService.getAllStudents(),
     ])
     parents.value = Array.isArray(usersRes)
-      ? usersRes.filter((u) => u.role === 'parent' || u.role === 'guardian')
+      ? usersRes.filter((u) => u.role === 'parent')
       : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
@@ -85,16 +86,17 @@ const loadFormData = async () => {
 
 const handleProgramChange = async (programId) => {
   if (!programId) {
-    sessions.value = []
+    classes.value = []
     return
   }
   try {
-    const data = await programService.getSessions(programId)
-    sessions.value = Array.isArray(data) ? data : []
+    const data = await programService.getClasses(programId)
+    classes.value = Array.isArray(data) ? data : []
   } catch (err) {
-    console.error('Failed to load sessions', err)
+    console.error('Failed to load classes', err)
   }
 }
+
 
 let hintTimeout = null
 const setValidationHint = (msg) => {
@@ -112,13 +114,15 @@ const handleSaveEnrollment = async (formData) => {
     const parent = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
     const student = students.value.find((s) => s.id === formData.studentId)
     const program = programs.value.find((c) => c.id === formData.programId || c.id === formData.courseId)
-    const session = sessions.value.find((s) => s.id === formData.sessionId)
+    const classInstance = classes.value.find((c) => c.id === formData.classId)
+
 
     const payload = {
       parentId: parent.uid || parent.id,
       studentId: student.id,
       programId: program.id,
-      sessionId: session.id,
+      classId: classInstance.id,
+
       parent: {
         id: parent.uid || parent.id,
         name: parent.name || parent.email || 'Parent',
@@ -134,11 +138,12 @@ const handleSaveEnrollment = async (formData) => {
         title: program.title || program.name || 'Program',
         profile: program.profile || null
       },
-      session: {
-        id: session.id,
-        schedule: session.schedule?.day + ' ' + session.schedule?.timeslot
+      class: {
+        id: classInstance.id,
+        schedule: classInstance.day + ' ' + classInstance.timeslot
       },
-      sessionSchedule: session.schedule?.day + ' ' + session.schedule?.timeslot,
+      classSchedule: classInstance.day + ' ' + classInstance.timeslot,
+
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
       isSponsorship: formData.isSponsorship || false,
@@ -196,10 +201,10 @@ const enrollmentStats = computed(() => {
 
 const enrollmentHeaders = [
   { label: 'No', width: '40px', align: 'center' },
-  { label: 'Parent / Guardian', width: '160px' },
+  { label: 'Parent', width: '160px' },
   { label: 'Student', width: '160px' },
   { label: 'Program', width: '200px' },
-  { label: 'Session', width: '120px' },
+  { label: 'Class', width: '120px' },
   { label: 'Enrolled Date', width: '120px', align: 'center' },
   { label: 'Mode', width: '90px', align: 'center', sortable: true, key: 'enrollmentType' },
   { label: 'Method', width: '100px', align: 'center', sortable: true, key: 'paymentMethod' },
@@ -211,7 +216,8 @@ const enrollmentHeaders = [
 const currentFilter = ref('all')
 
 const statusFilteredEnrollments = computed(() => {
-  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, programs.value, sessions.value)
+  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, programs.value, classes.value)
+
 
   let filtered = enriched
   if (currentFilter.value !== 'all') {
@@ -358,36 +364,33 @@ const closeActionModal = () => {
             <td class="hide-on-tablet bold" :style="{ width: headers[1].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="item.parent?.profileURL || item.parent?.profile || item.parentProfileURL" alt="parent" />
+                  <img :src="item.parent?.profileURL" alt="parent" />
                 </div>
-                <span>{{ item.parent?.name || item.parentName }}</span>
+                <span>{{ item.parent?.name }}</span>
               </div>
             </td>
             <td class="bold" :style="{ width: headers[2].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="item.student?.profileURL || item.student?.profile || item.studentProfileURL"
-                    alt="student" />
+                  <img :src="item.student?.profileURL" alt="student" />
                 </div>
-                <span>{{ item.student?.name || item.studentName }}</span>
+                <span>{{ item.student?.name }}</span>
               </div>
             </td>
             <td :style="{ width: headers[3].width }">
               <div class="info-cell">
                 <div class="program-icon-mini">
-                  <img :src="item.program?.profileURL || item.program?.profile || item.programProfileURL"
-                    alt="program" />
+                  <img :src="item.program?.profileURL" alt="program" />
                 </div>
                 <div class="program-cell">
-                  <div class="program-title text-truncate">{{ item.program?.title || item.programTitle || 'Program' }}
-                  </div>
+                  <div class="program-title text-truncate">{{ item.program?.title }}</div>
                 </div>
               </div>
             </td>
             <td :style="{ width: headers[4].width }">
               <div class="session-cell">
-                <div class="session-day"><strong>{{ getSessionDay(item.sessionSchedule) }}</strong></div>
-                <div class="session-time">{{ getSessionTime(item.sessionSchedule) }}</div>
+                <div class="session-day"><strong>{{ getSessionDay(item.classSchedule) }}</strong></div>
+                <div class="session-time">{{ getSessionTime(item.classSchedule) }}</div>
               </div>
             </td>
             <td class="text-center" :style="{ width: headers[5].width }">
@@ -445,7 +448,7 @@ const closeActionModal = () => {
     </DataPageLayout>
 
     <EnrollmentFormModal :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
-      :programs="programs" :sessions="sessions" :enrollments="enrollments" :enrollment="selectedEnrollment"
+      :programs="programs" :classes="classes" :enrollments="enrollments" :enrollment="selectedEnrollment"
       :error="errorMessage" :success="successMessage" :hint="validationHint"
       @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
       @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint" />
@@ -457,7 +460,7 @@ const closeActionModal = () => {
 
 <style scoped>
 .action-modal {
-  padding: 24px;
+  padding: var(--space-xl);
 }
 
 .user-info {
@@ -471,14 +474,14 @@ const closeActionModal = () => {
 }
 
 .date-text {
-  font-size: 0.9rem;
-  color: #475569;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
 }
 
 .prorate-note {
   font-size: 0.65rem;
   font-weight: 800;
-  color: #00aeef;
+  color: var(--primary-color);
   letter-spacing: 0.05em;
 }
 </style>

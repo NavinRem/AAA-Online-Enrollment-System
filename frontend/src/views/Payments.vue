@@ -68,6 +68,6 @@ const paymentHeaders = [
 <style scoped>
 .amount {
   font-weight: 700;
-  color: #00aeef;
+  color: var(--primary-color);
 }
 </style>

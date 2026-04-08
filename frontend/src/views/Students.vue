@@ -89,7 +89,7 @@ const statsCards = computed(() => {
 const studentHeaders = [
   { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
   { label: 'Fullname', width: '300px' },
-  { label: 'Parent / Guardian', class: 'hide-on-mobile', width: '220px' },
+  { label: 'Parent', class: 'hide-on-mobile', width: '220px' },
   { label: 'Current Program', class: 'hide-on-tablet' },
   { label: 'Joined Date', class: 'hide-on-tablet', width: '300px' },
   { label: 'Status', align: 'center', width: '120px' },
@@ -114,7 +114,7 @@ const handleOpenAddStudent = async () => {
 
   try {
     const allUsers = await userService.getAllUsers()
-    parentsList.value = allUsers.filter((u) => u.role === 'parent' || u.role === 'guardian')
+    parentsList.value = allUsers.filter((u) => u.role === 'parent')
   } catch (err) {
     console.error('Failed to load parents list', err)
     modalError.value = 'Could not load parent options.'
@@ -221,7 +221,7 @@ const openActionModal = async (type, studentItem) => {
   if (parentsList.value.length === 0) {
     try {
       const allUsers = await userService.getAllUsers()
-      parentsList.value = allUsers.filter((u) => u.role === 'parent' || u.role === 'guardian')
+      parentsList.value = allUsers.filter((u) => u.role === 'parent')
     } catch (err) {
       console.warn('Could not load parent options for edit form', err)
     }
@@ -448,8 +448,8 @@ const submitActionModal = async (formData) => {
 
 <style scoped>
 .text-muted {
-  color: #888;
-  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 
 .actions-wrapper {
@@ -459,6 +459,6 @@ const submitActionModal = async (formData) => {
 
 .user-info {
   cursor: pointer;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 </style>

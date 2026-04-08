@@ -65,6 +65,13 @@ const router = createRouter({
       meta: { title: 'Programs' },
     },
     {
+      path: '/classes',
+      name: 'classes',
+      component: () => import('../views/Classes.vue'),
+      meta: { title: 'Classes' },
+    },
+
+    {
       path: '/programs/:id',
       name: 'program-detail',
       component: () => import('../views/ProgramDetail.vue'),

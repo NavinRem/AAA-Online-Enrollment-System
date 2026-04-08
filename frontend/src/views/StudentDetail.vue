@@ -39,18 +39,13 @@ const primaryParent = computed(() => {
   return role.includes('parent') ? parent.value : null
 })
 
-const primaryGuardian = computed(() => {
-  const role = String(parent.value?.role || '').toLowerCase()
-  return role.includes('guardian') ? parent.value : null
-})
-
 const loading = ref(true)
 const errorMessage = ref('')
 const globalSuccess = ref('')
 const globalError = ref('')
 const submitting = ref(false)
 
-const activeDropdown = ref(null) // 'attendance', 'behavior', 'exam' or null
+const activeDropdown = ref(null)
 const programMenuStyles = ref({})
 
 const toggleProgramFilter = (tab, event) => {
@@ -384,25 +379,25 @@ const studentStats = computed(() => {
       label: 'Academic History',
       value: academicCount,
       image: getImageUrl('data-metric-card/academic-history'),
-      color: '#e0f2fe'
+      color: 'var(--primary-soft)'
     },
     {
       label: 'Attendance',
       value: attendanceRate,
       image: getImageUrl('data-metric-card/attendance'),
-      color: '#e0f2fe'
+      color: 'var(--primary-soft)'
     },
     {
       label: 'Behavior Standing',
       value: behaviorStanding,
       image: getImageUrl('data-metric-card/behavior'),
-      color: '#e0f2fe'
+      color: 'var(--primary-soft)'
     },
     {
       label: 'Exam Average',
       value: examAverage,
       image: getImageUrl('data-metric-card/exam'),
-      color: '#e0f2fe'
+      color: 'var(--primary-soft)'
     }
   ]
 })
@@ -812,7 +807,7 @@ watch(
               </div>
               <div class="info-item vertical" v-if="student?.overrideReason">
                 <span class="info-label">OVERRIDE REASON:</span>
-                <strong style="color: #ef4444">{{ student?.overrideReason }}</strong>
+                <strong style="color: var(--error-color)">{{ student?.overrideReason }}</strong>
               </div>
               <div class="info-item vertical" v-if="student?.overrideRemark">
                 <span class="info-label">OVERRIDE REMARK:</span>
@@ -820,7 +815,7 @@ watch(
               </div>
             </div>
 
-            <div class="timestamp-group" style="margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 20px;">
+            <div class="timestamp-group-standard mt-lg pt-lg">
               <div class="timestamp-item">
                 <StatusBadge status="Joined At" />
                 <p>{{ formatDate(student?.createdAt) }}</p>
@@ -846,18 +841,6 @@ watch(
                 </div>
               </div>
               <div v-else class="empty-relation-box">
-                <!-- <p>No parent mapped.</p> -->
-              </div>
-            </div>
-
-            <div class="relationship-category" style="margin-top: 5px" v-if="primaryGuardian">
-              <span class="category-title">Guardian</span>
-              <div class="relationship-item">
-                <img :src="primaryGuardian?.profile || getImageUrl('profiles/avatar-guardian')" alt="Guardian Avatar"
-                  class="small-avatar" />
-                <div class="child-info">
-                  <strong>{{ primaryGuardian?.name }}</strong>
-                </div>
               </div>
             </div>
           </div>
