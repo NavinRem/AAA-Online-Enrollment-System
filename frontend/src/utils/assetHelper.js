@@ -100,6 +100,7 @@ export const ACTION_ICONS = {
   close: 'action/close',
   'eye-open': 'action/eye-open',
   'eye-close': 'action/eye-close',
+  'reset-password': 'action/reset-password',
 }
 
 /**
@@ -139,9 +140,18 @@ export const isSameProfileAsset = (asset1, asset2) => {
       if (parts.length > 1) {
         core = decodeURIComponent(parts[1]).split('/').slice(1).join('/')
       }
+    } else {
+      const segments = core.split('/')
+      const fileName = segments[segments.length - 1]
+      const dotIndex = fileName.lastIndexOf('.')
+      core = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName
     }
 
-    return core.toLowerCase().replace(/\/$/, '').trim()
+    return core
+      .toLowerCase()
+      .replace(/^avatar-/, '')
+      .replace(/\/$/, '')
+      .trim()
   }
 
   return extractCore(asset1) === extractCore(asset2)

@@ -6,6 +6,7 @@ class UserService {
   async _registerAccount(userData, defaultRole, collection) {
     let { uid, email, name, phone, password, role } = userData;
     let targetRole = (role || defaultRole).toLowerCase();
+    let generatedPassword = null;
 
     if (targetRole === "guardian") targetRole = "parent";
 
@@ -13,7 +14,13 @@ class UserService {
       if (!email) throw new Error("Email is required to create an account");
       try {
         const userConfig = { email, displayName: name || null };
-        if (password) userConfig.password = password;
+
+        if (!password) {
+          generatedPassword = "AAA123456";
+          password = generatedPassword;
+        }
+
+        userConfig.password = password;
         const userRecord = await getAuth().createUser(userConfig);
         uid = userRecord.uid;
       } catch (error) {
@@ -29,7 +36,6 @@ class UserService {
     const docRef = db.collection(collection).doc(uid);
     const now = new Date().toISOString();
 
-    // Create clean data for core collection
     const data = {
       email: email || null,
       role: targetRole,
@@ -41,7 +47,10 @@ class UserService {
     };
 
     const doc = await docRef.get();
-    if (!doc.exists) data.createdAt = now;
+    if (!doc.exists) {
+      data.createdAt = now;
+      data.mustChangePassword = true; // Enforce change on mobile interface
+    }
 
     await docRef.set(data, { merge: true });
 
@@ -50,6 +59,33 @@ class UserService {
       role: targetRole,
       message: `Account registered successfully in ${collection}`,
       isNew: !doc.exists,
+      tempPassword: generatedPassword,
+    };
+  }
+
+  async manualPasswordReset(uid) {
+    const user = await this.getUser(uid);
+    const collection =
+      user.role === "admin" ? COLLECTIONS.ADMIN : COLLECTIONS.PARENT;
+
+    // Generate a fresh temporary password for the reset (easy to read but randomized enough)
+    const tempPassword = `AAA${Math.floor(100000 + Math.random() * 900000)}`;
+
+    // Update Auth password
+    await getAuth().updateUser(uid, { password: tempPassword });
+
+    // Mark as needing change in Firestore
+    const docRef = db.collection(collection).doc(uid);
+    await docRef.update({
+      mustChangePassword: true,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return {
+      uid,
+      tempPassword,
+      message:
+        "Password reset successfully. The user must change it on their next login.",
     };
   }
 
@@ -75,7 +111,6 @@ class UserService {
   }
 
   async getUser(uid) {
-    // Search in both core collections: admins and parents
     const adminDoc = await db.collection(COLLECTIONS.ADMIN).doc(uid).get();
     if (adminDoc.exists) return { uid, ...adminDoc.data() };
 
@@ -130,7 +165,7 @@ class UserService {
 
     const batch = db.batch();
     const now = new Date().toISOString();
-    
+
     const cleanData = { ...updateData, updatedAt: now };
 
     delete cleanData.uid;
@@ -142,7 +177,14 @@ class UserService {
 
     batch.set(docRef, cleanData, { merge: true });
 
-    const syncFields = ["name", "email", "phone", "profileURL", "role", "status"];
+    const syncFields = [
+      "name",
+      "email",
+      "phone",
+      "profileURL",
+      "role",
+      "status",
+    ];
     const shouldSync = Object.keys(updateData).some((key) =>
       syncFields.includes(key),
     );

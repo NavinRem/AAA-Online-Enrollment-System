@@ -62,6 +62,12 @@ export const userService = {
     })
   },
 
+  resetPassword(uid) {
+    return request(`/users/${uid}/reset-password`, {
+      method: 'POST',
+    })
+  },
+
   deleteStudent(studentId) {
     return request(`/students/${studentId}`, {
       method: 'DELETE',

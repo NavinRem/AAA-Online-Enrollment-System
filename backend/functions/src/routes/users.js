@@ -56,6 +56,14 @@ router.patch("/:uid", verifyToken, isOwnerOrAdmin, userController.updateUser);
 // Delete User (Owner or Admin)
 router.delete("/:uid", verifyToken, isOwnerOrAdmin, userController.deleteUser);
 
+// Manual Password Reset (Admin Only)
+router.post(
+  "/:uid/reset-password",
+  verifyToken,
+  isAdmin,
+  userController.resetPassword,
+);
+
 // Get All Students for Parent (Owner or Admin)
 router.get(
   "/:uid/students",

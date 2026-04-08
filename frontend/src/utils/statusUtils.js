@@ -37,6 +37,7 @@ const STATUS_CATEGORIES = {
     'start',
     'cash',
     'ph',
+    'created at',
   ],
   yellow: [
     'unpaid',
@@ -69,6 +70,7 @@ const STATUS_CATEGORIES = {
     'sky',
     'aeon',
     'high-students',
+    'registered-today',
   ],
   purple: [
     'make-up',
@@ -81,6 +83,7 @@ const STATUS_CATEGORIES = {
     'partial',
     'cm',
     'chip mong',
+    'paid-today',
   ],
   red: [
     'canceled',
@@ -98,7 +101,7 @@ const STATUS_CATEGORIES = {
 const THEMES = {
   green: { backgroundColor: 'var(--success-soft)', color: 'var(--success-color)' },
   yellow: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning-color)' },
-  orange: { backgroundColor: 'var(--orange-soft)', color: 'var(--orange-color)' }, 
+  orange: { backgroundColor: 'var(--orange-soft)', color: 'var(--orange-color)' },
   red: { backgroundColor: 'var(--error-soft)', color: 'var(--error-color)' },
   blue: { backgroundColor: 'var(--primary-soft)', color: 'var(--primary-color)' },
   purple: { backgroundColor: 'var(--purple-soft)', color: 'var(--purple-color)' },

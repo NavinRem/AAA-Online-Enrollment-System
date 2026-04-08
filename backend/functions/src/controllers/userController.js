@@ -182,3 +182,16 @@ exports.runStandardization = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+/**
+ * @route POST /users/:uid/reset-password
+ * @description Admin-led manual password reset
+ */
+exports.resetPassword = async (req, res) => {
+  try {
+    const result = await userService.manualPasswordReset(req.params.uid);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

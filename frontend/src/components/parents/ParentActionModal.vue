@@ -1,7 +1,6 @@
 <template>
   <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="getActionIcon(type)">
-    <div v-if="(type === 'register-child' && selectedParent || type === 'plus')" class="parent-identity-panel"
-      :class="parentTheme">
+    <div v-if="(selectedParent) && type !== 'edit'" class="parent-identity-panel" :class="parentTheme">
       <div class="parent-info-content">
         <div class="parent-avatar-wrapper">
           <img :src="(selectedParent).profileURL" class="parent-avatar-img" />
@@ -55,7 +54,7 @@
       </div>
     </div>
 
-    <div v-if="type === 'register-child'" class="form-grid">
+    <div v-if="type === 'plus'" class="form-grid">
       <div class="form-group full-width" v-if="!user && selectableParents && selectableParents.length > 0">
         <label>Select Parent <span class="required">*</span></label>
         <div class="custom-dropdown-container">
@@ -177,6 +176,44 @@
         placeholder="TYPE DELETE HERE" />
     </div>
 
+    <div v-if="type === 'reset-password'" class="security-reset-panel">
+      <div class="security-intro">
+        <h3>Account Recovery Options</h3>
+        <p>Choose the most appropriate way to assist the parent with their password recovery.</p>
+      </div>
+
+      <div class="recovery-options-grid">
+        <div class="recovery-card" @click="handleSendResetEmail">
+          <div class="recovery-icon-circle blue">
+            <img :src="getActionIcon('email')" class="recovery-icon" />
+          </div>
+          <div class="recovery-content">
+            <strong>Send Reset Email</strong>
+            <p>Parent will receive a secure link to their registered email ({{ selectedParent?.email }}) to authorize a
+              new password.</p>
+          </div>
+          <div class="recovery-badge recommendation">Recommended</div>
+        </div>
+
+        <div class="recovery-card manual" @click="handleActionSubmit">
+          <div class="recovery-icon-circle orange">
+            <img :src="getActionIcon('edit')" class="recovery-icon" />
+          </div>
+          <div class="recovery-content">
+            <strong>Manual Password Reset</strong>
+            <p>Instantly generate a temporary password. Only use this if you have <u>verified the parent's identity</u>
+              in person.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="security-warning-box">
+        <i class="fas fa-shield-alt"></i>
+        <span>Security Note: Both methods will require the parent to create their own secure password before they can
+          continue using the mobile application.</span>
+      </div>
+    </div>
+
     <template #footer>
       <div class="flex-column flex-end w-full gap-sm">
         <transition name="toast-fade">
@@ -223,6 +260,9 @@ import { useActionModal } from '@/composables/useActionModal'
 import { getActionIcon, getParentProfileURL, isSameProfileAsset } from '@/utils/assetHelper'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 
+import { auth } from '@/firebase'
+import { sendPasswordResetEmail } from 'firebase/auth'
+
 const props = defineProps({
   isOpen: Boolean,
   type: String,
@@ -252,7 +292,7 @@ const mapSourceToForm = () => {
   const u = props.user || {}
   const base = getInitialData()
 
-  if (props.type === 'register-child') {
+  if (props.type === 'register-child' || props.type === 'plus') {
     return {
       ...base,
       parentId: u.uid || u.id || '',
@@ -268,7 +308,7 @@ const mapSourceToForm = () => {
     email: u.email || '',
     role: u.role || 'parent',
     status: u.status || 'Active',
-    profile: u.profile || 'man',
+    profile: u.profileURL,
   }
 }
 
@@ -292,7 +332,7 @@ const validationHint = computed(() => {
     if (!data.phone?.trim()) errs.phone = 'Phone number is required.'
     if (!data.role) errs.role = 'Role is required.'
     if (!data.profile) errs.profile = 'Please select a profile avatar.'
-  } else if (props.type === 'register-child') {
+  } else if (props.type === 'register-child' || props.type === 'plus') {
     if (!data.parentId) errs.parentId = 'Please select a parent.'
     if (!data.name?.trim()) errs.name = "Child's name is required."
     if (!data.dob) errs.dob = 'Date of birth is required.'
@@ -349,6 +389,22 @@ const handleActionSubmit = () => {
   submitForm(true)
 }
 
+const handleSendResetEmail = async () => {
+  if (!selectedParent.value?.email) return
+
+  submittingLocal.value = true
+  try {
+    await sendPasswordResetEmail(auth, selectedParent.value.email)
+    emit('submit', { type: 'reset-email-sent' }) // Parent component can show success
+  } catch (err) {
+    console.error('Failed to send reset email:', err)
+  } finally {
+    submittingLocal.value = false
+  }
+}
+
+const submittingLocal = ref(false)
+
 const parentTheme = computed(() => {
   const p = props.user || selectedParent.value
   if (!p) return 'theme-default'
@@ -364,13 +420,13 @@ const modalTitle = computed(() => {
     deactivate: 'Deactivate Account',
     activate: 'Reactivate Account',
     delete: 'Delete Account',
-    'register-child': 'Register New Child'
+    plus: 'Register New Child'
   }
   return titles[props.type] || 'Action Modal'
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'register-child') return 'Register Child'
+  if (props.type === 'plus') return 'Register Child'
   if (props.type === 'deactivate') return 'Deactivate'
   if (props.type === 'activate') return 'Reactivate'
   if (props.type === 'edit') return 'Update Profile'
@@ -378,7 +434,6 @@ const submitLabel = computed(() => {
   return 'Confirm Action'
 })
 
-// Child Registration Helpers (Presets & Dropdown)
 const isDropdownOpen = ref(false)
 const parentSearchQuery = ref('')
 const dropdownStyles = ref({ top: '0px', left: '0px', minWidth: '0px' })
@@ -420,17 +475,134 @@ const isPresetActive = (field, chipValue) => {
   return (localData.value[field] || '').split(',').map(v => v.trim()).includes(chipValue)
 }
 
-// Reset Dropdown and attempt flag on close
 watch(() => props.isOpen, (newVal) => {
   if (!newVal) {
     isDropdownOpen.value = false
     isSubmittingAttempted.value = false
     showValidationHint.value = false
+    submittingLocal.value = false
   }
 })
 </script>
 
 <style scoped>
+.security-reset-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  padding: var(--space-sm) 0;
+}
+
+.security-intro h3 {
+  font-size: var(--text-lg);
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+
+.security-intro p {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.recovery-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.recovery-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  padding: var(--space-lg);
+  background: var(--white);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.recovery-card:hover {
+  border-color: var(--primary-color);
+  background: var(--bg-subtle);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.recovery-card.manual:hover {
+  border-color: var(--accent-color);
+}
+
+.recovery-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.recovery-icon-circle.blue {
+  background: var(--info-soft);
+}
+
+.recovery-icon-circle.orange {
+  background: var(--warning-soft);
+}
+
+.recovery-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.recovery-content strong {
+  display: block;
+  font-size: var(--text-base);
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.recovery-content p {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.recovery-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+
+.recovery-badge.recommendation {
+  background: var(--success-soft);
+  color: var(--success-color);
+}
+
+.security-warning-box {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-light);
+  border-radius: var(--border-radius-sm);
+  border-left: 4px solid var(--primary-color);
+}
+
+.security-warning-box span {
+  font-size: var(--text-3xs);
+  color: var(--text-light);
+  font-style: italic;
+  line-height: 1.4;
+}
+
 .validation-hint-toast {
   font-size: var(--text-xs);
   color: var(--error-color);
