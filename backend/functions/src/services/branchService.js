@@ -83,15 +83,17 @@ class BranchService {
     const today = new Date().toISOString().split("T")[0];
 
     // Build optimized queries
-    const [studentsSnap, enrollmentsSnap, classesSnap] = await Promise.all([
-      db.collection(COLLECTIONS.STUDENT).where("branchId", "==", branchId).get(),
+    const [enrollmentsSnap, classesSnap] = await Promise.all([
       db.collection(COLLECTIONS.ENROLLMENT).where("branchId", "==", branchId).get(),
       db.collection(COLLECTIONS.CLASS).where("branchId", "==", branchId).get(),
     ]);
 
-    const students = studentsSnap.docs;
     const enrollments = enrollmentsSnap.docs;
     const classes = classesSnap.docs;
+
+    const enrolledStudentIds = new Set(
+      enrollments.map((d) => d.data().studentId).filter(Boolean),
+    );
 
     const programIds = new Set(
       classes.map((d) => d.data().programId).filter(Boolean),
@@ -119,7 +121,7 @@ class BranchService {
     });
 
     const stats = {
-      studentCount: students.length,
+      studentCount: enrolledStudentIds.size,
       programCount: programIds.size,
       classCount: classes.length,
       newTodayCount,

@@ -33,7 +33,6 @@ class ProfileHelper {
       dob: studentData.dob,
       medicalNote: studentData.medicalNote,
       profileURL: studentData.profileURL,
-      branch: studentData.branch,
       status: studentData.status,
     };
   }
