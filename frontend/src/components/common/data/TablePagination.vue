@@ -50,16 +50,16 @@ const changePage = (page) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
-  border-top: 1px solid #f1f5f9;
+  background: var(--white);
+  border-top: 1px solid var(--bg-light);
   border-radius: 0 0 16px 16px;
   font-size: 0.9rem;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .pagination-info span {
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark);
 }
 
 .pagination-controls {
@@ -74,25 +74,25 @@ const changePage = (page) => {
   gap: 8px;
   padding: 8px 16px;
   background: var(--bg-subtle);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #475569;
+  color: var(--text-dark);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #1e293b;
+  background: var(--bg-light);
+  border-color: var(--text-light);
+  color: var(--text-dark);
 }
 
 .pagination-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #f1f5f9;
+  background: var(--bg-light);
 }
 
 .btn-icon {
@@ -105,8 +105,8 @@ const changePage = (page) => {
 }
 
 .page-numbers strong {
-  background: #00aeef;
-  color: white;
+  background: var(--primary-color);
+  color: var(--white);
   padding: 2px 8px;
   border-radius: 4px;
   margin: 0 4px;

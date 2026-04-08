@@ -7,7 +7,7 @@
       'is-disabled': disabled || loading,
       'has-icon-only': iconOnly,
     },
-  ]" :type="type" :disabled="disabled || loading" @click="$emit('click', $event)">
+  ]" :style="buttonStyle" :type="type" :disabled="disabled || loading" @click="$emit('click', $event)">
     <span v-if="loading" class="spinner"></span>
 
     <span v-if="$slots['icon-left'] && !loading" class="icon-span left">
@@ -27,7 +27,10 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import { getStatusTheme } from '@/utils/statusUtils'
+
+const props = defineProps({
   text: {
     type: String,
     default: '',
@@ -60,6 +63,15 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  status: {
+    type: String,
+    default: '',
+  },
+})
+
+const buttonStyle = computed(() => {
+  if (!props.status) return {}
+  return getStatusTheme(props.status)
 })
 
 defineEmits(['click'])

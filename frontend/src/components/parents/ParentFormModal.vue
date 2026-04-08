@@ -1,6 +1,5 @@
 <template>
-    <AppModal :show="isOpen" title="Register New Parent / Guardian" @close="$emit('close')"
-        :icon="getActionIcon('plus')">
+    <AppModal :show="isOpen" title="Register New Parent" @close="$emit('close')" :icon="getActionIcon('plus')">
         <form class="form-grid" @submit.prevent="handleFormSubmit">
             <div class="form-group full-width">
                 <label>Full Name <span class="required">*</span></label>
@@ -23,21 +22,11 @@
                 <div v-if="isSubmittingAttempted && errors.phone" class="field-error-msg">{{ errors.phone }}</div>
             </div>
 
-            <div class="form-group">
-                <label>Role <span class="required">*</span></label>
-                <select v-model="formData.role" class="standard-input"
-                    :class="{ 'field-error': isSubmittingAttempted && errors.role }">
-                    <option value="parent">Parent</option>
-                    <option value="guardian">Guardian</option>
-                </select>
-                <div v-if="isSubmittingAttempted && errors.role" class="field-error-msg">{{ errors.role }}</div>
-            </div>
-
             <div class="field-item full-width profile-selector-section">
-              <label class="field-label">Select Profile Avatar</label>
-              <AvatarSelector v-model="formData.profileURL" />
-              <p class="avatar-guidance">Only .jpg, .png, and .webp images are accepted.</p>
-              <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg">{{ errors.profile }}</div>
+                <label class="field-label">Select Profile Avatar</label>
+                <AvatarSelector v-model="formData.profileURL" />
+                <p class="avatar-guidance">Only .jpg, .png, and .webp images are accepted.</p>
+                <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg">{{ errors.profile }}</div>
             </div>
 
             <div class="form-group full-width">
@@ -47,18 +36,18 @@
                 <small class="text-muted-modern">The parent will be asked to change this on first login.</small>
             </div>
             <!-- Hidden submit for Enter key functionality -->
-            <button type="submit" style="display: none;"></button>
+            <button type="submit" class="hidden"></button>
         </form>
 
         <template #footer>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; gap: 12px;">
+            <div class="flex-column flex-end w-full gap-sm">
                 <transition name="toast-fade">
                     <div v-if="showValidationHint && validationHint" class="validation-hint-toast">
                         ⚠️ {{ validationHint }}
                     </div>
                 </transition>
 
-                <div v-if="error || success" style="width: 100%;">
+                <div v-if="error || success" class="w-full">
                     <transition name="alert-fade">
                         <AppAlert v-if="error" :show="!!error" type="error" closable @close="$emit('update:error', '')">
                             {{ error }}
@@ -73,7 +62,7 @@
                     </transition>
                 </div>
 
-                <div style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
+                <div class="flex-align-center flex-end w-full gap-sm">
                     <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
                     <AppButton variant="primary" @click="handleFormSubmit" :loading="loading"
                         :disabled="loading || success" :class="{ 'button-disabled-visual': isFormInvalid || success }">
@@ -110,7 +99,6 @@ const formData = ref({
     name: '',
     email: '',
     phone: '',
-    role: '',
     profileURL: 'man',
     status: 'Active',
     password: '',
@@ -122,8 +110,7 @@ watch(() => props.isOpen, (newVal) => {
             name: '',
             email: '',
             phone: '',
-            role: '',
-            profile: '',
+            profileURL: 'man',
             password: '',
         }
         isSubmittingAttempted.value = false
@@ -140,7 +127,6 @@ const validationHint = computed(() => {
     if (!data.name?.trim()) errs.name = 'Full name is required.'
     if (!data.email?.trim() || !data.email.includes('@')) errs.email = 'Valid email is required.'
     if (!data.phone?.trim()) errs.phone = 'Phone number is required.'
-    if (!data.role) errs.role = 'Role is required.'
     if (!data.profileURL || data.profileURL === '') errs.profile = 'Please select a profile avatar.'
 
     errors.value = errs
@@ -159,19 +145,19 @@ const handleFormSubmit = () => {
         }, 3000)
         return
     }
-    emit('submit', { ...formData.value })
+    emit('submit', { ...formData.value, role: 'parent' })
 }
 </script>
 
 <style scoped>
 .validation-hint-toast {
-    font-size: 0.8rem;
-    color: #ef4444;
-    background: #fef2f2;
-    padding: 8px 16px;
-    border-radius: 8px;
-    border: 1px solid #fee2e2;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    font-size: var(--text-xs);
+    color: var(--error-color);
+    background: var(--error-soft);
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--error-soft);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
     max-width: fit-content;
     animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
 }
@@ -213,20 +199,20 @@ const handleFormSubmit = () => {
 
 .text-muted-modern {
     display: block;
-    font-size: 0.75rem;
-    color: #94a3b8;
+    font-size: var(--text-xs);
+    color: var(--text-light);
     margin-top: 4px;
 }
 
 .required {
-    color: #ef4444;
+    color: var(--error-color);
     font-weight: bold;
     margin-left: 2px;
 }
 
 .avatar-guidance {
-    font-size: 0.72rem;
-    color: #94a3b8;
+    font-size: var(--text-xs);
+    color: var(--text-light);
     margin-top: 6px;
     font-style: italic;
     display: block;

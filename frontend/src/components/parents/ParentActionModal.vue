@@ -1,81 +1,67 @@
 <template>
   <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="getActionIcon(type)">
-    <!-- Identity Card for Parent Actions (Show only for non-edit actions) -->
-    <div v-if="(user || (type === 'register-child' && selectedParent)) && type !== 'edit'" class="parent-identity-panel"
-      :class="parentTheme">
+    <div v-if="(type === 'register-child' && selectedParent)" class="parent-identity-panel" :class="parentTheme">
       <div class="parent-info-content">
         <div class="parent-avatar-wrapper">
-          <img :src="(user || selectedParent).profileURL || (user || selectedParent).profile"
-            class="parent-avatar-img" />
+          <img :src="(selectedParent).profileURL" class="parent-avatar-img" />
         </div>
         <div class="parent-details">
-          <span class="parent-role-tag">{{ (user || selectedParent).role || 'parent' }}</span>
-          <strong class="parent-name">{{ (user || selectedParent).name || (user || selectedParent).email }}</strong>
-          <span class="parent-email-sub" v-if="(user || selectedParent).name">{{ (user || selectedParent).email
-            }}</span>
+          <div class="flex-align-center gap-xs">
+            <strong class="parent-name">{{ (selectedParent).name }}</strong>
+            <StatusBadge :status="(selectedParent).status" size="sm" />
+          </div>
+          <span class="parent-email-sub" v-if="(selectedParent).name">{{ selectedParent.email }}</span>
         </div>
       </div>
     </div>
 
-    <!-- Edit Parent Form -->
     <div v-if="type === 'edit'" class="form-grid">
-      <div class="form-group full-width">
-        <label>Full Name <span class="required">*</span></label>
-        <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
+      <div class="form-group">
+        <label>Full Name <span class="required">*</span>
+          <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
+        </label>
         <input type="text" v-model="localData.name" placeholder="Enter full name" class="standard-input"
           :class="{ 'field-error': isSubmittingAttempted && errors.name }" />
         <div v-if="isSubmittingAttempted && errors.name" class="field-error-msg">{{ errors.name }}</div>
       </div>
 
       <div class="form-group">
-        <label>Email Address <span class="required">*</span></label>
-        <span class="original-value" v-if="originalData.email">Original: {{ originalData.email }}</span>
+        <label>Email Address <span class="required">*</span>
+          <span class="original-value" v-if="originalData.email">Original: {{ originalData.email }}</span>
+        </label>
         <input type="email" v-model="localData.email" placeholder="email@example.com" class="standard-input"
           :class="{ 'field-error': isSubmittingAttempted && errors.email }" />
         <div v-if="isSubmittingAttempted && errors.email" class="field-error-msg">{{ errors.email }}</div>
       </div>
 
       <div class="form-group">
-        <label>Phone Number <span class="required">*</span></label>
-        <span class="original-value" v-if="originalData.phone">Original: {{ originalData.phone }}</span>
+        <label>Phone Number <span class="required">*</span>
+          <span class="original-value" v-if="originalData.phone">Original: {{ originalData.phone }}</span>
+        </label>
         <input type="tel" v-model="localData.phone" placeholder="Enter phone number" class="standard-input"
           :class="{ 'field-error': isSubmittingAttempted && errors.phone }" />
         <div v-if="isSubmittingAttempted && errors.phone" class="field-error-msg">{{ errors.phone }}</div>
       </div>
 
       <div class="form-group">
-        <label>Role <span class="required">*</span></label>
-        <span class="original-value" v-if="originalData.role">Original: {{ originalData.role }}</span>
-        <select v-model="localData.role" class="standard-input"
-          :class="{ 'field-error': isSubmittingAttempted && errors.role }">
-          <option value="parent">Parent</option>
-          <option value="guardian">Guardian</option>
-        </select>
-        <div v-if="isSubmittingAttempted && errors.role" class="field-error-msg">{{ errors.role }}</div>
-      </div>
-
-      <div class="form-group full-width">
         <label>Profile Avatar <span class="required">*</span></label>
         <AvatarSelector v-model="localData.profile" :role="localData.role" :uid="user?.uid || user?.id"
           :customFileName="`${localData.name}_${localData.role}`" />
         <p class="avatar-guidance">Only .jpg, .png, and .webp images are accepted.</p>
-        <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg">{{ errors.profile }}</div>
+        <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg show">{{ errors.profile }}</div>
       </div>
     </div>
 
-    <!-- Register Child Form -->
     <div v-if="type === 'register-child'" class="form-grid">
-      <!-- Parent Selection (Hide if parent already pre-selected from table) -->
       <div class="form-group full-width" v-if="!user && selectableParents && selectableParents.length > 0">
-        <label>Select Parent / Guardian <span class="required">*</span></label>
+        <label>Select Parent <span class="required">*</span></label>
         <div class="custom-dropdown-container">
           <div class="custom-dropdown" :class="{ open: isDropdownOpen }">
             <div class="dropdown-header" @click="isDropdownOpen = !isDropdownOpen">
               <template v-if="selectedParent">
                 <div class="selected-parent">
-                  <img :src="selectedParent.profileURL || getParentProfileURL(selectedParent.profile)"
-                    class="avatar-mini-sm" />
-                  <span>{{ selectedParent.name || selectedParent.email }}</span>
+                  <img :src="selectedParent.profileURL" class="avatar-mini-sm" />
+                  <span>{{ selectedParent.name }}</span>
                 </div>
               </template>
               <template v-else>
@@ -96,7 +82,7 @@
                     :class="{ active: localData.parentId === (p.uid || p.id) }" @click="selectParent(p)">
                     <img :src="getParentProfileURL(p.profile)" class="avatar-mini-sm" />
                     <div class="item-info">
-                      <span class="item-name">{{ p.name || p.email }}</span>
+                      <span class="item-name">{{ p.name }}</span>
                     </div>
                   </li>
                   <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
@@ -123,14 +109,15 @@
         <div v-if="isSubmittingAttempted && errors.dob" class="field-error-msg">{{ errors.dob }}</div>
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Child Profile Avatar <span class="required">*</span></label>
-        <AvatarSelector v-model="localData.profile" role="student" :customFileName="`${localData.name}_student`" />
+        <AvatarSelector v-model="localData.profile" role="student"
+          :customFileName="`${localData.name}_student` || ''" />
         <p class="avatar-guidance">Only .jpg, .png, and .webp images are accepted.</p>
-        <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg">{{ errors.profile }}</div>
+        <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg show">{{ errors.profile }}</div>
       </div>
 
-      <div class="form-group full-width">
+      <div class="form-group">
         <label>Personal Bio / Notes</label>
         <textarea v-model="localData.medicalNote" placeholder="e.g. Nut allergy, ADHD, or any medical notes..." rows="3"
           class="standard-input"></textarea>
@@ -143,14 +130,26 @@
         </div>
       </div>
 
+      <div class="form-group">
+        <label>School Branch <span class="required">*</span></label>
+        <div class="branch-select-grid">
+          <button v-for="br in branches" :key="br.id" type="button" class="branch-card-mini"
+            :class="{ active: localData.branch?.id === br.id }" @click="localData.branch = br">
+            <div class="branch-mini-name">{{ br.name }}</div>
+            <div class="branch-mini-abbr">{{ br.abbr }}</div>
+          </button>
+        </div>
+        <div v-if="isSubmittingAttempted && errors.branch" class="field-error-msg">{{ errors.branch }}</div>
+      </div>
+
 
     </div>
 
     <div v-if="type === 'deactivate'" class="form-group full-width">
       <AppAlert type="warning">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div class="flex-column gap-3xs">
           <strong>Deactivation Warning</strong>
-          <span style="font-size: 0.85rem; opacity: 0.9; line-height: 1.2;">
+          <span class="text-xs opacity-90 line-12">
             Deactivating an account will prevent the user from logging in. Child records remain untouched and can be
             reactivated later.
           </span>
@@ -160,9 +159,9 @@
 
     <div v-if="type === 'activate'" class="form-group full-width">
       <AppAlert type="success">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div class="flex-column gap-3xs">
           <strong>Account Reactivation</strong>
-          <span style="font-size: 0.85rem; opacity: 0.9; line-height: 1.2;">
+          <span class="text-xs opacity-90 line-12">
             Reactivating this account will restore the user's ability to log in and manage their children's enrollments
             immediately.
           </span>
@@ -187,14 +186,14 @@
     </div>
 
     <template #footer>
-      <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; gap: 12px;">
+      <div class="flex-column flex-end w-full gap-sm">
         <transition name="toast-fade">
           <div v-if="showValidationHint && validationHint" class="validation-hint-toast">
             ⚠️ {{ validationHint }}
           </div>
         </transition>
 
-        <div v-if="error || success" style="width: 100%;">
+        <div v-if="error || success" class="w-full">
           <transition name="alert-fade">
             <AppAlert v-if="error" :show="!!error" type="error" closable @close="$emit('update:error', '')">
               {{ error }}
@@ -208,7 +207,7 @@
           </transition>
         </div>
 
-        <div style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
+        <div class="flex-align-center flex-end w-full gap-sm">
           <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success">Cancel</AppButton>
           <AppButton :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
             @click="handleActionSubmit" :loading="loading" :disabled="loading || !!success"
@@ -227,6 +226,7 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
+import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { getActionIcon, getParentProfileURL, isSameProfileAsset } from '@/utils/assetHelper'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
@@ -236,13 +236,13 @@ const props = defineProps({
   type: String,
   user: Object,
   selectableParents: Array,
-  branches: {
-    type: Array,
-    default: () => []
-  },
   loading: Boolean,
   error: String,
   success: String,
+  branches: {
+    type: Array,
+    default: () => []
+  }
 })
 
 const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
@@ -255,11 +255,8 @@ const getInitialData = () => ({
   status: 'Active',
   profile: '',
   deleteConfirm: '',
-  // Child fields
   parentId: props.user?.uid || props.user?.id || '',
-  name: '',
   dob: '',
-  profile: '', // Force selection
   medicalNote: '',
   branch: null,
 })
@@ -272,8 +269,9 @@ const mapSourceToForm = () => {
     return {
       ...base,
       parentId: u.uid || u.id || '',
-      profile: 'boy',
-      branch: branches.value?.[0] || null,
+      profile: '',
+      branch: props.branches?.[0] || null,
+      medicalNote: '',
     }
   }
 
@@ -329,6 +327,8 @@ const isFormInvalid = computed(() => {
   if (props.type === 'deactivate' || props.type === 'activate') return false
   return !!validationHint.value
 })
+
+
 
 const isChanged = computed(() => {
   if (props.type !== 'edit') return true
@@ -447,14 +447,15 @@ watch(() => props.isOpen, (newVal) => {
 
 <style scoped>
 .validation-hint-toast {
-  font-size: 0.8rem;
-  color: #ef4444;
-  background: #fef2f2;
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 1px solid #fee2e2;
+  font-size: var(--text-xs);
+  color: var(--error-color);
+  background: var(--error-soft);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--error-soft);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   max-width: fit-content;
+  z-index: 10;
   animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
 }
 
@@ -496,12 +497,12 @@ watch(() => props.isOpen, (newVal) => {
 .danger-box-standard {
   display: flex;
   align-items: center;
-  gap: 16px;
-  background: #fef2f2;
-  border: 1px solid #fee2e2;
-  padding: 20px;
-  border-radius: 16px;
-  margin-bottom: 24px;
+  gap: var(--space-lg);
+  background: var(--error-soft);
+  border: 1px solid var(--error-soft);
+  padding: var(--space-xl);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--space-xl);
 }
 
 .danger-icon-large {
@@ -510,31 +511,31 @@ watch(() => props.isOpen, (newVal) => {
 
 .danger-content strong {
   display: block;
-  color: #991b1b;
+  color: var(--error-deep);
   margin-bottom: 4px;
-  font-size: 1rem;
+  font-size: var(--text-base);
 }
 
 .danger-content p {
-  font-size: 0.85rem;
-  color: #b91c1c;
+  font-size: var(--text-sm);
+  color: var(--error-deep);
   line-height: 1.4;
   margin: 0;
   opacity: 0.8;
 }
 
 .confirm-label-standard {
-  font-size: 0.9rem;
-  color: #475569;
-  margin-bottom: 12px;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
+  margin-bottom: var(--space-md);
   text-align: center;
 }
 
 .confirm-input-standard {
   width: 100%;
-  padding: 14px;
-  border: 2px solid #e2e8f0;
-  border-radius: 12px;
+  padding: var(--space-md);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius);
   text-align: center;
   font-weight: 700;
   letter-spacing: 2px;
@@ -544,16 +545,16 @@ watch(() => props.isOpen, (newVal) => {
 }
 
 .confirm-input-standard:focus {
-  border-color: #ef4444;
+  border-color: var(--error-color);
   outline: none;
-  background: white;
+  background: var(--white);
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
 }
 
 .parent-identity-panel {
-  padding: 20px 24px;
-  border-radius: 20px;
-  margin-bottom: 24px;
+  padding: var(--space-xl) var(--space-2xl);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--space-xl);
   border: 1px solid transparent;
   display: flex;
   align-items: center;
@@ -576,18 +577,18 @@ watch(() => props.isOpen, (newVal) => {
 .parent-info-content {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: var(--space-xl);
   z-index: 1;
 }
 
 .parent-avatar-wrapper {
   width: 64px;
   height: 64px;
-  border-radius: 18px;
+  border-radius: var(--border-radius);
   overflow: hidden;
-  border: 3px solid white;
+  border: 3px solid var(--white);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  background: #fff;
+  background: var(--white);
   flex-shrink: 0;
 }
 
@@ -603,71 +604,73 @@ watch(() => props.isOpen, (newVal) => {
 }
 
 .parent-role-tag {
-  font-size: 0.65rem;
+  font-size: var(--text-3xs);
   font-weight: 850;
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 4px;
   padding: 4px 10px;
-  background: white;
-  border-radius: 8px;
+  background: var(--white);
+  border-radius: var(--border-radius-sm);
   width: fit-content;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .parent-name {
-  font-size: 1.35rem;
+  font-size: var(--text-2xl);
   font-weight: 850;
-  color: #1e293b;
+  color: var(--text-dark);
   letter-spacing: -0.5px;
   line-height: 1.1;
 }
 
 .parent-email-sub {
-  font-size: 0.85rem;
-  color: #64748b;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
   margin-top: 2px;
   font-weight: 500;
 }
 
 /* Theme Color logic */
 .theme-blue {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-color: #bae6fd;
+  background: linear-gradient(135deg, var(--info-soft) 0%, var(--primary-soft) 100%);
+  border-color: var(--primary-light);
 }
 
 .theme-blue .parent-role-tag {
-  color: #0284c7;
+  color: var(--info-color);
 }
 
 .theme-pink {
-  background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
-  border-color: #fbcfe8;
+  background: linear-gradient(135deg, var(--magenta-soft) 0%, var(--magenta-soft) 100%);
+  filter: brightness(1.05);
+  /* Lighter version */
+  border-color: var(--magenta-soft);
 }
 
 .theme-pink .parent-role-tag {
-  color: #db2777;
+  color: var(--magenta-color);
 }
 
 .theme-default {
-  background: linear-gradient(135deg, var(--bg-subtle) 0%, #f1f5f9 100%);
-  border-color: #e2e8f0;
+  background: linear-gradient(135deg, var(--bg-subtle) 0%, var(--bg-light) 100%);
+  border-color: var(--border-color);
 }
 
 .theme-default .parent-role-tag {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .avatar-guidance {
-  font-size: 0.72rem;
-  color: #94a3b8;
+  font-size: var(--text-3xs);
+  color: var(--text-light);
   margin-top: 6px;
   font-style: italic;
   display: block;
 }
 
 .required {
-  color: #ef4444;
+  color: var(--error-color);
   margin-left: 2px;
   font-weight: bold;
 }
@@ -676,7 +679,57 @@ watch(() => props.isOpen, (newVal) => {
 .branch-select-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
-  margin-top: 8px;
+  gap: var(--space-sm);
+  margin-top: var(--space-xs);
+}
+
+.original-value {
+  display: inline-block;
+  font-size: var(--text-3xs);
+  color: var(--primary-color);
+  background: var(--primary-soft);
+  padding: 1px 6px;
+  border-radius: var(--border-radius-xs);
+  margin-left: 8px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.branch-card-mini {
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
+  padding: var(--space-md);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.branch-card-mini:hover {
+  border-color: var(--primary-color);
+  background: var(--white);
+  transform: translateY(-2px);
+}
+
+.branch-card-mini.active {
+  background: var(--primary-soft);
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(67, 97, 238, 0.1);
+}
+
+.branch-mini-name {
+  font-size: var(--text-xs);
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.branch-mini-abbr {
+  font-size: var(--text-3xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 </style>

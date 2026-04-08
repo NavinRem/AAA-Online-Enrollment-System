@@ -86,7 +86,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 15px 30px;
+  padding: var(--space-md) var(--space-2xl);
   background: var(--bg-light);
   width: 100%;
   position: sticky;
@@ -97,7 +97,7 @@ onMounted(() => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--space-md);
 }
 
 .menu-toggle {
@@ -112,7 +112,7 @@ onMounted(() => {
   display: block;
   width: 24px;
   height: 2px;
-  background: #333;
+  background: var(--text-deep);
   position: relative;
 }
 
@@ -122,7 +122,7 @@ onMounted(() => {
   position: absolute;
   width: 24px;
   height: 2px;
-  background: #333;
+  background: var(--text-deep);
   left: 0;
 }
 
@@ -135,7 +135,7 @@ onMounted(() => {
 }
 
 .page-title {
-  font-size: 1.6rem;
+  font-size: var(--text-3xl);
   font-weight: 700;
   color: var(--text-dark);
   white-space: nowrap;
@@ -144,17 +144,17 @@ onMounted(() => {
 .header-center {
   flex: 1;
   max-width: 500px;
-  margin: 0 40px;
+  margin: 0 var(--space-3xl);
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--space-md);
 }
 
 .icon-btn {
-  background: white;
+  background: var(--white);
   border: none;
   width: 40px;
   height: 40px;
@@ -174,12 +174,12 @@ onMounted(() => {
 .user-profile-topbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: white;
-  padding: 10px 10px 10px 25px;
-  border-radius: 30px;
+  gap: var(--space-sm);
+  background: var(--white);
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-xl);
+  border-radius: var(--border-radius-lg);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
-  margin-left: 10px;
+  margin-left: var(--space-sm);
 }
 
 .user-info-topbar {
@@ -190,12 +190,12 @@ onMounted(() => {
 
 .user-name-topbar {
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   color: var(--text-dark);
 }
 
 .user-role-topbar {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   color: var(--text-muted);
 }
 
@@ -204,7 +204,7 @@ onMounted(() => {
   height: 38px;
   border-radius: 50%;
   overflow: hidden;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   background-color: var(--accent-light);
 }
 

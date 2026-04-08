@@ -21,7 +21,7 @@
       @submit.prevent="handleSubmit">
       <div v-if="type === 'edit'" class="form-grid">
         <div class="form-group full-width" v-if="selectableParents && selectableParents.length > 0">
-          <label>Update Parent / Guardian <span class="required">*</span></label>
+          <label>Update Parent <span class="required">*</span></label>
           <div class="custom-dropdown-container">
             <div class="custom-dropdown" :class="{ open: isParentDropdownOpen }">
               <div class="dropdown-header" @click="isParentDropdownOpen = !isParentDropdownOpen">
@@ -33,7 +33,7 @@
                   </div>
                 </template>
                 <template v-else>
-                  <span class="placeholder">-- Choose a parent/guardian --</span>
+                  <span class="placeholder">-- Choose a parent --</span>
                 </template>
                 <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
               </div>
@@ -114,7 +114,7 @@
             <option value="Stopped">Stopped (Dropped Out)</option>
           </select>
           <p class="help-text">
-            Ensure you have parent/guardian authorization before suspending or stopping a child's
+            Ensure you have parent authorization before suspending or stopping a child's
             academic progress.
           </p>
         </div>
@@ -131,11 +131,13 @@
       <div v-if="type === 'override' || type === 'enrollment-override'" class="form-grid">
         <div class="form-group full-width">
           <AppAlert type="warning">
-            <strong>Manual {{ type === 'enrollment-override' ? 'Program' : 'Status' }} Override</strong>
-            <p style="margin-top: 4px; font-size: 0.9rem; opacity: 0.9;">
-              This will manually force a status that ignores the automatic system calculations.
-              Useful for specific parent requests or administrative pauses.
-            </p>
+            <div class="flex-column gap-3xs">
+              <strong>Manual {{ type === 'enrollment-override' ? 'Program' : 'Status' }} Override</strong>
+              <p class="text-sm opacity-90 mt-3xs">
+                This will manually force a status that ignores the automatic system calculations.
+                Useful for specific parent requests or administrative pauses.
+              </p>
+            </div>
           </AppAlert>
         </div>
 
@@ -200,11 +202,13 @@
     </div>
 
     <template #footer>
-      <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-      <AppButton :variant="type === 'delete' || type === 'enrollment-delete' ? 'danger' : 'primary'" type="submit"
-        @click="handleSubmit" :loading="loading" :disabled="loading || !isFormValid">
-        Confirm Action
-      </AppButton>
+      <div class="flex-align-center flex-end w-full gap-sm">
+        <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
+        <AppButton :variant="type === 'delete' || type === 'enrollment-delete' ? 'danger' : 'primary'" type="submit"
+          @click="handleSubmit" :loading="loading" :disabled="loading || !isFormValid">
+          Confirm Action
+        </AppButton>
+      </div>
     </template>
   </AppModal>
 </template>
@@ -362,34 +366,34 @@ const isPresetActive = (field, chipValue) => {
 
 <style scoped>
 .help-text {
-  font-size: 0.85rem;
-  color: #64748b;
-  margin-top: 8px;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
   line-height: 1.4;
 }
 
 .original-value {
   display: block;
-  font-size: 0.75rem;
-  color: #94a3b8;
+  font-size: var(--text-xs);
+  color: var(--text-light);
   margin-top: -4px;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-3xs);
   font-style: italic;
 }
 
 .original-value.changed {
-  color: #00aeef;
+  color: var(--primary-color);
   font-weight: 600;
 }
 
 .danger-text {
-  color: #ef4444;
+  color: var(--error-color);
 }
 
 .branch-select-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 12px;
-  margin-top: 10px;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
 }
 </style>

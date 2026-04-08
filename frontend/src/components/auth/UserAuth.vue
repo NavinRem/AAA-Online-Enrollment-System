@@ -98,7 +98,7 @@ const handleSubmit = async () => {
           </div>
 
           <AppButton :loading="loading" :disabled="loading" type="submit" variant="primary"
-            style="width: 100%; border-radius: 8px">
+            class="w-full">
             {{ isResetMode ? 'Send Reset Link' : 'Sign in' }}
           </AppButton>
         </form>
@@ -131,7 +131,7 @@ const handleSubmit = async () => {
   flex: 1.2;
   background: url('@/assets/images/backgrounds/blue-bg-school.jpg') 80% center/cover no-repeat;
   position: relative;
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--border-color);
 }
 
 .image-panel::after {
@@ -146,20 +146,20 @@ const handleSubmit = async () => {
 
 .form-panel {
   flex: 1;
-  background: #fdfdfd;
+  background: var(--white);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: var(--space-3xl);
 }
 
 .form-container {
   width: 100%;
   max-width: 440px;
-  background: #ffffff;
-  padding: 40px 30px;
+  background: var(--white);
+  padding: var(--space-2xl) var(--space-xl);
   border: 1px solid rgba(0, 0, 0, 0.05);
-  border-radius: 12px;
+  border-radius: var(--border-radius);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.05);
   text-align: center;
 }
@@ -175,38 +175,38 @@ const handleSubmit = async () => {
 }
 
 .title {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
-  margin-bottom: 30px;
+  margin-bottom: var(--space-xl);
   color: var(--text-deep);
 }
 
 .form-group {
   text-align: left;
-  margin-bottom: 15px;
+  margin-bottom: var(--space-md);
 }
 
 .form-group label {
   display: block;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-weight: 600;
-  margin-bottom: 8px;
-  color: #444;
+  margin-bottom: var(--space-xs);
+  color: var(--text-dark);
 }
 
 input {
   width: 100%;
-  padding: 12px 16px;
-  background: #f3f4f6;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-subtle);
   border: 1px solid transparent;
-  border-radius: 8px;
-  font-size: 0.95rem;
+  border-radius: var(--border-radius-sm);
+  font-size: var(--text-base);
 }
 
 input:focus {
   outline: none;
-  background: #fff;
-  border-color: #00aeef;
+  background: var(--white);
+  border-color: var(--primary-color);
 }
 
 .password-input {
@@ -250,33 +250,33 @@ input:focus {
   left: 0;
   right: 0;
   height: 1px;
-  background: #eee;
+  background: var(--bg-light);
 }
 
 .separator span {
   position: relative;
-  background: #fff;
-  padding: 0 10px;
-  font-size: 0.75rem;
+  background: var(--white);
+  padding: 0 var(--space-sm);
+  font-size: var(--text-xs);
   font-weight: 700;
-  color: #999;
+  color: var(--text-light);
 }
 
 .toggle-text {
-  font-size: 0.9rem;
-  color: #666;
-  margin-top: 15px;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: var(--space-md);
 }
 
 .error-msg {
-  color: #e63946;
-  font-size: 0.85rem;
-  margin-top: 15px;
+  color: var(--error-color);
+  font-size: var(--text-sm);
+  margin-top: var(--space-md);
 }
 
 .success-msg {
-  color: #2a9d8f;
-  font-size: 0.85rem;
-  margin-top: 15px;
+  color: var(--success-color);
+  font-size: var(--text-sm);
+  margin-top: var(--space-md);
 }
 </style>

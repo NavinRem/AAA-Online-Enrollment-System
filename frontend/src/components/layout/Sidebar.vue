@@ -25,6 +25,7 @@ const menuItems = [
   { name: 'Parents', path: '/parents', icon: 'navigation/parent.svg' },
   { name: 'Students', path: '/students', icon: 'navigation/student.svg' },
   { name: 'Programs', path: '/programs', icon: 'navigation/program.svg' },
+  { name: 'Classes', path: '/classes', icon: 'navigation/class.svg' },
   { name: 'Payments', path: '/payment', icon: 'navigation/dollar.svg' },
   { name: 'Setting', path: '/settings', icon: 'navigation/setting.svg' },
 ]
@@ -77,7 +78,7 @@ const handleNavClick = () => {
 
     <div class="sidebar-footer">
       <p v-if="logoutMessage" class="logout-msg">{{ logoutMessage }}</p>
-      <AppButton variant="logout" style="width: 100%" :loading="!!logoutMessage" @click="handleLogout">
+      <AppButton variant="logout" class="w-full" :loading="!!logoutMessage" @click="handleLogout">
         Log Out
       </AppButton>
     </div>
@@ -88,10 +89,10 @@ const handleNavClick = () => {
 .sidebar {
   width: 260px;
   height: 100vh;
-  background: #ffffff;
+  background: var(--white);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #f0f0f0;
+  border-right: 1px solid var(--bg-light);
   position: fixed;
   left: 0;
   top: 0;
@@ -100,11 +101,11 @@ const handleNavClick = () => {
 }
 
 .logo-section {
-  padding: 30px 20px;
+  padding: var(--space-2xl) var(--space-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-sm);
   position: relative;
 }
 
@@ -117,7 +118,7 @@ const handleNavClick = () => {
   background: none;
   border: none;
   font-size: 2rem;
-  color: #999;
+  color: var(--text-light);
   cursor: pointer;
   padding: 5px;
   line-height: 1;
@@ -129,7 +130,7 @@ const handleNavClick = () => {
 }
 
 .brand-name {
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   color: var(--text-deep);
   line-height: 1.2;
@@ -137,32 +138,32 @@ const handleNavClick = () => {
 
 .nav-menu {
   flex: 1;
-  padding: 10px 15px;
+  padding: var(--space-sm) var(--space-md);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 15px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   text-decoration: none;
-  color: #555;
-  border-radius: 12px;
+  color: var(--text-muted);
+  border-radius: var(--border-radius-sm);
   transition: all 0.2s ease;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 .nav-item:hover {
-  background: #f8f9fa;
+  background: var(--bg-subtle);
 }
 
 .nav-item.active {
   background: var(--accent-light);
-  color: #00aeef;
+  color: var(--primary-color);
 }
 
 .nav-icon {
@@ -177,13 +178,13 @@ const handleNavClick = () => {
 }
 
 .sidebar-footer {
-  padding: 20px;
+  padding: var(--space-lg);
 }
 
 .logout-msg {
-  color: #d32f2f;
-  font-size: 0.85rem;
-  margin-bottom: 10px;
+  color: var(--error-color);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-sm);
   text-align: center;
   font-weight: 600;
   animation: pulse 1.5s infinite;

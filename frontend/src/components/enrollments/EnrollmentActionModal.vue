@@ -7,7 +7,7 @@
       <div class="enrollment-brief-card" v-if="enrollmentSummary">
         <div class="brief-grid">
           <div class="brief-column">
-            <span class="brief-label">Parent / Guardian</span>
+            <span class="brief-label">Parent</span>
             <div class="brief-user">
               <img :src="enrollmentSummary.parentAvatar" class="avatar-mini-enrollment" />
               <span class="brief-value">{{ enrollmentSummary.parentName }}</span>
@@ -28,11 +28,11 @@
             </div>
           </div>
           <div class="brief-column">
-            <span class="brief-label">Session</span>
+            <span class="brief-label">Class</span>
             <div class="brief-session">
               <div class="session-display-row">
-                <div class="session-day-text"><strong>{{ enrollmentSummary.sessionDay }}</strong></div>
-                <div class="session-time-text">{{ enrollmentSummary.sessionTime }}</div>
+                <div class="session-day-text"><strong>{{ enrollmentSummary.classDay }}</strong></div>
+                <div class="session-time-text">{{ enrollmentSummary.classTime }}</div>
               </div>
             </div>
           </div>
@@ -54,16 +54,16 @@
         </div>
       </div>
 
-      <AppAlert type="warning" :customStyle="{ marginTop: '10px', marginBottom: '0px' }">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <strong style="font-size: 0.95rem;">No-Refund Policy</strong>
-          <span style="font-size: 0.85rem; opacity: 0.9; line-height: 1.2;">
+      <AppAlert type="warning" class="mt-md">
+        <div class="flex-column gap-3xs">
+          <strong class="text-sm">No-Refund Policy</strong>
+          <span class="text-xs opacity-90 line-12">
             Once payment is confirmed, enrollments are non-refundable. Please verify all details before proceeding.
           </span>
         </div>
       </AppAlert>
 
-      <div class="form-group" style="margin-top: 20px;">
+      <div class="form-group mt-lg">
         <label>Payment Method</label>
         <div class="method-selector">
           <button type="button" class="method-btn" :class="{ active: localData.paymentMethod === 'online' }"
@@ -83,10 +83,9 @@
         </div>
       </div>
 
-      <div class="form-group" style="margin-top: 16px;">
+      <div class="form-group mt-md">
         <label>Payment Remark (Internal Note)</label>
-        <textarea v-model="localData.remark" placeholder="Add any notes about this payment..." class="standard-input"
-          style="height: 80px; resize: none;"></textarea>
+        <textarea v-model="localData.remark" placeholder="Add any notes about this payment..." class="standard-input remark-textarea"></textarea>
       </div>
 
       <div v-if="localData.paymentMethod === 'online'" class="online-payment-details">
@@ -109,9 +108,8 @@
           </div>
         </div>
 
-        <div class="form-group" style="margin-top: 16px;">
-          <label>Payment Proof (Screenshot / Photo) <span
-              style="font-weight: normal; opacity: 0.7; font-size: 0.8rem;">(Optional)</span></label>
+        <div class="form-group mt-md">
+          <label>Payment Proof (Screenshot / Photo) <span class="label-hint">(Optional)</span></label>
           <div class="upload-zone-mini" :class="{ 'has-file': localData.selectedFile }">
             <input type="file" @change="handleFileChange" accept="image/*" class="file-input-hidden"
               id="proof-upload" />
@@ -136,7 +134,7 @@
           <label>Receipt Number</label>
           <input type="text" v-model="localData.proof" placeholder="e.g. REC-001" class="standard-input" />
         </div>
-        <div class="cash-notice" style="margin-top: 12px;">
+        <div class="cash-notice mt-md">
           <span class="icon">ℹ️</span>
           <p>Please record the physical receipt number for internal tracking.</p>
         </div>
@@ -145,12 +143,11 @@
 
     </div>
 
-    <!-- Content for Cancel Action -->
     <div v-if="type === 'cancel'" class="action-cancel-container">
       <div class="enrollment-brief-card" v-if="enrollmentSummary">
         <div class="brief-grid">
           <div class="brief-column">
-            <span class="brief-label">Parent / Guardian</span>
+            <span class="brief-label">Parent</span>
             <div class="brief-user">
               <img :src="enrollmentSummary.parentAvatar" class="avatar-mini-enrollment" />
               <span class="brief-value">{{ enrollmentSummary.parentName }}</span>
@@ -171,54 +168,53 @@
             </div>
           </div>
           <div class="brief-column">
-            <span class="brief-label">Session Slot</span>
+            <span class="brief-label">Class</span>
             <div class="brief-session">
               <div class="session-display-row">
-                <div class="session-day-text"><strong>{{ enrollmentSummary.sessionDay }}</strong></div>
-                <div class="session-time-text">{{ enrollmentSummary.sessionTime }}</div>
+                <div class="session-day-text"><strong>{{ enrollmentSummary.classDay }}</strong></div>
+                <div class="session-time-text">{{ enrollmentSummary.classTime }}</div>
               </div>
             </div>
           </div>
+
         </div>
       </div>
 
-      <AppAlert type="warning" :customStyle="{ marginTop: '20px', marginBottom: '0px' }">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <strong style="font-size: 0.95rem;">Security Notice</strong>
-          <span style="font-size: 0.85rem; opacity: 0.9; line-height: 1.2;">
-            This will permanently remove the student and release their session slot.
+      <AppAlert type="warning" class="mt-lg">
+        <div class="flex-column gap-3xs">
+          <strong class="text-sm">Security Notice</strong>
+          <span class="text-xs opacity-90 line-12">
+            This will permanently remove the student and release their class slot.
           </span>
         </div>
       </AppAlert>
 
       <AppAlert v-if="isPaid(enrollment?.status || enrollment?.paymentStatus)" type="warning"
-        :customStyle="{ marginTop: '10px', marginBottom: '0px' }">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
-          <strong style="font-size: 0.95rem;">No-Refund Policy</strong>
-          <span style="font-size: 0.85rem; opacity: 0.9; line-height: 1.2;">
+        class="mt-md">
+        <div class="flex-column gap-3xs">
+          <strong class="text-sm">No-Refund Policy</strong>
+          <span class="text-xs opacity-90 line-12">
             This enrollment is already paid. Please note that enrollments are non-refundable upon cancellation.
           </span>
         </div>
       </AppAlert>
 
-      <div class="form-group" style="margin-top: 20px;">
+      <div class="form-group mt-lg">
         <label>Reason for Cancellation</label>
-        <div class="preset-chips chips-div-enrollment" style="margin: 8px 0 12px 0;">
+        <div class="preset-chips chips-div-enrollment my-md">
           <span v-for="preset in ['Schedule Conflict', 'Medical Reason', 'Moved Away', 'Duplicate']" :key="preset"
             class="preset-chip" @click="localData.reason = preset" :class="{ active: localData.reason === preset }">
             {{ preset }}
           </span>
         </div>
-        <textarea v-model="localData.reason" class="standard-input"
-          placeholder="Provide more details about why this is being cancelled..." style="min-height: 100px;"></textarea>
+        <textarea v-model="localData.reason" class="standard-input reason-textarea"
+          placeholder="Provide more details about why this is being cancelled..."></textarea>
       </div>
     </div>
 
-    <!-- Content for Delete Action -->
     <div v-if="type === 'delete'" class="form-group">
-      <div class="info-block danger"
-        style="background: #fef2f2; padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #fecaca;">
-        <p style="color: #991b1b; font-size: 0.9rem;">
+      <div class="info-block danger mb-md">
+        <p class="text-sm text-error">
           <strong>Warning:</strong> This action is permanent and cannot be undone.
         </p>
       </div>
@@ -227,28 +223,27 @@
     </div>
 
     <template #footer>
-      <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; gap: 12px;">
+      <div class="flex-column flex-end w-full gap-sm">
         <transition name="alert-fade">
           <AppAlert v-if="error" :show="!!error" type="error" closable @close="$emit('update:error', '')"
-            style="width: 100%; margin-bottom: 0;">
+            class="w-full mb-none">
             {{ error }}
           </AppAlert>
         </transition>
 
         <transition name="alert-fade">
           <AppAlert v-if="success" :show="!!success" type="success" closable @close="$emit('update:success', '')"
-            style="width: 100%; margin-bottom: 0;">
+            class="w-full mb-none">
             {{ success }}
           </AppAlert>
         </transition>
 
         <transition name="toast-fade">
-          <div v-if="showHint && validationHint"
-            style="font-size: 0.8rem; color: #ef4444; background: #fef2f2; padding: 6px 12px; border-radius: 6px; border: 1px solid #fee2e2; max-width: fit-content;">
+          <div v-if="showHint && validationHint" class="validation-hint-toast">
             ⚠️ {{ validationHint }}
           </div>
         </transition>
-        <div style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
+        <div class="flex-align-center flex-end w-full gap-sm">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" @click="handleSubmitTrigger" :loading="loading"
             :class="{ 'button-disabled-visual': !!validationHint }">
@@ -325,8 +320,9 @@ const enrollmentSummary = computed(() => {
     parentAvatar: getParentProfileURL(e.parent?.profile || e.parentProfileURL),
     studentAvatar: getStudentProfileURL(e.student?.profile || e.studentProfileURL),
     programAvatar: getProgramProfileURL(e.program?.profile || e.programProfileURL, e.category || e.program?.category),
-    sessionDay: getSessionDay(e.sessionSchedule || (e.session?.schedule?.day + ' ' + e.session?.schedule?.timeslot)),
-    sessionTime: getSessionTime(e.sessionSchedule || (e.session?.schedule?.day + ' ' + e.session?.schedule?.timeslot)),
+    classDay: getSessionDay(e.classSchedule || (e.class?.day + ' ' + e.class?.timeslot)),
+    classTime: getSessionTime(e.classSchedule || (e.class?.day + ' ' + e.class?.timeslot)),
+
     status: getEnrollmentDisplayStatus(e),
     mode: getEnrollmentDisplayMode(e),
     hasDiscount: (e.discountAmount || 0) > 0,
@@ -395,4 +391,29 @@ const handleSubmitTrigger = async () => {
 
 <style scoped>
 @import "@/assets/styles/components/EnrollmentActionModal.css";
+
+.remark-textarea {
+  height: 80px;
+  resize: none;
+}
+
+.reason-textarea {
+  min-height: 100px;
+}
+
+.label-hint {
+  font-weight: normal;
+  opacity: 0.7;
+  font-size: var(--text-xs);
+}
+
+.validation-hint-toast {
+  font-size: var(--text-xs);
+  color: var(--error-color);
+  background: var(--error-soft);
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--error-soft);
+  max-width: fit-content;
+}
 </style>

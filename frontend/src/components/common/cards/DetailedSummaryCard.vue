@@ -49,7 +49,7 @@ defineProps({
 }
 
 .summary-content {
-  background: #eef6fc;
+  background: var(--primary-soft);
   padding: 12px 20px 20px 20px;
   border-radius: 16px;
   display: flex;
@@ -68,7 +68,7 @@ defineProps({
 }
 
 .internal-details-card {
-  background: white;
+  background: var(--white);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
@@ -97,7 +97,7 @@ defineProps({
 
 :deep(.summary-value) {
   font-size: 1.05rem;
-  color: #4a5568;
+  color: var(--text-muted);
   margin: 0;
   font-weight: 500;
   line-height: 1.5;

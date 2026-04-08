@@ -109,7 +109,7 @@ const handleAction = (type, item) => {
         </tr>
         <template #footer>
           <tr v-if="hasPagination && items && items.length > 0" class="footer-row">
-            <td :colspan="headers.length" style="padding: 0; width: 100%;">
+            <td :colspan="headers.length" class="p-none w-full">
               <TablePagination :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
                 @update:currentPage="emit('update:currentPage', $event)" />
             </td>
@@ -130,7 +130,7 @@ const handleAction = (type, item) => {
 
 .table-body-scroll {
   width: 100%;
-  padding-right: 4px;
+  padding-right: var(--space-3xs);
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -148,12 +148,12 @@ const handleAction = (type, item) => {
 }
 
 .table-body::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
+  background: var(--border-color);
+  border-radius: var(--border-radius-sm);
 }
 
 .table-body::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+  background: var(--text-light);
 }
 
 .clickable-row {
@@ -169,8 +169,8 @@ const handleAction = (type, item) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  color: #64748b;
-  font-size: 0.95rem;
+  gap: var(--space-sm);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 </style>
