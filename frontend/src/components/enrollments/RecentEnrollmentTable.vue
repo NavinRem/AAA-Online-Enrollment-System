@@ -20,7 +20,7 @@ const router = useRouter()
 
 const enrollmentHeaders = [
   { label: 'No', width: '30px', align: 'center' },
-  { label: 'Parent / Guardian', width: '120px' },
+  { label: 'Parent', width: '120px' },
   { label: 'Child', width: '120px' },
   { label: 'Program', width: '120px' },
   { label: 'Mode', width: '60px', align: 'center' },
@@ -45,39 +45,38 @@ const navigateToDetail = (item) => {
     </div>
 
     <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
-      <tr v-for="item in enrollments" :key="item.id || item.no" style="cursor: pointer;">
+      <tr v-for="item in enrollments" :key="item.id || item.no" class="clickable-row">
         <td class="text-center" :style="{ width: enrollmentHeaders[0].width }">{{ item.no }}</td>
         <td class="bold" :style="{ width: enrollmentHeaders[1].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="getParentProfileURL(item.parent?.profile || item.parentProfileURL)" alt="parent" />
+              <img :src="getParentProfileURL(item.parent?.profileURL)" alt="parent" />
             </div>
             <div class="user-info">
-              <span class="user-name">{{ item.parent?.name || item.parentName }}</span>
+              <span class="user-name">{{ item.parent?.name }}</span>
             </div>
           </div>
         </td>
         <td class="bold" :style="{ width: enrollmentHeaders[2].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="getStudentProfileURL(item.student?.profile || item.studentProfileURL)" alt="child" />
+              <img :src="getStudentProfileURL(item.student?.profileURL)" alt="child" />
             </div>
             <div class="user-info">
-              <span class="user-name">{{ item.student?.name || item.studentName }}</span>
+              <span class="user-name">{{ item.student?.name }}</span>
             </div>
           </div>
         </td>
         <td class="bold" :style="{ width: enrollmentHeaders[3].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="getProgramProfileURL(item.program?.profile || item.programProfileURL)"
-                :alt="item.program?.title || item.programTitle" />
+              <img :src="getProgramProfileURL(item.program?.profileURL)" :alt="item.program?.title" />
             </div>
-            <span class="program-name text-truncate">{{ item.program?.title || item.programTitle }}</span>
+            <span class="program-name text-truncate">{{ item.program?.title }}</span>
           </div>
         </td>
         <td class="text-center" :style="{ width: enrollmentHeaders[4].width }">
-          <StatusBadge :status="item.mode || 'Full'" />
+          <StatusBadge :status="item.mode" />
         </td>
         <td class="text-center" :style="{ width: enrollmentHeaders[5].width }">
           <StatusBadge :status="item.status" />
@@ -94,19 +93,19 @@ const navigateToDetail = (item) => {
 
 <style scoped>
 .enrollment-table-card {
-  background: white;
-  padding: 25px;
-  border-radius: 20px;
+  background: var(--white);
+  padding: var(--space-xl);
+  border-radius: var(--border-radius);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
-  height: auto !important;
-  overflow: visible !important;
+  height: auto;
+  overflow: visible;
 }
 
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
+  margin-bottom: var(--space-xl);
 }
 
 .header-left {
@@ -116,7 +115,7 @@ const navigateToDetail = (item) => {
 }
 
 .section-title {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--text-deep);
   white-space: nowrap;
@@ -125,10 +124,10 @@ const navigateToDetail = (item) => {
 .header-left::after {
   content: '';
   flex: 1;
-  margin-left: 20px;
+  margin-left: var(--space-lg);
   height: 1px;
-  background-color: #eee;
-  margin-right: 20px;
+  background-color: var(--bg-light);
+  margin-right: var(--space-lg);
 }
 
 .bold {
@@ -137,8 +136,8 @@ const navigateToDetail = (item) => {
 }
 
 .date-cell {
-  color: #666;
-  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
 }
 
 .program-name {

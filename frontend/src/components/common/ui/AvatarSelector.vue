@@ -1,30 +1,17 @@
 <template>
   <div class="avatar-selector">
-    <label class="section-label">Profile Avatar</label>
-    
     <div class="selector-container">
-      <!-- Built-in Gallery -->
       <div class="avatar-gallery">
-        <div 
-          v-for="avatar in availableAvatars" 
-          :key="avatar.id"
-          class="avatar-option"
-          :class="{ active: modelValue === avatar.url }"
-          @click="selectAvatar(avatar.url)"
-        >
+        <div v-for="avatar in availableAvatars" :key="avatar.id + avatar.url" class="avatar-option"
+          :class="{ active: isSelected(avatar.url) }" @click="selectAvatar(avatar.url)">
           <img :src="avatar.url" :alt="avatar.name" />
-          <div class="check-badge" v-if="modelValue === avatar.url">
+          <div class="check-badge" v-if="isSelected(avatar.url)">
             <i class="fas fa-check"></i>
           </div>
         </div>
 
-        <!-- Custom Uploaded Avatar Slot (Inside Gallery) -->
-        <div 
-          v-if="isCustomUrl"
-          class="avatar-option custom-slot"
-          :class="{ active: isCustomUrl }"
-          @click="selectAvatar(modelValue)"
-        >
+        <div v-if="isCustomUrl" class="avatar-option custom-slot" :class="{ active: isSelected(modelValue) }"
+          @click="selectAvatar(modelValue)">
           <img :src="modelValue" alt="Custom" />
           <div class="check-badge">
             <i class="fas fa-check"></i>
@@ -34,16 +21,9 @@
 
       <div class="vertical-divider"></div>
 
-      <!-- Upload Action Area (Right of Divider) -->
       <div class="upload-area">
-        <input 
-          type="file" 
-          ref="fileInput" 
-          accept="image/*" 
-          class="hidden-input" 
-          @change="handleFileUpload" 
-        />
-        <div class="upload-btn" @click="$refs.fileInput.click()">
+        <input type="file" ref="fileInput" accept="image/*" class="hidden-input" @change="handleFileUpload" />
+        <div class="upload-btn" @click="fileInput?.click()">
           <div v-if="uploading" class="spinner-mini"></div>
           <i v-else class="fas fa-plus"></i>
           <span>{{ uploading ? 'Wait...' : 'Upload' }}</span>
@@ -67,9 +47,9 @@ const props = defineProps({
   modelValue: String,
   role: {
     type: String,
-    default: 'parent' // 'parent', 'student', or 'teacher'
+    default: ''
   },
-  uid: String, // Optional, for custom upload path
+  uid: String,
   customFileName: String
 })
 
@@ -78,47 +58,63 @@ const emit = defineEmits(['update:modelValue'])
 const uploading = ref(false)
 const success = ref(false)
 const error = ref('')
+const fileInput = ref(null)
+
+const STUDENT_AVATARS = [
+  { id: 'boy', name: 'Boy', key: 'profiles/avatar-boy' },
+  { id: 'girl', name: 'Girl', key: 'profiles/avatar-girl' }
+]
+
+const TEACHER_AVATARS = [
+  { id: 'teacher-man', name: 'Teacher (M)', key: 'profiles/avatar-teacher-man' },
+  { id: 'teacher-woman', name: 'Teacher (F)', key: 'profiles/avatar-teacher-woman' }
+]
+
+const DEFAULT_AVATARS = [
+  { id: 'man', name: 'Man', key: 'profiles/avatar-man' },
+  { id: 'woman', name: 'Woman', key: 'profiles/avatar-woman' }
+]
 
 const availableAvatars = computed(() => {
   const role = props.role?.toLowerCase()
-  
-  if (role === 'student') {
-    return [
-      { id: 'boy', name: 'Boy', url: getImageUrl('profiles/avatar-boy') },
-      { id: 'girl', name: 'Girl', url: getImageUrl('profiles/avatar-girl') },
-    ]
-  }
-  
-  if (role === 'teacher') {
-    return [
-      { id: 'teacher-man', name: 'Teacher (M)', url: getImageUrl('profiles/avatar-teacher-man') },
-      { id: 'teacher-woman', name: 'Teacher (F)', url: getImageUrl('profiles/avatar-teacher-woman') },
-    ]
-  }
-  
-  // Default to parent/guardian for all other roles (including admin)
-  return [
-    { id: 'man', name: 'Man', url: getImageUrl('profiles/avatar-man') },
-    { id: 'woman', name: 'Woman', url: getImageUrl('profiles/avatar-woman') },
-  ]
-})
 
-const isOptionActive = (avatar) => {
-  if (!props.modelValue) return false
-  // Robust check for path variations
-  return isSameProfileAsset(props.modelValue, avatar.url)
-}
+  let base = DEFAULT_AVATARS
+  if (role === 'student') base = STUDENT_AVATARS
+  else if (role === 'teacher') base = TEACHER_AVATARS
+
+  return base.map(a => ({
+    ...a,
+    url: getImageUrl(a.key)
+  }))
+})
 
 const isCustomUrl = computed(() => {
   if (!props.modelValue) return false
-  // Resolve URL to check against built-ins
-  const resolved = getImageUrl(props.modelValue)
-  // It's custom ONLY if it's NOT one of the official built-in avatars
-  return !ALL_BUILTIN_AVATARS.some(builtin => isSameProfileAsset(resolved, builtin))
+
+  const resolved = props.modelValue.startsWith('http')
+    ? props.modelValue
+    : getImageUrl(props.modelValue)
+
+  if (!resolved || resolved === props.modelValue) {
+    if (!props.modelValue.startsWith('http') && !props.modelValue.includes('/')) return false
+  }
+
+  return !ALL_BUILTIN_AVATARS.some(builtin =>
+    isSameProfileAsset(resolved, builtin)
+  )
 })
 
+const isSelected = (url) => {
+  if (!props.modelValue) return false
+
+  const current = props.modelValue.startsWith('http')
+    ? props.modelValue
+    : getImageUrl(props.modelValue)
+
+  return isSameProfileAsset(current, url)
+}
+
 const selectAvatar = (url) => {
-  // Save the full original asset URL per user request
   emit('update:modelValue', url)
   error.value = ''
   success.value = false
@@ -139,16 +135,14 @@ const handleFileUpload = async (event) => {
 
   try {
     const extension = file.name.split('.').pop()
-    
-    // Use customFileName if provided, otherwise fallback to timestamp
+
     let fileName = Date.now().toString()
     if (props.customFileName) {
-      // Sanitize: lowercase, replace spaces/special chars with underscores
       fileName = props.customFileName
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '_')
-        .replace(/_+/g, '_') // collapse multiple underscores
-        .replace(/^_|_$/g, '') // trim underscores from ends
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '')
     }
 
     const path = `profiles/${props.uid || 'temp'}/${fileName}.${extension}`
@@ -170,16 +164,16 @@ const handleFileUpload = async (event) => {
 
 <style scoped>
 .avatar-selector {
-  margin-bottom: 15px;
+  margin-bottom: var(--space-md);
   width: 100%;
 }
 
 .section-label {
   display: block;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-weight: 600;
-  color: #64748b;
-  margin-bottom: 8px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
   text-transform: uppercase;
   letter-spacing: 0.025em;
 }
@@ -190,9 +184,9 @@ const handleFileUpload = async (event) => {
   justify-content: space-around;
   align-items: center;
   background: var(--bg-subtle);
-  padding: 16px 24px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
 }
 
 .avatar-gallery {
@@ -208,17 +202,17 @@ const handleFileUpload = async (event) => {
   cursor: pointer;
   border: 2px solid transparent;
   transition: all 0.2s;
-  background: white;
+  background: var(--white);
   padding: 2px;
 }
 
 .avatar-option:hover {
   transform: translateY(-2px);
-  border-color: #cbd5e1;
+  border-color: var(--text-light);
 }
 
 .avatar-option.active {
-  border-color: #00aeef;
+  border-color: var(--primary-color);
   box-shadow: 0 0 10px rgba(0, 174, 239, 0.2);
 }
 
@@ -233,23 +227,23 @@ const handleFileUpload = async (event) => {
   position: absolute;
   top: -4px;
   right: -4px;
-  background: #00aeef;
-  color: white;
+  background: var(--primary-color);
+  color: var(--white);
   width: 18px;
   height: 18px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.65rem;
-  border: 2px solid white;
+  font-size: var(--text-3xs);
+  border: 2px solid var(--white);
 }
 
 .vertical-divider {
   width: 1px;
   height: 48px;
-  background: #e2e8f0;
-  margin: 0 8px;
+  background: var(--border-color);
+  margin: 0 var(--space-xs);
 }
 
 .hidden-input {
@@ -260,60 +254,68 @@ const handleFileUpload = async (event) => {
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed var(--text-light);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
-  background: white;
-  color: #94a3b8;
+  background: var(--white);
+  color: var(--text-light);
 }
 
 .upload-btn:hover {
-  border-color: #00aeef;
-  background: #f1f5f9;
-  color: #00aeef;
+  border-color: var(--primary-color);
+  background: var(--bg-light);
+  color: var(--primary-color);
 }
 
 .upload-btn i {
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   margin-bottom: 2px;
 }
 
 .upload-btn span {
-  font-size: 0.65rem;
+  font-size: var(--text-3xs);
   font-weight: 600;
 }
 
 .custom-slot {
-  border-color: #00aeef !important;
+  border-color: var(--primary-color);
   border-style: solid;
 }
 
 .error-text {
-  color: #ef4444;
-  font-size: 0.75rem;
-  margin-top: 4px;
+  color: var(--error-color);
+  font-size: var(--text-xs);
+  margin-top: var(--space-2xs);
+  display: none;
 }
+
+.error-text.show {
+  display: block;
+}
+
 .success-text {
-  color: #10b981;
-  font-size: 0.75rem;
-  margin-top: 4px;
+  color: var(--success-color);
+  font-size: var(--text-xs);
+  margin-top: var(--space-2xs);
 }
 
 .spinner-mini {
   width: 12px;
   height: 12px;
-  border: 2px solid #cbd5e1;
-  border-top-color: #00aeef;
+  border: 2px solid var(--text-light);
+  border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 2px;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

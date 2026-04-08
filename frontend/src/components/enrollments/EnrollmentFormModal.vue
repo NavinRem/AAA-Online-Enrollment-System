@@ -16,8 +16,9 @@ const props = defineProps({
   parents: { type: Array, default: () => [] },
   students: { type: Array, default: () => [] },
   programs: { type: Array, default: () => [] },
-  sessions: { type: Array, default: () => [] },
+  classes: { type: Array, default: () => [] },
   enrollments: { type: Array, default: () => [] },
+
   enrollment: { type: Object, default: null }, // Existing enrollment to edit
   error: { type: String, default: '' },
   success: { type: String, default: '' },
@@ -30,7 +31,8 @@ const formData = ref({
   parentId: '',
   studentId: '',
   programId: '',
-  sessionId: '',
+  classId: '',
+
   isProrated: true,
   discountAmount: 0,
   isSponsorship: false,
@@ -43,7 +45,8 @@ const formData = ref({
 const isParentDropdownOpen = ref(false)
 const isStudentDropdownOpen = ref(false)
 const isProgramDropdownOpen = ref(false)
-const isSessionDropdownOpen = ref(false)
+const isClassDropdownOpen = ref(false)
+
 
 const { searchQuery: parentSearchQuery, searchResults: filteredParents } = useSearch(
   toRef(props, 'parents'),
@@ -89,8 +92,9 @@ const errors = ref({
   parentId: '',
   studentId: '',
   programId: '',
-  sessionId: ''
+  classId: ''
 })
+
 
 const setError = (field, msg) => {
   closeAllDropdowns() // Close any open dropdowns when an error occurs
@@ -109,8 +113,9 @@ const closeAllDropdowns = () => {
   isParentDropdownOpen.value = false
   isStudentDropdownOpen.value = false
   isProgramDropdownOpen.value = false
-  isSessionDropdownOpen.value = false
+  isClassDropdownOpen.value = false
 }
+
 
 const dropdownStyles = ref({ top: '0px', left: '0px', width: '0px' })
 
@@ -119,8 +124,9 @@ const toggleDropdown = (field, event) => {
     parent: isParentDropdownOpen,
     student: isStudentDropdownOpen,
     program: isProgramDropdownOpen,
-    session: isSessionDropdownOpen
+    class: isClassDropdownOpen
   }
+
 
   const targetState = states[field].value
   const wasOpen = targetState
@@ -163,7 +169,8 @@ watch(() => props.enrollment, (newEnrollment) => {
       parentId: newEnrollment.parentId || '',
       studentId: newEnrollment.studentId || '',
       programId: newEnrollment.programId || '',
-      sessionId: newEnrollment.sessionId || '',
+      classId: newEnrollment.classId || '',
+
       isProrated: newEnrollment.isProrated ?? false,
       discountAmount: newEnrollment.discountAmount || 0,
       isSponsorship: newEnrollment.isSponsorship || false,
@@ -173,7 +180,6 @@ watch(() => props.enrollment, (newEnrollment) => {
       remark: newEnrollment.remark || '',
     }
     initialFormData.value = JSON.stringify(formData.value)
-    // Trigger sessions fetch in parent 
     emit('program-change', newEnrollment.programId)
   }
 }, { immediate: true })
@@ -198,7 +204,8 @@ watch(() => props.isOpen, (newVal) => {
         parentId: props.enrollment.parentId || '',
         studentId: props.enrollment.studentId || '',
         programId: props.enrollment.programId || '',
-        sessionId: props.enrollment.sessionId || '',
+        classId: props.enrollment.classId || '',
+
         isProrated: props.enrollment.isProrated ?? false,
         discountAmount: props.enrollment.discountAmount || 0,
         isSponsorship: props.enrollment.isSponsorship || false,
@@ -208,15 +215,14 @@ watch(() => props.isOpen, (newVal) => {
         remark: props.enrollment.remark || '',
       }
       initialFormData.value = JSON.stringify(formData.value)
-      // Trigger sessions fetch in parent 
       emit('program-change', props.enrollment.programId)
+
     } else {
-      // RESET form for new enrollment
       formData.value = {
         parentId: '',
         studentId: '',
         programId: '',
-        sessionId: '',
+        classId: '',
         isProrated: true,
         discountAmount: 0,
         isSponsorship: false,
@@ -229,11 +235,9 @@ watch(() => props.isOpen, (newVal) => {
   }
 })
 
-// SYNC: Clear program/session if they become invalid after student change
 watch(() => formData.value.studentId, (newStudentId) => {
   if (!newStudentId || isEditMode.value) return
 
-  // Check if currently selected program is still available for this new student
   const isNowInvalid = props.enrollments.some(e =>
     e.studentId === newStudentId &&
     e.programId === formData.value.programId &&
@@ -242,9 +246,10 @@ watch(() => formData.value.studentId, (newStudentId) => {
 
   if (isNowInvalid) {
     formData.value.programId = ''
-    formData.value.sessionId = ''
+    formData.value.classId = ''
     emit('program-change', '')
   }
+
 })
 
 const remarkPresets = [
@@ -284,15 +289,16 @@ const selectParent = (uid) => {
   formData.value.parentId = uid
   formData.value.studentId = ''
   formData.value.programId = ''
-  formData.value.sessionId = ''
+  formData.value.classId = ''
   isParentDropdownOpen.value = false
+
   errors.value.parentId = ''
 }
 
 const selectStudent = (student) => {
   formData.value.studentId = student.id || student.uid
   formData.value.programId = ''
-  formData.value.sessionId = ''
+  formData.value.classId = ''
   isStudentDropdownOpen.value = false
   errors.value.studentId = ''
 }
@@ -314,34 +320,34 @@ const pricePerSession = computed(() => {
 
 const handleProgramChange = (programId) => {
   formData.value.programId = programId
-  formData.value.sessionId = ''
+  formData.value.classId = ''
   isProgramDropdownOpen.value = false
   errors.value.programId = ''
-  
   emit('program-change', programId)
 }
 
-const selectSession = (sessionId) => {
-  formData.value.sessionId = sessionId
-  isSessionDropdownOpen.value = false
+const selectClass = (classId) => {
+  formData.value.classId = classId
+  isClassDropdownOpen.value = false
 }
 
 const sessionInfo = computed(() => {
-  if (!formData.value.programId || !formData.value.sessionId) return null
+  if (!formData.value.programId || !formData.value.classId) return null
   const program = props.programs.find((c) => c.id === formData.value.programId)
-  const session = props.sessions.find((s) => s.id === formData.value.sessionId)
-  if (!program || !session) return null
-
-  return getSessionCounts(program.startDate, program.endDate, session.schedule)
+  const classInstance = props.classes.find((c) => c.id === formData.value.classId)
+  if (!program || !classInstance) return null
+  return getSessionCounts(program.startDate, program.endDate, {
+    [classInstance.day]: classInstance.timeslot
+  })
 })
 
 const selectedProgram = computed(() => {
   return props.programs.find((c) => c.id === formData.value.programId)
 })
 
-const selectedSession = computed(() => {
-  if (!formData.value.sessionId) return null
-  return props.sessions.find((s) => s.id === formData.value.sessionId)
+const selectedClass = computed(() => {
+  if (!formData.value.classId) return null
+  return props.classes.find((c) => c.id === formData.value.classId)
 })
 
 const isAlreadyEnrolled = computed(() => {
@@ -410,8 +416,9 @@ const validationHint = computed(() => {
   if (!formData.value.parentId) return 'Parent selection is required.'
   if (!formData.value.studentId) return 'Student selection is required.'
   if (!formData.value.programId) return 'Program selection is required.'
-  if (!formData.value.sessionId) return 'Session selection is required.'
+  if (!formData.value.classId) return 'Class selection is required.'
   if (isAlreadyEnrolled.value && !isEditMode.value) return 'Student is already enrolled in this program.'
+
   return ''
 })
 
@@ -440,7 +447,6 @@ const handleSubmit = () => {
     ...formData.value,
     amount: finalAmount.value,
     enrollmentType: isFullEnrollment.value ? 'Full' : 'Partial',
-    // Snapshot of calculations
     basePrice: selectedProgramPrice.value,
     totalSessions: sessionInfo.value?.total || 0,
     remainingSessions: sessionInfo.value?.remaining || 0,
@@ -456,9 +462,8 @@ const handleSubmit = () => {
     <div class="modal-inner-content">
       <form @submit.prevent="validateAndSubmit" class="enrollment-form">
         <div class="form-grid">
-          <!-- Parent Selection -->
           <div class="form-group custom-dropdown-container">
-            <label>Select Parent / Guardian</label>
+            <label>Select Parent</label>
             <div class="custom-dropdown" :class="{ open: isParentDropdownOpen, 'field-error': errors.parentId }">
               <div class="dropdown-header" @click.stop="toggleDropdown('parent', $event)">
                 <template v-if="selectedParent">
@@ -497,7 +502,6 @@ const handleSubmit = () => {
             <div v-if="errors.parentId" class="field-error-msg">{{ errors.parentId }}</div>
           </div>
 
-          <!-- Student Selection -->
           <div class="form-group custom-dropdown-container">
             <label>Select Student</label>
             <div class="custom-dropdown"
@@ -541,7 +545,6 @@ const handleSubmit = () => {
             <div v-if="errors.studentId" class="field-error-msg">{{ errors.studentId }}</div>
           </div>
 
-          <!-- Program Selection -->
           <div class="form-group custom-dropdown-container">
             <label>Select Program</label>
             <div class="custom-dropdown"
@@ -557,7 +560,7 @@ const handleSubmit = () => {
                 </template>
                 <template v-else>
                   <span class="placeholder">{{ !formData.studentId ? 'Select student first' : 'Select a program'
-                    }}</span>
+                  }}</span>
                 </template>
                 <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
               </div>
@@ -587,63 +590,64 @@ const handleSubmit = () => {
             <div v-if="errors.programId" class="field-error-msg">{{ errors.programId }}</div>
           </div>
 
-          <!-- Session Selection -->
           <div class="form-group custom-dropdown-container">
-            <label>Select Session</label>
+            <label>Select Class</label>
             <div class="custom-dropdown"
-              :class="{ open: isSessionDropdownOpen, 'step-locked': !formData.programId || sessions.length === 0 || (isAlreadyEnrolled && !isEditMode), 'field-error': errors.sessionId }">
+              :class="{ open: isClassDropdownOpen, 'step-locked': !formData.programId || classes.length === 0 || (isAlreadyEnrolled && !isEditMode), 'field-error': errors.classId }">
               <div class="dropdown-header"
-                @click.stop="!formData.programId ? setError('programId', 'Choose a program first.') : ((isAlreadyEnrolled && !isEditMode) ? setError('programId', 'Already enrolled in this program.') : (sessions.length === 0 ? setError('sessionId', 'This program has no available sessions.') : toggleDropdown('session', $event)))">
-                <template v-if="selectedSession">
+                @click.stop="!formData.programId ? setError('programId', 'Choose a program first.') : ((isAlreadyEnrolled && !isEditMode) ? setError('programId', 'Already enrolled in this program.') : (classes.length === 0 ? setError('classId', 'This program has no available classes.') : toggleDropdown('class', $event)))">
+                <template v-if="selectedClass">
                   <div class="selected-session">
                     <div class="session-display-row">
-                      <span class="icon" style="font-size: 1.1rem; opacity: 0.8;">⏰</span>
-                      <div class="session-day-text"><strong>{{ selectedSession.schedule?.day }}</strong></div>
-                      <div class="session-time-text">{{ selectedSession.schedule?.timeslot }}</div>
+                      <span class="icon text-lg opacity-80">⏰</span>
+                      <div class="session-day-text"><strong>{{ selectedClass.day }}</strong></div>
+                      <div class="session-time-text">{{ selectedClass.timeslot }}</div>
                     </div>
                   </div>
                 </template>
                 <template v-else>
-                  <span class="placeholder">{{ !formData.programId ? 'Select program first' : (sessions.length === 0 ?
-                    'No sessions' : 'Choose a time') }}</span>
+                  <span class="placeholder">{{ !formData.programId ? 'Select program first' : (classes.length === 0 ?
+                    'No available classes' : 'Choose a class') }}</span>
                 </template>
-                <span class="chevron" :class="{ up: isSessionDropdownOpen }"></span>
+                <span class="chevron" :class="{ up: isClassDropdownOpen }"></span>
               </div>
             </div>
             <Teleport to="body">
-              <div class="dropdown-menu" v-if="isSessionDropdownOpen" :style="dropdownStyles">
+              <div class="dropdown-menu" v-if="isClassDropdownOpen" :style="dropdownStyles">
                 <ul class="dropdown-list">
-                  <li v-for="s in sessions" :key="s.id" class="dropdown-item session-item" :class="{
-                    active: formData.sessionId === s.id,
-                    disabled: (s.numStudent) >= (s.capacity)
-                  }" @click="(s.numStudent) < (s.capacity) && selectSession(s.id)">
+                  <li v-for="c in classes" :key="c.id" class="dropdown-item session-item" :class="{
+                    active: formData.classId === c.id,
+                    disabled: (c.numStudent) >= (c.capacity)
+                  }" @click="(c.numStudent) < (c.capacity) && selectClass(c.id)">
                     <div class="session-rows">
                       <div class="session-row-1">
                         <div class="session-display-row">
-                          <div class="session-day-text"><strong>{{ s.schedule?.day }}</strong></div>
-                          <div class="session-time-text">{{ s.schedule?.timeslot || 'TBD' }}</div>
+                          <div class="session-day-text"><strong>{{ c.day }}</strong></div>
+                          <div class="session-time-text">{{ c.timeslot || 'TBD' }}</div>
                         </div>
-                        <span v-if="(s.numStudent) >= (s.capacity)" class="full-badge">FULL</span>
+                        <span v-if="(c.numStudent) >= (c.capacity)" class="full-badge">FULL</span>
                       </div>
                       <div class="session-row-2">
                         <div class="capacity-bar-mini">
                           <div class="capacity-progress"
-                            :style="{ width: Math.min(100, ((s.numStudent) / (s.capacity)) * 100) + '%' }">
+                            :style="{ width: Math.min(100, ((c.numStudent) / (c.capacity)) * 100) + '%' }">
                           </div>
                         </div>
-                        <span class="capacity-text">{{ s.numStudent }} / {{ s.capacity }} enrolled</span>
+                        <span class="capacity-text">{{ c.numStudent }} / {{ c.capacity }} enrolled</span>
                       </div>
                     </div>
                   </li>
                 </ul>
               </div>
             </Teleport>
-            <div v-if="errors.sessionId" class="field-error-msg">{{ errors.sessionId }}</div>
+            <div v-if="errors.classId" class="field-error-msg">{{ errors.classId }}</div>
           </div>
+
         </div>
 
         <!-- Program Brief -->
-        <div v-if="selectedProgram && selectedSession" class="form-group full-width">
+        <div v-if="selectedProgram && selectedClass" class="form-group full-width">
+
           <label>Program Period</label>
           <div class="period-info-box">
             <StatusBadge :status="selectedProgram.termName" type="blue" />
@@ -653,8 +657,7 @@ const handleSubmit = () => {
           </div>
         </div>
 
-        <AppAlert v-if="isAlreadyEnrolled && !isEditMode" type="warning"
-          :customStyle="{ marginTop: '16px', marginBottom: '0px' }">
+        <AppAlert v-if="isAlreadyEnrolled && !isEditMode" type="warning" class="mt-md">
           This student is already enrolled in this program.
         </AppAlert>
 
@@ -674,7 +677,7 @@ const handleSubmit = () => {
                       passed</span>
                   </div>
                   <div v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
-                    }}/session)</div>
+                  }}/session)</div>
                 </div>
               </div>
               <StatusBadge :status="displayEnrollmentStatus" />
@@ -684,7 +687,7 @@ const handleSubmit = () => {
               <label class="prorate-toggle">
                 <div class="toggle-text">
                   <strong>Partial Enrollment</strong>
-                  <p>Only pay for the remaining {{ sessionInfo.remaining }} sessions</p>
+                  <p>Enrolling for <strong>{{ sessionInfo.remaining }}</strong> remaining sessions only</p>
                 </div>
                 <div class="toggle-switch">
                   <input type="checkbox" v-model="formData.isProrated" />
@@ -695,7 +698,6 @@ const handleSubmit = () => {
           </div>
         </div>
 
-        <!-- Financial Section -->
         <div v-if="sessionInfo && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width">
           <label>Payment & Discounts</label>
           <div class="financial-section">
@@ -732,27 +734,27 @@ const handleSubmit = () => {
         </div>
 
         <!-- Remarks -->
-        <div v-if="formData.sessionId && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width">
+        <div v-if="formData.classId && (!isAlreadyEnrolled || isEditMode)" class="form-group full-width">
           <label>Enrollment Remarks / Special Case</label>
           <input type="text" v-model="formData.remark" placeholder="Input Enrollment Remark (Optional)"
-            class="standard-input" style="margin-bottom: 12px;" />
+            class="standard-input mb-md" />
           <div class="preset-chips chips-div-enrollment">
             <button v-for="preset in remarkPresets" :key="preset" type="button" class="preset-chip"
               :class="{ active: isRemarkPresetActive(preset) }" @click="toggleRemarkPreset(preset)">
               {{ preset }}
             </button>
           </div>
-          <AppAlert v-if="isRemarkPresetActive('Special Occasion Discount')" type="success"
-            :customStyle="{ marginTop: '10px', marginBottom: '0px' }">
+          <AppAlert v-if="isRemarkPresetActive('Special Occasion Discount')" type="success" class="mt-md">
             <span><strong>Special Occasion Discount:</strong> Please ensure the discount amount is entered in the
               Payment section below.</span>
           </AppAlert>
         </div>
 
-        <div v-if="formData.programId && formData.sessionId" class="price-preview-box">
+        <div v-if="formData.programId && formData.classId" class="price-preview-box">
           <div class="price-info-enrollment">
             <div class="price-header-row">
               <span class="price-label-enrollment">Final Amount</span>
+
               <StatusBadge v-if="!isFullEnrollment" status="Partial Enrollment" />
               <StatusBadge v-else status="Full Enrollment" />
             </div>
@@ -768,32 +770,29 @@ const handleSubmit = () => {
           </div>
           <strong class="price-amount-large">${{ formatPrice(finalAmount) }}</strong>
         </div>
-        <button type="submit" style="display: none;"></button>
+        <button type="submit" class="hidden"></button>
       </form>
     </div>
-
+ 
     <template #footer>
-      <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; gap: 12px;">
+      <div class="flex-column flex-end w-full gap-sm">
         <transition name="toast-fade">
-          <div v-if="props.error && props.error.length > 0" class="alert-box error"
-            style="width: 100%; margin-bottom: 0;">
+          <div v-if="props.error && props.error.length > 0" class="alert-box error w-full mb-none">
             {{ props.error }}
           </div>
         </transition>
-
+ 
         <transition name="toast-fade">
-          <div v-if="props.success && props.success.length > 0" class="alert-box success"
-            style="width: 100%; margin-bottom: 0;">
+          <div v-if="props.success && props.success.length > 0" class="alert-box success w-full mb-none">
             {{ props.success }}
           </div>
         </transition>
         <transition name="toast-fade">
-          <div v-if="showValidationHint && validationHint"
-            style="font-size: 0.8rem; color: #ef4444; background: #fef2f2; padding: 6px 12px; border-radius: 6px; border: 1px solid #fee2e2; max-width: fit-content;">
+          <div v-if="showValidationHint && validationHint" class="validation-hint-toast">
             ⚠️ {{ validationHint }}
           </div>
         </transition>
-        <div style="display: flex; gap: 12px; justify-content: flex-end; width: 100%;">
+        <div class="flex-align-center flex-end w-full gap-sm">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton variant="primary" type="button" @click.stop="validateAndSubmit" :loading="loading"
             :disabled="(isAlreadyEnrolled && !isEditMode) || !!validationHint"
@@ -810,13 +809,13 @@ const handleSubmit = () => {
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: var(--space-xl);
 }
 
 .form-group {
@@ -826,22 +825,22 @@ const handleSubmit = () => {
 
 .form-group.full-width {
   grid-column: span 2;
-  margin-top: 32px;
+  margin-top: var(--space-2xl);
 }
 
 .form-group label {
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
   font-weight: 600;
-  color: #475569;
+  color: var(--text-dark);
 }
 
 .form-group select,
 .form-group input,
 .form-group textarea {
-  padding: 10px 12px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.95rem;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--text-sm);
   background-color: var(--bg-subtle);
   outline: none;
   transition: all 0.2s;
@@ -854,40 +853,40 @@ const handleSubmit = () => {
 .form-group select:focus,
 .form-group input:focus,
 .form-group textarea:focus {
-  border-color: #00aeef;
-  background-color: #ffffff;
+  border-color: var(--primary-color);
+  background-color: var(--white);
   box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
 }
 
 .period-info-box {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   background: var(--bg-subtle);
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  margin-bottom: 8px;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--text-sm);
+  color: var(--text-dark);
+  border: 1px solid var(--border-color);
+  margin-bottom: var(--space-xs);
 }
 
 .period-info-box .sep {
-  color: #94a3b8;
+  color: var(--text-light);
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 
 .summary-status {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .status-text {
-  font-size: 0.9rem;
-  color: #334155;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
 }
 
 .passed-tag {
@@ -896,22 +895,22 @@ const handleSubmit = () => {
 
 .prorate-action {
   margin-left: auto;
-  padding-left: 16px;
-  border-left: 1px solid #cbd5e1;
+  padding-left: var(--space-lg);
+  border-left: 1px solid var(--border-color);
 }
 
 .checkbox-label.highlight {
-  color: #00aeef;
+  color: var(--primary-color);
 }
 
 .session-summary-box {
   background: var(--bg-subtle);
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-lg);
   width: 100%;
 }
 
@@ -925,25 +924,25 @@ const handleSubmit = () => {
 .summary-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .summary-top {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .summary-icon {
   width: 44px;
   height: 44px;
-  background: #f0f9ff;
-  border-radius: 12px;
+  background: var(--primary-soft);
+  border-radius: var(--border-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-  border: 1px solid #e0f2fe;
+  font-size: var(--text-xl);
+  border: 1px solid var(--primary-light);
 }
 
 .summary-content {
@@ -951,46 +950,46 @@ const handleSubmit = () => {
 }
 
 .summary-label {
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   font-weight: 700;
   text-transform: uppercase;
-  color: #94a3b8;
+  color: var(--text-light);
   letter-spacing: 0.05em;
   margin-bottom: 2px;
 }
 
 .summary-value {
-  font-size: 1.1rem;
-  color: #1e293b;
+  font-size: var(--text-lg);
+  color: var(--text-dark);
 }
 
 .summary-value strong {
   font-weight: 700;
-  font-size: 1.25rem;
-  color: #00aeef;
+  font-size: var(--text-xl);
+  color: var(--primary-color);
 }
 
 .summary-value small {
-  color: #64748b;
-  margin-left: 4px;
+  color: var(--text-muted);
+  margin-left: var(--space-2xs);
 }
 
 .session-price-hint {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  margin-left: 12px;
+  font-size: var(--text-sm);
+  color: var(--text-light);
+  margin-left: var(--space-md);
   font-style: italic;
 }
 
 .passed-badge-small {
-  background: #fee2e2;
-  color: #ef4444;
-  font-size: 0.65rem;
+  background: var(--error-soft);
+  color: var(--error-color);
+  font-size: var(--text-3xs);
   padding: 1px 6px;
   border-radius: 4px;
   font-weight: 700;
   text-transform: uppercase;
-  margin-left: 12px;
+  margin-left: var(--space-sm);
   vertical-align: middle;
 }
 
@@ -1000,10 +999,10 @@ const handleSubmit = () => {
 
 /* Prorate Toggle Modern */
 .prorate-modern {
-  background: white;
-  padding: 16px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  background: var(--white);
+  padding: var(--space-lg);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--border-color);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -1020,15 +1019,15 @@ const handleSubmit = () => {
 
 .toggle-text strong {
   display: block;
-  font-size: 0.95rem;
-  color: #1e293b;
-  margin-bottom: 2px;
+  font-size: var(--text-base);
+  color: var(--text-dark);
+  margin-bottom: var(--space-3xs);
 }
 
 .toggle-text p {
   margin: 0;
-  font-size: 0.85rem;
-  color: #64748b;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 
 .toggle-switch {
@@ -1036,7 +1035,7 @@ const handleSubmit = () => {
   display: inline-block;
   width: 48px;
   height: 24px;
-  margin-left: 16px;
+  margin-left: var(--space-lg);
 }
 
 .toggle-switch input {
@@ -1052,7 +1051,7 @@ const handleSubmit = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #cbd5e1;
+  background-color: var(--text-light);
   transition: .4s;
   border-radius: 24px;
 }
@@ -1071,7 +1070,7 @@ const handleSubmit = () => {
 }
 
 input:checked+.slider {
-  background-color: #00aeef;
+  background-color: var(--primary-color);
 }
 
 input:checked+.slider:before {
@@ -1080,16 +1079,16 @@ input:checked+.slider:before {
 
 .price-notes {
   display: flex;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .financial-section {
-  padding: 16px;
+  padding: var(--space-lg);
   background: var(--bg-subtle);
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
   display: flex;
-  gap: 24px;
+  gap: var(--space-xl);
 }
 
 .financial-col {
@@ -1099,41 +1098,41 @@ input:checked+.slider:before {
 }
 
 .financial-col.separator {
-  padding-left: 24px;
-  border-left: 1px solid #e2e8f0;
+  padding-left: var(--space-xl);
+  border-left: 1px solid var(--border-color);
 }
 
 .financial-grid {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--space-lg);
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 0.875rem;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
   font-weight: 600;
-  color: #475569;
+  color: var(--text-dark);
   cursor: pointer;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-2xs);
 }
 
 .checkbox-label.danger {
-  color: #ef4444;
+  color: var(--error-color);
 }
 
 .sponsor-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-2xs);
 }
 
 .mini-input {
-  padding: 6px 10px !important;
-  font-size: 0.85rem !important;
+  padding: var(--space-2xs) var(--space-sm);
+  font-size: var(--text-sm);
 }
 
 .custom-override {

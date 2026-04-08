@@ -3,37 +3,37 @@
 
 /* Brief Cards */
 .enrollment-brief-card {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--white);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
-  padding: 20px;
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-lg);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .brief-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px 24px;
+  gap: var(--space-lg) var(--space-xl);
 }
 
 .brief-column {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .brief-user,
 .brief-session {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   background: var(--bg-subtle);
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid #f1f5f9;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--bg-light);
   height: 48px;
   overflow: hidden;
 }
@@ -41,14 +41,14 @@
 .avatar-mini-enrollment {
   width: 26px;
   height: 26px;
-  border-radius: 50% !important;
+  border-radius: 50%;
   object-fit: cover;
-  border: 1.5px solid #e0f2fe;
+  border: 1.5px solid var(--primary-light);
 }
 
 .brief-label {
-  font-size: 0.7rem;
-  color: #94a3b8;
+  font-size: var(--text-2xs);
+  color: var(--text-light);
   text-transform: uppercase;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -56,9 +56,9 @@
 }
 
 .brief-value {
-  font-size: 0.95rem;
-  color: #1e293b;
-  font-weight: 600;
+  font-size: var(--text-base);
+  color: var(--text-dark);
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -68,27 +68,27 @@
 .session-display-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .session-day-text {
-  font-size: 0.95rem;
-  color: #1e293b;
+  font-size: var(--text-base);
+  color: var(--text-dark);
   line-height: 1.2;
 }
 
 .session-time-text {
-  font-size: 0.85rem;
-  color: #64748b;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
   font-weight: normal;
 }
 
 /* Price & Financials Overrides */
 .price-preview-box,
 .tuition-panel-modern {
-  padding: 24px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border: 1.5px solid #bae6fd;
+  padding: var(--space-xl);
+  background: linear-gradient(135deg, var(--primary-soft) 0%, var(--primary-light) 100%);
+  border: 1.5px solid var(--accent-light);
   border-radius: 16px;
   display: flex;
   justify-content: space-between;
@@ -99,13 +99,13 @@
 .price-info-enrollment {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .price-label-enrollment {
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   font-weight: 700;
-  color: #0369a1;
+  color: var(--primary-hover);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -113,40 +113,40 @@
 .price-notes-enrollment {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .price-note-enrollment {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .price-header-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .price-amount-large {
-  font-size: 1.75rem;
-  color: #0c4a6e;
+  font-size: var(--text-3xl);
+  color: var(--text-deep);
   font-weight: 800;
   line-height: 1;
 }
 
 .original-price-strikethrough {
   text-decoration: line-through;
-  color: #64748b;
-  font-size: 0.875rem;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 
 .discount-badge-mini {
-  color: #10b981;
-  border: 1px solid #d1fae5;
-  background: #f0fdf4;
-  font-size: 0.75rem;
-  padding: 2px 8px;
+  color: var(--success-color);
+  border: 1px solid var(--success-soft);
+  background: var(--success-soft);
+  font-size: var(--text-xs);
+  padding: var(--space-3xs) var(--space-xs);
   border-radius: 6px;
   font-weight: 700;
   text-transform: uppercase;
@@ -155,22 +155,22 @@
 /* Enrollment Specific Containers */
 .chips-div-enrollment {
   background-color: var(--bg-subtle);
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  padding: var(--space-sm);
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
 }
 
 /* Validation Visuals */
-.button-disabled-visual {
+:root .button-disabled-visual {
   opacity: 0.5;
-  cursor: not-allowed !important;
+  cursor: not-allowed;
   filter: grayscale(0.5);
 }
 /* Enrollment Dropdown Overrides & Session Info */
 .custom-dropdown.step-locked .dropdown-header {
-  cursor: not-allowed !important;
+  cursor: not-allowed;
   opacity: 0.7;
-  pointer-events: auto !important;
+  pointer-events: auto;
 }
 
 .session-rows {
@@ -189,13 +189,13 @@
 .session-row-2 {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .full-badge {
-  background: #fee2e2;
-  color: #ef4444;
-  font-size: 0.7rem;
+  background: var(--error-soft);
+  color: var(--error-color);
+  font-size: var(--text-2xs);
   padding: 1px 6px;
   border-radius: 4px;
   font-weight: 800;
@@ -204,7 +204,7 @@
 .capacity-bar-mini {
   flex: 1;
   height: 4px;
-  background: #e2e8f0;
+  background: var(--border-color);
   border-radius: 2px;
   overflow: hidden;
   max-width: 80px;
@@ -212,7 +212,7 @@
 
 .capacity-progress {
   height: 100%;
-  background: #10b981;
+  background: var(--success-color);
   border-radius: 2px;
 }
 
@@ -223,10 +223,10 @@
 }
 
 .dropdown-item.session-item.active .capacity-progress {
-  background: #00aeef;
+  background: var(--primary-color);
 }
 
 .capacity-text {
-  font-size: 0.75rem;
-  color: #64748b;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }

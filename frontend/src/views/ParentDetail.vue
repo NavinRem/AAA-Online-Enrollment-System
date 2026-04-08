@@ -430,7 +430,7 @@ watch(
       <template #right-content v-if="parent">
         <DetailedSummaryCard title="Basic Information" subtitle="Parent Information">
           <template #outside>
-            <div class="profile-header" style="flex-direction: column; align-items: center;">
+            <div class="profile-header flex-stack flex-center">
               <div class="profile-preview">
                 <img :src="parent?.profileURL || parent?.profile" alt="Profile"
                   @error="e => e.target.src = getImageUrl('profiles/avatar-admin')" />
@@ -500,31 +500,31 @@ watch(
 .child-selector {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f1f5f9;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--bg-light);
 }
 
 .child-chip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  border-radius: 24px;
-  border: 2px solid #e2e8f0;
-  background: white;
-  font-size: 0.9rem;
-  font-weight: 600;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--border-radius-lg);
+  border: 2px solid var(--border-color);
+  background: var(--white);
+  font-size: var(--text-sm);
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .child-chip:hover {
-  border-color: #00aeef;
-  color: #00aeef;
-  background: #f0f9ff;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--primary-soft);
 }
 
 .chip-avatar-wrapper {
@@ -542,9 +542,9 @@ watch(
 }
 
 .child-chip.active {
-  background: #00aeef;
-  border-color: #00aeef;
-  color: white;
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--white);
   box-shadow: 0 4px 12px rgba(0, 174, 239, 0.3);
 }
 
@@ -555,13 +555,13 @@ watch(
 .detail-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 8px;
+  border-spacing: 0 var(--space-xs);
 }
 
 .detail-table th {
-  padding: 12px 16px;
-  color: #94a3b8;
-  font-size: 0.75rem;
+  padding: var(--space-sm) var(--space-md);
+  color: var(--text-light);
+  font-size: var(--text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -569,68 +569,68 @@ watch(
 }
 
 .detail-table td {
-  padding: 16px;
-  background: #ffffff;
-  border-top: 1px solid #f1f5f9;
-  border-bottom: 1px solid #f1f5f9;
-  color: #475569;
-  font-size: 0.9rem;
+  padding: var(--space-md);
+  background: var(--white);
+  border-top: 1px solid var(--bg-light);
+  border-bottom: 1px solid var(--bg-light);
+  color: var(--text-dark);
+  font-size: var(--text-sm);
   transition: all 0.2s;
 }
 
 .detail-table td:first-child {
-  border-left: 1px solid #f1f5f9;
-  border-top-left-radius: 12px;
-  border-bottom-left-radius: 12px;
+  border-left: 1px solid var(--bg-light);
+  border-top-left-radius: var(--border-radius);
+  border-bottom-left-radius: var(--border-radius);
 }
 
 .detail-table td:last-child {
-  border-right: 1px solid #f1f5f9;
-  border-top-right-radius: 12px;
-  border-bottom-right-radius: 12px;
+  border-right: 1px solid var(--bg-light);
+  border-top-right-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
 }
 
 .detail-table tr:hover td {
   background: var(--bg-subtle);
-  border-color: #e2e8f0;
+  border-color: var(--border-color);
 }
 
 .email {
-  text-transform: lowercase !important;
-  color: #00aeef !important;
+  text-transform: lowercase;
+  color: var(--primary-color);
 }
 
 .price {
-  color: #059669;
+  color: var(--success-color);
   font-weight: 700;
 }
 
 .mono {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.85rem;
-  color: #64748b;
+  font-family: var(--font-family-mono, 'JetBrains Mono', 'Fira Code', monospace);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 
 .badge-stack {
   display: flex;
-  gap: 8px;
+  gap: var(--space-xs);
   justify-content: center;
 }
 
 .profile-name {
-  margin: 12px 0 10px;
-  font-size: 1.4rem;
+  margin: var(--space-sm) 0 var(--space-xs);
+  font-size: var(--text-2xl);
   font-weight: 850;
   color: var(--text-deep);
   letter-spacing: -0.5px;
 }
 
 .text-emerald-600 {
-  color: #059669;
+  color: var(--success-color);
 }
 
 .detail-section-card h3 {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: 800;
   color: var(--text-deep);
   letter-spacing: -0.3px;
@@ -643,33 +643,31 @@ watch(
 }
 
 .session-cell strong {
-  font-size: 0.9rem;
-  color: #1e293b;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
 }
 
 .session-cell span {
-  font-size: 0.75rem;
-  color: #64748b;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 .timestamp-item p {
-  margin-top: 8px;
-  font-size: 1rem;
+  margin-top: var(--space-xs);
+  font-size: var(--text-base);
   font-weight: 600;
-  color: #334155;
+  color: var(--text-dark);
 }
 
 .relationship-item.clickable {
   cursor: pointer;
   transition: all 0.2s;
-  padding: 8px;
-  /* This was 16px in original, 8px in instruction. Keeping 8px from instruction. */
-  border-radius: 12px;
-  /* This was 16px in original, 12px in instruction. Keeping 12px from instruction. */
+  padding: var(--space-xs);
+  border-radius: var(--border-radius);
 }
 
 .relationship-item.clickable:hover {
-  background: #f1f5f9;
+  background: var(--bg-light);
   /* This was #f1f8ff in instruction, #f1f5f9 in original. Keeping #f1f5f9 from instruction. */
   transform: translateX(4px);
 }
@@ -677,30 +675,30 @@ watch(
 .relationships-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .relationship-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: var(--space-md);
+  padding: var(--space-md);
   background: var(--bg-subtle);
-  border-radius: 16px;
-  border: 1px solid #f1f5f9;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--bg-light);
   transition: all 0.2s;
 }
 
 .relationship-item:hover {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+  background: var(--bg-light);
+  border-color: var(--border-color);
 }
 
 .small-avatar {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  border: 2px solid white;
+  border: 2px solid var(--white);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
@@ -710,24 +708,24 @@ watch(
 }
 
 .child-info strong {
-  font-size: 1rem;
-  color: #0f172a;
+  font-size: var(--text-base);
+  color: var(--text-dark);
 }
 
 .child-info span {
-  font-size: 0.8rem;
-  color: #94a3b8;
+  font-size: var(--text-xs);
+  color: var(--text-light);
 }
 
 .timestamp-item p {
-  margin-top: 8px;
-  font-size: 1rem;
+  margin-top: var(--space-xs);
+  font-size: var(--text-base);
   font-weight: 600;
-  color: #334155;
+  color: var(--text-dark);
 }
 
 .mt-3 {
-  margin-top: 20px;
+  margin-top: var(--space-lg);
 }
 
 .text-center {
@@ -735,17 +733,17 @@ watch(
 }
 
 .p-3 {
-  padding: 12px;
+  padding: var(--space-sm);
 }
 
 .relationship-item.clickable {
   cursor: pointer;
   transition: background 0.2s;
-  padding: 8px;
-  border-radius: 12px;
+  padding: var(--space-xs);
+  border-radius: var(--border-radius);
 }
 
 .relationship-item.clickable:hover {
-  background: #f1f8ff;
+  background: var(--primary-soft);
 }
 </style>

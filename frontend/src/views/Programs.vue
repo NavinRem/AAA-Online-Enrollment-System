@@ -11,23 +11,20 @@ import ProgramActionModal from '../components/programs/ProgramActionModal.vue'
 import { programService } from '../services/programService'
 import { useSearch, programSearchMapper } from '../composables/useSearch'
 import {
-  getProgramProfileURL,
-  getTeacherProfileURL,
   getImageUrl,
   getActionIcon
 } from '@/utils/assetHelper'
-import { calculateProgramStats, getProgramDisplayStatus } from '@/utils/programHelper'
+import { getProgramDisplayStatus } from '@/utils/programHelper'
 
 const programs = ref([])
-const enrollments = ref([])
 const sessions = ref([])
 const loading = ref(true)
 const currentFilter = ref('all')
-const categoryFilter = ref('all') // New
-const categories = ref([]) // New
+const categoryFilter = ref('all')
+const categories = ref([])
 const isCategoryFilterOpen = ref(false)
-const categorySearchQuery = ref('') // New for search
-const categoryMenuStyles = ref({}) // New for positioning
+const categorySearchQuery = ref('')
+const categoryMenuStyles = ref({})
 const now = ref(new Date())
 const newlyCreatedId = ref(null)
 
@@ -47,15 +44,13 @@ const actionModal = ref({
 })
 
 const statsCards = computed(() => {
-  const s = calculateProgramStats(programs.value, enrollments.value, sessions.value, now.value)
   return [
-    { label: 'Total Programs', value: s.total, image: getImageUrl('programs/total-program'), color: 'var(--accent-light)' },
-    { label: 'Active Programs', value: s.activeCount, image: getImageUrl('programs/active-program'), color: 'var(--accent-light)' },
-    { label: 'Upcoming Programs', value: s.upcomingCount, image: getImageUrl('programs/upcoming-program'), color: 'var(--accent-light)' },
-    { label: 'In Progress', value: s.inProgressCount, image: getImageUrl('programs/in-progress-program'), color: 'var(--accent-light)' },
-    { label: 'Archived', value: s.archivedCount, image: getImageUrl('programs/archived-program'), color: 'var(--accent-light)' }
+    { label: 'Total Products', value: programs.value.length, image: getImageUrl('programs/total-program'), color: 'var(--accent-light)' },
+    { label: 'Group Programs', value: programs.value.filter(p => p.type === 'group').length, image: getImageUrl('programs/active-program'), color: 'var(--accent-light)' },
+    { label: 'Private Programs', value: programs.value.filter(p => p.type === 'private').length, image: getImageUrl('programs/upcoming-program'), color: 'var(--accent-light)' },
   ]
 })
+
 
 const fetchPrograms = async () => {
   loading.value = true
@@ -89,26 +84,23 @@ const filteredCategories = computed(() => {
 
 onMounted(() => {
   fetchPrograms()
-
-  // Update every minute to keep "In Progress" fresh
   intervalId.value = setInterval(() => {
     now.value = new Date()
   }, 60000)
 })
 
 const programHeaders = [
-  { label: 'No', width: '60px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Category', class: 'hide-on-tablet' },
-  { label: 'Title', width: '200px' },
-  { label: 'Teachers', class: 'hide-on-tablet', width: '150px' },
-  { label: 'Term', class: 'hide-on-tablet', width: '120px' },
-  { label: 'Period', class: 'hide-on-mobile' },
-  { label: 'Schedule', class: 'hide-on-tablet', width: '150px' },
-  { label: 'Level', class: 'hide-on-tablet', align: 'center', width: '30px' },
-  { label: 'Price', class: 'hide-on-mobile', align: 'center', width: '80px' },
-  { label: 'Status', align: 'center', width: '100px' },
+  { label: 'No', width: '50px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Category', width: '150px' },
+  { label: 'Program Model', width: '250px' },
+  { label: 'Sessions', align: 'center', width: '80px' },
+  { label: 'Weeks', align: 'center', width: '80px' },
+  { label: 'Base Price', align: 'center', width: '100px' },
+  { label: 'Cap', align: 'center', width: '50px' },
+  { label: 'Type', align: 'center', width: '100px' },
   { label: 'Action', width: '60px', align: 'center' },
 ]
+
 
 const { searchQuery, searchResults } = useSearch(programs, programSearchMapper)
 
@@ -116,12 +108,10 @@ const filteredPrograms = computed(() => {
   const list = searchResults.value || []
   let result = [...list]
 
-  // 1. Filtering by Category (Separate Filter)
   if (categoryFilter.value !== 'all') {
     result = result.filter(p => (p.category || 'General') === categoryFilter.value)
   }
 
-  // 2. Filtering by Status (Main Filter)
   if (currentFilter.value.startsWith('status:')) {
     const filterStatus = currentFilter.value.replace('status:', '')
     result = result.filter((p) => {
@@ -130,7 +120,6 @@ const filteredPrograms = computed(() => {
     })
   }
 
-  // 3. Sorting
   if (currentFilter.value === 'sort:category') {
     result.sort((a, b) => {
       const catA = (a.category || 'General').toLowerCase()
@@ -139,7 +128,6 @@ const filteredPrograms = computed(() => {
       return (a.title || '').toLowerCase().localeCompare((b.title || '').toLowerCase())
     })
   } else {
-    // Default Sort: Created Date Descending
     result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
   }
 
@@ -175,16 +163,15 @@ const handleActionSubmit = async (formData) => {
       const result = await programService.createProgram(formData)
       newlyCreatedId.value = result.id
 
-      // Auto-create initial session if schedule exists
       if (formData.schedule) {
         await programService.createSession({
           programId: result.id,
-          branch: { id: 'FM', name: 'Funmall', abbr: 'FM' }, // Default to Funmall for now
+          branch: { id: 'FM', name: 'Funmall', abbr: 'FM' },
           schedule: {
             day: formData.schedule.day,
             timeslot: formData.schedule.timeslot
           },
-          capacity: 20 // Default capacity
+          capacity: 20
         })
       }
 
@@ -228,9 +215,7 @@ const toggleCategoryFilter = (event) => {
 }
 
 const closeCategoryFilter = (event) => {
-  // Use a slight delay to allow click events on the menu to register
   setTimeout(() => {
-    // Check if the relatedTarget is inside the menu to prevent accidental closing
     const menu = document.querySelector('.category-filter-menu')
     if (menu && menu.contains(event.relatedTarget)) return
     isCategoryFilterOpen.value = false
@@ -265,7 +250,6 @@ const onRowClick = (item) => {
             { label: 'Status: Archived', value: 'status:archived' },
           ]" :rowClass="getRowClass" @row-click="onRowClick" @action="({ type, item }) => handleAction(type, item)">
           <template #toolbar-actions>
-            <!-- Unified Category Filter Dropdown -->
             <div class="filter-dropdown-container">
               <AppButton variant="secondary" :class="{ active: categoryFilter !== 'all' }" @click="toggleCategoryFilter"
                 @blur="closeCategoryFilter">
@@ -276,9 +260,9 @@ const onRowClick = (item) => {
                 <transition name="toast-fade">
                   <div v-if="isCategoryFilterOpen" class="filter-dropdown-menu scrollable-menu category-filter-menu"
                     :style="categoryMenuStyles" @mousedown.stop>
-                    <div class="dropdown-search" style="padding: 8px; border-bottom: 1px solid #f1f5f9;">
+                    <div class="dropdown-search-wrapper">
                       <input type="text" v-model="categorySearchQuery" placeholder="Search category..."
-                        style="width: 100%; padding: 6px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.85rem;"
+                        class="search-input-mini"
                         @mousedown.stop />
                     </div>
                     <div class="filter-option" :class="{ active: categoryFilter === 'all' }"
@@ -289,8 +273,7 @@ const onRowClick = (item) => {
                       :class="{ active: categoryFilter === cat.name }" @click.stop="selectCategory(cat.name)">
                       {{ cat.name }}
                     </div>
-                    <div v-if="filteredCategories.length === 0" class="filter-option no-results"
-                      style="color: #94a3b8; font-style: italic;">
+                    <div v-if="filteredCategories.length === 0" class="filter-option no-results text-muted italic">
                       No matches found
                     </div>
                   </div>
@@ -306,7 +289,7 @@ const onRowClick = (item) => {
             <td class="hide-on-mobile text-center">
               {{ index + 1 }}
             </td>
-            <td class="hide-on-tablet">
+            <td>
               <div class="user-info">
                 <div class="program-icon-mini">
                   <img :src="getProgramProfileURL(item.profileURL || item.imageURL, item.category)" alt="program" />
@@ -314,45 +297,17 @@ const onRowClick = (item) => {
                 {{ item.category || 'General' }}
               </div>
             </td>
-            <td class="bold">{{ item.title }}</td>
-            <td class="hide-on-tablet">
-              <div v-if="item.teachers && item.teachers.length > 0" class="teacher-stack-container">
-                <div class="teacher-avatar-stack">
-                  <div v-for="(t, i) in item.teachers" :key="t.id || t.uid || i" class="teacher-avatar-mini"
-                    :title="t.name || 'Teacher'" :style="{ zIndex: item.teachers.length - i }">
-                    <img :src="getTeacherProfileURL(t.profileURL)" alt="teacher" />
-                  </div>
-                </div>
-              </div>
-              <span v-else class="help-text-small">None assigned</span>
+            <td class="bold">{{ item.name || item.title }}</td>
+            <td class="text-center">{{ item.sessionNumber || '-' }}</td>
+            <td class="text-center">{{ item.weeksNumber || '-' }}</td>
+            <td class="text-center bold">
+              <StatusBadge :status="'$' + (item.basePrice || 0)" />
             </td>
-            <td class="hide-on-tablet">
-              <StatusBadge :status="item.termName || item.term || 'No Term'" type="blue" />
-            </td>
-            <td class="hide-on-mobile">
-              <div class="period-info" v-if="item.startDate">
-                <span>{{ item.startDate }}</span>
-                <span class="to-label">to</span>
-                <span>{{ item.endDate }}</span>
-              </div>
-              <StatusBadge v-else :status="item.termName || 'No Dates'" type="blue" />
-            </td>
-            <td class="hide-on-tablet">
-              <div class="schedule-info" v-if="item.schedule">
-                <span class="day">{{ item.schedule.day }}</span>
-                <span class="time">{{ item.schedule.timeslot }}</span>
-              </div>
-              <span v-else class="help-text-small">Not scheduled</span>
-            </td>
-            <td class="hide-on-tablet text-center">
-              <StatusBadge :status="item.levelName || item.level || 'Beginner'" type="purple" />
-            </td>
-            <td class="hide-on-mobile text-center">
-              <StatusBadge :status="'$' + (item.price || 0)" />
-            </td>
+            <td class="text-center">{{ item.maxCapacity || '-' }}</td>
             <td class="text-center">
-              <StatusBadge :status="getProgramDisplayStatus(item, sessions, now)" />
+              <StatusBadge :status="item.type || 'group'" :type="item.type === 'private' ? 'purple' : 'blue'" />
             </td>
+
             <td class="action-cell text-center">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
@@ -390,33 +345,33 @@ const onRowClick = (item) => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 0.825rem;
+  font-size: var(--text-xs);
 }
 
 .schedule-info .day {
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-dark);
 }
 
 .schedule-info .time {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .schedule-info .duration {
-  color: #94a3b8;
+  color: var(--text-light);
   font-style: italic;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .help-text-small {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-top: 4px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: var(--space-2xs);
 }
 
 .user-info {
   cursor: pointer;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .filter-dropdown-container {
@@ -427,10 +382,10 @@ const onRowClick = (item) => {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  background: white;
-  border-radius: 12px;
+  background: var(--white);
+  border-radius: var(--border-radius-sm);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   z-index: 100;
   overflow: hidden;
   min-width: 180px;
@@ -438,25 +393,25 @@ const onRowClick = (item) => {
 
 .scrollable-menu {
   max-height: 200px;
-  overflow-y: auto !important;
+  overflow-y: auto;
 }
 
 .filter-option {
-  padding: 12px 18px;
-  font-size: 0.9rem;
-  color: #444;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-sm);
+  color: var(--text-dark);
   cursor: pointer;
   transition: background 0.2s;
   white-space: nowrap;
 }
 
 .filter-option:hover {
-  background: #f4fafe;
+  background: var(--primary-soft);
 }
 
 .filter-option.active {
   background: var(--accent-light);
-  color: #00aeef;
+  color: var(--primary-color);
   font-weight: 700;
 }
 
@@ -476,7 +431,7 @@ const onRowClick = (item) => {
   width: 28px;
   height: 28px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  border: 2px solid white;
+  border: 2px solid var(--white);
   border-radius: 50%;
   overflow: hidden;
   transition: transform 0.2s;
@@ -488,7 +443,7 @@ const onRowClick = (item) => {
 
 .teacher-avatar-mini:hover {
   transform: translateY(-3px) scale(1.1);
-  z-index: 50 !important;
+  z-index: 50;
 }
 
 .teacher-avatar-mini img {
@@ -498,32 +453,31 @@ const onRowClick = (item) => {
 }
 
 .teacher-name-solo {
-  font-size: 0.85rem;
-  color: #1e293b;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
   font-weight: 500;
 }
 
 .teacher-count-tag {
-  font-size: 0.75rem;
-  color: #64748b;
-  background: #f1f5f9;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  background: var(--bg-light);
   padding: 2px 8px;
-  border-radius: 12px;
+  border-radius: var(--border-radius-lg);
   white-space: nowrap;
 }
 
 .period-info {
   display: flex;
   flex-direction: column;
-  font-size: 0.75rem;
-  color: #475569;
+  font-size: var(--text-xs);
+  color: var(--text-dark);
 }
 
 .to-label {
-  font-size: 0.65rem;
-  color: #94a3b8;
+  font-size: var(--text-3xs);
+  color: var(--text-light);
   font-weight: 600;
   text-transform: uppercase;
 }
-
 </style>
