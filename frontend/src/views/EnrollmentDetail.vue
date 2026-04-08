@@ -301,7 +301,7 @@ onMounted(async () => {
 
       <template #left-content v-if="enrollment">
         <div class="detail-cards-grid">
-          <DetailCard title="Parent Information" :avatarUrl="getParentProfileURL(enrollment.parent?.profile)">
+          <DetailCard title="Parent Information" :avatarUrl="getParentProfileURL(enrollment.parent?.profileURL)">
             <p><strong>Fullname:</strong> {{ enrollment.parent?.name || 'N/A' }}</p>
             <p><strong>Email:</strong> {{ enrollment.parent?.email || 'N/A' }}</p>
             <p><strong>Phone Number:</strong> {{ enrollment.parent?.phone || 'N/A' }}</p>
@@ -311,7 +311,7 @@ onMounted(async () => {
             </p>
           </DetailCard>
 
-          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.student?.profile)">
+          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.student?.profileURL)">
             <p>
               <strong>Fullname:</strong>
               {{ enrollment.student?.name || 'N/A' }}
@@ -328,7 +328,7 @@ onMounted(async () => {
           </DetailCard>
 
           <DetailCard title="Program Information"
-            :avatarUrl="getProgramProfileURL(enrollment.program?.profile || enrollment.program?.profileURL, enrollment.program?.category)">
+            :avatarUrl="getProgramProfileURL(enrollment.program?.profileURL, enrollment.program?.category)">
             <p>
               <strong>Program:</strong>
               {{ enrollment.program?.title }}
@@ -357,8 +357,7 @@ onMounted(async () => {
             </p>
           </DetailCard>
 
-          <DetailCard title="Class Information"
-            :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profile || enrollment.teacher?.profileURL)">
+          <DetailCard title="Class Information" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)">
 
             <p><strong>Program:</strong> {{ enrollment.program?.title || 'N/A' }}</p>
 
@@ -660,7 +659,7 @@ onMounted(async () => {
 .teacher-avatar-stacked {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   object-fit: cover;
   border: 2px solid var(--white);
   margin-left: -8px;
@@ -730,7 +729,7 @@ onMounted(async () => {
   border: none;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   cursor: pointer;
 }
 
