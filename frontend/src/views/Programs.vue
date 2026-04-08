@@ -432,7 +432,7 @@ const onRowClick = (item) => {
   height: 28px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   border: 2px solid var(--white);
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   overflow: hidden;
   transition: transform 0.2s;
 }

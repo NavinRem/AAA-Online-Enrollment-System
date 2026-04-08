@@ -41,7 +41,7 @@
 .avatar-mini-enrollment {
   width: 26px;
   height: 26px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   object-fit: cover;
   border: 1.5px solid var(--primary-light);
 }

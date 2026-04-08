@@ -3,8 +3,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { authService } from '@/services/authService'
 import { userService } from '@/services/userService'
-import { getImageUrl, getIconUrl, getActionIcon } from '@/utils/assetHelper'
+import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
+import SearchBox from '@/components/common/data/SearchBox.vue'
 
 const route = useRoute()
 const searchQuery = ref('')
@@ -54,10 +55,7 @@ onMounted(() => {
     </div>
 
     <div class="header-center desktop-only">
-      <div class="search-wrapper">
-        <input v-model="searchQuery" type="text" placeholder="Search something" class="search-input" />
-        <img :src="getActionIcon('search')" class="search-icon" />
-      </div>
+      <SearchBox v-model="searchQuery" placeholder="Search something" />
     </div>
 
     <div class="header-right">
@@ -158,7 +156,7 @@ onMounted(() => {
   border: none;
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -202,7 +200,7 @@ onMounted(() => {
 .user-avatar-topbar {
   width: 38px;
   height: 38px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   overflow: hidden;
   border: 1px solid var(--border-color);
   background-color: var(--accent-light);

@@ -199,7 +199,7 @@ onMounted(fetchClasses)
 .avatar-mini {
   width: 24px;
   height: 24px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   overflow: hidden;
 }
 

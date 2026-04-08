@@ -19,8 +19,6 @@ import { useTableActions } from '../composables/useTableActions'
 import {
   enrichParents,
   calculateParentStats,
-  isRegisteredToday,
-  hasPaidToday,
   filterParents
 } from '@/utils/parentHelper'
 import {
@@ -41,9 +39,6 @@ const branches = ref([])
 const getRowClass = (item) => {
   return newlyCreatedId.value === (item.uid || item.id) ? 'new-row-highlight' : ''
 }
-const {
-  closeMenu,
-} = useTableActions()
 
 const statsCards = computed(() => {
   const s = calculateParentStats(allUsers.value, enrollments.value)
@@ -180,11 +175,16 @@ const submitActionModal = async (formData) => {
         })
       }
       successMessage.value = 'Child registered successfully!'
+    } else if (type === 'reset-password') {
+      const result = await userService.resetPassword(uid)
+      successMessage.value = `Password reset successfully! New Temporary Password: ${result.tempPassword}`
     }
+
+    const delay = (type === 'reset-password' || type === 'edit' && successMessage.value.includes('Password')) ? 5000 : 1500
 
     setTimeout(() => {
       closeActionModal()
-    }, 1500)
+    }, delay)
   } catch (err) {
     console.error(`Failed to handle ${type} action:`, err)
     errorMessage.value = err.message || `Failed to ${type} action. Please try again.`
@@ -216,7 +216,11 @@ const submitNewParent = async (data) => {
     allUsers.value.unshift(newUser)
     newlyCreatedId.value = actualUid
 
-    successMessage.value = 'New account created successfully!'
+    let msg = 'New account created successfully!'
+    if (result.tempPassword) {
+      msg += ` Temporary Password: ${result.tempPassword}`
+    }
+    successMessage.value = msg
 
     setTimeout(() => {
       showNewParentModal.value = false
@@ -234,7 +238,7 @@ const submitNewParent = async (data) => {
 const openAddChildModal = (parent) => {
   errorMessage.value = ''
   successMessage.value = ''
-  actionModalType.value = 'register-child'
+  actionModalType.value = 'plus'
   actionModalUser.value = parent
   isActionModalOpen.value = true
 }
@@ -279,7 +283,7 @@ const navigateToDetail = (item) => {
             <td class="bold" :style="{ width: headers[1].width }">
               <div class="user-cell">
                 <div class="avatar-mini">
-                  <img :src="item.profileURL || item.profile" alt="avatar" />
+                  <img :src="item.profileURL" alt="avatar" />
                 </div>
                 <span>{{ item.name }}</span>
               </div>
@@ -327,6 +331,9 @@ const navigateToDetail = (item) => {
                       <button v-else class="btn-cancel" @click="handleAction('deactivate', item)">
                         <img :src="getActionIcon('cancel')" class="action-icon-mini" /> Deactivate
                       </button>
+                      <button class="btn-edit" @click="() => { openActionModal('reset-password', item); closeMenu(); }">
+                        <img :src="getActionIcon('reset-password')" class="action-icon-mini" /> Reset Password
+                      </button>
                       <div class="menu-divider"></div>
                       <button class="btn-delete" @click="handleAction('delete', item)">
                         <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete Account
@@ -365,7 +372,7 @@ const navigateToDetail = (item) => {
   height: 28px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border: 2px solid var(--white);
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   overflow: hidden;
 }
 

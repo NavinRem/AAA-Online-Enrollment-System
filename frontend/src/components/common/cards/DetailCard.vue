@@ -55,7 +55,7 @@ defineProps({
   width: 100px;
   height: 100px;
   margin: 0 auto 20px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   border: 2px solid var(--accent-light);
   display: flex;
   align-items: center;
@@ -68,7 +68,7 @@ defineProps({
 .avatar-icon {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   object-fit: cover;
   display: block;
 }

@@ -611,7 +611,7 @@ const handleActionSubmit = async (formData) => {
 .small-avatar {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   border: 2px solid var(--white);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }

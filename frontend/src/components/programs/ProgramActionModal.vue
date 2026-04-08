@@ -354,7 +354,7 @@ watch(() => props.isOpen, async (isOpen) => {
   background: var(--error-soft);
   color: var(--error-color);
   border: none;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   width: 18px;
   height: 18px;
   line-height: 1;

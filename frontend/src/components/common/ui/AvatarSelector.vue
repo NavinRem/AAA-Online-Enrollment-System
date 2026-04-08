@@ -10,12 +10,15 @@
           </div>
         </div>
 
-        <div v-if="isCustomUrl" class="avatar-option custom-slot" :class="{ active: isSelected(modelValue) }"
-          @click="selectAvatar(modelValue)">
-          <img :src="modelValue" alt="Custom" />
-          <div class="check-badge">
+        <div v-if="customAvatar" class="avatar-option custom-slot" :class="{ active: isSelected(customAvatar) }"
+          @click="selectAvatar(customAvatar)">
+          <img :src="customAvatar" alt="Custom" />
+          <div class="check-badge" v-if="isSelected(customAvatar)">
             <i class="fas fa-check"></i>
           </div>
+          <button class="remove-avatar-btn" @click.stop="removeCustomAvatar" title="Delete Uploaded Profile">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       </div>
 
@@ -38,9 +41,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { storage } from '@/firebase'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
 import { getImageUrl, ALL_BUILTIN_AVATARS, isSameProfileAsset } from '@/utils/assetHelper'
 
 const props = defineProps({
@@ -59,6 +62,8 @@ const uploading = ref(false)
 const success = ref(false)
 const error = ref('')
 const fileInput = ref(null)
+
+const customAvatar = ref(null)
 
 const STUDENT_AVATARS = [
   { id: 'boy', name: 'Boy', key: 'profiles/avatar-boy' },
@@ -88,36 +93,55 @@ const availableAvatars = computed(() => {
   }))
 })
 
-const isCustomUrl = computed(() => {
-  if (!props.modelValue) return false
-
-  const resolved = props.modelValue.startsWith('http')
-    ? props.modelValue
-    : getImageUrl(props.modelValue)
-
-  if (!resolved || resolved === props.modelValue) {
-    if (!props.modelValue.startsWith('http') && !props.modelValue.includes('/')) return false
+watch(() => props.modelValue, (newVal) => {
+  if (newVal) {
+    const isBuiltin = ALL_BUILTIN_AVATARS.some(builtin =>
+      isSameProfileAsset(newVal, builtin)
+    )
+    if (!isBuiltin && (newVal.startsWith('http') || newVal.includes('firebasestorage') || newVal.includes('/'))) {
+      customAvatar.value = newVal
+    }
   }
-
-  return !ALL_BUILTIN_AVATARS.some(builtin =>
-    isSameProfileAsset(resolved, builtin)
-  )
-})
+}, { immediate: true })
 
 const isSelected = (url) => {
-  if (!props.modelValue) return false
-
-  const current = props.modelValue.startsWith('http')
-    ? props.modelValue
-    : getImageUrl(props.modelValue)
-
-  return isSameProfileAsset(current, url)
+  if (!props.modelValue || !url) return false
+  return isSameProfileAsset(props.modelValue, url)
 }
 
 const selectAvatar = (url) => {
   emit('update:modelValue', url)
   error.value = ''
   success.value = false
+}
+
+const removeCustomAvatar = async () => {
+  if (!customAvatar.value) return
+
+  const urlToDelete = customAvatar.value
+  const wasSelected = isSelected(urlToDelete)
+
+  try {
+    if (wasSelected) {
+      const firstDefault = availableAvatars.value[0]?.url || ''
+      emit('update:modelValue', firstDefault)
+    }
+
+    if (urlToDelete.includes('firebasestorage.googleapis.com')) {
+      const decodedUrl = decodeURIComponent(urlToDelete)
+      const pathParts = decodedUrl.split('/o/')[1]?.split('?')[0]
+      if (pathParts) {
+        const fileRef = storageRef(storage, pathParts)
+        await deleteObject(fileRef)
+      }
+    }
+
+    customAvatar.value = null
+    success.value = false
+  } catch (err) {
+    console.error('Failed to delete avatar:', err)
+    customAvatar.value = null
+  }
 }
 
 const handleFileUpload = async (event) => {
@@ -151,6 +175,7 @@ const handleFileUpload = async (event) => {
     const snapshot = await uploadBytes(fileRef, file)
     const downloadURL = await getDownloadURL(snapshot.ref)
 
+    customAvatar.value = downloadURL
     emit('update:modelValue', downloadURL)
     success.value = true
   } catch (err) {
@@ -158,6 +183,7 @@ const handleFileUpload = async (event) => {
     error.value = 'Upload failed'
   } finally {
     uploading.value = false
+    if (fileInput.value) fileInput.value.value = ''
   }
 }
 </script>
@@ -198,7 +224,7 @@ const handleFileUpload = async (event) => {
   position: relative;
   width: 54px;
   height: 54px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   cursor: pointer;
   border: 2px solid transparent;
   transition: all 0.2s;
@@ -219,7 +245,7 @@ const handleFileUpload = async (event) => {
 .avatar-option img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   object-fit: cover;
 }
 
@@ -231,7 +257,7 @@ const handleFileUpload = async (event) => {
   color: var(--white);
   width: 18px;
   height: 18px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -253,7 +279,7 @@ const handleFileUpload = async (event) => {
 .upload-btn {
   width: 54px;
   height: 54px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   border: 2px dashed var(--text-light);
   display: flex;
   flex-direction: column;
@@ -286,6 +312,36 @@ const handleFileUpload = async (event) => {
   border-style: solid;
 }
 
+.remove-avatar-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--border-radius-round);
+  background: var(--error-color);
+  color: var(--white);
+  border: 1px solid var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  z-index: 2;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-option:hover .remove-avatar-btn {
+  opacity: 1;
+}
+
+.remove-avatar-btn:hover {
+  background: var(--error-deep);
+  transform: scale(1.1);
+}
+
 .error-text {
   color: var(--error-color);
   font-size: var(--text-xs);
@@ -308,7 +364,7 @@ const handleFileUpload = async (event) => {
   height: 12px;
   border: 2px solid var(--text-light);
   border-top-color: var(--primary-color);
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   animation: spin 0.8s linear infinite;
   margin-bottom: 2px;
 }

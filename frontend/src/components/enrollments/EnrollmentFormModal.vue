@@ -1065,7 +1065,7 @@ const handleSubmit = () => {
   bottom: 3px;
   background-color: white;
   transition: .4s;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 

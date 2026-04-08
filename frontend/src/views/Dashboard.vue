@@ -297,7 +297,7 @@ const mappedEnrollments = computed(() => {
 .profile-image-large {
   width: 100px;
   height: 100px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 2px solid var(--primary-color);
@@ -360,7 +360,7 @@ const mappedEnrollments = computed(() => {
 .loader {
   width: 50px;
   aspect-ratio: 1;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   border: 4px solid var(--border-color);
   border-right-color: var(--primary-color);
   animation: l2 1s infinite linear;
