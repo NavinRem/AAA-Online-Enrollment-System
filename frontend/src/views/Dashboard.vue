@@ -15,13 +15,16 @@ import { calculateDashboardStats } from '@/utils/statsHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
 import branchService from '../services/branchService'
 
-// UI Components
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import MiniCard from '../components/common/cards/MiniCard.vue'
 import RecentEnrollmentTable from '../components/enrollments/RecentEnrollmentTable.vue'
 
-const userProfile = ref(null)
+const userProfile = ref({
+  name: 'Loading...',
+  role: '...',
+  profileURL: null
+})
 const students = ref([])
 const programs = ref([])
 const enrollments = ref([])
@@ -85,6 +88,11 @@ onMounted(() => {
       )
     } catch (err) {
       console.error('Dashboard error:', err)
+      userProfile.value = {
+        name: 'User',
+        role: 'Unknown',
+        profileURL: getImageUrl('profiles', 'avatar-guest')
+      }
     } finally {
       loading.value = false
     }
@@ -305,7 +313,6 @@ const mappedEnrollments = computed(() => {
 .profile-info-content {
   display: flex;
   flex-direction: column;
-  gap: 5px;
 }
 
 .welcome-name {

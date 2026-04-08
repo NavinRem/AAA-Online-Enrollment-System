@@ -11,7 +11,12 @@ import EnrollmentFormModal from '@/components/enrollments/EnrollmentFormModal.vu
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { programService } from '@/services/programService'
-import { formatDate, formatPrice } from '@/utils/formatUtils'
+import {
+  formatDate,
+  formatDateOnly,
+  formatPrice,
+  calculateAge
+} from '@/utils/formatUtils'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { isPaid, isCancelled } from '@/utils/statusUtils'
 
@@ -38,7 +43,7 @@ const parents = ref([])
 const students = ref([])
 const programs = ref([])
 const sessions = ref([])
-const enrollments = ref([]) // To avoid duplicate enrollments check in form
+const enrollments = ref([])
 const formLoading = ref(false)
 const loading = ref(true)
 const errorMessage = ref('')
@@ -55,8 +60,6 @@ const actionModal = ref({
 
 const showFormModal = ref(false)
 const validationHint = ref('')
-
-// Status checkers imported from statusHelper
 
 const openActionModal = (type) => {
   modalError.value = ''
@@ -100,7 +103,6 @@ const handleActionSubmit = async (payload) => {
 
       await enrollmentService.updateEnrollment(enrollment.value.id, updateData)
 
-      // Update local state
       enrollment.value = { ...enrollment.value, ...updateData }
     } else if (type === 'cancel') {
       await enrollmentService.cancelEnrollment(enrollment.value.id)
@@ -132,8 +134,6 @@ const handleActionSubmit = async (payload) => {
     submitting.value = false
   }
 }
-
-// UI Logic Handlers removed as handled by modern component
 
 const fetchDependencyData = async () => {
   try {
@@ -174,7 +174,6 @@ const handleEditSubmit = async (formData) => {
   submitting.value = true
   modalError.value = ''
   try {
-    // Extract enrichment data (matching Enrollments.vue logic)
     const pRecord = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
     const sRecord = students.value.find((s) => s.id === formData.studentId)
     const progRecord = programs.value.find((c) => c.id === formData.programId)
@@ -223,7 +222,6 @@ const handleEditSubmit = async (formData) => {
     await enrollmentService.updateEnrollment(enrollment.value.id, payload)
     modalSuccess.value = 'Enrollment updated successfully!'
 
-    // Refresh current local state from backend
     const updated = await enrollmentService.getEnrollment(enrollment.value.id)
     enrollment.value = updated
     parent.value = updated.parent
@@ -249,7 +247,6 @@ onMounted(async () => {
     if (!id) throw new Error('No Enrollment ID provided')
 
     loading.value = true
-    // Fetch base enrollment and dependency data in parallel
     const [data] = await Promise.all([
       enrollmentService.getEnrollment(id),
       fetchDependencyData()
@@ -269,8 +266,6 @@ onMounted(async () => {
     loading.value = false
   }
 })
-
-// Helpers
 </script>
 
 <template>
@@ -461,7 +456,7 @@ onMounted(async () => {
 
           <div class="detail-row" v-if="enrollment?.transactionId">
             <span class="summary-label">{{ enrollment?.paymentMethod === 'Cash' ? 'Receipt Number' : 'Transaction ID'
-            }}</span>
+              }}</span>
             <span class="summary-value" style="font-family: monospace; font-weight: 600; color: #0284c7;">
               {{ enrollment.transactionId }}
             </span>

@@ -240,23 +240,24 @@ watch(
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" title="Parent Details">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" title="Parent Details"
+      :scrollable="true" :rightScrollable="true">
       <template #header-actions v-if="parent">
         <div class="actions-wrapper">
-          <button class="btn-icon btn-pay" title="Register Child" @click="openAddChildModal">
+          <button class="btn-icon-modern btn-pay" title="Register Child" @click="openAddChildModal">
             <img :src="getActionIcon('plus')" />
           </button>
-          <button class="btn-icon btn-edit" title="Edit Parent" @click="openActionModal('edit')">
+          <button class="btn-icon-modern btn-edit" title="Edit Parent" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" />
           </button>
-          <button v-if="!isInactive" class="btn-icon btn-cancel" title="Deactivate Account"
+          <button v-if="!isInactive" class="btn-icon-modern btn-cancel" title="Deactivate Account"
             @click="openActionModal('deactivate')">
             <img :src="getActionIcon('cancel')" />
           </button>
-          <button v-else class="btn-icon btn-pay" title="Activate Account" @click="openActionModal('activate')">
+          <button v-else class="btn-icon-modern btn-pay" title="Activate Account" @click="openActionModal('activate')">
             <img :src="getActionIcon('pay')" />
           </button>
-          <button class="btn-icon btn-delete" title="Delete Account" @click="openActionModal('delete')">
+          <button class="btn-icon-modern btn-delete" title="Delete Account" @click="openActionModal('delete')">
             <img :src="getActionIcon('delete')" />
           </button>
         </div>
@@ -266,15 +267,15 @@ watch(
         <!-- Custom Tab Navigation -->
         <div class="tabs-navigation-wrapper">
           <div class="tabs-navigation">
-            <button class="tab-btn" :class="{ active: activeTab === 'children' }" @click="activeTab = 'children'">
+            <AppButton variant="ghost" :class="{ active: activeTab === 'children' }" @click="activeTab = 'children'">
               Children & Programs
-            </button>
-            <button class="tab-btn" :class="{ active: activeTab === 'payments' }" @click="activeTab = 'payments'">
+            </AppButton>
+            <AppButton variant="ghost" :class="{ active: activeTab === 'payments' }" @click="activeTab = 'payments'">
               Payment History
-            </button>
-            <button class="tab-btn" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
+            </AppButton>
+            <AppButton variant="ghost" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
               Enrollment Logs
-            </button>
+            </AppButton>
           </div>
 
           <div class="global-filter">
@@ -290,56 +291,61 @@ watch(
             <div class="section-header">
               <h3>Children's Programs</h3>
             </div>
-            <div class="children-layout">
-              <div class="child-selector" v-if="students.length > 0">
-                <button v-for="s in students" :key="s.id || s.uid" class="child-chip"
-                  :class="{ active: selectedChildUid === (s.id || s.uid) }" @click="selectedChildUid = (s.id || s.uid)"
-                  @dblclick="navigateToStudent(s)">
-                  <div class="chip-avatar-wrapper">
-                    <img :src="s.profile || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
-                  </div>
-                  <span class="chip-label">{{ s.name || 'Student' }}</span>
-                </button>
-              </div>
-              <div class="table-container">
-                <table class="detail-table">
-                  <thead>
-                    <tr>
-                      <th style="width: 50px;">No</th>
-                      <th style="width: 140px;">Category</th>
-                      <th>Program</th>
-                      <th style="width: 160px;">Session</th>
-                      <th style="width: 120px;" class="text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-if="students.length === 0">
-                      <td colspan="5" class="text-center text-muted p-4">
-                        No children linked to this parent account.
-                      </td>
-                    </tr>
-                    <tr v-else-if="studentEnrollments.length === 0">
-                      <td colspan="5" class="text-center text-muted p-4">
-                        This child is not currently registered in any active programs.
-                      </td>
-                    </tr>
-                    <tr v-for="(reg, idx) in studentEnrollments" :key="reg.id">
-                      <td class="text-center">{{ idx + 1 }}</td>
-                      <td class="bold">Music</td>
-                      <td class="bold">{{ reg.programTitle || 'N/A' }}</td>
-                      <td>
-                        <div class="session-cell">
-                          <strong>{{ reg.sessionSchedule?.split(' ')[0] || 'N/A' }}</strong>
-                          <span>{{ reg.sessionSchedule?.split(' ')[1] || 'N/A' }}</span>
-                        </div>
-                      </td>
-                      <td class="text-center">
-                        <StatusBadge :status="reg.status || 'Studying'" />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+
+            <!-- Child Selector Chips -->
+            <div class="child-selector" v-if="students.length > 0">
+              <button v-for="s in students" :key="s.id || s.uid" class="child-chip"
+                :class="{ active: selectedChildUid === (s.id || s.uid) }" @click="selectedChildUid = (s.id || s.uid)"
+                @dblclick="navigateToStudent(s)">
+                <div class="chip-avatar-wrapper">
+                  <img :src="s.profile || s.profileURL" class="chip-avatar"
+                    @error="e => e.target.src = getImageUrl('profiles/avatar-student')" />
+                </div>
+                <span class="chip-label">{{ s.name || 'Student' }}</span>
+              </button>
+            </div>
+
+            <!-- Programs Table -->
+            <div class="table-container mt-3">
+              <table class="detail-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;">No</th>
+                    <th>Program</th>
+                    <th style="width: 160px;">Session</th>
+                    <th style="width: 120px;" class="text-center">Amount</th>
+                    <th style="width: 120px;" class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="students.length === 0">
+                    <td colspan="5" class="text-center text-muted p-4">
+                      No children linked to this parent account.
+                    </td>
+                  </tr>
+                  <tr v-else-if="studentEnrollments.length === 0">
+                    <td colspan="5" class="text-center text-muted p-4">
+                      This child is not currently registered in any active programs.
+                    </td>
+                  </tr>
+                  <tr v-for="(reg, idx) in studentEnrollments" :key="reg.id">
+                    <td class="text-center">{{ idx + 1 }}</td>
+                    <td class="bold">{{ reg.programTitle || reg.program?.title || 'N/A' }}</td>
+                    <td>
+                      <div class="session-cell">
+                        <strong>{{ reg.sessionSchedule?.split(' ')[0] || 'N/A' }}</strong>
+                        <span>{{ reg.sessionSchedule?.split(' ').slice(1).join(' ') || '' }}</span>
+                      </div>
+                    </td>
+                    <td class="text-center">
+                      <StatusBadge :status="'$' + (reg.amount || 0)" />
+                    </td>
+                    <td class="text-center">
+                      <StatusBadge :status="reg.displayStatus || reg.status || 'Unpaid'" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -426,7 +432,8 @@ watch(
           <template #outside>
             <div class="profile-header" style="flex-direction: column; align-items: center;">
               <div class="profile-preview">
-                <img :src="parent?.profileURL || parent?.profile" alt="Profile" />
+                <img :src="parent?.profileURL || parent?.profile" alt="Profile"
+                  @error="e => e.target.src = getImageUrl('profiles/avatar-admin')" />
               </div>
               <h3 class="profile-name">{{ parent?.name || 'Anonymous' }}</h3>
               <div class="badge-stack">
@@ -490,51 +497,42 @@ watch(
 @import '@/assets/styles/detail-view.css';
 
 /* Parent-specific tweaks */
-.children-layout {
-  display: flex;
-  gap: 32px;
-}
-
 .child-selector {
-  width: 220px;
-  border-right: 1px solid #f1f5f9;
-  padding-right: 24px;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .child-chip {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 18px;
-  border-radius: 16px;
-  border: 2px solid #f1f5f9;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: 24px;
+  border: 2px solid #e2e8f0;
   background: white;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  text-align: left;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
   color: #64748b;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .child-chip:hover {
-  border-color: #e2e8f0;
-  background: var(--bg-subtle);
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  border-color: #00aeef;
+  color: #00aeef;
+  background: #f0f9ff;
 }
 
 .chip-avatar-wrapper {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   overflow: hidden;
-  border: 2px solid white;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 .chip-avatar {
@@ -544,14 +542,10 @@ watch(
 }
 
 .child-chip.active {
-  background: #eff6ff;
+  background: #00aeef;
   border-color: #00aeef;
-  color: #00aeef;
-  box-shadow: 0 10px 15px -3px rgba(0, 174, 239, 0.15);
-}
-
-.child-chip.active .chip-avatar-wrapper {
-  border-color: #00aeef;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 174, 239, 0.3);
 }
 
 .chip-label {

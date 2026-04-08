@@ -10,13 +10,29 @@ import { branchService } from '../services/branchService'
 import { authService } from '../services/authService'
 import { userService } from '../services/userService'
 import { enrollmentService } from '../services/enrollmentService'
-import { getImageUrl } from '@/utils/assetHelper'
+import { programService } from '../services/programService'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import StatusBadge from '../components/common/ui/StatusBadge.vue'
+import { formatPrice } from '@/utils/statusUtils'
+import { useSearch, branchSearchMapper } from '../composables/useSearch'
+import BranchActionModal from '../components/branches/BranchActionModal.vue'
+import AppButton from '../components/common/ui/AppButton.vue'
 
 const branches = ref([])
 const students = ref([])
 const enrollments = ref([])
+const programs = ref([])
+const sessions = ref([])
 const loading = ref(true)
 const newlyCreatedId = ref(null)
+
+// Modal State
+const isModalOpen = ref(false)
+const modalType = ref('add') // 'add', 'edit', 'delete'
+const selectedBranch = ref(null)
+const modalLoading = ref(false)
+const modalError = ref('')
+const modalSuccess = ref('')
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
@@ -31,14 +47,18 @@ const fetchData = async () => {
   }
 
   try {
-    const [bData, sData, eData] = await Promise.all([
+    const [bData, sData, eData, pData, sesData] = await Promise.all([
       branchService.getAllBranches(),
       userService.getAllStudents(),
-      enrollmentService.getAllEnrollments()
+      enrollmentService.getAllEnrollments(),
+      programService.getAllPrograms(),
+      programService.getAllSessions()
     ])
     branches.value = Array.isArray(bData) ? bData : []
     students.value = Array.isArray(sData) ? sData : []
     enrollments.value = Array.isArray(eData) ? eData : []
+    programs.value = Array.isArray(pData) ? pData : []
+    sessions.value = Array.isArray(sesData) ? sesData : []
   } catch (error) {
     console.error('Failed to fetch branches data', error)
   } finally {
@@ -49,6 +69,48 @@ const fetchData = async () => {
 onMounted(() => {
   fetchData()
 })
+
+// Modal Handlers
+const openModal = (type, branch = null) => {
+  modalType.value = type
+  selectedBranch.value = branch
+  isModalOpen.value = true
+}
+
+const closeModal = () => {
+  isModalOpen.value = false
+  selectedBranch.value = null
+  modalError.value = ''
+  modalSuccess.value = ''
+}
+
+const handleModalSubmit = async (formData) => {
+  modalLoading.value = true
+  modalError.value = ''
+
+  try {
+    if (modalType.value === 'add') {
+      await branchService.createBranch(formData)
+      modalSuccess.value = 'Branch created successfully!'
+    } else if (modalType.value === 'edit') {
+      await branchService.updateBranch(selectedBranch.value.id, formData)
+      modalSuccess.value = 'Branch updated successfully!'
+    } else if (modalType.value === 'delete') {
+      await branchService.deleteBranch(selectedBranch.value.id)
+      modalSuccess.value = 'Branch deleted successfully!'
+    }
+
+    setTimeout(() => {
+      fetchData()
+      closeModal()
+    }, 1000)
+  } catch (error) {
+    modalError.value = error.message || 'Operation failed'
+  } finally {
+    modalLoading.value = false
+  }
+}
+
 
 const statsCards = computed(() => {
   if (loading.value) return []
@@ -108,7 +170,7 @@ const statsCards = computed(() => {
       label: 'Top Enrolled Branch',
       value: topBranchName,
       subtitle: `${maxStudents} Total Students`,
-      image: getImageUrl('dashboard/card-branch'),
+      image: getImageUrl('dashboard/branch'),
       color: 'var(--accent-light)'
     },
     {
@@ -136,69 +198,241 @@ const statsCards = computed(() => {
 })
 
 const branchHeaders = [
-  { label: 'No', width: '80px', align: 'center' },
-  { label: 'Branch Name', width: '300px' },
-  { label: 'Abbreviation', width: '150px', align: 'center' },
-  { label: 'Location', class: 'hide-on-mobile' },
-  { label: 'Student Count', width: '150px', align: 'center' }
+  { label: 'No', width: '50px', align: 'center' },
+  { label: 'Branch Name', width: '180px' },
+  { label: 'Abbr', width: '85px', align: 'center' },
+  { label: 'Location' },
+  { label: 'Sessions', width: '100px', align: 'center' },
+  { label: 'Programs', width: '100px', align: 'center' },
+  { label: 'Students', width: '100px', align: 'center' },
+  { label: 'New Today', width: '100px', align: 'center' },
+  { label: 'Revenue', width: '100px', align: 'center' },
+  { label: 'Pending', width: '100px', align: 'center' },
+  { label: 'Action', width: '70px', align: 'center' }
 ]
 
-const getStudentCount = (branchAbbr) => {
-  return students.value.filter(s => s.branch?.abbr === branchAbbr || s.branch?.id === branchAbbr).length
+const { searchQuery, searchResults: filteredBranches } = useSearch(branches, branchSearchMapper)
+
+const getProgramCount = (branchId) => {
+  const branch = branches.value.find(b => b.id === branchId)
+  if (branch && branch.programCount !== undefined) return branch.programCount
+  const branchSessions = sessions.value.filter(s => s.branchId === branchId)
+  const uniqueProgramIds = new Set(branchSessions.map(s => s.programId))
+  return uniqueProgramIds.size
+}
+
+const getSessionCount = (branchId) => {
+  const branch = branches.value.find(b => b.id === branchId)
+  if (branch && branch.sessionCount !== undefined) return branch.sessionCount
+  return sessions.value.filter(s => s.branchId === branchId).length
+}
+
+const getPendingRevenue = (branchId) => {
+  const branch = branches.value.find(b => b.id === branchId)
+  if (branch && branch.pendingRevenue !== undefined) return branch.pendingRevenue
+  const pendingEnrollments = enrollments.value.filter(e =>
+    e.branchId === branchId &&
+    !['paid', 'confirmed', 'active', 'success'].includes(String(e.paymentStatus || '').toLowerCase())
+  )
+  return pendingEnrollments.reduce((sum, e) => sum + (e.amount || 0), 0)
+}
+
+const getStudentCount = (branchId) => {
+  const branch = branches.value.find(b => b.id === branchId)
+  if (branch && branch.studentCount !== undefined) return branch.studentCount
+  return students.value.filter(s => s.branch?.id === branchId || s.branchId === branchId).length
+}
+
+const getNewTodayCount = (branchId) => {
+  const branch = branches.value.find(b => b.id === branchId)
+  if (branch && branch.newTodayCount !== undefined) return branch.newTodayCount
+  const today = new Date().toISOString().split('T')[0]
+  return enrollments.value.filter(e => {
+    const eId = e.branchId
+    const eDate = e.createdAt?.toDate ? e.createdAt.toDate().toISOString().split('T')[0] : (e.createdAt || '').split('T')[0]
+    return eId === branchId && eDate === today
+  }).length
+}
+
+const getBranchRevenue = (branchId) => {
+  const branch = branches.value.find(b => b.id === branchId)
+  if (branch && branch.totalRevenue !== undefined) return branch.totalRevenue
+  const paidEnrollments = enrollments.value.filter(e =>
+    e.branchId === branchId &&
+    ['paid', 'confirmed', 'active', 'success'].includes(String(e.paymentStatus || '').toLowerCase())
+  )
+  return paidEnrollments.reduce((sum, e) => sum + (e.amount || 0), 0)
+}
+
+const isBranchRecentlyActive = (branchId) => {
+  const FIVE_MINUTES = 5 * 60 * 1000
+  const now = new Date().getTime()
+
+  return enrollments.value.some(e => {
+    if (e.branchId !== branchId) return false
+    const createdAt = e.createdAt?.toDate ? e.createdAt.toDate().getTime() : new Date(e.createdAt).getTime()
+    return (now - createdAt) < FIVE_MINUTES
+  })
 }
 </script>
 
 <template>
   <DashboardLayout>
-
-    <DataPageLayout title="Branches Overview" description="Manage school locations and physical campuses.">
+    <DataPageLayout overviewTitle="Branch Overview">
       <template #overview>
         <DataMetrics :stats="statsCards" />
       </template>
 
       <template #table>
-        <DataTable title="Branch List" :headers="branchHeaders" :items="branches" :loading="loading"
-          :rowClass="getRowClass" :hasSearch="false">
-          <template #row="{ item, index }">
-            <td align="center">{{ index + 1 }}</td>
-            <td>
-              {{ item.name }}
+        <DataTable title="Branch List" :headers="branchHeaders" :items="filteredBranches" :loading="loading"
+          :rowClass="getRowClass" :hasSearch="true" v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search Branches...">
+          <template #toolbar-actions>
+            <AppButton variant="primary" @click="openModal('add')" size="sm">
+              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> Add Branch
+            </AppButton>
+          </template>
+
+          <template #empty>
+            <div class="empty-state-cta">
+              <img :src="getImageUrl('common/no-data')" class="empty-img" />
+              <h3>No Branches Found</h3>
+              <p>Start by creating your first campus or restore defaults.</p>
+              <div class="cta-btns">
+                <AppButton variant="primary" @click="openModal('add')">Create Branch</AppButton>
+              </div>
+            </div>
+          </template>
+
+          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu, headers }">
+            <td :style="{ width: headers[0].width }" class="text-center">{{ index + 1 }}</td>
+            <td :style="{ width: headers[1].width }" class="branch-name text-left">{{ item.name }}</td>
+            <td :style="{ width: headers[2].width }" class="text-center">
+              <StatusBadge :status="item.abbr" />
             </td>
-            <td align="center">
-              <span class="abbr-badge">{{ item.abbr }}</span>
+            <td :style="{ width: headers[3].width }" style="padding-left: 20px;">
+              <div class="location-text multi-line">{{ item.location || 'No location set' }}</div>
             </td>
-            <td class="hide-on-mobile">
-              <span class="location-text">{{ item.location || 'No location set' }}</span>
+            <td :style="{ width: headers[4].width }" class="text-center">
+              <strong class="count-value">{{ getProgramCount(item.id) }}</strong>
             </td>
-            <td align="center">
+            <td :style="{ width: headers[5].width }" class="text-center">
+              <strong class="count-value">{{ getSessionCount(item.id) }}</strong>
+            </td>
+            <td :style="{ width: headers[6].width }" class="text-center">
               <strong class="count-value">{{ getStudentCount(item.id) }}</strong>
+            </td>
+            <td :style="{ width: headers[7].width }" class="text-center">
+              <span class="new-today-badge-pro" :class="{ 'recent-activity': isBranchRecentlyActive(item.id) }">
+                {{ '+' + getNewTodayCount(item.id) }}
+              </span>
+            </td>
+            <td :style="{ width: headers[8].width }" class="text-center">
+              <strong class="revenue-value">{{ '$' + formatPrice(getBranchRevenue(item.id)) }}</strong>
+            </td>
+            <td :style="{ width: headers[9].width }" class="text-center">
+              <strong class="pending-value">{{ '$' + formatPrice(getPendingRevenue(item.id)) }}</strong>
+            </td>
+            <td :style="{ width: headers[10].width }" class="action-cell text-center">
+              <div class="menu-container">
+                <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
+                  <span class="dots-icon">⋮</span>
+                </button>
+                <Teleport to="body">
+                  <transition name="fade">
+                    <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
+                      :style="menuStyles" @click.stop>
+                      <button class="btn-edit" @click="() => { openModal('edit', item); closeMenu(); }">
+                        <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit
+                      </button>
+                      <div class="menu-divider"></div>
+                      <button class="btn-delete" @click="() => { openModal('delete', item); closeMenu(); }">
+                        <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete
+                      </button>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
             </td>
           </template>
         </DataTable>
       </template>
     </DataPageLayout>
+
+    <BranchActionModal :isOpen="isModalOpen" :type="modalType" :branch="selectedBranch" :loading="modalLoading"
+      :error="modalError" :success="modalSuccess" @close="closeModal" @submit="handleModalSubmit"
+      @update:error="modalError = $event" @update:success="modalSuccess = $event" />
   </DashboardLayout>
 </template>
 
 <style scoped>
-.abbr-badge {
-  background: var(--bg-subtle);
+.branch-name {
+  font-weight: 600;
   color: var(--text-dark);
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 0.85rem;
-  border: 1px solid var(--border-color);
 }
 
 .location-text {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #64748b;
+  line-height: 1.4;
+}
+
+.location-text.multi-line {
+  word-break: break-word;
+  white-space: normal;
 }
 
 .count-value {
-  font-size: 1.1rem;
+  font-size: 1rem;
+  color: var(--text-dark);
+}
+
+.new-today-badge-pro {
+  background: transparent;
   color: var(--primary-color);
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  min-width: 50px;
+  display: inline-block;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid transparent;
+}
+
+.new-today-badge-pro.recent-activity {
+  background: var(--accent-light);
+  border-color: var(--accent-light);
+  animation: pulse-light 2s infinite;
+}
+
+@keyframes pulse-light {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.revenue-value {
+  color: #059669;
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.pending-value {
+  color: #f59e0b;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 .new-row-highlight {
@@ -215,7 +449,83 @@ const getStudentCount = (branchAbbr) => {
   }
 }
 
-.reverse-icon {
-  filter: brightness(0) invert(1);
+/* Revenue & Row Actions */
+.revenue-cell {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+  min-height: 40px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.row-actions.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.icon-btn {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.icon-btn:hover {
+  transform: translateY(-2px);
+  background: white;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.icon-btn.edit:hover {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.icon-btn.delete:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+/* Empty State CTA */
+.empty-state-cta {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-img {
+  width: 140px;
+  opacity: 0.6;
+  margin-bottom: 20px;
+}
+
+.empty-state-cta h3 {
+  font-size: 1.25rem;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+
+.empty-state-cta p {
+  color: #64748b;
+  margin-bottom: 25px;
+}
+
+.cta-btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
 }
 </style>

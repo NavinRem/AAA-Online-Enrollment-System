@@ -10,13 +10,14 @@ import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { programService } from '@/services/programService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
-import { 
-  getProgramProfileURL, 
+import {
+  getProgramProfileURL,
   getImageUrl,
   getActionIcon
 } from '@/utils/assetHelper'
 import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
 import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
+import { isPaid } from '@/utils/statusUtils'
 
 
 const route = useRoute()
@@ -331,7 +332,7 @@ const handleActionSubmit = async (formData) => {
                   <div class="info-item vertical">
                     <span class="info-label">COST PER SESSION:</span>
                     <strong>${{ (Number(program.price || 0) / (Number(program.numberSessions) || 1)).toFixed(2)
-                      }}</strong>
+                    }}</strong>
                   </div>
                 </div>
               </div>
