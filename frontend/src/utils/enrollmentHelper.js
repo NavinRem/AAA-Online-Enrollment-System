@@ -26,14 +26,14 @@ export const enrichEnrollments = (
   parents = [],
   students = [],
   programs = [],
-  sessions = [],
+  classes = [],
 ) => {
   return regs
     .map((r) => {
       const parent = r.parent || parents.find((p) => (p.uid || p.id) === r.parentId)
       const student = r.student || students.find((s) => (s.uid || s.id) === r.studentId)
       const prog = r.program || programs.find((p) => (p.id || p.uid) === r.programId)
-      const sess = sessions.find((s) => s.id === r.sessionId)
+      const classInst = r.class || classes.find((c) => c.id === r.classId)
 
       return {
         ...r,
@@ -46,9 +46,9 @@ export const enrichEnrollments = (
         program: prog
           ? { id: prog.id || prog.uid, title: prog.title || prog.name, profileURL: prog.profileURL }
           : null,
-        sessionSchedule:
-          r.sessionSchedule ||
-          (sess?.schedule ? `${sess.schedule.day} ${sess.schedule.timeslot}` : 'N/A'),
+        classSchedule:
+          r.classSchedule || (classInst ? `${classInst.day} ${classInst.timeslot}` : 'N/A'),
+
         parentName: parent?.name || r.parentName || 'N/A',
         parentProfileURL: getParentProfileURL(parent?.profileURL || r.parentProfileURL),
         studentName: student?.name || r.studentName || 'N/A',

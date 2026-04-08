@@ -22,7 +22,6 @@ const statusFilteredParents = computed(() => {
       if (currentFilter.value === 'active') return (u.status || 'Active').toLowerCase() === 'active'
       if (currentFilter.value === 'inactive') return (u.status || 'Active').toLowerCase() === 'inactive'
       if (currentFilter.value === 'parent') return (u.role || 'parent').toLowerCase() === 'parent'
-      if (currentFilter.value === 'guardian') return (u.role || 'parent').toLowerCase() === 'guardian'
       return true
     })
   }
@@ -43,7 +42,6 @@ The labels and values that appear in the filter dropdown are defined in the `Dat
     { label: 'Active Only', value: 'active' },
     { label: 'Inactive Only', value: 'inactive' },
     { label: 'Parents Only', value: 'parent' },
-    { label: 'Guardians Only', value: 'guardian' },
   ]"
   ...
 />

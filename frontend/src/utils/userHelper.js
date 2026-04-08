@@ -2,7 +2,7 @@ import { storageService } from '@/services/storageService'
 import { isSameProfileAsset } from './assetHelper'
 
 /**
- * Handles profile image stabilization for users (parents/guardians).
+ * Handles profile image stabilization for users (parents).
  * Moves from temp to final destination if needed.
  */
 export const processUserProfileImage = async (profile, name, role, currentProfile = '') => {
@@ -86,4 +86,3 @@ export const prepareStudentPayload = (data) => {
     updatedAt: new Date().toISOString(),
   }
 }
-

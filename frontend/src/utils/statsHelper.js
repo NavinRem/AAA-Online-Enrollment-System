@@ -32,10 +32,10 @@ export const calculateDashboardStats = (
   }
 
   const todayRegs = (allUsers || []).filter(
-    (u) => ['parent', 'guardian'].includes(u.role) && parseDate(u.createdAt).getTime() >= today,
+    (u) => u.role === 'parent' && parseDate(u.createdAt).getTime() >= today,
   )
   const weekRegs = (allUsers || []).filter(
-    (u) => ['parent', 'guardian'].includes(u.role) && parseDate(u.createdAt).getTime() >= weekly,
+    (u) => u.role === 'parent' && parseDate(u.createdAt).getTime() >= weekly,
   )
 
   return {

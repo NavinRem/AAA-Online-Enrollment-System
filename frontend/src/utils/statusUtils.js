@@ -36,6 +36,7 @@ const STATUS_CATEGORIES = {
     'studying',
     'start',
     'cash',
+    'ph',
   ],
   yellow: [
     'unpaid',
@@ -48,14 +49,14 @@ const STATUS_CATEGORIES = {
     'upcoming',
     'scheduled',
     'wing',
+    'idle',
   ],
-  magenta: ['unmarked', 'archived', 'full', 'parent', 'ocic'],
+  magenta: ['unmarked', 'archived', 'full', 'parent', 'ocic', 'high-revenue'],
   blue: [
     'graduated',
     'late',
     'good',
     'fair',
-    'guardian',
     'updated at',
     'prorated',
     'discount',
@@ -67,6 +68,7 @@ const STATUS_CATEGORIES = {
     'sathapana',
     'sky',
     'aeon',
+    'high-students',
   ],
   purple: [
     'make-up',
@@ -91,32 +93,18 @@ const STATUS_CATEGORIES = {
     'fm',
     'funmall',
   ],
-  green: [
-    'paid',
-    'confirmed',
-    'active',
-    'success',
-    'on-time',
-    'present',
-    'excellent',
-    'studying',
-    'start',
-    'cash',
-    'ph',
-    'peng hout',
-  ],
 }
 
 const THEMES = {
-  green: { backgroundColor: '#e6f8ea', color: '#2e7d32' },
-  yellow: { backgroundColor: '#fff8e1', color: '#c49000' },
-  orange: { backgroundColor: '#fff3e0', color: '#e65100' },
-  red: { backgroundColor: '#ffebee', color: '#c62828' },
-  blue: { backgroundColor: '#e3f2fd', color: '#0d47a1' },
-  purple: { backgroundColor: '#f3e5f5', color: '#6a1b9a' },
-  magenta: { backgroundColor: '#fce4ec', color: '#c2185b' },
-  teal: { backgroundColor: '#ccfbf1', color: '#0f766e' },
-  gray: { backgroundColor: '#f1f3f4', color: '#5f6368' },
+  green: { backgroundColor: 'var(--success-soft)', color: 'var(--success-color)' },
+  yellow: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning-color)' },
+  orange: { backgroundColor: 'var(--orange-soft)', color: 'var(--orange-color)' }, 
+  red: { backgroundColor: 'var(--error-soft)', color: 'var(--error-color)' },
+  blue: { backgroundColor: 'var(--primary-soft)', color: 'var(--primary-color)' },
+  purple: { backgroundColor: 'var(--purple-soft)', color: 'var(--purple-color)' },
+  magenta: { backgroundColor: 'var(--magenta-soft)', color: 'var(--magenta-color)' },
+  teal: { backgroundColor: 'var(--teal-soft)', color: 'var(--teal-color)' },
+  gray: { backgroundColor: 'var(--gray-soft)', color: 'var(--gray-color)' },
 }
 
 const THEME_FILTERS = {
@@ -138,7 +126,7 @@ export { THEMES }
 export const getStatusCategory = (status) => {
   if (!status) return 'gray'
 
-  if (isPriceValue(status)) return 'blue'
+  if (isPriceValue(status)) return 'teal'
 
   const s = String(status).toLowerCase().trim().split(':')[0]
   for (const [color, matches] of Object.entries(STATUS_CATEGORIES)) {
