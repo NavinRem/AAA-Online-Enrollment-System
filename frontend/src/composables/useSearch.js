@@ -89,3 +89,6 @@ export const programSearchMapper = (p) =>
 
 export const teacherSearchMapper = (t) =>
   [t.name, t.email, t.phone, t.id, t.uid].filter(Boolean).join(' ').toLowerCase()
+
+export const branchSearchMapper = (b) =>
+  [b.name, b.abbr, b.location].filter(Boolean).join(' ').toLowerCase()
