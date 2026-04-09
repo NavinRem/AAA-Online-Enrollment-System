@@ -8,11 +8,8 @@
         <div class="parent-details">
           <div class="flex-align-center gap-xs">
             <strong class="parent-name">{{ (selectedParent).name }}</strong>
-            <StatusBadge :status="(selectedParent).status" size="sm" />
           </div>
           <span class="parent-email-sub" v-if="(selectedParent).name">{{ selectedParent.email }}</span>
-          <span class="parent-email-sub" v-if="(selectedParent).name && (selectedParent).phone">{{ selectedParent.phone
-            }}</span>
         </div>
       </div>
     </div>

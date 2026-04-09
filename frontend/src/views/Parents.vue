@@ -331,7 +331,8 @@ const navigateToDetail = (item) => {
                       <button v-else class="btn-cancel" @click="handleAction('deactivate', item)">
                         <img :src="getActionIcon('cancel')" class="action-icon-mini" /> Deactivate
                       </button>
-                      <button class="btn-edit" @click="() => { openActionModal('reset-password', item); closeMenu(); }">
+                      <button class="btn-reset"
+                        @click="() => { openActionModal('reset-password', item); closeMenu(); }">
                         <img :src="getActionIcon('reset-password')" class="action-icon-mini" /> Reset Password
                       </button>
                       <div class="menu-divider"></div>

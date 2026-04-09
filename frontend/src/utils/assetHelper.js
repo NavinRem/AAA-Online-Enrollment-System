@@ -101,6 +101,8 @@ export const ACTION_ICONS = {
   'eye-open': 'action/eye-open',
   'eye-close': 'action/eye-close',
   'reset-password': 'action/reset-password',
+  reactivate: 'action/reactivate',
+  deactivate: 'action/deactivate',
 }
 
 /**

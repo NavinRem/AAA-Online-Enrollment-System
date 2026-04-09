@@ -297,6 +297,11 @@
   color: var(--warning-color);
 }
 
+.action-dropdown .btn-reset:hover {
+  background: var(--reset-soft);
+  color: var(--purple-color);
+}
+
 .action-dropdown .btn-delete,
 .action-dropdown .btn-delete:hover {
   color: var(--error-color);
@@ -326,6 +331,9 @@
 }
 .action-dropdown .btn-cancel:hover img {
   filter: invert(57%) sepia(61%) saturate(2132%) hue-rotate(345deg) brightness(101%) contrast(96%);
+}
+.action-dropdown .btn-reset:hover img {
+  filter: invert(20%) sepia(80%) saturate(2500%) hue-rotate(270deg) brightness(85%) contrast(110%);
 }
 
 /* ------------------
