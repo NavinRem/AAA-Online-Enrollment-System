@@ -166,6 +166,7 @@ onUnmounted(() => {
 })
 
 const isEditMode = computed(() => !!props.enrollment)
+const isSelectionLocked = computed(() => isEditMode.value)
 
 watch(() => props.enrollment, (newEnrollment) => {
   if (newEnrollment && props.isOpen) {
@@ -449,13 +450,24 @@ const handleSubmit = () => {
     ...formData.value,
     amount: finalAmount.value,
     enrollmentType: isFullEnrollment.value ? 'Full' : 'Partial',
-    basePrice: selectedProgramPrice.value,
     totalSessions: sessionInfo.value?.total || 0,
     remainingSessions: sessionInfo.value?.remaining || 0,
     passedSessions: sessionInfo.value?.passed || 0,
-    prorateSavings: prorateSavings.value || 0
+    prorateSavings: prorateSavings.value || 0,
+    studentCountAtEnrollment: selectedClass.value?.numStudent || 0
   })
 }
+
+const setStudent = (studentId) => {
+  formData.value.studentId = studentId
+  formData.value.programId = ''
+  formData.value.classId = ''
+  errors.value.studentId = ''
+}
+
+defineExpose({
+  setStudent
+})
 </script>
 
 <template>
@@ -466,8 +478,10 @@ const handleSubmit = () => {
         <div class="form-grid">
           <div class="form-group custom-dropdown-container">
             <label>Select Parent</label>
-            <div class="custom-dropdown" :class="{ open: isParentDropdownOpen, 'field-error': errors.parentId }">
-              <div class="dropdown-header" @click.stop="toggleDropdown('parent', $event)">
+            <div class="custom-dropdown"
+              :class="{ open: isParentDropdownOpen, 'field-error': errors.parentId, 'step-locked': isSelectionLocked }">
+              <div class="dropdown-header"
+                @click.stop="isSelectionLocked ? null : toggleDropdown('parent', $event)">
                 <template v-if="selectedParent">
                   <div class="selected-parent">
                     <img :src="getParentProfileURL(selectedParent.profileURL)" class="avatar-mini-enrollment" />
@@ -506,9 +520,9 @@ const handleSubmit = () => {
           <div class="form-group custom-dropdown-container">
             <label>Select Student</label>
             <div class="custom-dropdown"
-              :class="{ open: isStudentDropdownOpen, 'step-locked': !formData.parentId, 'field-error': errors.studentId }">
+              :class="{ open: isStudentDropdownOpen, 'step-locked': !formData.parentId || isSelectionLocked, 'field-error': errors.studentId }">
               <div class="dropdown-header"
-                @click.stop="!formData.parentId ? setError('parentId', 'Choose a parent first.') : toggleDropdown('student', $event)">
+                @click.stop="isSelectionLocked ? null : (!formData.parentId ? setError('parentId', 'Choose a parent first.') : toggleDropdown('student', $event))">
                 <template v-if="selectedStudent">
                   <div class="selected-item">
                     <img :src="getStudentProfileURL(selectedStudent.profileURL)" class="avatar-mini-enrollment" />
@@ -535,7 +549,7 @@ const handleSubmit = () => {
                       <img :src="getStudentProfileURL(s.profileURL)" class="avatar-mini-enrollment" />
                       <span class="item-name">{{ s.name }}</span>
                     </div>
-                    <StatusBadge :status="'Age: ' + calculateAge(s.dob)" />
+                    <StatusBadge :status="'Age: ' + calculateAge(s.dob)" type="blue" />
                   </li>
                   <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results-container">
                     <div class="no-results-content">
@@ -1198,6 +1212,67 @@ input:checked+.slider:before {
   60% {
     transform: translate3d(4px, 0, 0);
   }
+}
+
+/* Dropdown Styles Refined */
+.dropdown-menu {
+  position: absolute;
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color);
+  z-index: 9999;
+  min-width: 320px !important;
+  overflow: hidden;
+  animation: slideIn 0.2s ease-out;
+}
+
+.dropdown-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dropdown-item {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 1px solid var(--bg-light);
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-subtle);
+}
+
+.dropdown-item.active {
+  background: var(--primary-soft);
+  color: var(--primary-color);
+}
+
+.item-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .no-results-container {

@@ -37,6 +37,7 @@ const successMessage = ref('')
 const validationHint = ref('')
 const newlyCreatedId = ref(null)
 const selectedEnrollment = ref(null)
+const enrollmentForm = ref(null)
 const childRegistrationModal = ref({
   isOpen: false,
   parent: null,
@@ -367,7 +368,7 @@ const handleRegisterStudent = async (formData) => {
       finalProfile = await storageService.moveProfileImage(profile, newPath)
     }
 
-    await userService.registerStudentProfile(parentId, {
+    const result = await userService.registerStudentProfile(parentId, {
       name,
       dob,
       profile: finalProfile,
@@ -380,6 +381,11 @@ const handleRegisterStudent = async (formData) => {
     // Refresh student list
     const studentsRes = await userService.getAllStudents()
     students.value = Array.isArray(studentsRes) ? studentsRes : []
+
+    // Map new student if possible
+    if (result && result.id && enrollmentForm.value) {
+      enrollmentForm.value.setStudent(result.id)
+    }
 
     setTimeout(() => {
       childRegistrationModal.value.isOpen = false
@@ -490,7 +496,8 @@ const handleRegisterStudent = async (formData) => {
                   <transition name="fade">
                     <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
                       :style="menuStyles" @click.stop>
-                      <button class="btn-edit" @click="handleAction('edit', item)">
+                      <button v-if="!isPaid(item.status) && !isPaid(item.paymentStatus) && !isCancelled(item.status)"
+                        class="btn-edit" @click="handleAction('edit', item)">
                         <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit
                       </button>
                       <button v-if="!isPaid(item.status) && !isPaid(item.paymentStatus) && !isCancelled(item.status)"
@@ -515,9 +522,9 @@ const handleRegisterStudent = async (formData) => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentFormModal :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
-      :programs="programs" :classes="classes" :enrollments="enrollments" :enrollment="selectedEnrollment"
-      :error="errorMessage" :success="successMessage" :hint="validationHint"
+    <EnrollmentFormModal ref="enrollmentForm" :isOpen="showModal" :loading="submitting" :parents="parents"
+      :students="students" :programs="programs" :classes="classes" :enrollments="enrollments"
+      :enrollment="selectedEnrollment" :error="errorMessage" :success="successMessage" :hint="validationHint"
       @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
       @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint"
       @register-student="handleOpenRegisterStudent" />

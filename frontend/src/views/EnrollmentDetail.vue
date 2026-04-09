@@ -217,10 +217,9 @@ const handleEditSubmit = async (formData) => {
       enrollmentType: formData.enrollmentType || 'Full',
       remark: formData.remark || '',
       basePrice: formData.basePrice || 0,
-      totalSessions: formData.totalSessions || 0,
-      remainingSessions: formData.remainingSessions || 0,
       passedSessions: formData.passedSessions || 0,
       prorateSavings: formData.prorateSavings || 0,
+      studentCountAtEnrollment: classRecord.numStudent || 0,
       updatedAt: new Date().toISOString()
     }
 
@@ -281,7 +280,9 @@ onMounted(async () => {
       :rightScrollable="true">
       <template #header-actions v-if="enrollment">
         <div class="actions-wrapper">
-          <button class="btn-icon-modern btn-edit" title="Edit Enrollment" @click="openActionModal('edit')">
+          <button
+            v-if="!isPaid(enrollment.status) && !isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
+            class="btn-icon-modern btn-edit" title="Edit Enrollment" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" />
           </button>
           <button
@@ -305,10 +306,6 @@ onMounted(async () => {
             <p><strong>Fullname:</strong> {{ enrollment.parent?.name || 'N/A' }}</p>
             <p><strong>Email:</strong> {{ enrollment.parent?.email || 'N/A' }}</p>
             <p><strong>Phone Number:</strong> {{ enrollment.parent?.phone || 'N/A' }}</p>
-            <p>
-              <strong>Role:</strong>
-              <StatusBadge :status="enrollment.parent?.role" />
-            </p>
           </DetailCard>
 
           <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.student?.profileURL)">
@@ -321,10 +318,6 @@ onMounted(async () => {
               {{ formatDateOnly(enrollment.student?.dob) }}
             </p>
             <p><strong>Age:</strong> {{ calculateAge(enrollment.student?.dob) }}</p>
-            <p>
-              <strong>Medical Note:</strong>
-              {{ enrollment.student?.medicalNote || 'None' }}
-            </p>
           </DetailCard>
 
           <DetailCard title="Program Information"
@@ -374,7 +367,8 @@ onMounted(async () => {
             </div>
             <span v-else class="not-assigned-label">Not Assigned</span>
             </p>
-            <p><strong>Student Enrolled:</strong> {{ enrollment.class?.numStudent || 0 }}</p>
+            <p><strong>Student Enrolled:</strong> {{ enrollment.studentCountAtEnrollment ?? enrollment.class?.numStudent
+              ?? 0 }}</p>
             <p><strong>Max Capacity:</strong> {{ enrollment.class?.capacity || enrollment.class?.maxCapacity || 20 }}
             </p>
           </DetailCard>
@@ -565,15 +559,6 @@ onMounted(async () => {
 
 <style scoped>
 @import '@/assets/styles/detail-view.css';
-
-.detail-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  width: 100%;
-  gap: var(--space-xl);
-  align-items: stretch;
-  margin-bottom: var(--space-2xl);
-}
 
 .actions-wrapper {
   display: flex;

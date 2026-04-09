@@ -140,7 +140,12 @@ export const getStatusCategory = (status) => {
 
 export const getStatusDisplay = (s) => {
   if (!s) return 'N/A'
-  const clean = s.includes(':') ? s.split(':')[1].trim() : s
+
+  const themeKeys = Object.keys(THEMES)
+  const parts = s.includes(':') ? s.split(':') : [s]
+  const prefix = parts[0].toLowerCase().trim()
+
+  const clean = themeKeys.includes(prefix) ? parts.slice(1).join(':').trim() : s
   const lower = clean.toLowerCase()
 
   if (lower === 'active') return 'Active'
