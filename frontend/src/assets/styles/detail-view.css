@@ -180,6 +180,11 @@
   font-size: var(--text-base);
 }
 
+.info-item.horizontal {
+  flex-direction: row;
+  gap: var(--space-lg);
+}
+
 .info-item.vertical {
   flex-direction: column;
   align-items: flex-start;
@@ -197,6 +202,14 @@
   color: var(--text-dark);
   font-size: var(--text-lg);
   font-weight: 700;
+}
+
+.info-item.vertical strong.small {
+  font-size: var(--text-sm);
+}
+
+.info-item.vertical strong.medium {
+  font-size: var(--text-base);
 }
 
 .status-inline {

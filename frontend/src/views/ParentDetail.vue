@@ -149,7 +149,7 @@ const openAddChildModal = () => {
   globalSuccess.value = ''
   actionModal.value = {
     isOpen: true,
-    type: 'register-child',
+    type: 'plus',
     user: parent.value,
   }
 }
@@ -429,13 +429,16 @@ watch(
               <div class="profile-preview-wrapper shadow-premium">
                 <img :src="parent?.profileURL" alt="Profile"
                   @error="e => e.target.src = getImageUrl('profiles/avatar-admin')" class="profile-avatar" />
-                <div class="status-indicator" :class="{ inactive: isInactive }"></div>
               </div>
             </div>
           </template>
 
           <div class="scrollable-info-body">
             <div class="detail-info-group">
+              <div class="info-item horizontal">
+                <span class="info-label">Status:</span>
+                <StatusBadge :status="parent?.status" />
+              </div>
               <div class="info-item vertical">
                 <span class="info-label">Fullname:</span>
                 <strong>{{ parent?.name }}</strong>
@@ -446,15 +449,15 @@ watch(
               </div>
               <div class="info-item vertical">
                 <span class="info-label">Email:</span>
-                <strong class="email">{{ parent?.email }}</strong>
+                <strong class="email medium">{{ parent?.email }}</strong>
               </div>
               <div class="info-item vertical">
                 <StatusBadge status="Created At" />
-                <strong>{{ formatDate(parent?.createdAt) }}</strong>
+                <strong class="small">{{ formatDate(parent?.createdAt) }}</strong>
               </div>
               <div class="info-item vertical">
                 <StatusBadge status="Updated At" />
-                <strong>{{ formatDate(parent?.updatedAt || parent?.createdAt) }}</strong>
+                <strong class="small">{{ formatDate(parent?.updatedAt || parent?.createdAt) }}</strong>
               </div>
             </div>
           </div>
@@ -500,7 +503,7 @@ watch(
   gap: var(--space-sm);
   padding: var(--space-xs) var(--space-md);
   border-radius: var(--border-radius-lg);
-  border: 2px solid var(--primary-light);
+  border: 1px solid var(--primary-light);
   background: var(--white);
   font-size: var(--text-sm);
   font-weight: 700;
@@ -805,7 +808,7 @@ watch(
 
 .nav-tab-chip {
   background: transparent;
-  border: 1.5px solid transparent;
+  border: 1px solid transparent;
   padding: var(--space-sm) var(--space-xl);
   cursor: pointer;
   border-radius: var(--border-radius-lg);
