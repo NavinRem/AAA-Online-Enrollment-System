@@ -103,6 +103,7 @@ export const ACTION_ICONS = {
   'reset-password': 'action/reset-password',
   reactivate: 'action/reactivate',
   deactivate: 'action/deactivate',
+  email: 'action/email',
 }
 
 /**

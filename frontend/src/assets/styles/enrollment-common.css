@@ -5,18 +5,18 @@
 .enrollment-brief-card {
   background: var(--white);
   border: 1px solid var(--border-color);
-  border-radius: 16px;
+  border-radius: var(--border-radius);
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .brief-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-lg) var(--space-xl);
+  gap: var(--space-md) var(--space-xl);
 }
 
 .brief-column {
@@ -31,34 +31,34 @@
   align-items: center;
   gap: var(--space-sm);
   background: var(--bg-subtle);
-  padding: var(--space-xs) var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--border-radius-sm);
-  border: 1px solid var(--bg-light);
-  height: 48px;
+  border: 1px solid var(--border-color);
+  height: 44px;
   overflow: hidden;
+  transition: border-color 0.2s;
 }
 
 .avatar-mini-enrollment {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--border-radius-round);
   object-fit: cover;
-  border: 1.5px solid var(--primary-light);
+  border: 1px solid var(--primary-light);
 }
 
 .brief-label {
-  font-size: var(--text-2xs);
-  color: var(--text-light);
-  text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.05em;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
+  font-weight: 600;
   margin: 0;
+  opacity: 0.95;
 }
 
 .brief-value {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-dark);
-  font-weight: 700;
+  font-weight: 400;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -67,20 +67,21 @@
 /* Session Display Utilities */
 .session-display-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--space-xs);
 }
 
 .session-day-text {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   color: var(--text-dark);
-  line-height: 1.2;
+  font-weight: 600;
+  line-height: 1;
 }
 
 .session-time-text {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-muted);
-  font-weight: normal;
+  font-weight: 400;
 }
 
 /* Price & Financials Overrides */

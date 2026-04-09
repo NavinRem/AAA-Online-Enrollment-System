@@ -47,7 +47,7 @@
               <StatusBadge :status="enrollmentSummary.mode" />
               <StatusBadge :status="enrollmentSummary.status" />
               <span v-if="enrollmentSummary.hasDiscount" class="discount-note-mini">{{ enrollmentSummary.discountText
-              }}</span>
+                }}</span>
             </div>
           </div>
           <div class="price-amount-large">${{ formatPrice(enrollmentSummary.amount) }}</div>
@@ -63,7 +63,7 @@
         </div>
       </AppAlert>
 
-      <div class="form-group mt-lg">
+      <div class="form-group">
         <label>Payment Method</label>
         <div class="method-selector">
           <button type="button" class="method-btn" :class="{ active: localData.paymentMethod === 'online' }"
@@ -177,7 +177,6 @@
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -187,11 +186,7 @@
           <span class="text-xs opacity-90 line-12">
             This will permanently remove the student and release their class slot.
           </span>
-        </div>
-      </AppAlert>
-
-      <AppAlert v-if="isPaid(enrollment?.status || enrollment?.paymentStatus)" type="warning" class="mt-md">
-        <div class="flex-column gap-3xs">
+          <br>
           <strong class="text-sm">No-Refund Policy</strong>
           <span class="text-xs opacity-90 line-12">
             This enrollment is already paid. Please note that enrollments are non-refundable upon cancellation.
@@ -199,7 +194,7 @@
         </div>
       </AppAlert>
 
-      <div class="form-group mt-lg">
+      <div class="form-group">
         <label>Reason for Cancellation</label>
         <div class="preset-chips chips-div-enrollment my-md">
           <span v-for="preset in ['Schedule Conflict', 'Medical Reason', 'Moved Away', 'Duplicate']" :key="preset"
@@ -213,11 +208,49 @@
     </div>
 
     <div v-if="type === 'delete'" class="form-group">
-      <div class="info-block danger mb-md">
-        <p class="text-sm text-error">
-          <strong>Warning:</strong> This action is permanent and cannot be undone.
-        </p>
+      <div class="enrollment-brief-card" v-if="enrollmentSummary">
+        <div class="brief-grid">
+          <div class="brief-column">
+            <span class="brief-label">Parent</span>
+            <div class="brief-user">
+              <img :src="enrollmentSummary.parentAvatar" class="avatar-mini-enrollment" />
+              <span class="brief-value">{{ enrollmentSummary.parentName }}</span>
+            </div>
+          </div>
+          <div class="brief-column">
+            <span class="brief-label">Student</span>
+            <div class="brief-user">
+              <img :src="enrollmentSummary.studentAvatar" class="avatar-mini-enrollment" />
+              <span class="brief-value">{{ enrollmentSummary.studentName }}</span>
+            </div>
+          </div>
+          <div class="brief-column">
+            <span class="brief-label">Program</span>
+            <div class="brief-user">
+              <img :src="enrollmentSummary.programAvatar" class="avatar-mini-enrollment" />
+              <span class="brief-value">{{ enrollmentSummary.programTitle }}</span>
+            </div>
+          </div>
+          <div class="brief-column">
+            <span class="brief-label">Class</span>
+            <div class="brief-session">
+              <div class="session-display-row">
+                <div class="session-day-text"><strong>{{ enrollmentSummary.classDay }}</strong></div>
+                <div class="session-time-text">{{ enrollmentSummary.classTime }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+      <AppAlert type="warning" class="mt-lg">
+        <div class="flex-column gap-3xs">
+          <strong class="text-sm">Permanent Action Warning</strong>
+          <span class="text-xs opacity-90 line-12">
+            This action is permanent and cannot be undone. Please ensure you have verified the enrollment details above
+            before proceeding.
+          </span>
+        </div>
+      </AppAlert>
       <label>Type <strong class="danger-text">DELETE</strong> to confirm</label>
       <input type="text" v-model="localData.deleteConfirm" placeholder="DELETE" />
     </div>

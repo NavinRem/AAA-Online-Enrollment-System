@@ -20,7 +20,6 @@
             </div>
           </div>
 
-          <!-- Provide standard detail layout components via slot -->
           <div class="main-cards-grid" :class="{ 'is-scrollable': scrollable }">
             <slot name="left-content"></slot>
           </div>
