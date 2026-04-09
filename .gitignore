@@ -31,7 +31,7 @@ backend/functions/firebase-debug.log*
 backend/functions/firebase-debug.*.log*
 backend/functions/*.local
 backend/node_modules/
-backend/.env
+backend/functions/.env
 backend/.dataconnect/
 
 # ==========================================
