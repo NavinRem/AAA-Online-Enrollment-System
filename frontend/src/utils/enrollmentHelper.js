@@ -38,7 +38,12 @@ export const enrichEnrollments = (
       return {
         ...r,
         parent: parent
-          ? { id: parent.id || parent.uid, name: parent.name, profileURL: parent.profileURL, status: parent.status }
+          ? {
+              id: parent.id || parent.uid,
+              name: parent.name,
+              profileURL: parent.profileURL,
+              status: parent.status,
+            }
           : null,
         student: student
           ? { id: student.id || student.uid, name: student.name, profileURL: student.profileURL }
@@ -46,6 +51,7 @@ export const enrichEnrollments = (
         program: prog
           ? { id: prog.id || prog.uid, title: prog.title || prog.name, profileURL: prog.profileURL }
           : null,
+        branchAbbr: r.branchAbbr || classInst?.branch?.abbr || 'N/A',
         classSchedule:
           r.classSchedule || (classInst ? `${classInst.day} ${classInst.timeslot}` : 'N/A'),
 

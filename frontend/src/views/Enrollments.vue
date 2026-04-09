@@ -11,13 +11,15 @@ import EnrollmentActionModal from '../components/enrollments/EnrollmentActionMod
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '../services/userService'
 import { programService } from '../services/programService'
+import ParentActionModal from '../components/parents/ParentActionModal.vue'
+import { storageService } from '@/services/storageService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import {
   calculateTotalEnrollment,
   enrichEnrollments,
 } from '../utils/enrollmentHelper'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
-import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL, getActionIcon } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { isPaid, isUnpaid, isCancelled } from '@/utils/statusUtils'
 import { formatPrice, formatDate } from '@/utils/formatUtils'
 
@@ -35,6 +37,13 @@ const successMessage = ref('')
 const validationHint = ref('')
 const newlyCreatedId = ref(null)
 const selectedEnrollment = ref(null)
+const childRegistrationModal = ref({
+  isOpen: false,
+  parent: null,
+  loading: false,
+  error: '',
+  success: '',
+})
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
@@ -69,16 +78,18 @@ const fetchEnrollments = async () => {
 
 const loadFormData = async () => {
   try {
-    const [usersRes, programsRes, studentsRes] = await Promise.all([
+    const [usersRes, programsRes, studentsRes, classesRes] = await Promise.all([
       userService.getAllUsers(),
       programService.getAllPrograms(),
       userService.getAllStudents(),
+      programService.getAllClasses(),
     ])
     parents.value = Array.isArray(usersRes)
       ? usersRes.filter((u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active')
       : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
+    classes.value = Array.isArray(classesRes) ? classesRes : []
   } catch (err) {
     console.error('Failed to load form data', err)
   }
@@ -204,8 +215,8 @@ const enrollmentHeaders = [
   { label: 'Parent', width: '160px' },
   { label: 'Student', width: '160px' },
   { label: 'Program', width: '200px' },
-  { label: 'Class', width: '120px' },
-  { label: 'Mode', width: '90px', align: 'center', sortable: true, key: 'enrollmentType' },
+  { label: 'Schedule', width: '160px' },
+  { label: 'Branch', width: '70px', align: 'center' },
   { label: 'Method', width: '100px', align: 'center', sortable: true, key: 'paymentMethod' },
   { label: 'Amount', width: '100px', align: 'center', sortable: true, key: 'amount' },
   { label: 'Status', width: '90px', align: 'center' },
@@ -326,6 +337,61 @@ const closeActionModal = () => {
   successMessage.value = ''
 }
 
+const handleOpenRegisterStudent = (parentId) => {
+  const parent = parents.value.find(p => (p.uid || p.id) === parentId)
+  if (!parent) return
+
+  childRegistrationModal.value = {
+    isOpen: true,
+    parent: parent,
+    loading: false,
+    error: '',
+    success: '',
+  }
+}
+
+const handleRegisterStudent = async (formData) => {
+  childRegistrationModal.value.loading = true
+  childRegistrationModal.value.error = ''
+  childRegistrationModal.value.success = ''
+
+  try {
+    const { parentId, name, dob, profile, medicalNote } = formData
+
+    // Finalize Profile Image (if temp)
+    let finalProfile = profile
+    if (profile && profile.includes('/profiles/temp/')) {
+      const extension = profile.split('?')[0].split('.').pop()
+      const sanitizedName = (name || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
+      finalProfile = await storageService.moveProfileImage(profile, newPath)
+    }
+
+    await userService.registerStudentProfile(parentId, {
+      name,
+      dob,
+      profile: finalProfile,
+      medicalNote,
+      status: 'Inactive',
+    })
+
+    childRegistrationModal.value.success = 'Student registered successfully!'
+
+    // Refresh student list
+    const studentsRes = await userService.getAllStudents()
+    students.value = Array.isArray(studentsRes) ? studentsRes : []
+
+    setTimeout(() => {
+      childRegistrationModal.value.isOpen = false
+    }, 1500)
+  } catch (err) {
+    console.error('Failed to register student', err)
+    childRegistrationModal.value.error = err.message || 'Error registering student.'
+  } finally {
+    childRegistrationModal.value.loading = false
+  }
+}
+
 // UI Helpers
 </script>
 
@@ -394,7 +460,7 @@ const closeActionModal = () => {
               </div>
             </td>
             <td class="text-center" :style="{ width: headers[5].width }">
-              <StatusBadge :status="item.enrollmentType || 'Full'" />
+              <StatusBadge :status="item.branchAbbr || 'N/A'" />
             </td>
             <td class="text-center" :style="{ width: headers[6].width }">
               <span v-if="!item.paymentMethod && isUnpaid(item.status || item.paymentStatus)"
@@ -404,7 +470,9 @@ const closeActionModal = () => {
             </td>
             <td class="bold hide-on-mobile text-center" :style="{ width: headers[7].width }">
               <div class="amount-cell">
-                <StatusBadge :status="'$' + formatPrice(item.amount || 0)"></StatusBadge>
+                <StatusBadge :status="'$' + formatPrice(item.amount || 0)"
+                  :type="(item.enrollmentType || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'">
+                </StatusBadge>
               </div>
             </td>
             <td class="text-center" :style="{ width: headers[8].width }">
@@ -451,7 +519,14 @@ const closeActionModal = () => {
       :programs="programs" :classes="classes" :enrollments="enrollments" :enrollment="selectedEnrollment"
       :error="errorMessage" :success="successMessage" :hint="validationHint"
       @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
-      @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint" />
+      @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint"
+      @register-student="handleOpenRegisterStudent" />
+
+    <ParentActionModal :isOpen="childRegistrationModal.isOpen" type="plus" :user="childRegistrationModal.parent"
+      :selectableParents="parents" :loading="childRegistrationModal.loading" :error="childRegistrationModal.error"
+      :success="childRegistrationModal.success"
+      @close="() => { childRegistrationModal.isOpen = false; childRegistrationModal.error = ''; childRegistrationModal.success = ''; }"
+      @submit="handleRegisterStudent" />
 
     <EnrollmentActionModal v-bind="actionState" :loading="submitting" v-model:error="errorMessage"
       v-model:success="successMessage" @close="closeActionModal" @submit="submitActionModal" />

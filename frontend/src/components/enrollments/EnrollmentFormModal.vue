@@ -25,7 +25,7 @@ const props = defineProps({
   hint: { type: String, default: '' },
 })
 
-const emit = defineEmits(['close', 'submit', 'program-change'])
+const emit = defineEmits(['close', 'submit', 'program-change', 'register-student'])
 
 const formData = ref({
   parentId: '',
@@ -121,7 +121,6 @@ const closeAllDropdowns = () => {
   isProgramDropdownOpen.value = false
   isClassDropdownOpen.value = false
 }
-
 
 const dropdownStyles = ref({ top: '0px', left: '0px', width: '0px' })
 
@@ -538,8 +537,14 @@ const handleSubmit = () => {
                     </div>
                     <StatusBadge :status="'Age: ' + calculateAge(s.dob)" />
                   </li>
-                  <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results">
-                    No students found.
+                  <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results-container">
+                    <div class="no-results-content">
+                      <span class="no-results-text">No students found.</span>
+                      <button v-if="formData.parentId" type="button" class="btn-register-inline"
+                        @click="$emit('register-student', formData.parentId); isStudentDropdownOpen = false">
+                        <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> Register New Child
+                      </button>
+                    </div>
                   </li>
                 </ul>
               </div>
@@ -1193,5 +1198,56 @@ input:checked+.slider:before {
   60% {
     transform: translate3d(4px, 0, 0);
   }
+}
+
+.no-results-container {
+  padding: var(--space-xl) !important;
+  cursor: default !important;
+  background: var(--bg-subtle) !important;
+}
+
+.no-results-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.no-results-text {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.btn-register-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(0, 174, 239, 0.2);
+}
+
+.btn-register-inline:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(0, 174, 239, 0.3);
+}
+
+.btn-register-inline:active {
+  transform: translateY(0);
+}
+
+.btn-icon-mini.reverse-icon {
+  filter: brightness(0) invert(1);
 }
 </style>
