@@ -114,7 +114,7 @@ const handleOpenAddStudent = async () => {
 
   try {
     const allUsers = await userService.getAllUsers()
-    parentsList.value = allUsers.filter((u) => u.role === 'parent')
+    parentsList.value = allUsers.filter((u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active')
   } catch (err) {
     console.error('Failed to load parents list', err)
     modalError.value = 'Could not load parent options.'
@@ -221,7 +221,7 @@ const openActionModal = async (type, studentItem) => {
   if (parentsList.value.length === 0) {
     try {
       const allUsers = await userService.getAllUsers()
-      parentsList.value = allUsers.filter((u) => u.role === 'parent')
+      parentsList.value = allUsers.filter((u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active')
     } catch (err) {
       console.warn('Could not load parent options for edit form', err)
     }

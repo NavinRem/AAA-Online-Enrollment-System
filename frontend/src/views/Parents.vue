@@ -318,10 +318,12 @@ const navigateToDetail = (item) => {
                   <transition name="fade">
                     <div v-if="activeMenuId === (item.uid || item.id)" class="action-dropdown"
                       :class="{ 'open-up': isMenuAbove }" :style="menuStyles" @click.stop>
-                      <button class="btn-add" @click="() => { openAddChildModal(item); closeMenu(); }">
+                      <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'" class="btn-add"
+                        @click="() => { openAddChildModal(item); closeMenu(); }">
                         <img :src="getActionIcon('plus')" class="action-icon-mini" /> Register Child
                       </button>
-                      <button class="btn-edit" @click="() => { openActionModal('edit', item); closeMenu(); }">
+                      <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'" class="btn-edit"
+                        @click="() => { openActionModal('edit', item); closeMenu(); }">
                         <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit Profile
                       </button>
                       <button v-if="(item.status || 'Active').toLowerCase() === 'inactive'" class="btn-pay"
@@ -331,12 +333,13 @@ const navigateToDetail = (item) => {
                       <button v-else class="btn-cancel" @click="handleAction('deactivate', item)">
                         <img :src="getActionIcon('cancel')" class="action-icon-mini" /> Deactivate
                       </button>
-                      <button class="btn-reset"
+                      <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'" class="btn-reset"
                         @click="() => { openActionModal('reset-password', item); closeMenu(); }">
                         <img :src="getActionIcon('reset-password')" class="action-icon-mini" /> Reset Password
                       </button>
-                      <div class="menu-divider"></div>
-                      <button class="btn-delete" @click="handleAction('delete', item)">
+                      <div class="menu-divider" v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"></div>
+                      <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'" class="btn-delete"
+                        @click="handleAction('delete', item)">
                         <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete Account
                       </button>
                     </div>

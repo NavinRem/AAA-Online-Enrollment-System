@@ -45,6 +45,10 @@ const globalSuccess = ref('')
 const globalError = ref('')
 const submitting = ref(false)
 
+const isParentInactive = computed(() => {
+  return (parent.value?.status || 'Active').toLowerCase() === 'inactive'
+})
+
 const activeDropdown = ref(null)
 const programMenuStyles = ref({})
 
@@ -507,19 +511,36 @@ watch(
     <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/students" title="Student Details">
       <template #header-actions v-if="student">
         <div class="actions-wrapper">
-          <button class="btn-icon-modern btn-edit" title="Edit Profile" @click="openActionModal('edit')">
+          <button class="btn-icon-modern btn-edit" title="Edit Profile" @click="openActionModal('edit')"
+            :disabled="isParentInactive" :class="{ 'btn-disabled': isParentInactive }">
             <img :src="getActionIcon('edit')" />
           </button>
-          <button class="btn-icon-modern btn-cancel" title="Override Status" @click="openActionModal('override')">
+          <button class="btn-icon-modern btn-cancel" title="Override Status" @click="openActionModal('override')"
+            :disabled="isParentInactive" :class="{ 'btn-disabled': isParentInactive }">
             <img :src="getActionIcon('quick-action')" />
           </button>
-          <button class="btn-icon-modern btn-delete" title="Delete Student" @click="openActionModal('delete')">
+          <button class="btn-icon-modern btn-delete" title="Delete Student" @click="openActionModal('delete')"
+            :disabled="isParentInactive" :class="{ 'btn-disabled': isParentInactive }">
             <img :src="getActionIcon('delete')" />
           </button>
         </div>
       </template>
 
       <template #left-content v-if="student">
+        <transition name="alert-fade">
+          <div v-if="isParentInactive" class="mb-lg">
+            <AppAlert type="warning" :show="true" :closable="false">
+              <div class="flex-column gap-3xs">
+                <strong>Parent Account Inactive</strong>
+                <span class="text-sm opacity-90">
+                  The parent account associated with this student is currently inactive. Please reactivate the parent
+                  account to manage this student's profile or enrollments.
+                </span>
+              </div>
+            </AppAlert>
+          </div>
+        </transition>
+
         <!-- Student Quick Stats Row -->
         <div class="metrics-row">
           <DataMetricCard v-for="stat in studentStats" :key="stat.label" :label="stat.label" :value="stat.value"

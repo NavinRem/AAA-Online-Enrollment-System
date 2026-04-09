@@ -75,7 +75,7 @@ const loadFormData = async () => {
       userService.getAllStudents(),
     ])
     parents.value = Array.isArray(usersRes)
-      ? usersRes.filter((u) => u.role === 'parent')
+      ? usersRes.filter((u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active')
       : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
@@ -205,11 +205,11 @@ const enrollmentHeaders = [
   { label: 'Student', width: '160px' },
   { label: 'Program', width: '200px' },
   { label: 'Class', width: '120px' },
-  { label: 'Enrolled Date', width: '120px', align: 'center' },
   { label: 'Mode', width: '90px', align: 'center', sortable: true, key: 'enrollmentType' },
   { label: 'Method', width: '100px', align: 'center', sortable: true, key: 'paymentMethod' },
   { label: 'Amount', width: '100px', align: 'center', sortable: true, key: 'amount' },
   { label: 'Status', width: '90px', align: 'center' },
+  { label: 'Enrolled Date', width: '120px', align: 'center' },
   { label: 'Action', width: '70px', align: 'center' }
 ]
 
@@ -280,7 +280,7 @@ const handleTableAction = ({ type, item }) => {
 
 const submitActionModal = async (payload) => {
   const { type, enrollment } = actionState.value
-  const { proof, reason, paymentMethod } = payload
+  const { reason } = payload
   submitting.value = true
   try {
     if (type === 'pay') {
@@ -361,7 +361,7 @@ const closeActionModal = () => {
             <td class="hide-on-mobile text-center" :style="{ width: headers[0].width }">
               {{ index + 1 }}
             </td>
-            <td class="hide-on-tablet bold" :style="{ width: headers[1].width }">
+            <td class="hide-on-tablet" :style="{ width: headers[1].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="item.parent?.profileURL" alt="parent" />
@@ -369,7 +369,7 @@ const closeActionModal = () => {
                 <span>{{ item.parent?.name }}</span>
               </div>
             </td>
-            <td class="bold" :style="{ width: headers[2].width }">
+            <td :style="{ width: headers[2].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
                   <img :src="item.student?.profileURL" alt="student" />
@@ -383,7 +383,7 @@ const closeActionModal = () => {
                   <img :src="item.program?.profileURL" alt="program" />
                 </div>
                 <div class="program-cell">
-                  <div class="program-title text-truncate">{{ item.program?.title }}</div>
+                  <div class="stext-truncate">{{ item.program?.title }}</div>
                 </div>
               </div>
             </td>
@@ -394,24 +394,24 @@ const closeActionModal = () => {
               </div>
             </td>
             <td class="text-center" :style="{ width: headers[5].width }">
-              <span class="date-text">{{ formatDate(item.enrollAt) }}</span>
-            </td>
-            <td class="text-center" :style="{ width: headers[6].width }">
               <StatusBadge :status="item.enrollmentType || 'Full'" />
             </td>
-            <td class="text-center" :style="{ width: headers[7].width }">
+            <td class="text-center" :style="{ width: headers[6].width }">
               <span v-if="!item.paymentMethod && isUnpaid(item.status || item.paymentStatus)"
                 class="not-assigned-label">—</span>
               <StatusBadge v-else
-                :status="item.paymentMethod || (isPaid(item.status || item.paymentStatus) ? 'Not Specified' : '—')" />
+                :status="item.paymentMethod || (isPaid(item.status || item.paymentStatus) ? 'NotSpecified' : '—')" />
             </td>
-            <td class="bold hide-on-mobile text-center" :style="{ width: headers[8].width }">
+            <td class="bold hide-on-mobile text-center" :style="{ width: headers[7].width }">
               <div class="amount-cell">
                 <StatusBadge :status="'$' + formatPrice(item.amount || 0)"></StatusBadge>
               </div>
             </td>
-            <td class="text-center" :style="{ width: headers[9].width }">
+            <td class="text-center" :style="{ width: headers[8].width }">
               <StatusBadge :status="item.displayStatus || 'Unpaid'" />
+            </td>
+            <td class="text-center" :style="{ width: headers[9].width }">
+              <span class="date-text">{{ formatDate(item.enrollAt) }}</span>
             </td>
             <td class="action-cell text-center" :style="{ width: headers[10].width }">
               <div class="menu-container">

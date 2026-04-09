@@ -435,8 +435,15 @@ const isDropdownOpen = ref(false)
 const parentSearchQuery = ref('')
 const dropdownStyles = ref({ top: '0px', left: '0px', minWidth: '0px' })
 
+const activeParents = computed(() => {
+  return (props.selectableParents || []).filter(p => {
+    const s = (p.status || 'Active').toLowerCase().trim()
+    return s === 'active'
+  })
+})
+
 const { searchResults: filteredParents } = useSearch(
-  toRef(props, 'selectableParents'),
+  activeParents,
   parentSearchMapper,
   parentSearchQuery
 )

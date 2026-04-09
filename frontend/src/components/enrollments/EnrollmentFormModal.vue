@@ -19,7 +19,7 @@ const props = defineProps({
   classes: { type: Array, default: () => [] },
   enrollments: { type: Array, default: () => [] },
 
-  enrollment: { type: Object, default: null }, // Existing enrollment to edit
+  enrollment: { type: Object, default: null },
   error: { type: String, default: '' },
   success: { type: String, default: '' },
   hint: { type: String, default: '' },
@@ -48,8 +48,15 @@ const isProgramDropdownOpen = ref(false)
 const isClassDropdownOpen = ref(false)
 
 
+const activeParents = computed(() => {
+  return (props.parents || []).filter(p => {
+    const s = (p.status || 'Active').toLowerCase().trim()
+    return s === 'active'
+  })
+})
+
 const { searchQuery: parentSearchQuery, searchResults: filteredParents } = useSearch(
-  toRef(props, 'parents'),
+  activeParents,
   parentSearchMapper,
 )
 
@@ -97,9 +104,8 @@ const errors = ref({
 
 
 const setError = (field, msg) => {
-  closeAllDropdowns() // Close any open dropdowns when an error occurs
+  closeAllDropdowns()
   errors.value[field] = msg
-  // Clear error after 5 seconds
   setTimeout(() => {
     if (errors.value[field] === msg) errors.value[field] = ''
   }, 5000)
@@ -148,7 +154,7 @@ const toggleDropdown = (field, event) => {
 const handleClickOutside = (event) => {
   if (!event.target.closest('.custom-dropdown') && !event.target.closest('.dropdown-menu')) {
     closeAllDropdowns()
-    clearErrors() // Clear errors when clicking outside
+    clearErrors()
   }
 }
 
@@ -162,7 +168,6 @@ onUnmounted(() => {
 
 const isEditMode = computed(() => !!props.enrollment)
 
-// Auto-populate when edit enrollment is provided
 watch(() => props.enrollment, (newEnrollment) => {
   if (newEnrollment && props.isOpen) {
     formData.value = {
@@ -193,13 +198,11 @@ const isChanged = computed(() => {
 const showValidationHint = ref(false)
 let hintTimeout = null
 
-// Auto-reset when modal opens/closes
 watch(() => props.isOpen, (newVal) => {
   if (newVal) {
     clearErrors()
     isSubmittingAttempted.value = false
     if (props.enrollment) {
-      // POPULATE form for edit mode
       formData.value = {
         parentId: props.enrollment.parentId || '',
         studentId: props.enrollment.studentId || '',
@@ -360,7 +363,7 @@ const isAlreadyEnrolled = computed(() => {
       e.programId === formData.value.programId &&
       (e.status || "").toLowerCase() !== "cancelled" &&
       (e.status || "").toLowerCase() !== "canceled" &&
-      (!isEditMode.value || e.id !== props.enrollment?.id) // Exclude current record if editing
+      (!isEditMode.value || e.id !== props.enrollment?.id)
   )
 })
 
@@ -468,7 +471,7 @@ const handleSubmit = () => {
               <div class="dropdown-header" @click.stop="toggleDropdown('parent', $event)">
                 <template v-if="selectedParent">
                   <div class="selected-parent">
-                    <img :src="getParentProfileURL(selectedParent.profile)" class="avatar-mini-enrollment" />
+                    <img :src="getParentProfileURL(selectedParent.profileURL)" class="avatar-mini-enrollment" />
                     <span>{{ selectedParent.name || selectedParent.email }}</span>
                   </div>
                 </template>
@@ -488,10 +491,9 @@ const handleSubmit = () => {
                   <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
                     :class="{ active: formData.parentId === (p.uid || p.id) }" @click="selectParent(p.uid || p.id)">
                     <div class="item-main">
-                      <img :src="getParentProfileURL(p.profile)" class="avatar-mini-enrollment" />
-                      <span class="item-name">{{ p.name || p.email }}</span>
+                      <img :src="getParentProfileURL(p.profileURL)" class="avatar-mini-enrollment" />
+                      <span class="item-name">{{ p.name }}</span>
                     </div>
-                    <StatusBadge :status="p.role" />
                   </li>
                   <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
                     No matches found.
@@ -510,7 +512,7 @@ const handleSubmit = () => {
                 @click.stop="!formData.parentId ? setError('parentId', 'Choose a parent first.') : toggleDropdown('student', $event)">
                 <template v-if="selectedStudent">
                   <div class="selected-item">
-                    <img :src="getStudentProfileURL(selectedStudent.profile)" class="avatar-mini-enrollment" />
+                    <img :src="getStudentProfileURL(selectedStudent.profileURL)" class="avatar-mini-enrollment" />
                     <span>{{ selectedStudent.name }}</span>
                   </div>
                 </template>
@@ -531,7 +533,7 @@ const handleSubmit = () => {
                   <li v-for="s in filteredStudentsList" :key="s.id || s.uid" class="dropdown-item"
                     :class="{ active: formData.studentId === (s.id || s.uid) }" @click="selectStudent(s)">
                     <div class="item-main">
-                      <img :src="getStudentProfileURL(s.profile)" class="avatar-mini-enrollment" />
+                      <img :src="getStudentProfileURL(s.profileURL)" class="avatar-mini-enrollment" />
                       <span class="item-name">{{ s.name }}</span>
                     </div>
                     <StatusBadge :status="'Age: ' + calculateAge(s.dob)" />
@@ -553,14 +555,14 @@ const handleSubmit = () => {
                 @click.stop="!formData.studentId ? setError('studentId', 'Choose a student first.') : toggleDropdown('program', $event)">
                 <template v-if="selectedProgram">
                   <div class="selected-item">
-                    <img :src="getProgramProfileURL(selectedProgram.profile, selectedProgram.category)"
+                    <img :src="getProgramProfileURL(selectedProgram.profileURL, selectedProgram.category)"
                       class="avatar-mini-enrollment" />
                     <span>{{ selectedProgram.title }}</span>
                   </div>
                 </template>
                 <template v-else>
                   <span class="placeholder">{{ !formData.studentId ? 'Select student first' : 'Select a program'
-                  }}</span>
+                    }}</span>
                 </template>
                 <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
               </div>
@@ -576,7 +578,7 @@ const handleSubmit = () => {
                   <li v-for="c in filteredPrograms" :key="c.id" class="dropdown-item"
                     :class="{ active: formData.programId === c.id }" @click="handleProgramChange(c.id)">
                     <div class="item-main">
-                      <img :src="getProgramProfileURL(c.profile, c.category)" class="avatar-mini-enrollment" />
+                      <img :src="getProgramProfileURL(c.profileURL, c.category)" class="avatar-mini-enrollment" />
                       <span class="item-name">{{ c.title }}</span>
                     </div>
                     <StatusBadge :status="c.termName" type="blue" />
@@ -677,7 +679,7 @@ const handleSubmit = () => {
                       passed</span>
                   </div>
                   <div v-if="pricePerSession > 0" class="session-price-hint">(${{ formatPrice(pricePerSession)
-                  }}/session)</div>
+                    }}/session)</div>
                 </div>
               </div>
               <StatusBadge :status="displayEnrollmentStatus" />
@@ -773,7 +775,7 @@ const handleSubmit = () => {
         <button type="submit" class="hidden"></button>
       </form>
     </div>
- 
+
     <template #footer>
       <div class="flex-column flex-end w-full gap-sm">
         <transition name="toast-fade">
@@ -781,7 +783,7 @@ const handleSubmit = () => {
             {{ props.error }}
           </div>
         </transition>
- 
+
         <transition name="toast-fade">
           <div v-if="props.success && props.success.length > 0" class="alert-box success w-full mb-none">
             {{ props.success }}

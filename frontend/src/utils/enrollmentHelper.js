@@ -38,7 +38,7 @@ export const enrichEnrollments = (
       return {
         ...r,
         parent: parent
-          ? { id: parent.id || parent.uid, name: parent.name, profileURL: parent.profileURL }
+          ? { id: parent.id || parent.uid, name: parent.name, profileURL: parent.profileURL, status: parent.status }
           : null,
         student: student
           ? { id: student.id || student.uid, name: student.name, profileURL: student.profileURL }

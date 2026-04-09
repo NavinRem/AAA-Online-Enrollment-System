@@ -245,20 +245,35 @@ watch(
       :scrollable="true" :rightScrollable="true">
       <template #header-actions v-if="parent">
         <div class="actions-wrapper">
-          <button class="btn-icon-modern btn-pay" title="Register Child" @click="openAddChildModal">
+          <button v-if="(parent.status || 'Active').toLowerCase() !== 'inactive'" class="btn-icon-modern btn-pay"
+            title="Register Child" @click="openAddChildModal" :disabled="isInactive"
+            :class="{ 'btn-disabled': isInactive }">
             <img :src="getActionIcon('plus')" />
           </button>
-          <button class="btn-icon-modern btn-edit" title="Edit Parent" @click="openActionModal('edit')">
+          <button v-if="(parent.status || 'Active').toLowerCase() !== 'inactive'" class="btn-icon-modern btn-edit"
+            title="Edit Parent" @click="openActionModal('edit')" :disabled="isInactive"
+            :class="{ 'btn-disabled': isInactive }">
             <img :src="getActionIcon('edit')" />
+          </button>
+          <button v-if="(parent.status || 'Active').toLowerCase() !== 'inactive'" class="btn-icon-modern btn-reset"
+            title="Reset Password" @click="openActionModal('reset-password')" :disabled="isInactive"
+            :class="{ 'btn-disabled': isInactive }">
+            <img :src="getActionIcon('reset-password')" />
           </button>
           <button v-if="!isInactive" class="btn-icon-modern btn-cancel" title="Deactivate Account"
             @click="openActionModal('deactivate')">
             <img :src="getActionIcon('cancel')" />
           </button>
-          <button v-else class="btn-icon-modern btn-pay" title="Activate Account" @click="openActionModal('activate')">
-            <img :src="getActionIcon('pay')" />
+          <button v-if="(parent.status || 'Active').toLowerCase() === 'inactive'"
+            class="btn-icon-modern btn-pay flex-align-center gap-xs px-lg" title="Activate Account"
+            @click="openActionModal('activate')"
+            style="width: 100%; border-radius: var(--border-radius-lg); padding: 0 10px;">
+            <img :src="getActionIcon('reactivate')" />
+            <strong class="text-xs uppercase letter-1">Reactivate</strong>
           </button>
-          <button class="btn-icon-modern btn-delete" title="Delete Account" @click="openActionModal('delete')">
+          <button v-if="(parent.status || 'Active').toLowerCase() !== 'inactive'" class="btn-icon-modern btn-delete"
+            title="Delete Account" @click="openActionModal('delete')" :disabled="isInactive"
+            :class="{ 'btn-disabled': isInactive }">
             <img :src="getActionIcon('delete')" />
           </button>
         </div>

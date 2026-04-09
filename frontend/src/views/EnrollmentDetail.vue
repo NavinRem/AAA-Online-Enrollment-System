@@ -147,7 +147,7 @@ const fetchDependencyData = async () => {
       enrollmentService.getAllEnrollments(),
     ])
     parents.value = Array.isArray(usersRes)
-      ? usersRes.filter((u) => u.role === 'parent')
+      ? usersRes.filter((u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active')
       : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []

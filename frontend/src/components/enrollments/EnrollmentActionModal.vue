@@ -47,7 +47,7 @@
               <StatusBadge :status="enrollmentSummary.mode" />
               <StatusBadge :status="enrollmentSummary.status" />
               <span v-if="enrollmentSummary.hasDiscount" class="discount-note-mini">{{ enrollmentSummary.discountText
-                }}</span>
+              }}</span>
             </div>
           </div>
           <div class="price-amount-large">${{ formatPrice(enrollmentSummary.amount) }}</div>
@@ -85,7 +85,8 @@
 
       <div class="form-group mt-md">
         <label>Payment Remark (Internal Note)</label>
-        <textarea v-model="localData.remark" placeholder="Add any notes about this payment..." class="standard-input remark-textarea"></textarea>
+        <textarea v-model="localData.remark" placeholder="Add any notes about this payment..."
+          class="standard-input remark-textarea"></textarea>
       </div>
 
       <div v-if="localData.paymentMethod === 'online'" class="online-payment-details">
@@ -189,8 +190,7 @@
         </div>
       </AppAlert>
 
-      <AppAlert v-if="isPaid(enrollment?.status || enrollment?.paymentStatus)" type="warning"
-        class="mt-md">
+      <AppAlert v-if="isPaid(enrollment?.status || enrollment?.paymentStatus)" type="warning" class="mt-md">
         <div class="flex-column gap-3xs">
           <strong class="text-sm">No-Refund Policy</strong>
           <span class="text-xs opacity-90 line-12">
