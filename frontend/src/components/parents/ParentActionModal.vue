@@ -175,39 +175,41 @@
 
     <div v-if="type === 'reset-password'" class="security-reset-panel">
       <div class="security-intro">
-        <h3>Account Recovery Options</h3>
-        <p>Choose the most appropriate way to assist the parent with their password recovery.</p>
+        <h3>Reset Password</h3>
+        <p>Choose an option below to help the parent recover their account.</p>
       </div>
 
       <div class="recovery-options-grid">
-        <div class="recovery-card" @click="handleSendResetEmail">
+        <div class="recovery-card" :class="{ active: selectedResetMode === 'email' }" @click="selectedResetMode = 'email'">
           <div class="recovery-icon-circle blue">
             <img :src="getActionIcon('email')" class="recovery-icon" />
           </div>
           <div class="recovery-content">
             <strong>Send Reset Email</strong>
-            <p>Parent will receive a secure link to their registered email ({{ selectedParent?.email }}) to authorize a
-              new password.</p>
+            <p>Parent receives a secure link to their registered email ({{ selectedParent?.email }}).</p>
           </div>
           <div class="recovery-badge recommendation">Recommended</div>
         </div>
 
-        <div class="recovery-card manual" @click="handleActionSubmit">
+        <div class="recovery-card manual" :class="{ active: selectedResetMode === 'manual' }"
+          @click="selectedResetMode = 'manual'">
           <div class="recovery-icon-circle orange">
             <img :src="getActionIcon('edit')" class="recovery-icon" />
           </div>
           <div class="recovery-content">
             <strong>Manual Password Reset</strong>
-            <p>Instantly generate a temporary password. Only use this if you have <u>verified the parent's identity</u>
-              in person.</p>
+            <p>Generate a temporary password instantly (requires identity verification).</p>
           </div>
         </div>
       </div>
 
-      <div class="security-warning-box">
-        <i class="fas fa-shield-alt"></i>
-        <span>Security Note: Both methods will require the parent to create their own secure password before they can
-          continue using the mobile application.</span>
+      <div class="security-warning-box-modern">
+        <div class="warning-icon-circle">🛡️</div>
+        <div class="warning-text-content">
+          <strong>Security Protocol</strong>
+          <p>Both methods will require the parent to create their own secure password before they can continue using
+            the mobile application.</p>
+        </div>
       </div>
     </div>
 
@@ -236,7 +238,7 @@
         <div class="flex-align-center flex-end w-full gap-sm">
           <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success">Cancel</AppButton>
           <AppButton :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
-            @click="handleActionSubmit" :loading="loading" :disabled="loading || !!success"
+            @click="handleActionSubmit" :loading="loading" :disabled="loading || !!success || isFormInvalid"
             :class="{ 'button-disabled-visual': isFormInvalid || (type === 'edit' && !isChanged) || !!success }">
             {{ submitLabel }}
           </AppButton>
@@ -259,6 +261,8 @@ import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 
 import { auth } from '@/firebase'
 import { sendPasswordResetEmail } from 'firebase/auth'
+
+const selectedResetMode = ref(null)
 
 const props = defineProps({
   isOpen: Boolean,
@@ -347,6 +351,7 @@ const validationHint = computed(() => {
 const isFormInvalid = computed(() => {
   if (props.type === 'delete') return localData.value.deleteConfirm !== 'DELETE'
   if (props.type === 'deactivate' || props.type === 'activate') return false
+  if (props.type === 'reset-password') return !selectedResetMode.value
   return !!validationHint.value
 })
 
@@ -371,6 +376,16 @@ const isChanged = computed(() => {
 
 const handleActionSubmit = () => {
   isSubmittingAttempted.value = true
+
+  if (props.type === 'reset-password') {
+    if (!selectedResetMode.value) return
+    if (selectedResetMode.value === 'email') {
+      handleSendResetEmail()
+    } else {
+      submitForm(true)
+    }
+    return
+  }
 
   const isActuallyInvalid = isFormInvalid.value || (props.type === 'edit' && !isChanged.value)
 
@@ -417,7 +432,8 @@ const modalTitle = computed(() => {
     deactivate: 'Deactivate Account',
     activate: 'Reactivate Account',
     delete: 'Delete Account',
-    plus: 'Register New Child'
+    plus: 'Register New Child',
+    'reset-password': 'Reset Password'
   }
   return titles[props.type] || 'Action Modal'
 })
@@ -428,6 +444,7 @@ const submitLabel = computed(() => {
   if (props.type === 'activate') return 'Reactivate'
   if (props.type === 'edit') return 'Update Profile'
   if (props.type === 'delete') return 'Permanently Delete'
+  if (props.type === 'reset-password') return 'Confirm Reset'
   return 'Confirm Action'
 })
 
@@ -485,6 +502,7 @@ watch(() => props.isOpen, (newVal) => {
     isSubmittingAttempted.value = false
     showValidationHint.value = false
     submittingLocal.value = false
+    selectedResetMode.value = null
   }
 })
 </script>
@@ -532,6 +550,12 @@ watch(() => props.isOpen, (newVal) => {
   background: var(--bg-subtle);
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
+}
+
+.recovery-card.active {
+  border-color: var(--primary-color);
+  background: var(--info-soft);
+  box-shadow: 0 4px 15px rgba(0, 174, 239, 0.1);
 }
 
 .recovery-card.manual:hover {
@@ -591,20 +615,42 @@ watch(() => props.isOpen, (newVal) => {
   color: var(--success-color);
 }
 
-.security-warning-box {
+.security-warning-box-modern {
   display: flex;
-  gap: var(--space-sm);
-  padding: var(--space-md);
-  background: var(--bg-light);
-  border-radius: var(--border-radius-sm);
-  border-left: 4px solid var(--primary-color);
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--warning-soft);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--warning-light);
+  border-left: 5px solid var(--warning-color);
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.05);
 }
 
-.security-warning-box span {
-  font-size: var(--text-3xs);
-  color: var(--text-light);
-  font-style: italic;
-  line-height: 1.4;
+.warning-icon-circle {
+  width: 32px;
+  height: 32px;
+  background: var(--white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  font-size: var(--text-base);
+}
+
+.warning-text-content strong {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.warning-text-content p {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
 }
 
 .validation-hint-toast {
