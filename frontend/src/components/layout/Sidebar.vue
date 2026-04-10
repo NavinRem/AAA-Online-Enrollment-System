@@ -35,11 +35,9 @@ const handleLogout = async () => {
 
   try {
     logoutMessage.value = 'Logging out...'
-    console.log('Logout pause started (3s)...')
 
     setTimeout(async () => {
       try {
-        console.log('Pause finished - clearing session and redirecting...')
         await authService.logout()
         router.push('/')
       } catch (err) {
