@@ -239,7 +239,7 @@ const onRowClick = (item) => {
 
       <template #table>
         <DataTable title="Program List" :headers="programHeaders" :items="filteredPrograms" :loading="loading"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search programs..." :hasFilter="true"
+          entityName="program" v-model:searchQuery="searchQuery" searchPlaceholder="Search programs..." :hasFilter="true"
           v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Programs', value: 'all' },
             { label: 'Sort: Category', value: 'sort:category' },

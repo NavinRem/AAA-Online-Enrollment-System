@@ -3,15 +3,25 @@ import { calculateStudentStatus, isEnrollmentActive } from './statusUtils'
 /**
  * Enriches student data for the list view.
  */
-export const enrichStudents = (students = [], enrollments = [], users = []) => {
+export const enrichStudents = (
+  students = [],
+  enrollments = [],
+  users = [],
+  currentTermId = null,
+) => {
   return students.map((s) => {
     const id = String(s.id || s.uid || '')
-    const regs = enrollments.filter((r) => String(r.studentId || '') === id)
+    let regs = enrollments.filter((r) => String(r.studentId || '') === id)
+    if (currentTermId) {
+      regs = regs.filter((r) => String(r.termId || r.term?.id || '') === String(currentTermId))
+    }
+
     const p = users.find((u) => String(u.uid || u.id || '') === String(s.parentId || ''))
 
     return {
       ...s,
       id,
+      archived: !!(s.archived || (s.status || '').toLowerCase() === 'stopped'),
       name: s.name,
       profileURL: s.profileURL,
       parentInfo:
@@ -24,10 +34,11 @@ export const enrichStudents = (students = [], enrollments = [], users = []) => {
               phone: p.phone,
               role: p.role,
               profileURL: p.profileURL,
+              status: p.status || 'Active',
             }
           : null),
       status: calculateStudentStatus(s, regs),
-      activePrograms: regs.filter(isEnrollmentActive),
+      enrollments: regs,
     }
   })
 }

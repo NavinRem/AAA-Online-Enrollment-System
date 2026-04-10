@@ -260,7 +260,7 @@ const navigateToDetail = (item) => {
 
       <template #table>
         <DataTable title="Parents List" :headers="parentHeaders" :items="filteredParents" :loading="loading"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search Parent..." :hasFilter="true"
+          entityName="parent" v-model:searchQuery="searchQuery" searchPlaceholder="Search Parent..." :hasFilter="true"
           v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Parents', value: 'all' },
             { label: 'Registered Today', value: 'registered-today' },

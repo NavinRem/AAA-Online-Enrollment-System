@@ -257,7 +257,7 @@ const isBranchRecentlyActive = (branchId) => {
 
       <template #table>
         <DataTable title="Branch List" :headers="branchHeaders" :items="filteredBranches" :loading="loading"
-          :rowClass="getRowClass" :hasSearch="true" v-model:searchQuery="searchQuery"
+          entityName="branch" :rowClass="getRowClass" :hasSearch="true" v-model:searchQuery="searchQuery"
           searchPlaceholder="Search Branches...">
 
 

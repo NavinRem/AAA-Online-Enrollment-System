@@ -1,8 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-
-// UI Components
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
@@ -14,14 +12,17 @@ import StudentActionModal from '../components/students/StudentActionModal.vue'
 import { userService } from '../services/userService'
 import { authService } from '../services/authService'
 import { enrollmentService } from '../services/enrollmentService'
+import { storageService } from '../services/storageService'
 import { useSearch, studentSearchMapper } from '@/composables/useSearch'
-import { formatDate } from '@/utils/formatUtils'
+import { formatDate, calculateAge } from '@/utils/formatUtils'
+import { programService } from '../services/programService'
 import {
   getProgramProfileURL,
   getImageUrl,
   getActionIcon,
 } from '@/utils/assetHelper'
 import { calculateTotalStudent, enrichStudents } from '@/utils/studentHelper'
+import { getEnrollmentDisplayStatus } from '@/utils/statusUtils'
 
 const router = useRouter()
 const students = ref([])
@@ -41,17 +42,26 @@ const fetchStudents = async () => {
   }
 
   try {
-    const profile = await userService.getProfile(currentUser.uid)
+    const [profile, allTerms] = await Promise.all([
+      userService.getProfile(currentUser.uid),
+      programService.getAllTerms().catch(() => []),
+    ])
+
+    const activeTerm =
+      allTerms.find((t) => t.status === 'active') ||
+      [...allTerms].sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0]
+    const activeTermId = activeTerm?.id || null
+
     if (profile?.role === 'admin') {
       const [sData, rData, uData] = await Promise.all([
         userService.getAllStudents(),
         enrollmentService.getAllEnrollments(),
         userService.getAllUsers(),
       ])
-      students.value = enrichStudents(sData, rData || [], uData || [])
+      students.value = enrichStudents(sData, rData || [], uData || [], activeTermId)
     } else {
       const sData = await userService.getStudentsByParentID(currentUser.uid)
-      students.value = enrichStudents(sData, [], [])
+      students.value = enrichStudents(sData, [], [], activeTermId)
     }
   } catch (error) {
     console.error('Failed to fetch students', error)
@@ -79,21 +89,22 @@ const filteredStudents = computed(() => {
 const statsCards = computed(() => {
   const s = calculateTotalStudent(students.value)
   return [
-    { label: 'Total Students', value: s.total, image: getImageUrl('student/total-student'), color: 'var(--accent-light)' },
-    { label: 'Currently Studying', value: s.studying, image: getImageUrl('student/currently-enrolled'), color: 'var(--accent-light)' },
-    { label: 'Inactive / Pending', value: s.inactive, image: getImageUrl('student/currently-not-enrolled'), color: 'var(--accent-light)' },
-    { label: 'Graduated', value: s.graduated, image: getImageUrl('student/graduated'), color: 'var(--accent-light)' }
+    { label: 'Total Students', value: s.total, image: getImageUrl('student/total-student') },
+    { label: 'Currently Studying', value: s.studying, image: getImageUrl('student/currently-enrolled') },
+    { label: 'Not Enrolled', value: s.inactive, image: getImageUrl('student/currently-not-enrolled') },
+    { label: 'Graduated', value: s.graduated, image: getImageUrl('student/graduated') },
   ]
 })
 
 const studentHeaders = [
-  { label: 'No', width: '80px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'No', width: '60px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'Age', class: 'hide-on-mobile', width: '80px', align: 'center' },
   { label: 'Fullname', width: '300px' },
-  { label: 'Parent', class: 'hide-on-mobile', width: '220px' },
-  { label: 'Current Program', class: 'hide-on-tablet' },
-  { label: 'Joined Date', class: 'hide-on-tablet', width: '300px' },
+  { label: 'Parent', class: 'hide-on-mobile', width: '300px' },
+  { label: 'Program', class: 'hide-on-tablet', width: '150px' },
+  { label: 'Medical Note', class: 'hide-on-tablet' },
   { label: 'Status', align: 'center', width: '120px' },
-  { label: 'Medical Notes', class: 'hide-on-mobile' },
+  { label: 'Joined Date', class: 'hide-on-tablet', width: '250px', align: 'center' },
   { label: 'Action', width: '80px', align: 'center' }
 ]
 
@@ -127,22 +138,21 @@ const handleRegisterStudent = async (formData) => {
   modalSuccess.value = ''
 
   try {
-    const { parentId, name, dob, profile, medicalNote } = formData
+    const { parentId, name, dob, profileURL, medicalNote } = formData
     if (!parentId) throw new Error('No parent selected')
 
-    // Finalize Profile Image (if temp)
-    let finalProfile = profile
-    if (profile && profile.includes('/profiles/temp/')) {
-      const extension = profile.split('?')[0].split('.').pop()
+    let finalProfile = profileURL
+    if (profileURL && profileURL.includes('/profiles/temp/')) {
+      const extension = profileURL.split('?')[0].split('.').pop()
       const sanitizedName = (name || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
       const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
-      finalProfile = await storageService.moveProfileImage(profile, newPath)
+      finalProfile = await storageService.moveProfileImage(profileURL, newPath)
     }
 
     const result = await userService.registerStudentProfile(parentId, {
       name,
       dob,
-      profile: finalProfile,
+      profileURL: finalProfile,
       medicalNote,
       status: 'Inactive',
     })
@@ -153,13 +163,13 @@ const handleRegisterStudent = async (formData) => {
       id: result.id,
       name,
       dob,
-      profile: finalProfile,
+      profileURL: finalProfile,
       medicalNote,
       parentId: parentId,
       parentInfo: chosenParent ? {
         id: parentId,
         name: chosenParent.name || chosenParent.email,
-        profile: chosenParent.profile
+        profileURL: chosenParent.profileURL
       } : null,
       status: 'Inactive',
       created: new Date().toISOString(),
@@ -175,7 +185,6 @@ const handleRegisterStudent = async (formData) => {
       modalSuccess.value = ''
     }, 1500)
 
-    // Background Refresh
     try {
       fetchStudents()
     } catch (err) {
@@ -243,7 +252,7 @@ const submitActionModal = async (formData) => {
         status,
         dob,
         parentId: parentId,
-        profile: profile,
+        profileURL: profileURL,
       })
 
       const idx = students.value.findIndex((s) => s.id === student.id || s.uid === student.uid)
@@ -254,17 +263,16 @@ const submitActionModal = async (formData) => {
         students.value[idx].medicalNote = medicalNote
         students.value[idx].status = status
         if (dob) students.value[idx].dob = dob
-        if (profile) students.value[idx].profile = profile
+        if (profileURL) students.value[idx].profileURL = profileURL
         if (chosenParent) {
           students.value[idx].parentId = parentId
           students.value[idx].parentInfo = {
             id: parentId,
             name: chosenParent.name || chosenParent.email,
-            profile: chosenParent.profile
+            profileURL: chosenParent.profileURL
           }
         }
 
-        // SYNC: Update Student Info in Parent's nested studentProfiles array
         if (parentId) {
           try {
             const parentData = await userService.getProfile(parentId)
@@ -274,7 +282,7 @@ const submitActionModal = async (formData) => {
                   ...p,
                   name: name,
                   dob,
-                  profile,
+                  profileURL,
                   medicalNote,
                   status
                 }
@@ -293,10 +301,8 @@ const submitActionModal = async (formData) => {
       const studentId = student.id || student.uid
       const parentId = student.parentId
 
-      // Actual Delete in Firestore
       await userService.deleteStudent(studentId)
 
-      // SYNC: Remove from Parent's nested list
       if (parentId) {
         try {
           const parentData = await userService.getProfile(parentId)
@@ -311,20 +317,32 @@ const submitActionModal = async (formData) => {
       modalSuccess.value = 'Student record permanently deleted.'
     } else if (type === 'override') {
       const { overrideReason, overrideRemark } = formData
+      const isStopping = status === 'Stopped'
+
       await userService.updateStudent(student.id || student.uid, {
         status,
         overrideReason,
         overrideRemark,
         manualStatus: true,
+        archived: isStopping,
       })
+
+      if (isStopping && student.parentId) {
+        try {
+          await userService.updateUser(student.parentId, { status: 'Inactive' })
+        } catch (autoErr) {
+          console.warn('Auto-deactivation of parent failed', autoErr)
+        }
+      }
 
       const idx = students.value.findIndex((s) => s.id === student.id || s.uid === student.uid)
       if (idx !== -1) {
         students.value[idx].status = status
         students.value[idx].overrideReason = overrideReason
         students.value[idx].overrideRemark = overrideRemark
+        if (isStopping) students.value[idx].archived = true
       }
-      modalSuccess.value = `Student manually set to ${status} status.`
+      modalSuccess.value = `Student manually set to ${status} status.${isStopping ? ' Parent account deactivated.' : ''}`
     }
 
     setTimeout(() => {
@@ -333,7 +351,7 @@ const submitActionModal = async (formData) => {
     }, 1500)
   } catch (err) {
     console.error('Failed Action', err)
-    modalError.value = err.message || 'Error executing action.'
+    modalError.value = err.message
   } finally {
     modalLoading.value = false
   }
@@ -349,8 +367,8 @@ const submitActionModal = async (formData) => {
 
       <template #table>
         <DataTable title="Student List" :headers="studentHeaders" :items="filteredStudents" :loading="loading"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search students..." :hasFilter="true"
-          v-model:currentFilter="currentFilter" :filterOptions="[
+          entityName="student" v-model:searchQuery="searchQuery" searchPlaceholder="Search students..."
+          :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Status', value: 'all' },
             { label: 'Studying', value: 'studying' },
             { label: 'Inactive', value: 'inactive' },
@@ -365,47 +383,64 @@ const submitActionModal = async (formData) => {
             </AppButton>
           </template>
 
-          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile text-center">
+          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, headers }">
+            <td :style="{ width: headers[0].width }" :class="headers[0].class" class="text-center">
               {{ index + 1 }}
             </td>
-            <td class="bold" @click="navigateToDetail(item)">
-              <div class="info-cell">
-                <div class="avatar-mini">
-                  <img :src="item.profileURL || item.profile" alt="avatar" />
+            <td :style="{ width: headers[1].width }" :class="headers[1].class" class="text-center">
+              <StatusBadge :status="calculateAge(item.dob)" type="blue" />
+            </td>
+            <td :style="{ width: headers[2].width }" class="bold" @click="navigateToDetail(item)">
+              <div class="identity-cell">
+                <div class="avatar-wrapper-mini">
+                  <img :src="item.profileURL" alt="avatar" />
                 </div>
-                <div class="user-info" @click="navigateToDetail(item)">
-                  <span class="user-name">{{ item.name }}</span>
+                <div class="identity-info">
+                  <span class="primary-text">{{ item.name }}</span>
+                  <span v-if="item.archived" class="archived-tag">Archived</span>
                 </div>
               </div>
             </td>
-            <td>
-              <div class="user-cell">
-                <div class="user-avatar-small">
-                  <img :src="item.parentInfo?.profileURL || item.parentInfo?.profile" alt="parent avatar" />
+            <td :style="{ width: headers[3].width }" :class="headers[3].class">
+              <div class="identity-cell secondary">
+                <div class="avatar-wrapper-mini-xs">
+                  <img :src="item.parentInfo?.profileURL" alt="parent avatar" />
                 </div>
-                {{ item.parentInfo?.name || 'Parent' }}
+                <div class="identity-info">
+                  <span class="primary-text">{{ item.parentInfo?.name }}</span>
+                </div>
               </div>
             </td>
-            <td class="hide-on-tablet">
-              <div class="course-icons">
-                <div v-for="(program, pIdx) in item.programs" :key="pIdx" class="program-icon-mini"
-                  :title="program.programTitle">
-                  <img :src="getProgramProfileURL(program.programProfileURL)" :alt="program.programTitle" />
+            <td :class="headers[4].class" :style="{ width: headers[4].width }">
+              <div class="program-icons-stack">
+                <template
+                  v-if="item.enrollments && item.enrollments.some(r => getEnrollmentDisplayStatus(r) === 'Paid')">
+                  <div v-for="(reg, rIdx) in item.enrollments.filter(r => getEnrollmentDisplayStatus(r) === 'Paid')"
+                    :key="rIdx" class="program-avatar-mini" :title="reg.programTitle || 'Program'"
+                    :style="{ zIndex: item.enrollments.length - rIdx }">
+                    <img :src="getProgramProfileURL(reg.programProfileURL || reg.program?.profileURL)" alt="program" />
+                  </div>
+                </template>
+                <div v-else class="text-muted text-xs italic opacity-50">
+                  —
                 </div>
-                <span v-if="!item.programs || item.programs.length === 0" class="text-muted">None</span>
               </div>
             </td>
-            <td class="hide-on-tablet">{{ formatDate(item.createdAt || new Date().toISOString()) }}</td>
-            <td class="text-center">
-              <StatusBadge :status="item.status || 'Studying'" />
+            <td :class="headers[5].class">
+              <div class="medical-note-cell" :title="item.medicalNote">
+                <span v-if="item.medicalNote" class="text-sm text-truncate block-max-200">
+                  {{ item.medicalNote }}
+                </span>
+                <span v-else class="text-muted italic opacity-50">—</span>
+              </div>
             </td>
-            <td class="hide-on-mobile text-center">
-              <span :class="{ 'text-muted': !item.medicalNote || item.medicalNote.toLowerCase() === 'none' }">
-                {{ item.medicalNote || 'None' }}
-              </span>
+            <td :style="{ width: headers[6].width }" class="text-center">
+              <StatusBadge :status="item.status || 'Inactive'" />
             </td>
-            <td class="action-cell text-center">
+            <td :style="{ width: headers[7].width }" :class="headers[7].class" class="text-center">
+              <span class="text-sm text-muted">{{ formatDate(item.createdAt || new Date().toISOString()) }}</span>
+            </td>
+            <td :style="{ width: headers[8].width }" class="action-cell text-center">
               <div class="menu-container">
                 <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
                   <span class="dots-icon">⋮</span>
@@ -414,15 +449,17 @@ const submitActionModal = async (formData) => {
                   <transition name="fade">
                     <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
                       :style="menuStyles" @click.stop>
-                      <button class="btn-edit" @click="handleAction('edit', item)">
+                      <button class="btn-edit" @click="handleAction('edit', item)" :disabled="item.archived"
+                        :class="{ disabled: item.archived }">
                         <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit Profile
                       </button>
-                      <button class="btn-view" @click="handleAction('override', item)">
-                        <img :src="getActionIcon('view')" class="action-icon-mini" /> Override
+                      <button class="btn-view" @click="handleAction('override', item)" :disabled="item.archived"
+                        :class="{ disabled: item.archived }">
+                        <img :src="getActionIcon('view')" class="action-icon-mini" /> Override Status
                       </button>
                       <div class="menu-divider"></div>
                       <button class="delete-btn" @click="handleAction('delete', item)">
-                        <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete
+                        <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete Record
                       </button>
                     </div>
                   </transition>
@@ -447,18 +484,130 @@ const submitActionModal = async (formData) => {
 </template>
 
 <style scoped>
-.text-muted {
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-}
-
-.actions-wrapper {
+.identity-cell {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: var(--space-md);
 }
 
-.user-info {
-  cursor: pointer;
-  gap: var(--space-sm);
+.avatar-wrapper-mini {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-round);
+  overflow: hidden;
+  border: 2px solid var(--white);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-light);
+}
+
+.avatar-wrapper-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-wrapper-mini-xs {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid var(--white);
+  background: var(--bg-light);
+  flex-shrink: 0;
+}
+
+.avatar-wrapper-mini-xs img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.identity-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.primary-text {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.primary-text-sm {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.secondary-text {
+  font-size: var(--text-3xs);
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.program-icons-stack {
+  display: flex;
+  align-items: center;
+}
+
+.program-avatar-mini {
+  margin-left: -10px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--border-radius-round);
+  overflow: hidden;
+  border: 2px solid var(--white);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  background: var(--bg-light);
+  transition: transform 0.2s ease;
+}
+
+.program-avatar-mini:first-child {
+  margin-left: 0;
+}
+
+.program-avatar-mini:hover {
+  transform: translateY(-2px) scale(1.1);
+  z-index: 50 !important;
+}
+
+.medical-note-cell {
+  max-width: 250px;
+}
+
+.text-truncate {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.block-max-200 {
+  max-width: 200px;
+}
+
+.program-avatar-mini img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.archived-tag {
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+  color: var(--white);
+  background: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(1);
 }
 </style>

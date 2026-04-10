@@ -460,7 +460,7 @@ onMounted(async () => {
 
           <div class="detail-row" v-if="enrollment?.transactionId">
             <span class="summary-label">{{ enrollment?.paymentMethod === 'Cash' ? 'Receipt Number' : 'Transaction ID'
-              }}</span>
+            }}</span>
             <span class="summary-value mono-info-highlight">
               {{ enrollment.transactionId }}
             </span>
@@ -720,18 +720,6 @@ onMounted(async () => {
 
 .modal-body {
   padding: var(--space-xl);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-group label {
-  font-size: var(--text-sm);
-  font-weight: 700;
-  color: var(--text-dark);
 }
 
 .info-block {

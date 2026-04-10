@@ -25,6 +25,7 @@ const props = defineProps({
   pageSize: { type: Number, default: 10 },
   totalItems: { type: Number, default: 0 },
   hasPagination: { type: Boolean, default: false },
+  entityName: { type: String, default: 'record' },
 })
 
 const emit = defineEmits(['update:searchQuery', 'update:currentFilter', 'update:currentPage', 'row-click', 'action'])
@@ -39,11 +40,13 @@ const displayEmptyMessage = computed(() => {
 const emptyState = computed(() => {
   if (props.loading) return { prefix: props.loadingMessage, label: '', suffix: '' }
 
+  const entity = props.entityName?.toLowerCase() || 'record'
+
   if (props.searchQuery) {
     return {
-      prefix: 'No records matching ',
+      prefix: `No matching ${entity} found for `,
       label: `"${props.searchQuery}"`,
-      suffix: ' found.'
+      suffix: ''
     }
   }
 
@@ -51,17 +54,17 @@ const emptyState = computed(() => {
     const option = props.filterOptions.find(o => o.value === props.currentFilter)
     if (option) {
       return {
-        prefix: 'No ',
+        prefix: 'no',
         label: option.value,
-        suffix: ' records found.'
+        suffix: `${entity} record found`
       }
     }
   }
 
   return {
-    prefix: '',
+    prefix: 'No ',
     label: '',
-    suffix: props.emptyMessage
+    suffix: `${entity} records found.`
   }
 })
 

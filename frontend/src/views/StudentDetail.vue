@@ -49,6 +49,10 @@ const isParentInactive = computed(() => {
   return (parent.value?.status || 'Active').toLowerCase() === 'inactive'
 })
 
+const isArchived = computed(() => {
+  return student.value?.archived || student.value?.status === 'Stopped'
+})
+
 const activeDropdown = ref(null)
 const programMenuStyles = ref({})
 
@@ -178,15 +182,29 @@ const submitActionModal = async (formData) => {
   try {
     const sid = String(currentStudent.id || currentStudent.uid || '')
     if (type === 'edit') {
-      await userService.updateStudent(sid, formData)
+      const updatePayload = {
+        ...formData,
+        profileURL: formData.profileURL
+      }
+      await userService.updateStudent(sid, updatePayload)
       globalSuccess.value = 'Student profile updated!'
     } else if (type === 'override') {
+      const isStopping = formData.status === 'Stopped'
       // 1. Update student level override
       await userService.updateStudent(sid, {
         status: formData.status,
         overrideReason: formData.overrideReason,
         overrideRemark: formData.overrideRemark,
+        archived: isStopping,
       })
+
+      if (isStopping && student.value?.parentId) {
+        try {
+          await userService.updateUser(student.value.parentId, { status: 'Inactive' })
+        } catch (autoErr) {
+          console.warn('Auto-deactivation of parent failed', autoErr)
+        }
+      }
 
       // 2. Cascade: Update all "Studying" enrollments with same status/reason
       const activeEnrollments = enrollments.value.filter((r) => {
@@ -201,7 +219,7 @@ const submitActionModal = async (formData) => {
               status: formData.status,
               overrideReason: formData.overrideReason,
               overrideRemark: formData.overrideRemark,
-              academicStatus: formData.status, // Explicitly set display status
+              academicStatus: formData.status,
             }),
           ),
         )
@@ -263,9 +281,6 @@ const formatDateTime = (date) => {
   }
 }
 
-// Reset filter logic moved to activeTab watch
-
-// Dynamic filter options based on tab
 const filterOptions = computed(() => {
   if (activeTab.value === 'academic') {
     return [
@@ -351,7 +366,6 @@ const filteredExams = computed(() => {
       const term = filter.replace('term:', '')
       result = result.filter(e => (e.termName || e.term) === term)
     } else {
-      // Fallback for program ID if needed, though we primarily use strings now
       result = result.filter(e => e.programId === filter)
     }
   }
@@ -465,7 +479,6 @@ const fetchData = async (id) => {
         trackingService.getStudentProgress(id)
       ])
 
-      // Enrich logs with course titles
       attendanceHistory.value = (attendance || []).map(a => {
         const program = programs.find(c => (c.id || c.uid) === a.programId)
         return { ...a, programTitle: program?.title || a.programTitle || a.courseTitle || 'Unknown Program' }
@@ -512,15 +525,15 @@ watch(
       <template #header-actions v-if="student">
         <div class="actions-wrapper">
           <button class="btn-icon-modern btn-edit" title="Edit Profile" @click="openActionModal('edit')"
-            :disabled="isParentInactive" :class="{ 'btn-disabled': isParentInactive }">
+            :disabled="isParentInactive || isArchived" :class="{ 'btn-disabled': isParentInactive || isArchived }">
             <img :src="getActionIcon('edit')" />
           </button>
           <button class="btn-icon-modern btn-cancel" title="Override Status" @click="openActionModal('override')"
-            :disabled="isParentInactive" :class="{ 'btn-disabled': isParentInactive }">
+            :disabled="isParentInactive || isArchived" :class="{ 'btn-disabled': isParentInactive || isArchived }">
             <img :src="getActionIcon('quick-action')" />
           </button>
           <button class="btn-icon-modern btn-delete" title="Delete Student" @click="openActionModal('delete')"
-            :disabled="isParentInactive" :class="{ 'btn-disabled': isParentInactive }">
+            :disabled="isParentInactive || isArchived" :class="{ 'btn-disabled': isParentInactive || isArchived }">
             <img :src="getActionIcon('delete')" />
           </button>
         </div>
@@ -528,8 +541,17 @@ watch(
 
       <template #left-content v-if="student">
         <transition name="alert-fade">
-          <div v-if="isParentInactive" class="mb-lg">
-            <AppAlert type="warning" :show="true" :closable="false">
+          <div v-if="isArchived || isParentInactive" class="mb-lg">
+            <AppAlert v-if="isArchived" type="info" :show="true" :closable="false">
+              <div class="flex-column gap-3xs">
+                <strong>Record Archived</strong>
+                <span class="text-sm opacity-90">
+                  This student has stopped studying. This profile and all academic history are now read-only for
+                  administrative records.
+                </span>
+              </div>
+            </AppAlert>
+            <AppAlert v-else-if="isParentInactive" type="warning" :show="true" :closable="false">
               <div class="flex-column gap-3xs">
                 <strong>Parent Account Inactive</strong>
                 <span class="text-sm opacity-90">
@@ -548,24 +570,24 @@ watch(
         </div>
 
         <!-- Custom Tab Navigation -->
-        <div class="tabs-navigation-wrapper">
-          <div class="tabs-navigation">
-            <AppButton variant="ghost" :class="{ active: activeTab === 'academic' }" @click="activeTab = 'academic'">
+        <div class="detail-tabs-wrapper-standard">
+          <div class="detail-tabs-navigation">
+            <button class="nav-tab-item" :class="{ active: activeTab === 'academic' }" @click="activeTab = 'academic'">
               Academic History
-            </AppButton>
-            <AppButton variant="ghost" :class="{ active: activeTab === 'attendance' }"
+            </button>
+            <button class="nav-tab-item" :class="{ active: activeTab === 'attendance' }"
               @click="activeTab = 'attendance'">
               Attendance Record
-            </AppButton>
-            <AppButton variant="ghost" :class="{ active: activeTab === 'behavior' }" @click="activeTab = 'behavior'">
+            </button>
+            <button class="nav-tab-item" :class="{ active: activeTab === 'behavior' }" @click="activeTab = 'behavior'">
               Behavior Record
-            </AppButton>
-            <AppButton variant="ghost" :class="{ active: activeTab === 'exam' }" @click="activeTab = 'exam'">
+            </button>
+            <button class="nav-tab-item" :class="{ active: activeTab === 'exam' }" @click="activeTab = 'exam'">
               Exam Record
-            </AppButton>
+            </button>
           </div>
 
-          <div class="global-filter">
+          <div class="nav-tab-actions">
             <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
               @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
           </div>
@@ -578,42 +600,49 @@ watch(
             <div class="section-header">
               <h3>Academic History List</h3>
             </div>
-            <div class="table-container table-scroll-container">
-              <table v-if="filteredAcademic.length > 0">
+            <div class="premium-table-container">
+              <table v-if="filteredAcademic.length > 0" class="premium-data-table">
                 <thead>
                   <tr>
-                    <th width="30">No</th>
-                    <th width="150">Program Title</th>
-                    <th width="100">Term</th>
-                    <th width="100">Schedule</th>
-                    <th class="text-center" width="100">Status</th>
-                    <th class="text-center" width="120">Enroll Date</th>
-                    <th class="text-center" width="120">Start Date</th>
-                    <th class="text-center" width="120">End Date</th>
+                    <th class="text-center" width="50">No</th>
+                    <th>Program Title</th>
+                    <th class="text-center" width="120">Term</th>
+                    <th width="160">Schedule</th>
+                    <th class="text-center" width="120">Status</th>
+                    <th class="text-center" width="140">Duration</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(item, idx) in filteredAcademic" :key="item.id || idx">
-                    <td class="text-center">{{ idx + 1 }}</td>
-                    <td><strong>{{ item.programTitle || '-' }}</strong></td>
+                    <td class="text-center text-muted">{{ idx + 1 }}</td>
+                    <td>
+                      <div class="program-identity">
+                        <strong>{{ item.programTitle || '-' }}</strong>
+                        <span class="text-3xs text-muted">Enrolled: {{ formatDateOnly(item.enrollAt || item.createdAt)
+                        }}</span>
+                      </div>
+                    </td>
                     <td class="text-center">
                       <StatusBadge :status="item.termName || 'No Term'" type="blue" />
                     </td>
                     <td>
-                      <div class="schedule-info" v-if="item.schedule || item.sessionSchedule">
+                      <div class="schedule-info-pill" v-if="item.schedule || item.sessionSchedule">
                         <span class="day">{{ (item.schedule?.day || (typeof item.sessionSchedule === 'string' ?
                           item.sessionSchedule.split(' ')[0] : '')) }}</span>
                         <span class="time">{{ (item.schedule?.timeslot || (typeof item.sessionSchedule === 'string' ?
                           item.sessionSchedule.split(' ').slice(1).join(' ') : '')) }}</span>
                       </div>
-                      <span v-else class="help-text-small">N/A</span>
+                      <span v-else class="text-muted text-xs">N/A</span>
                     </td>
                     <td class="text-center">
                       <StatusBadge :status="getAcademicStatus(item)" />
                     </td>
-                    <td class="text-center">{{ formatDateOnly(item.enrollAt || item.createdAt) }}</td>
-                    <td class="text-center">{{ formatDateOnly(item.startDate) }}</td>
-                    <td class="text-center">{{ formatDateOnly(item.endDate) }}</td>
+                    <td class="text-center">
+                      <div class="flex-column gap-4xs">
+                        <span class="text-2xs bold">{{ formatDateOnly(item.startDate) }}</span>
+                        <span class="text-2xs opacity-60">{{ formatDateOnly(item.endDate) }}</span>
+                      </div>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -651,23 +680,28 @@ watch(
                 </Teleport>
               </div>
             </div>
-            <div class="table-container table-scroll-container">
-              <table v-if="filteredAttendance.length > 0">
+            <div class="premium-table-container">
+              <table v-if="filteredAttendance.length > 0" class="premium-data-table">
                 <thead>
                   <tr>
-                    <th width="60">No</th>
-                    <th width="240">Program</th>
-                    <th width="200">Marked Timestamp</th>
-                    <th width="150">Marked By</th>
+                    <th class="text-center" width="50">No</th>
+                    <th>Program</th>
+                    <th width="220">Marked Date</th>
                     <th class="text-center" width="120">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="(item, idx) in filteredAttendance" :key="item.id || idx">
-                    <td class="text-center">{{ idx + 1 }}</td>
-                    <td>{{ item.programTitle || item.courseTitle || '-' }}</td>
-                    <td>{{ formatDateTime(item.date || item.attendanceDate || item.createdAt) }}</td>
-                    <td>{{ item.markedBy || '-' }}</td>
+                    <td class="text-center text-muted">{{ idx + 1 }}</td>
+                    <td><span class="bold">{{ item.programTitle || item.courseTitle || '-' }}</span></td>
+                    <td>
+                      <div class="timestamp-cell">
+                        <span class="date">{{ formatDateOnly(item.date || item.attendanceDate || item.createdAt)
+                        }}</span>
+                        <span class="time">{{ formatDateTime(item.date || item.attendanceDate ||
+                          item.createdAt).split('at ')[1] }}</span>
+                      </div>
+                    </td>
                     <td class="text-center">
                       <StatusBadge :status="item.status || item.displayStatus" />
                     </td>
@@ -805,34 +839,40 @@ watch(
           </template>
 
           <div class="scrollable-info-body">
-            <div class="detail-info-group">
-              <div class="info-item vertical">
-                <span class="info-label">FULLNAME:</span>
-                <strong>{{ student?.name }}</strong>
+            <div class="premium-info-list">
+              <div class="info-row">
+                <span class="info-label">FULLNAME</span>
+                <span class="info-value bold">{{ student?.name }}</span>
               </div>
-              <div class="info-item vertical">
-                <span class="info-label">DATE OF BIRTH:</span>
-                <strong>{{ formatDateOnly(student?.dob) || '-' }}</strong>
+              <div class="info-row">
+                <span class="info-label">DATE OF BIRTH</span>
+                <span class="info-value">{{ formatDateOnly(student?.dob) || '-' }}</span>
               </div>
-              <div class="info-item vertical">
-                <span class="info-label">AGE:</span>
-                <strong>{{ calculateAge(student?.dob) || '-' }}</strong>
+              <div class="info-row">
+                <span class="info-label">AGE</span>
+                <span class="info-value">
+                  <StatusBadge :status="'Age: ' + (calculateAge(student?.dob) || '-')" type="blue" />
+                </span>
               </div>
-              <div class="info-item vertical">
-                <span class="info-label">MEDICAL NOTE:</span>
-                <strong>{{ student?.medicalNote || 'None' }}</strong>
+              <div class="info-row">
+                <span class="info-label">STATUS</span>
+                <span class="info-value">
+                  <StatusBadge :status="computedStatus" />
+                </span>
               </div>
-              <div class="info-item vertical">
-                <span class="info-label">STATUS:</span>
-                <StatusBadge :status="computedStatus" />
+              <div class="info-row vertical">
+                <span class="info-label">MEDICAL NOTE</span>
+                <span class="info-value italic opacity-80">{{ student?.medicalNote || 'None' }}</span>
               </div>
-              <div class="info-item vertical" v-if="student?.overrideReason">
-                <span class="info-label">OVERRIDE REASON:</span>
-                <strong style="color: var(--error-color)">{{ student?.overrideReason }}</strong>
-              </div>
-              <div class="info-item vertical" v-if="student?.overrideRemark">
-                <span class="info-label">OVERRIDE REMARK:</span>
-                <strong>{{ student?.overrideRemark }}</strong>
+              <div class="info-box warning mt-md" v-if="student?.overrideReason">
+                <div class="box-header">
+                  <img :src="getActionIcon('quick-action')" class="icon-mini" />
+                  <strong>Manual Status Override</strong>
+                </div>
+                <div class="box-content">
+                  <p><strong>Reason:</strong> {{ student?.overrideReason }}</p>
+                  <p v-if="student?.overrideRemark">{{ student?.overrideRemark }}</p>
+                </div>
               </div>
             </div>
 

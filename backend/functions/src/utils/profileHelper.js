@@ -102,18 +102,19 @@ class ProfileHelper {
     return {
       id: classId,
       program: data.program, // Mirror
-      term: data.term,       // Mirror
-      branch: data.branch,   // Mirror
+      term: data.term, // Mirror
+      branch: data.branch, // Mirror
       teacher: data.teacher, // Mirror
       day: data.day,
       timeslot: data.timeslot,
       status: data.status || "open",
-      capacity: data.capacity || (data.program?.maxCapacity) || 0,
+      capacity: data.capacity || data.program?.maxCapacity || 0,
       numStudent: data.numStudent || 0,
-      isFull: (data.numStudent || 0) >= (data.capacity || data.program?.maxCapacity || 0),
+      isFull:
+        (data.numStudent || 0) >=
+        (data.capacity || data.program?.maxCapacity || 0),
     };
   }
 }
-
 
 module.exports = new ProfileHelper();

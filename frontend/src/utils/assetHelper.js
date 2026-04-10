@@ -104,6 +104,7 @@ export const ACTION_ICONS = {
   reactivate: 'action/reactivate',
   deactivate: 'action/deactivate',
   email: 'action/email',
+  cash: 'action/cash',
 }
 
 /**
@@ -136,21 +137,28 @@ export const isSameProfileAsset = (asset1, asset2) => {
 
   const extractCore = (val) => {
     if (typeof val !== 'string') return val
+    
+    // 1. Remove query params and hashes
     let core = val.split('?')[0].split('#')[0]
 
+    // 2. Handle Firebase storage paths
     if (core.includes('firebasestorage.googleapis.com')) {
       const parts = core.split('/o/')
       if (parts.length > 1) {
         core = decodeURIComponent(parts[1]).split('/').slice(1).join('/')
       }
-    } else {
-      const segments = core.split('/')
-      const fileName = segments[segments.length - 1]
-      const dotIndex = fileName.lastIndexOf('.')
-      core = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName
     }
 
-    return core
+    // 3. Extract the last segment of the path (the filename)
+    const segments = core.split('/')
+    let fileName = segments[segments.length - 1]
+
+    // 4. Strip ALL extensions and hashes: boy.d8f3a3a.png -> boy
+    // We split by '.' and take the first part
+    let baseName = fileName.split('.')[0]
+
+    // 5. Normalization: lowercase and strip 'avatar-' prefix
+    return baseName
       .toLowerCase()
       .replace(/^avatar-/, '')
       .replace(/\/$/, '')

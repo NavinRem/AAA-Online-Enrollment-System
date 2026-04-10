@@ -410,7 +410,7 @@ const handleRegisterStudent = async (formData) => {
 
       <template #table>
         <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="paginatedEnrollments"
-          :loading="loading" :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize"
+          entityName="enrollment" :loading="loading" :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize"
           :totalItems="totalItems" @update:currentPage="currentPage = $event" v-model:searchQuery="searchQuery"
           searchPlaceholder="Search Enrollments" :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Enrollments', value: 'all' },

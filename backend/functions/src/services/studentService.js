@@ -23,7 +23,6 @@ class StudentService {
     const studentId = db.collection(COLLECTIONS.STUDENT).doc().id;
     const now = new Date().toISOString();
 
-
     const data = {
       parentId,
       parentInfo,
@@ -48,8 +47,6 @@ class StudentService {
     });
 
     await batch.commit();
-
-
 
     return { id: studentId, message: "Student registered successfully" };
   }

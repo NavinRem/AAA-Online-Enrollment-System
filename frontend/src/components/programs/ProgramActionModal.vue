@@ -12,120 +12,144 @@
       </div>
     </template>
 
-    <form v-if="type === 'add' || type === 'edit'" class="form-grid" @submit.prevent="handleSubmit">
-      <div class="form-group full-width">
-        <label>Program Name (Model) <span class="required">*</span></label>
-        <input type="text" v-model="localData.name" placeholder="e.g. Piano - Grade 1" required />
+    <form v-if="type === 'add' || type === 'edit'" id="programActionForm" class="form-grid"
+      @submit.prevent="handleSubmit">
+      <div class="form-group full-width" :class="{ 'field-error': isSubmittingAttempted && errors.name }">
+        <label>Program Name (Model) <span class="required">*</span>
+          <span class="original-value" v-if="type === 'edit' && originalData.name">Original: {{ originalData.name }}</span>
+        </label>
+        <input type="text" v-model="localData.name" placeholder="e.g. Piano for kids" class="standard-input" />
+        <div v-if="isSubmittingAttempted && errors.name" class="field-error-msg">{{ errors.name }}</div>
       </div>
 
-      <div class="form-group">
-        <label>Category <span class="required">*</span></label>
+      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.categoryId }">
+        <label>Category <span class="required">*</span>
+          <span class="original-value" v-if="type === 'edit' && originalData.categoryId">Saved ID: {{ originalData.categoryId }}</span>
+        </label>
         <AppSelect v-model="localData.categoryId" :items="sortedCategories" placeholder="-- Select Category --"
           @change="onCategoryChange" />
+        <div v-if="isSubmittingAttempted && errors.categoryId" class="field-error-msg">{{ errors.categoryId }}</div>
       </div>
 
       <div class="form-group">
-        <label>Level (Optional)</label>
+        <label>Level (Optional)
+          <span class="original-value" v-if="type === 'edit' && originalData.levelId">Saved ID: {{ originalData.levelId }}</span>
+        </label>
         <AppSelect v-model="localData.levelId" :items="sortedLevels" placeholder="-- Select Level --" />
       </div>
 
       <div class="divider full-width">Product Details</div>
 
       <div class="form-group">
-        <label>Type <span class="required">*</span></label>
-        <AppSelect v-model="localData.type" :items="[
-          { id: 'group', name: 'Group Class' },
-          { id: 'private', name: 'Private Class' }
-        ]" :searchable="false" />
+        <label>Type <span class="required">*</span>
+          <span class="original-value" v-if="type === 'edit' && originalData.type">Original: {{ originalData.type }}</span>
+        </label>
+        <AppSelect v-model="localData.type" :items="[ { id: 'group', name: 'Group Class' }, { id: 'private', name: 'Private Class' } ]" :searchable="false" />
       </div>
 
-      <div class="form-group">
-        <label>Base Price ($) <span class="required">*</span></label>
-        <input type="number" v-model="localData.basePrice" min="0" step="0.01" required />
+      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.basePrice }">
+        <label>Base Price ($) <span class="required">*</span>
+          <span class="original-value" v-if="type === 'edit' && originalData.basePrice">Original: ${{ originalData.basePrice }}</span>
+        </label>
+        <input type="number" v-model="localData.basePrice" min="0" step="0.01" class="standard-input" />
+        <div v-if="isSubmittingAttempted && errors.basePrice" class="field-error-msg">{{ errors.basePrice }}</div>
       </div>
 
-      <div class="form-group">
-        <label>Sessions <span class="required">*</span></label>
-        <input type="number" v-model="localData.sessionNumber" min="1" required />
+      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.sessionNumber }">
+        <label>Sessions <span class="required">*</span>
+          <span class="original-value" v-if="type === 'edit' && originalData.sessionNumber">Original: {{ originalData.sessionNumber }}</span>
+        </label>
+        <input type="number" v-model="localData.sessionNumber" min="1" class="standard-input" />
+        <div v-if="isSubmittingAttempted && errors.sessionNumber" class="field-error-msg">{{ errors.sessionNumber }}</div>
       </div>
 
-      <div class="form-group">
-        <label>Weeks <span class="required">*</span></label>
-        <input type="number" v-model="localData.weeksNumber" min="1" required />
+      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.weeksNumber }">
+        <label>Weeks <span class="required">*</span>
+          <span class="original-value" v-if="type === 'edit' && originalData.weeksNumber">Original: {{ originalData.weeksNumber }}</span>
+        </label>
+        <input type="number" v-model="localData.weeksNumber" min="1" class="standard-input" />
+        <div v-if="isSubmittingAttempted && errors.weeksNumber" class="field-error-msg">{{ errors.weeksNumber }}</div>
       </div>
 
-      <div class="form-group">
-        <label>Default Max Capacity <span class="required">*</span></label>
-        <input type="number" v-model="localData.maxCapacity" min="1" required />
+      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.maxCapacity }">
+        <label>Default Max Capacity <span class="required">*</span>
+          <span class="original-value" v-if="type === 'edit' && originalData.maxCapacity">Original: {{ originalData.maxCapacity }}</span>
+        </label>
+        <input type="number" v-model="localData.maxCapacity" min="1" class="standard-input" />
+        <div v-if="isSubmittingAttempted && errors.maxCapacity" class="field-error-msg">{{ errors.maxCapacity }}</div>
       </div>
 
       <div class="form-group full-width">
         <label>Description (Optional)</label>
-        <textarea v-model="localData.description" placeholder="Description of this program model..."
-          rows="2"></textarea>
+        <textarea v-model="localData.description" placeholder="Description of this program model..." rows="2" class="standard-input"></textarea>
       </div>
 
       <div class="form-group full-width">
         <label>Program Photo (Optional)</label>
-        <div class="upload-container">
-          <div v-if="localData.profileURL" class="image-preview">
+        <div class="image-upload-modern">
+          <div v-if="localData.profileURL" class="image-preview-mini">
             <img :src="localData.profileURL" alt="Preview" />
-            <div class="remove-img" @click="localData.profileURL = ''">Remove</div>
+            <button type="button" class="btn-remove-photo" @click="localData.profileURL = ''">Remove Photo</button>
           </div>
-          <div v-else class="upload-placeholder">
-            <input type="file" @change="handleFileUpload" accept="image/*" id="file-upload" hidden />
-            <label for="file-upload" class="upload-label">
+          <div v-else class="upload-zone-standard">
+            <input type="file" @change="handleFileUpload" accept="image/*" id="program-file-upload" hidden />
+            <label for="program-file-upload" class="upload-trigger">
               <span class="icon">📷</span>
-              {{ isUploading ? 'Uploading...' : 'Click to upload' }}
+              <span class="label-text">{{ isUploading ? 'Uploading Image...' : 'Click to add Photo' }}</span>
             </label>
           </div>
         </div>
       </div>
 
-      <!-- Schedule Templates Section (Subcollection) -->
-      <div v-if="type === 'edit'" class="divider full-width">Bone Structure: Common Schedules</div>
+      <!-- Schedule Templates -->
+      <div v-if="type === 'edit'" class="divider full-width">Common Schedule Template Slots</div>
       <div v-if="type === 'edit'" class="form-group full-width">
-        <div class="schedule-manager">
-          <div class="schedule-list">
-            <div v-for="s in schedules" :key="s.id" class="schedule-item">
-              <span class="day">{{ s.day }}</span>
-              <span class="time">{{ s.timeslot }}</span>
-              <button type="button" class="btn-remove" @click="handleRemoveSchedule(s.id)">&times;</button>
+        <div class="schedule-template-manager">
+          <div class="template-list">
+            <div v-for="s in schedules" :key="s.id" class="template-chip">
+              <span class="day-val">{{ s.day }}</span>
+              <span class="time-val">{{ s.timeslot }}</span>
+              <button type="button" class="btn-clear-mini" @click="handleRemoveSchedule(s.id)">&times;</button>
             </div>
-            <div v-if="schedules.length === 0" class="empty-text">No schedule templates defined yet.</div>
+            <div v-if="schedules.length === 0" class="empty-hint">No schedule templates defined yet.</div>
           </div>
-          <div class="schedule-add">
+          <div class="template-add-controls mt-sm">
             <AppSelect v-model="newSchedule.day"
               :items="['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => ({ id: d, name: d }))"
-              :searchable="false" class="w-140" />
+              :searchable="false" class="day-selector" />
             <AppSelect v-model="newSchedule.timeslot"
               :items="['08:30 - 10:00', '10:30 - 12:00', '13:30 - 15:00', '15:30 - 17:00'].map(s => ({ id: s, name: s }))"
-              :searchable="false" class="flex-1" />
-            <button type="button" class="btn-add" @click="handleAddSchedule"
-              :disabled="!newSchedule.timeslot">Add</button>
+              :searchable="false" class="time-selector flex-1" />
+            <button type="button" class="btn-add-standard" @click="handleAddSchedule" :disabled="!newSchedule.timeslot">Register Slot</button>
           </div>
         </div>
       </div>
     </form>
 
-    <div v-if="type === 'delete'" class="delete-confirm">
+    <div v-if="type === 'delete'" class="action-delete-panel">
+      <!-- Delete confirmation panel logic ... -->
       <div class="danger-box-standard">
-        <strong>Delete Program Model?</strong>
-        <p>This will remove the product catalog entry. Active classes using this model will remain but will lose their
-          product reference.</p>
+        <div class="danger-icon-large">☢️</div>
+        <div class="danger-content">
+          <strong>Program Deletion</strong>
+          <p>This will remove the program catalog entry. Active classes will refer to a potentially missing model.</p>
+        </div>
       </div>
-      <div class="confirm-input">
-        <label>Type <strong>DELETE</strong> to confirm:</label>
-        <input type="text" v-model="localData.deleteConfirm" placeholder="DELETE" />
+      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.deleteConfirm }">
+         <p class="confirm-label-standard">Type <strong class="danger-text">DELETE</strong> to confirm</p>
+         <input type="text" v-model="localData.deleteConfirm" placeholder="DELETE" class="confirm-input-standard" />
+         <div v-if="isSubmittingAttempted && errors.deleteConfirm" class="field-error-msg">{{ errors.deleteConfirm }}</div>
       </div>
     </div>
 
     <template #footer>
       <div class="flex-align-center flex-end w-full gap-sm">
         <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-        <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" @click="handleSubmit" :loading="loading"
-          :disabled="!isFormValid">
-          {{ type === 'delete' ? 'Delete' : 'Save Program Model' }}
+        <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" form="programActionForm"
+          type="submit" @click="type === 'delete' ? handleSubmit() : null"
+          :loading="loading" :disabled="isFormInvalid || (type === 'edit' && !isChanged)"
+          :class="{ 'button-disabled-visual': isFormInvalid || (type === 'edit' && !isChanged) }">
+          {{ submitLabel }}
         </AppButton>
       </div>
     </template>
@@ -138,131 +162,129 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
-import { programService } from '@/services/programService'
-import { useActionModal } from '@/composables/useActionModal'
 import { getActionIcon } from '@/utils/assetHelper'
+import { programService } from '@/services/programService'
+import { storageService } from '@/services/storageService'
 
 const props = defineProps({
   isOpen: Boolean,
-  type: String,
+  type: String, // 'add', 'edit', 'delete'
   program: Object,
   loading: Boolean,
-  error: String
+  error: String,
 })
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'submit', 'update:error'])
+
+const localData = ref({
+  name: '',
+  categoryId: '',
+  levelId: '',
+  type: 'group',
+  basePrice: 0.0,
+  sessionNumber: 1,
+  weeksNumber: 1,
+  maxCapacity: 10,
+  description: '',
+  profileURL: '',
+  deleteConfirm: '',
+})
+
+const originalData = ref({})
+const initialDataString = ref('')
+const isSubmittingAttempted = ref(false)
+
+const syncData = () => {
+  if (props.type === 'edit' && props.program) {
+    const data = { ...props.program, deleteConfirm: '' }
+    localData.value = data
+    originalData.value = { ...data }
+    initialDataString.value = JSON.stringify(data)
+  } else {
+    localData.value = {
+      name: '', categoryId: '', levelId: '', type: 'group',
+      basePrice: 0.0, sessionNumber: 1, weeksNumber: 1, maxCapacity: 10,
+      description: '', profileURL: '', deleteConfirm: ''
+    }
+    initialDataString.value = JSON.stringify(localData.value)
+  }
+}
+
+watch(() => props.isOpen, (val) => {
+  if (val) {
+    syncData()
+    isSubmittingAttempted.value = false
+  }
+})
+
+const errors = computed(() => {
+  const d = localData.value
+  const errs = {}
+  if (props.type === 'delete') {
+    if (d.deleteConfirm !== 'DELETE') errs.deleteConfirm = 'Type DELETE to confirm.'
+  } else {
+    if (!d.name?.trim()) errs.name = 'Program name is required.'
+    if (!d.categoryId) errs.categoryId = 'Category is required.'
+    if (d.basePrice < 0) errs.basePrice = 'Price cannot be negative.'
+    if (d.sessionNumber < 1) errs.sessionNumber = 'Min 1 session.'
+    if (d.weeksNumber < 1) errs.weeksNumber = 'Min 1 week.'
+    if (d.maxCapacity < 1) errs.maxCapacity = 'Capacity must be at least 1.'
+  }
+  return errs
+})
+
+const isFormInvalid = computed(() => Object.keys(errors.value).length > 0)
+const isChanged = computed(() => JSON.stringify(localData.value) !== initialDataString.value)
 
 const categories = ref([])
 const levels = ref([])
 const schedules = ref([])
-const isUploading = ref(false)
 const newSchedule = ref({ day: 'Monday', timeslot: '' })
+const isUploading = ref(false)
 
-const getInitialData = () => ({
-  name: '',
-  categoryId: '',
-  category: '',
-  levelId: '',
-  type: 'group',
-  basePrice: 0,
-  sessionNumber: 12,
-  weeksNumber: 12,
-  maxCapacity: 15,
-  description: '',
-  profileURL: '',
-  deleteConfirm: ''
-})
-
-const mapSourceToForm = () => {
-  if (props.type === 'add') return getInitialData()
-  const p = props.program || {}
-  return {
-    ...getInitialData(),
-    ...p,
-    name: p.name || p.title || '',
-    deleteConfirm: ''
-  }
-}
-
-const { localData, submitForm } = useActionModal(props, emit, {
-  getInitialData,
-  mapSourceToForm
-})
-
-const sortedCategories = computed(() => {
-  return [...categories.value].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-})
-
-const sortedLevels = computed(() => {
-  return [...levels.value].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-})
-
-const isFormValid = computed(() => {
-  if (props.type === 'delete') return localData.value.deleteConfirm === 'DELETE'
-  return (
-    localData.value.name?.trim() &&
-    localData.value.categoryId &&
-    localData.value.sessionNumber > 0 &&
-    localData.value.weeksNumber > 0
-  )
-})
+const sortedCategories = computed(() => [...categories.value].sort((a,b) => a.name.localeCompare(b.name)))
+const sortedLevels = computed(() => [...levels.value].sort((a,b) => a.name.localeCompare(b.name)))
 
 const modalTitle = computed(() => {
-  const titles = { add: 'New Program Model', edit: 'Edit Program Model', delete: 'Delete Program Model' }
-  return titles[props.type] || 'Action'
+  if (props.type === 'edit') return 'Edit Program Model'
+  if (props.type === 'delete') return 'Destructive Action: Delete'
+  return 'Register New Program Entry'
 })
 
 const modalIcon = computed(() => {
-  if (props.type === 'add') return getActionIcon('plus')
-  if (props.type === 'edit') return getActionIcon('edit')
   if (props.type === 'delete') return getActionIcon('delete')
-  return null
+  return getActionIcon('edit')
 })
 
-const onCategoryChange = () => {
-  const cat = categories.value.find(c => c.id === localData.value.categoryId)
-  if (cat) {
-    localData.value.category = cat.name
-    fetchLevels()
-  }
-}
+const submitLabel = computed(() => {
+  if (props.type === 'edit') return 'Save Profile'
+  if (props.type === 'delete') return 'Permanently Delete'
+  return 'Create Program'
+})
 
 const fetchCategories = async () => {
   try {
-    const data = await programService.getAllCategories()
-    categories.value = data || []
+    categories.value = await programService.getAllCategories()
   } catch (err) { console.error(err) }
 }
 
 const fetchLevels = async () => {
   if (!localData.value.categoryId) return
   try {
-    const data = await programService.getAllLevels(localData.value.categoryId)
-    levels.value = data || []
+    levels.value = await programService.getLevelsByCategory(localData.value.categoryId)
   } catch (err) { console.error(err) }
 }
 
 const fetchSchedules = async () => {
-  if (!props.program?.id) return
+  if (props.type !== 'edit' || !props.program?.id) return
   try {
-    schedules.value = await programService.getSchedules(props.program.id)
+    schedules.value = await programService.getProgramSchedules(props.program.id)
   } catch (err) { console.error(err) }
 }
 
-const handleAddSchedule = async () => {
-  if (!newSchedule.value.timeslot) return
-  try {
-    await programService.addSchedule(props.program.id, newSchedule.value)
-    newSchedule.value.timeslot = ''
-    fetchSchedules()
-  } catch (err) { alert(err.message) }
-}
-
-const handleRemoveSchedule = async (sid) => {
-  try {
-    await programService.removeSchedule(props.program.id, sid)
-    fetchSchedules()
-  } catch (err) { alert(err.message) }
+const onCategoryChange = () => {
+  localData.value.levelId = ''
+  fetchLevels()
 }
 
 const handleFileUpload = async (event) => {
@@ -270,13 +292,38 @@ const handleFileUpload = async (event) => {
   if (!file) return
   isUploading.value = true
   try {
-    const result = await programService.uploadImage(file)
-    localData.value.profileURL = result.profileURL
-  } catch (err) { alert('Upload failed: ' + err.message) }
-  finally { isUploading.value = false }
+    const timestamp = Date.now()
+    const path = `programs/${localData.value.name}_${timestamp}`
+    const url = await storageService.uploadFile(file, path)
+    localData.value.profileURL = url
+  } catch (err) {
+    emit('update:error', 'Upload failed. Try again.')
+  } finally {
+    isUploading.value = false
+  }
 }
 
-const handleSubmit = () => submitForm(isFormValid.value)
+const handleAddSchedule = async () => {
+  if (!newSchedule.value.day || !newSchedule.value.timeslot) return
+  try {
+    const id = await programService.addProgramSchedule(props.program.id, newSchedule.value)
+    schedules.value.unshift({ id, ...newSchedule.value })
+    newSchedule.value.timeslot = ''
+  } catch (err) { console.error(err) }
+}
+
+const handleRemoveSchedule = async (scheduleId) => {
+  try {
+    await programService.deleteProgramSchedule(props.program.id, scheduleId)
+    schedules.value = schedules.value.filter(s => s.id !== scheduleId)
+  } catch (err) { console.error(err) }
+}
+
+const handleSubmit = () => {
+  isSubmittingAttempted.value = true
+  if (isFormInvalid.value) return
+  emit('submit', { ...localData.value })
+}
 
 watch(() => props.isOpen, async (isOpen) => {
   if (isOpen) {
@@ -288,157 +335,30 @@ watch(() => props.isOpen, async (isOpen) => {
 </script>
 
 <style scoped>
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
-}
+@import "@/assets/styles/components/ActionModalShared.css";
 
-.full-width {
-  grid-column: span 2;
-}
+.image-preview-mini { display: flex; align-items: center; gap: var(--space-md); }
+.image-preview-mini img { width: 56px; height: 56px; border-radius: var(--border-radius-sm); object-fit: cover; border: 1px solid var(--border-color); }
+.btn-remove-photo { font-size: 10px; color: var(--error-color); font-weight: 700; cursor: pointer; background: var(--error-soft); border: none; padding: 4px 8px; border-radius: 4px; }
 
-.divider {
-  margin: var(--space-sm) 0 var(--space-3xs);
-  font-weight: 700;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  text-transform: uppercase;
-  border-bottom: 1px solid var(--border-color);
-  padding-bottom: 4px;
-}
+.upload-zone-standard { position: relative; width: 100%; }
+.upload-trigger { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-md); border: 1.5px dashed var(--border-color); border-radius: var(--border-radius-sm); cursor: pointer; transition: all 0.2s; }
+.upload-trigger:hover { background: var(--bg-subtle); border-color: var(--primary-light); }
+.upload-trigger .label-text { font-size: var(--text-xs); color: var(--text-muted); font-weight: 600; }
 
-.form-group label {
-  display: block;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: var(--text-dark);
-}
+.schedule-template-manager { background: var(--bg-subtle); border: 1.5px solid var(--border-color); border-radius: var(--border-radius-sm); padding: var(--space-md); }
+.template-list { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.template-chip { display: flex; align-items: center; gap: 6px; background: var(--white); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color); box-shadow: var(--shadow-xs); }
+.day-val { font-size: 10px; font-weight: 850; color: var(--primary-color); text-transform: uppercase; }
+.time-val { font-size: var(--text-xs); color: var(--text-dark); font-weight: 600; }
+.btn-clear-mini { width: 14px; height: 14px; line-height: 1; border-radius: 50%; background: var(--bg-subtle); border: none; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.btn-clear-mini:hover { background: var(--error-soft); color: var(--error-color); }
+.empty-hint { font-size: var(--text-xs); color: var(--text-light); font-style: italic; }
 
-.form-group input,
-.form-group textarea {
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  border: 1.5px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  font-size: var(--text-sm);
-}
+.template-add-controls { display: flex; gap: var(--space-xs); }
+.btn-add-standard { background: var(--primary-color); color: white; border: none; border-radius: var(--border-radius-sm); padding: 0 var(--space-md); font-size: var(--text-xs); font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.btn-add-standard:hover { background: var(--primary-dark); }
+.btn-add-standard:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.schedule-manager {
-  background: var(--bg-subtle);
-  border: 1.5px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  padding: var(--space-sm);
-}
-
-.schedule-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-sm);
-}
-
-.schedule-item {
-  background: var(--white);
-  border: 1px solid var(--text-light);
-  border-radius: var(--border-radius-xs);
-  padding: 4px 8px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--text-xs);
-}
-
-.btn-remove {
-  background: var(--error-soft);
-  color: var(--error-color);
-  border: none;
-  border-radius: var(--border-radius-round);
-  width: 18px;
-  height: 18px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.schedule-add {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-add {
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 0 12px;
-  cursor: pointer;
-}
-
-.upload-container {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.image-preview img {
-  width: 50px;
-  height: 50px;
-  border-radius: var(--border-radius-sm);
-  object-fit: cover;
-}
-
-.remove-img {
-  font-size: 0.7rem;
-  color: var(--error-color);
-  cursor: pointer;
-}
-
-.upload-label {
-  border: 1.5px dashed var(--text-light);
-  padding: var(--space-sm) var(--space-xl);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.delete-confirm {
-  padding: var(--space-sm) 0;
-}
-
-.danger-box-standard {
-  background: var(--error-soft);
-  border: 1px solid var(--error-soft);
-  padding: var(--space-md);
-  border-radius: var(--border-radius-sm);
-  margin-bottom: var(--space-md);
-}
-
-.danger-box strong {
-  display: block;
-  color: var(--error-deep);
-  margin-bottom: 4px;
-}
-
-.danger-box p {
-  font-size: var(--text-sm);
-  color: var(--error-deep);
-}
-
-.confirm-input label {
-  display: block;
-  font-size: var(--text-xs);
-  margin-bottom: var(--space-xs);
-}
-
-.confirm-input input {
-  width: 100%;
-  padding: var(--space-sm);
-  border: 1.5px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  text-align: center;
-  font-weight: 700;
-  letter-spacing: 2px;
-}
+.day-selector { width: 120px; }
 </style>

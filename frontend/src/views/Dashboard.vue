@@ -67,7 +67,7 @@ onMounted(() => {
         enrollmentService.getAllEnrollments(),
         programService.getAllPrograms(),
         userService.getAllStudents(),
-        programService.getAllSessions(),
+        programService.getAllClasses(),
         branchService.getAllBranches()
       ])
 

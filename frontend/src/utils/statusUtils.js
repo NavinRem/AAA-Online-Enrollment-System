@@ -138,8 +138,9 @@ export const getStatusCategory = (status) => {
   return 'gray'
 }
 
-export const getStatusDisplay = (s) => {
-  if (!s) return 'N/A'
+export const getStatusDisplay = (val) => {
+  if (val === undefined || val === null || val === '') return 'N/A'
+  const s = String(val)
 
   const themeKeys = Object.keys(THEMES)
   const parts = s.includes(':') ? s.split(':') : [s]
@@ -176,14 +177,15 @@ export const isEnrollmentActive = (r) => {
 }
 
 export const calculateStudentStatus = (student, regs = []) => {
-  if (['Suspended', 'Stopped'].includes(student.status)) return student.status
+  const s = (student.status || '').toLowerCase().trim()
+  if (student.archived || s === 'stopped') return 'Stopped'
+  if (s === 'suspended') return 'Suspended'
+  if (s === 'graduated') return 'Graduated'
+
   const sid = String(student.id || student.uid || '')
   const sRegs = regs.filter((r) => String(r.studentId || '') === sid)
-  if (!sRegs.length) return 'Inactive'
 
-  if (sRegs.some(isEnrollmentActive)) return 'Studying'
-  if (sRegs.some((r) => isPaid(r.status || r.paymentStatus))) return 'Graduated'
-  if (sRegs.some((r) => isCancelled(r.status || r.paymentStatus))) return 'Stopped'
+  if (sRegs.length > 0) return 'Studying'
   return 'Inactive'
 }
 

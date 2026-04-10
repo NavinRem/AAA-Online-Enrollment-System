@@ -93,13 +93,29 @@ const availableAvatars = computed(() => {
   }))
 })
 
-watch(() => props.modelValue, (newVal) => {
+watch([() => props.modelValue, () => availableAvatars.value], ([newVal, currentGallery]) => {
   if (newVal) {
     const isBuiltin = ALL_BUILTIN_AVATARS.some(builtin =>
       isSameProfileAsset(newVal, builtin)
     )
-    if (!isBuiltin && (newVal.startsWith('http') || newVal.includes('firebasestorage') || newVal.includes('/'))) {
-      customAvatar.value = newVal
+
+    // Check if it's already in the standard gallery for THIS role
+    const isInGallery = currentGallery.some(a =>
+      isSameProfileAsset(newVal, a.url)
+    )
+
+    if (!isInGallery) {
+      // Proactively resolve the value. getImageUrl handles both tags
+      const resolved = getImageUrl(newVal)
+      if (resolved) {
+        // If it's a valid asset but not in our role's gallery, show it in the custom slot
+        customAvatar.value = resolved
+      } else {
+        customAvatar.value = null
+      }
+    } else {
+      // If it exists in the gallery, we don't need the custom slot for it
+      customAvatar.value = null
     }
   }
 }, { immediate: true })
