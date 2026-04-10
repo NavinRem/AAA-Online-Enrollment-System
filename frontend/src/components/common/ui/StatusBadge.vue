@@ -1,12 +1,12 @@
 <template>
-  <span :class="badgeClass">
+  <span class="status-badge" :style="badgeStyle">
     <slot>{{ displayStatus }}</slot>
   </span>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { getStatusCategory, getStatusDisplay } from '@/utils/statusHelper'
+import { getStatusDisplay, getStatusTheme } from '@/utils/statusUtils'
 
 const props = defineProps({
   status: {
@@ -23,12 +23,9 @@ const displayStatus = computed(() => {
   return getStatusDisplay(props.status)
 })
 
-const statusColor = computed(() => {
-  if (props.type) return props.type
-  return getStatusCategory(props.status)
+const badgeStyle = computed(() => {
+  return getStatusTheme(props.status, props.type)
 })
-
-const badgeClass = computed(() => `status-badge badge-${statusColor.value}`)
 </script>
 
 <style scoped>

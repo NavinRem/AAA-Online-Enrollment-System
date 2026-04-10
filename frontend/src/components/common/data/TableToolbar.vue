@@ -5,19 +5,22 @@
     </div>
     <div class="table-controls">
       <SearchBox v-if="hasSearch" :modelValue="searchQuery" @update:modelValue="$emit('update:searchQuery', $event)"
-        :placeholder="searchPlaceholder" />
+        :placeholder="searchPlaceholder" variant="light" />
       <div v-if="hasFilter" class="filter-dropdown-container">
-        <AppButton variant="secondary" :class="{ active: currentFilter !== 'all' && currentFilter !== '' }"
-          :style="getStatusTheme(currentFilter)" @click="toggleFilter" @blur="closeFilter">
+        <AppButton ref="filterToggleRef" variant="secondary"
+          :class="{ active: currentFilter !== 'all' && currentFilter !== '' }"
+          :style="currentFilter !== 'all' && currentFilter !== '' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color, borderColor: getStatusTheme(currentFilter).color + '33' } : {}"
+          @click="toggleFilter">
           <img :src="getActionIcon('filter')" class="btn-icon-mini"
-            :class="{ 'reverse-icon': currentFilter !== 'all' && currentFilter !== '' }" /> {{ activeFilterLabel }}
+            :style="currentFilter !== 'all' && currentFilter !== '' ? { filter: getStatusFilter(currentFilter) } : { filter: 'none' }" />
+          {{ activeFilterLabel }}
         </AppButton>
         <Teleport to="body">
           <transition name="toast-fade">
-            <div v-if="isFilterOpen" class="filter-dropdown-menu status-filter-menu scrollable-menu"
-              :style="filterMenuStyles" @mousedown.stop>
+            <div v-if="isFilterOpen" class="filter-dropdown-menu" :style="filterMenuStyles" @mousedown.stop>
               <div v-for="option in filterOptions" :key="option.value" class="filter-option"
-                :class="{ active: currentFilter === option.value }" @click.stop="selectFilter(option.value)">
+                :class="{ active: currentFilter === option.value }"
+                @click.stop="selectFilter(option.value)">
                 {{ option.label }}
               </div>
             </div>
@@ -30,10 +33,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import SearchBox from '@/components/common/data/SearchBox.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import { getStatusTheme } from '@/utils/statusHelper'
+import { getStatusTheme, getStatusCategory, getStatusFilter } from '@/utils/statusUtils'
 import { getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
@@ -71,6 +74,7 @@ const emit = defineEmits(['update:searchQuery', 'update:currentFilter'])
 
 const isFilterOpen = ref(false)
 const filterMenuStyles = ref({})
+const filterToggleRef = ref(null)
 
 const activeFilterLabel = computed(() => {
   if (props.currentFilter === 'all' || !props.currentFilter) return 'Filter'
@@ -83,25 +87,40 @@ const toggleFilter = (event) => {
   if (isFilterOpen.value) {
     const rect = event.currentTarget.getBoundingClientRect()
     filterMenuStyles.value = {
-      top: `${rect.bottom + 8}px`,
-      left: `${rect.left}px`,
-      maxWidth: '150px'
+      top: `${rect.bottom + window.scrollY + 8}px`,
+      left: `${rect.left + window.scrollX}px`,
+      minWidth: `${rect.width}px`,
+      position: 'absolute',
+      zIndex: 9999
     }
   }
 }
 
-const closeFilter = (event) => {
-  setTimeout(() => {
-    const menu = document.querySelector('.status-filter-menu')
-    if (menu && menu.contains(event.relatedTarget)) return
+const handleClickOutside = (event) => {
+  const toggleBtn = filterToggleRef.value?.$el || filterToggleRef.value
+  const menu = document.querySelector('.filter-dropdown-menu')
+
+  if (isFilterOpen.value &&
+    toggleBtn && !toggleBtn.contains(event.target) &&
+    menu && !menu.contains(event.target)) {
     isFilterOpen.value = false
-  }, 200)
+  }
 }
+
+onMounted(() => {
+  window.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', handleClickOutside)
+})
 
 const selectFilter = (val) => {
   emit('update:currentFilter', val)
   isFilterOpen.value = false
 }
+
+
 </script>
 
 <style>

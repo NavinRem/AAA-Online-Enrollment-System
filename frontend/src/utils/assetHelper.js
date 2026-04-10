@@ -1,155 +1,85 @@
 /**
  * Vite Dynamic Asset Resolution
- * Using import.meta.glob ensures all assets are found and bundled correctly.
+ * Consolidated helpers for images and icons.
  */
-const images = import.meta.glob('../assets/images/**/*.{png,jpg,jpeg,svg,webp}', { eager: true })
-const icons = import.meta.glob('../assets/icons/**/*.{png,jpg,jpeg,svg,webp}', { eager: true })
+const ASSETS = import.meta.glob('../assets/**/*.{png,jpg,jpeg,svg,webp}', { eager: true })
 
 /**
- * Normalizes a keyword for asset lookup.
+ * Standardizes identifying strings into consistent kebab-case paths.
  */
-const normalize = (name) => {
-  if (!name) return ''
-  return name.toLowerCase().trim().replace(/\s+/g, '-').replace(/_/g, '-')
-}
+const normalize = (val) =>
+  val
+    ?.toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[\s_]+/g, '-') || ''
 
 /**
- * Core resolver for project assets.
- *
- * Logic:
- * 1. Cleanup path.
- * 2. Try direct match in collection.
- * 3. If image, try convention patterns (classes/card-*, profiles/avatar-*).
+ * Core Resolver: Returns the URL for a local asset based on its category and name.
+ * Respects Firebase Storage URLs and absolute paths.
  */
-const getAsset = (collections, baseDir, path) => {
+const resolveAsset = (category, path) => {
   if (!path) return ''
 
+  // Already resolved URL or Firebase Storage URL
+  if (
+    path.startsWith('http') ||
+    path.startsWith('/') ||
+    path.startsWith('data:') ||
+    path.includes('firebasestorage')
+  ) {
+    return path
+  }
+
+  // Cleanup: remove leading slash and normalize naming
   const cleanPath = path.startsWith('/') ? path.substring(1) : path
   const normalizedPath = normalize(cleanPath)
 
-  const hasExtension = normalizedPath.includes('.')
-  const extensions = hasExtension ? [''] : ['.png', '.jpg', '.jpeg', '.svg', '.webp']
+  // Consistency: Try the exact path or common extensions within the specific category folder
+  const searchPaths = [
+    normalizedPath,
+    `${normalizedPath}.png`,
+    `${normalizedPath}.svg`,
+    `${normalizedPath}.jpg`,
+    `${normalizedPath}.webp`,
+    `${normalizedPath}.jpeg`,
+  ]
 
-  // 1. Direct Lookup (using normalized path)
-  for (const ext of extensions) {
-    const fullPath = `../assets/${baseDir}/${normalizedPath}${ext}`
-    if (collections[fullPath]) return collections[fullPath].default || collections[fullPath]
-  }
-
-  // 2. Convention Fallbacks
-  const patterns =
-    baseDir === 'images'
-      ? [
-          `classes/card-${normalizedPath}`,
-          `profiles/avatar-${normalizedPath}`,
-          `dashboard/card-${normalizedPath}`,
-          `status/badge-${normalizedPath}`,
-        ]
-      : [
-          `action/${normalizedPath}`,
-          `navigation/${normalizedPath}`,
-          `status/${normalizedPath}`,
-          `other/${normalizedPath}`,
-        ]
-
-  for (const p of patterns) {
-    for (const ext of extensions) {
-      const fullPath = `../assets/${baseDir}/${p}${ext}`
-      if (collections[fullPath]) return collections[fullPath].default || collections[fullPath]
-    }
+  for (const p of searchPaths) {
+    const fullKey = `../assets/${category}/${p}`
+    if (ASSETS[fullKey]) return ASSETS[fullKey].default || ASSETS[fullKey]
   }
 
   return ''
 }
 
 /**
- * Main Image Resolution Entry Point
+ * Primary Functions: getImage(path) and getIcon(path)
+ * usage: getImage('profiles/avatar-boy') or getImage('profiles', 'avatar-boy')
  */
-export const getImageUrl = (param1, param2) => {
-  if (!param1) return ''
-
-  // Already resolved URL (Storage, Absolute, Data, etc.)
-  if (
-    !param2 &&
-    typeof param1 === 'string' &&
-    (param1.startsWith('http') ||
-      param1.includes('firebasestorage') ||
-      param1.startsWith('/') ||
-      param1.startsWith('data:'))
-  ) {
-    return param1
-  }
-
-  // Double Param Logic (e.g., getImageUrl('profiles', 'boy'))
-  if (param1 && param2) {
-    return getAsset(images, 'images', `${param1}/${param2}`)
-  }
-
-  // Single identifier logic (e.g., getImageUrl('Piano'))
-  return getAsset(images, 'images', param1)
-}
-
-/**
- * Icon Loader
- */
-export const getIconUrl = (param1, param2) => {
-  if (!param1) return ''
-
-  // Already resolved URL
-  if (
-    !param2 &&
-    typeof param1 === 'string' &&
-    (param1.startsWith('http') || param1.startsWith('/') || param1.startsWith('data:'))
-  ) {
-    return param1
-  }
-
+export const getImage = (param1, param2) => {
   const path = param2 ? `${param1}/${param2}` : param1
-  const resolved = getAsset(icons, 'icons', path)
+  return resolveAsset('images', path)
+}
 
-  // Fallback to image resolver if icon not found
-  return resolved || getImageUrl(param1, param2)
+export const getIcon = (param1, param2) => {
+  const path = param2 ? `${param1}/${param2}` : param1
+  return resolveAsset('icons', path)
 }
 
 /**
- * Standardized Profile Resolution Helpers
+ * Backward Compatibility Aliases ( getImageURL, getIconURL )
  */
-export const getProgramProfileURL = (profileURL, category) => {
-  if (profileURL) return getImageUrl(profileURL)
-  if (category) return getImageUrl(category)
-  return getImageUrl('classes/card-model')
-}
-
-export const getParentProfileURL = (profileURL) => {
-  return getImageUrl(profileURL)
-}
-
-export const getStudentProfileURL = (profileURL) => {
-  return getImageUrl(profileURL)
-}
-
-export const getTeacherProfileURL = (profileURL) => {
-  return getImageUrl(profileURL)
-}
+export const getImageUrl = getImage
+export const getIconUrl = getIcon
 
 /**
- * Convenience Shorthands
+ * Semantic Profile Helpers
  */
-export const getProfileAsset = (name) => getImageUrl('profiles', `avatar-${name}`)
-export const getDashboardAsset = (name) => getImageUrl('dashboard', `card-${name}`)
-export const getClassAsset = (name) => getImageUrl('classes', `card-${name}`)
-export const getProgramAsset = (name) => getImageUrl('programs', name)
-export const getStatusAsset = (name) => getImageUrl('status', `badge-${name}`)
-export const getCommonAsset = (name) => getImageUrl('common', name)
-
-export const ALL_BUILTIN_AVATARS = [
-  getProfileAsset('boy'),
-  getProfileAsset('girl'),
-  getProfileAsset('man'),
-  getProfileAsset('woman'),
-  getProfileAsset('teacher-man'),
-  getProfileAsset('teacher-woman'),
-]
+export const getProgramProfileURL = (url) => getImage(url)
+export const getParentProfileURL = (url) => getImage(url)
+export const getStudentProfileURL = (url) => getImage(url)
+export const getTeacherProfileURL = (url) => getImage(url)
 
 /**
  * Standardized Action Icon Mapping
@@ -168,45 +98,72 @@ export const ACTION_ICONS = {
   save: 'action/cloud-upload',
   back: 'action/back',
   close: 'action/close',
+  'eye-open': 'action/eye-open',
+  'eye-close': 'action/eye-close',
+  'reset-password': 'action/reset-password',
+  reactivate: 'action/reactivate',
+  deactivate: 'action/deactivate',
+  email: 'action/email',
+  cash: 'action/cash',
 }
 
 /**
- * Compares two profile identifiers (URLs or Asset Paths) to see if they refer to the same logical file.
- * Strips tokens, query params, and common storage prefixes.
+ * Resolves an action icon URL.
+ * @param {string} action - Semantic name (e.g., 'edit')
+ */
+export const getActionIcon = (action) => {
+  const path = ACTION_ICONS[normalize(action)] || action
+  return getIcon(path)
+}
+
+/**
+ * Registry of default avatars for selectors
+ */
+const getProfile = (name) => getImage('profiles', `avatar-${name}`)
+export const ALL_BUILTIN_AVATARS = [
+  getProfile('boy'),
+  getProfile('girl'),
+  getProfile('man'),
+  getProfile('woman'),
+  getProfile('teacher-man'),
+  getProfile('teacher-woman'),
+]
+
+/**
+ * Comparison Utility: Safely compares two profile identifiers (Local vs Remote).
  */
 export const isSameProfileAsset = (asset1, asset2) => {
   if (!asset1 || !asset2) return asset1 === asset2
 
-  const normalize = (val) => {
+  const extractCore = (val) => {
     if (typeof val !== 'string') return val
+    
+    // 1. Remove query params and hashes
     let core = val.split('?')[0].split('#')[0]
 
-    // Extract path from storage URL if applicable
+    // 2. Handle Firebase storage paths
     if (core.includes('firebasestorage.googleapis.com')) {
       const parts = core.split('/o/')
       if (parts.length > 1) {
-        // Remove bucket prefix and decode URI components
         core = decodeURIComponent(parts[1]).split('/').slice(1).join('/')
       }
     }
-    
-    // Cleanup slashes and whitespace
-    return core.toLowerCase().replace(/\/$/, '').trim()
+
+    // 3. Extract the last segment of the path (the filename)
+    const segments = core.split('/')
+    let fileName = segments[segments.length - 1]
+
+    // 4. Strip ALL extensions and hashes: boy.d8f3a3a.png -> boy
+    // We split by '.' and take the first part
+    let baseName = fileName.split('.')[0]
+
+    // 5. Normalization: lowercase and strip 'avatar-' prefix
+    return baseName
+      .toLowerCase()
+      .replace(/^avatar-/, '')
+      .replace(/\/$/, '')
+      .trim()
   }
 
-  const n1 = normalize(asset1)
-  const n2 = normalize(asset2)
-  
-  return n1 === n2
-}
-
-/**
- * Retrieves the URL for a specific action icon.
- * @param {string} action - Semantic name (e.g., 'edit')
- * @returns {string} - Resolved URL
- */
-export const getActionIcon = (action) => {
-  if (!action) return ''
-  const iconPath = ACTION_ICONS[action.toLowerCase()] || action
-  return getIconUrl(iconPath)
+  return extractCore(asset1) === extractCore(asset2)
 }

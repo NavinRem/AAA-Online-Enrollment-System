@@ -1,78 +1,94 @@
 import { ref, computed } from 'vue'
+import { formatDateOnly } from '@/utils/formatUtils'
 
 /**
- * A reusable composable for handling search filtering across lists
- * @param {Ref<Array>} listRef - The reactive list (or computed list) you want to filter
- * @param {Function} customMapper - Optional function that takes an item and returns a string of all text to search against
+ * A reusable composable for handling search filtering across lists.
+ * Optimized to use a customMapper if provided, or otherwise fallback to top-level property matching.
  */
 export function useSearch(listRef, customMapper = null) {
   const searchQuery = ref('')
 
   const searchResults = computed(() => {
     const list = listRef.value
-    if (!list) return []
+    if (!list || !Array.isArray(list)) return []
+
     const q = searchQuery.value.toLowerCase().trim()
     if (!q) return list
 
     return list.filter((item) => {
-      const extract = (obj) => {
-        if (!obj || typeof obj !== 'object') return String(obj || '').toLowerCase()
-        return Object.values(obj).map(v => typeof v === 'object' ? extract(v) : String(v || '').toLowerCase()).join(' ')
+      // If mapper is provided, use it as the highly optimized source of search text
+      if (customMapper) {
+        return customMapper(item).toLowerCase().includes(q)
       }
 
-      const text = `${extract(item)} ${customMapper ? customMapper(item).toLowerCase() : ''}`
-      return text.includes(q)
+      // Fallback: search all top-level string/number values (less efficient)
+      return Object.values(item).some((v) =>
+        String(v || '')
+          .toLowerCase()
+          .includes(q),
+      )
     })
   })
 
   return { searchQuery, searchResults }
 }
 
-// Pre-defined Custom Mappers for specific entities
+/**
+ * Entity-specific Search Mappers
+ */
 
-// Helper to add formatted dates to search text
-const getFormattedDateString = (dateString) => {
-  if (!dateString) return ''
-  try {
-    const d = new Date(dateString)
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-  } catch {
-    return dateString
-  }
-}
+export const enrollmentSearchMapper = (r) =>
+  [
+    r.id,
+    r.parentName || r.parent?.name,
+    r.studentName || r.student?.name,
+    r.programTitle || r.program?.title,
+    r.sessionSchedule,
+    r.status,
+    r.paymentStatus,
+    r.paymentMethod,
+    r.remark,
+    r.amount,
+    formatDateOnly(r.createdAt || r.enrollAt),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
 
-export const enrollmentSearchMapper = (r) => {
-  const parent = r.parentName || ''
-  const student = r.studentName || ''
-  const program = r.programTitle || ''
-  const session = r.sessionSchedule || ''
-  const id = r.id || ''
-  const paymentProof = r.paymentProof || ''
-  const remark = r.remark || ''
-  const status = r.status || ''
-  const payStatus = r.paymentStatus || ''
-  const amount = (r.amount || r.totalAmount || 0).toString()
-  const dateObjStr = getFormattedDateString(r.createdAt)
+export const studentSearchMapper = (s) =>
+  [
+    s.name,
+    s.fullName,
+    s.parentName || s.parentInfo?.name,
+    s.studentId,
+    s.gender,
+    s.status || 'Studying',
+    formatDateOnly(s.createdAt),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
 
-  return `${id} ${parent} ${student} ${program} ${session} ${paymentProof} ${remark} ${status} ${payStatus} ${amount} ${dateObjStr}`
-}
+export const parentSearchMapper = (p) =>
+  [p.name, p.email, p.phone, p.address, p.status, formatDateOnly(p.createdAt)]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
 
-export const studentSearchMapper = (s) => {
-  const dateObjStr = getFormattedDateString(s.createdAt)
-  return `${s.name || s.fullName || ''} ${s.parentName || ''} ${s.studentId || ''} ${s.gender || ''} ${s.status || 'Studying'} ${dateObjStr}`
-}
+export const programSearchMapper = (p) =>
+  [
+    p.title,
+    p.category,
+    p.description,
+    p.schedule ? `${p.schedule.day} ${p.schedule.timeslot}` : '',
+    p.termName || p.term,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
 
-export const parentSearchMapper = (p) => {
-  const dateObjStr = getFormattedDateString(p.createdAt)
-  return `${p.name || ''} ${p.email || ''} ${p.phone || ''} ${p.address || ''} ${p.status || 'Active'} ${dateObjStr}`
-}
+export const teacherSearchMapper = (t) =>
+  [t.name, t.email, t.phone, t.id, t.uid].filter(Boolean).join(' ').toLowerCase()
 
-export const programSearchMapper = (p) => {
-  const scheduleText = p.schedule ? `${p.schedule.day} ${p.schedule.timeslot}` : ''
-  const termText = p.termName || p.term || ''
-  return `${p.title || p.name || ''} ${p.category || ''} ${p.description || ''} ${scheduleText} ${termText}`
-}
-
-export const teacherSearchMapper = (t) => {
-  return `${t.name || ''} ${t.email || ''} ${t.uid || t.id || ''}`
-}
+export const branchSearchMapper = (b) =>
+  [b.name, b.abbr, b.location].filter(Boolean).join(' ').toLowerCase()

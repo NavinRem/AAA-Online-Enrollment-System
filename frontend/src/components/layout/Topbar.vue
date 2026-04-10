@@ -3,27 +3,30 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { authService } from '@/services/authService'
 import { userService } from '@/services/userService'
-import { getImageUrl, getIconUrl, getActionIcon } from '@/utils/assetHelper'
+import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
+import { getAvatarUrl } from '@/utils/profileHelper'
+import SearchBox from '@/components/common/data/SearchBox.vue'
 
 const route = useRoute()
 const searchQuery = ref('')
+const userProfile = ref(null)
 const userName = ref('Loading...')
 const userRole = ref('...')
 
 const emit = defineEmits(['toggle-menu'])
 
-const pageTitle = computed(() => route.meta.title || 'Dashboard')
+const pageTitle = computed(() => route.meta.title)
+const avatarUrl = computed(() => getAvatarUrl(userProfile.value))
 
 onMounted(() => {
   authService.onAuthStateChanged(async (user) => {
     if (user) {
       try {
-        const userProfile = await userService.getProfile(user.uid)
-        if (userProfile) {
-          userName.value = userProfile.name || userProfile.email || 'User'
-          userRole.value = userProfile.role
-            ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)
-            : 'User'
+        const profile = await userService.getProfile(user.uid)
+        if (profile) {
+          userProfile.value = profile
+          userName.value = profile.name
+          userRole.value = profile.role
         }
       } catch (e) {
         console.warn('Failed to load profile for topbar', e)
@@ -32,7 +35,11 @@ onMounted(() => {
       }
     } else {
       userName.value = 'Guest'
-      userRole.value = ''
+      userRole.value = 'Guest'
+      userProfile.value = {
+        profileURL: getImageUrl('profiles', 'avatar-guest'),
+        role: 'Guest'
+      }
     }
   })
 })
@@ -48,10 +55,7 @@ onMounted(() => {
     </div>
 
     <div class="header-center desktop-only">
-      <div class="search-wrapper">
-        <input v-model="searchQuery" type="text" placeholder="Search something" class="search-input" />
-        <img :src="getActionIcon('search')" class="search-icon" />
-      </div>
+      <SearchBox v-model="searchQuery" placeholder="Search something" />
     </div>
 
     <div class="header-right">
@@ -59,7 +63,7 @@ onMounted(() => {
         <img :src="getIconUrl('action', 'bell-svgrepo.svg')" alt="Notifications" />
       </button>
       <button class="icon-btn">
-        <img :src="getIconUrl('navigation', 'setting-svgrepo.svg')" alt="Settings" />
+        <img :src="getIconUrl('navigation', 'setting.svg')" alt="Settings" />
       </button>
 
       <div class="user-profile-topbar">
@@ -68,7 +72,7 @@ onMounted(() => {
           <span class="user-role-topbar">{{ userRole }}</span>
         </div>
         <div class="user-avatar-topbar">
-          <img :src="getImageUrl('profiles/avatar-admin')" alt="Profile" />
+          <img :src="avatarUrl" alt="Profile" />
         </div>
       </div>
     </div>
@@ -80,8 +84,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 15px 30px;
-  background: #f7f9fc;
+  padding: var(--space-md) var(--space-2xl);
+  background: var(--bg-light);
   width: 100%;
   position: sticky;
   top: 0;
@@ -91,7 +95,7 @@ onMounted(() => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--space-md);
 }
 
 .menu-toggle {
@@ -106,7 +110,7 @@ onMounted(() => {
   display: block;
   width: 24px;
   height: 2px;
-  background: #333;
+  background: var(--text-deep);
   position: relative;
 }
 
@@ -116,7 +120,7 @@ onMounted(() => {
   position: absolute;
   width: 24px;
   height: 2px;
-  background: #333;
+  background: var(--text-deep);
   left: 0;
 }
 
@@ -129,30 +133,30 @@ onMounted(() => {
 }
 
 .page-title {
-  font-size: 1.6rem;
+  font-size: var(--text-3xl);
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-dark);
   white-space: nowrap;
 }
 
 .header-center {
   flex: 1;
   max-width: 500px;
-  margin: 0 40px;
+  margin: 0 var(--space-3xl);
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: var(--space-md);
 }
 
 .icon-btn {
-  background: white;
+  background: var(--white);
   border: none;
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -168,12 +172,12 @@ onMounted(() => {
 .user-profile-topbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: white;
-  padding: 5px 5px 5px 15px;
-  border-radius: 30px;
+  gap: var(--space-sm);
+  background: var(--white);
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-xl);
+  border-radius: var(--border-radius-lg);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
-  margin-left: 10px;
+  margin-left: var(--space-sm);
 }
 
 .user-info-topbar {
@@ -184,20 +188,22 @@ onMounted(() => {
 
 .user-name-topbar {
   font-weight: 700;
-  font-size: 0.9rem;
-  color: #1a1a1a;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
 }
 
 .user-role-topbar {
-  font-size: 0.75rem;
-  color: #999;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 .user-avatar-topbar {
   width: 38px;
   height: 38px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   overflow: hidden;
+  border: 1px solid var(--border-color);
+  background-color: var(--accent-light);
 }
 
 .user-avatar-topbar img {

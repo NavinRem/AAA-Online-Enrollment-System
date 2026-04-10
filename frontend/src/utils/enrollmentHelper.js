@@ -1,170 +1,117 @@
-import { isPaid, isCancelled, isUnpaid } from './statusHelper'
-import { isEnrollmentActive } from './studentStatusHelper'
-import { parseDate } from './dateFormatter'
-import { 
-  getImageUrl, 
-  getProgramProfileURL, 
-  getParentProfileURL, 
-  getStudentProfileURL,
-  getTeacherProfileURL
-} from '@/utils/assetHelper'
+import { isPaid, isCancelled, isUnpaid, getEnrollmentDisplayStatus } from './statusUtils'
+import { parseDate } from './formatUtils'
+import { getProgramProfileURL, getParentProfileURL, getStudentProfileURL } from './assetHelper'
 
 /**
- * Calculates enrollment statistics.
+ * Calculates enrollment statistics for dashboard/list.
  */
-export const calculateTotalEnrollment = (enrollments) => {
+export const calculateTotalEnrollment = (regs = []) => {
   const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const endOfToday = startOfToday + 24 * 60 * 60 * 1000 - 1
+  const today = new Date(now.setHours(0, 0, 0, 0)).getTime()
 
-  const total = enrollments.length
-  // Rule: Paid/Unpaid is controlled by paymentStatus, but exclude cancelled
-  const paidCount = enrollments.filter(r => isPaid(r.paymentStatus) && !isCancelled(r.status)).length
-  const unpaidCount = enrollments.filter(r => isUnpaid(r.paymentStatus) && !isCancelled(r.status)).length
-  // Rule: Cancelled is controlled by Enrollment status
-  const cancelledCount = enrollments.filter(r => isCancelled(r.status)).length
-  const todayCount = enrollments.filter(r => {
-    const time = parseDate(r.enrollAt || r.createdAt).getTime()
-    return time >= startOfToday && time <= endOfToday
-  }).length
   return {
-    total,
-    paidCount,
-    unpaidCount,
-    cancelledCount,
-    todayCount,
+    total: regs.length,
+    paidCount: regs.filter((r) => isPaid(r.paymentStatus) && !isCancelled(r.status)).length,
+    unpaidCount: regs.filter((r) => isUnpaid(r.paymentStatus) && !isCancelled(r.status)).length,
+    cancelledCount: regs.filter((r) => isCancelled(r.status)).length,
+    todayCount: regs.filter((r) => parseDate(r.enrollAt || r.createdAt).getTime() >= today).length,
   }
 }
 
 /**
- * Enriches enrollment data with parent/student info and icons.
+ * Enriches enrollment data using backend snapshots.
  */
-export const enrichEnrollments = (enrollments, parents = [], students = [], programs = [], sessions = []) => {
-  return enrollments.map((r) => {
-    const parent = r.parent || parents.find(p => (p.uid || p.id) === r.parentId)
-    const student = r.student || students.find(s => (s.uid || s.id) === r.studentId)
-    const program = r.program || programs.find(c => (c.id || c.uid) === r.programId)
-    const sess = sessions.find(sess => sess.id === r.sessionId)
+export const enrichEnrollments = (
+  regs = [],
+  parents = [],
+  students = [],
+  programs = [],
+  classes = [],
+) => {
+  return regs
+    .map((r) => {
+      const parent = r.parent || parents.find((p) => (p.uid || p.id) === r.parentId)
+      const student = r.student || students.find((s) => (s.uid || s.id) === r.studentId)
+      const prog = r.program || programs.find((p) => (p.id || p.uid) === r.programId)
+      const classInst = r.class || classes.find((c) => c.id === r.classId)
 
-    const programCategory = r.programCategory || program?.category || 'program'
-    const sessionSchedule = r.sessionSchedule || (sess?.schedule ? `${sess.schedule.day} ${sess.schedule.timeslot}` : 'N/A')
+      return {
+        ...r,
+        parent: parent
+          ? {
+              id: parent.id || parent.uid,
+              name: parent.name,
+              profileURL: parent.profileURL,
+              status: parent.status,
+            }
+          : null,
+        student: student
+          ? { id: student.id || student.uid, name: student.name, profileURL: student.profileURL }
+          : null,
+        program: prog
+          ? { id: prog.id || prog.uid, title: prog.title || prog.name, profileURL: prog.profileURL }
+          : null,
+        branchAbbr: r.branchAbbr || classInst?.branch?.abbr || 'N/A',
+        classSchedule:
+          r.classSchedule || (classInst ? `${classInst.day} ${classInst.timeslot}` : 'N/A'),
 
-    return {
-      ...r,
-      parent: parent ? {
-        id: parent.id || parent.uid,
-        name: parent.name || parent.fullName || 'Parent',
-        profile: parent.profile || parent.profileURL || null
-      } : null,
-      student: student ? {
-        id: student.id || student.uid,
-        name: student.name || student.fullName || 'Student',
-        profile: student.profile || student.profileURL || null
-      } : null,
-      program: program ? {
-        id: program.id || program.uid,
-        title: program.title || program.name || 'Program',
-        profile: program.profile || program.profileURL || null
-      } : null,
-      
-      // Legacy compatibility for UI components not yet refactored
-      parentName: parent?.name || parent?.fullName || r.parentName || 'N/A',
-      parentProfileURL: getParentProfileURL(r.parentProfileURL || parent?.profile || parent?.profileURL),
-      
-      studentName: student?.name || student?.fullName || r.studentName || 'N/A',
-      studentProfileURL: getStudentProfileURL(r.studentProfileURL || student?.profile || student?.profileURL),
-      
-      programTitle: program?.title || program?.name || r.programTitle || 'N/A',
-      programProfileURL: getProgramProfileURL(r.programProfileURL || program?.profile || program?.profileURL, programCategory),
-      
-      sessionSchedule,
-
-      teacherName: r.teacherName || (program?.teachers?.length > 0 ? program.teachers[0].name : ''),
-      teacherProfileURL: getTeacherProfileURL(r.teacherProfileURL || (program?.teachers?.length > 0 ? program.teachers[0].profileURL : null)),
-      
-      // Rule: Display is based on Enrollment Status (Cancelled wins) or Payment Status (Paid/Unpaid)
-      displayStatus: r.displayStatus || (isCancelled(r.status) ? 'Cancelled' : (isPaid(r.paymentStatus) ? 'Paid' : 'Unpaid')),
-      academicStatus: getAcademicStatus(r)
-    }
-  }).sort((a, b) => new Date(b.enrollAt || b.createdAt) - new Date(a.enrollAt || a.createdAt))
+        parentName: parent?.name || r.parentName || 'N/A',
+        parentProfileURL: getParentProfileURL(parent?.profileURL || r.parentProfileURL),
+        studentName: student?.name || r.studentName || 'N/A',
+        studentProfileURL: getStudentProfileURL(student?.profileURL || r.studentProfileURL),
+        programTitle: prog?.title || r.programTitle || 'N/A',
+        programProfileURL: getProgramProfileURL(prog?.profileURL || r.programProfileURL),
+        displayStatus: r.displayStatus || getEnrollmentDisplayStatus(r),
+      }
+    })
+    .sort(
+      (a, b) =>
+        parseDate(b.enrollAt || b.createdAt).getTime() -
+        parseDate(a.enrollAt || a.createdAt).getTime(),
+    )
 }
 
 /**
- * Determines the academic status of an enrollment.
+ * Returns the logical academic status of an enrollment.
  */
 export const getAcademicStatus = (r) => {
-  if (r.academicStatus) return r.academicStatus
-  
-  const status = (r.status || '').toLowerCase()
-  const paymentStatus = (r.paymentStatus || '').toLowerCase()
-
-  // Terminal statuses
-  if (isCancelled(r.status || r.paymentStatus)) return 'Stopped'
-  if (status === 'suspended') return 'Suspended'
-  
-  const endDate = r.endDate ? new Date(r.endDate) : null
-  if (isPaid(r.status || r.paymentStatus) && endDate && new Date() > endDate) return 'Graduated'
-
-  // Progress statuses
-  if (isUnpaid(paymentStatus || status)) return 'Unpaid'
-  if (isPaid(paymentStatus || status) || isEnrollmentActive(r)) return 'Studying'
-  
-  return 'Inactive'
+  if (!r) return 'Stopped'
+  return r.academicStatus || r.status || 'Studying'
 }
 
 /**
- * Filters enrollments for parent/student detail views.
+ * Advanced filtering for Detail pages (Parent/Student).
  */
-export const filterDetailEnrollments = (enrollments, options = {}) => {
-  const { studentId, status, paymentStatus, academicStatus } = options
-  let list = enrollments
+export const filterDetailEnrollments = (enrollments, filters = {}) => {
+  if (!enrollments || !Array.isArray(enrollments)) return []
 
-  if (studentId && studentId !== 'all') {
-    list = list.filter(r => r.studentId === studentId)
-  }
+  return enrollments.filter((e) => {
+    // 1. Filter by Student ID
+    if (filters.studentId && filters.studentId !== 'all') {
+      const sid = String(e.studentId || e.student?.id || '')
+      if (sid !== String(filters.studentId)) return false
+    }
 
-  if (status && status !== 'all') {
-    list = list.filter(r => (r.status || '').toLowerCase() === status.toLowerCase())
-  }
+    // 2. Filter by Academic Status
+    if (filters.academicStatus && filters.academicStatus !== 'all') {
+      const status = getAcademicStatus(e).toLowerCase()
+      if (status !== filters.academicStatus.toLowerCase()) return false
+    }
 
-  if (paymentStatus && paymentStatus !== 'all') {
-    list = list.filter(r => {
-      const s = (r.paymentStatus || r.status || '').toLowerCase()
-      if (paymentStatus === 'paid') return isPaid(s)
-      if (paymentStatus === 'pending') return s === 'pending'
-      if (paymentStatus === 'cancelled') return isCancelled(s)
-      return true
-    })
-  }
+    // 3. Filter by Payment Status
+    if (filters.paymentStatus && filters.paymentStatus !== 'all') {
+      const pStatus = (e.paymentStatus || 'unpaid').toLowerCase()
+      if (filters.paymentStatus === 'paid') {
+        if (!isPaid(pStatus)) return false
+      } else if (filters.paymentStatus === 'pending') {
+        if (!isUnpaid(pStatus)) return false
+      } else if (filters.paymentStatus === 'cancelled') {
+        if (!isCancelled(e.status) && !isCancelled(e.paymentStatus)) return false
+      } else {
+        if (pStatus !== filters.paymentStatus.toLowerCase()) return false
+      }
+    }
 
-  if (academicStatus && academicStatus !== 'all') {
-    list = list.filter(r => getAcademicStatus(r).toLowerCase() === academicStatus.toLowerCase())
-  }
-
-  return list
-}
-
-/**
- * Cleans the session schedule string for display.
- */
-export const cleanSessionSchedule = (schedule) => {
-  if (!schedule) return 'N/A'
-  return schedule.replace(/day:|timeslot:/gi, '').replace(/,/g, '').trim()
-}
-
-/**
- * Gets the display status of an enrollment.
- */
-export const getEnrollmentDisplayStatus = (r) => {
-  if (!r) return 'Unpaid'
-  return r.displayStatus || (isCancelled(r.status || r.paymentStatus) ? 'Cancelled' : (isPaid(r.status || r.paymentStatus) ? 'Paid' : 'Unpaid'))
-}
-
-/**
- * Gets the display mode of an enrollment (Full, Partial, Trial).
- */
-export const getEnrollmentDisplayMode = (r) => {
-  if (!r) return 'Full'
-  if (r.isProrated) return 'Partial'
-  return r.enrollmentType || 'Full'
+    return true
+  })
 }

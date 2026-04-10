@@ -2,11 +2,12 @@
 defineProps({
   title: String,
   value: [String, Number],
-  image: String, // Expects a resolved asset URL
+  subtitle: String,
+  image: String,
 })
 
 const handleImageError = (e) => {
-  e.target.style.display = 'none' // Hide if fails, or could set a fallback src
+  e.target.style.display = 'none'
 }
 </script>
 
@@ -18,6 +19,7 @@ const handleImageError = (e) => {
     <div class="card-info">
       <h4 class="mini-title">{{ title }}</h4>
       <div class="mini-value">{{ value }}</div>
+      <div v-if="subtitle" class="mini-subtitle">{{ subtitle }}</div>
     </div>
   </div>
 </template>
@@ -26,19 +28,21 @@ const handleImageError = (e) => {
 .mini-card {
   display: flex;
   align-items: center;
-  gap: 15px;
-  background: #e1f5fe;
-  padding: 15px 20px;
-  border-radius: 15px;
+  gap: 20px;
+  background: var(--accent-light);
+  padding: 16px;
+  border-radius: 10px;
   width: 100%;
 }
 
 .icon-wrapper {
-  width: 50px;
-  height: 50px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .icon-wrapper img {
@@ -50,19 +54,28 @@ const handleImageError = (e) => {
 .card-info {
   display: flex;
   flex-direction: column;
+  gap: 3px;
 }
 
 .mini-title {
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--secondary-color);
 }
 
 .mini-value {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: #1a1a1a;
-  line-height: 1;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+}
+
+.mini-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-weight: 500;
 }
 </style>

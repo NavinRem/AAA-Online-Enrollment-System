@@ -19,24 +19,24 @@ const route = useRoute()
 const logoutMessage = ref('')
 
 const menuItems = [
-  { name: 'Dashboard', path: '/dashboard', icon: 'navigation/dashboard-svgrepo.svg' },
-  { name: 'Enrollment', path: '/enrollments', icon: 'navigation/enrollment-svgrepo.svg' },
-  { name: 'Parent / Guardian', path: '/parents', icon: 'navigation/guardian-svgrepo.svg' },
-  { name: 'Students', path: '/students', icon: 'navigation/student-svgrepo.svg' },
-  { name: 'Programs', path: '/programs', icon: 'navigation/program-svgrepo.svg' },
-  { name: 'Payment', path: '/payment', icon: 'navigation/dollar-minimal.svg' },
-  { name: 'Setting', path: '/settings', icon: 'navigation/setting-svgrepo.svg' },
+  { name: 'Dashboard', path: '/dashboard', icon: 'navigation/dashboard.svg' },
+  { name: 'Enrollments', path: '/enrollments', icon: 'navigation/enrollment.svg' },
+  { name: 'Branches', path: '/branches', icon: 'navigation/branch.svg' },
+  { name: 'Parents', path: '/parents', icon: 'navigation/parent.svg' },
+  { name: 'Students', path: '/students', icon: 'navigation/student.svg' },
+  { name: 'Programs', path: '/programs', icon: 'navigation/program.svg' },
+  { name: 'Classes', path: '/classes', icon: 'navigation/class.svg' },
+  { name: 'Payments', path: '/payment', icon: 'navigation/dollar.svg' },
+  { name: 'Setting', path: '/settings', icon: 'navigation/setting.svg' },
 ]
 
 const handleLogout = async () => {
   if (logoutMessage.value) return
-  
+
   try {
     logoutMessage.value = 'Logging out...'
     console.log('Logout pause started (3s)...')
-    
-    // We wait first, THEN log out and move. 
-    // This stops background listeners from reacting too early.
+
     setTimeout(async () => {
       try {
         console.log('Pause finished - clearing session and redirecting...')
@@ -52,8 +52,6 @@ const handleLogout = async () => {
     console.error('Logout initiation failed', error)
   }
 }
-
-// Removed local getIconPath in favor of getIconUrl from assetHelper
 
 const handleNavClick = () => {
   if (window.innerWidth <= 1024) {
@@ -71,14 +69,8 @@ const handleNavClick = () => {
     </div>
 
     <nav class="nav-menu">
-      <router-link
-        v-for="item in menuItems"
-        :key="item.name"
-        :to="item.path"
-        class="nav-item"
-        :class="{ active: route.path === item.path }"
-        @click="handleNavClick"
-      >
+      <router-link v-for="item in menuItems" :key="item.name" :to="item.path" class="nav-item"
+        :class="{ active: route.path === item.path }" @click="handleNavClick">
         <img :src="getIconUrl(item.icon)" :alt="item.name" class="nav-icon" />
         <span class="nav-text">{{ item.name }}</span>
       </router-link>
@@ -86,7 +78,7 @@ const handleNavClick = () => {
 
     <div class="sidebar-footer">
       <p v-if="logoutMessage" class="logout-msg">{{ logoutMessage }}</p>
-      <AppButton variant="logout" style="width: 100%" :loading="!!logoutMessage" @click="handleLogout">
+      <AppButton variant="logout" class="w-full" :loading="!!logoutMessage" @click="handleLogout">
         Log Out
       </AppButton>
     </div>
@@ -97,10 +89,10 @@ const handleNavClick = () => {
 .sidebar {
   width: 260px;
   height: 100vh;
-  background: #ffffff;
+  background: var(--white);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #f0f0f0;
+  border-right: 1px solid var(--bg-light);
   position: fixed;
   left: 0;
   top: 0;
@@ -109,11 +101,11 @@ const handleNavClick = () => {
 }
 
 .logo-section {
-  padding: 30px 20px;
+  padding: var(--space-2xl) var(--space-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-sm);
   position: relative;
 }
 
@@ -126,7 +118,7 @@ const handleNavClick = () => {
   background: none;
   border: none;
   font-size: 2rem;
-  color: #999;
+  color: var(--text-light);
   cursor: pointer;
   padding: 5px;
   line-height: 1;
@@ -138,40 +130,40 @@ const handleNavClick = () => {
 }
 
 .brand-name {
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-deep);
   line-height: 1.2;
 }
 
 .nav-menu {
   flex: 1;
-  padding: 10px 15px;
+  padding: var(--space-sm) var(--space-md);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 15px;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   text-decoration: none;
-  color: #555;
-  border-radius: 12px;
+  color: var(--text-muted);
+  border-radius: var(--border-radius-sm);
   transition: all 0.2s ease;
   font-weight: 500;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 .nav-item:hover {
-  background: #f8f9fa;
+  background: var(--bg-subtle);
 }
 
 .nav-item.active {
-  background: #e1f5fe;
-  color: #00aeef;
+  background: var(--accent-light);
+  color: var(--primary-color);
 }
 
 .nav-icon {
@@ -186,23 +178,29 @@ const handleNavClick = () => {
 }
 
 .sidebar-footer {
-  padding: 20px;
+  padding: var(--space-lg);
 }
 
 .logout-msg {
-  color: #d32f2f;
-  font-size: 0.85rem;
-  margin-bottom: 10px;
+  color: var(--error-color);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-sm);
   text-align: center;
   font-weight: 600;
   animation: pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.6; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
-
-
 </style>

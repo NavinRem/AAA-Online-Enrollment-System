@@ -17,7 +17,7 @@ defineProps({
   },
   type: {
     type: String,
-    default: 'info', // 'success', 'warning', 'error', 'info'
+    default: 'info',
     validator: (val) => ['success', 'warning', 'error', 'info'].includes(val)
   },
   message: {

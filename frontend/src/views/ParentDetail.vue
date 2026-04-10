@@ -4,20 +4,19 @@ import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
-import AppButton from '@/components/common/ui/AppButton.vue'
 import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
-import { formatDate } from '@/utils/dateFormatter'
+import { formatDate, formatPrice } from '@/utils/formatUtils'
 import { filterDetailEnrollments } from '@/utils/enrollmentHelper'
 import { enrichStudents } from '@/utils/studentHelper'
-import { 
-  processUserProfileImage, 
-  processStudentProfileImage, 
-  prepareUserPayload, 
-  prepareStudentPayload 
+import {
+  processUserProfileImage,
+  processStudentProfileImage,
+  prepareUserPayload,
+  prepareStudentPayload
 } from '../utils/userHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
@@ -27,16 +26,14 @@ const router = useRouter()
 const parent = ref(null)
 const students = ref([])
 const enrollments = ref([])
-const selectedChildUid = ref('all') // Default to 'all'
-const activeTab = ref('children') // 'children', 'payments', 'history'
+const selectedChildUid = ref('all')
+const activeTab = ref('children')
 const currentFilter = ref('all')
 
-// Reset filter when navigating tabs
 watch(activeTab, () => {
   currentFilter.value = 'all'
 })
 
-// Dynamic filter options based on tab
 const filterOptions = computed(() => {
   if (activeTab.value === 'children') {
     return [
@@ -44,6 +41,8 @@ const filterOptions = computed(() => {
       { label: 'Studying', value: 'studying' },
       { label: 'Completed', value: 'completed' },
       { label: 'Cancelled', value: 'cancelled' },
+      { label: 'Registration: Newest First', value: 'date-desc' },
+      { label: 'Registration: Oldest First', value: 'date-asc' },
     ]
   } else if (activeTab.value === 'payments') {
     return [
@@ -64,12 +63,12 @@ const filterOptions = computed(() => {
 const loading = ref(true)
 const errorMessage = ref('')
 
-const studentEnrollments = computed(() =>
-  filterDetailEnrollments(enrollments.value, {
+const studentEnrollments = computed(() => {
+  return filterDetailEnrollments(enrollments.value, {
     studentId: selectedChildUid.value,
-    academicStatus: currentFilter.value
+    academicStatus: 'studying'
   })
-)
+})
 
 const filteredPayments = computed(() =>
   filterDetailEnrollments(enrollments.value, {
@@ -92,13 +91,10 @@ const fetchData = async (id) => {
     loading.value = true
     errorMessage.value = ''
 
-    // Fetch Parent
     const parentData = await userService.getProfile(id)
     if (!parentData) throw new Error('Parent not found')
 
     parent.value = parentData
-
-    // Fetch Students and Enrollments in parallel
     const [studentsData, allEnrollments] = await Promise.all([
       userService.getStudentsByParentID(id),
       enrollmentService.getAllEnrollments(),
@@ -106,7 +102,6 @@ const fetchData = async (id) => {
 
     students.value = enrichStudents(studentsData || [], [], [])
 
-    // Pre-select the first child by default if children exist
     if (
       students.value.length > 0 &&
       (selectedChildUid.value === 'all' || !selectedChildUid.value)
@@ -154,7 +149,7 @@ const openAddChildModal = () => {
   globalSuccess.value = ''
   actionModal.value = {
     isOpen: true,
-    type: 'register-child',
+    type: 'plus',
     user: parent.value,
   }
 }
@@ -168,9 +163,9 @@ const submitActionModal = async (formData) => {
   try {
     if (type === 'edit') {
       const finalProfile = await processUserProfileImage(
-        formData.profile, 
-        formData.name, 
-        formData.role, 
+        formData.profile,
+        formData.name,
+        formData.role,
         user.profile
       )
       const payload = prepareUserPayload({ ...formData, profile: finalProfile })
@@ -189,17 +184,17 @@ const submitActionModal = async (formData) => {
     } else if (type === 'register-child') {
       const finalProfile = await processStudentProfileImage(formData.profile, formData.name)
       const payload = prepareStudentPayload({ ...formData, profile: finalProfile })
-      
+
       const result = await userService.registerStudentProfile(uid, payload)
-      
+
       // Sync parent's studentInfo array
       const currentStudentInfo = parent.value.studentInfo || []
       const newChild = { id: result.id || result.UID, ...payload, parentId: uid }
-      
+
       await userService.updateUser(uid, {
         studentInfo: [...currentStudentInfo, newChild]
       })
-      
+
       globalSuccess.value = 'Child registered successfully!'
     }
 
@@ -246,122 +241,134 @@ watch(
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" title="Parent Details">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" title="Parent Details"
+      :scrollable="true" :rightScrollable="true">
       <template #header-actions v-if="parent">
         <div class="actions-wrapper">
-          <button class="btn-icon btn-pay" title="Register Child" @click="openAddChildModal">
+          <button v-if="(parent.status || 'Active').toLowerCase() !== 'inactive'" class="btn-icon-modern btn-pay"
+            title="Register Child" @click="openAddChildModal" :disabled="isInactive"
+            :class="{ 'btn-disabled': isInactive }">
             <img :src="getActionIcon('plus')" />
           </button>
-          <button class="btn-icon btn-edit" title="Edit Parent" @click="openActionModal('edit')">
+          <button v-if="(parent.status || 'Active').toLowerCase() !== 'inactive'" class="btn-icon-modern btn-edit"
+            title="Edit Parent" @click="openActionModal('edit')" :disabled="isInactive"
+            :class="{ 'btn-disabled': isInactive }">
             <img :src="getActionIcon('edit')" />
           </button>
-          <button v-if="!isInactive" class="btn-icon btn-cancel" title="Deactivate Account"
+          <button v-if="(parent.status || 'Active').toLowerCase() !== 'inactive'" class="btn-icon-modern btn-reset"
+            title="Reset Password" @click="openActionModal('reset-password')" :disabled="isInactive"
+            :class="{ 'btn-disabled': isInactive }">
+            <img :src="getActionIcon('reset-password')" />
+          </button>
+          <button v-if="!isInactive" class="btn-icon-modern btn-cancel" title="Deactivate Account"
             @click="openActionModal('deactivate')">
             <img :src="getActionIcon('cancel')" />
           </button>
-          <button v-else class="btn-icon btn-pay" title="Activate Account" @click="openActionModal('activate')">
-            <img :src="getActionIcon('pay')" />
+          <button v-if="(parent.status || 'Active').toLowerCase() === 'inactive'"
+            class="btn-icon-modern btn-pay flex-align-center gap-xs px-lg" title="Activate Account"
+            @click="openActionModal('activate')"
+            style="width: 100%; border-radius: var(--border-radius-lg); padding: 0 10px;">
+            <img :src="getActionIcon('reactivate')" />
+            <strong class="text-xs uppercase letter-1">Reactivate</strong>
           </button>
-          <button class="btn-icon btn-delete" title="Delete Account" @click="openActionModal('delete')">
+          <button v-if="(parent.status || 'Active').toLowerCase() !== 'inactive'" class="btn-icon-modern btn-delete"
+            title="Delete Account" @click="openActionModal('delete')" :disabled="isInactive"
+            :class="{ 'btn-disabled': isInactive }">
             <img :src="getActionIcon('delete')" />
           </button>
         </div>
       </template>
 
       <template #left-content>
-        <!-- Custom Tab Navigation -->
-        <div class="tabs-navigation-wrapper">
-          <div class="tabs-navigation">
-            <button class="tab-btn" :class="{ active: activeTab === 'children' }" @click="activeTab = 'children'">
+        <div class="tab-content-container">
+          <div class="modern-tabs-nav">
+            <button class="nav-tab-chip" :class="{ active: activeTab === 'children' }" @click="activeTab = 'children'">
               Children & Programs
             </button>
-            <button class="tab-btn" :class="{ active: activeTab === 'payments' }" @click="activeTab = 'payments'">
+            <button class="nav-tab-chip" :class="{ active: activeTab === 'payments' }" @click="activeTab = 'payments'">
               Payment History
             </button>
-            <button class="tab-btn" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
+            <button class="nav-tab-chip" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
               Enrollment Logs
             </button>
           </div>
-
-          <div class="global-filter">
-            <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
-              @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
-          </div>
-        </div>
-
-        <!-- Tab Content -->
-        <div class="tab-content-container">
-          <!-- Children List Tab -->
           <div v-if="activeTab === 'children'" class="detail-section-card full-width">
-            <div class="section-header">
+            <div class="section-header-compact">
               <h3>Children's Programs</h3>
             </div>
-            <div class="children-layout">
-              <div class="child-selector" v-if="students.length > 0">
-                <button v-for="s in students" :key="s.id || s.uid" class="child-chip"
-                  :class="{ active: selectedChildUid === (s.id || s.uid) }" @click="selectedChildUid = (s.id || s.uid)"
-                  @dblclick="navigateToStudent(s)">
-                  <div class="chip-avatar-wrapper">
-                    <img :src="s.profile || getImageUrl('profiles/avatar-student')" class="chip-avatar" />
-                  </div>
-                  <span class="chip-label">{{ s.name || 'Student' }}</span>
-                </button>
-              </div>
-              <div class="table-container">
-                <table class="detail-table">
-                  <thead>
-                    <tr>
-                      <th style="width: 50px;">No</th>
-                      <th style="width: 140px;">Category</th>
-                      <th>Program</th>
-                      <th style="width: 160px;">Session</th>
-                      <th style="width: 120px;" class="text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-if="students.length === 0">
-                      <td colspan="5" class="text-center text-muted p-4">
-                        No children linked to this parent account.
-                      </td>
-                    </tr>
-                    <tr v-else-if="studentEnrollments.length === 0">
-                      <td colspan="5" class="text-center text-muted p-4">
-                        This child is not currently registered in any active programs.
-                      </td>
-                    </tr>
-                    <tr v-for="(reg, idx) in studentEnrollments" :key="reg.id">
-                      <td class="text-center">{{ idx + 1 }}</td>
-                      <td class="bold">Music</td>
-                      <td class="bold">{{ reg.programTitle || 'N/A' }}</td>
-                      <td>
-                        <div class="session-cell">
-                          <strong>{{ reg.sessionSchedule?.split(' ')[0] || 'N/A' }}</strong>
-                          <span>{{ reg.sessionSchedule?.split(' ')[1] || 'N/A' }}</span>
-                        </div>
-                      </td>
-                      <td class="text-center">
-                        <StatusBadge :status="reg.status || 'Studying'" />
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+
+            <!-- Child Selector Chips -->
+            <div class="child-selector spaced-below" v-if="students.length > 0">
+              <button v-for="s in students" :key="s.id || s.uid" class="child-chip"
+                :class="{ active: selectedChildUid === (s.id || s.uid) }" @click="selectedChildUid = (s.id || s.uid)"
+                @dblclick="navigateToStudent(s)">
+                <div class="chip-avatar-wrapper">
+                  <img :src="s.profileURL" class="chip-avatar"
+                    @error="e => e.target.src = getImageUrl('profiles/avatar-student')" />
+                </div>
+                <span class="chip-label">{{ s.name }}</span>
+              </button>
+            </div>
+
+            <div class="table-container">
+              <table class="detail-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;" class="text-center">No</th>
+                    <th>Program</th>
+                    <th style="width: 160px;">Session</th>
+                    <th style="width: 120px;" class="text-center">Amount</th>
+                    <th style="width: 120px;" class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-if="students.length === 0">
+                    <td colspan="5" class="text-center text-muted p-4">
+                      No children linked to this parent account.
+                    </td>
+                  </tr>
+                  <tr v-else-if="studentEnrollments.length === 0">
+                    <td colspan="5" class="text-center text-muted p-4">
+                      This child is not currently registered in any active programs.
+                    </td>
+                  </tr>
+                  <tr v-for="(reg, idx) in studentEnrollments" :key="reg.id">
+                    <td class="text-center">{{ idx + 1 }}</td>
+                    <td class="bold">{{ reg.programTitle || reg.program?.title || 'N/A' }}</td>
+                    <td>
+                      <div class="session-cell">
+                        <strong>{{ reg.sessionSchedule?.split(' ')[0] || 'N/A' }}</strong>
+                        <span>{{ reg.sessionSchedule?.split(' ').slice(1).join(' ') || '' }}</span>
+                      </div>
+                    </td>
+                    <td class="text-center">
+                      <StatusBadge :status="'$' + formatPrice(reg.amount || 0)" />
+                    </td>
+                    <td class="text-center">
+                      <StatusBadge :status="reg.displayStatus || reg.status || 'Unpaid'" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <!-- Payment History Tab -->
           <div v-if="activeTab === 'payments'" class="detail-section-card full-width">
-            <div class="section-header">
-              <h3>Payment Records</h3>
+            <div class="section-header-compact">
+              <h3>Payment History</h3>
+              <div class="tab-actions">
+                <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
+                  @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
+              </div>
             </div>
             <div class="table-container">
               <table class="detail-table">
                 <thead>
                   <tr>
-                    <th style="width: 50px;">No</th>
+                    <th style="width: 50px;" class="text-center">No</th>
                     <th style="width: 140px;">Transaction ID</th>
                     <th>Ref ID</th>
-                    <th style="width: 100px;" class="text-center">Amount</th>
+                    <th style="width: 120px;" class="text-center">Amount</th>
                     <th style="width: 160px;" class="text-center">Paid Date</th>
                     <th style="width: 120px;" class="text-center">Status</th>
                   </tr>
@@ -375,7 +382,7 @@ watch(
                     <td class="mono">{{ reg.paymentProof || 'N/A' }}</td>
                     <td class="mono">{{ reg.id.substring(0, 8) + '...' }}</td>
                     <td class="text-center bold text-emerald-600">
-                      <StatusBadge :status="'$' + (reg.amount || 0)"></StatusBadge>
+                      <StatusBadge :status="'$' + formatPrice(reg.amount || 0)"></StatusBadge>
                     </td>
                     <td class="text-center date-text">{{ formatDate(reg.updatedAt || reg.createdAt) }}</td>
                     <td class="text-center">
@@ -387,16 +394,19 @@ watch(
             </div>
           </div>
 
-          <!-- History/Logs Tab -->
           <div v-if="activeTab === 'history'" class="detail-section-card full-width">
-            <div class="section-header">
-              <h3>Full Enrollment History</h3>
+            <div class="section-header-compact">
+              <h3>Enrollment History</h3>
+              <div class="tab-actions">
+                <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
+                  @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
+              </div>
             </div>
             <div class="table-container">
               <table class="detail-table">
                 <thead>
                   <tr>
-                    <th style="width: 50px;">No</th>
+                    <th style="width: 50px;" class="text-center">No</th>
                     <th style="width: 200px;">Enrollment ID</th>
                     <th>Program</th>
                     <th style="width: 160px;">Child</th>
@@ -430,39 +440,39 @@ watch(
       <template #right-content v-if="parent">
         <DetailedSummaryCard title="Basic Information" subtitle="Parent Information">
           <template #outside>
-            <div class="profile-header" style="flex-direction: column; align-items: center;">
-              <div class="profile-preview">
-                <img :src="parent?.profileURL || parent?.profile" alt="Profile" />
-              </div>
-              <h3 class="profile-name">{{ parent?.name || 'Anonymous' }}</h3>
-              <div class="badge-stack">
-                <StatusBadge :status="parent?.role || 'parent'" />
-                <StatusBadge :status="parent?.status || 'Active'" />
+            <div class="profile-header flex-stack flex-center">
+              <div class="profile-preview-wrapper shadow-premium">
+                <img :src="parent?.profileURL" alt="Profile"
+                  @error="e => e.target.src = getImageUrl('profiles/avatar-admin')" class="profile-avatar" />
               </div>
             </div>
           </template>
 
           <div class="scrollable-info-body">
             <div class="detail-info-group">
+              <div class="info-item horizontal">
+                <span class="info-label">Status:</span>
+                <StatusBadge :status="parent?.status" />
+              </div>
               <div class="info-item vertical">
                 <span class="info-label">Fullname:</span>
-                <strong>{{ parent?.name || parent?.fullname }}</strong>
+                <strong>{{ parent?.name }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">Phone Number:</span>
-                <strong>{{ parent?.phone || 'N/A' }}</strong>
+                <strong>{{ parent?.phone }}</strong>
               </div>
               <div class="info-item vertical">
                 <span class="info-label">Email:</span>
-                <strong class="email">{{ parent?.email || 'N/A' }}</strong>
+                <strong class="email medium">{{ parent?.email }}</strong>
               </div>
               <div class="info-item vertical">
                 <StatusBadge status="Created At" />
-                <strong>{{ formatDate(parent?.createdAt) }}</strong>
+                <strong class="small">{{ formatDate(parent?.createdAt) }}</strong>
               </div>
               <div class="info-item vertical">
                 <StatusBadge status="Updated At" />
-                <strong>{{ formatDate(parent?.updatedAt || parent?.createdAt) }}</strong>
+                <strong class="small">{{ formatDate(parent?.updatedAt || parent?.createdAt) }}</strong>
               </div>
             </div>
           </div>
@@ -472,9 +482,9 @@ watch(
           <div class="relationships-list">
             <div v-for="s in students" :key="s.id || s.uid" class="relationship-item clickable"
               @click="navigateToStudent(s)">
-              <img :src="s.profile || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
+              <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" alt="child" class="small-avatar" />
               <div class="child-info">
-                <strong>{{ s.name || 'Student' }}</strong>
+                <strong>{{ s.name }}</strong>
               </div>
             </div>
             <div v-if="students.length === 0" class="text-muted text-center">
@@ -496,51 +506,39 @@ watch(
 @import '@/assets/styles/detail-view.css';
 
 /* Parent-specific tweaks */
-.children-layout {
-  display: flex;
-  gap: 32px;
-}
-
 .child-selector {
-  width: 220px;
-  border-right: 1px solid #f1f5f9;
-  padding-right: 24px;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
 }
 
 .child-chip {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 18px;
-  border-radius: 16px;
-  border: 2px solid #f1f5f9;
-  background: white;
-  font-size: 0.95rem;
-  font-weight: 600;
-  text-align: left;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--border-radius-lg);
+  border: 1px solid var(--primary-light);
+  background: var(--white);
+  font-size: var(--text-sm);
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  color: #64748b;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+  color: var(--text-muted);
 }
 
 .child-chip:hover {
-  border-color: #e2e8f0;
-  background: #f8fafc;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  background: var(--primary-light);
 }
 
 .chip-avatar-wrapper {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--border-radius-round);
   overflow: hidden;
-  border: 2px solid white;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+  background: var(--white);
+  border: 1px solid var(--border-color);
 }
 
 .chip-avatar {
@@ -550,14 +548,10 @@ watch(
 }
 
 .child-chip.active {
-  background: #eff6ff;
-  border-color: #00aeef;
-  color: #00aeef;
-  box-shadow: 0 10px 15px -3px rgba(0, 174, 239, 0.15);
-}
-
-.child-chip.active .chip-avatar-wrapper {
-  border-color: #00aeef;
+  background: var(--accent-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .chip-label {
@@ -567,13 +561,13 @@ watch(
 .detail-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 8px;
+  border-spacing: 0 var(--space-xs);
 }
 
 .detail-table th {
-  padding: 12px 16px;
-  color: #94a3b8;
-  font-size: 0.75rem;
+  padding: var(--space-sm) var(--space-md);
+  color: var(--text-light);
+  font-size: var(--text-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -581,70 +575,146 @@ watch(
 }
 
 .detail-table td {
-  padding: 16px;
-  background: #ffffff;
-  border-top: 1px solid #f1f5f9;
-  border-bottom: 1px solid #f1f5f9;
-  color: #475569;
-  font-size: 0.9rem;
+  padding: var(--space-md);
+  background: var(--white);
+  border-top: 1px solid var(--bg-light);
+  border-bottom: 1px solid var(--bg-light);
+  color: var(--text-dark);
+  font-size: var(--text-sm);
   transition: all 0.2s;
 }
 
 .detail-table td:first-child {
-  border-left: 1px solid #f1f5f9;
-  border-top-left-radius: 12px;
-  border-bottom-left-radius: 12px;
+  border-left: 1px solid var(--bg-light);
+  border-top-left-radius: var(--border-radius);
+  border-bottom-left-radius: var(--border-radius);
 }
 
 .detail-table td:last-child {
-  border-right: 1px solid #f1f5f9;
-  border-top-right-radius: 12px;
-  border-bottom-right-radius: 12px;
+  border-right: 1px solid var(--bg-light);
+  border-top-right-radius: var(--border-radius);
+  border-bottom-right-radius: var(--border-radius);
 }
 
 .detail-table tr:hover td {
-  background: #f8fafc;
-  border-color: #e2e8f0;
+  background: var(--bg-subtle);
+  border-color: var(--border-color);
 }
 
 .email {
-  text-transform: lowercase !important;
-  color: #00aeef !important;
+  text-transform: lowercase;
+  color: var(--primary-color);
 }
 
 .price {
-  color: #059669;
+  color: var(--success-color);
   font-weight: 700;
 }
 
 .mono {
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  font-size: 0.85rem;
-  color: #64748b;
+  font-family: var(--font-family-mono, 'JetBrains Mono', 'Fira Code', monospace);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 
 .badge-stack {
   display: flex;
-  gap: 8px;
+  gap: var(--space-xs);
   justify-content: center;
 }
 
+.section-header-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+
+.profile-role-text {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-light);
+  margin-bottom: var(--space-md);
+}
+
+.profile-preview-wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: var(--border-radius-round);
+  background: var(--white);
+  padding: 4px;
+  border: 4px solid var(--primary-color);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.profile-preview-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 36px;
+  background: linear-gradient(135deg, var(--primary-color), var(--magenta-color));
+  z-index: -1;
+  opacity: 0.15;
+}
+
+.profile-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--border-radius-round);
+  object-fit: cover;
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 24px;
+  height: 24px;
+  background: var(--success-color);
+  border: 5px solid var(--white);
+  border-radius: var(--border-radius-round);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  animation: pulse-green 2s infinite;
+}
+
+.status-indicator.inactive {
+  background: var(--gray-color);
+  animation: none;
+}
+
+@keyframes pulse-green {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
 .profile-name {
-  margin: 12px 0 10px;
-  font-size: 1.4rem;
-  font-weight: 850;
-  color: #1a1a1a;
-  letter-spacing: -0.5px;
+  margin: var(--space-md) 0 2px;
+  font-size: var(--text-2xl);
+  font-weight: 900;
+  color: var(--text-deep);
+  letter-spacing: -0.8px;
 }
 
 .text-emerald-600 {
-  color: #059669;
+  color: var(--success-color);
 }
 
 .detail-section-card h3 {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-deep);
   letter-spacing: -0.3px;
 }
 
@@ -655,65 +725,54 @@ watch(
 }
 
 .session-cell strong {
-  font-size: 0.9rem;
-  color: #1e293b;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
 }
 
 .session-cell span {
-  font-size: 0.75rem;
-  color: #64748b;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 .timestamp-item p {
-  margin-top: 8px;
-  font-size: 1rem;
+  margin-top: var(--space-xs);
+  font-size: var(--text-base);
   font-weight: 600;
-  color: #334155;
+  color: var(--text-dark);
 }
 
 .relationship-item.clickable {
   cursor: pointer;
   transition: all 0.2s;
-  padding: 8px;
-  /* This was 16px in original, 8px in instruction. Keeping 8px from instruction. */
-  border-radius: 12px;
-  /* This was 16px in original, 12px in instruction. Keeping 12px from instruction. */
+  padding: var(--space-xs);
+  border-radius: var(--border-radius);
 }
 
 .relationship-item.clickable:hover {
-  background: #f1f5f9;
-  /* This was #f1f8ff in instruction, #f1f5f9 in original. Keeping #f1f5f9 from instruction. */
+  background: var(--bg-light);
   transform: translateX(4px);
 }
 
 .relationships-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .relationship-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 16px;
-  border: 1px solid #f1f5f9;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-subtle);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--bg-light);
   transition: all 0.2s;
 }
 
 .relationship-item:hover {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
-}
-
-.small-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 2px solid white;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  background: var(--bg-light);
+  border-color: var(--border-color);
 }
 
 .child-info {
@@ -722,24 +781,24 @@ watch(
 }
 
 .child-info strong {
-  font-size: 1rem;
-  color: #0f172a;
+  font-size: var(--text-base);
+  color: var(--text-dark);
 }
 
 .child-info span {
-  font-size: 0.8rem;
-  color: #94a3b8;
+  font-size: var(--text-xs);
+  color: var(--text-light);
 }
 
 .timestamp-item p {
-  margin-top: 8px;
-  font-size: 1rem;
+  margin-top: var(--space-xs);
+  font-size: var(--text-base);
   font-weight: 600;
-  color: #334155;
+  color: var(--text-dark);
 }
 
 .mt-3 {
-  margin-top: 20px;
+  margin-top: var(--space-lg);
 }
 
 .text-center {
@@ -747,17 +806,76 @@ watch(
 }
 
 .p-3 {
-  padding: 12px;
+  padding: var(--space-sm);
+}
+
+.modern-tabs-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  background: var(--bg-subtle);
+  border-radius: var(--border-radius-2xl);
+  border: 1.5px solid var(--bg-light);
+  width: fit-content;
+}
+
+.nav-tab-chip {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: var(--space-sm) var(--space-xl);
+  cursor: pointer;
+  border-radius: var(--border-radius-lg);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-tab-chip:hover {
+  background: var(--bg-light);
+  color: var(--text-dark);
+}
+
+.nav-tab-chip.active {
+  background: var(--accent-light);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+
+
+.relationship-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--primary-soft);
+  border-radius: 16px;
+  border: 1.5px solid var(--bg-light);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .relationship-item.clickable {
   cursor: pointer;
-  transition: background 0.2s;
-  padding: 8px;
-  border-radius: 12px;
 }
 
 .relationship-item.clickable:hover {
-  background: #f1f8ff;
+  background: var(--primary-soft);
+  border-color: var(--primary-light);
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.small-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--border-radius-round);
+  border: 2px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  object-fit: cover;
+  background-color: var(--white);
 }
 </style>

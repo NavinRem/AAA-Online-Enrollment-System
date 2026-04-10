@@ -5,13 +5,13 @@ defineProps({
   image: String, // Expects a resolved asset URL
   color: {
     type: String,
-    default: '#e1f5fe',
+    default: 'var(--accent-light)',
   },
 })
 
 const handleImageError = (e) => {
   // Option: Set a default icon if specific image fails
-  e.target.style.opacity = '0.3' 
+  e.target.style.opacity = '0.3'
 }
 </script>
 
@@ -47,7 +47,7 @@ const handleImageError = (e) => {
 .card-title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #333;
+  color: var(--text-dark);
   margin-bottom: 5px;
 }
 
@@ -69,6 +69,6 @@ const handleImageError = (e) => {
 .card-value {
   font-size: 1.8rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-dark);
 }
 </style>

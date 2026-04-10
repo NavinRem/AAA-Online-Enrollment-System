@@ -10,13 +10,14 @@ import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { programService } from '@/services/programService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
-import { 
-  getProgramProfileURL, 
+import {
+  getProgramProfileURL,
   getImageUrl,
   getActionIcon
 } from '@/utils/assetHelper'
 import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
 import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
+import { isPaid } from '@/utils/statusUtils'
 
 
 const route = useRoute()
@@ -88,10 +89,10 @@ const statsCards = computed(() => {
   const remainingCapacity = Math.max(0, maxCapacity - paidEnrollmentsCount)
 
   return [
-    { label: 'Total Enrolled', value: paidEnrollmentsCount, image: getImageUrl('data-metric-card/total-enrolled'), color: '#e0f2fe' },
-    { label: 'Program Revenue', value: `$${totalRevenue.toLocaleString()}`, image: getImageUrl('data-metric-card/program-revenue'), color: '#f0fdf4' },
-    { label: 'Remaining Sessions', value: scheduledCount, image: getImageUrl('data-metric-card/remaining-sessions'), color: '#fff7ed' },
-    { label: 'Enrollment Capacity', value: remainingCapacity, image: getImageUrl('data-metric-card/enrollment-capacity'), color: remainingCapacity < 2 ? '#fef2f2' : '#f8fafc' }
+    { label: 'Total Enrolled', value: paidEnrollmentsCount, image: getImageUrl('data-metric-card/total-enrolled'), color: 'var(--primary-soft)' },
+    { label: 'Program Revenue', value: `$${totalRevenue.toLocaleString()}`, image: getImageUrl('data-metric-card/program-revenue'), color: 'var(--success-soft)' },
+    { label: 'Remaining Sessions', value: scheduledCount, image: getImageUrl('data-metric-card/remaining-sessions'), color: 'var(--warning-soft)' },
+    { label: 'Enrollment Capacity', value: remainingCapacity, image: getImageUrl('data-metric-card/enrollment-capacity'), color: remainingCapacity < 2 ? 'var(--error-soft)' : 'var(--bg-subtle)' }
   ]
 })
 
@@ -331,7 +332,7 @@ const handleActionSubmit = async (formData) => {
                   <div class="info-item vertical">
                     <span class="info-label">COST PER SESSION:</span>
                     <strong>${{ (Number(program.price || 0) / (Number(program.numberSessions) || 1)).toFixed(2)
-                      }}</strong>
+                    }}</strong>
                   </div>
                 </div>
               </div>
@@ -411,7 +412,7 @@ const handleActionSubmit = async (formData) => {
                 </tbody>
                 <tbody v-else>
                   <tr>
-                    <td colspan="5" class="text-center" style="padding: 40px; color: #64748b;">
+                    <td colspan="5" class="text-center p-3xl text-muted">
                       No session history available for this period.
                     </td>
                   </tr>
@@ -431,7 +432,7 @@ const handleActionSubmit = async (formData) => {
           <h2 class="profile-title">{{ program.title }}</h2>
         </div>
 
-        <DetailedSummaryCard subtitle="Program Description" style="margin-bottom: 20px;">
+        <DetailedSummaryCard subtitle="Program Description" class="mb-lg">
           <p class="summary-value">{{ program.description || 'No detailed description provided.' }}</p>
         </DetailedSummaryCard>
 
@@ -444,8 +445,7 @@ const handleActionSubmit = async (formData) => {
                 <span>{{ t.role || 'Teacher' }}</span>
               </div>
             </div>
-            <div v-if="!program.teachers || program.teachers.length === 0" class="text-muted text-center"
-              style="padding: 10px;">
+            <div v-if="!program.teachers || program.teachers.length === 0" class="text-muted text-center p-sm">
               {{ program.teacherName ? program.teacherName : 'No teachers assigned.' }}
             </div>
           </div>
@@ -471,27 +471,27 @@ const handleActionSubmit = async (formData) => {
 
 .header-search .search-icon-mini {
   position: absolute;
-  left: 12px;
+  left: var(--space-sm);
   width: 14px;
   height: 14px;
   opacity: 0.4;
   pointer-events: none;
 }
 
-.header-search input {
+:root .header-search input {
   width: 100%;
-  padding: 8px 12px 8px 34px !important;
-  border: 1.5px solid #e2e8f0 !important;
-  border-radius: 8px !important;
-  font-size: 0.9rem !important;
-  outline: none !important;
-  background: white !important;
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) 34px;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--text-sm);
+  outline: none;
+  background: var(--white);
   transition: all 0.2s;
 }
 
-.header-search input:focus {
-  border-color: #00aeef !important;
-  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1) !important;
+:root .header-search input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
 }
 
 @import '@/assets/styles/detail-view.css';
@@ -499,13 +499,13 @@ const handleActionSubmit = async (formData) => {
 /* Program-specific tweaks */
 .q-row {
   display: flex;
-  gap: 40px;
+  gap: var(--space-3xl);
 }
 
 .session-quick-view {
-  margin-top: 30px;
-  padding-top: 24px;
-  border-top: 1px dashed #e2e8f0;
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-xl);
+  border-top: 1px dashed var(--border-color);
 }
 
 .q-item {
@@ -515,55 +515,55 @@ const handleActionSubmit = async (formData) => {
 }
 
 .q-label {
-  font-size: 0.8rem;
+  font-size: var(--text-xs);
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-light);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .q-value {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   font-weight: 800;
-  color: #1e293b;
+  color: var(--text-dark);
 }
 
 .schedule-summary-box {
-  background: #f8fafc;
-  padding: 20px;
-  border-radius: 16px;
+  background: var(--bg-subtle);
+  padding: var(--space-lg);
+  border-radius: var(--border-radius);
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  border: 1px solid #f1f5f9;
+  gap: var(--space-3xs);
+  border: 1px solid var(--bg-light);
 }
 
 .schedule-summary-box .day {
-  font-size: 1.2rem;
+  font-size: var(--text-xl);
   font-weight: 800;
-  color: #00aeef;
+  color: var(--primary-color);
 }
 
 .schedule-summary-box .time {
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 600;
-  color: #475569;
+  color: var(--text-dark);
 }
 
 .teachers-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .relationships-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-md);
   max-height: 250px;
   overflow-y: auto;
-  padding-right: 8px;
+  padding-right: var(--space-xs);
 }
 
 /* Custom Clean Scrollbar for Sidebar */
@@ -576,28 +576,28 @@ const handleActionSubmit = async (formData) => {
 }
 
 .relationships-list::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
+  background: var(--border-color);
+  border-radius: var(--border-radius-lg);
 }
 
 .relationships-list::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+  background: var(--text-light);
 }
 
 .relationship-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 16px;
-  border: 1px solid #f1f5f9;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  background: var(--bg-subtle);
+  border-radius: var(--border-radius);
+  border: 1px solid var(--bg-light);
   transition: all 0.2s;
 }
 
 .relationship-item:hover {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+  background: var(--bg-light);
+  border-color: var(--border-color);
 }
 
 .relationship-item.clickable {
@@ -611,8 +611,8 @@ const handleActionSubmit = async (formData) => {
 .small-avatar {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  border: 2px solid white;
+  border-radius: var(--border-radius-round);
+  border: 2px solid var(--white);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
@@ -622,13 +622,13 @@ const handleActionSubmit = async (formData) => {
 }
 
 .teacher-info strong {
-  font-size: 1rem;
-  color: #0f172a;
+  font-size: var(--text-base);
+  color: var(--text-deep);
 }
 
 .teacher-info span {
-  font-size: 0.8rem;
-  color: #94a3b8;
+  font-size: var(--text-xs);
+  color: var(--text-light);
 }
 
 .text-center {
@@ -638,11 +638,11 @@ const handleActionSubmit = async (formData) => {
 .grid-2-columns {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  gap: var(--space-lg);
 }
 
 .mt-4 {
-  margin-top: 32px;
+  margin-top: var(--space-2xl);
 }
 
 .overview-layout-container {
@@ -657,20 +657,20 @@ const handleActionSubmit = async (formData) => {
 .overview-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .sidebar-info-group {
-  margin-top: 10px;
+  margin-top: var(--space-sm);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .sidebar-divider {
   height: 1px;
-  background: #f1f5f9;
-  margin: 20px 0;
+  background: var(--bg-light);
+  margin: var(--space-lg) 0;
   border: none;
 }
 
@@ -692,9 +692,9 @@ const handleActionSubmit = async (formData) => {
 .table-responsive table thead th {
   position: sticky;
   top: 0;
-  background: white;
+  background: var(--white);
   z-index: 10;
-  box-shadow: inset 0 -2px 0 #f8fafc;
+  box-shadow: inset 0 -2px 0 var(--bg-subtle);
 }
 
 /* Custom Scrollbar */
@@ -710,12 +710,12 @@ const handleActionSubmit = async (formData) => {
 
 .table-container::-webkit-scrollbar-thumb,
 .table-responsive::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
+  background: var(--border-color);
+  border-radius: var(--border-radius-lg);
 }
 
 .table-container::-webkit-scrollbar-thumb:hover,
 .table-responsive::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+  background: var(--text-light);
 }
 </style>

@@ -44,5 +44,5 @@ To ensure maintainability, Views must adhere to these architectural constraints:
 | `Dashboard.vue` | Analytics | Aggregates stats from all domains for overview. |
 | `Students.vue` | Student Management | Orchestrates the primary student registry. |
 | `Enrollments.vue` | Business Logic | Manages the core enrollment lifecycle. |
-| `Parents.vue` | User Management | Manages parent/guardian profiles. |
+| `Parents.vue` | User Management | Manages parent profiles. |
 | `Programs.vue` | Catalog | Orchestrates the academic offering. |

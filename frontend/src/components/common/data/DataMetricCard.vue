@@ -14,7 +14,7 @@ defineProps({
   },
   color: {
     type: String,
-    default: '#e0f2fe'
+    default: 'var(--primary-soft)'
   }
 })
 </script>
@@ -46,7 +46,7 @@ defineProps({
 .metric-icon {
   width: 44px;
   height: 44px;
-  background: white;
+  background: var(--white);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -67,7 +67,7 @@ defineProps({
 .metric-label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -75,6 +75,6 @@ defineProps({
 .metric-value {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--text-dark);
 }
 </style>

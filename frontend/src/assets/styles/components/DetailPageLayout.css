@@ -1,14 +1,12 @@
 .dashboard-content {
   padding: 0;
-  background-color: #f4fafe;
+  background-color: var(--bg-light);
   flex: 1;
   height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
-
-
 
 .detail-page {
   height: 100%;
@@ -17,14 +15,14 @@
 .loading-state,
 .error-state {
   text-align: center;
-  padding: 60px 20px;
-  color: #666;
-  font-size: 1.1rem;
+  padding: var(--space-5xl) var(--space-lg);
+  color: var(--text-muted);
+  font-size: var(--text-lg);
 }
 
 .error-state p {
-  color: #c62828;
-  margin-bottom: 20px;
+  color: var(--error-color);
+  margin-bottom: var(--space-lg);
 }
 
 .detail-container {
@@ -46,13 +44,11 @@
   min-height: 0;
 }
 
-
-
 .header-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-md);
   min-height: 48px;
 }
 
@@ -60,28 +56,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-sm);
   margin-left: auto;
-  background: white;
-  padding: 8px;
-  border-radius: 10px;
+  background: var(--white);
+  padding: var(--space-xs);
+  border-radius: var(--border-radius-sm);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
 .left-content-area {
-  padding: 30px 40px;
+  padding: 0 var(--space-lg);
   height: 100%;
-  overflow: hidden; /* Revert back to hidden to keep it a fixed container */
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-
-
 .main-cards-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: var(--space-xl);
 }
 
 .main-cards-grid.is-scrollable {
@@ -91,53 +85,46 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  padding-right: 15px;
-  max-height: calc(100vh - 200px);
   align-content: start;
 }
 
-/* Custom scrollbar for premium look */
 .main-cards-grid.is-scrollable::-webkit-scrollbar {
   width: 8px;
 }
 
 .main-cards-grid.is-scrollable::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
+  background: var(--text-light);
+  border-radius: var(--border-radius-sm);
 }
 
 .main-cards-grid.is-scrollable::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 10px;
+  background: var(--bg-light);
+  border-radius: var(--border-radius-sm);
 }
 
 .sticky-sidebar {
-  background: white;
-  padding: 20px;
+  background: var(--white);
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-md);
   height: 100%;
+  border-top-left-radius: var(--border-radius-md);
 }
 
 .sticky-sidebar.is-scrollable {
   max-height: calc(100vh - 100px);
   overflow-y: auto;
-  padding-right: 12px;
+  padding-right: var(--space-sm);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.03);
-  border-left: 1px solid #f1f5f9;
+  border-left: 1px solid var(--bg-light);
 }
 
-/* Custom scrollbar for sidebar */
 .sticky-sidebar.is-scrollable::-webkit-scrollbar {
   width: 5px;
 }
 
 .sticky-sidebar.is-scrollable::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
+  background: var(--text-light);
+  border-radius: var(--border-radius-sm);
 }
-
-
-
-/* btn-icon-modern styles moved to main.css */

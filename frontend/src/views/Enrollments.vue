@@ -11,22 +11,24 @@ import EnrollmentActionModal from '../components/enrollments/EnrollmentActionMod
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '../services/userService'
 import { programService } from '../services/programService'
+import ParentActionModal from '../components/parents/ParentActionModal.vue'
+import { storageService } from '@/services/storageService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import {
   calculateTotalEnrollment,
   enrichEnrollments,
 } from '../utils/enrollmentHelper'
-import { formatDate } from '../utils/dateFormatter'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
-import { getImageUrl, getParentProfileURL, getStudentProfileURL, getProgramProfileURL, getActionIcon } from '@/utils/assetHelper'
-import { isPaid, isUnpaid, isCancelled } from '@/utils/statusHelper'
-import { formatPrice } from '@/utils/currencyFormatter'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import { isPaid, isUnpaid, isCancelled } from '@/utils/statusUtils'
+import { formatPrice, formatDate } from '@/utils/formatUtils'
 
 const enrollments = ref([])
 const parents = ref([])
 const students = ref([])
 const programs = ref([])
-const sessions = ref([])
+const classes = ref([])
+
 const loading = ref(true)
 const showModal = ref(false)
 const submitting = ref(false)
@@ -35,6 +37,14 @@ const successMessage = ref('')
 const validationHint = ref('')
 const newlyCreatedId = ref(null)
 const selectedEnrollment = ref(null)
+const enrollmentForm = ref(null)
+const childRegistrationModal = ref({
+  isOpen: false,
+  parent: null,
+  loading: false,
+  error: '',
+  success: '',
+})
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
@@ -69,16 +79,18 @@ const fetchEnrollments = async () => {
 
 const loadFormData = async () => {
   try {
-    const [usersRes, programsRes, studentsRes] = await Promise.all([
+    const [usersRes, programsRes, studentsRes, classesRes] = await Promise.all([
       userService.getAllUsers(),
       programService.getAllPrograms(),
       userService.getAllStudents(),
+      programService.getAllClasses(),
     ])
     parents.value = Array.isArray(usersRes)
-      ? usersRes.filter((u) => u.role === 'parent' || u.role === 'guardian')
+      ? usersRes.filter((u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active')
       : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
+    classes.value = Array.isArray(classesRes) ? classesRes : []
   } catch (err) {
     console.error('Failed to load form data', err)
   }
@@ -86,16 +98,17 @@ const loadFormData = async () => {
 
 const handleProgramChange = async (programId) => {
   if (!programId) {
-    sessions.value = []
+    classes.value = []
     return
   }
   try {
-    const data = await programService.getSessions(programId)
-    sessions.value = Array.isArray(data) ? data : []
+    const data = await programService.getClasses(programId)
+    classes.value = Array.isArray(data) ? data : []
   } catch (err) {
-    console.error('Failed to load sessions', err)
+    console.error('Failed to load classes', err)
   }
 }
+
 
 let hintTimeout = null
 const setValidationHint = (msg) => {
@@ -113,13 +126,15 @@ const handleSaveEnrollment = async (formData) => {
     const parent = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
     const student = students.value.find((s) => s.id === formData.studentId)
     const program = programs.value.find((c) => c.id === formData.programId || c.id === formData.courseId)
-    const session = sessions.value.find((s) => s.id === formData.sessionId)
+    const classInstance = classes.value.find((c) => c.id === formData.classId)
+
 
     const payload = {
       parentId: parent.uid || parent.id,
       studentId: student.id,
       programId: program.id,
-      sessionId: session.id,
+      classId: classInstance.id,
+
       parent: {
         id: parent.uid || parent.id,
         name: parent.name || parent.email || 'Parent',
@@ -135,11 +150,12 @@ const handleSaveEnrollment = async (formData) => {
         title: program.title || program.name || 'Program',
         profile: program.profile || null
       },
-      session: {
-        id: session.id,
-        schedule: session.schedule?.day + ' ' + session.schedule?.timeslot
+      class: {
+        id: classInstance.id,
+        schedule: classInstance.day + ' ' + classInstance.timeslot
       },
-      sessionSchedule: session.schedule?.day + ' ' + session.schedule?.timeslot,
+      classSchedule: classInstance.day + ' ' + classInstance.timeslot,
+
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
       isSponsorship: formData.isSponsorship || false,
@@ -187,32 +203,33 @@ const handleSaveEnrollment = async (formData) => {
 const enrollmentStats = computed(() => {
   const s = calculateTotalEnrollment(enrollments.value)
   return [
-    { label: 'Total Enrollments', value: s.total, image: getImageUrl('enrollment/total-enrollment'), color: '#e1f5fe' },
-    { label: 'Total Paid Enrollment', value: s.paidCount, image: getImageUrl('enrollment/total-paid-enrollment'), color: '#e1f5fe' },
-    { label: 'Total Unpaid Enrollment', value: s.unpaidCount, image: getImageUrl('enrollment/total-unpaid-enrollment'), color: '#e1f5fe' },
-    { label: 'Total Cancelled Enrollment', value: s.cancelledCount, image: getImageUrl('enrollment/total-canceled-enrollment'), color: '#e1f5fe' },
-    { label: 'Today Enrollments', value: s.todayCount, image: getImageUrl('enrollment/today-enrollment'), color: '#e1f5fe' }
+    { label: 'Total Enrollments', value: s.total, image: getImageUrl('enrollment/total-enrollment'), color: 'var(--accent-light)' },
+    { label: 'Total Paid Enrollment', value: s.paidCount, image: getImageUrl('enrollment/total-paid-enrollment'), color: 'var(--accent-light)' },
+    { label: 'Total Unpaid Enrollment', value: s.unpaidCount, image: getImageUrl('enrollment/total-unpaid-enrollment'), color: 'var(--accent-light)' },
+    { label: 'Total Cancelled Enrollment', value: s.cancelledCount, image: getImageUrl('enrollment/total-canceled-enrollment'), color: 'var(--accent-light)' },
+    { label: 'Today Enrollments', value: s.todayCount, image: getImageUrl('enrollment/today-enrollment'), color: 'var(--accent-light)' }
   ]
 })
 
 const enrollmentHeaders = [
   { label: 'No', width: '40px', align: 'center' },
-  { label: 'Parent / Guardian', width: '160px' },
+  { label: 'Parent', width: '160px' },
   { label: 'Student', width: '160px' },
   { label: 'Program', width: '200px' },
-  { label: 'Session', width: '120px' },
-  { label: 'Enrolled Date', width: '120px', align: 'center' },
-  { label: 'Mode', width: '90px', align: 'center', sortable: true, key: 'enrollmentType' },
+  { label: 'Schedule', width: '160px' },
+  { label: 'Branch', width: '70px', align: 'center' },
   { label: 'Method', width: '100px', align: 'center', sortable: true, key: 'paymentMethod' },
   { label: 'Amount', width: '100px', align: 'center', sortable: true, key: 'amount' },
   { label: 'Status', width: '90px', align: 'center' },
+  { label: 'Enrolled Date', width: '120px', align: 'center' },
   { label: 'Action', width: '70px', align: 'center' }
 ]
 
 const currentFilter = ref('all')
 
 const statusFilteredEnrollments = computed(() => {
-  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, programs.value, sessions.value)
+  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, programs.value, classes.value)
+
 
   let filtered = enriched
   if (currentFilter.value !== 'all') {
@@ -275,7 +292,7 @@ const handleTableAction = ({ type, item }) => {
 
 const submitActionModal = async (payload) => {
   const { type, enrollment } = actionState.value
-  const { proof, reason, paymentMethod } = payload
+  const { reason } = payload
   submitting.value = true
   try {
     if (type === 'pay') {
@@ -321,6 +338,66 @@ const closeActionModal = () => {
   successMessage.value = ''
 }
 
+const handleOpenRegisterStudent = (parentId) => {
+  const parent = parents.value.find(p => (p.uid || p.id) === parentId)
+  if (!parent) return
+
+  childRegistrationModal.value = {
+    isOpen: true,
+    parent: parent,
+    loading: false,
+    error: '',
+    success: '',
+  }
+}
+
+const handleRegisterStudent = async (formData) => {
+  childRegistrationModal.value.loading = true
+  childRegistrationModal.value.error = ''
+  childRegistrationModal.value.success = ''
+
+  try {
+    const { parentId, name, dob, profile, medicalNote } = formData
+
+    // Finalize Profile Image (if temp)
+    let finalProfile = profile
+    if (profile && profile.includes('/profiles/temp/')) {
+      const extension = profile.split('?')[0].split('.').pop()
+      const sanitizedName = (name || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
+      finalProfile = await storageService.moveProfileImage(profile, newPath)
+    }
+
+    const result = await userService.registerStudentProfile(parentId, {
+      name,
+      dob,
+      profile: finalProfile,
+      medicalNote,
+      status: 'Inactive',
+    })
+
+    childRegistrationModal.value.success = 'Student registered successfully!'
+
+    // Refresh student list
+    const studentsRes = await userService.getAllStudents()
+    students.value = Array.isArray(studentsRes) ? studentsRes : []
+
+    // Map new student if possible
+    if (result && result.id && enrollmentForm.value) {
+      enrollmentForm.value.setStudent(result.id)
+    }
+
+    setTimeout(() => {
+      childRegistrationModal.value.isOpen = false
+    }, 1500)
+  } catch (err) {
+    console.error('Failed to register student', err)
+    childRegistrationModal.value.error = err.message || 'Error registering student.'
+  } finally {
+    childRegistrationModal.value.loading = false
+  }
+}
+
 // UI Helpers
 </script>
 
@@ -333,7 +410,7 @@ const closeActionModal = () => {
 
       <template #table>
         <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="paginatedEnrollments"
-          :loading="loading" :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize"
+          entityName="enrollment" :loading="loading" :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize"
           :totalItems="totalItems" @update:currentPage="currentPage = $event" v-model:searchQuery="searchQuery"
           searchPlaceholder="Search Enrollments" :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Enrollments', value: 'all' },
@@ -356,57 +433,59 @@ const closeActionModal = () => {
             <td class="hide-on-mobile text-center" :style="{ width: headers[0].width }">
               {{ index + 1 }}
             </td>
-            <td class="hide-on-tablet bold" :style="{ width: headers[1].width }">
+            <td class="hide-on-tablet" :style="{ width: headers[1].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="item.parent?.profileURL || item.parent?.profile || item.parentProfileURL" alt="parent" />
+                  <img :src="item.parent?.profileURL" alt="parent" />
                 </div>
-                <span>{{ item.parent?.name || item.parentName }}</span>
+                <span>{{ item.parent?.name }}</span>
               </div>
             </td>
-            <td class="bold" :style="{ width: headers[2].width }">
+            <td :style="{ width: headers[2].width }">
               <div class="info-cell">
                 <div class="avatar-mini">
-                  <img :src="item.student?.profileURL || item.student?.profile || item.studentProfileURL" alt="student" />
+                  <img :src="item.student?.profileURL" alt="student" />
                 </div>
-                <span>{{ item.student?.name || item.studentName }}</span>
+                <span>{{ item.student?.name }}</span>
               </div>
             </td>
             <td :style="{ width: headers[3].width }">
               <div class="info-cell">
                 <div class="program-icon-mini">
-                  <img :src="item.program?.profileURL || item.program?.profile || item.programProfileURL" alt="program" />
+                  <img :src="item.program?.profileURL" alt="program" />
                 </div>
                 <div class="program-cell">
-                  <div class="program-title text-truncate">{{ item.program?.title || item.programTitle || 'Program' }}</div>
+                  <div class="stext-truncate">{{ item.program?.title }}</div>
                 </div>
               </div>
             </td>
             <td :style="{ width: headers[4].width }">
               <div class="session-cell">
-                <div class="session-day"><strong>{{ getSessionDay(item.sessionSchedule) }}</strong></div>
-                <div class="session-time">{{ getSessionTime(item.sessionSchedule) }}</div>
+                <div class="session-day"><strong>{{ getSessionDay(item.classSchedule) }}</strong></div>
+                <div class="session-time">{{ getSessionTime(item.classSchedule) }}</div>
               </div>
             </td>
             <td class="text-center" :style="{ width: headers[5].width }">
-              <span class="date-text">{{ formatDate(item.enrollAt) }}</span>
+              <StatusBadge :status="item.branchAbbr || 'N/A'" />
             </td>
             <td class="text-center" :style="{ width: headers[6].width }">
-              <StatusBadge :status="item.enrollmentType || 'Full'" />
-            </td>
-            <td class="text-center" :style="{ width: headers[7].width }">
               <span v-if="!item.paymentMethod && isUnpaid(item.status || item.paymentStatus)"
                 class="not-assigned-label">—</span>
               <StatusBadge v-else
-                :status="item.paymentMethod || (isPaid(item.status || item.paymentStatus) ? 'Not Specified' : '—')" />
+                :status="item.paymentMethod || (isPaid(item.status || item.paymentStatus) ? 'NotSpecified' : '—')" />
             </td>
-            <td class="bold hide-on-mobile text-center" :style="{ width: headers[8].width }">
+            <td class="bold hide-on-mobile text-center" :style="{ width: headers[7].width }">
               <div class="amount-cell">
-                <StatusBadge :status="'$' + formatPrice(item.amount || 0)"></StatusBadge>
+                <StatusBadge :status="'$' + formatPrice(item.amount || 0)"
+                  :type="(item.enrollmentType || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'">
+                </StatusBadge>
               </div>
             </td>
-            <td class="text-center" :style="{ width: headers[9].width }">
+            <td class="text-center" :style="{ width: headers[8].width }">
               <StatusBadge :status="item.displayStatus || 'Unpaid'" />
+            </td>
+            <td class="text-center" :style="{ width: headers[9].width }">
+              <span class="date-text">{{ formatDate(item.enrollAt) }}</span>
             </td>
             <td class="action-cell text-center" :style="{ width: headers[10].width }">
               <div class="menu-container">
@@ -417,7 +496,8 @@ const closeActionModal = () => {
                   <transition name="fade">
                     <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
                       :style="menuStyles" @click.stop>
-                      <button class="btn-edit" @click="handleAction('edit', item)">
+                      <button v-if="!isPaid(item.status) && !isPaid(item.paymentStatus) && !isCancelled(item.status)"
+                        class="btn-edit" @click="handleAction('edit', item)">
                         <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit
                       </button>
                       <button v-if="!isPaid(item.status) && !isPaid(item.paymentStatus) && !isCancelled(item.status)"
@@ -442,11 +522,18 @@ const closeActionModal = () => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentFormModal :isOpen="showModal" :loading="submitting" :parents="parents" :students="students"
-      :programs="programs" :sessions="sessions" :enrollments="enrollments" :enrollment="selectedEnrollment"
-      :error="errorMessage" :success="successMessage" :hint="validationHint"
+    <EnrollmentFormModal ref="enrollmentForm" :isOpen="showModal" :loading="submitting" :parents="parents"
+      :students="students" :programs="programs" :classes="classes" :enrollments="enrollments"
+      :enrollment="selectedEnrollment" :error="errorMessage" :success="successMessage" :hint="validationHint"
       @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
-      @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint" />
+      @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint"
+      @register-student="handleOpenRegisterStudent" />
+
+    <ParentActionModal :isOpen="childRegistrationModal.isOpen" type="plus" :user="childRegistrationModal.parent"
+      :selectableParents="parents" :loading="childRegistrationModal.loading" :error="childRegistrationModal.error"
+      :success="childRegistrationModal.success"
+      @close="() => { childRegistrationModal.isOpen = false; childRegistrationModal.error = ''; childRegistrationModal.success = ''; }"
+      @submit="handleRegisterStudent" />
 
     <EnrollmentActionModal v-bind="actionState" :loading="submitting" v-model:error="errorMessage"
       v-model:success="successMessage" @close="closeActionModal" @submit="submitActionModal" />
@@ -455,7 +542,7 @@ const closeActionModal = () => {
 
 <style scoped>
 .action-modal {
-  padding: 24px;
+  padding: var(--space-xl);
 }
 
 .user-info {
@@ -469,14 +556,14 @@ const closeActionModal = () => {
 }
 
 .date-text {
-  font-size: 0.9rem;
-  color: #475569;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
 }
 
 .prorate-note {
   font-size: 0.65rem;
   font-weight: 800;
-  color: #00aeef;
+  color: var(--primary-color);
   letter-spacing: 0.05em;
 }
 </style>

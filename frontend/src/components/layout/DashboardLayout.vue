@@ -25,7 +25,7 @@ const toggleSidebar = () => {
 <style scoped>
 .app-layout {
   display: flex;
-  background-color: #f7f9fc;
+  background-color: var(--bg-light);
   height: 100vh;
   position: relative;
   overflow: hidden;
@@ -34,12 +34,10 @@ const toggleSidebar = () => {
 .main-wrapper {
   flex: 1;
   margin-left: 260px;
-  /* Sidebar width */
   display: flex;
   flex-direction: column;
   transition: margin-left 0.3s ease;
   min-width: 0;
-  /* Prevent horizontal overflow from content */
 }
 
 .content-area {

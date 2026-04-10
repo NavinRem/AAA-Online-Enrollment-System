@@ -1,27 +1,23 @@
 import { request } from './api'
 
 export const programService = {
-  // Get all programs
   getAllPrograms() {
     return request('/programs')
   },
 
-  // Get sessions for a specific program
-  getSessions(programId) {
-    return request(`/programs/${programId}/sessions`)
+  getClasses(programId) {
+    return request(`/classes?programId=${programId}`)
   },
 
-  // Get all sessions across all programs
-  getAllSessions() {
-    return request('/sessions')
+  getAllClasses() {
+    return request('/classes')
   },
 
-  // Get single program details
+
   getProgram(programId) {
     return request(`/programs/${programId}`)
   },
 
-  // Create new program
   createProgram(data) {
     return request('/programs', {
       method: 'POST',
@@ -29,7 +25,6 @@ export const programService = {
     })
   },
 
-  // Update existing program
   updateProgram(id, data) {
     return request(`/programs/${id}`, {
       method: 'PATCH',
@@ -37,19 +32,17 @@ export const programService = {
     })
   },
 
-  // Delete program
   deleteProgram(id) {
     return request(`/programs/${id}`, {
       method: 'DELETE',
     })
   },
 
-  // CATEGORY MANAGEMENT
   getAllCategories() {
     return request('/categories')
   },
 
-  async createCategory(data) {
+  createCategory(data) {
     return request('/categories', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -62,7 +55,6 @@ export const programService = {
     })
   },
 
-  // LEVEL MANAGEMENT (Category-Specific)
   getAllLevels(categoryId) {
     if (!categoryId) return Promise.resolve([])
     return request(`/categories/${categoryId}/levels`)
@@ -75,7 +67,6 @@ export const programService = {
     })
   },
 
-  // TERM MANAGEMENT
   getAllTerms() {
     return request('/terms')
   },
@@ -87,32 +78,56 @@ export const programService = {
     })
   },
 
-  // UPLOAD
   async uploadImage(file) {
     const formData = new FormData()
     formData.append('image', file)
-
-    // Note: request helper needs to handle lack of JSON content-type for FormData
-    // We'll use fetch directly or fix request
     return request('/uploads', {
       method: 'POST',
       body: formData,
       headers: {
-        // Let the browser set the boundary
         'Content-Type': undefined,
       },
     })
   },
-  // SESSION MANAGEMENT
-  createSession(data) {
-    return request('/sessions', {
+
+  // --- Schedule Management (Sub-collection under Program) ---
+  addSchedule(programId, data) {
+    return request(`/programs/${programId}/schedules`, {
       method: 'POST',
       body: JSON.stringify(data),
     })
   },
-  syncAllSessions() {
-    return request('/sessions/sync-all', {
+
+  getSchedules(programId) {
+    return request(`/programs/${programId}/schedules`)
+  },
+
+  removeSchedule(programId, scheduleId) {
+    return request(`/programs/${programId}/schedules/${scheduleId}`, {
+      method: 'DELETE',
+    })
+  },
+
+  // --- Classes (Operational Instances) ---
+  createClass(data) {
+    return request('/classes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  duplicateClasses(data) {
+    return request('/classes/duplicate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  syncAllClasses() {
+    // This would be the updated version of syncAllSessions
+    return request('/classes/sync-all', {
       method: 'POST',
     })
   },
 }
+

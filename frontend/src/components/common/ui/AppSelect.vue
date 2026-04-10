@@ -134,16 +134,16 @@ watch(() => props.modelValue, () => {
 
 .custom-dropdown {
   position: relative;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
-  background: #f8fafc;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-subtle);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .custom-dropdown.open {
-  border-color: #00aeef;
-  background: #fff;
+  border-color: var(--primary-color);
+  background: var(--white);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
@@ -155,7 +155,7 @@ watch(() => props.modelValue, () => {
 }
 
 .dropdown-header {
-  padding: 8px 12px;
+  padding: var(--space-xs) var(--space-sm);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -165,19 +165,19 @@ watch(() => props.modelValue, () => {
 .selected-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .placeholder {
-  color: #94a3b8;
-  font-size: 0.9rem;
+  color: var(--text-light);
+  font-size: var(--text-sm);
 }
 
 .chevron {
   width: 8px;
   height: 8px;
-  border-right: 2px solid #64748b;
-  border-bottom: 2px solid #64748b;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
   transform: rotate(45deg);
   transition: transform 0.3s;
   margin-right: 4px;
@@ -192,19 +192,19 @@ watch(() => props.modelValue, () => {
   top: 100%;
   left: -1.5px;
   right: -1.5px;
-  background: #fff;
-  border: 1.5px solid #00aeef;
+  background: var(--white);
+  border: 1.5px solid var(--primary-color);
   border-top: none;
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
+  border-bottom-left-radius: var(--border-radius-sm);
+  border-bottom-right-radius: var(--border-radius-sm);
   z-index: 1000;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
 .dropdown-search {
-  padding: 8px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: var(--space-xs);
+  border-bottom: 1px solid var(--bg-light);
   position: relative;
   display: flex;
   align-items: center;
@@ -221,11 +221,11 @@ watch(() => props.modelValue, () => {
 
 .dropdown-search input {
   width: 100%;
-  padding: 6px 12px 6px 30px !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 6px !important;
-  font-size: 0.85rem !important;
-  outline: none !important;
+  padding: var(--space-2xs) var(--space-md) var(--space-2xs) 30px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--text-sm);
+  outline: none;
 }
 
 .dropdown-list {
@@ -237,32 +237,32 @@ watch(() => props.modelValue, () => {
 }
 
 .dropdown-item {
-  padding: 8px 12px;
+  padding: var(--space-xs) var(--space-sm);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-sm);
   transition: background 0.2s;
   cursor: pointer;
 }
 
 .dropdown-item:hover {
-  background: #f1f5f9;
+  background: var(--bg-light);
 }
 
 .dropdown-item.active {
-  background: #eff6ff;
-  color: #00aeef;
+  background: var(--primary-soft);
+  color: var(--primary-color);
 }
 
 .item-name {
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
   font-weight: 500;
 }
 
 .no-results {
-  padding: 12px;
+  padding: var(--space-sm);
   text-align: center;
-  color: #94a3b8;
-  font-size: 0.85rem;
+  color: var(--text-light);
+  font-size: var(--text-sm);
 }
 </style>

@@ -29,10 +29,16 @@ const router = createRouter({
       meta: { title: 'Enrollment Detail' },
     },
     {
+      path: '/branches',
+      name: 'branches',
+      component: () => import('../views/Branches.vue'),
+      meta: { title: 'Branches' },
+    },
+    {
       path: '/parents',
       name: 'parents',
       component: () => import('../views/Parents.vue'),
-      meta: { title: 'Parent / Guardian' },
+      meta: { title: 'Parents' },
     },
     {
       path: '/parents/:id',
@@ -58,6 +64,13 @@ const router = createRouter({
       component: () => import('../views/Programs.vue'),
       meta: { title: 'Programs' },
     },
+    {
+      path: '/classes',
+      name: 'classes',
+      component: () => import('../views/Classes.vue'),
+      meta: { title: 'Classes' },
+    },
+
     {
       path: '/programs/:id',
       name: 'program-detail',

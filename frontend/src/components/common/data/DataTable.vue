@@ -5,7 +5,7 @@ import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import { useTableActions } from '@/composables/useTableActions'
 import StatusBadge from '../ui/StatusBadge.vue'
 import TablePagination from './TablePagination.vue'
-import { getStatusCategory, getStatusDisplay } from '@/utils/statusHelper'
+import { getStatusCategory, getStatusDisplay } from '@/utils/statusUtils'
 
 const props = defineProps({
   headers: { type: Array, required: true },
@@ -25,6 +25,7 @@ const props = defineProps({
   pageSize: { type: Number, default: 10 },
   totalItems: { type: Number, default: 0 },
   hasPagination: { type: Boolean, default: false },
+  entityName: { type: String, default: 'record' },
 })
 
 const emit = defineEmits(['update:searchQuery', 'update:currentFilter', 'update:currentPage', 'row-click', 'action'])
@@ -39,11 +40,13 @@ const displayEmptyMessage = computed(() => {
 const emptyState = computed(() => {
   if (props.loading) return { prefix: props.loadingMessage, label: '', suffix: '' }
 
+  const entity = props.entityName?.toLowerCase() || 'record'
+
   if (props.searchQuery) {
     return {
-      prefix: 'No records matching ',
+      prefix: `No matching ${entity} found for `,
       label: `"${props.searchQuery}"`,
-      suffix: ' found.'
+      suffix: ''
     }
   }
 
@@ -51,17 +54,17 @@ const emptyState = computed(() => {
     const option = props.filterOptions.find(o => o.value === props.currentFilter)
     if (option) {
       return {
-        prefix: 'No ',
+        prefix: 'no',
         label: option.value,
-        suffix: ' records found.'
+        suffix: `${entity} record found`
       }
     }
   }
 
   return {
-    prefix: '',
+    prefix: 'No ',
     label: '',
-    suffix: props.emptyMessage
+    suffix: `${entity} records found.`
   }
 })
 
@@ -109,7 +112,7 @@ const handleAction = (type, item) => {
         </tr>
         <template #footer>
           <tr v-if="hasPagination && items && items.length > 0" class="footer-row">
-            <td :colspan="headers.length" style="padding: 0; width: 100%;">
+            <td :colspan="headers.length" class="p-none w-full">
               <TablePagination :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
                 @update:currentPage="emit('update:currentPage', $event)" />
             </td>
@@ -130,7 +133,7 @@ const handleAction = (type, item) => {
 
 .table-body-scroll {
   width: 100%;
-  padding-right: 4px;
+  padding-right: var(--space-3xs);
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -148,12 +151,12 @@ const handleAction = (type, item) => {
 }
 
 .table-body::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
-  border-radius: 10px;
+  background: var(--border-color);
+  border-radius: var(--border-radius-sm);
 }
 
 .table-body::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+  background: var(--text-light);
 }
 
 .clickable-row {
@@ -162,15 +165,15 @@ const handleAction = (type, item) => {
 }
 
 .clickable-row:hover {
-  background-color: #f8fafc;
+  background-color: var(--bg-subtle);
 }
 
 .empty-state-banner {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  color: #64748b;
-  font-size: 0.95rem;
+  gap: var(--space-sm);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 </style>

@@ -30,25 +30,25 @@ defineProps({
 <style scoped>
 .card-box {
   background: white;
-  border-radius: 20px;
-  padding: 25px;
+  border-radius: var(--border-radius);
+  padding: var(--space-xl);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
 }
 
 .section-title {
-  font-size: 1.15rem;
+  font-size: var(--text-lg);
   font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 20px;
+  color: var(--text-deep);
+  margin-bottom: var(--space-lg);
 }
 
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
+  margin-bottom: var(--space-xl);
   flex-wrap: wrap;
-  gap: 15px;
+  gap: var(--space-md);
 }
 
 
@@ -59,7 +59,7 @@ defineProps({
 
 .header-actions {
   display: flex;
-  gap: 15px;
+  gap: var(--space-md);
   align-items: center;
   margin-left: auto;
 }
@@ -67,7 +67,7 @@ defineProps({
 .cards-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 20px;
+  gap: var(--space-lg);
   width: 100%;
 }
 

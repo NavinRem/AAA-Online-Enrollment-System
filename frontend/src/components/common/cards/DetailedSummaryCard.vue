@@ -39,7 +39,7 @@ defineProps({
   margin: 0;
   font-size: 1.6rem;
   font-weight: 850;
-  color: #1a1a1a;
+  color: var(--text-deep);
   letter-spacing: -0.6px;
   text-align: center;
 }
@@ -49,7 +49,7 @@ defineProps({
 }
 
 .summary-content {
-  background: #eef6fc;
+  background: var(--accent-light);
   padding: 12px 20px 20px 20px;
   border-radius: 16px;
   display: flex;
@@ -61,14 +61,14 @@ defineProps({
 .content-subtitle {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-deep);
   letter-spacing: -0.2px;
   text-align: left;
   margin: 0 0 0 4px;
 }
 
 .internal-details-card {
-  background: white;
+  background: var(--white);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
@@ -91,13 +91,13 @@ defineProps({
 :deep(.summary-label) {
   font-size: 1.05rem;
   font-weight: 800;
-  color: #1a1a1a;
+  color: var(--text-deep);
   margin: 0 0 6px;
 }
 
 :deep(.summary-value) {
   font-size: 1.05rem;
-  color: #4a5568;
+  color: var(--text-muted);
   margin: 0;
   font-weight: 500;
   line-height: 1.5;

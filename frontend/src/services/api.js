@@ -4,35 +4,30 @@ import { config } from '../config'
 
 const API_URL = config.api.baseUrl
 
-// Helper function for making requests
 export async function request(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`
   const method = (options.method || 'GET').toUpperCase()
 
-  // 1. Return Cache early if applicable
   const cacheKey = endpoint
   if (method === 'GET' && !options.skipCache) {
     const cached = getCachedData(cacheKey)
     if (cached) return cached
   }
 
-  // Handle headers
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
   }
 
-  // 0. Inject ID Token if user is logged in
   if (auth.currentUser) {
     try {
-      const token = await auth.currentUser.getIdToken();
-      headers['Authorization'] = `Bearer ${token}`;
+      const token = await auth.currentUser.getIdToken()
+      headers['Authorization'] = `Bearer ${token}`
     } catch (err) {
-      console.warn('Failed to get auth token:', err);
+      console.warn('Failed to get auth token:', err)
     }
   }
 
-  // Allow removing Content-Type (e.g. for FormData)
   if (headers['Content-Type'] === undefined) {
     delete headers['Content-Type']
   }
@@ -44,7 +39,7 @@ export async function request(endpoint, options = {}) {
 
   const response = await fetch(url, fetchOptions)
   const contentType = response.headers.get('content-type')
-  
+
   let responseData
   if (contentType && contentType.includes('application/json')) {
     responseData = await response.json()
@@ -53,7 +48,6 @@ export async function request(endpoint, options = {}) {
     responseData = { message: text || response.statusText }
   }
 
-  // Error handling
   if (!response.ok) {
     throw new Error(
       responseData.message ||
@@ -66,11 +60,9 @@ export async function request(endpoint, options = {}) {
     throw new Error(responseData.error.message || responseData.error || 'Unknown API Error')
   }
 
-  // 2. Cache management
   if (method === 'GET') {
     setCachedData(cacheKey, responseData)
   } else {
-    // Clear cache for this resource type if we mutate
     const resourceBase = endpoint.split('/')[1]
     if (resourceBase) {
       clearCachePrefix(`/${resourceBase}`)

@@ -11,8 +11,14 @@ import EnrollmentFormModal from '@/components/enrollments/EnrollmentFormModal.vu
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { programService } from '@/services/programService'
-import { formatDate, formatDateOnly, calculateAge } from '@/utils/dateFormatter'
+import {
+  formatDate,
+  formatDateOnly,
+  formatPrice,
+  calculateAge
+} from '@/utils/formatUtils'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
+import { isPaid, isCancelled } from '@/utils/statusUtils'
 
 import {
   getProgramProfileURL,
@@ -21,8 +27,6 @@ import {
   getTeacherProfileURL,
   getActionIcon
 } from '@/utils/assetHelper'
-import { isPaid, isCancelled } from '@/utils/statusHelper'
-import { formatPrice } from '@/utils/currencyFormatter'
 
 const route = useRoute()
 const router = useRouter()
@@ -31,15 +35,17 @@ const enrollment = ref(null)
 const parent = ref(null)
 const student = ref(null)
 const program = ref(null)
-const session = ref(null)
+const classSlot = ref(null)
 const teacher = ref(null)
+
 
 // For EnrollmentFormModal
 const parents = ref([])
 const students = ref([])
 const programs = ref([])
-const sessions = ref([])
-const enrollments = ref([]) // To avoid duplicate enrollments check in form
+const classes = ref([])
+const enrollments = ref([])
+
 const formLoading = ref(false)
 const loading = ref(true)
 const errorMessage = ref('')
@@ -56,8 +62,6 @@ const actionModal = ref({
 
 const showFormModal = ref(false)
 const validationHint = ref('')
-
-// Status checkers imported from statusHelper
 
 const openActionModal = (type) => {
   modalError.value = ''
@@ -101,7 +105,6 @@ const handleActionSubmit = async (payload) => {
 
       await enrollmentService.updateEnrollment(enrollment.value.id, updateData)
 
-      // Update local state
       enrollment.value = { ...enrollment.value, ...updateData }
     } else if (type === 'cancel') {
       await enrollmentService.cancelEnrollment(enrollment.value.id)
@@ -134,8 +137,6 @@ const handleActionSubmit = async (payload) => {
   }
 }
 
-// UI Logic Handlers removed as handled by modern component
-
 const fetchDependencyData = async () => {
   try {
     formLoading.value = true
@@ -146,7 +147,7 @@ const fetchDependencyData = async () => {
       enrollmentService.getAllEnrollments(),
     ])
     parents.value = Array.isArray(usersRes)
-      ? usersRes.filter((u) => u.role === 'parent' || u.role === 'guardian')
+      ? usersRes.filter((u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active')
       : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
@@ -160,32 +161,33 @@ const fetchDependencyData = async () => {
 
 const handleProgramChange = async (programId) => {
   if (!programId) {
-    sessions.value = []
+    classes.value = []
     return
   }
   try {
-    const data = await programService.getSessions(programId)
-    sessions.value = Array.isArray(data) ? data : []
+    const data = await programService.getClasses(programId)
+    classes.value = Array.isArray(data) ? data : []
   } catch (err) {
-    console.error('Failed to load sessions', err)
+    console.error('Failed to load classes', err)
   }
 }
+
 
 const handleEditSubmit = async (formData) => {
   submitting.value = true
   modalError.value = ''
   try {
-    // Extract enrichment data (matching Enrollments.vue logic)
     const pRecord = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
     const sRecord = students.value.find((s) => s.id === formData.studentId)
     const progRecord = programs.value.find((c) => c.id === formData.programId)
-    const sessRecord = sessions.value.find((s) => s.id === formData.sessionId)
+    const classRecord = classes.value.find((c) => c.id === formData.classId)
 
     const payload = {
       parentId: pRecord.uid || pRecord.id,
       studentId: sRecord.id,
       programId: progRecord.id,
-      sessionId: sessRecord.id,
+      classId: classRecord.id,
+
       parent: {
         id: pRecord.uid || pRecord.id,
         name: pRecord.name || pRecord.email || 'Parent',
@@ -201,11 +203,12 @@ const handleEditSubmit = async (formData) => {
         title: progRecord.title || progRecord.name || 'Program',
         profile: progRecord.profile || null
       },
-      session: {
-        id: sessRecord.id,
-        schedule: sessRecord.schedule?.day + ' ' + sessRecord.schedule?.timeslot
+      class: {
+        id: classRecord.id,
+        schedule: classRecord.day + ' ' + classRecord.timeslot
       },
-      sessionSchedule: sessRecord.schedule?.day + ' ' + sessRecord.schedule?.timeslot,
+      classSchedule: classRecord.day + ' ' + classRecord.timeslot,
+
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
       isSponsorship: formData.isSponsorship || false,
@@ -214,24 +217,23 @@ const handleEditSubmit = async (formData) => {
       enrollmentType: formData.enrollmentType || 'Full',
       remark: formData.remark || '',
       basePrice: formData.basePrice || 0,
-      totalSessions: formData.totalSessions || 0,
-      remainingSessions: formData.remainingSessions || 0,
       passedSessions: formData.passedSessions || 0,
       prorateSavings: formData.prorateSavings || 0,
+      studentCountAtEnrollment: classRecord.numStudent || 0,
       updatedAt: new Date().toISOString()
     }
 
     await enrollmentService.updateEnrollment(enrollment.value.id, payload)
     modalSuccess.value = 'Enrollment updated successfully!'
 
-    // Refresh current local state from backend
     const updated = await enrollmentService.getEnrollment(enrollment.value.id)
     enrollment.value = updated
     parent.value = updated.parent
     student.value = updated.student
     program.value = updated.program
-    session.value = updated.session
+    classSlot.value = updated.class
     teacher.value = updated.teacher
+
 
     setTimeout(() => {
       showFormModal.value = false
@@ -250,7 +252,6 @@ onMounted(async () => {
     if (!id) throw new Error('No Enrollment ID provided')
 
     loading.value = true
-    // Fetch base enrollment and dependency data in parallel
     const [data] = await Promise.all([
       enrollmentService.getEnrollment(id),
       fetchDependencyData()
@@ -262,16 +263,15 @@ onMounted(async () => {
     parent.value = data.parent
     student.value = data.student
     program.value = data.program
-    session.value = data.session
+    classSlot.value = data.class
     teacher.value = data.teacher
+
   } catch (error) {
     errorMessage.value = error.message || 'Failed to load details'
   } finally {
     loading.value = false
   }
 })
-
-// Helpers
 </script>
 
 <template>
@@ -280,7 +280,9 @@ onMounted(async () => {
       :rightScrollable="true">
       <template #header-actions v-if="enrollment">
         <div class="actions-wrapper">
-          <button class="btn-icon-modern btn-edit" title="Edit Enrollment" @click="openActionModal('edit')">
+          <button
+            v-if="!isPaid(enrollment.status) && !isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
+            class="btn-icon-modern btn-edit" title="Edit Enrollment" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" />
           </button>
           <button
@@ -300,17 +302,13 @@ onMounted(async () => {
 
       <template #left-content v-if="enrollment">
         <div class="detail-cards-grid">
-          <DetailCard title="Parent/Guardian Information" :avatarUrl="getParentProfileURL(enrollment.parent?.profile)">
+          <DetailCard title="Parent Information" :avatarUrl="getParentProfileURL(enrollment.parent?.profileURL)">
             <p><strong>Fullname:</strong> {{ enrollment.parent?.name || 'N/A' }}</p>
             <p><strong>Email:</strong> {{ enrollment.parent?.email || 'N/A' }}</p>
             <p><strong>Phone Number:</strong> {{ enrollment.parent?.phone || 'N/A' }}</p>
-            <p>
-              <strong>Role:</strong>
-              <StatusBadge :status="enrollment.parent?.roleDisplay || enrollment.parent?.role || 'Guardian'" />
-            </p>
           </DetailCard>
 
-          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.student?.profile)">
+          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.student?.profileURL)">
             <p>
               <strong>Fullname:</strong>
               {{ enrollment.student?.name || 'N/A' }}
@@ -320,42 +318,40 @@ onMounted(async () => {
               {{ formatDateOnly(enrollment.student?.dob) }}
             </p>
             <p><strong>Age:</strong> {{ calculateAge(enrollment.student?.dob) }}</p>
-            <p>
-              <strong>Medical Note:</strong>
-              {{ enrollment.student?.medicalNote || 'None' }}
-            </p>
           </DetailCard>
 
           <DetailCard title="Program Information"
-            :avatarUrl="getProgramProfileURL(enrollment.program?.profile || enrollment.program?.profileURL, enrollment.program?.category)">
+            :avatarUrl="getProgramProfileURL(enrollment.program?.profileURL, enrollment.program?.category)">
             <p>
               <strong>Program:</strong>
               {{ enrollment.program?.title }}
             </p>
             <p>
               <strong>Schedule:</strong>
-              <StatusBadge :status="'purple:' + getSessionDay(enrollment.sessionSchedule)" />
-              {{ getSessionTime(enrollment.sessionSchedule) }}
+              <StatusBadge :status="'purple:' + getSessionDay(enrollment.classSchedule)" />
+              {{ getSessionTime(enrollment.classSchedule) }}
             </p>
-            <p style="display: flex; align-items: center;">
-              <strong>Number Session Enrolled:</strong>
+
+            <p class="flex-align-center">
+              <strong>Sessions Enrolled:</strong>
               <template v-if="enrollment.remainingSessions !== undefined">
-                {{ enrollment.remainingSessions }} Sessions of
-                {{ enrollment.totalSessions || 10 }}
-                <StatusBadge v-if="enrollment.passedSessions > 0" :status="enrollment.passedSessions + ' passed'"
-                  type="red" />
+                {{ enrollment.remainingSessions }} Sessions (Prorated)
+                <StatusBadge v-if="enrollment.totalSessions > 0" :status="'of ' + enrollment.totalSessions"
+                  type="blue" />
               </template>
               <template v-else>
                 {{ enrollment.numberSessions || enrollment.program?.numberSessions || '10' }} Sessions
               </template>
             </p>
+
             <p>
               <strong>Enrolled Date:</strong>
               {{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}
             </p>
           </DetailCard>
 
-          <DetailCard title="Session Information" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profile || enrollment.teacher?.profileURL)">
+          <DetailCard title="Class Information" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)">
+
             <p><strong>Program:</strong> {{ enrollment.program?.title || 'N/A' }}</p>
 
             <p class="teacher-row-aligned">
@@ -371,9 +367,12 @@ onMounted(async () => {
             </div>
             <span v-else class="not-assigned-label">Not Assigned</span>
             </p>
-            <p><strong>Student Enrolled:</strong> {{ enrollment.session?.numStudent || 0 }}</p>
-            <p><strong>Max Capacity:</strong> {{ enrollment.session?.capacity || 20 }}</p>
+            <p><strong>Student Enrolled:</strong> {{ enrollment.studentCountAtEnrollment ?? enrollment.class?.numStudent
+              ?? 0 }}</p>
+            <p><strong>Max Capacity:</strong> {{ enrollment.class?.capacity || enrollment.class?.maxCapacity || 20 }}
+            </p>
           </DetailCard>
+
         </div>
       </template>
 
@@ -381,7 +380,7 @@ onMounted(async () => {
         <DetailedSummaryCard title="Basic Information" subtitle="Enrollment Information">
           <div class="detail-row align-center">
             <span class="summary-label">Status</span>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+            <div class="flex-stack flex-end gap-3xs">
               <StatusBadge :status="enrollment.status === 'cancelled' ? 'Canceled' :
                 enrollment.paymentStatus?.toLowerCase() === 'paid' ? 'Paid' : 'Unpaid'" />
             </div>
@@ -389,7 +388,7 @@ onMounted(async () => {
 
           <div class="detail-row align-center">
             <span class="summary-label">Mode</span>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+            <div class="flex-stack flex-end gap-3xs">
               <StatusBadge :status="enrollment.enrollmentType" />
             </div>
           </div>
@@ -397,7 +396,7 @@ onMounted(async () => {
           <div v-if="enrollment.status === 'cancelled' && (enrollment.cancelReason || enrollment.reason)"
             class="detail-row">
             <span class="summary-label">Reason</span>
-            <span class="summary-value" style="color: #ef4444; font-weight: 600">
+            <span class="summary-value error-text-bold">
               {{ enrollment.cancelReason || enrollment.reason }}
             </span>
           </div>
@@ -421,7 +420,7 @@ onMounted(async () => {
         <DetailedSummaryCard subtitle="Payment Information">
           <div class="detail-row align-center" v-if="enrollment?.basePrice">
             <span class="summary-label">Original Price</span>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+            <div class="flex-stack flex-end gap-3xs">
               <StatusBadge :status="'$' + formatPrice(enrollment.basePrice)" type="green" />
             </div>
           </div>
@@ -438,14 +437,14 @@ onMounted(async () => {
 
           <div class="detail-row align-center">
             <span class="summary-label">Total Amount</span>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+            <div class="flex-stack flex-end gap-3xs">
               <StatusBadge :status="'$' + formatPrice(enrollment?.amount || 0)" />
             </div>
           </div>
 
           <div class="detail-row align-center">
             <span class="summary-label">Status</span>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+            <div class="flex-stack flex-end gap-3xs">
               <StatusBadge
                 :status="enrollment?.displayStatus || enrollment?.status || enrollment?.paymentStatus || 'Unpaid'" />
             </div>
@@ -453,28 +452,28 @@ onMounted(async () => {
 
           <div class="detail-row align-center">
             <span class="summary-label">Payment Method</span>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-              <StatusBadge :status="enrollment?.paymentMethod || (isPaid(enrollment?.status || enrollment?.paymentStatus) ? 'Not Specified' : '—')" />
+            <div class="flex-stack flex-end gap-3xs">
+              <StatusBadge
+                :status="enrollment?.paymentMethod || (isPaid(enrollment?.status || enrollment?.paymentStatus) ? 'Not Specified' : '—')" />
             </div>
           </div>
 
           <div class="detail-row" v-if="enrollment?.transactionId">
             <span class="summary-label">{{ enrollment?.paymentMethod === 'Cash' ? 'Receipt Number' : 'Transaction ID'
             }}</span>
-            <span class="summary-value" style="font-family: monospace; font-weight: 600; color: #0284c7;">
+            <span class="summary-value mono-info-highlight">
               {{ enrollment.transactionId }}
             </span>
           </div>
 
           <div class="detail-row" v-if="enrollment?.paidAt">
             <span class="summary-label">Paid Date</span>
-            <span class="summary-value" style="font-size: 0.85rem; opacity: 0.8;">
+            <span class="summary-value text-sm opacity-80">
               {{ formatDate(enrollment.paidAt) }}
             </span>
           </div>
 
-          <div class="detail-row" v-if="enrollment?.paymentProofURL"
-            style="flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 8px;">
+          <div class="detail-row flex-stack flex-start gap-xs mt-xs" v-if="enrollment?.paymentProofURL">
             <span class="summary-label">Payment Proof</span>
             <a :href="enrollment.paymentProofURL" target="_blank" class="proof-preview-link">
               <img :src="enrollment.paymentProofURL" alt="Payment Proof" class="proof-thumbnail" />
@@ -500,7 +499,7 @@ onMounted(async () => {
 
           <div class="detail-row" v-if="enrollment?.paymentProof">
             <span class="summary-label">Transaction ID / Proof</span>
-            <span class="summary-value mono" style="word-break: break-all; font-size: 0.8rem;">
+            <span class="summary-value mono text-xs break-all">
               {{ enrollment?.paymentProof }}
             </span>
           </div>
@@ -519,21 +518,22 @@ onMounted(async () => {
 
           <div class="detail-row">
             <span class="summary-label">Schedule</span>
-            <div class="summary-value" style="display: flex; gap: 10px; align-items: center;">
-              <StatusBadge class="session-day" :status="'purple:' + getSessionDay(enrollment?.sessionSchedule)" />
-              <span class="session-time">{{ getSessionTime(enrollment?.sessionSchedule) }}</span>
+            <div class="summary-value flex-align-center gap-sm">
+              <StatusBadge class="session-day" :status="'purple:' + getSessionDay(enrollment?.classSchedule)" />
+              <span class="session-time">{{ getSessionTime(enrollment?.classSchedule) }}</span>
             </div>
           </div>
 
+
           <div class="detail-row">
             <span class="summary-label">Term Dates</span>
-            <div class="summary-value" style="margin-top: 5px; gap: 10px; display: flex; flex-direction: column;">
-              <div style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+            <div class="summary-value mt-3xs flex-stack gap-sm">
+              <div class="flex-align-center gap-sm">
                 <StatusBadge :status="'green:Start Date'" /> {{ enrollment?.startDate || program?.startDate ?
                   formatDateOnly(enrollment?.startDate
                     || program?.startDate) : 'N/A' }}
               </div>
-              <div style="display: flex; flex-direction: row; align-items: center; gap: 10px;">
+              <div class="flex-align-center gap-sm">
                 <StatusBadge :status="'blue:End Date'" /> {{ enrollment?.endDate || program?.endDate ?
                   formatDateOnly(enrollment?.endDate ||
                     program?.endDate) : 'N/A' }}
@@ -546,10 +546,11 @@ onMounted(async () => {
 
     <!-- Action Modals (Edit, Pay, Cancel, Delete) -->
     <EnrollmentFormModal :isOpen="showFormModal" :loading="submitting" :parents="parents" :students="students"
-      :programs="programs" :sessions="sessions" :enrollments="enrollments" :enrollment="enrollment" :error="modalError"
+      :programs="programs" :classes="classes" :enrollments="enrollments" :enrollment="enrollment" :error="modalError"
       :success="modalSuccess" :hint="validationHint"
       @close="() => { showFormModal = false; modalError = ''; modalSuccess = ''; validationHint = ''; }"
       @program-change="handleProgramChange" @submit="handleEditSubmit" />
+
 
     <EnrollmentActionModal v-bind="actionModal" :loading="submitting" v-model:error="modalError"
       v-model:success="modalSuccess" @close="closeActionModal" @submit="handleActionSubmit" />
@@ -559,41 +560,26 @@ onMounted(async () => {
 <style scoped>
 @import '@/assets/styles/detail-view.css';
 
-.detail-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  width: 100%;
-  gap: 24px;
-  align-items: stretch;
-  /* Cards in same row match height */
-  margin-bottom: 30px;
-}
-
 .actions-wrapper {
   display: flex;
-  gap: 12px;
+  gap: var(--space-sm);
   align-items: center;
 }
 
-/* btn-icon-modern styles moved to DetailPageLayout.css */
-
-/* Custom scrollbar for webkit to keep it premium */
-
-/* Custom scrollbar for webkit to keep it premium */
 :deep(.main-cards-grid::-webkit-scrollbar) {
   width: 6px;
 }
 
 :deep(.main-cards-grid::-webkit-scrollbar-thumb) {
-  background: #cbd5e1;
-  border-radius: 10px;
+  background: var(--text-light);
+  border-radius: var(--border-radius-lg);
 }
 
 .sidebar-cards {
-  padding-right: 20px;
+  padding-right: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 25px;
+  gap: var(--space-xl);
   height: 100%;
 }
 
@@ -601,14 +587,14 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-sm);
 }
 
 .teacher-row-aligned {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 10px 0
+  gap: var(--space-sm);
+  margin: var(--space-sm) 0;
 }
 
 .teacher-content-inline {
@@ -618,20 +604,20 @@ onMounted(async () => {
 
 .teacher-name-solo {
   font-weight: 500;
-  font-size: 0.95rem;
-  color: #1e293b;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
 }
 
 .teacher-avatar-stack-inline {
   display: flex;
   align-items: center;
-  margin-left: 5px;
+  margin-left: var(--space-2xs);
 }
 
 .not-assigned-label {
-  color: #94a3b8;
+  color: var(--text-light);
   font-style: italic;
-  font-size: 0.9rem;
+  font-size: var(--text-sm);
 }
 
 .capacity-info {
@@ -641,28 +627,27 @@ onMounted(async () => {
 
 .capacity-info p {
   margin: 0;
-  font-size: 0.9rem;
-  color: #475569;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
 }
 
 .capacity-info strong {
-  color: #1e293b;
+  color: var(--text-dark);
 }
 
 .teacher-avatar-stack {
   display: flex;
   align-items: center;
-  margin-top: 5px;
+  margin-top: var(--space-2xs);
 }
 
 .teacher-avatar-stacked {
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   object-fit: cover;
-  border: 2px solid #fff;
+  border: 2px solid var(--white);
   margin-left: -8px;
-  /* The overlap! */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease;
 }
@@ -677,9 +662,9 @@ onMounted(async () => {
 }
 
 .stack-label {
-  margin-left: 12px;
-  font-size: 0.85rem;
-  color: #64748b;
+  margin-left: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -698,11 +683,11 @@ onMounted(async () => {
 }
 
 .modal-content {
-  background: #ffffff;
+  background: var(--white);
   width: 600px;
   max-width: 90vw;
   max-height: 90vh;
-  border-radius: 20px;
+  border-radius: var(--border-radius-lg);
   overflow: hidden;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   display: flex;
@@ -710,96 +695,84 @@ onMounted(async () => {
 }
 
 .modal-header {
-  padding: 20px 25px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--bg-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #fdfdfd;
+  background: var(--bg-subtle);
 }
 
 .modal-header h3 {
   margin: 0;
-  font-size: 1.25rem;
-  color: #1a1a1a;
+  font-size: var(--text-lg);
+  color: var(--text-deep);
 }
 
 .close-btn {
-  background: #f5f5f5;
+  background: var(--bg-light);
   border: none;
   width: 32px;
   height: 32px;
-  border-radius: 50%;
+  border-radius: var(--border-radius-round);
   cursor: pointer;
 }
 
 .modal-body {
-  padding: 25px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-group label {
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #444;
+  padding: var(--space-xl);
 }
 
 .info-block {
-  background: #e3f2fd;
-  border-radius: 8px;
-  padding: 15px;
+  background: var(--info-soft);
+  border-radius: var(--border-radius-sm);
+  padding: var(--space-md);
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
   align-items: flex-start;
 }
 
 .info-block.warning {
-  background: #fff9e6;
+  background: var(--warning-soft);
 }
 
 .info-block.danger {
-  background: #fdeaea;
+  background: var(--error-soft);
 }
 
 .modal-footer {
-  padding: 15px 25px;
+  padding: var(--space-md) var(--space-xl);
   display: flex;
   justify-content: flex-end;
-  gap: 15px;
-  background: #f8f9fa;
-  border-top: 1px solid #eee;
+  gap: var(--space-md);
+  background: var(--bg-subtle);
+  border-top: 1px solid var(--bg-light);
 }
 
 .cancel-btn {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 10px 20px;
-  border-radius: 10px;
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius-sm);
   cursor: pointer;
 }
 
 .save-btn {
-  background: #00aeef;
+  background: var(--primary-color);
   color: white;
   border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--border-radius-sm);
   cursor: pointer;
   font-weight: bold;
 }
 
 .danger-text {
-  color: #ef4444;
+  color: var(--error-color);
 }
 
 .danger-btn {
-  background: #ef4444 !important;
+  background: var(--error-color);
 }
 
 /* Payment Proof Styling */
@@ -808,13 +781,13 @@ onMounted(async () => {
   width: 100%;
   max-width: 240px;
   max-height: 240px;
-  border-radius: 12px;
+  border-radius: var(--border-radius);
   overflow: hidden;
   display: block;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
-  margin-top: 8px;
+  margin-top: var(--space-xs);
 }
 
 .proof-preview-link:hover {
@@ -827,7 +800,7 @@ onMounted(async () => {
   height: 100%;
   max-height: 240px;
   object-fit: contain;
-  background: #f8fafc;
+  background: var(--bg-subtle);
 }
 
 .proof-overlay {
@@ -847,12 +820,12 @@ onMounted(async () => {
 }
 
 .proof-overlay span {
-  color: white;
-  font-size: 0.8rem;
+  color: var(--white);
+  font-size: var(--text-xs);
   font-weight: 600;
-  padding: 6px 12px;
+  padding: var(--space-2xs) var(--space-sm);
   background: rgba(0, 0, 0, 0.2);
-  border-radius: 20px;
+  border-radius: var(--border-radius-lg);
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 

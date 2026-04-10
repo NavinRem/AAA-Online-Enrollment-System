@@ -1,20 +1,20 @@
 .table-toolbar {
   display: flex;
-  gap: 20px;
+  gap: var(--space-lg);
   align-items: center;
   justify-content: space-between;
 }
 
 .table-title {
-  font-size: 1.15rem;
+  font-size: var(--text-lg);
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--text-deep);
   margin: 0;
 }
 
 .table-controls {
   display: flex;
-  gap: 15px;
+  gap: var(--space-md);
   align-items: center;
   margin-left: auto;
 }
@@ -25,51 +25,48 @@
 
 .filter-dropdown-menu {
   position: absolute;
-  top: calc(100% + 10px);
+  top: calc(100% + var(--space-xs));
   right: 0;
-  background: white;
-  border-radius: 12px;
+  background: var(--white);
+  border-radius: var(--border-radius);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   z-index: 100;
   overflow: hidden;
-  min-width: 180px;
-}
-
-.scrollable-menu {
+  max-width: 180px;
   max-height: 400px;
-  overflow-y: auto !important;
+  overflow-y: auto;
 }
 
 .filter-option {
-  padding: 12px 18px;
-  font-size: 0.9rem;
-  color: #444;
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--text-sm);
+  color: var(--text-dark);
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .filter-option:hover {
-  background: #f4fafe;
+  background: var(--primary-soft);
 }
 
 .filter-option.active {
-  background: #e1f5fe;
-  color: #00aeef;
+  background: var(--accent-light);
+  color: var(--primary-color);
   font-weight: 700;
 }
 
 .toast-fade-enter-from,
 .toast-fade-leave-to {
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(calc(var(--space-xs) * -1));
 }
 
 .btn-icon-mini {
   width: 20px;
   height: 20px;
   object-fit: contain;
-  margin-right: 8px;
+  margin-right: var(--space-xs);
   vertical-align: middle;
 }
 
