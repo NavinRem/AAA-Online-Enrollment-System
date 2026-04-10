@@ -9,7 +9,7 @@
             :class="{ 'field-error': isSubmittingAttempted && errors.parentId }">
             <label>Select Parent <span class="required">*</span></label>
             <div class="custom-dropdown" :class="{ open: isParentDropdownOpen, 'step-locked': isSelectionLocked }">
-              <div class="dropdown-header" @click.stop="isSelectionLocked ? null : toggleDropdown('parent', $event)">
+              <div class="dropdown-header" @click.stop="toggleDropdown('parent', $event)">
                 <template v-if="selectedParent">
                   <div class="selected-item">
                     <img :src="getParentProfileURL(selectedParent.profileURL)" class="avatar-mini-enrollment" />
@@ -51,7 +51,7 @@
             <div class="custom-dropdown"
               :class="{ open: isStudentDropdownOpen, 'step-locked': !formData.parentId || isSelectionLocked }">
               <div class="dropdown-header"
-                @click.stop="isSelectionLocked ? null : (!formData.parentId ? setError('parentId', 'Choose a parent first.') : toggleDropdown('student', $event))">
+                @click.stop="toggleDropdown('student', $event)">
                 <template v-if="selectedStudent">
                   <div class="selected-item">
                     <img :src="getStudentProfileURL(selectedStudent.profileURL)" class="avatar-mini-enrollment" />
@@ -99,7 +99,7 @@
             <label>Select Program <span class="required">*</span></label>
             <div class="custom-dropdown" :class="{ open: isProgramDropdownOpen, 'step-locked': !formData.studentId }">
               <div class="dropdown-header"
-                @click.stop="!formData.studentId ? setError('studentId', 'Choose a student first.') : toggleDropdown('program', $event)">
+                @click.stop="toggleDropdown('program', $event)">
                 <template v-if="selectedProgram">
                   <div class="selected-item">
                     <img :src="getProgramProfileURL(selectedProgram.profileURL, selectedProgram.category)" class="avatar-mini-enrollment" />
@@ -141,7 +141,7 @@
             <label>Select Class Slot <span class="required">*</span></label>
             <div class="custom-dropdown" :class="{ open: isClassDropdownOpen, 'step-locked': !formData.programId }">
               <div class="dropdown-header"
-                @click.stop="!formData.programId ? setError('programId', 'Select a program first.') : toggleDropdown('class', $event)">
+                @click.stop="toggleDropdown('class', $event)">
                 <template v-if="selectedClass">
                   <div class="selected-item">
                     <div class="class-summary-mini">
@@ -242,7 +242,7 @@
               <div class="total-amount-large">${{ formatPrice(finalAmount) }}</div>
             </div>
             <AppButton type="submit" variant="primary" :loading="loading" form="enrollmentForm" class="mt-lg w-full"
-              :disabled="isFormInvalid || (isEditMode && !isChanged)"
+              :disabled="loading"
               :class="{ 'button-disabled-visual': isFormInvalid || (isEditMode && !isChanged) }">
               {{ isEditMode ? 'Update Enrollment' : 'Confirm Enrollment' }}
             </AppButton>
@@ -366,6 +366,7 @@ const prorateSavings = computed(() => {
 const isEditMode = computed(() => !!props.enrollment)
 const initialDataString = ref('')
 const isChanged = computed(() => !isEditMode.value || JSON.stringify(formData.value) !== initialDataString.value)
+const isSelectionLocked = computed(() => isEditMode.value)
 
 const manualErrors = ref({ parentId: '', studentId: '', programId: '', classId: '' })
 const errors = computed(() => {
@@ -382,7 +383,7 @@ const isSubmittingAttempted = ref(false)
 
 const validateAndSubmit = () => {
   isSubmittingAttempted.value = true
-  if (isFormInvalid.value) return
+  if (isFormInvalid.value || (isEditMode.value && !isChanged.value)) return
   emit('submit', {
     ...(isEditMode.value ? { id: props.enrollment.id } : {}),
     ...formData.value,
@@ -393,6 +394,28 @@ const validateAndSubmit = () => {
 
 const dropdownStyles = ref({ top: '0px', left: '0px', width: '0px' })
 const toggleDropdown = (type, e) => {
+  // Feedback for locked or sequential fields
+  if (isSelectionLocked.value && (type === 'parent' || type === 'student')) {
+    isSubmittingAttempted.value = true
+    return
+  }
+
+  if (type === 'student' && !formData.value.parentId) {
+    setError('parentId', 'Choose a parent first.')
+    isSubmittingAttempted.value = true
+    return
+  }
+  if (type === 'program' && !formData.value.studentId) {
+    setError('studentId', 'Choose a student first.')
+    isSubmittingAttempted.value = true
+    return
+  }
+  if (type === 'class' && !formData.value.programId) {
+    setError('programId', 'Select a program first.')
+    isSubmittingAttempted.value = true
+    return
+  }
+
   const header = e.currentTarget
   const rect = header.getBoundingClientRect()
   dropdownStyles.value = { top: `${rect.bottom + window.scrollY + 4}px`, left: `${rect.left + window.scrollX}px`, width: `${rect.width}px` }

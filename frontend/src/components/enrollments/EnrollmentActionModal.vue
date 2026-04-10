@@ -142,7 +142,7 @@
         <div class="flex-align-center flex-end w-full gap-sm">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" form="enrollmentActionForm" type="submit"
-            :loading="loading" :disabled="isFormInvalid || (type === 'edit' && !isChanged)"
+            :loading="loading" :disabled="loading"
             :class="{ 'button-disabled-visual': isFormInvalid || (type === 'edit' && !isChanged) }">
             {{ submitLabel }}
           </AppButton>
@@ -244,7 +244,7 @@ const modalIcon = computed(() => {
 
 const handleSubmitTrigger = () => {
   isSubmittingAttempted.value = true
-  if (isFormInvalid.value) return
+  if (isFormInvalid.value || (props.type === 'edit' && !isChanged.value)) return
   emit('submit', { ...localData.value })
 }
 </script>

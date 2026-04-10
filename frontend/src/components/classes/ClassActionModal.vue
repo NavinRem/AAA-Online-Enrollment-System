@@ -152,7 +152,7 @@
       <div class="flex-align-center flex-end w-full gap-sm">
         <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
         <AppButton variant="primary" :form="type === 'duplicate' ? null : 'classActionForm'" type="submit"
-          @click="type === 'duplicate' ? handleActionSubmit() : null" :loading="loading"
+          @click="type === 'duplicate' ? handleActionSubmit() : null" :loading="loading" :disabled="loading"
           :class="{ 'button-disabled-visual': !isFormValid || (type === 'edit' && !isChanged) }">
           {{ submitLabel }}
         </AppButton>
@@ -310,7 +310,7 @@ const fetchData = async () => {
 
 const handleActionSubmit = () => {
   isSubmittingAttempted.value = true
-  if (!isFormValid.value) return
+  if (!isFormValid.value || (props.type === 'edit' && !isChanged.value)) return
   emit('submit', { ...localData.value })
 }
 
