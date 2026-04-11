@@ -11,6 +11,7 @@ export const calculateDashboardStats = (
   students = [],
   sessions = [],
   branches = [],
+  trials = [],
 ) => {
   const now = new Date()
   const today = new Date(now.setHours(0, 0, 0, 0)).getTime()
@@ -48,6 +49,7 @@ export const calculateDashboardStats = (
             .filter((r) => isPaid(r.paymentStatus) && inWindow(r, today, now.getTime()))
             .reduce((sum, r) => sum + getAmt(r), 0) * 100,
         ) / 100,
+      trial: trials.filter((t) => parseDate(t.createdAt || t.trialDate).getTime() >= today).length,
     },
     week: {
       reg: weekRegs.length,
@@ -58,6 +60,7 @@ export const calculateDashboardStats = (
             .filter((r) => isPaid(r.paymentStatus) && inWindow(r, weekly, now.getTime()))
             .reduce((sum, r) => sum + getAmt(r), 0) * 100,
         ) / 100,
+      trial: trials.filter((t) => parseDate(t.createdAt || t.trialDate).getTime() >= weekly).length,
     },
     totals: {
       parents: (allUsers || []).filter((u) => u.role === 'parent').length,

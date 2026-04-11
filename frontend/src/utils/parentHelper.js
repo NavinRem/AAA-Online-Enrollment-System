@@ -43,7 +43,7 @@ export const isRegisteredToday = (user, todayStart) => {
  * Helper to check if a parent has any enrollment paid today.
  */
 export const hasPaidToday = (parentUid, enrollments = [], todayStart) => {
-  return enrollments.some(e => {
+  return enrollments.some((e) => {
     if (e.parentId !== parentUid) return false
     const paidAt = e.paidAt?.toDate ? e.paidAt.toDate() : e.paidAt ? new Date(e.paidAt) : null
     if (!paidAt) return false
@@ -59,7 +59,9 @@ export const calculateParentStats = (users = [], enrollments = []) => {
   const todayStart = new Date(now.setHours(0, 0, 0, 0)).getTime()
   const parents = users.filter((u) => u.role === 'parent')
 
-  const parentsPaidToday = parents.filter(p => hasPaidToday(p.uid || p.id, enrollments, todayStart)).length
+  const parentsPaidToday = parents.filter((p) =>
+    hasPaidToday(p.uid || p.id, enrollments, todayStart),
+  ).length
 
   return {
     parentCount: parents.length,
@@ -79,14 +81,19 @@ export const filterParents = (parents = [], enrollments = [], filterType = 'all'
   const now = new Date()
   const todayStart = new Date(now.setHours(0, 0, 0, 0)).getTime()
 
-  return parents.filter(u => {
+  return parents.filter((u) => {
     const status = (u.status || 'Active').toLowerCase()
     switch (filterType) {
-      case 'active': return status === 'active'
-      case 'inactive': return status === 'inactive'
-      case 'registered-today': return isRegisteredToday(u, todayStart)
-      case 'paid-today': return hasPaidToday(u.uid || u.id, enrollments, todayStart)
-      default: return true
+      case 'active':
+        return status === 'active'
+      case 'inactive':
+        return status === 'inactive'
+      case 'registered-today':
+        return isRegisteredToday(u, todayStart)
+      case 'paid-today':
+        return hasPaidToday(u.uid || u.id, enrollments, todayStart)
+      default:
+        return true
     }
   })
 }

@@ -137,7 +137,7 @@ export const isSameProfileAsset = (asset1, asset2) => {
 
   const extractCore = (val) => {
     if (typeof val !== 'string') return val
-    
+
     // 1. Remove query params and hashes
     let core = val.split('?')[0].split('#')[0]
 
