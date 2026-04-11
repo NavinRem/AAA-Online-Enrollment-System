@@ -26,7 +26,8 @@ const changePage = (page) => {
 <template>
   <div class="table-pagination">
     <div class="pagination-info">
-      Showing <span>{{ startRange }}</span> - <span>{{ endRange }}</span> of <span>{{ totalItems }}</span> records
+      Showing <span>{{ startRange }}</span> - <span>{{ endRange }}</span> of
+      <span>{{ totalItems }}</span> records
     </div>
 
     <div class="pagination-controls">

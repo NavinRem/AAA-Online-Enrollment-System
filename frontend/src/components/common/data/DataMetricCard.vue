@@ -1,80 +1,43 @@
-<script setup>
-defineProps({
-  label: {
-    type: String,
-    required: true
-  },
-  value: {
-    type: [String, Number],
-    required: true
-  },
-  image: {
-    type: String,
-    required: true
-  },
-  color: {
-    type: String,
-    default: 'var(--primary-soft)'
-  }
-})
-</script>
-
 <template>
-  <div class="metric-card" :style="{ backgroundColor: color }">
-    <div class="metric-icon">
-      <img :src="image" :alt="label" />
+  <div
+    class="flex items-center gap-md p-5 rounded-std shadow-sm flex-1 min-w-[180px] transition-shadow hover:shadow-md"
+    :style="{ backgroundColor: color }"
+  >
+    <div
+      class="w-11 h-11 bg-white rounded-sm flex items-center justify-center shadow-md shadow-black/5 flex-shrink-0"
+    >
+      <img :src="image" :alt="label" class="w-6 h-6 object-contain" />
     </div>
-    <div class="metric-info">
-      <span class="metric-label">{{ label }}</span>
-      <span class="metric-value">{{ value }}</span>
+    <div class="flex flex-col leading-tight">
+      <span class="text-3xs font-black text-content-muted uppercase tracking-widest opacity-80">{{
+        label
+      }}</span>
+      <span class="text-xl font-black text-content-dark tracking-tighter">{{ value }}</span>
     </div>
   </div>
 </template>
 
+<script setup>
+defineProps({
+  label: {
+    type: String,
+    required: true,
+  },
+  value: {
+    type: [String, Number],
+    required: true,
+  },
+  image: {
+    type: String,
+    required: true,
+  },
+  color: {
+    type: String,
+    default: 'var(--primary-soft)',
+  },
+})
+</script>
+
 <style scoped>
-.metric-card {
-  padding: 20px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
-  flex: 1;
-  min-width: 180px;
-}
-
-.metric-icon {
-  width: 44px;
-  height: 44px;
-  background: var(--white);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-}
-
-.metric-icon img {
-  width: 24px;
-  height: 24px;
-}
-
-.metric-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.metric-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.metric-value {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--text-dark);
-}
+/* Logic migrated to standard utility naming to resolve PostCSS expansion errors with custom tokens. */
 </style>

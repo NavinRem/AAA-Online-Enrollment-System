@@ -12,70 +12,28 @@ const handleImageError = (e) => {
 </script>
 
 <template>
-  <div class="mini-card">
-    <div class="icon-wrapper">
-      <img :src="image" :alt="title" @error="handleImageError" />
+  <div
+    class="flex items-center gap-md bg-surface-subtle p-md rounded-sm w-full border border-outline-std transition-all hover:bg-white hover:shadow-md hover:border-primary/20 group"
+  >
+    <div
+      class="w-10 h-10 flex items-center justify-center rounded-sm bg-white shadow-sm ring-1 ring-border flex-shrink-0 group-hover:scale-110 transition-transform"
+    >
+      <img :src="image" :alt="title" @error="handleImageError" class="w-7 h-7 object-contain" />
     </div>
-    <div class="card-info">
-      <h4 class="mini-title">{{ title }}</h4>
-      <div class="mini-value">{{ value }}</div>
-      <div v-if="subtitle" class="mini-subtitle">{{ subtitle }}</div>
+    <div class="flex flex-col gap-0.5 overflow-hidden">
+      <h4 class="text-3xs font-black uppercase tracking-widest text-content-muted truncate">
+        {{ title }}
+      </h4>
+      <div class="text-base font-black text-content-dark leading-tight tracking-tighter">
+        {{ value }}
+      </div>
+      <div v-if="subtitle" class="text-3xs text-content-muted font-bold truncate">
+        {{ subtitle }}
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.mini-card {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  background: var(--accent-light);
-  padding: 16px;
-  border-radius: 10px;
-  width: 100%;
-}
-
-.icon-wrapper {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  flex-shrink: 0;
-}
-
-.icon-wrapper img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.card-info {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.mini-title {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--secondary-color);
-}
-
-.mini-value {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: var(--text-dark);
-  line-height: 1.2;
-}
-
-.mini-subtitle {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: 2px;
-  font-weight: 500;
-}
+/* Scoped styles removed in favor of Tailwind CSS utility classes */
 </style>

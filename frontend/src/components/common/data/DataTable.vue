@@ -28,7 +28,13 @@ const props = defineProps({
   entityName: { type: String, default: 'record' },
 })
 
-const emit = defineEmits(['update:searchQuery', 'update:currentFilter', 'update:currentPage', 'row-click', 'action'])
+const emit = defineEmits([
+  'update:searchQuery',
+  'update:currentFilter',
+  'update:currentPage',
+  'row-click',
+  'action',
+])
 
 const { activeMenuId, isMenuAbove, menuStyles, toggleMenu, closeMenu } = useTableActions()
 
@@ -46,17 +52,17 @@ const emptyState = computed(() => {
     return {
       prefix: `No matching ${entity} found for `,
       label: `"${props.searchQuery}"`,
-      suffix: ''
+      suffix: '',
     }
   }
 
   if (props.currentFilter !== 'all' && props.filterOptions.length > 0) {
-    const option = props.filterOptions.find(o => o.value === props.currentFilter)
+    const option = props.filterOptions.find((o) => o.value === props.currentFilter)
     if (option) {
       return {
         prefix: 'no',
         label: option.value,
-        suffix: `${entity} record found`
+        suffix: `${entity} record found`,
       }
     }
   }
@@ -64,7 +70,7 @@ const emptyState = computed(() => {
   return {
     prefix: 'No ',
     label: '',
-    suffix: `${entity} records found.`
+    suffix: `${entity} records found.`,
   }
 })
 
@@ -75,46 +81,88 @@ const handleAction = (type, item) => {
 </script>
 
 <template>
-  <div class="generic-data-table-container flex-grower">
-    <TableToolbar :hasSearch="hasSearch" :searchQuery="searchQuery"
-      @update:searchQuery="emit('update:searchQuery', $event)" :searchPlaceholder="searchPlaceholder"
-      :hasFilter="hasFilter" :currentFilter="currentFilter" @update:currentFilter="emit('update:currentFilter', $event)"
-      :filterOptions="filterOptions" :title="title">
+  <div class="flex-1 min-h-0 flex flex-col w-full">
+    <TableToolbar
+      :hasSearch="hasSearch"
+      :searchQuery="searchQuery"
+      @update:searchQuery="emit('update:searchQuery', $event)"
+      :searchPlaceholder="searchPlaceholder"
+      :hasFilter="hasFilter"
+      :currentFilter="currentFilter"
+      @update:currentFilter="emit('update:currentFilter', $event)"
+      :filterOptions="filterOptions"
+      :title="title"
+    >
       <template #actions>
         <slot name="toolbar-actions"></slot>
       </template>
     </TableToolbar>
 
-    <div class="table-body-scroll flex-grower">
+    <div class="flex-1 min-h-0 flex flex-col w-full px-xs overflow-hidden">
       <AppTable :headers="headers" :loading="loading" :empty="!items || items.length === 0">
         <template #loading>{{ displayEmptyMessage }}</template>
         <template #empty>
-          <div class="empty-state-banner">
+          <div
+            class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic"
+          >
             <span v-if="emptyState.prefix">{{ emptyState.prefix }}</span>
-            <StatusBadge v-if="emptyState.label" :status="currentFilter" :type="getStatusCategory(currentFilter)">
+            <StatusBadge
+              v-if="emptyState.label"
+              :status="currentFilter"
+              :type="getStatusCategory(currentFilter)"
+            >
               {{ getStatusDisplay(emptyState.label) }}
             </StatusBadge>
             <span v-if="emptyState.suffix">{{ emptyState.suffix }}</span>
           </div>
         </template>
 
-        <tr v-for="(item, index) in items" :key="item.id || index" class="clickable-row" :class="rowClass(item)"
-          @click="emit('row-click', item)">
-          <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId"
-            :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction" :closeMenu="closeMenu" :headers="headers">
-            <td v-for="(header, hIdx) in headers" :key="hIdx"
+        <tr
+          v-for="(item, index) in items"
+          :key="item.id || index"
+          class="ui-row group"
+          :class="rowClass(item)"
+          @click="emit('row-click', item)"
+        >
+          <slot
+            name="row"
+            :item="item"
+            :index="index"
+            :toggleMenu="toggleMenu"
+            :activeMenuId="activeMenuId"
+            :isMenuAbove="isMenuAbove"
+            :menuStyles="menuStyles"
+            :handleAction="handleAction"
+            :closeMenu="closeMenu"
+            :headers="headers"
+          >
+            <td
+              v-for="(header, hIdx) in headers"
+              :key="hIdx"
+              class="ui-cell"
               :class="typeof header === 'object' && header.align ? `text-${header.align}` : ''"
-              :style="typeof header === 'object' ? { width: header.width } : {}">
-              {{ item[typeof header === 'object' ? header.key || header.label.toLowerCase().replace(' ', '') :
-                header.toLowerCase().replace(' ', '')] }}
+              :style="typeof header === 'object' ? { width: header.width } : {}"
+            >
+              {{
+                item[
+                  typeof header === 'object'
+                    ? header.key || header.label.toLowerCase().replace(' ', '')
+                    : header.toLowerCase().replace(' ', '')
+                ]
+              }}
             </td>
           </slot>
         </tr>
+
         <template #footer>
-          <tr v-if="hasPagination && items && items.length > 0" class="footer-row">
-            <td :colspan="headers.length" class="p-none w-full">
-              <TablePagination :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
-                @update:currentPage="emit('update:currentPage', $event)" />
+          <tr v-if="hasPagination && items && items.length > 0" class="ui-footer-row">
+            <td :colspan="headers.length" class="p-0 border-none bg-transparent">
+              <TablePagination
+                :currentPage="currentPage"
+                :pageSize="pageSize"
+                :totalItems="totalItems"
+                @update:currentPage="emit('update:currentPage', $event)"
+              />
             </td>
           </tr>
         </template>
@@ -124,56 +172,5 @@ const handleAction = (type, item) => {
 </template>
 
 <style scoped>
-.generic-data-table-container {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.table-body-scroll {
-  width: 100%;
-  padding-right: var(--space-3xs);
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-  overflow-y: hidden;
-}
-
-/* Custom Scrollbar moved to the body class or handled by global styles */
-.table-body::-webkit-scrollbar {
-  width: 6px;
-}
-
-.table-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.table-body::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: var(--border-radius-sm);
-}
-
-.table-body::-webkit-scrollbar-thumb:hover {
-  background: var(--text-light);
-}
-
-.clickable-row {
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.clickable-row:hover {
-  background-color: var(--bg-subtle);
-}
-
-.empty-state-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  color: var(--text-muted);
-  font-size: var(--text-sm);
-}
+/* Scoped styles removed in favor of centralized UI pattern classes in main.css */
 </style>

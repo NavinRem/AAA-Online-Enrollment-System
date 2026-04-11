@@ -2,7 +2,7 @@
 defineProps({
   title: String,
   value: [String, Number],
-  image: String, // Expects a resolved asset URL
+  image: String,
   color: {
     type: String,
     default: 'var(--accent-light)',
@@ -10,65 +10,41 @@ defineProps({
 })
 
 const handleImageError = (e) => {
-  // Option: Set a default icon if specific image fails
   e.target.style.opacity = '0.3'
 }
 </script>
 
 <template>
-  <div class="summary-card" :style="{ backgroundColor: color }">
-    <div class="card-content">
-      <h3 class="card-title">{{ title }}</h3>
-      <div class="card-illustration">
-        <img :src="image" :alt="title" @error="handleImageError" />
+  <div
+    class="rounded-std p-md sm:p-lg flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1 shadow-sm border border-outline-std bg-white group"
+  >
+    <div class="flex flex-col items-center justify-between h-full w-full gap-xs">
+      <div
+        class="w-8 h-8 rounded-full flex items-center justify-center opacity-80 mb-1"
+        :style="{ backgroundColor: color }"
+      >
+        <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
       </div>
-      <div class="card-value">{{ value }}</div>
+      <h3 class="text-2xs sm:text-xs font-black text-content-muted tracking-widest uppercase mb-1">
+        {{ title }}
+      </h3>
+      <div
+        class="w-full h-[60px] sm:h-[85px] flex items-center justify-center my-1 sm:my-2 overflow-hidden"
+      >
+        <img
+          :src="image"
+          :alt="title"
+          @error="handleImageError"
+          class="w-[55px] sm:w-[75px] h-[55px] sm:h-[75px] object-contain transition-transform duration-500 group-hover:scale-110"
+        />
+      </div>
+      <div class="text-2xl sm:text-3xl font-black text-content-dark tracking-tighter">
+        {{ value }}
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.summary-card {
-  flex: 1;
-  min-width: 180px;
-  border-radius: 20px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  transition: transform 0.2s;
-}
-
-.summary-card:hover {
-  transform: translateY(-5px);
-}
-
-.card-title {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-dark);
-  margin-bottom: 5px;
-}
-
-.card-illustration {
-  width: 100%;
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 10px 0;
-}
-
-.card-illustration img {
-  width: 100px;
-  height: 100px;
-  object-fit: contain;
-}
-
-.card-value {
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: var(--text-dark);
-}
+/* Scoped styles removed in favor of utility-first Tailwind CSS classes */
 </style>

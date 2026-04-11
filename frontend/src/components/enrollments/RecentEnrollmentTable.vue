@@ -6,7 +6,7 @@ import { formatDate, formatPrice } from '@/utils/formatUtils'
 import {
   getProgramProfileURL,
   getParentProfileURL,
-  getStudentProfileURL
+  getStudentProfileURL,
 } from '@/utils/assetHelper'
 
 defineProps({
@@ -26,7 +26,7 @@ const enrollmentHeaders = [
   { label: 'Mode', width: '60px', align: 'center' },
   { label: 'Status', width: '60px', align: 'center' },
   { label: 'Amount', width: '60px', align: 'center' },
-  { label: 'Enrolled Date', width: '90px', align: 'center' }
+  { label: 'Enrolled Date', width: '90px', align: 'center' },
 ]
 
 const navigateToDetail = (item) => {
@@ -47,7 +47,7 @@ const navigateToDetail = (item) => {
     <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
       <tr v-for="item in enrollments" :key="item.id || item.no" class="clickable-row">
         <td class="text-center" :style="{ width: enrollmentHeaders[0].width }">{{ item.no }}</td>
-        <td class="bold" :style="{ width: enrollmentHeaders[1].width }">
+        <td class="font-bold" :style="{ width: enrollmentHeaders[1].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
               <img :src="getParentProfileURL(item.parent?.profileURL)" alt="parent" />
@@ -57,7 +57,7 @@ const navigateToDetail = (item) => {
             </div>
           </div>
         </td>
-        <td class="bold" :style="{ width: enrollmentHeaders[2].width }">
+        <td class="font-bold" :style="{ width: enrollmentHeaders[2].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
               <img :src="getStudentProfileURL(item.student?.profileURL)" alt="child" />
@@ -67,10 +67,13 @@ const navigateToDetail = (item) => {
             </div>
           </div>
         </td>
-        <td class="bold" :style="{ width: enrollmentHeaders[3].width }">
+        <td class="font-bold" :style="{ width: enrollmentHeaders[3].width }">
           <div class="info-cell clickable" @click="navigateToDetail(item)">
             <div class="avatar-mini">
-              <img :src="getProgramProfileURL(item.program?.profileURL)" :alt="item.program?.title" />
+              <img
+                :src="getProgramProfileURL(item.program?.profileURL)"
+                :alt="item.program?.title"
+              />
             </div>
             <span class="program-name text-truncate">{{ item.program?.title }}</span>
           </div>
@@ -81,11 +84,12 @@ const navigateToDetail = (item) => {
         <td class="text-center" :style="{ width: enrollmentHeaders[5].width }">
           <StatusBadge :status="item.status" />
         </td>
-        <td class="bold text-center" :style="{ width: enrollmentHeaders[6].width }">
+        <td class="font-bold text-center" :style="{ width: enrollmentHeaders[6].width }">
           <StatusBadge :status="'$' + formatPrice(item.amount)" />
         </td>
-        <td class="date-cell text-center bold" :style="{ width: enrollmentHeaders[7].width }">{{ formatDate(item.date)
-          }}</td>
+        <td class="date-cell text-center font-bold" :style="{ width: enrollmentHeaders[7].width }">
+          {{ formatDate(item.date) }}
+        </td>
       </tr>
     </AppTable>
   </div>
