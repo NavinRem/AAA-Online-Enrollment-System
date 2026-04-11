@@ -13,7 +13,6 @@ export const programService = {
     return request('/classes')
   },
 
-
   getProgram(programId) {
     return request(`/programs/${programId}`)
   },
@@ -130,4 +129,3 @@ export const programService = {
     })
   },
 }
-

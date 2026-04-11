@@ -10,12 +10,12 @@ class BranchService {
   }
 
   getBranchSnapshot(branch) {
-    if (!branch) return null;
+    if (!branch) return null
     return {
       id: branch.id,
       name: branch.name,
-      abbr: branch.abbr
-    };
+      abbr: branch.abbr,
+    }
   }
 
   createBranch(data) {
@@ -39,6 +39,6 @@ class BranchService {
   }
 }
 
-const branchService = new BranchService();
-export { branchService };
-export default branchService;
+const branchService = new BranchService()
+export { branchService }
+export default branchService

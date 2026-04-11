@@ -40,7 +40,7 @@ export function useActionModal(props, emit, options = {}) {
         originalData.value = getInitial()
       }
     },
-    { immediate: true }
+    { immediate: true },
   )
 
   // Optional: Watch for source changes if the source prop is provided
@@ -52,7 +52,7 @@ export function useActionModal(props, emit, options = {}) {
           sync()
         }
       },
-      { deep: true }
+      { deep: true },
     )
   }
 
@@ -66,6 +66,6 @@ export function useActionModal(props, emit, options = {}) {
     originalData,
     isDirty,
     submitForm,
-    sync
+    sync,
   }
 }
