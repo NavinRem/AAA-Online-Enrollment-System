@@ -5,8 +5,6 @@ import { authService } from './services/authService'
 import App from './App.vue'
 import router from './router'
 import './assets/styles/main.css'
-import './assets/styles/responsive.css'
-import './assets/styles/components/CustomDropdown.css'
 
 let app
 
