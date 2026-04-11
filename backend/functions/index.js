@@ -25,6 +25,7 @@ const categoryRoutes = require("./src/routes/categories");
 const termRoutes = require("./src/routes/terms");
 const branchRoutes = require("./src/routes/branches");
 const classRoutes = require("./src/routes/classes");
+const trialRoutes = require("./src/routes/trials");
 
 
 // --- Administrative & Academic Tracking ---
@@ -53,6 +54,7 @@ apiRouter.use("/categories", categoryRoutes);
 apiRouter.use("/terms", termRoutes);
 apiRouter.use("/branches", branchRoutes);
 apiRouter.use("/classes", classRoutes);
+apiRouter.use("/trials", trialRoutes);
 
 
 // --- Administrative & Academic Recording ---

@@ -42,6 +42,7 @@ const COLLECTIONS = {
   REQUEST: "requests",
   SCHEDULE: "schedules",
   CLASS: "classes",
+  TRIAL: "trials",
 };
 
 module.exports = {
