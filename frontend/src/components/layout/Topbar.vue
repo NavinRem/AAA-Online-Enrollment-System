@@ -38,7 +38,7 @@ onMounted(() => {
       userRole.value = 'Guest'
       userProfile.value = {
         profileURL: getImageUrl('profiles', 'avatar-guest'),
-        role: 'Guest'
+        role: 'Guest',
       }
     }
   })
@@ -46,169 +46,68 @@ onMounted(() => {
 </script>
 
 <template>
-  <header class="topbar">
-    <div class="header-left">
-      <button class="menu-toggle" @click="emit('toggle-menu')">
-        <span class="hamburger"></span>
+  <header
+    class="flex items-center justify-between p-4 px-8 bg-surface-light/95 w-full sticky top-0 z-50 backdrop-blur-md border-b border-surface-light/50"
+  >
+    <div class="flex items-center gap-md">
+      <button
+        class="lg:hidden flex flex-col items-center justify-center gap-[5px] w-10 h-10 bg-white shadow-sm rounded-std"
+        @click="emit('toggle-menu')"
+      >
+        <span class="w-6 h-0.5 bg-text-dark rounded-full"></span>
+        <span class="w-6 h-0.5 bg-text-dark rounded-full"></span>
+        <span class="w-6 h-0.5 bg-text-dark rounded-full"></span>
       </button>
-      <h1 class="page-title">{{ pageTitle }}</h1>
+      <h1 class="text-2xl font-extrabold text-content-dark whitespace-nowrap tracking-tight">
+        {{ pageTitle }}
+      </h1>
     </div>
 
-    <div class="header-center desktop-only">
+    <div class="hidden lg:flex flex-1 max-w-[500px] mx-12">
       <SearchBox v-model="searchQuery" placeholder="Search something" />
     </div>
 
-    <div class="header-right">
-      <button class="icon-btn">
-        <img :src="getIconUrl('action', 'bell-svgrepo.svg')" alt="Notifications" />
+    <div class="flex items-center gap-md">
+      <button
+        class="hidden sm:flex bg-white w-10 h-10 rounded-full items-center justify-center shadow-md shadow-black/5 cursor-pointer hover:bg-white hover:ring-4 hover:ring-primary/5 transition-all"
+      >
+        <img
+          :src="getIconUrl('action', 'bell-svgrepo.svg')"
+          alt="Notifications"
+          class="w-5 opacity-60"
+        />
       </button>
-      <button class="icon-btn">
-        <img :src="getIconUrl('navigation', 'setting.svg')" alt="Settings" />
+      <button
+        class="hidden sm:flex bg-white w-10 h-10 rounded-full items-center justify-center shadow-md shadow-black/5 cursor-pointer hover:bg-white hover:ring-4 hover:ring-primary/5 transition-all"
+      >
+        <img :src="getIconUrl('navigation', 'setting.svg')" alt="Settings" class="w-5 opacity-60" />
       </button>
 
-      <div class="user-profile-topbar">
-        <div class="user-info-topbar">
-          <span class="user-name-topbar">{{ userName }}</span>
-          <span class="user-role-topbar">{{ userRole }}</span>
+      <div
+        class="flex items-center gap-sm bg-white p-1.5 pl-6 rounded-full shadow-md shadow-black/5 ml-sm border border-outline-std/50 group hover:border-primary/20 transition-all cursor-pointer"
+      >
+        <div class="flex flex-col text-right">
+          <span class="font-extrabold text-xs text-content-dark leading-tight">{{ userName }}</span>
+          <span class="text-2xs font-bold text-content-muted uppercase tracking-wider">{{
+            userRole
+          }}</span>
         </div>
-        <div class="user-avatar-topbar">
-          <img :src="avatarUrl" alt="Profile" />
+        <div
+          class="w-10 h-10 rounded-full overflow-hidden border border-outline-std/50 bg-primary/5 group-hover:scale-105 transition-transform"
+        >
+          <img :src="avatarUrl" alt="Profile" class="w-full h-full object-cover" />
         </div>
       </div>
     </div>
   </header>
 </template>
 
+<script>
+export default {
+  name: 'Topbar',
+}
+</script>
+
 <style scoped>
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-md) var(--space-2xl);
-  background: var(--bg-light);
-  width: 100%;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.menu-toggle {
-  display: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 10px 5px;
-}
-
-.hamburger {
-  display: block;
-  width: 24px;
-  height: 2px;
-  background: var(--text-deep);
-  position: relative;
-}
-
-.hamburger::before,
-.hamburger::after {
-  content: '';
-  position: absolute;
-  width: 24px;
-  height: 2px;
-  background: var(--text-deep);
-  left: 0;
-}
-
-.hamburger::before {
-  top: -8px;
-}
-
-.hamburger::after {
-  bottom: -8px;
-}
-
-.page-title {
-  font-size: var(--text-3xl);
-  font-weight: 700;
-  color: var(--text-dark);
-  white-space: nowrap;
-}
-
-.header-center {
-  flex: 1;
-  max-width: 500px;
-  margin: 0 var(--space-3xl);
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.icon-btn {
-  background: var(--white);
-  border: none;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--border-radius-round);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
-  cursor: pointer;
-}
-
-.icon-btn img {
-  width: 20px;
-  opacity: 0.7;
-}
-
-.user-profile-topbar {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  background: var(--white);
-  padding: var(--space-sm) var(--space-sm) var(--space-sm) var(--space-xl);
-  border-radius: var(--border-radius-lg);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
-  margin-left: var(--space-sm);
-}
-
-.user-info-topbar {
-  display: flex;
-  flex-direction: column;
-  text-align: right;
-}
-
-.user-name-topbar {
-  font-weight: 700;
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-}
-
-.user-role-topbar {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.user-avatar-topbar {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--border-radius-round);
-  overflow: hidden;
-  border: 1px solid var(--border-color);
-  background-color: var(--accent-light);
-}
-
-.user-avatar-topbar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+/* Scoped styles removed in favor of Tailwind utilities */
 </style>

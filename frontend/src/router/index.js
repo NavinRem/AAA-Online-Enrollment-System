@@ -23,6 +23,12 @@ const router = createRouter({
       meta: { title: 'Enrollment' },
     },
     {
+      path: '/trials',
+      name: 'trials',
+      component: () => import('../views/Trials.vue'),
+      meta: { title: 'Trials' },
+    },
+    {
       path: '/enrollments/:id',
       name: 'enrollment-detail',
       component: () => import('../views/EnrollmentDetail.vue'),

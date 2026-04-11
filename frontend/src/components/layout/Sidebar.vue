@@ -21,6 +21,7 @@ const logoutMessage = ref('')
 const menuItems = [
   { name: 'Dashboard', path: '/dashboard', icon: 'navigation/dashboard.svg' },
   { name: 'Enrollments', path: '/enrollments', icon: 'navigation/enrollment.svg' },
+  { name: 'Trials', path: '/trials', icon: 'navigation/trial.svg' },
   { name: 'Branches', path: '/branches', icon: 'navigation/branch.svg' },
   { name: 'Parents', path: '/parents', icon: 'navigation/parent.svg' },
   { name: 'Students', path: '/students', icon: 'navigation/student.svg' },
@@ -59,146 +60,67 @@ const handleNavClick = () => {
 </script>
 
 <template>
-  <aside class="sidebar" :class="{ 'sidebar-mobile-open': isOpen }">
-    <div class="logo-section">
-      <img :src="getImageUrl('common/logo-main')" alt="Logo" class="sidebar-logo" />
-      <span class="brand-name">Authentic Advanced Academy</span>
-      <button class="mobile-close-btn" @click="emit('close')">×</button>
+  <aside
+    class="w-[260px] h-screen bg-white flex flex-col border-r border-surface-light fixed left-0 top-0 z-[100] transition-transform duration-300 lg:translate-x-0"
+    :class="isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'">
+    <div class="p-3 px-5 flex items-center justify-center gap-sm relative border-b border-surface-light/50 mb-2">
+      <img :src="getImageUrl('common/logo-main')" alt="Logo" class="w-20 h-auto" />
+      <span class="text-sm font-extrabold text-content-dark leading-tight tracking-tight">Authentic Advanced
+        Academy</span>
+      <button
+        class="lg:hidden absolute right-3 top-1/2 -translate-y-1/2 bg-none border-none text-3xl text-content-light cursor-pointer p-1 leading-none hover:text-content-dark transition-colors"
+        @click="emit('close')">
+        ×
+      </button>
     </div>
 
-    <nav class="nav-menu">
-      <router-link v-for="item in menuItems" :key="item.name" :to="item.path" class="nav-item"
-        :class="{ active: route.path === item.path }" @click="handleNavClick">
-        <img :src="getIconUrl(item.icon)" :alt="item.name" class="nav-icon" />
-        <span class="nav-text">{{ item.name }}</span>
+    <nav class="flex-1 p-2 px-md flex flex-col gap-1 overflow-y-auto">
+      <router-link v-for="item in menuItems" :key="item.name" :to="item.path"
+        class="flex items-center gap-sm p-3 px-md text-content-muted rounded-sm transition-all font-semibold text-sm hover:bg-surface-subtle group"
+        :class="{
+          'bg-primary-soft text-primary font-bold shadow-sm shadow-primary/5':
+            route.path === item.path,
+        }" @click="handleNavClick">
+        <img :src="getIconUrl(item.icon)" :alt="item.name"
+          class="w-4.5 h-4.5 opacity-60 transition-all group-hover:opacity-90" :class="{
+            'opacity-100 grayscale-0 !invert-[48%] !sepia-[93%] !saturate-[3015%] !hue-rotate-[170deg] !contrast-[101%]':
+              route.path === item.path,
+          }" />
+        <span class="whitespace-nowrap">{{ item.name }}</span>
       </router-link>
     </nav>
 
-    <div class="sidebar-footer">
-      <p v-if="logoutMessage" class="logout-msg">{{ logoutMessage }}</p>
-      <AppButton variant="logout" class="w-full" :loading="!!logoutMessage" @click="handleLogout">
+    <div class="p-5 border-t border-surface-light mt-auto">
+      <p v-if="logoutMessage" class="text-error text-sm mb-3 text-center font-bold animate-pulse">
+        {{ logoutMessage }}
+      </p>
+      <AppButton variant="logout" class="w-full font-bold shadow-lg shadow-error/5" :loading="!!logoutMessage"
+        @click="handleLogout">
         Log Out
       </AppButton>
     </div>
   </aside>
 </template>
 
+<script>
+export default {
+  name: 'Sidebar',
+}
+</script>
+
 <style scoped>
-.sidebar {
-  width: 260px;
-  height: 100vh;
-  background: var(--white);
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid var(--bg-light);
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 100;
-  transition: transform 0.3s ease;
+/* Scoped styles removed in favor of Tailwind utilities */
+/* Custom scrollbar for nav menu */
+nav::-webkit-scrollbar {
+  width: 4px;
 }
 
-.logo-section {
-  padding: var(--space-2xl) var(--space-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  position: relative;
+nav::-webkit-scrollbar-track {
+  background: transparent;
 }
 
-.mobile-close-btn {
-  display: none;
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  font-size: 2rem;
-  color: var(--text-light);
-  cursor: pointer;
-  padding: 5px;
-  line-height: 1;
-}
-
-.sidebar-logo {
-  width: 80px;
-  height: auto;
-}
-
-.brand-name {
-  font-size: var(--text-sm);
-  font-weight: 700;
-  color: var(--text-deep);
-  line-height: 1.2;
-}
-
-.nav-menu {
-  flex: 1;
-  padding: var(--space-sm) var(--space-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  text-decoration: none;
-  color: var(--text-muted);
-  border-radius: var(--border-radius-sm);
-  transition: all 0.2s ease;
-  font-weight: 500;
-  font-size: var(--text-sm);
-}
-
-.nav-item:hover {
-  background: var(--bg-subtle);
-}
-
-.nav-item.active {
-  background: var(--accent-light);
-  color: var(--primary-color);
-}
-
-.nav-icon {
-  width: 20px;
-  height: 20px;
-  opacity: 0.7;
-}
-
-.active .nav-icon {
-  opacity: 1;
-  filter: invert(48%) sepia(93%) saturate(3015%) hue-rotate(170deg) brightness(101%) contrast(101%);
-}
-
-.sidebar-footer {
-  padding: var(--space-lg);
-}
-
-.logout-msg {
-  color: var(--error-color);
-  font-size: var(--text-sm);
-  margin-bottom: var(--space-sm);
-  text-align: center;
-  font-weight: 600;
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.6;
-  }
-
-  100% {
-    opacity: 1;
-  }
+nav::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
 }
 </style>

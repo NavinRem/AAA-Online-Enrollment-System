@@ -10,12 +10,25 @@ const toggleSidebar = () => {
 </script>
 
 <template>
-  <div class="app-layout" :class="{ 'sidebar-open': isSidebarOpen }">
-    <div class="sidebar-overlay" @click="isSidebarOpen = false"></div>
+  <div class="flex bg-surface-light h-screen relative overflow-hidden w-full">
+    <!-- Sidebar Overlay (Mobile Only) -->
+    <div
+      v-if="isSidebarOpen"
+      class="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[90] lg:hidden transition-opacity duration-300"
+      @click="isSidebarOpen = false"
+    ></div>
+
+    <!-- Sidebar -->
     <Sidebar :isOpen="isSidebarOpen" @close="isSidebarOpen = false" />
-    <div class="main-wrapper">
+
+    <!-- Main Wrapper -->
+    <div
+      class="flex-1 flex flex-col min-w-0 transition-[margin-left] duration-300 ease-in-out"
+      :class="['lg:ml-[260px]', isSidebarOpen ? 'ml-0' : 'ml-0']"
+    >
       <Topbar @toggle-menu="toggleSidebar" />
-      <main class="content-area">
+
+      <main class="flex-1 min-h-0 h-full overflow-hidden flex flex-col items-stretch p-0">
         <slot></slot>
       </main>
     </div>
@@ -23,43 +36,5 @@ const toggleSidebar = () => {
 </template>
 
 <style scoped>
-.app-layout {
-  display: flex;
-  background-color: var(--bg-light);
-  height: 100vh;
-  position: relative;
-  overflow: hidden;
-}
-
-.main-wrapper {
-  flex: 1;
-  margin-left: 260px;
-  display: flex;
-  flex-direction: column;
-  transition: margin-left 0.3s ease;
-  min-width: 0;
-}
-
-.content-area {
-  padding: 0;
-  flex: 1;
-  min-height: 0;
-  height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(2px);
-  z-index: 90;
-}
+/* Scoped styles removed in favor of centralized Tailwind utility classes */
 </style>
