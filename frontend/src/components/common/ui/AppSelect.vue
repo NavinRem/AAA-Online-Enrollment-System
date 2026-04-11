@@ -1,47 +1,101 @@
 <template>
-  <div class="custom-dropdown-container" ref="dropdownRef">
-    <div 
-      class="custom-dropdown" 
-      :class="{ open: isOpen, disabled: disabled }"
-      @click="toggleDropdown"
-    >
-      <div class="dropdown-header">
-        <div v-if="selectedItem" class="selected-item">
-          <span class="item-name">{{ selectedItem.name }}</span>
+  <div class="flex flex-col gap-xs text-left w-full" :class="{ 'animate-shake': shake }">
+    <label v-if="label" class="text-sm font-semibold text-content-dark flex items-center gap-1">
+      {{ label }}
+      <span v-if="required" class="text-error font-bold leading-none">*</span>
+    </label>
+
+    <div class="relative w-full" ref="dropdownRef">
+      <div
+        class="relative border-2 border-outline-std rounded-sm bg-surface-subtle cursor-pointer transition-all min-h-[44px] flex items-center group"
+        :class="{
+          'border-primary bg-white rounded-b-none ring-4 ring-primary/5': isOpen,
+          'ui-input-invalid': error,
+          'opacity-60 cursor-not-allowed pointer-events-none': disabled,
+        }"
+        @click="toggleDropdown"
+      >
+        <div class="flex items-center justify-between w-full px-4 py-2">
+          <div v-if="selectedItem" class="flex items-center gap-2">
+            <span class="text-sm font-semibold text-content-dark">{{ selectedItem.name }}</span>
+          </div>
+          <span v-else class="text-content-light text-sm italic opacity-70">{{ placeholder }}</span>
+          <span
+            class="w-2.5 h-2.5 border-r-2 border-b-2 border-text-muted transform transition-transform duration-300 mr-0.5"
+            :class="isOpen ? 'rotate-[-135deg]' : 'rotate-45'"
+          ></span>
         </div>
-        <span v-else class="placeholder">{{ placeholder }}</span>
-        <span class="chevron" :class="{ up: isOpen }"></span>
-      </div>
-      
-      <div class="dropdown-menu" v-if="isOpen" @click.stop>
-        <div v-if="searchable" class="dropdown-search">
-          <img :src="getActionIcon('search')" class="search-icon-mini" />
-          <input
-            type="text"
-            v-model="searchQuery"
-            :placeholder="searchPlaceholder"
+
+        <transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="opacity-0 scale-95 -translate-y-2"
+          enter-to-class="opacity-100 scale-100 translate-y-0"
+          leave-active-class="transition duration-150 ease-in"
+          leave-from-class="opacity-100 scale-100 translate-y-0"
+          leave-to-class="opacity-0 scale-95 -translate-y-2"
+        >
+          <div
+            class="absolute top-[calc(100%+2px)] -left-[2px] -right-[2px] bg-white border-2 border-primary border-t-0 rounded-b-sm z-[1000] shadow-xl overflow-hidden"
+            v-if="isOpen"
             @click.stop
-            ref="searchInput"
-          />
-        </div>
-        <ul class="dropdown-list">
-          <li
-            v-for="item in filteredItems"
-            :key="item.id"
-            class="dropdown-item"
-            :class="{ active: modelValue === item.id }"
-            @click="selectItem(item)"
           >
-            <div class="item-info">
-              <span class="item-name">{{ item.name }}</span>
+            <div
+              v-if="searchable"
+              class="p-2 border-b border-surface-light relative flex items-center bg-surface-subtle"
+            >
+              <img
+                :src="getActionIcon('search')"
+                class="absolute left-4 w-4 h-4 opacity-40 pointer-events-none"
+              />
+              <input
+                type="text"
+                v-model="searchQuery"
+                :placeholder="searchPlaceholder"
+                class="w-full py-2.5 pl-10 pr-4 border-2 border-outline-std rounded-sm text-sm outline-none focus:border-primary transition-all font-semibold"
+                @click.stop
+                ref="searchInput"
+              />
             </div>
-          </li>
-          <li v-if="filteredItems.length === 0" class="dropdown-item no-results">
-            No matches found.
-          </li>
-        </ul>
+            <ul class="list-none p-0 m-0 max-h-[200px] scrollable-v">
+              <li
+                v-for="item in filteredItems"
+                :key="item.id"
+                class="px-md py-sm flex items-center gap-sm cursor-pointer transition-colors hover:bg-surface-light group/item"
+                :class="{ 'bg-primary-soft text-primary font-bold': modelValue === item.id }"
+                @click="selectItem(item)"
+              >
+                <div class="flex flex-col">
+                  <span
+                    class="text-sm group-hover/item:translate-x-1 transition-transform duration-200"
+                    >{{ item.name }}</span
+                  >
+                </div>
+              </li>
+              <li
+                v-if="filteredItems.length === 0"
+                class="p-md text-center text-content-light text-sm italic"
+              >
+                No matches found.
+              </li>
+            </ul>
+          </div>
+        </transition>
       </div>
     </div>
+
+    <!-- Error Message -->
+    <transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-1"
+    >
+      <p v-if="error" class="text-3xs font-black text-error uppercase tracking-widest pl-1 mt-0.5">
+        {{ error }}
+      </p>
+    </transition>
   </div>
 </template>
 
@@ -53,21 +107,25 @@ const props = defineProps({
   modelValue: [String, Number],
   items: {
     type: Array,
-    default: () => []
+    default: () => [],
   },
+  label: String,
   placeholder: {
     type: String,
-    default: '-- Select --'
+    default: '-- Select --',
   },
+  required: Boolean,
   disabled: Boolean,
+  error: String,
+  shake: Boolean,
   searchable: {
     type: Boolean,
-    default: true
+    default: true,
   },
   searchPlaceholder: {
     type: String,
-    default: 'Search...'
-  }
+    default: 'Search...',
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])
@@ -78,15 +136,13 @@ const dropdownRef = ref(null)
 const searchInput = ref(null)
 
 const selectedItem = computed(() => {
-  return props.items.find(item => item.id === props.modelValue)
+  return props.items.find((item) => item.id === props.modelValue)
 })
 
 const filteredItems = computed(() => {
   if (!searchQuery.value) return props.items
   const q = searchQuery.value.toLowerCase()
-  return props.items.filter(item => 
-    item.name.toLowerCase().includes(q)
-  )
+  return props.items.filter((item) => item.name.toLowerCase().includes(q))
 })
 
 const toggleDropdown = () => {
@@ -119,150 +175,9 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside)
 })
-
-watch(() => props.modelValue, () => {
-  // Reset search when selection changes if needed? Maybe not.
-})
 </script>
 
+
 <style scoped>
-/* Scoped styles to ensure functionality even if global CSS isn't loaded */
-.custom-dropdown-container {
-  position: relative;
-  width: 100%;
-}
-
-.custom-dropdown {
-  position: relative;
-  border: 1.5px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  background: var(--bg-subtle);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.custom-dropdown.open {
-  border-color: var(--primary-color);
-  background: var(--white);
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.custom-dropdown.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.dropdown-header {
-  padding: var(--space-xs) var(--space-sm);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 40px;
-}
-
-.selected-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.placeholder {
-  color: var(--text-light);
-  font-size: var(--text-sm);
-}
-
-.chevron {
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid var(--text-muted);
-  border-bottom: 2px solid var(--text-muted);
-  transform: rotate(45deg);
-  transition: transform 0.3s;
-  margin-right: 4px;
-}
-
-.chevron.up {
-  transform: rotate(-135deg);
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: -1.5px;
-  right: -1.5px;
-  background: var(--white);
-  border: 1.5px solid var(--primary-color);
-  border-top: none;
-  border-bottom-left-radius: var(--border-radius-sm);
-  border-bottom-right-radius: var(--border-radius-sm);
-  z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.dropdown-search {
-  padding: var(--space-xs);
-  border-bottom: 1px solid var(--bg-light);
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon-mini {
-  position: absolute;
-  left: 16px;
-  width: 14px;
-  height: 14px;
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-.dropdown-search input {
-  width: 100%;
-  padding: var(--space-2xs) var(--space-md) var(--space-2xs) 30px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  font-size: var(--text-sm);
-  outline: none;
-}
-
-.dropdown-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.dropdown-item {
-  padding: var(--space-xs) var(--space-sm);
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  transition: background 0.2s;
-  cursor: pointer;
-}
-
-.dropdown-item:hover {
-  background: var(--bg-light);
-}
-
-.dropdown-item.active {
-  background: var(--primary-soft);
-  color: var(--primary-color);
-}
-
-.item-name {
-  font-size: var(--text-sm);
-  font-weight: 500;
-}
-
-.no-results {
-  padding: var(--space-sm);
-  text-align: center;
-  color: var(--text-light);
-  font-size: var(--text-sm);
-}
+/* Scoped styles entirely removed in favor of utility classes and centralized scrollable-v pattern. */
 </style>

@@ -1,75 +1,67 @@
 <template>
-  <transition name="alert-fade">
-    <div v-if="show" :class="['alert-box', type]" :style="customStyle">
-      <div class="alert-content">
+  <transition
+    enter-active-class="transition duration-300 ease-out"
+    enter-from-class="opacity-0 -translate-y-2"
+    enter-to-class="opacity-100 translate-y-0"
+    leave-active-class="transition duration-200 ease-in"
+    leave-from-class="opacity-100 translate-y-0"
+    leave-to-class="opacity-0 -translate-y-2"
+  >
+    <div
+      v-if="show"
+      class="flex items-start gap-md p-md rounded-sm border-l-4 shadow-sm relative transition-all"
+      :class="variantClasses[type] || variantClasses.info"
+      :style="customStyle"
+    >
+      <div class="flex-1 text-sm font-semibold leading-relaxed">
         <slot>{{ message }}</slot>
       </div>
-      <button v-if="closable" class="alert-close" @click="$emit('close')">&times;</button>
+      <button
+        v-if="closable"
+        class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors cursor-pointer"
+        @click="$emit('close')"
+      >
+        <span class="text-lg leading-none">&times;</span>
+      </button>
     </div>
   </transition>
 </template>
 
 <script setup>
-defineProps({
+const props = defineProps({
   show: {
     type: Boolean,
-    default: true
+    default: true,
   },
   type: {
     type: String,
     default: 'info',
-    validator: (val) => ['success', 'warning', 'error', 'info'].includes(val)
+    validator: (val) => ['success', 'warning', 'error', 'info'].includes(val),
   },
   message: {
     type: String,
-    default: ''
+    default: '',
   },
   closable: {
     type: Boolean,
-    default: false
+    default: false,
   },
   customStyle: {
     type: Object,
-    default: () => ({})
-  }
+    default: () => ({}),
+  },
 })
+
+const variantClasses = {
+  success: 'bg-success-soft border-success text-success-deep',
+  error: 'bg-error-soft border-error text-error-deep',
+  warning: 'bg-warning-soft border-warning text-warning-deep',
+  info: 'bg-info-soft border-info text-info-deep',
+}
 
 defineEmits(['close'])
 </script>
 
 <style scoped>
-.alert-fade-enter-active,
-.alert-fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.alert-fade-enter-from,
-.alert-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-8px);
-}
-
-.alert-content {
-  flex: 1;
-}
-
-.alert-close {
-  background: none;
-  border: none;
-  font-size: 1.25rem;
-  line-height: 1;
-  color: currentColor;
-  opacity: 0.6;
-  cursor: pointer;
-  padding: 0 4px;
-  margin-top: -2px;
-  transition: opacity 0.2s;
-}
-
-.alert-close:hover {
-  opacity: 1;
-}
-
-/* Base alert-box styles are in main.css, 
-   scoped styles here handle component-specific layout */
+/* Scoped styles entirely removed. Transitions are handled via Vue transition classes. */
 </style>

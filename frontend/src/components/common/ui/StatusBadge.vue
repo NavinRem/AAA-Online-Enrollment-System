@@ -1,5 +1,8 @@
 <template>
-  <span class="status-badge" :style="badgeStyle">
+  <span
+    class="inline-flex items-center justify-center px-3 py-[3px] rounded-full text-sm font-bold leading-none whitespace-nowrap text-center transition-all"
+    :style="badgeStyle"
+  >
     <slot>{{ displayStatus }}</slot>
   </span>
 </template>
@@ -29,5 +32,5 @@ const badgeStyle = computed(() => {
 </script>
 
 <style scoped>
-@import '@/assets/styles/components/StatusBadge.css';
+/* Scoped styles removed in favor of Tailwind */
 </style>

@@ -1,42 +1,88 @@
 <template>
-  <div class="avatar-selector">
-    <div class="selector-container">
-      <div class="avatar-gallery">
-        <div v-for="avatar in availableAvatars" :key="avatar.id + avatar.url" class="avatar-option"
-          :class="{ active: isSelected(avatar.url) }" @click="selectAvatar(avatar.url)">
-          <img :src="avatar.url" :alt="avatar.name" />
-          <div class="check-badge" v-if="isSelected(avatar.url)">
+  <div class="avatar-selector w-full flex flex-col gap-xs" :class="{ 'animate-shake': shake }">
+    <div
+      class="selector-container flex items-center justify-between bg-surface-subtle p-md px-xl rounded-std border-2 transition-all"
+      :class="error ? 'border-error bg-error-soft' : 'border-outline-std'"
+    >
+      <div class="avatar-gallery flex gap-4">
+        <div
+          v-for="avatar in availableAvatars"
+          :key="avatar.id + avatar.url"
+          class="avatar-option relative w-14 h-14 rounded-full cursor-pointer border-2 transition-all p-0.5 bg-white"
+          :class="isSelected(avatar.url) ? 'border-primary ring-4 ring-primary/5' : 'border-transparent hover:border-text-light'"
+          @click="selectAvatar(avatar.url)"
+        >
+          <img :src="avatar.url" :alt="avatar.name" class="w-full h-full rounded-full object-cover" />
+          <div
+            class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm"
+            v-if="isSelected(avatar.url)"
+          >
             <i class="fas fa-check"></i>
           </div>
         </div>
 
-        <div v-if="customAvatar" class="avatar-option custom-slot" :class="{ active: isSelected(customAvatar) }"
-          @click="selectAvatar(customAvatar)">
-          <img :src="customAvatar" alt="Custom" />
-          <div class="check-badge" v-if="isSelected(customAvatar)">
+        <!-- Custom Slot -->
+        <div
+          v-if="customAvatar"
+          class="avatar-option relative w-14 h-14 rounded-full cursor-pointer border-2 transition-all p-0.5 bg-white border-primary ring-4 ring-primary/5"
+          :class="{ 'opacity-100': isSelected(customAvatar), 'opacity-60': !isSelected(customAvatar) }"
+          @click="selectAvatar(customAvatar)"
+        >
+          <img :src="customAvatar" alt="Custom" class="w-full h-full rounded-full object-cover" />
+          <div
+            class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm"
+            v-if="isSelected(customAvatar)"
+          >
             <i class="fas fa-check"></i>
           </div>
-          <button class="remove-avatar-btn" @click.stop="removeCustomAvatar" title="Delete Uploaded Profile">
+          <button
+            class="remove-avatar-btn absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error text-white border-2 border-white flex items-center justify-center text-[10px] opacity-0 hover:scale-110 transition-all z-10 group-hover:opacity-100 shadow-md"
+            @click.stop="removeCustomAvatar"
+          >
             <i class="fas fa-times"></i>
           </button>
         </div>
       </div>
 
-      <div class="vertical-divider"></div>
+      <div class="vertical-divider w-px h-10 bg-outline-std mx-2"></div>
 
       <div class="upload-area">
-        <input type="file" ref="fileInput" accept="image/*" class="hidden-input" @change="handleFileUpload" />
-        <div class="upload-btn" @click="fileInput?.click()">
-          <div v-if="uploading" class="spinner-mini"></div>
-          <i v-else class="fas fa-plus"></i>
-          <span>{{ uploading ? 'Wait...' : 'Upload' }}</span>
+        <input
+          type="file"
+          ref="fileInput"
+          accept="image/*"
+          class="hidden"
+          @change="handleFileUpload"
+        />
+        <div
+          class="upload-btn w-14 h-14 rounded-full border-2 border-dashed border-text-light flex flex-col items-center justify-center cursor-pointer transition-all bg-white text-content-light/50 hover:border-primary hover:text-primary hover:bg-primary-soft"
+          @click="fileInput?.click()"
+        >
+          <div v-if="uploading" class="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+          <template v-else>
+            <i class="fas fa-plus text-sm mb-0.5"></i>
+            <span class="text-[10px] font-black uppercase tracking-tighter">Upload</span>
+          </template>
         </div>
       </div>
     </div>
-    <div v-if="error" class="error-text">{{ error }}</div>
-    <div v-if="success" class="success-text">
-      <i class="fas fa-check-circle"></i> Upload successful!
-    </div>
+
+    <!-- Feedback States -->
+    <transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-1"
+    >
+      <div v-if="error || props.error" class="text-3xs font-black text-error uppercase tracking-widest pl-1">
+        {{ error || props.error }}
+      </div>
+      <div v-else-if="success" class="text-3xs font-black text-success uppercase tracking-widest pl-1 flex items-center gap-1">
+        <i class="fas fa-check-circle"></i> Profile upload acknowledged
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -50,10 +96,12 @@ const props = defineProps({
   modelValue: String,
   role: {
     type: String,
-    default: ''
+    default: '',
   },
   uid: String,
-  customFileName: String
+  customFileName: String,
+  error: String,
+  shake: Boolean
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -67,17 +115,17 @@ const customAvatar = ref(null)
 
 const STUDENT_AVATARS = [
   { id: 'boy', name: 'Boy', key: 'profiles/avatar-boy' },
-  { id: 'girl', name: 'Girl', key: 'profiles/avatar-girl' }
+  { id: 'girl', name: 'Girl', key: 'profiles/avatar-girl' },
 ]
 
 const TEACHER_AVATARS = [
   { id: 'teacher-man', name: 'Teacher (M)', key: 'profiles/avatar-teacher-man' },
-  { id: 'teacher-woman', name: 'Teacher (F)', key: 'profiles/avatar-teacher-woman' }
+  { id: 'teacher-woman', name: 'Teacher (F)', key: 'profiles/avatar-teacher-woman' },
 ]
 
 const DEFAULT_AVATARS = [
   { id: 'man', name: 'Man', key: 'profiles/avatar-man' },
-  { id: 'woman', name: 'Woman', key: 'profiles/avatar-woman' }
+  { id: 'woman', name: 'Woman', key: 'profiles/avatar-woman' },
 ]
 
 const availableAvatars = computed(() => {
@@ -87,38 +135,33 @@ const availableAvatars = computed(() => {
   if (role === 'student') base = STUDENT_AVATARS
   else if (role === 'teacher') base = TEACHER_AVATARS
 
-  return base.map(a => ({
+  return base.map((a) => ({
     ...a,
-    url: getImageUrl(a.key)
+    url: getImageUrl(a.key),
   }))
 })
 
-watch([() => props.modelValue, () => availableAvatars.value], ([newVal, currentGallery]) => {
-  if (newVal) {
-    const isBuiltin = ALL_BUILTIN_AVATARS.some(builtin =>
-      isSameProfileAsset(newVal, builtin)
-    )
+watch(
+  [() => props.modelValue, () => availableAvatars.value],
+  ([newVal, currentGallery]) => {
+    if (newVal) {
+      const isBuiltin = ALL_BUILTIN_AVATARS.some((builtin) => isSameProfileAsset(newVal, builtin))
+      const isInGallery = currentGallery.some((a) => isSameProfileAsset(newVal, a.url))
 
-    // Check if it's already in the standard gallery for THIS role
-    const isInGallery = currentGallery.some(a =>
-      isSameProfileAsset(newVal, a.url)
-    )
-
-    if (!isInGallery) {
-      // Proactively resolve the value. getImageUrl handles both tags
-      const resolved = getImageUrl(newVal)
-      if (resolved) {
-        // If it's a valid asset but not in our role's gallery, show it in the custom slot
-        customAvatar.value = resolved
+      if (!isInGallery) {
+        const resolved = getImageUrl(newVal)
+        if (resolved) {
+          customAvatar.value = resolved
+        } else {
+          customAvatar.value = null
+        }
       } else {
         customAvatar.value = null
       }
-    } else {
-      // If it exists in the gallery, we don't need the custom slot for it
-      customAvatar.value = null
     }
-  }
-}, { immediate: true })
+  },
+  { immediate: true },
+)
 
 const isSelected = (url) => {
   if (!props.modelValue || !url) return false
@@ -205,189 +248,8 @@ const handleFileUpload = async (event) => {
 </script>
 
 <style scoped>
-.avatar-selector {
-  margin-bottom: var(--space-md);
-  width: 100%;
-}
-
-.section-label {
-  display: block;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: var(--space-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-}
-
-.selector-container {
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  background: var(--bg-subtle);
-  padding: var(--space-md) var(--space-xl);
-  border-radius: var(--border-radius);
-  border: 1px solid var(--border-color);
-}
-
-.avatar-gallery {
-  display: flex;
-  gap: 16px;
-}
-
-.avatar-option {
-  position: relative;
-  width: 54px;
-  height: 54px;
-  border-radius: var(--border-radius-round);
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: all 0.2s;
-  background: var(--white);
-  padding: 2px;
-}
-
-.avatar-option:hover {
-  transform: translateY(-2px);
-  border-color: var(--text-light);
-}
-
-.avatar-option.active {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 10px rgba(0, 174, 239, 0.2);
-}
-
-.avatar-option img {
-  width: 100%;
-  height: 100%;
-  border-radius: var(--border-radius-round);
-  object-fit: cover;
-}
-
-.check-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: var(--primary-color);
-  color: var(--white);
-  width: 18px;
-  height: 18px;
-  border-radius: var(--border-radius-round);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-3xs);
-  border: 2px solid var(--white);
-}
-
-.vertical-divider {
-  width: 1px;
-  height: 48px;
-  background: var(--border-color);
-  margin: 0 var(--space-xs);
-}
-
-.hidden-input {
-  display: none;
-}
-
-.upload-btn {
-  width: 54px;
-  height: 54px;
-  border-radius: var(--border-radius-round);
-  border: 2px dashed var(--text-light);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--white);
-  color: var(--text-light);
-}
-
-.upload-btn:hover {
-  border-color: var(--primary-color);
-  background: var(--bg-light);
-  color: var(--primary-color);
-}
-
-.upload-btn i {
-  font-size: var(--text-sm);
-  margin-bottom: 2px;
-}
-
-.upload-btn span {
-  font-size: var(--text-3xs);
-  font-weight: 600;
-}
-
-.custom-slot {
-  border-color: var(--primary-color);
-  border-style: solid;
-}
-
-.remove-avatar-btn {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
-  border-radius: var(--border-radius-round);
-  background: var(--error-color);
-  color: var(--white);
-  border: 1px solid var(--white);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  cursor: pointer;
-  opacity: 0;
-  transition: all 0.2s;
-  z-index: 2;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
 .avatar-option:hover .remove-avatar-btn {
   opacity: 1;
 }
-
-.remove-avatar-btn:hover {
-  background: var(--error-deep);
-  transform: scale(1.1);
-}
-
-.error-text {
-  color: var(--error-color);
-  font-size: var(--text-xs);
-  margin-top: var(--space-2xs);
-  display: none;
-}
-
-.error-text.show {
-  display: block;
-}
-
-.success-text {
-  color: var(--success-color);
-  font-size: var(--text-xs);
-  margin-top: var(--space-2xs);
-}
-
-.spinner-mini {
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--text-light);
-  border-top-color: var(--primary-color);
-  border-radius: var(--border-radius-round);
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 2px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 </style>
+
