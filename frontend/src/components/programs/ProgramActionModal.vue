@@ -1,154 +1,382 @@
 <template>
-  <AppModal :show="isOpen" maxWidth="600px" @close="$emit('close')">
-    <template #header>
-      <div class="modal-header-main">
-        <div class="modal-title-wrapper">
-          <img v-if="modalIcon" :src="modalIcon" class="modal-title-icon" />
-          <h3>{{ modalTitle }}</h3>
-        </div>
-        <AppAlert :show="!!error" type="error" closable @close="$emit('update:error', '')">
-          {{ error }}
-        </AppAlert>
-      </div>
+  <AppModal
+    :show="isOpen"
+    :title="modalTitle"
+    :icon="modalIcon"
+    maxWidth="600px"
+    @close="$emit('close')"
+  >
+    <template #header-extra v-if="error">
+      <AppAlert :show="!!error" type="error" closable @close="$emit('update:error', '')">
+        {{ error }}
+      </AppAlert>
     </template>
 
-    <form v-if="type === 'add' || type === 'edit'" id="programActionForm" class="form-grid"
-      @submit.prevent="handleSubmit">
-      <div class="form-group full-width" :class="{ 'field-error': isSubmittingAttempted && errors.name }">
-        <label>Program Name (Model) <span class="required">*</span>
-          <span class="original-value" v-if="type === 'edit' && originalData.name">Original: {{ originalData.name }}</span>
+    <form
+      v-if="type === 'add' || type === 'edit'"
+      id="programActionForm"
+      class="grid grid-cols-2 gap-x-lg gap-y-md"
+      @submit.prevent="handleSubmit"
+    >
+      <div
+        class="flex flex-col gap-xs mb-sm col-span-2"
+        :class="{ 'group is-error': isSubmittingAttempted && errors.name }"
+      >
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Program Identity / Model <span class="text-error">*</span>
+          <span
+            class="text-3xs font-bold text-primary ml-sm lowercase italic opacity-60"
+            v-if="type === 'edit' && originalData.name"
+            >Record: {{ originalData.name }}</span
+          >
         </label>
-        <input type="text" v-model="localData.name" placeholder="e.g. Piano for kids" class="standard-input" />
-        <div v-if="isSubmittingAttempted && errors.name" class="field-error-msg">{{ errors.name }}</div>
+        <input
+          type="text"
+          v-model="localData.name"
+          placeholder="e.g. Master Class: Piano"
+          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
+        />
+        <div
+          v-if="isSubmittingAttempted && errors.name"
+          class="text-error text-3xs font-black px-1 mt-1 uppercase"
+        >
+          {{ errors.name }}
+        </div>
       </div>
 
-      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.categoryId }">
-        <label>Category <span class="required">*</span>
-          <span class="original-value" v-if="type === 'edit' && originalData.categoryId">Saved ID: {{ originalData.categoryId }}</span>
-        </label>
-        <AppSelect v-model="localData.categoryId" :items="sortedCategories" placeholder="-- Select Category --"
-          @change="onCategoryChange" />
-        <div v-if="isSubmittingAttempted && errors.categoryId" class="field-error-msg">{{ errors.categoryId }}</div>
+      <div
+        class="flex flex-col gap-xs"
+        :class="{ 'group is-error': isSubmittingAttempted && errors.categoryId }"
+      >
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Category <span class="text-error">*</span></label
+        >
+        <AppSelect
+          v-model="localData.categoryId"
+          :items="sortedCategories"
+          placeholder="Catalog..."
+          @change="onCategoryChange"
+        />
+        <div
+          v-if="isSubmittingAttempted && errors.categoryId"
+          class="text-error text-3xs font-black px-1 mt-1 uppercase"
+        >
+          {{ errors.categoryId }}
+        </div>
       </div>
 
-      <div class="form-group">
-        <label>Level (Optional)
-          <span class="original-value" v-if="type === 'edit' && originalData.levelId">Saved ID: {{ originalData.levelId }}</span>
-        </label>
-        <AppSelect v-model="localData.levelId" :items="sortedLevels" placeholder="-- Select Level --" />
+      <div class="flex flex-col gap-xs">
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Skill Level</label
+        >
+        <AppSelect v-model="localData.levelId" :items="sortedLevels" placeholder="Difficulty..." />
       </div>
 
-      <div class="divider full-width">Product Details</div>
-
-      <div class="form-group">
-        <label>Type <span class="required">*</span>
-          <span class="original-value" v-if="type === 'edit' && originalData.type">Original: {{ originalData.type }}</span>
-        </label>
-        <AppSelect v-model="localData.type" :items="[ { id: 'group', name: 'Group Class' }, { id: 'private', name: 'Private Class' } ]" :searchable="false" />
+      <div class="col-span-2 flex items-center gap-md py-2 opacity-50">
+        <div class="h-px bg-border flex-1"></div>
+        <span class="text-3xs font-black uppercase tracking-[2px] text-content-muted select-none"
+          >Economic & Operational Logic</span
+        >
+        <div class="h-px bg-border flex-1"></div>
       </div>
 
-      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.basePrice }">
-        <label>Base Price ($) <span class="required">*</span>
-          <span class="original-value" v-if="type === 'edit' && originalData.basePrice">Original: ${{ originalData.basePrice }}</span>
-        </label>
-        <input type="number" v-model="localData.basePrice" min="0" step="0.01" class="standard-input" />
-        <div v-if="isSubmittingAttempted && errors.basePrice" class="field-error-msg">{{ errors.basePrice }}</div>
+      <div class="flex flex-col gap-xs mr-md">
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Course Type <span class="text-error">*</span></label
+        >
+        <AppSelect
+          v-model="localData.type"
+          :items="[
+            { id: 'group', name: 'Group / Ensemble' },
+            { id: 'private', name: 'Private Session' },
+          ]"
+          :searchable="false"
+        />
       </div>
 
-      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.sessionNumber }">
-        <label>Sessions <span class="required">*</span>
-          <span class="original-value" v-if="type === 'edit' && originalData.sessionNumber">Original: {{ originalData.sessionNumber }}</span>
-        </label>
-        <input type="number" v-model="localData.sessionNumber" min="1" class="standard-input" />
-        <div v-if="isSubmittingAttempted && errors.sessionNumber" class="field-error-msg">{{ errors.sessionNumber }}</div>
+      <div
+        class="flex flex-col gap-xs"
+        :class="{ 'group is-error': isSubmittingAttempted && errors.basePrice }"
+      >
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Catalog Price ($) <span class="text-error">*</span></label
+        >
+        <div class="relative">
+          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-content-muted font-bold"
+            >$</span
+          >
+          <input
+            type="number"
+            v-model="localData.basePrice"
+            min="0"
+            step="0.01"
+            class="w-full pl-9 pr-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft"
+          />
+        </div>
+        <div
+          v-if="isSubmittingAttempted && errors.basePrice"
+          class="text-error text-3xs font-black px-1 mt-1 uppercase"
+        >
+          {{ errors.basePrice }}
+        </div>
       </div>
 
-      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.weeksNumber }">
-        <label>Weeks <span class="required">*</span>
-          <span class="original-value" v-if="type === 'edit' && originalData.weeksNumber">Original: {{ originalData.weeksNumber }}</span>
-        </label>
-        <input type="number" v-model="localData.weeksNumber" min="1" class="standard-input" />
-        <div v-if="isSubmittingAttempted && errors.weeksNumber" class="field-error-msg">{{ errors.weeksNumber }}</div>
+      <div
+        class="flex flex-col gap-xs"
+        :class="{ 'group is-error': isSubmittingAttempted && errors.sessionNumber }"
+      >
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Total Units <span class="text-error">*</span></label
+        >
+        <input
+          type="number"
+          v-model="localData.sessionNumber"
+          min="1"
+          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft"
+        />
+        <div
+          v-if="isSubmittingAttempted && errors.sessionNumber"
+          class="text-error text-3xs font-black px-1 mt-1 uppercase"
+        >
+          {{ errors.sessionNumber }}
+        </div>
       </div>
 
-      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.maxCapacity }">
-        <label>Default Max Capacity <span class="required">*</span>
-          <span class="original-value" v-if="type === 'edit' && originalData.maxCapacity">Original: {{ originalData.maxCapacity }}</span>
-        </label>
-        <input type="number" v-model="localData.maxCapacity" min="1" class="standard-input" />
-        <div v-if="isSubmittingAttempted && errors.maxCapacity" class="field-error-msg">{{ errors.maxCapacity }}</div>
+      <div
+        class="flex flex-col gap-xs"
+        :class="{ 'group is-error': isSubmittingAttempted && errors.weeksNumber }"
+      >
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Term Duration <span class="text-error">*</span></label
+        >
+        <div class="relative">
+          <input
+            type="number"
+            v-model="localData.weeksNumber"
+            min="1"
+            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft"
+          />
+          <span
+            class="absolute right-4 top-1/2 -translate-y-1/2 text-2xs font-black uppercase text-content-muted/40"
+            >Weeks</span
+          >
+        </div>
+        <div
+          v-if="isSubmittingAttempted && errors.weeksNumber"
+          class="text-error text-3xs font-black px-1 mt-1 uppercase"
+        >
+          {{ errors.weeksNumber }}
+        </div>
       </div>
 
-      <div class="form-group full-width">
-        <label>Description (Optional)</label>
-        <textarea v-model="localData.description" placeholder="Description of this program model..." rows="2" class="standard-input"></textarea>
+      <div
+        class="flex flex-col gap-xs col-span-2"
+        :class="{ 'group is-error': isSubmittingAttempted && errors.maxCapacity }"
+      >
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Registry Limit (Defaults) <span class="text-error">*</span></label
+        >
+        <input
+          type="number"
+          v-model="localData.maxCapacity"
+          min="1"
+          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft"
+        />
+        <div
+          v-if="isSubmittingAttempted && errors.maxCapacity"
+          class="text-error text-3xs font-black px-1 mt-1 uppercase"
+        >
+          {{ errors.maxCapacity }}
+        </div>
       </div>
 
-      <div class="form-group full-width">
-        <label>Program Photo (Optional)</label>
-        <div class="image-upload-modern">
-          <div v-if="localData.profileURL" class="image-preview-mini">
-            <img :src="localData.profileURL" alt="Preview" />
-            <button type="button" class="btn-remove-photo" @click="localData.profileURL = ''">Remove Photo</button>
+      <div class="flex flex-col gap-xs col-span-2 mt-sm">
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Description / Synopsis</label
+        >
+        <textarea
+          v-model="localData.description"
+          placeholder="A brief overview for administrative and parent reference..."
+          rows="2"
+          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-semibold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
+        ></textarea>
+      </div>
+
+      <div class="flex flex-col gap-xs col-span-2">
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Program Creative</label
+        >
+        <div class="relative">
+          <div
+            v-if="localData.profileURL"
+            class="flex items-center gap-md bg-surface-light p-2 rounded-sm border border-outline-std/30"
+          >
+            <div
+              class="w-12 h-12 rounded-sm border-2 border-white shadow-sm overflow-hidden bg-white"
+            >
+              <img :src="localData.profileURL" alt="Preview" class="w-full h-full object-cover" />
+            </div>
+            <button
+              type="button"
+              class="text-2xs text-error font-black uppercase tracking-widest cursor-pointer bg-white border border-error/20 px-3 py-1.5 rounded-sm transition-all hover:bg-error hover:text-white"
+              @click="localData.profileURL = ''"
+            >
+              Remove File
+            </button>
           </div>
-          <div v-else class="upload-zone-standard">
-            <input type="file" @change="handleFileUpload" accept="image/*" id="program-file-upload" hidden />
-            <label for="program-file-upload" class="upload-trigger">
-              <span class="icon">📷</span>
-              <span class="label-text">{{ isUploading ? 'Uploading Image...' : 'Click to add Photo' }}</span>
+          <div v-else>
+            <input
+              type="file"
+              @change="handleFileUpload"
+              accept="image/*"
+              id="program-file-upload"
+              class="hidden"
+            />
+            <label
+              for="program-file-upload"
+              class="group flex items-center gap-md p-md border-2 border-dashed border-outline-std rounded-sm cursor-pointer transition-all hover:bg-primary-soft hover:border-primary"
+            >
+              <span class="text-2xl transition-transform group-hover:scale-110">🖼️</span>
+              <div class="flex flex-col">
+                <span class="text-xs font-black text-content-dark uppercase tracking-widest">{{
+                  isUploading ? 'Uploading Image...' : 'Select Program Asset'
+                }}</span>
+                <span class="text-3xs font-bold text-content-muted italic"
+                  >Recommended aspect ratio 16:9</span
+                >
+              </div>
             </label>
           </div>
         </div>
       </div>
 
       <!-- Schedule Templates -->
-      <div v-if="type === 'edit'" class="divider full-width">Common Schedule Template Slots</div>
-      <div v-if="type === 'edit'" class="form-group full-width">
-        <div class="schedule-template-manager">
-          <div class="template-list">
-            <div v-for="s in schedules" :key="s.id" class="template-chip">
-              <span class="day-val">{{ s.day }}</span>
-              <span class="time-val">{{ s.timeslot }}</span>
-              <button type="button" class="btn-clear-mini" @click="handleRemoveSchedule(s.id)">&times;</button>
+      <template v-if="type === 'edit'">
+        <div class="col-span-2 flex items-center gap-md py-2 opacity-50 mt-sm">
+          <div class="h-px bg-border flex-1"></div>
+          <span class="text-3xs font-black uppercase tracking-[2px] text-content-muted"
+            >Master Schedule Nodes</span
+          >
+          <div class="h-px bg-border flex-1"></div>
+        </div>
+
+        <div
+          class="col-span-2 bg-surface-subtle border-2 border-outline-std rounded-sm p-md flex flex-col gap-md shadow-inner"
+        >
+          <div class="flex flex-wrap gap-sm">
+            <div
+              v-for="s in schedules"
+              :key="s.id"
+              class="group flex items-center gap-sm bg-white p-1 px-3 rounded-sm border-2 border-outline-std/50 shadow-sm transition-all hover:border-primary/30"
+            >
+              <span class="text-2xs font-black text-primary uppercase tracking-tighter">{{
+                s.day
+              }}</span>
+              <span class="text-xs text-content-dark font-black tracking-tight">{{
+                s.timeslot
+              }}</span>
+              <button
+                type="button"
+                class="w-5 h-5 flex items-center justify-center rounded-full bg-surface-light text-content-muted hover:bg-error hover:text-white transition-colors cursor-pointer"
+                @click="handleRemoveSchedule(s.id)"
+              >
+                &times;
+              </button>
             </div>
-            <div v-if="schedules.length === 0" class="empty-hint">No schedule templates defined yet.</div>
+            <div
+              v-if="schedules.length === 0"
+              class="text-xs text-content-muted/40 font-bold italic py-2"
+            >
+              No master schedule nodes initialized for this model.
+            </div>
           </div>
-          <div class="template-add-controls mt-sm">
-            <AppSelect v-model="newSchedule.day"
-              :items="['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => ({ id: d, name: d }))"
-              :searchable="false" class="day-selector" />
-            <AppSelect v-model="newSchedule.timeslot"
-              :items="['08:30 - 10:00', '10:30 - 12:00', '13:30 - 15:00', '15:30 - 17:00'].map(s => ({ id: s, name: s }))"
-              :searchable="false" class="time-selector flex-1" />
-            <button type="button" class="btn-add-standard" @click="handleAddSchedule" :disabled="!newSchedule.timeslot">Register Slot</button>
+
+          <div class="flex gap-sm items-center pt-md border-t border-outline-std/20">
+            <AppSelect
+              v-model="newSchedule.day"
+              :items="
+                ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(
+                  (d) => ({ id: d, name: d }),
+                )
+              "
+              :searchable="false"
+              class="w-[140px]"
+            />
+            <AppSelect
+              v-model="newSchedule.timeslot"
+              :items="
+                ['08:30 - 10:00', '10:30 - 12:00', '13:30 - 15:00', '15:30 - 17:00'].map((s) => ({
+                  id: s,
+                  name: s,
+                }))
+              "
+              :searchable="false"
+              class="flex-1"
+            />
+            <AppButton
+              variant="primary"
+              @click="handleAddSchedule"
+              :disabled="!newSchedule.timeslot"
+              size="md"
+              class="px-6"
+              >Register Slot</AppButton
+            >
           </div>
         </div>
-      </div>
+      </template>
     </form>
 
-    <div v-if="type === 'delete'" class="action-delete-panel">
-      <!-- Delete confirmation panel logic ... -->
-      <div class="danger-box-standard">
-        <div class="danger-icon-large">☢️</div>
-        <div class="danger-content">
-          <strong>Program Deletion</strong>
-          <p>This will remove the program catalog entry. Active classes will refer to a potentially missing model.</p>
+    <div v-if="type === 'delete'" class="flex flex-col gap-xl mt-lg">
+      <div
+        class="flex items-center gap-xl p-xl bg-error-deep/5 border-2 border-dashed border-error/30 rounded-std"
+      >
+        <div class="text-4xl filter grayscale brightness-125">☢️</div>
+        <div class="flex flex-col gap-1">
+          <strong class="text-lg font-black text-error-deep tracking-tight uppercase leading-none"
+            >Catalog Model Deletion</strong
+          >
+          <p class="text-xs text-error-deep/70 font-semibold leading-relaxed">
+            This will remove the program from selection catalogs. Active classes will remain but may
+            lose model synchronization.
+          </p>
         </div>
       </div>
-      <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.deleteConfirm }">
-         <p class="confirm-label-standard">Type <strong class="danger-text">DELETE</strong> to confirm</p>
-         <input type="text" v-model="localData.deleteConfirm" placeholder="DELETE" class="confirm-input-standard" />
-         <div v-if="isSubmittingAttempted && errors.deleteConfirm" class="field-error-msg">{{ errors.deleteConfirm }}</div>
+      <div class="flex flex-col gap-sm">
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest text-center"
+          >Master Purge Confirmation</label
+        >
+        <div class="flex flex-col gap-xs">
+          <label class="text-2xs font-black uppercase text-content-muted/40 text-center"
+            >Type <span class="text-error px-1">DELETE</span> to confirm purge</label
+          >
+          <input
+            type="text"
+            v-model="localData.deleteConfirm"
+            placeholder="CONFIRM CATALOG DELETE"
+            class="w-full py-xl px-md border-[3px] border-outline-std rounded-std text-center font-black tracking-[4px] bg-surface-subtle text-xl outline-none transition-all focus:border-error focus:bg-white focus:ring-[8px] focus:ring-error/5 placeholder:opacity-30 placeholder:tracking-normal placeholder:font-bold"
+          />
+          <div
+            v-if="isSubmittingAttempted && errors.deleteConfirm"
+            class="text-error text-3xs font-black text-center mt-2 uppercase"
+          >
+            {{ errors.deleteConfirm }}
+          </div>
+        </div>
       </div>
     </div>
 
     <template #footer>
-      <div class="flex-align-center flex-end w-full gap-sm">
-        <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-        <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" form="programActionForm"
-          type="submit" @click="type === 'delete' ? handleSubmit() : null"
-          :loading="loading" :disabled="loading"
-          :class="{ 'button-disabled-visual': isFormInvalid || (type === 'edit' && !isChanged) }">
+      <div class="flex items-center justify-end w-full gap-md">
+        <AppButton variant="cancel" @click="$emit('close')">Cancel Entry</AppButton>
+        <AppButton
+          :variant="type === 'delete' ? 'danger' : 'primary'"
+          form="programActionForm"
+          type="submit"
+          @click="type === 'delete' ? handleSubmit() : null"
+          :loading="loading"
+          :disabled="loading"
+          :class="{ 'button-disabled-visual': isFormInvalid || (type === 'edit' && !isChanged) }"
+        >
           {{ submitLabel }}
         </AppButton>
       </div>
@@ -202,33 +430,44 @@ const syncData = () => {
     initialDataString.value = JSON.stringify(data)
   } else {
     localData.value = {
-      name: '', categoryId: '', levelId: '', type: 'group',
-      basePrice: 0.0, sessionNumber: 1, weeksNumber: 1, maxCapacity: 10,
-      description: '', profileURL: '', deleteConfirm: ''
+      name: '',
+      categoryId: '',
+      levelId: '',
+      type: 'group',
+      basePrice: 0.0,
+      sessionNumber: 1,
+      weeksNumber: 1,
+      maxCapacity: 10,
+      description: '',
+      profileURL: '',
+      deleteConfirm: '',
     }
     initialDataString.value = JSON.stringify(localData.value)
   }
 }
 
-watch(() => props.isOpen, (val) => {
-  if (val) {
-    syncData()
-    isSubmittingAttempted.value = false
-  }
-})
+watch(
+  () => props.isOpen,
+  (val) => {
+    if (val) {
+      syncData()
+      isSubmittingAttempted.value = false
+    }
+  },
+)
 
 const errors = computed(() => {
   const d = localData.value
   const errs = {}
   if (props.type === 'delete') {
-    if (d.deleteConfirm !== 'DELETE') errs.deleteConfirm = 'Type DELETE to confirm.'
+    if (d.deleteConfirm !== 'DELETE') errs.deleteConfirm = 'Invalid confirmation string'
   } else {
-    if (!d.name?.trim()) errs.name = 'Program name is required.'
-    if (!d.categoryId) errs.categoryId = 'Category is required.'
-    if (d.basePrice < 0) errs.basePrice = 'Price cannot be negative.'
-    if (d.sessionNumber < 1) errs.sessionNumber = 'Min 1 session.'
-    if (d.weeksNumber < 1) errs.weeksNumber = 'Min 1 week.'
-    if (d.maxCapacity < 1) errs.maxCapacity = 'Capacity must be at least 1.'
+    if (!d.name?.trim()) errs.name = 'Label required'
+    if (!d.categoryId) errs.categoryId = 'Catalog required'
+    if (d.basePrice < 0) errs.basePrice = 'Negative price'
+    if (d.sessionNumber < 1) errs.sessionNumber = 'Min 1 unit'
+    if (d.weeksNumber < 1) errs.weeksNumber = 'Min 1 duration'
+    if (d.maxCapacity < 1) errs.maxCapacity = 'Capacity error'
   }
   return errs
 })
@@ -242,13 +481,15 @@ const schedules = ref([])
 const newSchedule = ref({ day: 'Monday', timeslot: '' })
 const isUploading = ref(false)
 
-const sortedCategories = computed(() => [...categories.value].sort((a,b) => a.name.localeCompare(b.name)))
-const sortedLevels = computed(() => [...levels.value].sort((a,b) => a.name.localeCompare(b.name)))
+const sortedCategories = computed(() =>
+  [...categories.value].sort((a, b) => a.name.localeCompare(b.name)),
+)
+const sortedLevels = computed(() => [...levels.value].sort((a, b) => a.name.localeCompare(b.name)))
 
 const modalTitle = computed(() => {
-  if (props.type === 'edit') return 'Edit Program Model'
-  if (props.type === 'delete') return 'Destructive Action: Delete'
-  return 'Register New Program Entry'
+  if (props.type === 'edit') return 'Engineer Program Model'
+  if (props.type === 'delete') return 'Deconstruct Program Entry'
+  return 'Initialize Program Entry'
 })
 
 const modalIcon = computed(() => {
@@ -257,29 +498,35 @@ const modalIcon = computed(() => {
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Save Profile'
-  if (props.type === 'delete') return 'Permanently Delete'
-  return 'Create Program'
+  if (props.type === 'edit') return 'Commit Profile'
+  if (props.type === 'delete') return 'Execute Deconstruction'
+  return 'Initialize Entry'
 })
 
 const fetchCategories = async () => {
   try {
     categories.value = await programService.getAllCategories()
-  } catch (err) { console.error(err) }
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 const fetchLevels = async () => {
   if (!localData.value.categoryId) return
   try {
     levels.value = await programService.getLevelsByCategory(localData.value.categoryId)
-  } catch (err) { console.error(err) }
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 const fetchSchedules = async () => {
   if (props.type !== 'edit' || !props.program?.id) return
   try {
     schedules.value = await programService.getProgramSchedules(props.program.id)
-  } catch (err) { console.error(err) }
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 const onCategoryChange = () => {
@@ -309,14 +556,18 @@ const handleAddSchedule = async () => {
     const id = await programService.addProgramSchedule(props.program.id, newSchedule.value)
     schedules.value.unshift({ id, ...newSchedule.value })
     newSchedule.value.timeslot = ''
-  } catch (err) { console.error(err) }
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 const handleRemoveSchedule = async (scheduleId) => {
   try {
     await programService.deleteProgramSchedule(props.program.id, scheduleId)
-    schedules.value = schedules.value.filter(s => s.id !== scheduleId)
-  } catch (err) { console.error(err) }
+    schedules.value = schedules.value.filter((s) => s.id !== scheduleId)
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 const handleSubmit = () => {
@@ -325,40 +576,18 @@ const handleSubmit = () => {
   emit('submit', { ...localData.value })
 }
 
-watch(() => props.isOpen, async (isOpen) => {
-  if (isOpen) {
-    await fetchCategories()
-    if (localData.value.categoryId) fetchLevels()
-    if (props.type === 'edit') fetchSchedules()
-  }
-})
+watch(
+  () => props.isOpen,
+  async (isOpen) => {
+    if (isOpen) {
+      await fetchCategories()
+      if (localData.value.categoryId) fetchLevels()
+      if (props.type === 'edit') fetchSchedules()
+    }
+  },
+)
 </script>
 
 <style scoped>
-@import "@/assets/styles/components/ActionModalShared.css";
-
-.image-preview-mini { display: flex; align-items: center; gap: var(--space-md); }
-.image-preview-mini img { width: 56px; height: 56px; border-radius: var(--border-radius-sm); object-fit: cover; border: 1px solid var(--border-color); }
-.btn-remove-photo { font-size: 10px; color: var(--error-color); font-weight: 700; cursor: pointer; background: var(--error-soft); border: none; padding: 4px 8px; border-radius: 4px; }
-
-.upload-zone-standard { position: relative; width: 100%; }
-.upload-trigger { display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-md); border: 1.5px dashed var(--border-color); border-radius: var(--border-radius-sm); cursor: pointer; transition: all 0.2s; }
-.upload-trigger:hover { background: var(--bg-subtle); border-color: var(--primary-light); }
-.upload-trigger .label-text { font-size: var(--text-xs); color: var(--text-muted); font-weight: 600; }
-
-.schedule-template-manager { background: var(--bg-subtle); border: 1.5px solid var(--border-color); border-radius: var(--border-radius-sm); padding: var(--space-md); }
-.template-list { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
-.template-chip { display: flex; align-items: center; gap: 6px; background: var(--white); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-color); box-shadow: var(--shadow-xs); }
-.day-val { font-size: 10px; font-weight: 850; color: var(--primary-color); text-transform: uppercase; }
-.time-val { font-size: var(--text-xs); color: var(--text-dark); font-weight: 600; }
-.btn-clear-mini { width: 14px; height: 14px; line-height: 1; border-radius: 50%; background: var(--bg-subtle); border: none; font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.btn-clear-mini:hover { background: var(--error-soft); color: var(--error-color); }
-.empty-hint { font-size: var(--text-xs); color: var(--text-light); font-style: italic; }
-
-.template-add-controls { display: flex; gap: var(--space-xs); }
-.btn-add-standard { background: var(--primary-color); color: white; border: none; border-radius: var(--border-radius-sm); padding: 0 var(--space-md); font-size: var(--text-xs); font-weight: 700; cursor: pointer; transition: all 0.2s; }
-.btn-add-standard:hover { background: var(--primary-dark); }
-.btn-add-standard:disabled { opacity: 0.5; cursor: not-allowed; }
-
-.day-selector { width: 120px; }
+/* Scoped styles entirely removed. Logic migrated to Tailwind utility-first naming conventions. */
 </style>

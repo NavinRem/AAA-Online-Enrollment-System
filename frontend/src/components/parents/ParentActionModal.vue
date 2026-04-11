@@ -1,269 +1,469 @@
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="getActionIcon(type)">
-    <div v-if="(selectedParent) && type !== 'edit' && type !== 'delete'" class="parent-identity-panel"
-      :class="parentTheme">
-      <div class="parent-info-content">
-        <div class="parent-avatar-wrapper">
-          <img :src="(selectedParent).profileURL" class="parent-avatar-img" />
-        </div>
-        <div class="parent-details">
-          <div class="flex-align-center gap-xs">
-            <strong class="parent-name">{{ (selectedParent).name }}</strong>
-          </div>
-          <span class="parent-email-sub" v-if="(selectedParent).name">{{ selectedParent.email }}</span>
+  <AppModal
+    :show="isOpen"
+    :title="modalTitle"
+    variant="action"
+    @close="$emit('close')"
+    :icon="getActionIcon(type)"
+  >
+    <!-- Identity Banner -->
+    <div
+      v-if="selectedParent && type !== 'edit' && type !== 'delete'"
+      class="flex items-center gap-xl px-2xl py-xl rounded-std mb-xl relative overflow-hidden shadow-lg border border-white/20 after:content-[''] after:absolute after:top-0 after:right-0 after:bottom-0 after:w-[150px] after:bg-gradient-to-l after:from-white/10 after:to-transparent after:pointer-events-none transition-all duration-500"
+      :class="parentThemeClasses"
+    >
+      <div
+        class="w-20 h-20 rounded-sm border-[4px] border-white shadow-2xl overflow-hidden flex-shrink-0 bg-white group hover:scale-105 transition-transform duration-300"
+      >
+        <img :src="selectedParent.profileURL" class="w-full h-full object-cover" />
+      </div>
+      <div class="flex flex-col gap-1">
+        <h2 class="text-3xl font-black text-content-dark tracking-tighter leading-none">
+          {{ selectedParent.name }}
+        </h2>
+        <div class="flex items-center gap-md mt-1">
+          <span
+            class="text-xs font-black uppercase text-content-muted/60 tracking-widest"
+            v-if="selectedParent.email"
+            >{{ selectedParent.email }}</span
+          >
+          <span
+            class="px-2 py-0.5 bg-white/40 text-3xs font-black uppercase rounded-full shadow-sm"
+            v-if="selectedParent.phone"
+            >{{ selectedParent.phone }}</span
+          >
         </div>
       </div>
     </div>
+
     <form id="parentActionForm" @submit.prevent="handleActionSubmit">
-      <div v-if="type === 'edit'" class="form-grid">
-        <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.name }">
-          <label>Full Name <span class="required">*</span>
-            <span class="original-value" v-if="originalData.name">Original: {{ originalData.name }}</span>
-          </label>
-          <input type="text" v-model="localData.name" placeholder="Enter full name" class="standard-input" />
-          <div v-if="isSubmittingAttempted && errors.name" class="field-error-msg">{{ errors.name }}</div>
+      <!-- Edit Parent Form -->
+      <div v-if="type === 'edit'" class="grid grid-cols-2 gap-x-lg gap-y-md">
+        <div
+          class="flex flex-col gap-xs col-span-2 sm:col-span-1"
+          :class="{ 'group is-error': isSubmittingAttempted && errors.name }"
+        >
+          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+            >Legal Full Name <span class="text-error">*</span></label
+          >
+          <input
+            type="text"
+            v-model="localData.name"
+            placeholder="Registry name"
+            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
+          />
+          <div
+            v-if="isSubmittingAttempted && errors.name"
+            class="text-error text-3xs font-black px-1 mt-1 uppercase"
+          >
+            {{ errors.name }}
+          </div>
         </div>
 
-        <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.email }">
-          <label>Email Address <span class="required">*</span>
-            <span class="original-value" v-if="originalData.email">Original: {{ originalData.email }}</span>
-          </label>
-          <input type="email" v-model="localData.email" placeholder="email@example.com" class="standard-input" />
-          <div v-if="isSubmittingAttempted && errors.email" class="field-error-msg">{{ errors.email }}</div>
+        <div
+          class="flex flex-col gap-xs col-span-2 sm:col-span-1"
+          :class="{ 'group is-error': isSubmittingAttempted && errors.email }"
+        >
+          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+            >Account Email <span class="text-error">*</span></label
+          >
+          <input
+            type="email"
+            v-model="localData.email"
+            placeholder="email@address.com"
+            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
+          />
+          <div
+            v-if="isSubmittingAttempted && errors.email"
+            class="text-error text-3xs font-black px-1 mt-1 uppercase"
+          >
+            {{ errors.email }}
+          </div>
         </div>
 
-        <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.phone }">
-          <label>Phone Number <span class="required">*</span>
-            <span class="original-value" v-if="originalData.phone">Original: {{ originalData.phone }}</span>
-          </label>
-          <input type="tel" v-model="localData.phone" placeholder="Enter phone number" class="standard-input" />
-          <div v-if="isSubmittingAttempted && errors.phone" class="field-error-msg">{{ errors.phone }}</div>
+        <div
+          class="flex flex-col gap-xs col-span-2 sm:col-span-1"
+          :class="{ 'group is-error': isSubmittingAttempted && errors.phone }"
+        >
+          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+            >Contact Phone <span class="text-error">*</span></label
+          >
+          <input
+            type="tel"
+            v-model="localData.phone"
+            placeholder="Active phone line"
+            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
+          />
+          <div
+            v-if="isSubmittingAttempted && errors.phone"
+            class="text-error text-3xs font-black px-1 mt-1 uppercase"
+          >
+            {{ errors.phone }}
+          </div>
         </div>
 
-        <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.profile }">
-          <label>Profile Avatar <span class="required">*</span></label>
-          <AvatarSelector v-model="localData.profile" :role="localData.role" :uid="user?.uid || user?.id"
-            :customFileName="`${localData.name}_${localData.role}`" class="field" />
-          <p class="avatar-guidance">Only .jpg, .png, and .webp images are accepted.</p>
-          <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg">{{ errors.profile }}</div>
+        <div
+          class="flex flex-col gap-xs col-span-2 sm:col-span-1"
+          :class="{ 'group is-error': isSubmittingAttempted && errors.profile }"
+        >
+          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+            >Avatar Signature <span class="text-error">*</span></label
+          >
+          <AvatarSelector
+            v-model="localData.profile"
+            :role="localData.role"
+            :uid="user?.uid || user?.id"
+            :customFileName="`${localData.name}_${localData.role}`"
+          />
+          <div
+            v-if="isSubmittingAttempted && errors.profile"
+            class="text-error text-3xs font-black px-1 mt-1 uppercase"
+          >
+            {{ errors.profile }}
+          </div>
         </div>
       </div>
 
-      <div v-if="type === 'plus'" class="form-grid">
-        <div class="form-group full-width" v-if="!user && selectableParents && selectableParents.length > 0"
-          :class="{ 'field-error': isSubmittingAttempted && errors.parentId }">
-          <label>Select Parent <span class="required">*</span></label>
-          <div class="custom-dropdown-container">
-            <div class="custom-dropdown" :class="{ open: isDropdownOpen }" ref="dropdownAnchor">
-              <div class="dropdown-header" @click="isDropdownOpen = !isDropdownOpen">
-                <template v-if="selectedParent">
-                  <div class="selected-parent">
-                    <img :src="selectedParent.profileURL" class="avatar-mini-sm" />
-                    <span>{{ selectedParent.name }}</span>
-                  </div>
-                </template>
-                <template v-else>
-                  <span class="placeholder">Choose a parent</span>
-                </template>
-                <span class="chevron" :class="{ up: isDropdownOpen }"></span>
-              </div>
+      <!-- Register Child Form -->
+      <div v-if="type === 'plus'" class="flex flex-col gap-lg">
+        <div
+          class="flex flex-col gap-xs"
+          v-if="!user && selectableParents && selectableParents.length > 0"
+          :class="{ 'group is-error': isSubmittingAttempted && errors.parentId }"
+        >
+          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+            >Link to Parent Registry <span class="text-error">*</span></label
+          >
+          <AppSelect
+            v-model="localData.parentId"
+            :items="filteredParents.map((p) => ({ id: p.uid || p.id, name: p.name }))"
+            placeholder="Search parent database..."
+          />
+          <div
+            v-if="isSubmittingAttempted && errors.parentId"
+            class="text-error text-3xs font-black px-1 mt-1 uppercase"
+          >
+            {{ errors.parentId }}
+          </div>
+        </div>
 
-              <Teleport to="body">
-                <div class="dropdown-menu" v-if="isDropdownOpen" :style="dropdownStyles">
-                  <div class="dropdown-search">
-                    <img :src="getActionIcon('search')" class="search-icon-mini" />
-                    <input type="text" v-model="parentSearchQuery" placeholder="Search name or email..." @click.stop
-                      autofocus />
-                  </div>
-                  <ul class="dropdown-list">
-                    <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
-                      :class="{ active: localData.parentId === (p.uid || p.id) }" @click="selectParent(p)">
-                      <img :src="getParentProfileURL(p.profile)" class="avatar-mini-sm" />
-                      <div class="item-info">
-                        <span class="item-name">{{ p.name }}</span>
-                      </div>
-                    </li>
-                    <li v-if="filteredParents.length === 0" class="dropdown-item no-results">
-                      No matches found.
-                    </li>
-                  </ul>
-                </div>
-              </Teleport>
+        <div class="grid grid-cols-2 gap-x-lg gap-y-md">
+          <div
+            class="flex flex-col gap-xs col-span-2 sm:col-span-1"
+            :class="{ 'group is-error': isSubmittingAttempted && errors.name }"
+          >
+            <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+              >Student Full Name <span class="text-error">*</span></label
+            >
+            <input
+              type="text"
+              v-model="localData.name"
+              placeholder="Full name of student"
+              class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
+            />
+            <div
+              v-if="isSubmittingAttempted && errors.name"
+              class="text-error text-3xs font-black px-1 mt-1 uppercase"
+            >
+              {{ errors.name }}
             </div>
           </div>
-          <div v-if="isSubmittingAttempted && errors.parentId" class="field-error-msg">{{ errors.parentId }}</div>
-        </div>
 
-        <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.name }">
-          <label>Child's Full Name <span class="required">*</span></label>
-          <input type="text" v-model="localData.name" placeholder="Enter child's full name" class="standard-input" />
-          <div v-if="isSubmittingAttempted && errors.name" class="field-error-msg">{{ errors.name }}</div>
-        </div>
+          <div
+            class="flex flex-col gap-xs col-span-2 sm:col-span-1"
+            :class="{ 'group is-error': isSubmittingAttempted && errors.dob }"
+          >
+            <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+              >Birth Registry Date <span class="text-error">*</span></label
+            >
+            <input
+              type="date"
+              v-model="localData.dob"
+              class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
+            />
+            <div
+              v-if="isSubmittingAttempted && errors.dob"
+              class="text-error text-3xs font-black px-1 mt-1 uppercase"
+            >
+              {{ errors.dob }}
+            </div>
+          </div>
 
-        <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.dob }">
-          <label>Date of Birth <span class="required">*</span></label>
-          <input type="date" v-model="localData.dob" class="standard-input" />
-          <div v-if="isSubmittingAttempted && errors.dob" class="field-error-msg">{{ errors.dob }}</div>
-        </div>
+          <div
+            class="flex flex-col gap-xs col-span-2"
+            :class="{ 'group is-error': isSubmittingAttempted && errors.profile }"
+          >
+            <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+              >Student Avatar <span class="text-error">*</span></label
+            >
+            <AvatarSelector
+              v-model="localData.profile"
+              role="student"
+              :customFileName="`${localData.name}_student` || ''"
+            />
+            <div
+              v-if="isSubmittingAttempted && errors.profile"
+              class="text-error text-3xs font-black px-1 mt-1 uppercase"
+            >
+              {{ errors.profile }}
+            </div>
+          </div>
 
-        <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.profile }">
-          <label>Child Profile Avatar <span class="required">*</span></label>
-          <AvatarSelector v-model="localData.profile" role="student"
-            :customFileName="`${localData.name}_student` || ''" />
-          <p class="avatar-guidance">Only .jpg, .png, and .webp images are accepted.</p>
-          <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg">{{ errors.profile }}</div>
-        </div>
-
-        <div class="form-group">
-          <label>Personal Bio / Notes</label>
-          <textarea v-model="localData.medicalNote" placeholder="e.g. Nut allergy, ADHD, or any medical notes..."
-            rows="3" class="standard-input"></textarea>
-          <div class="preset-chips">
-            <button v-for="preset in ['None', 'G6PD Deficiency', 'ADHD', 'Dyslexia', 'Asthma', 'Vision Impairment']"
-              :key="preset" type="button" class="preset-chip" :class="{ active: isPresetActive('medicalNote', preset) }"
-              @click="togglePreset('medicalNote', preset)">
-              {{ preset }}
-            </button>
+          <div class="flex flex-col gap-xs col-span-2 mt-sm">
+            <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+              >Medical & Behavioral Synopsis</label
+            >
+            <textarea
+              v-model="localData.medicalNote"
+              placeholder="List any allergies, requirements, or pedagogical notes..."
+              rows="3"
+              class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-semibold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
+            ></textarea>
+            <div
+              class="flex flex-wrap gap-xs mt-sm bg-surface-light p-2 rounded-sm border border-outline-std/20"
+            >
+              <button
+                v-for="preset in ['None', 'G6PD', 'ADHD', 'Dyslexia', 'Asthma', 'Vision']"
+                :key="preset"
+                type="button"
+                class="px-3 py-1 bg-white border-2 border-outline-std/50 rounded-sm text-2xs font-black uppercase tracking-widest cursor-pointer transition-all hover:bg-primary-soft hover:text-primary hover:border-primary/20"
+                :class="{
+                  'bg-primary text-white border-primary-dark shadow-md scale-105': isPresetActive(
+                    'medicalNote',
+                    preset,
+                  ),
+                }"
+                @click="togglePreset('medicalNote', preset)"
+              >
+                {{ preset }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </form>
 
-    <div v-if="type === 'deactivate'" class="form-group full-width">
+    <!-- Account Lifecycle Views -->
+    <div v-if="type === 'deactivate'" class="flex flex-col gap-lg">
       <AppAlert type="warning">
-        <div class="flex-column gap-3xs">
-          <strong>Deactivation Warning</strong>
-          <span class="text-xs opacity-90 line-12">
-            Deactivating an account will prevent the user from logging in. Child records remain untouched and can be
-            reactivated later.
-          </span>
+        <div class="flex flex-col gap-0.5">
+          <strong class="text-sm font-black uppercase tracking-tight">Suspension Protocol</strong>
+          <span class="text-xs opacity-90 font-medium"
+            >Deactivating this account will revoke system access for the parent immediately. All
+            linked student data remained archived for future reactivation.</span
+          >
         </div>
       </AppAlert>
     </div>
 
-    <div v-if="type === 'activate'" class="form-group full-width">
+    <div v-if="type === 'activate'" class="flex flex-col gap-lg">
       <AppAlert type="success">
-        <div class="flex-column gap-3xs">
-          <strong>Account Reactivation</strong>
-          <span class="text-xs opacity-90 line-12">
-            Reactivating this account will restore the user's ability to log in and manage their children's enrollments
-            immediately.
-          </span>
+        <div class="flex flex-col gap-0.5">
+          <strong class="text-sm font-black uppercase tracking-tight"
+            >Reactivation Clearance</strong
+          >
+          <span class="text-xs opacity-90 font-medium"
+            >System access will be restored across all devices immediately. The parent will be able
+            to manage active enrollments and billing.</span
+          >
         </div>
       </AppAlert>
     </div>
 
-    <div v-if="type === 'delete'" class="form-group"
-      :class="{ 'field-error': isSubmittingAttempted && errors.deleteConfirm }">
-      <div class="brief-card" v-if="selectedParent">
-        <div class="brief-grid">
-          <div class="brief-column">
-            <span class="brief-label">Full Name</span>
-            <div class="brief-user">
-              <img :src="selectedParent.profileURL" class="avatar-mini-enrollment" />
-              <span class="brief-value">{{ selectedParent.name }}</span>
+    <div v-if="type === 'delete'" class="flex flex-col gap-xl">
+      <div
+        class="flex flex-col bg-white border border-outline-std rounded-std p-xl shadow-inner mb-md"
+        v-if="selectedParent"
+      >
+        <div class="grid grid-cols-2 gap-x-xl gap-y-md">
+          <div class="flex flex-col gap-xs">
+            <span class="text-3xs font-black uppercase text-content-muted tracking-widest"
+              >Legal Entity</span
+            >
+            <div class="flex items-center gap-sm">
+              <img
+                :src="selectedParent.profileURL"
+                class="w-8 h-8 rounded-full border border-white shadow-sm"
+              />
+              <span class="text-sm font-black text-content-dark tracking-tight">{{
+                selectedParent.name
+              }}</span>
             </div>
           </div>
-          <div class="brief-column">
-            <span class="brief-label">Email Address</span>
-            <div class="brief-display">
-              <span class="brief-value">{{ selectedParent.email }}</span>
-            </div>
+          <div class="flex flex-col gap-xs">
+            <span class="text-3xs font-black uppercase text-content-muted tracking-widest"
+              >Communication Channel</span
+            >
+            <span class="text-sm text-content-dark font-bold truncate">{{
+              selectedParent.email
+            }}</span>
           </div>
-          <div class="brief-column">
-            <span class="brief-label">Phone Number</span>
-            <div class="brief-display">
-              <span class="brief-value">{{ selectedParent.phone || 'N/A' }}</span>
-            </div>
-          </div>
-          <div class="brief-column">
-            <span class="brief-label">Account Status</span>
-            <div class="brief-display">
+          <div class="flex flex-col gap-xs">
+            <span class="text-3xs font-black uppercase text-content-muted tracking-widest"
+              >Current Status</span
+            >
+            <div class="w-fit">
               <StatusBadge :status="selectedParent.status" />
             </div>
           </div>
         </div>
       </div>
 
-      <AppAlert type="warning" class="mt-lg">
-        <div class="flex-column gap-3xs">
-          <strong class="text-sm">Permanent Action Warning</strong>
-          <span class="text-xs opacity-90 line-12">
-            This action removes the record entirely and can never be recovered. Please ensure you have verified the
-            details above before proceeding.
-          </span>
+      <AppAlert type="error">
+        <div class="flex flex-col gap-0.5">
+          <strong class="text-sm font-black uppercase tracking-tight">Critical Record Purge</strong>
+          <span class="text-xs opacity-90 font-medium leading-relaxed"
+            >This action is destructive and irreversible. All linked historical data, billing
+            cycles, and child relations will be severed.</span
+          >
         </div>
       </AppAlert>
 
-      <label>Type <strong class="danger-text">DELETE</strong> to confirm</label>
-      <input class="standard-input" type="text" v-model="localData.deleteConfirm" placeholder="DELETE" />
-      <div v-if="isSubmittingAttempted && errors.deleteConfirm" class="field-error-msg">{{ errors.deleteConfirm }}</div>
-    </div>
-
-    <div v-if="type === 'reset-password'" class="security-reset-panel">
-      <div class="security-intro">
-        <h3>Reset Password</h3>
-        <p>Choose an option below to help the parent recover their account.</p>
-      </div>
-
-      <div class="recovery-options-grid">
-        <div class="recovery-card" :class="{ active: selectedResetMode === 'email' }"
-          @click="selectedResetMode = 'email'">
-          <div class="recovery-icon-circle blue">
-            <img :src="getActionIcon('email')" class="recovery-icon" />
+      <div class="flex flex-col gap-xs">
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest text-center"
+          >Authorization Required</label
+        >
+        <div class="flex flex-col gap-sm">
+          <label class="text-2xs font-black uppercase text-content-muted/40 text-center"
+            >Type <span class="text-error px-1">DELETE</span> to authorize record destruction</label
+          >
+          <input
+            class="w-full py-xl px-md border-[3px] border-outline-std rounded-std text-center font-black tracking-[4px] bg-surface-subtle text-xl outline-none transition-all focus:border-error focus:bg-white focus:ring-[8px] focus:ring-error/5"
+            type="text"
+            v-model="localData.deleteConfirm"
+            placeholder="AUTHORIZE PURGE"
+          />
+          <div
+            v-if="isSubmittingAttempted && errors.deleteConfirm"
+            class="text-error text-3xs font-black text-center mt-2 uppercase"
+          >
+            {{ errors.deleteConfirm }}
           </div>
-          <div class="recovery-content">
-            <strong>Send Reset Email</strong>
-            <p>Parent receives a secure link to their registered email ({{ selectedParent?.email }}).</p>
-          </div>
-          <div class="recovery-badge recommendation">Recommended</div>
-        </div>
-
-        <div class="recovery-card manual" :class="{ active: selectedResetMode === 'manual' }"
-          @click="selectedResetMode = 'manual'">
-          <div class="recovery-icon-circle orange">
-            <img :src="getActionIcon('edit')" class="recovery-icon" />
-          </div>
-          <div class="recovery-content">
-            <strong>Manual Password Reset</strong>
-            <p>Generate a temporary password instantly (requires identity verification).</p>
-          </div>
-        </div>
-      </div>
-
-      <div class="security-warning-box-modern">
-        <div class="warning-icon-circle">🛡️</div>
-        <div class="warning-text-content">
-          <strong>Security Protocol</strong>
-          <p>Both methods will require the parent to create their own secure password before they can continue using
-            the mobile application.</p>
         </div>
       </div>
     </div>
 
+    <!-- Password Management View -->
+    <div v-if="type === 'reset-password'" class="flex flex-col gap-lg">
+      <div class="bg-surface-subtle/50 p-md rounded-sm border border-outline-std/30">
+        <h3 class="text-xs font-black uppercase tracking-[2px] mb-1 text-content-dark">
+          Recovery Logic Selection
+        </h3>
+        <p
+          class="text-3xs text-content-muted uppercase font-bold tracking-widest opacity-60 italic"
+        >
+          Choose a secure protocol for account restoration.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-md">
+        <div
+          class="group flex flex-col gap-md p-xl rounded-sm border-2 cursor-pointer transition-all relative overflow-hidden"
+          :class="
+            selectedResetMode === 'email'
+              ? 'border-primary bg-primary-soft shadow-lg scale-[1.02]'
+              : 'border-outline-std bg-white hover:border-text-muted'
+          "
+          @click="selectedResetMode = 'email'"
+        >
+          <div
+            class="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-primary/20 shadow-sm group-hover:scale-110 transition-transform"
+          >
+            <img :src="getActionIcon('email')" class="w-5 h-5 opacity-80" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <strong class="text-xs font-black uppercase tracking-tighter">Automated Link</strong>
+            <p class="text-3xs text-content-muted font-bold leading-tight uppercase opacity-60">
+              Send link to registered email address.
+            </p>
+          </div>
+          <div
+            v-if="selectedResetMode === 'email'"
+            class="absolute -top-1 -right-1 w-6 h-6 bg-primary text-white flex items-center justify-center text-xs font-black border-2 border-white rounded-full"
+          >
+            ✓
+          </div>
+        </div>
+
+        <div
+          class="group flex flex-col gap-md p-xl rounded-sm border-2 cursor-pointer transition-all relative overflow-hidden"
+          :class="
+            selectedResetMode === 'manual'
+              ? 'border-warning bg-warning-soft shadow-lg scale-[1.02]'
+              : 'border-outline-std bg-white hover:border-text-muted'
+          "
+          @click="selectedResetMode = 'manual'"
+        >
+          <div
+            class="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-warning/20 shadow-sm group-hover:scale-110 transition-transform"
+          >
+            <img :src="getActionIcon('edit')" class="w-5 h-5 opacity-80" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <strong class="text-xs font-black uppercase tracking-tighter"
+              >Administrative Override</strong
+            >
+            <p class="text-3xs text-content-muted font-bold leading-tight uppercase opacity-60">
+              Initialize with temporary credentials.
+            </p>
+          </div>
+          <div
+            v-if="selectedResetMode === 'manual'"
+            class="absolute -top-1 -right-1 w-6 h-6 bg-warning text-white flex items-center justify-center text-xs font-black border-2 border-white rounded-full"
+          >
+            ✓
+          </div>
+        </div>
+      </div>
+
+      <AppAlert type="info">
+        <div class="flex flex-col gap-0.5">
+          <strong class="text-xs font-black uppercase tracking-widest">Compliance Protocol</strong>
+          <p class="text-2xs opacity-90 font-bold uppercase tracking-tighter opacity-70">
+            User will be required to update credentials upon first session authorization.
+          </p>
+        </div>
+      </AppAlert>
+    </div>
+
+    <!-- Footer -->
     <template #footer>
-      <div class="flex-column flex-end w-full gap-sm">
-        <div v-if="error || success" class="w-full">
-          <transition name="alert-fade">
-            <AppAlert v-if="error" :show="!!error" type="error" closable @close="$emit('update:error', '')">
-              {{ error }}
-            </AppAlert>
-          </transition>
+      <div class="flex flex-col justify-end w-full gap-md">
+        <AppAlert
+          v-if="error"
+          type="error"
+          closable
+          @close="$emit('update:error', '')"
+          class="w-full"
+        >
+          {{ error }}
+        </AppAlert>
+        <AppAlert
+          v-if="success"
+          type="success"
+          closable
+          @close="$emit('update:success', '')"
+          class="w-full"
+        >
+          {{ success }}
+        </AppAlert>
 
-          <transition name="alert-fade">
-            <AppAlert v-if="success" :show="!!success" type="success" closable @close="$emit('update:success', '')">
-              {{ success }}
-            </AppAlert>
-          </transition>
-        </div>
-
-        <div class="flex-align-center flex-end w-full gap-sm">
-          <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success">Cancel</AppButton>
-          <AppButton :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
-            :form="(type === 'edit' || type === 'plus') ? 'parentActionForm' : null" type="submit"
-            @click="!(type === 'edit' || type === 'plus') ? handleActionSubmit() : null" :loading="loading"
+        <div class="flex items-center justify-end w-full gap-md">
+          <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success"
+            >Abort Action</AppButton
+          >
+          <AppButton
+            :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
+            :form="type === 'edit' || type === 'plus' ? 'parentActionForm' : null"
+            type="submit"
+            @click="!(type === 'edit' || type === 'plus') ? handleActionSubmit() : null"
+            :loading="loading"
             :disabled="loading || !!success"
-            :class="{ 'button-disabled-visual': isFormInvalid || (type === 'edit' && !isChanged) || !!success }">
+            :class="{
+              'button-disabled-visual':
+                isFormInvalid || (type === 'edit' && !isChanged) || !!success,
+            }"
+          >
             {{ submitLabel }}
           </AppButton>
         </div>
@@ -273,14 +473,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, toRef } from 'vue'
+import { ref, computed, watch } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import { useActionModal } from '@/composables/useActionModal'
-import { getActionIcon, getParentProfileURL, isSameProfileAsset } from '@/utils/assetHelper'
+import { getActionIcon, isSameProfileAsset } from '@/utils/assetHelper'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 
 import { auth } from '@/firebase'
@@ -290,7 +491,7 @@ const selectedResetMode = ref(null)
 
 const props = defineProps({
   isOpen: Boolean,
-  type: String,
+  type: String, // 'edit', 'deactivate', 'activate', 'delete', 'plus', 'reset-password'
   user: Object,
   selectableParents: Array,
   loading: Boolean,
@@ -317,7 +518,7 @@ const mapSourceToForm = () => {
   const u = props.user || {}
   const base = getInitialData()
 
-  if (props.type === 'register-child' || props.type === 'plus') {
+  if (props.type === 'plus') {
     return {
       ...base,
       parentId: u.uid || u.id || '',
@@ -333,7 +534,7 @@ const mapSourceToForm = () => {
     email: u.email || '',
     role: u.role || 'parent',
     status: u.status || 'Active',
-    profile: u.profileURL,
+    profile: u.profileURL || '',
   }
 }
 
@@ -343,39 +544,27 @@ const { localData, originalData, submitForm } = useActionModal(props, emit, {
 })
 
 const isSubmittingAttempted = ref(false)
-const showValidationHint = ref(false)
-let hintTimeout = null
 const errors = computed(() => {
   const data = localData.value
   const errs = {}
 
   if (props.type === 'edit') {
-    if (!data.name?.trim()) errs.name = 'Full name is required.'
-    if (!data.email?.trim() || !data.email.includes('@')) errs.email = 'Valid email is required.'
-    if (!data.phone?.trim()) errs.phone = 'Phone number is required.'
-    if (!data.role) errs.role = 'Role is required.'
-    if (!data.profile) errs.profile = 'Please select a profile avatar.'
+    if (!data.name?.trim()) errs.name = 'Full name required'
+    if (!data.email?.trim() || !data.email.includes('@')) errs.email = 'Valid email required'
+    if (!data.phone?.trim()) errs.phone = 'Phone required'
+    if (!data.profile) errs.profile = 'Avatar required'
   } else if (props.type === 'plus') {
-    if (!data.parentId) errs.parentId = 'Please select a parent.'
-    if (!data.name?.trim()) errs.name = "Child's name is required."
-    if (!data.dob) errs.dob = 'Date of birth is required.'
-    if (!data.profile) errs.profile = 'Please select an avatar.'
+    if (!data.parentId) errs.parentId = 'Select a parent'
+    if (!data.name?.trim()) errs.name = "Student's name required"
+    if (!data.dob) errs.dob = 'Birth record required'
+    if (!data.profile) errs.profile = 'Avatar required'
   } else if (props.type === 'delete') {
-    if (data.deleteConfirm !== 'DELETE') errs.deleteConfirm = 'Type DELETE to confirm.'
+    if (data.deleteConfirm !== 'DELETE') errs.deleteConfirm = 'Authorization string invalid'
   } else if (props.type === 'reset-password' && !selectedResetMode.value) {
-    errs.resetMode = 'Select a reset option.'
+    errs.resetMode = 'Selection required'
   }
 
   return errs
-})
-
-const validationHint = computed(() => {
-  if (props.type === 'edit' && isChanged.value && Object.keys(errors.value).length > 0) {
-    return Object.values(errors.value)[0]
-  }
-  if (props.type === 'edit' && !isChanged.value) return 'No changes detected to update.'
-  if (Object.keys(errors.value).length > 0) return Object.values(errors.value)[0]
-  return ''
 })
 
 const isFormInvalid = computed(() => {
@@ -384,12 +573,9 @@ const isFormInvalid = computed(() => {
   return Object.keys(errors.value).length > 0
 })
 
-
-
 const isChanged = computed(() => {
   if (props.type !== 'edit') return true
 
-  // Custom equality check to handle tokens in profile URLs
   const d = localData.value
   const o = originalData.value
 
@@ -397,10 +583,11 @@ const isChanged = computed(() => {
   const hasNameChanged = d.name !== o.name
   const hasEmailChanged = d.email !== o.email
   const hasPhoneChanged = d.phone !== o.phone
-  const hasRoleChanged = d.role !== o.role
   const hasStatusChanged = d.status !== o.status
 
-  return hasProfileChanged || hasNameChanged || hasEmailChanged || hasPhoneChanged || hasRoleChanged || hasStatusChanged
+  return (
+    hasProfileChanged || hasNameChanged || hasEmailChanged || hasPhoneChanged || hasStatusChanged
+  )
 })
 
 const handleActionSubmit = () => {
@@ -417,21 +604,17 @@ const handleActionSubmit = () => {
   }
 
   const isActuallyInvalid = isFormInvalid.value || (props.type === 'edit' && !isChanged.value)
-
-  if (isActuallyInvalid) {
-    return
-  }
+  if (isActuallyInvalid) return
 
   submitForm(true)
 }
 
 const handleSendResetEmail = async () => {
   if (!selectedParent.value?.email) return
-
   submittingLocal.value = true
   try {
     await sendPasswordResetEmail(auth, selectedParent.value.email)
-    emit('submit', { type: 'reset-email-sent' }) // Parent component can show success
+    emit('submit', { type: 'reset-email-sent' })
   } catch (err) {
     console.error('Failed to send reset email:', err)
   } finally {
@@ -441,98 +624,70 @@ const handleSendResetEmail = async () => {
 
 const submittingLocal = ref(false)
 
-const parentTheme = computed(() => {
+const parentThemeClasses = computed(() => {
   const p = props.user || selectedParent.value
-  if (!p) return 'theme-default'
-  const url = (p.profile || '').toLowerCase()
-  if (url.includes('woman') || url.includes('girl')) return 'theme-pink'
-  if (url.includes('man') || url.includes('boy')) return 'theme-blue'
-  return 'theme-default'
+  if (!p) return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
+  const url = (p.profileURL || p.profile || '').toLowerCase()
+  if (url.includes('woman') || url.includes('girl'))
+    return 'bg-gradient-to-br from-magenta-soft/80 to-magenta-soft/30 border-magenta-soft'
+  if (url.includes('man') || url.includes('boy'))
+    return 'bg-gradient-to-br from-info-soft to-primary-soft border-primary-light'
+  return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
 })
 
 const modalTitle = computed(() => {
   const titles = {
-    edit: 'Edit Parent Profile',
-    deactivate: 'Deactivate Parent Account',
-    activate: 'Activate Parent Account',
-    delete: 'Delete Parent Record',
-    plus: 'Register New Child',
-    'reset-password': 'Reset Parent Password'
+    edit: 'Engineer Parent Profile',
+    deactivate: 'Authorize Account Suspension',
+    activate: 'Authorize Account Restoration',
+    delete: 'Critical: Record Purge',
+    plus: 'Initialize Student Registry',
+    'reset-password': 'Initialize Recovery Protocol',
   }
-  return titles[props.type] || 'Action Modal'
+  return titles[props.type] || 'Parental Administration'
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'plus') return 'Register Child'
-  if (props.type === 'deactivate') return 'Deactivate Account'
-  if (props.type === 'activate') return 'Activate Account'
-  if (props.type === 'edit') return 'Save Changes'
-  if (props.type === 'delete') return 'Delete Record'
-  if (props.type === 'reset-password') return 'Reset Password'
+  if (props.type === 'plus') return 'Authorize Registry'
+  if (props.type === 'deactivate') return 'Execute Suspension'
+  if (props.type === 'activate') return 'Execute Restoration'
+  if (props.type === 'edit') return 'Commit Profile'
+  if (props.type === 'delete') return 'Force Delete Record'
+  if (props.type === 'reset-password') return 'Execute Recovery'
   return 'Confirm'
 })
 
-const isDropdownOpen = ref(false)
-const parentSearchQuery = ref('')
-const dropdownStyles = ref({ top: '0px', left: '0px', width: '0px' })
-const dropdownAnchor = ref(null)
-
-const updateDropdownStyles = () => {
-  if (!dropdownAnchor.value) return
-
-  const rect = dropdownAnchor.value.getBoundingClientRect()
-  dropdownStyles.value = {
-    top: `${rect.bottom + window.scrollY}px`,
-    left: `${rect.left + window.scrollX}px`,
-    width: `${rect.width}px`
-  }
-}
-
-watch(isDropdownOpen, (newVal) => {
-  if (newVal) {
-    updateDropdownStyles()
-    window.addEventListener('resize', updateDropdownStyles)
-    window.addEventListener('scroll', updateDropdownStyles, true)
-  } else {
-    window.removeEventListener('resize', updateDropdownStyles)
-    window.removeEventListener('scroll', updateDropdownStyles, true)
-  }
-})
-
 const activeParents = computed(() => {
-  return (props.selectableParents || []).filter(p => {
+  return (props.selectableParents || []).filter((p) => {
     const s = (p.status || 'Active').toLowerCase().trim()
     return s === 'active'
   })
 })
 
-const { searchResults: filteredParents } = useSearch(
-  activeParents,
-  parentSearchMapper,
-  parentSearchQuery
-)
+const { searchResults: filteredParents } = useSearch(activeParents, parentSearchMapper, ref(''))
 
 const selectedParent = computed(() => {
   if (!localData.value.parentId) return null
-  if (props.user && (props.user.uid === localData.value.parentId || props.user.id === localData.value.parentId)) return props.user
-  return props.selectableParents?.find(p => (p.uid || p.id) === localData.value.parentId)
+  if (
+    props.user &&
+    (props.user.uid === localData.value.parentId || props.user.id === localData.value.parentId)
+  )
+    return props.user
+  return props.selectableParents?.find((p) => (p.uid || p.id) === localData.value.parentId)
 })
-
-const selectParent = (p) => {
-  localData.value.parentId = p.uid || p.id
-  isDropdownOpen.value = false
-  parentSearchQuery.value = ''
-}
 
 const togglePreset = (field, chipValue) => {
   const currentText = localData.value[field] || ''
-  let values = currentText.split(',').map(v => v.trim()).filter(Boolean)
+  let values = currentText
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
   if (values.includes(chipValue)) {
-    values = values.filter(v => v !== chipValue)
+    values = values.filter((v) => v !== chipValue)
   } else {
     if (chipValue === 'None') values = ['None']
     else {
-      values = values.filter(v => v !== 'None')
+      values = values.filter((v) => v !== 'None')
       values.push(chipValue)
     }
   }
@@ -540,428 +695,26 @@ const togglePreset = (field, chipValue) => {
 }
 
 const isPresetActive = (field, chipValue) => {
-  return (localData.value[field] || '').split(',').map(v => v.trim()).includes(chipValue)
+  return (localData.value[field] || '')
+    .split(',')
+    .map((v) => v.trim())
+    .includes(chipValue)
 }
 
-watch(() => props.isOpen, (newVal) => {
-  if (!newVal) {
-    isDropdownOpen.value = false
-    isSubmittingAttempted.value = false
-    showValidationHint.value = false
-    submittingLocal.value = false
-    selectedResetMode.value = null
-  }
-})
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    if (!newVal) {
+      isSubmittingAttempted.value = false
+      submittingLocal.value = false
+      selectedResetMode.value = null
+    }
+  },
+)
 </script>
 
 <style scoped>
-@import "@/assets/styles/components/ActionModalShared.css";
-
-.security-reset-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-  padding: var(--space-sm) 0;
-}
-
-.security-intro h3 {
-  font-size: var(--text-lg);
-  color: var(--text-dark);
-  margin-bottom: 4px;
-}
-
-.security-intro p {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-
-.recovery-options-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.recovery-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  padding: var(--space-lg);
-  background: var(--white);
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius);
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-}
-
-.recovery-card:hover {
-  border-color: var(--primary-color);
-  background: var(--bg-subtle);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
-}
-
-.recovery-card.active {
-  border-color: var(--primary-color);
-  background: var(--info-soft);
-  box-shadow: 0 4px 15px rgba(0, 174, 239, 0.1);
-}
-
-.recovery-card.manual:hover {
-  border-color: var(--accent-color);
-}
-
-.recovery-icon-circle {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.recovery-icon-circle.blue {
-  background: var(--info-soft);
-}
-
-.recovery-icon-circle.orange {
-  background: var(--warning-soft);
-}
-
-.recovery-icon {
-  width: 24px;
-  height: 24px;
-}
-
-.recovery-content strong {
-  display: block;
-  font-size: var(--text-base);
-  color: var(--text-dark);
-  margin-bottom: 2px;
-}
-
-.recovery-content p {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  line-height: 1.4;
-  margin: 0;
-}
-
-.recovery-badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  font-size: 10px;
-  font-weight: 800;
-  padding: 4px 8px;
-  border-radius: 20px;
-  text-transform: uppercase;
-}
-
-.recovery-badge.recommendation {
-  background: var(--success-soft);
-  color: var(--success-color);
-}
-
-.security-warning-box-modern {
-  display: flex;
-  gap: var(--space-md);
-  padding: var(--space-lg);
-  background: var(--warning-soft);
-  border-radius: var(--border-radius);
-  border: 1px solid var(--warning-light);
-  border-left: 5px solid var(--warning-color);
-  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.05);
-}
-
-.warning-icon-circle {
-  width: 32px;
-  height: 32px;
-  background: var(--white);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  font-size: var(--text-base);
-}
-
-.warning-text-content strong {
-  display: block;
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-  margin-bottom: 2px;
-}
-
-.warning-text-content p {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  line-height: 1.5;
-  margin: 0;
-}
-
-.danger-box-standard {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  background: var(--error-soft);
-  border: 1px solid var(--error-soft);
-  padding: var(--space-xl);
-  border-radius: var(--border-radius);
-  margin-bottom: var(--space-xl);
-}
-
-.danger-icon-large {
-  font-size: 2rem;
-}
-
-.danger-content strong {
-  display: block;
-  color: var(--error-deep);
-  margin-bottom: 4px;
-  font-size: var(--text-base);
-}
-
-.danger-content p {
-  font-size: var(--text-sm);
-  color: var(--error-deep);
-  line-height: 1.4;
-  margin: 0;
-  opacity: 0.8;
-}
-
-.confirm-label-standard {
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-  margin-bottom: var(--space-md);
-  text-align: center;
-}
-
-.confirm-input-standard {
-  width: 100%;
-  padding: var(--space-md);
-  border: 2px solid var(--border-color);
-  border-radius: var(--border-radius);
-  text-align: center;
-  font-weight: 700;
-  letter-spacing: 2px;
-  transition: all 0.25s;
-  background: var(--bg-subtle);
-  font-family: inherit;
-}
-
-.confirm-input-standard:focus {
-  border-color: var(--error-color);
-  outline: none;
-  background: var(--white);
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
-}
-
-.parent-identity-panel {
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-  margin-bottom: var(--space-xl);
-  padding: var(--space-xl);
-  border-radius: var(--border-radius);
-}
-
-.parent-identity-panel::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 100px;
-  pointer-events: none;
-}
-
-.parent-info-content {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xl);
-  z-index: 1;
-}
-
-.parent-avatar-wrapper {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--border-radius);
-  overflow: hidden;
-  border: 3px solid var(--white);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  background: var(--white);
-  flex-shrink: 0;
-}
-
-.parent-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.parent-details {
-  display: flex;
-  flex-direction: column;
-}
-
-.parent-role-tag {
-  font-size: var(--text-3xs);
-  font-weight: 850;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 4px;
-  padding: 4px 10px;
-  background: var(--white);
-  border-radius: var(--border-radius-sm);
-  width: fit-content;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.parent-name {
-  font-size: var(--text-2xl);
-  font-weight: 850;
-  color: var(--text-dark);
-  letter-spacing: -0.5px;
-  line-height: 1.1;
-}
-
-.parent-email-sub {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  margin-top: 2px;
-  font-weight: 500;
-}
-
-/* Theme Color logic */
-.theme-blue {
-  background: linear-gradient(135deg, var(--info-soft) 0%, var(--primary-soft) 100%);
-  border-color: var(--primary-light);
-}
-
-.theme-blue .parent-role-tag {
-  color: var(--info-color);
-}
-
-.theme-pink {
-  background: linear-gradient(135deg, var(--magenta-soft) 0%, var(--magenta-soft) 100%);
-  filter: brightness(1.05);
-  /* Lighter version */
-  border-color: var(--magenta-soft);
-}
-
-.theme-pink .parent-role-tag {
-  color: var(--magenta-color);
-}
-
-.theme-default {
-  background: linear-gradient(135deg, var(--bg-subtle) 0%, var(--bg-light) 100%);
-  border-color: var(--border-color);
-}
-
-.theme-default .parent-role-tag {
-  color: var(--text-muted);
-}
-
-.avatar-guidance {
-  font-size: var(--text-3xs);
-  color: var(--text-light);
-  margin-top: 6px;
-  font-style: italic;
-  display: block;
-}
-
-.required {
-  color: var(--error-color);
-  margin-left: 2px;
-  font-weight: bold;
-}
-
-/* Brief Cards for Delete Modal */
-.parent-brief-card {
-  background: var(--white);
-  border: 1px solid var(--border-color);
-  border-radius: var(--border-radius);
-  padding: var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.brief-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-md) var(--space-lg);
-}
-
-.brief-column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.brief-user,
-.brief-display {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  background: var(--bg-subtle);
-  padding: var(--space-sm) var(--space-md);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--border-color);
-  height: 44px;
-  overflow: hidden;
-  transition: border-color 0.2s;
-}
-
-.avatar-mini-enrollment {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--border-radius-round);
-  object-fit: cover;
-  border: 1px solid var(--primary-light);
-}
-
-.brief-label {
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-  font-weight: 600;
-  margin: 0;
-  opacity: 0.95;
-}
-
-.brief-value {
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-  font-weight: 400;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.confirm-input-wrapper {
-  margin-top: var(--space-xl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.confirm-input-wrapper label {
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-  font-weight: 500;
-}
-
-.danger-text {
-  color: var(--error-color);
-  font-weight: 700;
-}
-
-.mt-lg {
-  margin-top: var(--space-lg);
-}
+/* Scoped styles entirely removed. Logic migrated to Tailwind utility-first patterns.
+   Custom dropdown replaced with refactored AppSelect component.
+*/
 </style>
