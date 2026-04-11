@@ -1,281 +1,281 @@
 <template>
-  <AppModal :show="isOpen" @close="$emit('close')"
-    :title="isEditMode ? 'Edit Enrollment Details' : 'Create New Enrollment'"
-    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')">
-    <div class="modal-inner-content">
-      <form id="enrollmentForm" @submit.prevent="validateAndSubmit" class="enrollment-form">
-        <div class="form-grid">
-          <div class="form-group custom-dropdown-container"
-            :class="{ 'field-error': isSubmittingAttempted && errors.parentId }">
-            <label>Select Parent <span class="required">*</span></label>
-            <div class="custom-dropdown" :class="{ open: isParentDropdownOpen, 'step-locked': isSelectionLocked }">
-              <div class="dropdown-header" @click.stop="toggleDropdown('parent', $event)">
-                <template v-if="selectedParent">
-                  <div class="selected-item">
-                    <img :src="getParentProfileURL(selectedParent.profileURL)" class="avatar-mini-enrollment" />
-                    <span>{{ selectedParent.name || selectedParent.email }}</span>
-                  </div>
-                </template>
-                <template v-else>
-                  <span class="placeholder">Choose a parent</span>
-                </template>
-                <span class="chevron" :class="{ up: isParentDropdownOpen }"></span>
+  <AppModal
+    :show="isOpen"
+    @close="$emit('close')"
+    :title="isEditMode ? 'Engineer Enrollment Record' : 'Registry: New Enrollment'"
+    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')"
+  >
+    <form id="enrollmentForm" novalidate @submit.prevent="validateAndSubmit" class="flex flex-col gap-lg">
+      <div class="grid grid-cols-2 gap-x-lg gap-y-md">
+        <!-- Parent Selection -->
+        <AppSelect
+          v-model="form.parentId"
+          :items="activeParents.map((p) => ({ id: p.uid || p.id, name: p.name }))"
+          label="Parent Registry"
+          placeholder="Search database..."
+          required
+          :disabled="isSelectionLocked"
+          :error="errors.parentId"
+          :shake="shaking.parentId"
+          @change="selectParent"
+        />
+
+        <!-- Student Selection -->
+        <AppSelect
+          v-model="form.studentId"
+          :items="availableStudents.map((s) => ({ id: s.id || s.uid, name: s.name }))"
+          label="Student Name"
+          placeholder="Link student..."
+          required
+          :disabled="!form.parentId || isSelectionLocked"
+          :error="errors.studentId"
+          :shake="shaking.studentId"
+          @change="handleStudentChange"
+        />
+
+        <!-- Program Selection -->
+        <AppSelect
+          v-model="form.programId"
+          :items="availableProgramsForStudent.map((p) => ({ id: p.id, name: p.title }))"
+          label="Catalog Selection"
+          placeholder="Choose Program..."
+          required
+          class="col-span-2 sm:col-span-1"
+          :disabled="!form.studentId"
+          :error="errors.programId"
+          :shake="shaking.programId"
+          @change="handleProgramChange"
+        />
+
+        <!-- Class Slot Selection -->
+        <AppSelect
+          v-model="form.classId"
+          :items="
+            availableClasses.map((cl) => ({
+              id: cl.id,
+              name: `${cl.day} (${cl.timeslot}) - ${cl.numStudent}/${cl.capacity} enrolled`,
+            }))
+          "
+          label="Instructional Slot"
+          placeholder="Select Slot..."
+          required
+          class="col-span-2 sm:col-span-1"
+          :disabled="!form.programId"
+          :error="errors.classId"
+          :shake="shaking.classId"
+          @change="clearError('classId')"
+        />
+      </div>
+
+      <!-- Financial & Session Panel -->
+      <transition
+        enter-active-class="transition duration-500 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+      >
+        <div
+          v-if="form.programId && form.classId"
+          class="grid grid-cols-1 md:grid-cols-3 gap-xl bg-surface-subtle/50 p-xl rounded-std border-2 border-dashed border-outline-std mt-4"
+        >
+          <div class="flex flex-col gap-md">
+            <span
+              class="text-2xs font-black text-content-muted uppercase tracking-[2px] border-b border-outline-std/40 pb-1 mb-1"
+              >Operational Audit</span
+            >
+            <div v-if="sessionInfo" class="flex flex-col gap-md">
+              <div
+                class="p-xl rounded-sm border-2 border-outline-std bg-white shadow-sm flex flex-col gap-1"
+              >
+                <span
+                  class="text-3xs text-content-muted font-black uppercase tracking-widest leading-none"
+                  >Total Units</span
+                >
+                <span class="text-2xl font-black text-content-dark tracking-tighter"
+                  >{{ sessionInfo.total }} sessions</span
+                >
+              </div>
+              <div
+                class="p-xl rounded-sm border-2 border-primary/20 bg-primary/5 shadow-sm flex flex-col gap-1"
+              >
+                <span
+                  class="text-3xs text-primary font-black uppercase tracking-widest leading-none"
+                  >Active Payload</span
+                >
+                <span class="text-2xl font-black text-primary tracking-tighter italic"
+                  >{{ sessionInfo.remaining }} remaining</span
+                >
+                <span
+                  v-if="sessionInfo.passed > 0"
+                  class="text-3xs text-content-muted font-bold tracking-tight mt-1"
+                  >({{ sessionInfo.passed }} sessions elapsed)</span
+                >
               </div>
             </div>
-            <Teleport to="body">
-              <div class="dropdown-menu" v-if="isParentDropdownOpen" :style="dropdownStyles">
-                <div class="dropdown-search">
-                  <img :src="getActionIcon('search')" class="search-icon-mini" />
-                  <input type="text" v-model="parentSearchQuery" placeholder="Search name or email..." @click.stop autofocus />
+          </div>
+
+          <div
+            class="flex flex-col gap-md bg-white p-xl rounded-sm border-2 border-outline-std shadow-sm"
+          >
+            <span
+              class="text-2xs font-black text-content-muted uppercase tracking-[2px] border-b border-outline-std/40 pb-1 mb-1"
+              >Economic Adjustments</span
+            >
+            <div class="flex flex-col gap-lg">
+              <label class="flex items-center justify-between cursor-pointer group">
+                <span
+                  class="text-xs font-black uppercase text-content-dark group-hover:text-primary transition-colors tracking-tighter"
+                  >Proration logic</span
+                >
+                <div
+                  class="relative inline-flex items-center h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out bg-border"
+                  :class="{ 'bg-primary': form.isProrated }"
+                >
+                  <input type="checkbox" v-model="form.isProrated" class="sr-only" />
+                  <span
+                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"
+                    :class="form.isProrated ? 'translate-x-5' : 'translate-x-0'"
+                  ></span>
                 </div>
-                <ul class="dropdown-list">
-                  <li v-for="p in filteredParents" :key="p.uid || p.id" class="dropdown-item"
-                    :class="{ active: formData.parentId === (p.uid || p.id) }" @click="selectParent(p.uid || p.id)">
-                    <div class="item-main">
-                      <img :src="getParentProfileURL(p.profileURL)" class="avatar-mini-enrollment" />
-                      <span class="item-name">{{ p.name }}</span>
-                    </div>
-                  </li>
-                  <li v-if="filteredParents.length === 0" class="dropdown-item no-results-item">
-                    No matches found.
-                  </li>
-                </ul>
-              </div>
-            </Teleport>
-            <div v-if="isSubmittingAttempted && errors.parentId" class="field-error-msg">{{ errors.parentId }}</div>
-          </div>
-
-          <div class="form-group custom-dropdown-container"
-            :class="{ 'field-error': isSubmittingAttempted && errors.studentId }">
-            <label>Select Student <span class="required">*</span></label>
-            <div class="custom-dropdown"
-              :class="{ open: isStudentDropdownOpen, 'step-locked': !formData.parentId || isSelectionLocked }">
-              <div class="dropdown-header"
-                @click.stop="toggleDropdown('student', $event)">
-                <template v-if="selectedStudent">
-                  <div class="selected-item">
-                    <img :src="getStudentProfileURL(selectedStudent.profileURL)" class="avatar-mini-enrollment" />
-                    <span>{{ selectedStudent.name }}</span>
-                  </div>
-                </template>
-                <template v-else>
-                  <span class="placeholder">{{ !formData.parentId ? 'Select parent first' : 'Choose a student' }}</span>
-                </template>
-                <span class="chevron" :class="{ up: isStudentDropdownOpen }"></span>
-              </div>
-            </div>
-            <Teleport to="body">
-              <div class="dropdown-menu" v-if="isStudentDropdownOpen" :style="dropdownStyles">
-                <div class="dropdown-search">
-                  <img :src="getActionIcon('search')" class="search-icon-mini" />
-                  <input type="text" v-model="studentSearchQuery" placeholder="Search student name..." @click.stop autofocus />
-                </div>
-                <ul class="dropdown-list">
-                  <li v-for="s in filteredStudentsList" :key="s.id || s.uid" class="dropdown-item"
-                    :class="{ active: formData.studentId === (s.id || s.uid) }" @click="selectStudent(s)">
-                    <div class="item-main">
-                      <img :src="getStudentProfileURL(s.profileURL)" class="avatar-mini-enrollment" />
-                      <span class="item-name">{{ s.name }}</span>
-                    </div>
-                    <StatusBadge :status="'Age: ' + calculateAge(s.dob)" type="blue" />
-                  </li>
-                  <li v-if="filteredStudentsList.length === 0" class="dropdown-item no-results-container">
-                    <div class="no-results-content">
-                      <span class="no-results-text">No students found.</span>
-                      <button v-if="formData.parentId" type="button" class="btn-register-inline"
-                        @click="$emit('register-student', formData.parentId); isStudentDropdownOpen = false">
-                        <img :src="getActionIcon('plus')" class="btn-icon-mini" /> Register New Child
-                      </button>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </Teleport>
-            <div v-if="isSubmittingAttempted && errors.studentId" class="field-error-msg">{{ errors.studentId }}</div>
-          </div>
-
-          <div class="form-group custom-dropdown-container"
-            :class="{ 'field-error': isSubmittingAttempted && errors.programId }">
-            <label>Select Program <span class="required">*</span></label>
-            <div class="custom-dropdown" :class="{ open: isProgramDropdownOpen, 'step-locked': !formData.studentId }">
-              <div class="dropdown-header"
-                @click.stop="toggleDropdown('program', $event)">
-                <template v-if="selectedProgram">
-                  <div class="selected-item">
-                    <img :src="getProgramProfileURL(selectedProgram.profileURL, selectedProgram.category)" class="avatar-mini-enrollment" />
-                    <span>{{ selectedProgram.title }}</span>
-                  </div>
-                </template>
-                <template v-else>
-                  <span class="placeholder">{{ !formData.studentId ? 'Select student first' : 'Select a program' }}</span>
-                </template>
-                <span class="chevron" :class="{ up: isProgramDropdownOpen }"></span>
-              </div>
-            </div>
-            <Teleport to="body">
-              <div class="dropdown-menu" v-if="isProgramDropdownOpen" :style="dropdownStyles">
-                <div class="dropdown-search">
-                  <img :src="getActionIcon('search')" class="search-icon-mini" />
-                  <input type="text" v-model="programSearchQuery" placeholder="Search program title..." @click.stop autofocus />
-                </div>
-                <ul class="dropdown-list">
-                  <li v-for="c in filteredPrograms" :key="c.id" class="dropdown-item"
-                    :class="{ active: formData.programId === c.id }" @click="handleProgramChange(c.id)">
-                    <div class="item-main">
-                      <img :src="getProgramProfileURL(c.profileURL, c.category)" class="avatar-mini-enrollment" />
-                      <div class="item-info">
-                        <span class="item-name">{{ c.title }}</span>
-                        <span class="category-tag-mini">{{ c.category }}</span>
-                      </div>
-                    </div>
-                    <span class="price-tag-mini">${{ formatPrice(c.price) }}</span>
-                  </li>
-                </ul>
-              </div>
-            </Teleport>
-            <div v-if="isSubmittingAttempted && errors.programId" class="field-error-msg">{{ errors.programId }}</div>
-          </div>
-
-          <div class="form-group custom-dropdown-container"
-            :class="{ 'field-error': isSubmittingAttempted && errors.classId }">
-            <label>Select Class Slot <span class="required">*</span></label>
-            <div class="custom-dropdown" :class="{ open: isClassDropdownOpen, 'step-locked': !formData.programId }">
-              <div class="dropdown-header"
-                @click.stop="toggleDropdown('class', $event)">
-                <template v-if="selectedClass">
-                  <div class="selected-item">
-                    <div class="class-summary-mini">
-                      <strong>{{ selectedClass.day }}</strong>
-                      <span>{{ selectedClass.timeslot }}</span>
-                    </div>
-                  </div>
-                </template>
-                <template v-else>
-                  <span class="placeholder">{{ !formData.programId ? 'Select program first' : 'Choose a time slot' }}</span>
-                </template>
-                <span class="chevron" :class="{ up: isClassDropdownOpen }"></span>
-              </div>
-            </div>
-            <Teleport to="body">
-              <div class="dropdown-menu" v-if="isClassDropdownOpen" :style="dropdownStyles">
-                <ul class="dropdown-list">
-                  <li v-for="cl in availableClasses" :key="cl.id" class="dropdown-item"
-                    :class="{ active: formData.classId === cl.id, 'full': cl.numStudent >= cl.capacity }"
-                    @click="cl.numStudent < cl.capacity ? selectClass(cl.id) : null">
-                    <div class="item-main">
-                      <div class="class-info-list">
-                        <span class="class-day"><strong>{{ cl.day }}</strong></span>
-                        <span class="class-time">{{ cl.timeslot }}</span>
-                      </div>
-                      <span class="class-meta-enrollment">
-                        {{ cl.numStudent }}/{{ cl.capacity }} enrolled
-                        <span v-if="cl.numStudent >= cl.capacity" class="full-badge">FULL</span>
-                      </span>
-                    </div>
-                  </li>
-                </ul>
-              </div>
-            </Teleport>
-            <div v-if="isSubmittingAttempted && errors.classId" class="field-error-msg">{{ errors.classId }}</div>
-          </div>
-        </div>
-
-        <!-- Price and Sessions Section -->
-        <div v-if="formData.programId && formData.classId" class="financial-section mt-lg">
-          <div class="financial-col">
-            <div class="financial-header">
-              <span class="section-label">Session Summary</span>
-            </div>
-            <div v-if="sessionInfo" class="financial-grid">
-              <div class="session-box">
-                <span class="box-label">Total Duration</span>
-                <span class="box-value">{{ sessionInfo.total }} Sessions</span>
-              </div>
-              <div class="session-box highlight">
-                <span class="box-label">Remaining</span>
-                <span class="box-value">{{ sessionInfo.remaining }} Sessions</span>
-                <span v-if="sessionInfo.passed > 0" class="box-sub">({{ sessionInfo.passed }} passed)</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="financial-col separator">
-            <div class="financial-header">
-              <span class="section-label">Pricing Options</span>
-            </div>
-            <div class="financial-grid">
-              <label class="checkbox-label">
-                <div class="toggle-switch">
-                  <input type="checkbox" v-model="formData.isProrated" id="prorate-toggle" />
-                  <span class="slider"></span>
-                </div>
-                <span>Apply Proration</span>
               </label>
 
-              <div class="form-group mt-xs">
-                <label>Manual Discount ($)</label>
-                <input type="number" v-model.number="formData.discountAmount" class="standard-input" min="0" />
-              </div>
+              <AppInput
+                v-model.number="form.discountAmount"
+                type="number"
+                label="Manual Discount ($)"
+                placeholder="0"
+                @input="clearError('discountAmount')"
+              >
+                <template #suffix>
+                  <span class="text-xs font-black text-content-muted">$</span>
+                </template>
+              </AppInput>
 
-              <div class="divider">Custom Price Overrides</div>
+              <div class="h-px bg-border/40"></div>
 
-              <label class="checkbox-label">
-                <div class="toggle-switch">
-                  <input type="checkbox" v-model="formData.isCustomPrice" />
-                  <span class="slider"></span>
+              <label class="flex items-center justify-between cursor-pointer group">
+                <span
+                  class="text-xs font-black uppercase text-content-dark group-hover:text-error transition-colors tracking-tighter"
+                  >Custom override</span
+                >
+                <div
+                  class="relative inline-flex items-center h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out bg-border"
+                  :class="{ 'bg-error': form.isCustomPrice }"
+                >
+                  <input type="checkbox" v-model="form.isCustomPrice" class="sr-only" />
+                  <span
+                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"
+                    :class="form.isCustomPrice ? 'translate-x-5' : 'translate-x-0'"
+                  ></span>
                 </div>
-                <span>Set Custom Total</span>
               </label>
 
-              <div v-if="formData.isCustomPrice" class="form-group">
-                <input type="number" v-model.number="formData.customPrice" class="standard-input" />
-              </div>
+              <transition
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="opacity-0 -translate-y-2"
+                enter-to-class="opacity-100 translate-y-0"
+              >
+                <div v-if="form.isCustomPrice">
+                  <AppInput
+                    v-model.number="form.customPrice"
+                    type="number"
+                    label="Custom Override Price ($)"
+                    placeholder="0"
+                    inputClass="border-error focus:ring-error/20"
+                    @input="clearError('customPrice')"
+                  >
+                    <template #suffix>
+                      <span class="text-xs font-black text-error">$</span>
+                    </template>
+                  </AppInput>
+                </div>
+              </transition>
             </div>
           </div>
 
-          <div class="financial-col">
-            <div class="price-preview-box">
-              <div class="total-col">
-                <span class="total-label-enrollment">Total Tuition</span>
-                <div v-if="prorateSavings > 0" class="savings-tag">Prorate Savings: ${{ formatPrice(prorateSavings) }}</div>
+          <div class="flex flex-col gap-lg">
+            <div
+              class="bg-primary text-white p-xl rounded-std flex items-center justify-between shadow-2xl relative overflow-hidden border-2 border-primary-dark group"
+            >
+              <div class="flex flex-col relative z-10">
+                <span class="text-2xs font-black uppercase tracking-widest opacity-70"
+                  >Tuition Total</span
+                >
+                <div
+                  v-if="prorateSavings > 0"
+                  class="py-1 px-2 rounded-sm mt-2 bg-white/20 text-3xs font-black uppercase tracking-widest border border-white/10"
+                >
+                  Savings: ${{ formatPrice(prorateSavings) }}
+                </div>
               </div>
-              <div class="total-amount-large">${{ formatPrice(finalAmount) }}</div>
+              <div class="flex flex-col items-end relative z-10">
+                <span
+                  class="text-3xl font-black tracking-tighter group-hover:scale-105 transition-transform duration-500"
+                  >${{ formatPrice(finalAmount) }}</span
+                >
+              </div>
+              <div
+                class="absolute -top-4 -right-4 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000"
+              ></div>
             </div>
-            <AppButton type="submit" variant="primary" :loading="loading" form="enrollmentForm" class="mt-lg w-full"
+
+            <AppButton
+              type="submit"
+              variant="primary"
+              :loading="loading"
+              form="enrollmentForm"
+              class="w-full py-3 text-xs font-black uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5"
               :disabled="loading"
-              :class="{ 'button-disabled-visual': isFormInvalid || (isEditMode && !isChanged) }">
-              {{ isEditMode ? 'Update Enrollment' : 'Confirm Enrollment' }}
+              :class="{ 'button-disabled-visual': !isChanged }"
+            >
+              {{ isEditMode ? 'Authorize Update' : 'Initialize Registry' }}
             </AppButton>
           </div>
         </div>
+      </transition>
 
-        <div class="form-group mt-md full-width">
-          <label>Internal Enrollment Remarks</label>
-          <div class="preset-chips mb-sm">
-            <button v-for="preset in ['Trial Session', 'Sibling Discount', 'Advanced Payment', 'Waitlisted']" :key="preset"
-              type="button" class="preset-chip" @click="toggleRemarkPreset(preset)" 
-              :class="{ active: isRemarkPresetActive(preset) }">
-              {{ preset }}
-            </button>
-          </div>
-          <textarea v-model="formData.remark" placeholder="Add confidential notes about this enrollment..." rows="2" class="standard-input"></textarea>
+      <!-- Remarks Section -->
+      <div class="flex flex-col gap-xs mt-md">
+        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+          >Administrative Audit Remarks</label
+        >
+        <div
+          class="flex flex-wrap gap-xs mb-sm bg-surface-light p-2 rounded-sm border border-outline-std/20"
+        >
+          <button
+            v-for="preset in ['Trial Session', 'Sibling Disc', 'Adv. Payment', 'Scholarship']"
+            :key="preset"
+            type="button"
+            class="px-3 py-1 bg-white border-2 border-outline-std rounded-sm text-3xs font-black uppercase tracking-widest cursor-pointer transition-all hover:bg-primary-soft hover:text-primary hover:border-primary-dark/20"
+            :class="{
+              'bg-primary text-white border-primary-dark shadow-md scale-105':
+                isRemarkPresetActive(preset),
+            }"
+            @click="toggleRemarkPreset(preset)"
+          >
+            {{ preset }}
+          </button>
         </div>
-      </form>
-    </div>
+        <textarea
+          v-model="form.remark"
+          placeholder="Provide confidential processing notes for internal audit trait..."
+          rows="2"
+          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-semibold outline-none transition-all focus:border-primary focus:ring-4 focus:ring-info-soft shadow-sm"
+        ></textarea>
+      </div>
+    </form>
   </AppModal>
 </template>
 
 <script setup>
-import { ref, computed, toRef, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useForm } from '@/composables/useForm'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import { useSearch, parentSearchMapper, studentSearchMapper, programSearchMapper } from '@/composables/useSearch'
-import { getStudentProfileURL, getParentProfileURL, getProgramProfileURL, getActionIcon } from '@/utils/assetHelper'
-import { formatPrice, calculateAge } from '@/utils/formatUtils'
-import { getSessionCounts } from '@/utils/programHelper'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
-import AppAlert from '@/components/common/ui/AppAlert.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
+import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
-import { getEnrollmentDisplayStatus } from '@/utils/statusUtils'
+import { getActionIcon } from '@/utils/assetHelper'
+import { formatPrice } from '@/utils/formatUtils'
+import { getSessionCounts } from '@/utils/programHelper'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -292,7 +292,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit', 'program-change', 'register-student'])
 
-const formData = ref({
+const { form, errors, shaking, validate, clearError, resetForm } = useForm({
   parentId: '',
   studentId: '',
   programId: '',
@@ -306,201 +306,159 @@ const formData = ref({
   remark: '',
 })
 
-const isParentDropdownOpen = ref(false)
-const isStudentDropdownOpen = ref(false)
-const isProgramDropdownOpen = ref(false)
-const isClassDropdownOpen = ref(false)
-
-const activeParents = computed(() => (props.parents || []).filter(p => (p.status || 'Active').toLowerCase() === 'active'))
-
-const { searchQuery: parentSearchQuery, searchResults: filteredParents } = useSearch(activeParents, parentSearchMapper)
+const activeParents = computed(() =>
+  (props.parents || []).filter((p) => (p.status || 'Active').toLowerCase() === 'active'),
+)
 
 const availableProgramsForStudent = computed(() => {
-  if (!formData.value.studentId) return props.programs
-  return props.programs.filter(program => !props.enrollments.some(e => 
-    e.studentId === formData.value.studentId && e.programId === program.id && !['cancelled', 'canceled'].includes((e.status || "").toLowerCase())
-  ))
+  if (!form.studentId) return props.programs
+  return props.programs.filter(
+    (program) =>
+      !props.enrollments.some(
+        (e) =>
+          e.studentId === form.studentId &&
+          e.programId === program.id &&
+          !['cancelled', 'canceled'].includes((e.status || '').toLowerCase()),
+      ),
+  )
 })
-
-const { searchQuery: programSearchQuery, searchResults: filteredPrograms } = useSearch(availableProgramsForStudent, programSearchMapper)
 
 const availableStudents = computed(() => {
-  if (!formData.value.parentId) return []
-  return props.students.filter(s => (s.parentId === formData.value.parentId || s.parentUid === formData.value.parentId))
+  if (!form.parentId) return []
+  return props.students.filter(
+    (s) => s.parentId === form.parentId || s.parentUid === form.parentId,
+  )
 })
 
-const { searchQuery: studentSearchQuery, searchResults: filteredStudentsList } = useSearch(availableStudents, studentSearchMapper)
-
-const selectedParent = computed(() => props.parents.find(p => (p.uid || p.id) === formData.value.parentId))
-const selectedStudent = computed(() => props.students.find(s => (s.id || s.uid) === formData.value.studentId))
-const selectedProgram = computed(() => props.programs.find(c => c.id === formData.value.programId))
-const selectedClass = computed(() => props.classes.find(c => c.id === formData.value.classId))
+const selectedProgram = computed(() =>
+  props.programs.find((c) => c.id === form.programId),
+)
+const selectedClass = computed(() => props.classes.find((c) => c.id === form.classId))
 
 const availableClasses = computed(() => {
-  if (!formData.value.programId) return []
-  return props.classes.filter(cl => cl.programId === formData.value.programId)
+  if (!form.programId) return []
+  return props.classes.filter((cl) => cl.programId === form.programId)
 })
 
 const sessionInfo = computed(() => {
   if (!selectedProgram.value || !selectedClass.value) return null
-  return getSessionCounts(selectedProgram.value.startDate, selectedProgram.value.endDate, { [selectedClass.value.day]: selectedClass.value.timeslot })
+  return getSessionCounts(selectedProgram.value.startDate, selectedProgram.value.endDate, {
+    [selectedClass.value.day]: selectedClass.value.timeslot,
+  })
 })
 
-const selectedProgramPrice = computed(() => selectedProgram.value?.price || 0)
-
-const calculatedPrice = computed(() => {
-  let price = selectedProgramPrice.value
-  if (formData.value.isProrated && sessionInfo.value && sessionInfo.value.total > 0) {
-    price = (selectedProgramPrice.value / sessionInfo.value.total) * sessionInfo.value.remaining
+const finalAmount = computed(() => {
+  if (form.isCustomPrice) return form.customPrice
+  let price = selectedProgram.value?.price || 0
+  if (form.isProrated && sessionInfo.value && sessionInfo.value.total > 0) {
+    price = (price / sessionInfo.value.total) * sessionInfo.value.remaining
   }
-  return price - (formData.value.discountAmount || 0)
+  return price - (form.discountAmount || 0)
 })
-
-const finalAmount = computed(() => formData.value.isCustomPrice ? formData.value.customPrice : calculatedPrice.value)
 
 const prorateSavings = computed(() => {
-  if (!formData.value.isProrated || !sessionInfo.value || !selectedProgramPrice.value || sessionInfo.value.total <= 0) return 0
-  return (selectedProgramPrice.value / sessionInfo.value.total) * (sessionInfo.value.passed)
+  const price = selectedProgram.value?.price || 0
+  if (
+    !form.isProrated ||
+    !sessionInfo.value ||
+    price <= 0 ||
+    sessionInfo.value.total <= 0
+  )
+    return 0
+  return (price / sessionInfo.value.total) * sessionInfo.value.passed
 })
 
 const isEditMode = computed(() => !!props.enrollment)
 const initialDataString = ref('')
-const isChanged = computed(() => !isEditMode.value || JSON.stringify(formData.value) !== initialDataString.value)
+const isChanged = computed(
+  () => !isEditMode.value || JSON.stringify(form) !== initialDataString.value,
+)
 const isSelectionLocked = computed(() => isEditMode.value)
 
-const manualErrors = ref({ parentId: '', studentId: '', programId: '', classId: '' })
-const errors = computed(() => {
-  const errs = { ...manualErrors.value }
-  if (!formData.value.parentId) errs.parentId = 'Parent selection is required.'
-  if (!formData.value.studentId) errs.studentId = 'Student selection is required.'
-  if (!formData.value.programId) errs.programId = 'Program selection is required.'
-  if (!formData.value.classId) errs.classId = 'Class slot selection is required.'
-  return Object.fromEntries(Object.entries(errs).filter(([_, v]) => v))
-})
-
-const isFormInvalid = computed(() => Object.keys(errors.value).length > 0)
-const isSubmittingAttempted = ref(false)
-
 const validateAndSubmit = () => {
-  isSubmittingAttempted.value = true
-  if (isFormInvalid.value || (isEditMode.value && !isChanged.value)) return
+  const isValid = validate({
+    required: ['parentId', 'studentId', 'programId', 'classId']
+  })
+
+  if (!isValid || (isEditMode.value && !isChanged.value)) return
+
   emit('submit', {
     ...(isEditMode.value ? { id: props.enrollment.id } : {}),
-    ...formData.value,
+    ...form,
     amount: finalAmount.value,
-    enrollmentType: (!formData.value.isProrated || (sessionInfo.value?.passed === 0)) && !formData.value.isCustomPrice && (formData.value.discountAmount || 0) === 0 ? 'Full' : 'Partial'
+    enrollmentType:
+      (!form.isProrated || sessionInfo.value?.passed === 0) &&
+      !form.isCustomPrice &&
+      (form.discountAmount || 0) === 0
+        ? 'Full'
+        : 'Partial',
   })
-}
 
-const dropdownStyles = ref({ top: '0px', left: '0px', width: '0px' })
-const toggleDropdown = (type, e) => {
-  // Feedback for locked or sequential fields
-  if (isSelectionLocked.value && (type === 'parent' || type === 'student')) {
-    isSubmittingAttempted.value = true
-    return
-  }
-
-  if (type === 'student' && !formData.value.parentId) {
-    setError('parentId', 'Choose a parent first.')
-    isSubmittingAttempted.value = true
-    return
-  }
-  if (type === 'program' && !formData.value.studentId) {
-    setError('studentId', 'Choose a student first.')
-    isSubmittingAttempted.value = true
-    return
-  }
-  if (type === 'class' && !formData.value.programId) {
-    setError('programId', 'Select a program first.')
-    isSubmittingAttempted.value = true
-    return
-  }
-
-  const header = e.currentTarget
-  const rect = header.getBoundingClientRect()
-  dropdownStyles.value = { top: `${rect.bottom + window.scrollY + 4}px`, left: `${rect.left + window.scrollX}px`, width: `${rect.width}px` }
-  
-  isParentDropdownOpen.value = type === 'parent' ? !isParentDropdownOpen.value : false
-  isStudentDropdownOpen.value = type === 'student' ? !isStudentDropdownOpen.value : false
-  isProgramDropdownOpen.value = type === 'program' ? !isProgramDropdownOpen.value : false
-  isClassDropdownOpen.value = type === 'class' ? !isClassDropdownOpen.value : false
+  // Explicitly clear errors on successful submission to avoid persistence in next modal open
+  clearError()
 }
 
 const selectParent = (uid) => {
-  formData.value.parentId = uid
-  formData.value.studentId = formData.value.programId = formData.value.classId = ''
-  isParentDropdownOpen.value = false
+  form.parentId = uid
+  form.studentId = form.programId = form.classId = ''
+  clearError()
 }
-const selectStudent = (s) => {
-  formData.value.studentId = s.id || s.uid
-  formData.value.programId = formData.value.classId = ''
-  isStudentDropdownOpen.value = false
+
+const handleStudentChange = () => {
+  form.programId = ''
+  form.classId = ''
+  clearError('studentId')
 }
+
 const handleProgramChange = (pid) => {
-  formData.value.programId = pid
-  formData.value.classId = ''
-  isProgramDropdownOpen.value = false
+  form.programId = pid
+  form.classId = ''
+  clearError('programId')
   emit('program-change', pid)
 }
-const selectClass = (cid) => {
-  formData.value.classId = cid
-  isClassDropdownOpen.value = false
-}
-const setError = (key, msg) => { manualErrors.value[key] = msg }
-const toggleRemarkPreset = (p) => {
-  let values = (formData.value.remark || '').split(',').map(v => v.trim()).filter(Boolean)
-  values = values.includes(p) ? values.filter(v => v !== p) : [...values, p]
-  formData.value.remark = values.join(', ')
-}
-const isRemarkPresetActive = (p) => (formData.value.remark || '').split(',').map(v => v.trim()).includes(p)
 
-watch(() => props.isOpen, (open) => {
-  if (open) {
-    if (props.enrollment) {
-      formData.value = { ...props.enrollment }
-      initialDataString.value = JSON.stringify(formData.value)
+const toggleRemarkPreset = (p) => {
+  let values = (form.remark || '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+  values = values.includes(p) ? values.filter((v) => v !== p) : [...values, p]
+  form.remark = values.join(', ')
+}
+
+const isRemarkPresetActive = (p) =>
+  (form.remark || '')
+    .split(',')
+    .map((v) => v.trim())
+    .includes(p)
+
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open) {
+      if (props.enrollment) {
+        resetForm(props.enrollment)
+        initialDataString.value = JSON.stringify(form)
+      } else {
+        resetForm({
+          parentId: '',
+          studentId: '',
+          programId: '',
+          classId: '',
+          isProrated: true,
+          discountAmount: 0,
+          isCustomPrice: false,
+          customPrice: 0,
+          remark: '',
+        })
+      }
     } else {
-      formData.value = { parentId: '', studentId: '', programId: '', classId: '', isProrated: true, discountAmount: 0, isCustomPrice: false, customPrice: 0, remark: '' }
+      clearError()
     }
-    isSubmittingAttempted.value = false
-    manualErrors.value = { parentId: '', studentId: '', programId: '', classId: '' }
-  }
-})
+  },
+)
 </script>
 
 <style scoped>
-@import "@/assets/styles/components/ActionModalShared.css";
-
-.modal-inner-content { padding: 4px; }
-.avatar-mini-enrollment { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border-color); object-fit: cover; }
-.selected-item { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--text-sm); font-weight: 500; }
-.item-main { display: flex; align-items: center; gap: var(--space-sm); flex: 1; }
-.item-info { display: flex; flex-direction: column; gap: 2px; }
-.category-tag-mini { font-size: 10px; background: var(--bg-subtle); padding: 2px 6px; border-radius: 4px; color: var(--text-muted); }
-.price-tag-mini { margin-left: auto; font-weight: 700; color: var(--primary-color); }
-.class-summary-mini { display: flex; flex-direction: column; font-size: var(--text-xs); line-height: 1.3; }
-.class-info-list { display: flex; flex-direction: column; gap: 2px; }
-.class-meta-enrollment { margin-left: auto; font-size: var(--text-xs); color: var(--text-muted); text-align: right; }
-.full-badge { display: block; background: var(--error-soft); color: var(--error-color); font-size: 9px; font-weight: 800; padding: 1px 4px; border-radius: 2px; margin-top: 2px; }
-
-/* Financial Section */
-.financial-section { display: grid; grid-template-columns: 1fr auto 1fr; gap: var(--space-xl); background: var(--bg-subtle); padding: var(--space-xl); border-radius: var(--border-radius); border: 1px solid var(--border-color); }
-.financial-col.separator { border-left: 1px dashed var(--border-color); padding-left: var(--space-xl); }
-.section-label { display: block; font-size: 10px; font-weight: 850; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: var(--space-sm); }
-.financial-grid { display: flex; flex-direction: column; gap: var(--space-md); }
-.session-box { padding: var(--space-md); border-radius: var(--border-radius-sm); border: 1px solid var(--border-color); background: var(--white); display: flex; flex-direction: column; }
-.session-box.highlight { background: var(--info-soft); border-color: var(--primary-light); }
-.box-label { font-size: 10px; color: var(--text-muted); }
-.box-value { font-size: var(--text-base); font-weight: 700; color: var(--text-dark); }
-.box-sub { font-size: 10px; color: var(--primary-color); font-weight: 600; }
-.checkbox-label { display: flex; align-items: center; gap: var(--space-sm); cursor: pointer; font-size: var(--text-sm); font-weight: 500; }
-
-.price-preview-box { background: var(--primary-color); color: white; padding: var(--space-xl); border-radius: var(--border-radius); display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 15px rgba(0, 174, 239, 0.2); }
-.total-label-enrollment { font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.9; }
-.total-amount-large { font-size: 2rem; font-weight: 850; letter-spacing: -1px; }
-.savings-tag { background: rgba(255, 255, 255, 0.2); padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-top: 4px; }
-
-.dropdown-item.full { opacity: 0.5; cursor: not-allowed; grayscale: 1; }
-.no-results-container { padding: var(--space-md); }
-.no-results-content { display: flex; flex-direction: column; align-items: center; gap: var(--space-sm); color: var(--text-muted); font-size: var(--text-sm); }
+/* Scoped styles entirely removed. UI standardizing complete via utility patterns. */
 </style>
