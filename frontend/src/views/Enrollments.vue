@@ -469,7 +469,8 @@ const handleRegisterStudent = async (formData) => {
         >
           <template #toolbar-actions>
             <AppButton variant="primary" @click="showModal = true">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> New Enrollment
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> New
+              Enrollment
             </AppButton>
           </template>
 

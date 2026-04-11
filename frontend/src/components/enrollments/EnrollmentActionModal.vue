@@ -6,7 +6,7 @@
     @close="$emit('close')"
     :icon="modalIcon"
   >
-    <form id="enrollmentActionForm" @submit.prevent="handleSubmitTrigger">
+    <form id="enrollmentActionForm" @submit.prevent="handleActionSubmit" novalidate>
       <!-- Content for Pay Action -->
       <div v-if="type === 'pay'" class="flex flex-col gap-lg">
         <div
@@ -138,53 +138,34 @@
         </div>
 
         <div class="grid grid-cols-2 gap-lg mt-md">
-          <div
+          <AppSelect
             v-if="localData.paymentMethod === 'online'"
-            class="flex flex-col gap-xs"
-            :class="{ 'group is-error': isSubmittingAttempted && errors.bankName }"
-          >
-            <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-              >Issuing Bank <span class="text-error">*</span></label
-            >
-            <AppSelect
-              v-model="localData.bankName"
-              :items="
-                ['ABA', 'Wing', 'ACLEDA', 'Canadia', 'Sathapana', 'Other'].map((b) => ({
-                  id: b,
-                  name: b,
-                }))
-              "
-              placeholder="Select Bank..."
-              :searchable="false"
-            />
-            <div
-              v-if="isSubmittingAttempted && errors.bankName"
-              class="text-error text-3xs font-black px-1 mt-1 uppercase"
-            >
-              {{ errors.bankName }}
-            </div>
-          </div>
-          <div
-            class="flex flex-col gap-xs"
-            :class="{ 'group is-error': isSubmittingAttempted && errors.proof }"
-          >
-            <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-              >{{ localData.paymentMethod === 'online' ? 'Transaction Code' : 'Receipt ID' }}
-              <span class="text-error">*</span></label
-            >
-            <input
-              type="text"
-              v-model="localData.proof"
-              :placeholder="localData.paymentMethod === 'online' ? 'e.g. 123456' : 'e.g. REC-001'"
-              class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold font-mono outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
-            />
-            <div
-              v-if="isSubmittingAttempted && errors.proof"
-              class="text-error text-3xs font-black px-1 mt-1 uppercase"
-            >
-              {{ errors.proof }}
-            </div>
-          </div>
+            v-model="localData.bankName"
+            :items="
+              ['ABA', 'Wing', 'ACLEDA', 'Canadia', 'Sathapana', 'Other'].map((b) => ({
+                id: b,
+                name: b,
+              }))
+            "
+            label="Issuing Bank"
+            placeholder="Select Bank..."
+            required
+            :error="errors.bankName"
+            :shake="shaking.bankName"
+            :searchable="false"
+            @change="clearError('bankName')"
+          />
+
+          <AppInput
+            v-model="localData.proof"
+            :label="localData.paymentMethod === 'online' ? 'Transaction Code' : 'Receipt ID'"
+            :placeholder="localData.paymentMethod === 'online' ? 'e.g. 123456' : 'e.g. REC-001'"
+            required
+            :error="errors.proof"
+            :shake="shaking.proof"
+            :class="localData.paymentMethod === 'cash' ? 'col-span-2' : ''"
+            @input="clearError('proof')"
+          />
         </div>
 
         <div class="flex flex-col gap-xs mt-md">
@@ -204,7 +185,7 @@
       <div v-if="type === 'cancel'" class="flex flex-col gap-lg">
         <AppAlert type="warning">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight tracking-tight uppercase"
+            <strong class="text-sm font-black tracking-tight uppercase"
               >Program Termination Warning</strong
             >
             <span class="text-xs opacity-90 font-medium"
@@ -214,10 +195,7 @@
           </div>
         </AppAlert>
 
-        <div
-          class="flex flex-col gap-xs"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.reason }"
-        >
+        <div class="flex flex-col gap-xs">
           <label class="text-xs font-black uppercase text-content-muted tracking-widest"
             >Cancellation Logic / Reason <span class="text-error">*</span></label
           >
@@ -243,14 +221,15 @@
           </div>
           <textarea
             v-model="localData.reason"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-semibold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
+            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-semibold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
+            :class="{
+              'border-error bg-error-soft ring-error/10': errors.reason,
+              'animate-shake': shaking.reason,
+            }"
             rows="3"
             placeholder="Provide a detailed audit reason..."
           ></textarea>
-          <div
-            v-if="isSubmittingAttempted && errors.reason"
-            class="text-error text-3xs font-black px-1 mt-1 uppercase"
-          >
+          <div v-if="errors.reason" class="text-error text-3xs font-black px-1 mt-1 uppercase">
             {{ errors.reason }}
           </div>
         </div>
@@ -272,28 +251,25 @@
             </p>
           </div>
         </div>
-        <div class="flex flex-col gap-sm">
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest text-center"
-            >Authorization Confirmation</label
-          >
-          <div class="flex flex-col gap-xs">
-            <label class="text-2xs font-black uppercase text-content-muted/40 text-center"
-              >Type <span class="text-error px-1">DELETE</span> to authorize purge</label
+
+        <AppInput
+          v-model="localData.deleteConfirm"
+          label="Authorization Confirmation"
+          placeholder="CONFIRM AUTHORIZATION"
+          required
+          class="text-center"
+          :error="errors.deleteConfirm"
+          :shake="shaking.deleteConfirm"
+          @input="clearError('deleteConfirm')"
+        >
+          <template #label-extra>
+            <span
+              class="block text-2xs font-black uppercase text-content-muted/40 text-center mt-1"
             >
-            <input
-              type="text"
-              v-model="localData.deleteConfirm"
-              placeholder="CONFIRM AUTHORIZATION"
-              class="w-full py-xl px-md border-[3px] border-outline-std rounded-std text-center font-black tracking-[4px] bg-surface-subtle text-xl outline-none transition-all focus:border-error focus:bg-white focus:ring-[8px] focus:ring-error/5 placeholder:opacity-30 placeholder:tracking-normal placeholder:font-bold"
-            />
-            <div
-              v-if="isSubmittingAttempted && errors.deleteConfirm"
-              class="text-error text-3xs font-black text-center mt-2 uppercase"
-            >
-              {{ errors.deleteConfirm }}
-            </div>
-          </div>
-        </div>
+              Type <span class="text-error px-1">DELETE</span> to authorize purge
+            </span>
+          </template>
+        </AppInput>
       </div>
     </form>
 
@@ -314,10 +290,10 @@
             :variant="type === 'delete' ? 'danger' : 'primary'"
             form="enrollmentActionForm"
             type="submit"
-            @click="type === 'delete' ? handleSubmitTrigger() : null"
+            @click="type === 'delete' ? handleActionSubmit() : null"
             :loading="loading"
             :disabled="loading"
-            :class="{ 'button-disabled-visual': isFormInvalid || (type === 'edit' && !isChanged) }"
+            :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
           >
             {{ submitLabel }}
           </AppButton>
@@ -328,12 +304,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useActionModal } from '@/composables/useActionModal'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import { formatPrice } from '@/utils/formatUtils'
 import { getActionIcon } from '@/utils/assetHelper'
@@ -358,49 +335,34 @@ const getInitialData = () => ({
   paymentMethod: 'online',
 })
 
-const { localData } = useActionModal(props, emit, {
-  getInitialData,
-  sourceKey: 'enrollment',
-})
-
-const initialDataString = ref('')
-const isSubmittingAttempted = ref(false)
-
-watch(
-  () => props.isOpen,
-  (newVal) => {
-    if (newVal) {
-      initialDataString.value = JSON.stringify(localData.value)
-      isSubmittingAttempted.value = false
-    }
+const { localData, isDirty, errors, shaking, clearError, submitForm } = useActionModal(
+  props,
+  emit,
+  {
+    getInitialData,
+    sourceKey: 'enrollment',
   },
 )
 
-const isChanged = computed(() => {
-  if (props.type !== 'edit') return true
-  return JSON.stringify(localData.value) !== initialDataString.value
-})
-
-const errors = computed(() => {
-  const { proof, reason, deleteConfirm, paymentMethod, bankName } = localData.value
-  const errs = {}
+const handleActionSubmit = () => {
+  const rules = {
+    required: [],
+    custom: {},
+  }
 
   if (props.type === 'delete') {
-    if (deleteConfirm !== 'DELETE') errs.deleteConfirm = 'Invalid confirmation string'
+    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Invalid confirmation string'
   } else if (props.type === 'cancel') {
-    if (!reason?.trim()) errs.reason = 'Termination reason is required'
+    rules.required = ['reason']
   } else if (props.type === 'pay') {
-    if (paymentMethod === 'online' && !bankName) errs.bankName = 'Select a bank'
-    if (!proof?.trim())
-      errs.proof =
-        localData.value.paymentMethod === 'online'
-          ? 'Transaction code required'
-          : 'Receipt ID required'
+    if (localData.value.paymentMethod === 'online') {
+      rules.required.push('bankName')
+    }
+    rules.required.push('proof')
   }
-  return errs
-})
 
-const isFormInvalid = computed(() => Object.keys(errors.value).length > 0)
+  submitForm(rules)
+}
 
 const modalTitle = computed(() => {
   const titles = {
@@ -424,12 +386,6 @@ const modalIcon = computed(() => {
   if (props.type === 'pay') return getActionIcon('pay')
   return getActionIcon('edit')
 })
-
-const handleSubmitTrigger = () => {
-  isSubmittingAttempted.value = true
-  if (isFormInvalid.value || (props.type === 'edit' && !isChanged.value)) return
-  emit('submit', { ...localData.value })
-}
 </script>
 
 <style scoped>

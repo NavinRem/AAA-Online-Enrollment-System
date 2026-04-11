@@ -10,7 +10,10 @@
   >
     <template #table-row="{ item, index, headers }">
       <tr class="ui-row">
-        <td class="ui-cell text-center font-bold text-content-muted/40 hide-on-mobile" :style="{ width: headers[0].width }">
+        <td
+          class="ui-cell text-center font-bold text-content-muted/40 hide-on-mobile"
+          :style="{ width: headers[0].width }"
+        >
           {{ index + 1 }}
         </td>
         <td class="ui-cell" :style="{ width: headers[1].width }">
@@ -22,8 +25,12 @@
               />
             </div>
             <div class="ui-identity-info">
-              <span class="font-bold text-content-dark">{{ item.program?.name || 'Unknown Program' }}</span>
-              <span class="text-3xs text-content-muted uppercase font-bold tracking-tight">{{ item.program?.category }}</span>
+              <span class="font-bold text-content-dark">{{
+                item.program?.name || 'Unknown Program'
+              }}</span>
+              <span class="text-3xs text-content-muted uppercase font-bold tracking-tight">{{
+                item.program?.category
+              }}</span>
             </div>
           </div>
         </td>
@@ -47,7 +54,9 @@
         </td>
         <td class="ui-cell" :style="{ width: headers[5].width }">
           <div class="flex flex-col gap-0.5">
-            <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{ item.day }}</span>
+            <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
+              item.day
+            }}</span>
             <span class="text-3xs text-content-muted font-bold uppercase">{{ item.timeslot }}</span>
           </div>
         </td>
@@ -60,7 +69,9 @@
                 :class="getCapacityClass(item)"
               ></div>
             </div>
-            <span class="text-3xs font-black text-content-muted uppercase tracking-widest">{{ item.numStudent }}/{{ item.capacity }}</span>
+            <span class="text-3xs font-black text-content-muted uppercase tracking-widest"
+              >{{ item.numStudent }}/{{ item.capacity }}</span
+            >
           </div>
         </td>
         <td class="ui-cell text-center" :style="{ width: headers[7].width }">

@@ -5,7 +5,12 @@
     :title="isEditMode ? 'Engineer Enrollment Record' : 'Registry: New Enrollment'"
     :icon="getActionIcon(isEditMode ? 'edit' : 'plus')"
   >
-    <form id="enrollmentForm" novalidate @submit.prevent="validateAndSubmit" class="flex flex-col gap-lg">
+    <form
+      id="enrollmentForm"
+      novalidate
+      @submit.prevent="validateAndSubmit"
+      class="flex flex-col gap-lg"
+    >
       <div class="grid grid-cols-2 gap-x-lg gap-y-md">
         <!-- Parent Selection -->
         <AppSelect
@@ -325,14 +330,10 @@ const availableProgramsForStudent = computed(() => {
 
 const availableStudents = computed(() => {
   if (!form.parentId) return []
-  return props.students.filter(
-    (s) => s.parentId === form.parentId || s.parentUid === form.parentId,
-  )
+  return props.students.filter((s) => s.parentId === form.parentId || s.parentUid === form.parentId)
 })
 
-const selectedProgram = computed(() =>
-  props.programs.find((c) => c.id === form.programId),
-)
+const selectedProgram = computed(() => props.programs.find((c) => c.id === form.programId))
 const selectedClass = computed(() => props.classes.find((c) => c.id === form.classId))
 
 const availableClasses = computed(() => {
@@ -358,13 +359,7 @@ const finalAmount = computed(() => {
 
 const prorateSavings = computed(() => {
   const price = selectedProgram.value?.price || 0
-  if (
-    !form.isProrated ||
-    !sessionInfo.value ||
-    price <= 0 ||
-    sessionInfo.value.total <= 0
-  )
-    return 0
+  if (!form.isProrated || !sessionInfo.value || price <= 0 || sessionInfo.value.total <= 0) return 0
   return (price / sessionInfo.value.total) * sessionInfo.value.passed
 })
 
@@ -377,7 +372,7 @@ const isSelectionLocked = computed(() => isEditMode.value)
 
 const validateAndSubmit = () => {
   const isValid = validate({
-    required: ['parentId', 'studentId', 'programId', 'classId']
+    required: ['parentId', 'studentId', 'programId', 'classId'],
   })
 
   if (!isValid || (isEditMode.value && !isChanged.value)) return

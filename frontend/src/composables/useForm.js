@@ -1,9 +1,5 @@
-import { reactive, ref } from 'vue'
+import { reactive } from 'vue'
 
-/**
- * useForm - Centralized Form Validation Composable
- * Handles field values, errors, and UI feedback (shaking).
- */
 export function useForm(initialValues = {}, options = {}) {
   const form = reactive({ ...initialValues })
   const errors = reactive({})
@@ -12,9 +8,6 @@ export function useForm(initialValues = {}, options = {}) {
 
   const { autoClear = 2000 } = options
 
-  /**
-   * Resets error and shake state for a single field or all fields
-   */
   const clearError = (field) => {
     if (field) {
       errors[field] = null

@@ -5,7 +5,12 @@
     title="Register New Parent"
     :icon="getActionIcon('plus')"
   >
-    <form id="newParentForm" novalidate @submit.prevent="handleFormSubmit" class="flex flex-col gap-lg">
+    <form
+      id="newParentForm"
+      novalidate
+      @submit.prevent="handleFormSubmit"
+      class="flex flex-col gap-lg"
+    >
       <div class="grid grid-cols-2 gap-lg">
         <AppInput
           v-model="form.name"

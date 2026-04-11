@@ -339,7 +339,8 @@ const onRowClick = (item) => {
               </Teleport>
             </div>
             <AppButton variant="primary" @click="openModal('add')">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> Add Program
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> Add
+              Program
             </AppButton>
           </template>
 

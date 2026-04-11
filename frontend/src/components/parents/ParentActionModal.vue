@@ -36,76 +36,41 @@
       </div>
     </div>
 
-    <form id="parentActionForm" @submit.prevent="handleActionSubmit">
+    <form id="parentActionForm" @submit.prevent="handleActionSubmit" novalidate>
       <!-- Edit Parent Form -->
       <div v-if="type === 'edit'" class="grid grid-cols-2 gap-x-lg gap-y-md">
-        <div
-          class="flex flex-col gap-xs col-span-2 sm:col-span-1"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.name }"
-        >
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-            >Legal Full Name <span class="text-error">*</span></label
-          >
-          <input
-            type="text"
-            v-model="localData.name"
-            placeholder="Registry name"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
-          />
-          <div
-            v-if="isSubmittingAttempted && errors.name"
-            class="text-error text-3xs font-black px-1 mt-1 uppercase"
-          >
-            {{ errors.name }}
-          </div>
-        </div>
+        <AppInput
+          v-model="localData.name"
+          label="Legal Full Name"
+          placeholder="Registry name"
+          required
+          :error="errors.name"
+          :shake="shaking.name"
+          @input="clearError('name')"
+        />
 
-        <div
-          class="flex flex-col gap-xs col-span-2 sm:col-span-1"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.email }"
-        >
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-            >Account Email <span class="text-error">*</span></label
-          >
-          <input
-            type="email"
-            v-model="localData.email"
-            placeholder="email@address.com"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
-          />
-          <div
-            v-if="isSubmittingAttempted && errors.email"
-            class="text-error text-3xs font-black px-1 mt-1 uppercase"
-          >
-            {{ errors.email }}
-          </div>
-        </div>
+        <AppInput
+          v-model="localData.email"
+          type="email"
+          label="Account Email"
+          placeholder="email@address.com"
+          required
+          :error="errors.email"
+          :shake="shaking.email"
+          @input="clearError('email')"
+        />
 
-        <div
-          class="flex flex-col gap-xs col-span-2 sm:col-span-1"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.phone }"
-        >
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-            >Contact Phone <span class="text-error">*</span></label
-          >
-          <input
-            type="tel"
-            v-model="localData.phone"
-            placeholder="Active phone line"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
-          />
-          <div
-            v-if="isSubmittingAttempted && errors.phone"
-            class="text-error text-3xs font-black px-1 mt-1 uppercase"
-          >
-            {{ errors.phone }}
-          </div>
-        </div>
+        <AppInput
+          v-model="localData.phone"
+          label="Contact Phone"
+          placeholder="Active phone line"
+          required
+          :error="errors.phone"
+          :shake="shaking.phone"
+          @input="clearError('phone')"
+        />
 
-        <div
-          class="flex flex-col gap-xs col-span-2 sm:col-span-1"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.profile }"
-        >
+        <div class="flex flex-col gap-xs col-span-2 sm:col-span-1">
           <label class="text-xs font-black uppercase text-content-muted tracking-widest"
             >Avatar Signature <span class="text-error">*</span></label
           >
@@ -114,11 +79,10 @@
             :role="localData.role"
             :uid="user?.uid || user?.id"
             :customFileName="`${localData.name}_${localData.role}`"
+            :error="!!errors.profile"
+            :shake="shaking.profile"
           />
-          <div
-            v-if="isSubmittingAttempted && errors.profile"
-            class="text-error text-3xs font-black px-1 mt-1 uppercase"
-          >
+          <div v-if="errors.profile" class="text-error text-3xs font-black px-1 mt-1 uppercase">
             {{ errors.profile }}
           </div>
         </div>
@@ -126,73 +90,40 @@
 
       <!-- Register Child Form -->
       <div v-if="type === 'plus'" class="flex flex-col gap-lg">
-        <div
-          class="flex flex-col gap-xs"
+        <AppSelect
           v-if="!user && selectableParents && selectableParents.length > 0"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.parentId }"
-        >
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-            >Link to Parent Registry <span class="text-error">*</span></label
-          >
-          <AppSelect
-            v-model="localData.parentId"
-            :items="filteredParents.map((p) => ({ id: p.uid || p.id, name: p.name }))"
-            placeholder="Search parent database..."
-          />
-          <div
-            v-if="isSubmittingAttempted && errors.parentId"
-            class="text-error text-3xs font-black px-1 mt-1 uppercase"
-          >
-            {{ errors.parentId }}
-          </div>
-        </div>
+          v-model="localData.parentId"
+          :items="filteredParents.map((p) => ({ id: p.uid || p.id, name: p.name }))"
+          label="Link to Parent Registry"
+          placeholder="Search parent database..."
+          required
+          :error="errors.parentId"
+          :shake="shaking.parentId"
+          @change="clearError('parentId')"
+        />
 
         <div class="grid grid-cols-2 gap-x-lg gap-y-md">
-          <div
-            class="flex flex-col gap-xs col-span-2 sm:col-span-1"
-            :class="{ 'group is-error': isSubmittingAttempted && errors.name }"
-          >
-            <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-              >Student Full Name <span class="text-error">*</span></label
-            >
-            <input
-              type="text"
-              v-model="localData.name"
-              placeholder="Full name of student"
-              class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
-            />
-            <div
-              v-if="isSubmittingAttempted && errors.name"
-              class="text-error text-3xs font-black px-1 mt-1 uppercase"
-            >
-              {{ errors.name }}
-            </div>
-          </div>
+          <AppInput
+            v-model="localData.name"
+            label="Student Full Name"
+            placeholder="Full name of student"
+            required
+            :error="errors.name"
+            :shake="shaking.name"
+            @input="clearError('name')"
+          />
 
-          <div
-            class="flex flex-col gap-xs col-span-2 sm:col-span-1"
-            :class="{ 'group is-error': isSubmittingAttempted && errors.dob }"
-          >
-            <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-              >Birth Registry Date <span class="text-error">*</span></label
-            >
-            <input
-              type="date"
-              v-model="localData.dob"
-              class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
-            />
-            <div
-              v-if="isSubmittingAttempted && errors.dob"
-              class="text-error text-3xs font-black px-1 mt-1 uppercase"
-            >
-              {{ errors.dob }}
-            </div>
-          </div>
+          <AppInput
+            v-model="localData.dob"
+            type="date"
+            label="Birth Registry Date"
+            required
+            :error="errors.dob"
+            :shake="shaking.dob"
+            @input="clearError('dob')"
+          />
 
-          <div
-            class="flex flex-col gap-xs col-span-2"
-            :class="{ 'group is-error': isSubmittingAttempted && errors.profile }"
-          >
+          <div class="flex flex-col gap-xs col-span-2">
             <label class="text-xs font-black uppercase text-content-muted tracking-widest"
               >Student Avatar <span class="text-error">*</span></label
             >
@@ -200,11 +131,10 @@
               v-model="localData.profile"
               role="student"
               :customFileName="`${localData.name}_student` || ''"
+              :error="!!errors.profile"
+              :shake="shaking.profile"
             />
-            <div
-              v-if="isSubmittingAttempted && errors.profile"
-              class="text-error text-3xs font-black px-1 mt-1 uppercase"
-            >
+            <div v-if="errors.profile" class="text-error text-3xs font-black px-1 mt-1 uppercase">
               {{ errors.profile }}
             </div>
           </div>
@@ -319,28 +249,22 @@
         </div>
       </AppAlert>
 
-      <div class="flex flex-col gap-xs">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest text-center"
-          >Authorization Required</label
-        >
-        <div class="flex flex-col gap-sm">
-          <label class="text-2xs font-black uppercase text-content-muted/40 text-center"
-            >Type <span class="text-error px-1">DELETE</span> to authorize record destruction</label
-          >
-          <input
-            class="w-full py-xl px-md border-[3px] border-outline-std rounded-std text-center font-black tracking-[4px] bg-surface-subtle text-xl outline-none transition-all focus:border-error focus:bg-white focus:ring-[8px] focus:ring-error/5"
-            type="text"
-            v-model="localData.deleteConfirm"
-            placeholder="AUTHORIZE PURGE"
-          />
-          <div
-            v-if="isSubmittingAttempted && errors.deleteConfirm"
-            class="text-error text-3xs font-black text-center mt-2 uppercase"
-          >
-            {{ errors.deleteConfirm }}
-          </div>
-        </div>
-      </div>
+      <AppInput
+        v-model="localData.deleteConfirm"
+        label="Authorization Required"
+        placeholder="AUTHORIZE PURGE"
+        required
+        class="text-center"
+        :error="errors.deleteConfirm"
+        :shake="shaking.deleteConfirm"
+        @input="clearError('deleteConfirm')"
+      >
+        <template #label-extra>
+          <span class="block text-2xs font-black uppercase text-content-muted/40 text-center mt-1">
+            Type <span class="text-error px-1">DELETE</span> to authorize record destruction
+          </span>
+        </template>
+      </AppInput>
     </div>
 
     <!-- Password Management View -->
@@ -424,6 +348,12 @@
           </p>
         </div>
       </AppAlert>
+      <div
+        v-if="errors.resetMode"
+        class="text-error text-3xs font-black text-center uppercase animate-shake"
+      >
+        {{ errors.resetMode }}
+      </div>
     </div>
 
     <!-- Footer -->
@@ -460,8 +390,7 @@
             :loading="loading"
             :disabled="loading || !!success"
             :class="{
-              'button-disabled-visual':
-                isFormInvalid || (type === 'edit' && !isChanged) || !!success,
+              'button-disabled-visual': (type === 'edit' && !isDirty) || !!success,
             }"
           >
             {{ submitLabel }}
@@ -478,6 +407,7 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import { useActionModal } from '@/composables/useActionModal'
@@ -538,40 +468,11 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, originalData, submitForm } = useActionModal(props, emit, {
-  getInitialData,
-  mapSourceToForm,
-})
-
-const isSubmittingAttempted = ref(false)
-const errors = computed(() => {
-  const data = localData.value
-  const errs = {}
-
-  if (props.type === 'edit') {
-    if (!data.name?.trim()) errs.name = 'Full name required'
-    if (!data.email?.trim() || !data.email.includes('@')) errs.email = 'Valid email required'
-    if (!data.phone?.trim()) errs.phone = 'Phone required'
-    if (!data.profile) errs.profile = 'Avatar required'
-  } else if (props.type === 'plus') {
-    if (!data.parentId) errs.parentId = 'Select a parent'
-    if (!data.name?.trim()) errs.name = "Student's name required"
-    if (!data.dob) errs.dob = 'Birth record required'
-    if (!data.profile) errs.profile = 'Avatar required'
-  } else if (props.type === 'delete') {
-    if (data.deleteConfirm !== 'DELETE') errs.deleteConfirm = 'Authorization string invalid'
-  } else if (props.type === 'reset-password' && !selectedResetMode.value) {
-    errs.resetMode = 'Selection required'
-  }
-
-  return errs
-})
-
-const isFormInvalid = computed(() => {
-  if (props.type === 'deactivate' || props.type === 'activate') return false
-  if (props.type === 'reset-password') return !selectedResetMode.value
-  return Object.keys(errors.value).length > 0
-})
+const { localData, originalData, isDirty, errors, shaking, clearError, submitForm } =
+  useActionModal(props, emit, {
+    getInitialData,
+    mapSourceToForm,
+  })
 
 const isChanged = computed(() => {
   if (props.type !== 'edit') return true
@@ -591,22 +492,42 @@ const isChanged = computed(() => {
 })
 
 const handleActionSubmit = () => {
-  isSubmittingAttempted.value = true
-
   if (props.type === 'reset-password') {
-    if (!selectedResetMode.value) return
+    if (!selectedResetMode.value) {
+      // Manual error set for resetMode since it's not a form field
+      errors.value.resetMode = 'Selection required'
+      shaking.value.resetMode = true
+      setTimeout(() => {
+        delete errors.value.resetMode
+        shaking.value.resetMode = false
+      }, 2000)
+      return
+    }
     if (selectedResetMode.value === 'email') {
       handleSendResetEmail()
     } else {
-      submitForm(true)
+      submitForm()
     }
     return
   }
 
-  const isActuallyInvalid = isFormInvalid.value || (props.type === 'edit' && !isChanged.value)
-  if (isActuallyInvalid) return
+  const rules = {
+    required: [],
+    custom: {},
+  }
 
-  submitForm(true)
+  if (props.type === 'edit') {
+    if (!isChanged.value) return
+    rules.required = ['name', 'phone', 'profile']
+    rules.custom.email = (val) => (!!val?.trim() && val.includes('@')) || 'Valid email required'
+  } else if (props.type === 'plus') {
+    rules.required = ['name', 'dob', 'profile']
+    if (!props.user) rules.required.push('parentId')
+  } else if (props.type === 'delete') {
+    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Authorization string invalid'
+  }
+
+  submitForm(rules)
 }
 
 const handleSendResetEmail = async () => {
@@ -705,7 +626,6 @@ watch(
   () => props.isOpen,
   (newVal) => {
     if (!newVal) {
-      isSubmittingAttempted.value = false
       submittingLocal.value = false
       selectedResetMode.value = null
     }
@@ -714,7 +634,5 @@ watch(
 </script>
 
 <style scoped>
-/* Scoped styles entirely removed. Logic migrated to Tailwind utility-first patterns.
-   Custom dropdown replaced with refactored AppSelect component.
-*/
+/* Scoped styles removed in favor of Tailwind utility-first patterns. */
 </style>

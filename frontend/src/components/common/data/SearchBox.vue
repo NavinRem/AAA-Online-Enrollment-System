@@ -12,7 +12,7 @@
       :value="modelValue"
       @input="$emit('update:modelValue', $event.target.value)"
       type="text"
-      class="w-full pl-11 pr-md py-3 border-2 rounded-sm text-sm font-medium outline-none transition-all"
+      class="w-full pl-11 pr-md py-3 border-2 rounded-2xl text-sm font-medium outline-none transition-all"
       :class="[
         variant === 'light'
           ? 'bg-white/10 border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-white/40 focus:ring-4 focus:ring-white/10'

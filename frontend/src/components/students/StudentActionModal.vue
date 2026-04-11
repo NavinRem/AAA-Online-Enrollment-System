@@ -26,51 +26,33 @@
       </div>
     </div>
 
-    <form id="studentActionForm" @submit.prevent="handleSubmit">
+    <form id="studentActionForm" @submit.prevent="handleActionSubmit" novalidate>
       <!-- Edit Profile / Override Form -->
       <div
         v-if="type === 'edit' || type === 'override' || type === 'enrollment-override'"
         class="grid grid-cols-2 gap-lg"
       >
-        <div
-          class="flex flex-col gap-xs mb-md"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.name }"
-        >
-          <label class="text-sm font-semibold text-content-dark"
-            >Full Name <span class="text-error">*</span></label
-          >
-          <input
-            type="text"
-            v-model="localData.name"
-            placeholder="Full Name"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft disabled:bg-surface-light disabled:cursor-not-allowed disabled:opacity-70 group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
-            :disabled="type !== 'edit'"
-          />
-          <div
-            v-if="isSubmittingAttempted && errors.name"
-            class="text-error text-xs font-bold mt-1"
-          >
-            {{ errors.name }}
-          </div>
-        </div>
+        <AppInput
+          v-model="localData.name"
+          label="Full Name"
+          placeholder="Full Name"
+          required
+          :error="errors.name"
+          :shake="shaking.name"
+          :disabled="type !== 'edit'"
+          @input="clearError('name')"
+        />
 
-        <div
-          class="flex flex-col gap-xs mb-md"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.dob }"
-        >
-          <label class="text-sm font-semibold text-content-dark"
-            >Date of Birth <span class="text-error">*</span></label
-          >
-          <input
-            type="date"
-            v-model="localData.dob"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft disabled:bg-surface-light disabled:cursor-not-allowed disabled:opacity-70 group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
-            :disabled="type !== 'edit'"
-          />
-          <div v-if="isSubmittingAttempted && errors.dob" class="text-error text-xs font-bold mt-1">
-            {{ errors.dob }}
-          </div>
-        </div>
+        <AppInput
+          v-model="localData.dob"
+          type="date"
+          label="Date of Birth"
+          required
+          :error="errors.dob"
+          :shake="shaking.dob"
+          :disabled="type !== 'edit'"
+          @input="clearError('dob')"
+        />
 
         <div class="flex flex-col gap-xs mb-md col-span-2">
           <label class="text-sm font-semibold text-content-dark"
@@ -105,35 +87,26 @@
           </div>
         </div>
 
-        <div
-          class="flex flex-col gap-xs mb-md"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.status }"
-        >
-          <label class="text-sm font-semibold text-content-dark"
-            >Account Status <span class="text-error">*</span></label
-          >
-          <select
-            v-model="localData.status"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft disabled:bg-surface-light disabled:cursor-not-allowed disabled:opacity-70 group-[.is-error]:border-error group-[.is-error]:bg-error-soft"
-            :disabled="type === 'edit' && !['Suspended', 'Stopped'].includes(localData.status)"
-          >
-            <option value="Studying">Studying</option>
-            <option value="Suspended">Suspended</option>
-            <option value="Stopped">Stopped</option>
-            <option value="Graduated">Graduated</option>
-          </select>
-          <div
-            v-if="isSubmittingAttempted && errors.status"
-            class="text-error text-xs font-bold mt-1"
-          >
-            {{ errors.status }}
-          </div>
-        </div>
+        <AppSelect
+          v-model="localData.status"
+          label="Account Status"
+          :items="[
+            { id: 'Studying', name: 'Studying' },
+            { id: 'Suspended', name: 'Suspended' },
+            { id: 'Stopped', name: 'Stopped' },
+            { id: 'Graduated', name: 'Graduated' },
+          ]"
+          required
+          :error="errors.status"
+          :shake="shaking.status"
+          :disabled="type === 'edit' && !['Suspended', 'Stopped'].includes(localData.status)"
+          :searchable="false"
+          @change="clearError('status')"
+        />
 
         <div
           class="flex flex-col gap-xs mb-md col-span-2"
           v-if="['Suspended', 'Stopped'].includes(localData.status)"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.overrideRemark }"
         >
           <label class="text-sm font-semibold text-content-dark"
             >Administrative Remarks <span class="text-error">*</span></label
@@ -142,12 +115,13 @@
             v-model="localData.overrideRemark"
             placeholder="Document reason for status change..."
             rows="3"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
+            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
+            :class="{
+              'border-error bg-error-soft ring-error/10': errors.overrideRemark,
+              'animate-shake': shaking.overrideRemark,
+            }"
           ></textarea>
-          <div
-            v-if="isSubmittingAttempted && errors.overrideRemark"
-            class="text-error text-xs font-bold mt-1"
-          >
+          <div v-if="errors.overrideRemark" class="text-error text-xs font-bold mt-1">
             {{ errors.overrideRemark }}
           </div>
         </div>
@@ -177,46 +151,39 @@
             </p>
           </div>
         </div>
-        <div class="mt-xl flex flex-col gap-sm">
-          <label class="text-sm font-bold text-center w-full text-content-dark"
-            >Type <span class="text-error font-extrabold px-1">DELETE</span> to confirm</label
-          >
-          <input
-            type="text"
-            v-model="localData.deleteConfirm"
-            placeholder="DELETE"
-            class="w-full p-md border-[3px] border-outline-std rounded-std text-center font-[800] tracking-[2px] transition-all bg-surface-subtle font-inherit text-lg outline-none focus:border-error focus:bg-white focus:ring-[5px] focus:ring-error/10"
-          />
-          <div
-            v-if="isSubmittingAttempted && errors.deleteConfirm"
-            class="text-error text-xs font-bold text-center mt-1"
-          >
-            {{ errors.deleteConfirm }}
-          </div>
-        </div>
+
+        <AppInput
+          v-model="localData.deleteConfirm"
+          label="Authorization"
+          placeholder="DELETE"
+          required
+          class="text-center"
+          :error="errors.deleteConfirm"
+          :shake="shaking.deleteConfirm"
+          @input="clearError('deleteConfirm')"
+        >
+          <template #label-extra>
+            <span
+              class="block text-2xs font-bold text-center w-full text-content-muted/40 mt-1 uppercase"
+            >
+              Type <span class="text-error font-extrabold px-1">DELETE</span> to confirm
+            </span>
+          </template>
+        </AppInput>
       </div>
     </form>
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-sm">
-        <transition
-          enter-active-class="transition duration-300 ease-out"
-          enter-from-class="transform -translate-y-2 opacity-0"
-          enter-to-class="transform translate-y-0 opacity-100"
-          leave-active-class="transition duration-200 ease-in"
-          leave-from-class="opacity-100"
-          leave-to-class="opacity-0"
+        <AppAlert
+          v-if="error"
+          :show="!!error"
+          type="error"
+          closable
+          @close="$emit('update:error', '')"
         >
-          <AppAlert
-            v-if="error"
-            :show="!!error"
-            type="error"
-            closable
-            @close="$emit('update:error', '')"
-          >
-            {{ error }}
-          </AppAlert>
-        </transition>
+          {{ error }}
+        </AppAlert>
 
         <div class="flex items-center justify-end w-full gap-sm">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
@@ -224,9 +191,10 @@
             :variant="type?.includes('delete') ? 'danger' : 'primary'"
             form="studentActionForm"
             type="submit"
+            @click="type?.includes('delete') ? handleActionSubmit() : null"
             :loading="loading"
             :disabled="loading"
-            :class="{ 'button-disabled-visual': isFormInvalid || (type === 'edit' && !isChanged) }"
+            :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
           >
             {{ submitLabel }}
           </AppButton>
@@ -237,13 +205,16 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
+import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { getStudentProfileURL, isSameProfileAsset, getActionIcon } from '@/utils/assetHelper'
 import { calculateAge } from '@/utils/formatUtils'
+import { useActionModal } from '@/composables/useActionModal'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -256,23 +227,19 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit', 'update:error'])
 
-const localData = ref({
+const getInitialData = () => ({
   name: '',
   dob: '',
   profileURL: '',
   medicalNote: 'None',
-  status: '',
+  status: 'Studying',
   deleteConfirm: '',
   overrideRemark: '',
 })
 
-const originalData = ref({})
-const initialDataString = ref('')
-const isSubmittingAttempted = ref(false)
-
-const syncData = () => {
+const mapSourceToForm = () => {
   const source = props.student || props.enrollment || {}
-  const data = {
+  return {
     name: source.name || '',
     dob: source.dob || '',
     profileURL: source.profileURL || '',
@@ -281,51 +248,36 @@ const syncData = () => {
     deleteConfirm: '',
     overrideRemark: source.overrideRemark || '',
   }
-  localData.value = data
-  originalData.value = { ...data }
-  initialDataString.value = JSON.stringify(data)
 }
 
-watch(
-  () => props.isOpen,
-  (newVal) => {
-    if (newVal) {
-      syncData()
-      isSubmittingAttempted.value = false
-    }
-  },
-)
+const { localData, originalData, isDirty, errors, shaking, clearError, submitForm } =
+  useActionModal(props, emit, {
+    getInitialData,
+    mapSourceToForm,
+  })
 
-const isChanged = computed(() => {
-  if (props.type !== 'edit') return true
-  const current = JSON.stringify(localData.value)
-  const base = initialDataString.value
+const handleActionSubmit = () => {
+  if (props.type === 'edit' && !isDirty.value) return
 
-  const originalProfile = (props.student || props.enrollment)?.profileURL || ''
-  const currentProfile = localData.value.profileURL || ''
-  const profileChanged = !isSameProfileAsset(currentProfile, originalProfile)
+  const rules = {
+    required: [],
+    custom: {},
+  }
 
-  return current !== base || profileChanged
-})
-
-const errors = computed(() => {
-  const errs = {}
   if (props.type === 'edit' || props.type?.includes('override')) {
-    if (!localData.value.name?.trim()) errs.name = 'Full name is required.'
-    if (!localData.value.dob) errs.dob = 'Date of birth is required.'
-    if (
-      ['Suspended', 'Stopped'].includes(localData.value.status) &&
-      !localData.value.overrideRemark?.trim()
-    ) {
-      errs.overrideRemark = 'Detailed remark is required for this status change.'
+    rules.required = ['name', 'dob']
+    rules.custom.overrideRemark = (val) => {
+      if (['Suspended', 'Stopped'].includes(localData.value.status)) {
+        return !!val?.trim() || 'Detailed remark is required for this status change.'
+      }
+      return true
     }
   } else if (props.type?.includes('delete')) {
-    if (localData.value.deleteConfirm !== 'DELETE') errs.deleteConfirm = 'Type DELETE to confirm.'
+    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Type DELETE to confirm.'
   }
-  return errs
-})
 
-const isFormInvalid = computed(() => Object.keys(errors.value).length > 0)
+  submitForm(rules)
+}
 
 const modalTitle = computed(() => {
   const titles = {
@@ -386,11 +338,14 @@ const togglePreset = (field, chipValue) => {
   localData.value[field] = values.join(', ')
 }
 
-const handleSubmit = () => {
-  isSubmittingAttempted.value = true
-  if (isFormInvalid.value || (props.type === 'edit' && !isChanged.value)) return
-  emit('submit', { ...localData.value })
-}
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    if (!newVal) {
+      // clearError context is handled by useActionModal
+    }
+  },
+)
 </script>
 
 <style scoped>

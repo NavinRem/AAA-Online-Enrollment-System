@@ -1,4 +1,4 @@
-const studentService = require("../services/studentService");
+const studentService = require('../services/studentService')
 
 /**
  * @route POST /students
@@ -6,15 +6,15 @@ const studentService = require("../services/studentService");
  */
 exports.createStudent = async (req, res) => {
   try {
-    const result = await studentService.createStudent(req.body);
-    res.status(201).json(result);
+    const result = await studentService.createStudent(req.body)
+    res.status(201).json(result)
   } catch (error) {
-    if (error.message.includes("are required")) {
-      return res.status(400).json({ error: error.message });
+    if (error.message.includes('are required')) {
+      return res.status(400).json({ error: error.message })
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route GET /students/:id
@@ -22,15 +22,15 @@ exports.createStudent = async (req, res) => {
  */
 exports.getStudent = async (req, res) => {
   try {
-    const student = await studentService.getStudent(req.params.id);
-    res.status(200).json(student);
+    const student = await studentService.getStudent(req.params.id)
+    res.status(200).json(student)
   } catch (error) {
-    if (error.message === "Student not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === 'Student not found') {
+      return res.status(404).json({ error: error.message })
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route PUT /students/:id
@@ -38,15 +38,15 @@ exports.getStudent = async (req, res) => {
  */
 exports.updateStudent = async (req, res) => {
   try {
-    const result = await studentService.updateStudent(req.params.id, req.body);
-    res.status(200).json(result);
+    const result = await studentService.updateStudent(req.params.id, req.body)
+    res.status(200).json(result)
   } catch (error) {
-    if (error.message === "Student not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === 'Student not found') {
+      return res.status(404).json({ error: error.message })
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route PUT /students/:id/medical
@@ -57,18 +57,18 @@ exports.updateMedicalInfo = async (req, res) => {
     const result = await studentService.updateMedicalInfo(
       req.params.id,
       req.body.medicalNote,
-    );
-    res.status(200).json(result);
+    )
+    res.status(200).json(result)
   } catch (error) {
-    if (error.message === "Medical note is required") {
-      return res.status(400).json({ error: error.message });
+    if (error.message === 'Medical note is required') {
+      return res.status(400).json({ error: error.message })
     }
-    if (error.message === "Student not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === 'Student not found') {
+      return res.status(404).json({ error: error.message })
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route GET /students/parent/:parentId
@@ -78,12 +78,12 @@ exports.getStudentsByParentID = async (req, res) => {
   try {
     const students = await studentService.getStudentsByParentID(
       req.params.parentId,
-    );
-    res.status(200).json(students);
+    )
+    res.status(200).json(students)
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route GET /students
@@ -91,9 +91,9 @@ exports.getStudentsByParentID = async (req, res) => {
  */
 exports.getAllStudents = async (req, res) => {
   try {
-    const students = await studentService.getAllStudents();
-    res.status(200).json(students);
+    const students = await studentService.getAllStudents()
+    res.status(200).json(students)
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}

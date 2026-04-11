@@ -6,71 +6,47 @@
     maxWidth="600px"
     @close="$emit('close')"
   >
-    <template #header-extra v-if="error">
-      <AppAlert :show="!!error" type="error" closable @close="$emit('update:error', '')">
-        {{ error }}
-      </AppAlert>
-    </template>
-
     <form
       v-if="type === 'add' || type === 'edit'"
       id="programActionForm"
       class="grid grid-cols-2 gap-x-lg gap-y-md"
-      @submit.prevent="handleSubmit"
+      @submit.prevent="handleActionSubmit"
+      novalidate
     >
-      <div
-        class="flex flex-col gap-xs mb-sm col-span-2"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.name }"
+      <AppInput
+        v-model="localData.name"
+        label="Program Identity / Model"
+        placeholder="e.g. Master Class: Piano"
+        class="col-span-2"
+        required
+        :error="errors.name"
+        :shake="shaking.name"
+        @input="clearError('name')"
       >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Program Identity / Model <span class="text-error">*</span>
-          <span
-            class="text-3xs font-bold text-primary ml-sm lowercase italic opacity-60"
-            v-if="type === 'edit' && originalData.name"
-            >Record: {{ originalData.name }}</span
-          >
-        </label>
-        <input
-          type="text"
-          v-model="localData.name"
-          placeholder="e.g. Master Class: Piano"
-          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-bold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
-        />
-        <div
-          v-if="isSubmittingAttempted && errors.name"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.name }}
-        </div>
-      </div>
+        <template #label-extra v-if="type === 'edit' && originalData.name">
+          <span class="text-3xs font-bold text-primary ml-sm lowercase italic opacity-60">
+            Record: {{ originalData.name }}
+          </span>
+        </template>
+      </AppInput>
 
-      <div
-        class="flex flex-col gap-xs"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.categoryId }"
-      >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Category <span class="text-error">*</span></label
-        >
-        <AppSelect
-          v-model="localData.categoryId"
-          :items="sortedCategories"
-          placeholder="Catalog..."
-          @change="onCategoryChange"
-        />
-        <div
-          v-if="isSubmittingAttempted && errors.categoryId"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.categoryId }}
-        </div>
-      </div>
+      <AppSelect
+        v-model="localData.categoryId"
+        :items="sortedCategories"
+        label="Category"
+        placeholder="Catalog..."
+        required
+        :error="errors.categoryId"
+        :shake="shaking.categoryId"
+        @change="onCategoryChange"
+      />
 
-      <div class="flex flex-col gap-xs">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Skill Level</label
-        >
-        <AppSelect v-model="localData.levelId" :items="sortedLevels" placeholder="Difficulty..." />
-      </div>
+      <AppSelect
+        v-model="localData.levelId"
+        :items="sortedLevels"
+        label="Skill Level"
+        placeholder="Difficulty..."
+      />
 
       <div class="col-span-2 flex items-center gap-md py-2 opacity-50">
         <div class="h-px bg-border flex-1"></div>
@@ -80,115 +56,66 @@
         <div class="h-px bg-border flex-1"></div>
       </div>
 
-      <div class="flex flex-col gap-xs mr-md">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Course Type <span class="text-error">*</span></label
-        >
-        <AppSelect
-          v-model="localData.type"
-          :items="[
-            { id: 'group', name: 'Group / Ensemble' },
-            { id: 'private', name: 'Private Session' },
-          ]"
-          :searchable="false"
-        />
-      </div>
+      <AppSelect
+        v-model="localData.type"
+        label="Course Type"
+        :items="[
+          { id: 'group', name: 'Group / Ensemble' },
+          { id: 'private', name: 'Private Session' },
+        ]"
+        :searchable="false"
+        required
+      />
 
-      <div
-        class="flex flex-col gap-xs"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.basePrice }"
-      >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Catalog Price ($) <span class="text-error">*</span></label
-        >
-        <div class="relative">
-          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-content-muted font-bold"
-            >$</span
-          >
-          <input
-            type="number"
-            v-model="localData.basePrice"
-            min="0"
-            step="0.01"
-            class="w-full pl-9 pr-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft"
-          />
-        </div>
-        <div
-          v-if="isSubmittingAttempted && errors.basePrice"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.basePrice }}
-        </div>
-      </div>
+      <AppInput
+        v-model="localData.basePrice"
+        type="number"
+        label="Catalog Price ($)"
+        placeholder="0.00"
+        step="0.01"
+        required
+        :error="errors.basePrice"
+        :shake="shaking.basePrice"
+        @input="clearError('basePrice')"
+      />
 
-      <div
-        class="flex flex-col gap-xs"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.sessionNumber }"
-      >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Total Units <span class="text-error">*</span></label
-        >
-        <input
-          type="number"
-          v-model="localData.sessionNumber"
-          min="1"
-          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft"
-        />
-        <div
-          v-if="isSubmittingAttempted && errors.sessionNumber"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.sessionNumber }}
-        </div>
-      </div>
+      <AppInput
+        v-model="localData.sessionNumber"
+        type="number"
+        label="Total Units"
+        placeholder="1"
+        required
+        :error="errors.sessionNumber"
+        :shake="shaking.sessionNumber"
+        @input="clearError('sessionNumber')"
+      />
 
-      <div
-        class="flex flex-col gap-xs"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.weeksNumber }"
+      <AppInput
+        v-model="localData.weeksNumber"
+        type="number"
+        label="Term Duration"
+        placeholder="1"
+        required
+        :error="errors.weeksNumber"
+        :shake="shaking.weeksNumber"
+        @input="clearError('weeksNumber')"
       >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Term Duration <span class="text-error">*</span></label
-        >
-        <div class="relative">
-          <input
-            type="number"
-            v-model="localData.weeksNumber"
-            min="1"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft"
-          />
-          <span
-            class="absolute right-4 top-1/2 -translate-y-1/2 text-2xs font-black uppercase text-content-muted/40"
-            >Weeks</span
-          >
-        </div>
-        <div
-          v-if="isSubmittingAttempted && errors.weeksNumber"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.weeksNumber }}
-        </div>
-      </div>
+        <template #right-icon>
+          <span class="text-2xs font-black uppercase text-content-muted/40 mr-md">Weeks</span>
+        </template>
+      </AppInput>
 
-      <div
-        class="flex flex-col gap-xs col-span-2"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.maxCapacity }"
-      >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Registry Limit (Defaults) <span class="text-error">*</span></label
-        >
-        <input
-          type="number"
-          v-model="localData.maxCapacity"
-          min="1"
-          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft"
-        />
-        <div
-          v-if="isSubmittingAttempted && errors.maxCapacity"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.maxCapacity }}
-        </div>
-      </div>
+      <AppInput
+        v-model="localData.maxCapacity"
+        type="number"
+        label="Registry Limit (Defaults)"
+        placeholder="10"
+        class="col-span-2"
+        required
+        :error="errors.maxCapacity"
+        :shake="shaking.maxCapacity"
+        @input="clearError('maxCapacity')"
+      />
 
       <div class="flex flex-col gap-xs col-span-2 mt-sm">
         <label class="text-xs font-black uppercase text-content-muted tracking-widest"
@@ -341,28 +268,22 @@
           </p>
         </div>
       </div>
-      <div class="flex flex-col gap-sm">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest text-center"
-          >Master Purge Confirmation</label
-        >
-        <div class="flex flex-col gap-xs">
-          <label class="text-2xs font-black uppercase text-content-muted/40 text-center"
-            >Type <span class="text-error px-1">DELETE</span> to confirm purge</label
-          >
-          <input
-            type="text"
-            v-model="localData.deleteConfirm"
-            placeholder="CONFIRM CATALOG DELETE"
-            class="w-full py-xl px-md border-[3px] border-outline-std rounded-std text-center font-black tracking-[4px] bg-surface-subtle text-xl outline-none transition-all focus:border-error focus:bg-white focus:ring-[8px] focus:ring-error/5 placeholder:opacity-30 placeholder:tracking-normal placeholder:font-bold"
-          />
-          <div
-            v-if="isSubmittingAttempted && errors.deleteConfirm"
-            class="text-error text-3xs font-black text-center mt-2 uppercase"
-          >
-            {{ errors.deleteConfirm }}
-          </div>
-        </div>
-      </div>
+      <AppInput
+        v-model="localData.deleteConfirm"
+        label="Master Purge Confirmation"
+        placeholder="CONFIRM CATALOG DELETE"
+        required
+        :error="errors.deleteConfirm"
+        :shake="shaking.deleteConfirm"
+        class="text-center"
+        @input="clearError('deleteConfirm')"
+      >
+        <template #label-extra>
+          <span class="block text-2xs font-black uppercase text-content-muted/40 text-center mt-1">
+            Type <span class="text-error px-1">DELETE</span> to confirm purge
+          </span>
+        </template>
+      </AppInput>
     </div>
 
     <template #footer>
@@ -370,12 +291,12 @@
         <AppButton variant="cancel" @click="$emit('close')">Cancel Entry</AppButton>
         <AppButton
           :variant="type === 'delete' ? 'danger' : 'primary'"
-          form="programActionForm"
+          :form="type === 'add' || type === 'edit' ? 'programActionForm' : null"
           type="submit"
-          @click="type === 'delete' ? handleSubmit() : null"
+          @click="type === 'delete' ? handleActionSubmit() : null"
           :loading="loading"
           :disabled="loading"
-          :class="{ 'button-disabled-visual': isFormInvalid || (type === 'edit' && !isChanged) }"
+          :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
         >
           {{ submitLabel }}
         </AppButton>
@@ -390,9 +311,11 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
 import { getActionIcon } from '@/utils/assetHelper'
 import { programService } from '@/services/programService'
 import { storageService } from '@/services/storageService'
+import { useActionModal } from '@/composables/useActionModal'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -404,7 +327,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit', 'update:error'])
 
-const localData = ref({
+const getInitialData = () => ({
   name: '',
   categoryId: '',
   levelId: '',
@@ -418,62 +341,18 @@ const localData = ref({
   deleteConfirm: '',
 })
 
-const originalData = ref({})
-const initialDataString = ref('')
-const isSubmittingAttempted = ref(false)
-
-const syncData = () => {
+const mapSourceToForm = () => {
   if (props.type === 'edit' && props.program) {
-    const data = { ...props.program, deleteConfirm: '' }
-    localData.value = data
-    originalData.value = { ...data }
-    initialDataString.value = JSON.stringify(data)
-  } else {
-    localData.value = {
-      name: '',
-      categoryId: '',
-      levelId: '',
-      type: 'group',
-      basePrice: 0.0,
-      sessionNumber: 1,
-      weeksNumber: 1,
-      maxCapacity: 10,
-      description: '',
-      profileURL: '',
-      deleteConfirm: '',
-    }
-    initialDataString.value = JSON.stringify(localData.value)
+    return { ...props.program, deleteConfirm: '' }
   }
+  return getInitialData()
 }
 
-watch(
-  () => props.isOpen,
-  (val) => {
-    if (val) {
-      syncData()
-      isSubmittingAttempted.value = false
-    }
-  },
-)
-
-const errors = computed(() => {
-  const d = localData.value
-  const errs = {}
-  if (props.type === 'delete') {
-    if (d.deleteConfirm !== 'DELETE') errs.deleteConfirm = 'Invalid confirmation string'
-  } else {
-    if (!d.name?.trim()) errs.name = 'Label required'
-    if (!d.categoryId) errs.categoryId = 'Catalog required'
-    if (d.basePrice < 0) errs.basePrice = 'Negative price'
-    if (d.sessionNumber < 1) errs.sessionNumber = 'Min 1 unit'
-    if (d.weeksNumber < 1) errs.weeksNumber = 'Min 1 duration'
-    if (d.maxCapacity < 1) errs.maxCapacity = 'Capacity error'
-  }
-  return errs
-})
-
-const isFormInvalid = computed(() => Object.keys(errors.value).length > 0)
-const isChanged = computed(() => JSON.stringify(localData.value) !== initialDataString.value)
+const { localData, originalData, isDirty, errors, shaking, clearError, submitForm } =
+  useActionModal(props, emit, {
+    getInitialData,
+    mapSourceToForm,
+  })
 
 const categories = ref([])
 const levels = ref([])
@@ -529,8 +408,10 @@ const fetchSchedules = async () => {
   }
 }
 
-const onCategoryChange = () => {
+const onCategoryChange = (val) => {
+  localData.value.categoryId = val
   localData.value.levelId = ''
+  clearError('categoryId')
   fetchLevels()
 }
 
@@ -570,10 +451,24 @@ const handleRemoveSchedule = async (scheduleId) => {
   }
 }
 
-const handleSubmit = () => {
-  isSubmittingAttempted.value = true
-  if (isFormInvalid.value || (props.type === 'edit' && !isChanged.value)) return
-  emit('submit', { ...localData.value })
+const handleActionSubmit = () => {
+  if (props.type === 'edit' && !isDirty.value) return
+
+  const rules = {
+    required: props.type === 'delete' ? [] : ['name', 'categoryId'],
+    custom: {},
+  }
+
+  if (props.type === 'delete') {
+    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Invalid confirmation string'
+  } else {
+    rules.custom.basePrice = (val) => val >= 0 || 'Negative price'
+    rules.custom.sessionNumber = (val) => val >= 1 || 'Min 1 unit'
+    rules.custom.weeksNumber = (val) => val >= 1 || 'Min 1 duration'
+    rules.custom.maxCapacity = (val) => val >= 1 || 'Capacity error'
+  }
+
+  submitForm(rules)
 }
 
 watch(

@@ -1,4 +1,4 @@
-const sessionService = require("../services/sessionService");
+const sessionService = require('../services/sessionService')
 
 /**
  * @route POST /sessions
@@ -6,31 +6,31 @@ const sessionService = require("../services/sessionService");
  */
 exports.createSession = async (req, res) => {
   try {
-    const result = await sessionService.createSession(req.body);
-    res.status(201).json(result);
+    const result = await sessionService.createSession(req.body)
+    res.status(201).json(result)
   } catch (error) {
-    if (error.message === "programId is required") {
-      return res.status(400).json({ error: error.message });
+    if (error.message === 'programId is required') {
+      return res.status(400).json({ error: error.message })
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @description Get all sessions for a specific program
  */
 exports.getAvailableSessions = async (req, res) => {
   try {
-    const { branchId } = req.query;
+    const { branchId } = req.query
     const sessions = await sessionService.getAvailableSessions(
       req.params.id,
       branchId,
-    );
-    res.status(200).json(sessions);
+    )
+    res.status(200).json(sessions)
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route GET /sessions
@@ -38,12 +38,12 @@ exports.getAvailableSessions = async (req, res) => {
  */
 exports.getAllSessions = async (req, res) => {
   try {
-    const sessions = await sessionService.getAllSessions();
-    res.status(200).json(sessions);
+    const sessions = await sessionService.getAllSessions()
+    res.status(200).json(sessions)
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route GET /sessions/:id/validateCapacity
@@ -51,15 +51,15 @@ exports.getAllSessions = async (req, res) => {
  */
 exports.validateCapacity = async (req, res) => {
   try {
-    const result = await sessionService.validateCapacity(req.params.id);
-    res.status(200).json(result);
+    const result = await sessionService.validateCapacity(req.params.id)
+    res.status(200).json(result)
   } catch (error) {
-    if (error.message === "Session not found") {
-      return res.status(404).json({ error: error.message });
+    if (error.message === 'Session not found') {
+      return res.status(404).json({ error: error.message })
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route GET /sessions/:id
@@ -67,15 +67,15 @@ exports.validateCapacity = async (req, res) => {
  */
 exports.getSession = async (req, res) => {
   try {
-    const session = await sessionService.getSession(req.params.id);
-    res.status(200).json(session);
+    const session = await sessionService.getSession(req.params.id)
+    res.status(200).json(session)
   } catch (error) {
-    if (error.message === "Session not found") {
-      return res.status(404).json({ message: error.message });
+    if (error.message === 'Session not found') {
+      return res.status(404).json({ message: error.message })
     }
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route PUT /sessions/:id/teacher
@@ -86,12 +86,12 @@ exports.assignTeacher = async (req, res) => {
     const result = await sessionService.assignTeacher(
       req.params.id,
       req.body.teachers,
-    );
-    res.status(200).json(result);
+    )
+    res.status(200).json(result)
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route GET /sessions/:id/teachers
@@ -99,12 +99,12 @@ exports.assignTeacher = async (req, res) => {
  */
 exports.getSessionTeachers = async (req, res) => {
   try {
-    const result = await sessionService.getSessionTeachers(req.params.id);
-    res.status(200).json(result);
+    const result = await sessionService.getSessionTeachers(req.params.id)
+    res.status(200).json(result)
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 
 /**
  * @route POST /sessions/sync-counts
@@ -112,21 +112,21 @@ exports.getSessionTeachers = async (req, res) => {
  */
 exports.syncStudentCounts = async (req, res) => {
   try {
-    const result = await sessionService.syncStudentCounts(req.body.sessionId);
-    res.status(200).json(result);
+    const result = await sessionService.syncStudentCounts(req.body.sessionId)
+    res.status(200).json(result)
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}
 /**
  * @route POST /sessions/sync-all
  * @description Recalculate student counts for all sessions
  */
 exports.syncAllSessions = async (req, res) => {
   try {
-    const result = await sessionService.syncAllSessionCounts();
-    res.status(200).json(result);
+    const result = await sessionService.syncAllSessionCounts()
+    res.status(200).json(result)
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message })
   }
-};
+}

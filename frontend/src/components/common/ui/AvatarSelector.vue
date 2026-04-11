@@ -9,10 +9,18 @@
           v-for="avatar in availableAvatars"
           :key="avatar.id + avatar.url"
           class="avatar-option relative w-14 h-14 rounded-full cursor-pointer border-2 transition-all p-0.5 bg-white"
-          :class="isSelected(avatar.url) ? 'border-primary ring-4 ring-primary/5' : 'border-transparent hover:border-text-light'"
+          :class="
+            isSelected(avatar.url)
+              ? 'border-primary ring-4 ring-primary/5'
+              : 'border-transparent hover:border-text-light'
+          "
           @click="selectAvatar(avatar.url)"
         >
-          <img :src="avatar.url" :alt="avatar.name" class="w-full h-full rounded-full object-cover" />
+          <img
+            :src="avatar.url"
+            :alt="avatar.name"
+            class="w-full h-full rounded-full object-cover"
+          />
           <div
             class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm"
             v-if="isSelected(avatar.url)"
@@ -25,7 +33,10 @@
         <div
           v-if="customAvatar"
           class="avatar-option relative w-14 h-14 rounded-full cursor-pointer border-2 transition-all p-0.5 bg-white border-primary ring-4 ring-primary/5"
-          :class="{ 'opacity-100': isSelected(customAvatar), 'opacity-60': !isSelected(customAvatar) }"
+          :class="{
+            'opacity-100': isSelected(customAvatar),
+            'opacity-60': !isSelected(customAvatar),
+          }"
           @click="selectAvatar(customAvatar)"
         >
           <img :src="customAvatar" alt="Custom" class="w-full h-full rounded-full object-cover" />
@@ -58,7 +69,10 @@
           class="upload-btn w-14 h-14 rounded-full border-2 border-dashed border-text-light flex flex-col items-center justify-center cursor-pointer transition-all bg-white text-content-light/50 hover:border-primary hover:text-primary hover:bg-primary-soft"
           @click="fileInput?.click()"
         >
-          <div v-if="uploading" class="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+          <div
+            v-if="uploading"
+            class="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"
+          ></div>
           <template v-else>
             <i class="fas fa-plus text-sm mb-0.5"></i>
             <span class="text-[10px] font-black uppercase tracking-tighter">Upload</span>
@@ -76,10 +90,16 @@
       leave-from-class="opacity-100 translate-y-0"
       leave-to-class="opacity-0 -translate-y-1"
     >
-      <div v-if="error || props.error" class="text-3xs font-black text-error uppercase tracking-widest pl-1">
+      <div
+        v-if="error || props.error"
+        class="text-3xs font-black text-error uppercase tracking-widest pl-1"
+      >
         {{ error || props.error }}
       </div>
-      <div v-else-if="success" class="text-3xs font-black text-success uppercase tracking-widest pl-1 flex items-center gap-1">
+      <div
+        v-else-if="success"
+        class="text-3xs font-black text-success uppercase tracking-widest pl-1 flex items-center gap-1"
+      >
         <i class="fas fa-check-circle"></i> Profile upload acknowledged
       </div>
     </transition>
@@ -101,7 +121,7 @@ const props = defineProps({
   uid: String,
   customFileName: String,
   error: String,
-  shake: Boolean
+  shake: Boolean,
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -252,4 +272,3 @@ const handleFileUpload = async (event) => {
   opacity: 1;
 }
 </style>
-

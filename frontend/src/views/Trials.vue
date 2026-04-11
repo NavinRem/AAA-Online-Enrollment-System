@@ -39,7 +39,7 @@ const fetchData = async () => {
       programService.getAllClasses(),
     ])
     trials.value = Array.isArray(tData) ? tData : []
-    parents.value = Array.isArray(pData) ? pData.filter(u => u.role === 'parent') : []
+    parents.value = Array.isArray(pData) ? pData.filter((u) => u.role === 'parent') : []
     students.value = Array.isArray(sData) ? sData : []
     programs.value = Array.isArray(progData) ? progData : []
     classes.value = Array.isArray(cData) ? cData : []
@@ -57,9 +57,11 @@ onMounted(() => {
 const trialStats = computed(() => {
   const total = trials.value.length
   const today = new Date().toISOString().split('T')[0]
-  const todayCount = trials.value.filter(t => (t.createdAt || t.trialDate || '').split('T')[0] === today).length
-  const attendedCount = trials.value.filter(t => t.status === 'attended').length
-  const bookedCount = trials.value.filter(t => t.status === 'booked').length
+  const todayCount = trials.value.filter(
+    (t) => (t.createdAt || t.trialDate || '').split('T')[0] === today,
+  ).length
+  const attendedCount = trials.value.filter((t) => t.status === 'attended').length
+  const bookedCount = trials.value.filter((t) => t.status === 'booked').length
 
   return [
     {

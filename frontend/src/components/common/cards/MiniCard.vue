@@ -13,7 +13,7 @@ const handleImageError = (e) => {
 
 <template>
   <div
-    class="flex items-center gap-md bg-surface-subtle p-md rounded-sm w-full border border-outline-std transition-all hover:bg-white hover:shadow-md hover:border-primary/20 group"
+    class="flex items-center gap-md bg-[var(--accent-light)] p-md rounded-sm w-full border border-outline-std transition-all hover:bg-white hover:shadow-md hover:border-primary/20 group"
   >
     <div
       class="w-10 h-10 flex items-center justify-center rounded-sm bg-white shadow-sm ring-1 ring-border flex-shrink-0 group-hover:scale-110 transition-transform"

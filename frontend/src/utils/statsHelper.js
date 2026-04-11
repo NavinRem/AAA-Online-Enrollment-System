@@ -9,7 +9,7 @@ export const calculateDashboardStats = (
   regs = [],
   progs = [],
   students = [],
-  sessions = [],
+  classes = [],
   branches = [],
   trials = [],
 ) => {
@@ -66,8 +66,10 @@ export const calculateDashboardStats = (
       parents: (allUsers || []).filter((u) => u.role === 'parent').length,
       students: (students || []).length,
       programs: (progs || []).length,
+      classes: (classes || []).length,
       branches: (branches || []).length,
       enrollments: (regs || []).length,
+      trials: (trials || []).length,
       totalRevenue:
         Math.round(
           (regs || [])

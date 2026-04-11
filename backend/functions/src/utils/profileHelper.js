@@ -7,7 +7,7 @@ class ProfileHelper {
    * Creates a standardized snapshot of a User (Admin or Parent)
    */
   getUserSnapshot(uid, userData) {
-    if (!uid || !userData) return null;
+    if (!uid || !userData) return null
 
     return {
       id: uid,
@@ -17,14 +17,14 @@ class ProfileHelper {
       phone: userData.phone,
       role: userData.role,
       profileURL: userData.profileURL,
-    };
+    }
   }
 
   /**
    * Creates a standardized snapshot of a Student
    */
   getStudentSnapshot(sid, studentData) {
-    if (!sid || !studentData) return null;
+    if (!sid || !studentData) return null
 
     return {
       id: sid,
@@ -34,26 +34,26 @@ class ProfileHelper {
       medicalNote: studentData.medicalNote,
       profileURL: studentData.profileURL,
       status: studentData.status,
-    };
+    }
   }
 
   /**
    * Helper to merge updates into an existing snapshot
    */
   getUpdatedSnapshot(existingSnapshot, updates) {
-    if (!existingSnapshot) return null;
+    if (!existingSnapshot) return null
     return {
       ...existingSnapshot,
       ...updates,
       id: existingSnapshot.id,
-    };
+    }
   }
 
   /**
    * Standardized Program Snapshot (Model Product)
    */
   getProgramSnapshot(programId, data) {
-    if (!programId || !data) return null;
+    if (!programId || !data) return null
 
     return {
       id: programId,
@@ -63,42 +63,42 @@ class ProfileHelper {
       weeksNumber: data.weeksNumber || 0,
       basePrice: data.basePrice || data.price || 0,
       maxCapacity: data.maxCapacity || 0,
-      type: data.type || "group",
+      type: data.type || 'group',
       profileURL: data.profileURL,
-    };
+    }
   }
 
   /**
    * Standardized Term Snapshot
    */
   getTermSnapshot(termId, data) {
-    if (!termId || !data) return null;
+    if (!termId || !data) return null
     return {
       id: termId,
       name: data.name,
       startDate: data.startDate,
       endDate: data.endDate,
-    };
+    }
   }
 
   /**
    * Standardized Branch Snapshot
    */
   getBranchSnapshot(branchId, data) {
-    if (!branchId || !data) return null;
+    if (!branchId || !data) return null
     return {
       id: branchId,
       name: data.name,
       abbr: data.abbr,
       location: data.location,
-    };
+    }
   }
 
   /**
    * Standardized Class Snapshot
    */
   getClassSnapshot(classId, data) {
-    if (!classId || !data) return null;
+    if (!classId || !data) return null
     return {
       id: classId,
       program: data.program, // Mirror
@@ -107,14 +107,14 @@ class ProfileHelper {
       teacher: data.teacher, // Mirror
       day: data.day,
       timeslot: data.timeslot,
-      status: data.status || "open",
+      status: data.status || 'open',
       capacity: data.capacity || data.program?.maxCapacity || 0,
       numStudent: data.numStudent || 0,
       isFull:
         (data.numStudent || 0) >=
         (data.capacity || data.program?.maxCapacity || 0),
-    };
+    }
   }
 }
 
-module.exports = new ProfileHelper();
+module.exports = new ProfileHelper()

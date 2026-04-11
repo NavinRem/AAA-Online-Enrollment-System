@@ -17,7 +17,7 @@
         :class="[
           error ? 'ui-input-invalid' : 'focus:border-primary focus:ring-[3px] focus:ring-info-soft',
           disabled ? 'bg-surface-subtle opacity-60 cursor-not-allowed' : 'hover:border-primary/50',
-          inputClass
+          inputClass,
         ]"
       />
 
@@ -36,8 +36,8 @@
       </button>
 
       <!-- Unit/Icon Suffix (Optional) -->
-      <div 
-        v-if="$slots.suffix" 
+      <div
+        v-if="$slots.suffix"
         class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none"
       >
         <slot name="suffix"></slot>
@@ -69,14 +69,14 @@ const props = defineProps({
   label: String,
   type: {
     type: String,
-    default: 'text'
+    default: 'text',
   },
   placeholder: String,
   required: Boolean,
   disabled: Boolean,
   error: String,
   shake: Boolean,
-  inputClass: String
+  inputClass: String,
 })
 
 defineEmits(['update:modelValue'])

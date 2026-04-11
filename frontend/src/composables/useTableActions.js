@@ -47,8 +47,12 @@ export function useTableActions() {
 
     if (event.type === 'mousedown') {
       const target = event.target
-      if (!target.closest('.btn-dots') && !target.closest('.action-dropdown') && 
-          !target.closest('.ui-btn-dots') && !target.closest('.ui-dropdown-menu')) {
+      if (
+        !target.closest('.btn-dots') &&
+        !target.closest('.action-dropdown') &&
+        !target.closest('.ui-btn-dots') &&
+        !target.closest('.ui-dropdown-menu')
+      ) {
         closeMenu()
       }
     } else {

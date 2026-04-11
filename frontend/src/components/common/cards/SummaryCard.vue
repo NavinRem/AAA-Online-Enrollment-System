@@ -3,10 +3,6 @@ defineProps({
   title: String,
   value: [String, Number],
   image: String,
-  color: {
-    type: String,
-    default: 'var(--accent-light)',
-  },
 })
 
 const handleImageError = (e) => {
@@ -16,15 +12,9 @@ const handleImageError = (e) => {
 
 <template>
   <div
-    class="rounded-std p-md sm:p-lg flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1 shadow-sm border border-outline-std bg-white group"
+    class="rounded-std p-md sm:p-lg flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1 shadow-sm border border-outline-std bg-[var(--accent-light)] group"
   >
     <div class="flex flex-col items-center justify-between h-full w-full gap-xs">
-      <div
-        class="w-8 h-8 rounded-full flex items-center justify-center opacity-80 mb-1"
-        :style="{ backgroundColor: color }"
-      >
-        <div class="w-1.5 h-1.5 rounded-full bg-white"></div>
-      </div>
       <h3 class="text-2xs sm:text-xs font-black text-content-muted tracking-widest uppercase mb-1">
         {{ title }}
       </h3>

@@ -1,6 +1,5 @@
-# ==========================================
-# GLOBAL IGNORES
-# ==========================================
+# Global Ignores
+node_modules/
 .DS_Store
 .vscode/
 !.vscode/extensions.json

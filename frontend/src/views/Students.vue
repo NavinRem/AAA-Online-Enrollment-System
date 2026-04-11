@@ -398,7 +398,8 @@ const submitActionModal = async (formData) => {
         >
           <template #toolbar-actions>
             <AppButton variant="primary" @click="handleOpenAddStudent">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> Add Student
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> Add
+              Student
             </AppButton>
           </template>
 

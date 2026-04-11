@@ -33,6 +33,7 @@ const sessions = ref([])
 const branches = ref([])
 const users = ref([])
 const loading = ref(true)
+const trials = ref([])
 
 const stats = ref({
   today: { reg: 0, enroll: 0, pay: 0, trial: 0 },
@@ -43,6 +44,7 @@ const stats = ref({
     programs: 0,
     branches: 0,
     enrollments: 0,
+    trials: 0,
     totalRevenue: 0,
   },
 })
@@ -79,6 +81,7 @@ onMounted(() => {
       students.value = Array.isArray(sData) ? sData : []
       sessions.value = Array.isArray(sessData) ? sessData : []
       branches.value = Array.isArray(bData) ? bData : []
+      trials.value = Array.isArray(tData) ? tData : []
 
       stats.value = calculateDashboardStats(
         users.value,
@@ -87,7 +90,7 @@ onMounted(() => {
         students.value,
         sessions.value,
         branches.value,
-        Array.isArray(tData) ? tData : [],
+        trials.value,
       )
     } catch (err) {
       console.error('Dashboard error:', err)
@@ -120,7 +123,7 @@ const todayStats = computed(() => [
   {
     label: 'Trial Class Today',
     value: stats.value.today.trial,
-    image: getImageUrl('dashboard/registration'),
+    image: getImageUrl('dashboard/trial'),
     color: 'var(--accent-light)',
   },
   {
@@ -147,7 +150,7 @@ const thisWeekStats = computed(() => [
   {
     label: 'Total Trial Classes',
     value: stats.value.week.trial,
-    image: getImageUrl('dashboard/registration'),
+    image: getImageUrl('dashboard/trial'),
     color: 'var(--accent-light)',
   },
   {
@@ -189,20 +192,16 @@ const mappedEnrollments = computed(() => {
           (c ? { id: c.id, title: c.title || c.name, profile: c.profile || c.profileURL } : null),
 
         parentName: r.parent?.name || r.parentName || p?.name || 'N/A',
-        parentProfileURL: getParentProfileURL(
-          r.parent?.profile || r.parentProfileURL || p?.profileURL,
-        ),
+        parentProfileURL: getParentProfileURL(r.parentProfileURL || p?.profileURL),
         studentName: r.student?.name || r.studentName || s?.name || 'N/A',
-        studentProfileURL: getStudentProfileURL(
-          r.student?.profile || r.studentProfileURL || s?.profileURL,
-        ),
+        studentProfileURL: getStudentProfileURL(r.studentProfileURL || s?.profileURL),
         programTitle: r.program?.title || r.programTitle || c?.title || 'N/A',
         programProfileURL: getProgramProfileURL(
-          r.program?.profile || r.programProfileURL || c?.profileURL,
+          r.programProfileURL || c?.profileURL,
           r.programCategory || c?.category,
         ),
 
-        status: r.displayStatus || r.status || 'Pending',
+        status: r.displayStatus || r.status,
         mode: r.enrollmentType || (r.isProrated ? 'Partial' : 'Full'),
         amount: r.amount || 0,
         date: r.enrollAt || r.createdAt,
@@ -218,7 +217,7 @@ const mappedEnrollments = computed(() => {
       <p>Loading Dashboard Data...</p>
     </div>
     <div v-else class="dashboard-grid">
-      <div class="main-column">
+      <div class="main-column scrollable-v">
         <section class="ui-detail-card !p-lg">
           <div class="ui-section-header !mb-md !pb-xs border-none">
             <h2 class="ui-section-title !text-base">Today Summary</h2>
@@ -238,50 +237,37 @@ const mappedEnrollments = computed(() => {
 
       <div class="right-column">
         <div class="ui-detail-card h-full flex flex-col gap-md !p-lg overflow-y-auto scrollable-v">
-          <div class="profile-card border-b border-surface-light pb-lg">
-            <div class="profile-image-wrapper">
-              <div class="ui-avatar !w-24 !h-24 ring-4 ring-primary-soft">
-                <img :src="profileImageUrl" alt="User" />
-              </div>
+          <div class="profile-card border-b border-surface-light pb-lg flex flex-col items-center text-center gap-2">
+            <div class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2">
+              <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
             </div>
-            <div class="profile-info-content">
-              <h3 class="text-xl font-black text-content-dark tracking-tighter">{{ userProfile?.name }}</h3>
-              <p class="text-xs font-bold text-content-muted uppercase tracking-widest">{{ userProfile?.role }}</p>
+            <div class="flex flex-col items-center">
+              <p class="text-xs font-black text-content-muted uppercase tracking-[0.14em] mb-1 opacity-70">
+                {{ userProfile?.role }}
+              </p>
+              <h3 class="text-xl font-black text-content-dark tracking-tighter leading-tight">
+                {{ userProfile?.name }}
+              </h3>
             </div>
           </div>
-          <div class="flex flex-col gap-md">
-            <h3 class="text-xs font-black uppercase tracking-widest text-content-dark text-center">Basic Information</h3>
-            <div class="mini-cards-stack">
-              <MiniCard
-                title="All-time Enrollments"
-                :value="stats.totals.enrollments"
-                :image="getImageUrl('dashboard/card-top-program')"
-              />
-              <MiniCard
-                title="Total Parents"
-                :value="stats.totals.parents"
-                :image="getImageUrl('parent/total-parent')"
-              />
-              <MiniCard
-                title="Total Students"
-                :value="stats.totals.students"
-                :image="getImageUrl('student/total-student')"
-              />
-              <MiniCard
-                title="Total Branches"
-                :value="stats.totals.branches"
-                :image="getImageUrl('dashboard/card-branch')"
-              />
-              <MiniCard
-                title="Total Programs"
-                :value="stats.totals.programs"
-                :image="getImageUrl('dashboard/card-available-program')"
-              />
-              <MiniCard
-                title="All-time Total Revenue"
-                :value="`$${formatPrice(stats.totals.totalRevenue)}`"
-                :image="getImageUrl('dashboard/card-revenue')"
-              />
+          <div class="flex flex-col gap-md scrollable-v">
+            <h3 class="text-xs font-black uppercase tracking-widest text-content-dark text-center">
+              Basic Information
+            </h3>
+            <div class="mini-cards-stack flex flex-col gap-3">
+              <MiniCard title="All-time Enrollments" :value="stats.totals.enrollments"
+                :image="getImageUrl('dashboard/card-top-program')" />
+              <MiniCard title="Total Parents" :value="stats.totals.parents"
+                :image="getImageUrl('parent/total-parent')" />
+              <MiniCard title="Total Students" :value="stats.totals.students"
+                :image="getImageUrl('student/total-student')" />
+              <MiniCard title="Total Branches" :value="stats.totals.branches"
+                :image="getImageUrl('dashboard/card-branch')" />
+              <MiniCard title="Total Programs" :value="stats.totals.programs"
+                :image="getImageUrl('dashboard/card-available-program')" />
+              <MiniCard title="Total Trial" :value="stats.totals.trials" :image="getImageUrl('dashboard/card-trial')" />
+              <MiniCard title="Total Revenue" :value="`$${formatPrice(stats.totals.totalRevenue)}`"
+                :image="getImageUrl('dashboard/card-revenue')" />
             </div>
           </div>
         </div>
@@ -297,7 +283,7 @@ const mappedEnrollments = computed(() => {
 }
 
 .main-column {
-  @apply flex flex-col gap-xl overflow-y-auto pr-md min-h-0 scrollable-v;
+  @apply flex flex-col gap-xl overflow-y-auto pr-md min-h-0;
 }
 
 @media (max-width: 1024px) {

@@ -1,4 +1,4 @@
-const admin = require("firebase-admin");
+const admin = require('firebase-admin')
 
 /**
  * DANGER: This script wipes all data in the Firestore Emulator and Firebase Auth.
@@ -8,59 +8,59 @@ const admin = require("firebase-admin");
  * node src/scripts/wipeData.js
  */
 async function wipeData() {
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const projectId = process.env.FIREBASE_PROJECT_ID
 
   // Map INTERNAL_ vars to the SDK-expected emulator host vars
   process.env.FIRESTORE_EMULATOR_HOST =
-    process.env.INTERNAL_FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080";
+    process.env.INTERNAL_FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080'
   process.env.FIREBASE_AUTH_EMULATOR_HOST =
-    process.env.INTERNAL_AUTH_EMULATOR_HOST || "127.0.0.1:9099";
+    process.env.INTERNAL_AUTH_EMULATOR_HOST || '127.0.0.1:9099'
 
   console.log(
     `🔥 Starting Full System Wipe on Emulator [Project: ${projectId}]...`,
-  );
+  )
 
   if (admin.apps.length === 0) {
-    admin.initializeApp({ projectId });
+    admin.initializeApp({ projectId })
   }
 
-  const db = admin.firestore();
+  const db = admin.firestore()
 
   // 1. Wipe Firestore
   try {
-    const collections = await db.listCollections();
+    const collections = await db.listCollections()
     if (collections.length === 0) {
-      console.log("ℹ️ No collections found to delete.");
+      console.log('ℹ️ No collections found to delete.')
     }
     for (const collection of collections) {
-      console.log(`🗑️ Deleting collection: ${collection.id}...`);
-      const snapshot = await collection.get();
-      const batch = db.batch();
-      snapshot.docs.forEach((doc) => batch.delete(doc.ref));
-      await batch.commit();
+      console.log(`🗑️ Deleting collection: ${collection.id}...`)
+      const snapshot = await collection.get()
+      const batch = db.batch()
+      snapshot.docs.forEach((doc) => batch.delete(doc.ref))
+      await batch.commit()
     }
-    console.log("✅ Firestore wiped.");
+    console.log('✅ Firestore wiped.')
   } catch (err) {
-    console.error("❌ Firestore wipe failed:", err.message);
+    console.error('❌ Firestore wipe failed:', err.message)
   }
 
   // 2. Wipe Auth
   try {
-    const listUsers = await admin.auth().listUsers();
-    const uids = listUsers.users.map((user) => user.uid);
+    const listUsers = await admin.auth().listUsers()
+    const uids = listUsers.users.map((user) => user.uid)
     if (uids.length > 0) {
-      console.log(`👤 Deleting ${uids.length} users from Auth...`);
-      await admin.auth().deleteUsers(uids);
-      console.log("✅ Auth wiped.");
+      console.log(`👤 Deleting ${uids.length} users from Auth...`)
+      await admin.auth().deleteUsers(uids)
+      console.log('✅ Auth wiped.')
     } else {
-      console.log("ℹ️ No users found in Auth.");
+      console.log('ℹ️ No users found in Auth.')
     }
   } catch (err) {
-    console.error("❌ Auth wipe failed:", err.message);
+    console.error('❌ Auth wipe failed:', err.message)
   }
 
-  console.log("✨ Wipe Complete. System is now empty.");
-  process.exit(0);
+  console.log('✨ Wipe Complete. System is now empty.')
+  process.exit(0)
 }
 
-wipeData();
+wipeData()

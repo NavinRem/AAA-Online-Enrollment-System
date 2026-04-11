@@ -303,7 +303,8 @@ const navigateToDetail = (item) => {
         >
           <template #toolbar-actions>
             <AppButton variant="primary" @click="showNewParentModal = true">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> New Parent
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> New
+              Parent
             </AppButton>
           </template>
 

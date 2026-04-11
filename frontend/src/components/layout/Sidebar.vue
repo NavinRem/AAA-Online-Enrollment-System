@@ -62,30 +62,44 @@ const handleNavClick = () => {
 <template>
   <aside
     class="w-[260px] h-screen bg-white flex flex-col border-r border-surface-light fixed left-0 top-0 z-[100] transition-transform duration-300 lg:translate-x-0"
-    :class="isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'">
-    <div class="p-3 px-5 flex items-center justify-center gap-sm relative border-b border-surface-light/50 mb-2">
+    :class="isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'"
+  >
+    <div
+      class="p-3 px-5 flex items-center justify-center gap-sm relative border-b border-surface-light/50 mb-2"
+    >
       <img :src="getImageUrl('common/logo-main')" alt="Logo" class="w-20 h-auto" />
-      <span class="text-sm font-extrabold text-content-dark leading-tight tracking-tight">Authentic Advanced
-        Academy</span>
+      <span class="text-sm font-extrabold text-content-dark leading-tight tracking-tight"
+        >Authentic Advanced Academy</span
+      >
       <button
         class="lg:hidden absolute right-3 top-1/2 -translate-y-1/2 bg-none border-none text-3xl text-content-light cursor-pointer p-1 leading-none hover:text-content-dark transition-colors"
-        @click="emit('close')">
+        @click="emit('close')"
+      >
         ×
       </button>
     </div>
 
     <nav class="flex-1 p-2 px-md flex flex-col gap-1 overflow-y-auto">
-      <router-link v-for="item in menuItems" :key="item.name" :to="item.path"
+      <router-link
+        v-for="item in menuItems"
+        :key="item.name"
+        :to="item.path"
         class="flex items-center gap-sm p-3 px-md text-content-muted rounded-sm transition-all font-semibold text-sm hover:bg-surface-subtle group"
         :class="{
           'bg-primary-soft text-primary font-bold shadow-sm shadow-primary/5':
             route.path === item.path,
-        }" @click="handleNavClick">
-        <img :src="getIconUrl(item.icon)" :alt="item.name"
-          class="w-4.5 h-4.5 opacity-60 transition-all group-hover:opacity-90" :class="{
-            'opacity-100 grayscale-0 !invert-[48%] !sepia-[93%] !saturate-[3015%] !hue-rotate-[170deg] !contrast-[101%]':
+        }"
+        @click="handleNavClick"
+      >
+        <img
+          :src="getIconUrl(item.icon)"
+          :alt="item.name"
+          class="w-4.5 h-4.5 transition-all opacity-60 group-hover:opacity-100"
+          :class="{
+            'opacity-100 !grayscale-0 ![filter:brightness(0)_saturate(100%)_invert(56%)_sepia(87%)_saturate(2311%)_hue-rotate(167deg)_contrast(101%)]':
               route.path === item.path,
-          }" />
+          }"
+        />
         <span class="whitespace-nowrap">{{ item.name }}</span>
       </router-link>
     </nav>
@@ -94,8 +108,12 @@ const handleNavClick = () => {
       <p v-if="logoutMessage" class="text-error text-sm mb-3 text-center font-bold animate-pulse">
         {{ logoutMessage }}
       </p>
-      <AppButton variant="logout" class="w-full font-bold shadow-lg shadow-error/5" :loading="!!logoutMessage"
-        @click="handleLogout">
+      <AppButton
+        variant="logout"
+        class="w-full font-bold shadow-lg shadow-error/5"
+        :loading="!!logoutMessage"
+        @click="handleLogout"
+      >
         Log Out
       </AppButton>
     </div>

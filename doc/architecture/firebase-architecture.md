@@ -19,6 +19,7 @@ graph LR
 ## Core Architectural Boundaries
 
 ### 1. The Configuration Hub (`backend/configs/`)
+
 We maintain a strict separation between code and configuration. All security rules and schema indexes are isolated in the `backend/configs/` directory to ensure they are treated as part of the "Brain" (Backend) rather than the "Face" (Frontend).
 
 - **`firestore.rules`**: Granular access control for the NoSQL store.
@@ -26,18 +27,20 @@ We maintain a strict separation between code and configuration. All security rul
 - **`firestore.indexes.json`**: Performance optimization for complex filtered queries.
 
 ### 2. Deployment Orchestration
+
 The root `firebase.json` serves as the master manifest. It orchestrates how local directories map to Google Cloud services:
+
 - **`frontend/dist`** maps to **Firebase Hosting**.
 - **`backend/functions`** maps to **Cloud Functions**.
 
 ## Deployment Strategy
 
-| Service | Source Folder | Security Concern |
-| :--- | :--- | :--- |
-| **Database** | `backend/configs/` | Access control & Indexing |
+| Service       | Source Folder        | Security Concern             |
+| :------------ | :------------------- | :--------------------------- |
+| **Database**  | `backend/configs/`   | Access control & Indexing    |
 | **Functions** | `backend/functions/` | API authentication & Secrets |
-| **Storage** | `backend/configs/` | File size limits & User IDs |
-| **Hosting** | `frontend/dist/` | HTTPS & SEO Meta Tags |
+| **Storage**   | `backend/configs/`   | File size limits & User IDs  |
+| **Hosting**   | `frontend/dist/`     | HTTPS & SEO Meta Tags        |
 
 ## Command Reference
 

@@ -9,56 +9,35 @@
     <!-- DUPLICATE MODE -->
     <div v-if="type === 'duplicate'" class="flex flex-col gap-lg">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-lg">
-        <div
-          class="flex flex-col gap-xs"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.sourceTermId }"
-        >
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-            >Source Term (Reference)</label
-          >
-          <AppSelect
-            v-model="localData.sourceTermId"
-            :items="sortedTerms"
-            placeholder="Copy from..."
-          />
-          <div
-            v-if="isSubmittingAttempted && errors.sourceTermId"
-            class="text-error text-3xs font-black px-1 mt-1 uppercase"
-          >
-            {{ errors.sourceTermId }}
-          </div>
-        </div>
-        <div
-          class="flex flex-col gap-xs"
-          :class="{ 'group is-error': isSubmittingAttempted && errors.targetTermId }"
-        >
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-            >Target Term (Destination)</label
-          >
-          <AppSelect
-            v-model="localData.targetTermId"
-            :items="sortedTerms"
-            placeholder="New term..."
-          />
-          <div
-            v-if="isSubmittingAttempted && errors.targetTermId"
-            class="text-error text-3xs font-black px-1 mt-1 uppercase"
-          >
-            {{ errors.targetTermId }}
-          </div>
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-xs">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Branch Filter (Optional)</label
-        >
         <AppSelect
-          v-model="localData.branchId"
-          :items="branches"
-          placeholder="-- All Active Branches --"
+          v-model="localData.sourceTermId"
+          :items="sortedTerms"
+          label="Source Term (Reference)"
+          placeholder="Copy from..."
+          required
+          :error="errors.sourceTermId"
+          :shake="shaking.sourceTermId"
+          @change="clearError('sourceTermId')"
+        />
+
+        <AppSelect
+          v-model="localData.targetTermId"
+          :items="sortedTerms"
+          label="Target Term (Destination)"
+          placeholder="New term..."
+          required
+          :error="errors.targetTermId"
+          :shake="shaking.targetTermId"
+          @change="clearError('targetTermId')"
         />
       </div>
+
+      <AppSelect
+        v-model="localData.branchId"
+        :items="branches"
+        label="Branch Filter (Optional)"
+        placeholder="-- All Active Branches --"
+      />
 
       <AppAlert type="info">
         <div class="flex flex-col gap-0.5">
@@ -79,59 +58,41 @@
       id="classActionForm"
       class="grid grid-cols-2 gap-x-lg gap-y-md"
       @submit.prevent="handleActionSubmit"
+      novalidate
     >
-      <div
-        class="flex flex-col gap-xs mb-sm col-span-2"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.programId }"
-      >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Master Program Model <span class="text-error">*</span></label
-        >
-        <AppSelect
-          v-model="localData.programId"
-          :items="programs"
-          placeholder="Select Program Catalog..."
-          @change="onProgramChange"
-        />
-        <div
-          v-if="isSubmittingAttempted && errors.programId"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.programId }}
-        </div>
-      </div>
+      <AppSelect
+        v-model="localData.programId"
+        :items="programs"
+        label="Master Program Model"
+        placeholder="Select Program Catalog..."
+        class="col-span-2"
+        required
+        :error="errors.programId"
+        :shake="shaking.programId"
+        @change="onProgramChange"
+      />
 
-      <div
-        class="flex flex-col gap-xs"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.termId }"
-      >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Academic Term <span class="text-error">*</span></label
-        >
-        <AppSelect v-model="localData.termId" :items="sortedTerms" placeholder="Term..." />
-        <div
-          v-if="isSubmittingAttempted && errors.termId"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.termId }}
-        </div>
-      </div>
+      <AppSelect
+        v-model="localData.termId"
+        :items="sortedTerms"
+        label="Academic Term"
+        placeholder="Term..."
+        required
+        :error="errors.termId"
+        :shake="shaking.termId"
+        @change="clearError('termId')"
+      />
 
-      <div
-        class="flex flex-col gap-xs"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.branchId }"
-      >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Branch Location <span class="text-error">*</span></label
-        >
-        <AppSelect v-model="localData.branchId" :items="branches" placeholder="Branch..." />
-        <div
-          v-if="isSubmittingAttempted && errors.branchId"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.branchId }}
-        </div>
-      </div>
+      <AppSelect
+        v-model="localData.branchId"
+        :items="branches"
+        label="Branch Location"
+        placeholder="Branch..."
+        required
+        :error="errors.branchId"
+        :shake="shaking.branchId"
+        @change="clearError('branchId')"
+      />
 
       <div class="col-span-2 flex items-center gap-md py-2 opacity-50 mt-sm">
         <div class="h-px bg-border flex-1"></div>
@@ -141,76 +102,47 @@
         <div class="h-px bg-border flex-1"></div>
       </div>
 
-      <div class="flex flex-col gap-xs col-span-2">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest opacity-60"
-          >Program Master Templates</label
-        >
-        <AppSelect
-          v-model="selectedScheduleId"
-          :items="programSchedules"
-          placeholder="Autofill from master template..."
-          @change="onScheduleTemplatePick"
-        />
-        <p class="text-3xs text-primary/60 mt-1 font-bold italic tracking-tight">
-          Selecting a template will synchronize the Day and Timeslot fields automatically.
-        </p>
-      </div>
+      <AppSelect
+        v-model="selectedScheduleId"
+        :items="programSchedules"
+        label="Program Master Templates"
+        placeholder="Autofill from master template..."
+        class="col-span-2"
+        @change="onScheduleTemplatePick"
+      />
 
-      <div
-        class="flex flex-col gap-xs"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.day }"
-      >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Instruction Day <span class="text-error">*</span></label
-        >
-        <AppSelect
-          v-model="localData.day"
-          :items="
-            ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(
-              (d) => ({ id: d, name: d }),
-            )
-          "
-          :searchable="false"
-        />
-        <div
-          v-if="isSubmittingAttempted && errors.day"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.day }}
-        </div>
-      </div>
+      <AppSelect
+        v-model="localData.day"
+        :items="
+          ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(
+            (d) => ({ id: d, name: d }),
+          )
+        "
+        label="Instruction Day"
+        required
+        :error="errors.day"
+        :shake="shaking.day"
+        :searchable="false"
+        @change="clearError('day')"
+      />
 
-      <div
-        class="flex flex-col gap-xs"
-        :class="{ 'group is-error': isSubmittingAttempted && errors.timeslot }"
-      >
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Time Window <span class="text-error">*</span></label
-        >
-        <input
-          type="text"
-          v-model="localData.timeslot"
-          placeholder="e.g. 10:30 - 12:00"
-          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft group-[.is-error]:border-error group-[.is-error]:bg-error-soft group-[.is-error]:ring-error/10"
-        />
-        <div
-          v-if="isSubmittingAttempted && errors.timeslot"
-          class="text-error text-3xs font-black px-1 mt-1 uppercase"
-        >
-          {{ errors.timeslot }}
-        </div>
-      </div>
+      <AppInput
+        v-model="localData.timeslot"
+        label="Time Window"
+        placeholder="e.g. 10:30 - 12:00"
+        required
+        :error="errors.timeslot"
+        :shake="shaking.timeslot"
+        @input="clearError('timeslot')"
+      />
 
-      <div class="flex flex-col gap-xs col-span-2">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Assigned Instructor</label
-        >
-        <AppSelect
-          v-model="localData.teacherId"
-          :items="teachers"
-          placeholder="Search teacher registry..."
-        />
-      </div>
+      <AppSelect
+        v-model="localData.teacherId"
+        :items="teachers"
+        label="Assigned Instructor"
+        placeholder="Search teacher registry..."
+        class="col-span-2"
+      />
 
       <div class="col-span-2 flex items-center gap-md py-2 opacity-50 mt-sm">
         <div class="h-px bg-border flex-1"></div>
@@ -220,61 +152,35 @@
         <div class="h-px bg-border flex-1"></div>
       </div>
 
-      <div class="flex flex-col gap-xs">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Instance Price ($)</label
-        >
-        <div class="relative">
-          <span class="absolute left-4 top-1/2 -translate-y-1/2 text-content-muted font-bold"
-            >$</span
-          >
-          <input
-            type="number"
-            v-model="localData.price"
-            step="0.01"
-            class="w-full pl-9 pr-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
-          />
-        </div>
-      </div>
+      <AppInput
+        v-model="localData.price"
+        type="number"
+        label="Instance Price ($)"
+        placeholder="0.00"
+        step="0.01"
+      />
 
-      <div class="flex flex-col gap-xs">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Max Load</label
-        >
-        <input
-          type="number"
-          v-model="localData.capacity"
-          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-black outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
-        />
-      </div>
+      <AppInput v-model="localData.capacity" type="number" label="Max Load" placeholder="0" />
 
-      <div class="flex flex-col gap-xs">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Logical Status</label
-        >
-        <AppSelect
-          v-model="localData.status"
-          :items="[
-            { id: 'open', name: 'Open (Active)' },
-            { id: 'close', name: 'Closed (Hidden)' },
-          ]"
-          :searchable="false"
-        />
-      </div>
+      <AppSelect
+        v-model="localData.status"
+        label="Logical Status"
+        :items="[
+          { id: 'open', name: 'Open (Active)' },
+          { id: 'close', name: 'Closed (Hidden)' },
+        ]"
+        :searchable="false"
+      />
 
-      <div class="flex flex-col gap-xs">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-          >Scheduling Strategy</label
-        >
-        <AppSelect
-          v-model="localData.scheduleType"
-          :items="[
-            { id: 'fix', name: 'Fixed Slot' },
-            { id: 'flexible', name: 'Flexible / Private' },
-          ]"
-          :searchable="false"
-        />
-      </div>
+      <AppSelect
+        v-model="localData.scheduleType"
+        label="Scheduling Strategy"
+        :items="[
+          { id: 'fix', name: 'Fixed Slot' },
+          { id: 'flexible', name: 'Flexible / Private' },
+        ]"
+        :searchable="false"
+      />
 
       <div class="flex flex-col gap-xs col-span-2">
         <label class="text-xs font-black uppercase text-content-muted tracking-widest"
@@ -299,7 +205,7 @@
           @click="type === 'duplicate' ? handleActionSubmit() : null"
           :loading="loading"
           :disabled="loading"
-          :class="{ 'button-disabled-visual': !isFormValid || (type === 'edit' && !isChanged) }"
+          :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
         >
           {{ submitLabel }}
         </AppButton>
@@ -313,11 +219,13 @@ import { ref, computed, watch } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import { getActionIcon } from '@/utils/assetHelper'
 import { programService } from '@/services/programService'
 import { branchService } from '@/services/branchService'
 import { userService } from '@/services/userService'
+import { useActionModal } from '@/composables/useActionModal'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -328,7 +236,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const localData = ref({
+const getInitialData = () => ({
   programId: '',
   termId: '',
   branchId: '',
@@ -344,64 +252,21 @@ const localData = ref({
   targetTermId: '',
 })
 
-const originalData = ref({})
-const initialDataString = ref('')
-const isSubmittingAttempted = ref(false)
-
-const syncData = () => {
+const mapSourceToForm = () => {
   if (props.type === 'edit' && props.classInstance) {
-    const data = { ...props.classInstance }
-    localData.value = data
-    originalData.value = { ...data }
-    initialDataString.value = JSON.stringify(data)
-  } else {
-    localData.value = {
-      programId: '',
-      termId: '',
-      branchId: '',
-      day: '',
-      timeslot: '',
-      teacherId: '',
-      price: 0,
-      capacity: 0,
-      status: 'open',
-      scheduleType: 'fix',
-      adminNote: '',
-      sourceTermId: '',
-      targetTermId: '',
-    }
-    initialDataString.value = JSON.stringify(localData.value)
+    return { ...props.classInstance }
   }
+  return getInitialData()
 }
 
-watch(
-  () => props.isOpen,
-  (val) => {
-    if (val) {
-      syncData()
-      isSubmittingAttempted.value = false
-    }
+const { localData, isDirty, errors, shaking, clearError, submitForm } = useActionModal(
+  props,
+  emit,
+  {
+    getInitialData,
+    mapSourceToForm,
   },
 )
-
-const errors = computed(() => {
-  const d = localData.value
-  const errs = {}
-  if (props.type === 'duplicate') {
-    if (!d.sourceTermId) errs.sourceTermId = 'Select source'
-    if (!d.targetTermId) errs.targetTermId = 'Select destination'
-  } else {
-    if (!d.programId) errs.programId = 'Catalog entry required'
-    if (!d.termId) errs.termId = 'Term required'
-    if (!d.branchId) errs.branchId = 'Branch required'
-    if (!d.day) errs.day = 'Day required'
-    if (!d.timeslot?.trim()) errs.timeslot = 'Window required'
-  }
-  return errs
-})
-
-const isFormValid = computed(() => Object.keys(errors.value).length === 0)
-const isChanged = computed(() => JSON.stringify(localData.value) !== initialDataString.value)
 
 const programs = ref([])
 const terms = ref([])
@@ -444,6 +309,7 @@ const fetchProgramSchedules = async () => {
 
 const onProgramChange = (programId) => {
   localData.value.programId = programId
+  clearError('programId')
   fetchProgramSchedules()
 }
 
@@ -453,6 +319,8 @@ const onScheduleTemplatePick = (scheduleId) => {
     const [day, time] = schedule.name.split(' (')
     localData.value.day = day
     localData.value.timeslot = time.replace(')', '')
+    clearError('day')
+    clearError('timeslot')
   }
 }
 
@@ -476,9 +344,16 @@ const fetchData = async () => {
 }
 
 const handleActionSubmit = () => {
-  isSubmittingAttempted.value = true
-  if (!isFormValid.value || (props.type === 'edit' && !isChanged.value)) return
-  emit('submit', { ...localData.value })
+  const validationRules = {
+    required:
+      props.type === 'duplicate'
+        ? ['sourceTermId', 'targetTermId']
+        : ['programId', 'termId', 'branchId', 'day', 'timeslot'],
+  }
+
+  if (props.type === 'edit' && !isDirty.value) return
+
+  submitForm(validationRules)
 }
 
 watch(

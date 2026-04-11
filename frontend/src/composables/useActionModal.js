@@ -1,19 +1,35 @@
-import { ref, watch, computed } from 'vue'
+import { watch, computed } from 'vue'
+import { useForm } from '@/composables/useForm'
 
 /**
- * A generic composable for managing Action Modal state and synchronization
+ * A generic composable for managing Action Modal state, synchronization, and validation
  * @param {Object} props - Modal component props (requires isOpen)
  * @param {Function} emit - Modal component emit function
  * @param {Object} options - Configuration options
  * @param {Function} options.getInitialData - Returns empty state template
  * @param {Function} options.mapSourceToForm - Maps props source to form data
  * @param {String} options.sourceKey - The prop name to watch for internal changes (e.g. 'enrollment')
+ * @param {Object} options.validationRules - Custom validation rules for useForm
+ * @param {Number} options.autoClear - Override default error clearing timeout
  */
 export function useActionModal(props, emit, options = {}) {
   const getInitial = () => (options.getInitialData ? options.getInitialData() : {})
 
-  const localData = ref(getInitial())
-  const originalData = ref(getInitial())
+  // Initialize unified form and validation state
+  // We use the useForm composable to handle errors, shaking, and automated cleanup
+  const {
+    form: localData,
+    errors,
+    shaking,
+    validate,
+    clearError,
+    resetForm,
+  } = useForm(getInitial(), {
+    autoClear: options.autoClear || 2000,
+  })
+
+  // We maintain originalData to detect dirty state (unsaved changes)
+  const { form: originalData, resetForm: resetOriginal } = useForm(getInitial())
 
   // Detect unsaved changes for UI feedback (simple JSON comparison for flat-ish objects)
   const isDirty = computed(() => {
@@ -29,15 +45,15 @@ export function useActionModal(props, emit, options = {}) {
     originalData.value = clone(data)
   }
 
-  // Handle Modal Open/Close
+  // Handle Modal Open/Close lifecycle
   watch(
     () => props.isOpen,
     (isOpen) => {
       if (isOpen) {
         sync()
       } else {
-        localData.value = getInitial()
-        originalData.value = getInitial()
+        resetForm()
+        resetOriginal()
       }
     },
     { immediate: true },
@@ -56,16 +72,28 @@ export function useActionModal(props, emit, options = {}) {
     )
   }
 
-  const submitForm = (isValid = true) => {
-    if (!isValid) return
+  /**
+   * Enhanced submit that performs validation before emitting
+   * @param {Object} validationOptions - Validation rules { required: [], custom: {} }
+   */
+  const executeSubmit = (validationOptions = null) => {
+    if (validationOptions) {
+      if (!validate(validationOptions)) return false
+    }
     emit('submit', clone(localData.value))
+    return true
   }
 
   return {
     localData,
     originalData,
     isDirty,
-    submitForm,
+    errors,
+    shaking,
+    validate,
+    clearError,
+    resetForm,
+    submitForm: executeSubmit,
     sync,
   }
 }

@@ -5,6 +5,7 @@ This document details the implementation of scrollable tables and sticky headers
 ## Overview
 
 As programs grow, the list of enrolled students and session history can become quite long, pushing other important sections down the page. To address this, we've implemented:
+
 1.  **Scrollable Containers**: Restricting the maximum height of table containers and enabling vertical scrolling.
 2.  **Sticky Headers**: Ensuring table headers remain visible while scrolling through rows.
 3.  **Custom Scrollbars**: Designing a slim, non-intrusive scrollbar that matches the overall application aesthetic.
@@ -67,5 +68,6 @@ In `frontend/src/views/ProgramDetail.vue`, the following styles were added:
 ## Related Layout Adjustments
 
 To ensure vertical filling and scrolling work correctly:
+
 - `DashboardLayout.vue`: Changed `min-height: 100vh` to `height: 100vh` and set `overflow: hidden` on the main layout container.
 - `detail-view.css`: Ensured `.tab-content-container` use flexbox to fill available space.

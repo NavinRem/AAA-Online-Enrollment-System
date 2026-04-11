@@ -11,7 +11,7 @@ const props = defineProps({
 
 <template>
   <div
-    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-md w-full auto-rows-fr"
+    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-md w-full auto-rows-fr"
     v-if="stats && stats.length > 0"
   >
     <SummaryCard
