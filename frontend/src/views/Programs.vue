@@ -10,10 +10,7 @@ import StatusBadge from '../components/common/ui/StatusBadge.vue'
 import ProgramActionModal from '../components/programs/ProgramActionModal.vue'
 import { programService } from '../services/programService'
 import { useSearch, programSearchMapper } from '../composables/useSearch'
-import {
-  getImageUrl,
-  getActionIcon
-} from '@/utils/assetHelper'
+import { getProgramProfileURL, getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { getProgramDisplayStatus } from '@/utils/programHelper'
 
 const programs = ref([])
@@ -31,7 +28,7 @@ const newlyCreatedId = ref(null)
 const router = useRouter()
 
 const getRowClass = (item) => {
-  return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
+  return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
 }
 
 const actionModal = ref({
@@ -45,12 +42,26 @@ const actionModal = ref({
 
 const statsCards = computed(() => {
   return [
-    { label: 'Total Products', value: programs.value.length, image: getImageUrl('programs/total-program'), color: 'var(--accent-light)' },
-    { label: 'Group Programs', value: programs.value.filter(p => p.type === 'group').length, image: getImageUrl('programs/active-program'), color: 'var(--accent-light)' },
-    { label: 'Private Programs', value: programs.value.filter(p => p.type === 'private').length, image: getImageUrl('programs/upcoming-program'), color: 'var(--accent-light)' },
+    {
+      label: 'Total Products',
+      value: programs.value.length,
+      image: getImageUrl('programs/total-program'),
+      color: 'var(--accent-light)',
+    },
+    {
+      label: 'Group Programs',
+      value: programs.value.filter((p) => p.type === 'group').length,
+      image: getImageUrl('programs/active-program'),
+      color: 'var(--accent-light)',
+    },
+    {
+      label: 'Private Programs',
+      value: programs.value.filter((p) => p.type === 'private').length,
+      image: getImageUrl('programs/upcoming-program'),
+      color: 'var(--accent-light)',
+    },
   ]
 })
-
 
 const fetchPrograms = async () => {
   loading.value = true
@@ -79,7 +90,7 @@ const intervalId = ref(null)
 const filteredCategories = computed(() => {
   if (!categorySearchQuery.value) return categories.value
   const q = categorySearchQuery.value.toLowerCase()
-  return categories.value.filter(c => c.name.toLowerCase().includes(q))
+  return categories.value.filter((c) => c.name.toLowerCase().includes(q))
 })
 
 onMounted(() => {
@@ -90,17 +101,16 @@ onMounted(() => {
 })
 
 const programHeaders = [
-  { label: 'No', width: '50px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'No', width: '50px', class: 'hidden md:table-cell', align: 'center' },
   { label: 'Category', width: '150px' },
   { label: 'Program Model', width: '250px' },
-  { label: 'Sessions', align: 'center', width: '80px' },
-  { label: 'Weeks', align: 'center', width: '80px' },
+  { label: 'Sessions', align: 'center', width: '80px', class: 'hidden sm:table-cell' },
+  { label: 'Weeks', align: 'center', width: '80px', class: 'hidden sm:table-cell' },
   { label: 'Base Price', align: 'center', width: '100px' },
-  { label: 'Cap', align: 'center', width: '50px' },
+  { label: 'Cap', align: 'center', width: '50px', class: 'hidden lg:table-cell' },
   { label: 'Type', align: 'center', width: '100px' },
   { label: 'Action', width: '60px', align: 'center' },
 ]
-
 
 const { searchQuery, searchResults } = useSearch(programs, programSearchMapper)
 
@@ -109,7 +119,7 @@ const filteredPrograms = computed(() => {
   let result = [...list]
 
   if (categoryFilter.value !== 'all') {
-    result = result.filter(p => (p.category || 'General') === categoryFilter.value)
+    result = result.filter((p) => (p.category || 'General') === categoryFilter.value)
   }
 
   if (currentFilter.value.startsWith('status:')) {
@@ -169,9 +179,9 @@ const handleActionSubmit = async (formData) => {
           branch: { id: 'FM', name: 'Funmall', abbr: 'FM' },
           schedule: {
             day: formData.schedule.day,
-            timeslot: formData.schedule.timeslot
+            timeslot: formData.schedule.timeslot,
           },
-          capacity: 20
+          capacity: 20,
         })
       }
 
@@ -209,7 +219,7 @@ const toggleCategoryFilter = (event) => {
     categoryMenuStyles.value = {
       top: `${rect.bottom + 8}px`,
       left: `${rect.left}px`,
-      maxWidth: '100px'
+      minWidth: '200px',
     }
   }
 }
@@ -238,9 +248,17 @@ const onRowClick = (item) => {
       </template>
 
       <template #table>
-        <DataTable title="Program List" :headers="programHeaders" :items="filteredPrograms" :loading="loading"
-          entityName="program" v-model:searchQuery="searchQuery" searchPlaceholder="Search programs..." :hasFilter="true"
-          v-model:currentFilter="currentFilter" :filterOptions="[
+        <DataTable
+          title="Program List"
+          :headers="programHeaders"
+          :items="filteredPrograms"
+          :loading="loading"
+          entityName="program"
+          v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search programs..."
+          :hasFilter="true"
+          v-model:currentFilter="currentFilter"
+          :filterOptions="[
             { label: 'All Programs', value: 'all' },
             { label: 'Sort: Category', value: 'sort:category' },
             { label: 'Status: Active', value: 'status:active' },
@@ -248,81 +266,206 @@ const onRowClick = (item) => {
             { label: 'Status: In Progress', value: 'status:in progress' },
             { label: 'Status: Closed', value: 'status:closed' },
             { label: 'Status: Archived', value: 'status:archived' },
-          ]" :rowClass="getRowClass" @row-click="onRowClick" @action="({ type, item }) => handleAction(type, item)">
+          ]"
+          :rowClass="getRowClass"
+          @row-click="onRowClick"
+          @action="({ type, item }) => handleAction(type, item)"
+        >
           <template #toolbar-actions>
-            <div class="filter-dropdown-container">
-              <AppButton variant="secondary" :class="{ active: categoryFilter !== 'all' }" @click="toggleCategoryFilter"
-                @blur="closeCategoryFilter">
+            <div class="relative">
+              <AppButton
+                variant="secondary"
+                :class="{ 'ring-2 ring-primary bg-primary-soft': categoryFilter !== 'all' }"
+                @click="toggleCategoryFilter"
+                @blur="closeCategoryFilter"
+              >
                 <span v-if="categoryFilter === 'all'">All Categories</span>
-                <span v-else>{{ categoryFilter }}</span>
+                <span v-else class="font-bold">{{ categoryFilter }}</span>
               </AppButton>
               <Teleport to="body">
-                <transition name="toast-fade">
-                  <div v-if="isCategoryFilterOpen" class="filter-dropdown-menu scrollable-menu category-filter-menu"
-                    :style="categoryMenuStyles" @mousedown.stop>
-                    <div class="dropdown-search-wrapper">
-                      <input type="text" v-model="categorySearchQuery" placeholder="Search category..."
-                        class="search-input-mini"
-                        @mousedown.stop />
+                <transition
+                  enter-active-class="transition duration-200 ease-out"
+                  enter-from-class="transform scale-95 opacity-0"
+                  enter-to-class="transform scale-100 opacity-100"
+                  leave-active-class="transition duration-150 ease-in"
+                  leave-from-class="opacity-100"
+                  leave-to-class="opacity-0"
+                >
+                  <div
+                    v-if="isCategoryFilterOpen"
+                    class="ui-dropdown-menu category-filter-menu"
+                    :style="categoryMenuStyles"
+                    @mousedown.stop
+                  >
+                    <div class="px-md py-sm border-b border-surface-light">
+                      <input
+                        type="text"
+                        v-model="categorySearchQuery"
+                        placeholder="Search category..."
+                        class="w-full text-xs p-2 bg-surface-light rounded-sm border-none focus:ring-1 focus:ring-primary outline-none"
+                        @mousedown.stop
+                      />
                     </div>
-                    <div class="filter-option" :class="{ active: categoryFilter === 'all' }"
-                      @click.stop="selectCategory('all')">
-                      All Categories
-                    </div>
-                    <div v-for="cat in filteredCategories" :key="cat.id" class="filter-option"
-                      :class="{ active: categoryFilter === cat.name }" @click.stop="selectCategory(cat.name)">
-                      {{ cat.name }}
-                    </div>
-                    <div v-if="filteredCategories.length === 0" class="filter-option no-results text-muted italic">
-                      No matches found
+                    <div class="max-h-[220px] overflow-y-auto scrollable-v">
+                      <div
+                        class="ui-dropdown-item"
+                        :class="{
+                          'bg-primary-soft text-primary font-bold': categoryFilter === 'all',
+                        }"
+                        @click.stop="selectCategory('all')"
+                      >
+                        All Categories
+                      </div>
+                      <div
+                        v-for="cat in filteredCategories"
+                        :key="cat.id"
+                        class="ui-dropdown-item"
+                        :class="{
+                          'bg-primary-soft text-primary font-bold': categoryFilter === cat.name,
+                        }"
+                        @click.stop="selectCategory(cat.name)"
+                      >
+                        {{ cat.name }}
+                      </div>
+                      <div
+                        v-if="filteredCategories.length === 0"
+                        class="px-md py-xl text-center text-content-muted italic text-xs"
+                      >
+                        No matches found
+                      </div>
                     </div>
                   </div>
                 </transition>
               </Teleport>
             </div>
             <AppButton variant="primary" @click="openModal('add')">
-              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> Add Program
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> Add Program
             </AppButton>
           </template>
 
-          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="hide-on-mobile text-center">
+          <template
+            #row="{
+              item,
+              index,
+              toggleMenu,
+              activeMenuId,
+              isMenuAbove,
+              menuStyles,
+              handleAction,
+              headers,
+            }"
+          >
+            <td
+              class="ui-cell text-center font-bold text-content-muted/50 hidden md:table-cell"
+              :style="{ width: headers[0].width }"
+            >
               {{ index + 1 }}
             </td>
-            <td>
-              <div class="user-info">
-                <div class="program-icon-mini">
-                  <img :src="getProgramProfileURL(item.profileURL || item.imageURL, item.category)" alt="program" />
+            <td class="ui-cell" :style="{ width: headers[1].width }">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar-sm ring-1 ring-border">
+                  <img
+                    :src="getProgramProfileURL(item.profileURL || item.imageURL, item.category)"
+                    alt="program"
+                  />
                 </div>
-                {{ item.category || 'General' }}
+                <div class="ui-identity-info">
+                  <span class="font-bold text-xs text-content-dark">{{
+                    item.category || 'General'
+                  }}</span>
+                  <span class="text-3xs text-content-muted uppercase font-bold tracking-tight"
+                    >Category</span
+                  >
+                </div>
               </div>
             </td>
-            <td class="bold">{{ item.name || item.title }}</td>
-            <td class="text-center">{{ item.sessionNumber || '-' }}</td>
-            <td class="text-center">{{ item.weeksNumber || '-' }}</td>
-            <td class="text-center bold">
+            <td class="ui-cell" :style="{ width: headers[2].width }">
+              <span class="font-black text-content-dark tracking-tighter">{{
+                item.name || item.title
+              }}</span>
+            </td>
+            <td
+              class="ui-cell text-center hidden sm:table-cell"
+              :style="{ width: headers[3].width }"
+            >
+              <span class="font-bold text-content-muted/70">{{ item.sessionNumber || '—' }}</span>
+            </td>
+            <td
+              class="ui-cell text-center hidden sm:table-cell"
+              :style="{ width: headers[4].width }"
+            >
+              <span class="font-bold text-content-muted/70">{{ item.weeksNumber || '—' }}</span>
+            </td>
+            <td
+              class="ui-cell text-center font-bold text-primary"
+              :style="{ width: headers[5].width }"
+            >
               <StatusBadge :status="'$' + (item.basePrice || 0)" />
             </td>
-            <td class="text-center">{{ item.maxCapacity || '-' }}</td>
-            <td class="text-center">
-              <StatusBadge :status="item.type || 'group'" :type="item.type === 'private' ? 'purple' : 'blue'" />
+            <td
+              class="ui-cell text-center hidden lg:table-cell font-bold text-content-muted/50 uppercase text-2xs"
+              :style="{ width: headers[6].width }"
+            >
+              {{ item.maxCapacity || '∞' }}
+            </td>
+            <td class="ui-cell text-center font-black" :style="{ width: headers[7].width }">
+              <StatusBadge
+                :status="item.type || 'group'"
+                :type="item.type === 'private' ? 'purple' : 'blue'"
+              />
             </td>
 
-            <td class="action-cell text-center">
-              <div class="menu-container">
-                <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
-                  <span class="dots-icon">⋮</span>
+            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+              <div class="ui-action-menu">
+                <button class="ui-btn-dots" @click.stop="toggleMenu($event, item.id)">
+                  <span class="font-bold">⋮</span>
                 </button>
                 <Teleport to="body">
-                  <transition name="fade">
-                    <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
-                      :style="menuStyles" @click.stop>
-                      <button class="btn-edit" @click="handleAction('edit', item)">
-                        <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="activeMenuId === item.id"
+                      class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
+                      :style="menuStyles"
+                      @click.stop
+                    >
+                      <button
+                        class="ui-dropdown-item hover:text-info group"
+                        @click="
+                          () => {
+                            handleAction('edit', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity"
+                        />
+                        Edit
                       </button>
-                      <div class="menu-divider"></div>
-                      <button class="delete-btn" @click="handleAction('delete', item)">
-                        <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete
+                      <div class="h-px bg-surface-light mx-1 my-1"></div>
+                      <button
+                        class="ui-dropdown-item hover:bg-error/5 hover:text-error group text-error/70 font-bold"
+                        @click="
+                          () => {
+                            handleAction('delete', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('delete')"
+                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
+                        />
+                        Delete
                       </button>
                     </div>
                   </transition>
@@ -334,150 +477,19 @@ const onRowClick = (item) => {
       </template>
     </DataPageLayout>
 
-    <ProgramActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :program="actionModal.program"
-      :loading="actionModal.loading" :error="actionModal.error" :success="actionModal.success" @close="closeModal"
-      @submit="handleActionSubmit" />
+    <ProgramActionModal
+      :isOpen="actionModal.isOpen"
+      :type="actionModal.type"
+      :program="actionModal.program"
+      :loading="actionModal.loading"
+      :error="actionModal.error"
+      :success="actionModal.success"
+      @close="closeModal"
+      @submit="handleActionSubmit"
+    />
   </DashboardLayout>
 </template>
 
 <style scoped>
-.schedule-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: var(--text-xs);
-}
-
-.schedule-info .day {
-  font-weight: 700;
-  color: var(--text-dark);
-}
-
-.schedule-info .time {
-  color: var(--text-muted);
-}
-
-.schedule-info .duration {
-  color: var(--text-light);
-  font-style: italic;
-  font-size: var(--text-xs);
-}
-
-.help-text-small {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  margin-top: var(--space-2xs);
-}
-
-.user-info {
-  cursor: pointer;
-  gap: var(--space-sm);
-}
-
-.filter-dropdown-container {
-  position: relative;
-}
-
-.filter-dropdown-menu {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  background: var(--white);
-  border-radius: var(--border-radius-sm);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-  border: 1px solid var(--border-color);
-  z-index: 100;
-  overflow: hidden;
-  min-width: 180px;
-}
-
-.scrollable-menu {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.filter-option {
-  padding: var(--space-sm) var(--space-md);
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-  cursor: pointer;
-  transition: background 0.2s;
-  white-space: nowrap;
-}
-
-.filter-option:hover {
-  background: var(--primary-soft);
-}
-
-.filter-option.active {
-  background: var(--accent-light);
-  color: var(--primary-color);
-  font-weight: 700;
-}
-
-.teacher-stack-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.teacher-avatar-stack {
-  display: flex;
-  align-items: center;
-}
-
-.teacher-avatar-mini {
-  margin-left: -12px;
-  width: 28px;
-  height: 28px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  border: 2px solid var(--white);
-  border-radius: var(--border-radius-round);
-  overflow: hidden;
-  transition: transform 0.2s;
-}
-
-.teacher-avatar-mini:first-child {
-  margin-left: 0;
-}
-
-.teacher-avatar-mini:hover {
-  transform: translateY(-3px) scale(1.1);
-  z-index: 50;
-}
-
-.teacher-avatar-mini img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.teacher-name-solo {
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-  font-weight: 500;
-}
-
-.teacher-count-tag {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-  background: var(--bg-light);
-  padding: 2px 8px;
-  border-radius: var(--border-radius-lg);
-  white-space: nowrap;
-}
-
-.period-info {
-  display: flex;
-  flex-direction: column;
-  font-size: var(--text-xs);
-  color: var(--text-dark);
-}
-
-.to-label {
-  font-size: var(--text-3xs);
-  color: var(--text-light);
-  font-weight: 600;
-  text-transform: uppercase;
-}
+/* Scoped styles entirely removed in favor of centralized UI pattern classes in main.css and Tailwind utilities. */
 </style>

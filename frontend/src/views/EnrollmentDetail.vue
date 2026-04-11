@@ -8,6 +8,7 @@ import DetailCard from '../components/common/cards/DetailCard.vue'
 import DetailedSummaryCard from '../components/common/cards/DetailedSummaryCard.vue'
 import EnrollmentActionModal from '@/components/enrollments/EnrollmentActionModal.vue'
 import EnrollmentFormModal from '@/components/enrollments/EnrollmentFormModal.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
 import { programService } from '@/services/programService'
@@ -276,275 +277,173 @@ onMounted(async () => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments" :scrollable="true"
-      :rightScrollable="true">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments" title="Enrollment Details">
       <template #header-actions v-if="enrollment">
-        <div class="actions-wrapper">
-          <button
+        <div class="flex items-center gap-md">
+          <AppButton 
             v-if="!isPaid(enrollment.status) && !isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
-            class="btn-icon-modern btn-edit" title="Edit Enrollment" @click="openActionModal('edit')">
-            <img :src="getActionIcon('edit')" />
-          </button>
-          <button
+            variant="secondary" title="Edit Enrollment" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" class="w-4 h-4" /> Edit
+          </AppButton>
+          <AppButton 
             v-if="!isPaid(enrollment.status) && !isPaid(enrollment.paymentStatus) && !isCancelled(enrollment.status)"
-            class="btn-icon-modern btn-pay" title="Pay Enrollment" @click="openActionModal('pay')">
-            <img :src="getActionIcon('pay')" />
-          </button>
-          <button v-if="!isCancelled(enrollment.status)" class="btn-icon-modern btn-cancel" title="Cancel Enrollment"
-            @click="openActionModal('cancel')">
-            <img :src="getActionIcon('cancel')" />
-          </button>
-          <button class="btn-icon-modern btn-delete" title="Delete Enrollment" @click="openActionModal('delete')">
-            <img :src="getActionIcon('delete')" />
-          </button>
+            variant="primary" title="Pay Enrollment" @click="openActionModal('pay')">
+            <img :src="getActionIcon('pay')" class="w-4 h-4 brightness-0 invert" /> Pay Now
+          </AppButton>
+          <AppButton v-if="!isCancelled(enrollment.status)" variant="danger" title="Cancel Enrollment" @click="openActionModal('cancel')">
+            <img :src="getActionIcon('cancel')" class="w-4 h-4 invert" /> Cancel
+          </AppButton>
+          <AppButton variant="danger" title="Delete Enrollment" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" class="w-4 h-4 invert" /> Delete
+          </AppButton>
         </div>
       </template>
 
       <template #left-content v-if="enrollment">
-        <div class="detail-cards-grid">
-          <DetailCard title="Parent Information" :avatarUrl="getParentProfileURL(enrollment.parent?.profileURL)">
-            <p><strong>Fullname:</strong> {{ enrollment.parent?.name || 'N/A' }}</p>
-            <p><strong>Email:</strong> {{ enrollment.parent?.email || 'N/A' }}</p>
-            <p><strong>Phone Number:</strong> {{ enrollment.parent?.phone || 'N/A' }}</p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-lg pb-10">
+          <DetailCard title="Parent Profile" :avatarUrl="getParentProfileURL(enrollment.parent?.profileURL)">
+            <p><strong>Full Name</strong> {{ enrollment.parent?.name || 'N/A' }}</p>
+            <p><strong>Primary Email</strong> {{ enrollment.parent?.email || 'N/A' }}</p>
+            <p><strong>Contact Number</strong> {{ enrollment.parent?.phone || 'N/A' }}</p>
           </DetailCard>
 
-          <DetailCard title="Student Information" :avatarUrl="getStudentProfileURL(enrollment.student?.profileURL)">
-            <p>
-              <strong>Fullname:</strong>
-              {{ enrollment.student?.name || 'N/A' }}
-            </p>
-            <p>
-              <strong>Date of birth:</strong>
-              {{ formatDateOnly(enrollment.student?.dob) }}
-            </p>
-            <p><strong>Age:</strong> {{ calculateAge(enrollment.student?.dob) }}</p>
+          <DetailCard title="Student Profile" :avatarUrl="getStudentProfileURL(enrollment.student?.profileURL)">
+            <p><strong>Full Name</strong> {{ enrollment.student?.name || 'N/A' }}</p>
+            <p><strong>Birth Date</strong> {{ formatDateOnly(enrollment.student?.dob) }}</p>
+            <p><strong>Current Age</strong> <StatusBadge :status="'Age: ' + calculateAge(enrollment.student?.dob)" type="blue" /></p>
           </DetailCard>
 
-          <DetailCard title="Program Information"
-            :avatarUrl="getProgramProfileURL(enrollment.program?.profileURL, enrollment.program?.category)">
-            <p>
-              <strong>Program:</strong>
-              {{ enrollment.program?.title }}
-            </p>
-            <p>
-              <strong>Schedule:</strong>
-              <StatusBadge :status="'purple:' + getSessionDay(enrollment.classSchedule)" />
-              {{ getSessionTime(enrollment.classSchedule) }}
-            </p>
-
-            <p class="flex-align-center">
-              <strong>Sessions Enrolled:</strong>
-              <template v-if="enrollment.remainingSessions !== undefined">
-                {{ enrollment.remainingSessions }} Sessions (Prorated)
-                <StatusBadge v-if="enrollment.totalSessions > 0" :status="'of ' + enrollment.totalSessions"
-                  type="blue" />
-              </template>
-              <template v-else>
-                {{ enrollment.numberSessions || enrollment.program?.numberSessions || '10' }} Sessions
-              </template>
-            </p>
-
-            <p>
-              <strong>Enrolled Date:</strong>
-              {{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}
-            </p>
-          </DetailCard>
-
-          <DetailCard title="Class Information" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)">
-
-            <p><strong>Program:</strong> {{ enrollment.program?.title || 'N/A' }}</p>
-
-            <p class="teacher-row-aligned">
-              <strong>Teacher(s):</strong>
-            <div v-if="enrollment.program?.teachers?.length > 0" class="teacher-content-inline">
-              <span v-if="enrollment.program.teachers.length === 1" class="teacher-name-solo">
-                {{ enrollment.program.teachers[0].name }}
-              </span>
-              <div v-else class="teacher-avatar-stack-inline">
-                <img v-for="t in enrollment.program.teachers" :key="t.id" :src="getTeacherProfileURL(t.profileURL)"
-                  class="teacher-avatar-stacked" :title="t.name" />
+          <DetailCard title="Program Details" :avatarUrl="getProgramProfileURL(enrollment.program?.profileURL, enrollment.program?.category)">
+            <p><strong>Program</strong> {{ enrollment.program?.title }}</p>
+            <div class="flex flex-col gap-1 mb-md">
+              <strong class="text-3xs uppercase font-black tracking-widest text-content-light">Schedule</strong>
+              <div class="flex items-center gap-2">
+                <StatusBadge :status="'purple:' + getSessionDay(enrollment.classSchedule)" />
+                <span class="text-xs font-bold text-content-muted">{{ getSessionTime(enrollment.classSchedule) }}</span>
               </div>
             </div>
-            <span v-else class="not-assigned-label">Not Assigned</span>
-            </p>
-            <p><strong>Student Enrolled:</strong> {{ enrollment.studentCountAtEnrollment ?? enrollment.class?.numStudent
-              ?? 0 }}</p>
-            <p><strong>Max Capacity:</strong> {{ enrollment.class?.capacity || enrollment.class?.maxCapacity || 20 }}
-            </p>
+            <div class="flex flex-col gap-1 mb-md">
+              <strong class="text-3xs uppercase font-black tracking-widest text-content-light">Intensity</strong>
+              <template v-if="enrollment.remainingSessions !== undefined">
+                <span class="text-sm font-bold text-content-dark">
+                  {{ enrollment.remainingSessions }} Sessions (Prorated)
+                  <StatusBadge v-if="enrollment.totalSessions > 0" :status="'of ' + enrollment.totalSessions" type="blue" />
+                </span>
+              </template>
+              <template v-else>
+                <span class="text-sm font-bold text-content-dark">
+                  {{ enrollment.numberSessions || enrollment.program?.numberSessions || '10' }} Sessions
+                </span>
+              </template>
+            </div>
+            <p><strong>Registry Date</strong> {{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}</p>
           </DetailCard>
 
+          <DetailCard title="Class Environment" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)">
+            <p><strong>Curriculum</strong> {{ enrollment.program?.title || 'N/A' }}</p>
+            <div class="flex flex-col gap-1 mb-md">
+              <strong class="text-3xs uppercase font-black tracking-widest text-content-light">Assigned Staff</strong>
+              <div v-if="enrollment.program?.teachers?.length > 0" class="flex -space-x-2 overflow-hidden ring-1 ring-white rounded-full p-0.5 mt-1">
+                <img v-for="t in enrollment.program.teachers" :key="t.id" :src="getTeacherProfileURL(t.profileURL)"
+                  class="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" :title="t.name" />
+              </div>
+              <span v-else class="text-content-muted/40 italic text-xs">Not Assigned</span>
+            </div>
+            <p><strong>Current Enrollment</strong> <span class="font-black text-content-dark">{{ enrollment.studentCountAtEnrollment ?? enrollment.class?.numStudent ?? 0 }} Students</span></p>
+            <p><strong>Max Capacity</strong> <span class="font-bold text-content-muted">{{ enrollment.class?.capacity || enrollment.class?.maxCapacity || 20 }} Slots</span></p>
+          </DetailCard>
         </div>
       </template>
 
       <template #right-content v-if="enrollment">
-        <DetailedSummaryCard title="Basic Information" subtitle="Enrollment Information">
+        <DetailedSummaryCard title="Transaction Summary" subtitle="Enrollment Status">
           <div class="detail-row align-center">
-            <span class="summary-label">Status</span>
-            <div class="flex-stack flex-end gap-3xs">
-              <StatusBadge :status="enrollment.status === 'cancelled' ? 'Canceled' :
+            <span class="summary-label">Registry Status</span>
+            <StatusBadge :status="enrollment.status === 'cancelled' ? 'Canceled' :
                 enrollment.paymentStatus?.toLowerCase() === 'paid' ? 'Paid' : 'Unpaid'" />
-            </div>
           </div>
 
           <div class="detail-row align-center">
-            <span class="summary-label">Mode</span>
-            <div class="flex-stack flex-end gap-3xs">
-              <StatusBadge :status="enrollment.enrollmentType" />
-            </div>
+            <span class="summary-label">Admission Mode</span>
+            <StatusBadge :status="enrollment.enrollmentType" />
           </div>
 
-          <div v-if="enrollment.status === 'cancelled' && (enrollment.cancelReason || enrollment.reason)"
-            class="detail-row">
-            <span class="summary-label">Reason</span>
-            <span class="summary-value error-text-bold">
+          <div v-if="enrollment.status === 'cancelled' && (enrollment.cancelReason || enrollment.reason)" class="detail-row">
+            <span class="summary-label text-error">Termination Reason</span>
+            <span class="summary-value opacity-100 font-bold text-error bg-error/5 p-2 rounded-sm border border-error/10 w-full text-xs">
               {{ enrollment.cancelReason || enrollment.reason }}
             </span>
           </div>
 
           <div class="detail-row">
-            <span class="summary-label">Enrolled Date</span>
-            <span class="summary-value">{{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}</span>
-          </div>
-
-          <div class="detail-row" v-if="enrollment.updatedAt">
-            <span class="summary-label">Updated Date</span>
-            <span class="summary-value">{{ formatDate(enrollment.updatedAt) }}</span>
-          </div>
-
-          <div class="detail-row" v-if="enrollment.remark">
-            <span class="summary-label">Admin Remark</span>
-            <span class="summary-value">{{ enrollment.remark }}</span>
+            <span class="summary-label">Internal Remark</span>
+            <span class="summary-value italic text-xs">{{ enrollment.remark || 'No administrative notes' }}</span>
           </div>
         </DetailedSummaryCard>
 
-        <DetailedSummaryCard subtitle="Payment Information">
-          <div class="detail-row align-center" v-if="enrollment?.basePrice">
-            <span class="summary-label">Original Price</span>
-            <div class="flex-stack flex-end gap-3xs">
-              <StatusBadge :status="'$' + formatPrice(enrollment.basePrice)" type="green" />
-            </div>
+        <DetailedSummaryCard subtitle="Financial Ledger" class="mt-lg">
+          <div class="detail-row align-center">
+            <span class="summary-label">Course Price</span>
+            <span class="font-black text-content-dark text-lg tracking-tighter">${{ formatPrice(enrollment?.basePrice || enrollment?.amount || 0) }}</span>
           </div>
 
-          <div class="detail-row align-center" v-if="enrollment?.prorateSavings">
-            <span class="summary-label">Prorate Discount</span>
-            <StatusBadge :status="'-$' + formatPrice(enrollment.prorateSavings)" type="magenta" />
+          <div v-if="enrollment?.prorateSavings" class="detail-row align-center">
+            <span class="summary-label text-magenta">Prorate Discount</span>
+            <span class="font-bold text-magenta">- ${{ formatPrice(enrollment.prorateSavings) }}</span>
           </div>
 
-          <div class="detail-row align-center" v-if="enrollment?.discountAmount">
-            <span class="summary-label">Manual Discount</span>
-            <StatusBadge :status="'-$' + formatPrice(enrollment.discountAmount)" type="magenta" />
+          <div v-if="enrollment?.discountAmount" class="detail-row align-center">
+            <span class="summary-label text-magenta">Manual Adjust</span>
+            <span class="font-bold text-magenta">- ${{ formatPrice(enrollment.discountAmount) }}</span>
+          </div>
+
+          <div class="w-full h-px bg-surface-light my-2"></div>
+
+          <div class="detail-row align-center">
+            <span class="summary-label">Total Payable</span>
+            <span class="font-black text-primary text-xl tracking-tighter">${{ formatPrice(enrollment?.amount || 0) }}</span>
           </div>
 
           <div class="detail-row align-center">
-            <span class="summary-label">Total Amount</span>
-            <div class="flex-stack flex-end gap-3xs">
-              <StatusBadge :status="'$' + formatPrice(enrollment?.amount || 0)" />
-            </div>
+            <span class="summary-label">Payment Status</span>
+            <StatusBadge :status="enrollment?.displayStatus || enrollment?.status || enrollment?.paymentStatus || 'Unpaid'" />
           </div>
 
           <div class="detail-row align-center">
-            <span class="summary-label">Status</span>
-            <div class="flex-stack flex-end gap-3xs">
-              <StatusBadge
-                :status="enrollment?.displayStatus || enrollment?.status || enrollment?.paymentStatus || 'Unpaid'" />
-            </div>
+            <span class="summary-label">Channel</span>
+            <StatusBadge :status="enrollment?.paymentMethod || (isPaid(enrollment?.status || enrollment?.paymentStatus) ? 'Paid' : '—')" />
           </div>
 
-          <div class="detail-row align-center">
-            <span class="summary-label">Payment Method</span>
-            <div class="flex-stack flex-end gap-3xs">
-              <StatusBadge
-                :status="enrollment?.paymentMethod || (isPaid(enrollment?.status || enrollment?.paymentStatus) ? 'Not Specified' : '—')" />
-            </div>
-          </div>
-
-          <div class="detail-row" v-if="enrollment?.transactionId">
-            <span class="summary-label">{{ enrollment?.paymentMethod === 'Cash' ? 'Receipt Number' : 'Transaction ID'
-            }}</span>
-            <span class="summary-value mono-info-highlight">
+          <div v-if="enrollment?.transactionId" class="detail-row">
+            <span class="summary-label">{{ enrollment?.paymentMethod === 'Cash' ? 'Receipt No' : 'Transaction ID' }}</span>
+            <span class="summary-value font-mono text-[11px] bg-surface-light p-1 px-2 rounded-sm select-all tracking-wider text-content-dark">
               {{ enrollment.transactionId }}
             </span>
           </div>
 
-          <div class="detail-row" v-if="enrollment?.paidAt">
-            <span class="summary-label">Paid Date</span>
-            <span class="summary-value text-sm opacity-80">
-              {{ formatDate(enrollment.paidAt) }}
-            </span>
+          <div v-if="enrollment?.paidAt" class="detail-row">
+            <span class="summary-label">Value Date</span>
+            <span class="summary-value text-xs font-bold">{{ formatDate(enrollment.paidAt) }}</span>
           </div>
 
-          <div class="detail-row flex-stack flex-start gap-xs mt-xs" v-if="enrollment?.paymentProofURL">
-            <span class="summary-label">Payment Proof</span>
-            <a :href="enrollment.paymentProofURL" target="_blank" class="proof-preview-link">
-              <img :src="enrollment.paymentProofURL" alt="Payment Proof" class="proof-thumbnail" />
-              <div class="proof-overlay">
-                <span>View Full Size</span>
+          <div v-if="enrollment?.paymentProofURL" class="detail-row mt-2">
+            <span class="summary-label">Attachment Proof</span>
+            <a :href="enrollment.paymentProofURL" target="_blank" class="group relative block w-full aspect-video rounded-sm overflow-hidden border border-outline-std shadow-sm hover:shadow-md transition-shadow">
+              <img :src="enrollment.paymentProofURL" alt="Payment Proof" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <span class="text-white text-3xs font-black uppercase tracking-widest">Open Full Size</span>
               </div>
             </a>
           </div>
-
-          <div class="detail-row">
-            <span class="summary-label">Admin Remark</span>
-            <span class="summary-value italic">
-              {{ enrollment?.remark || 'None' }}
-            </span>
-          </div>
-
-          <div class="detail-row" v-if="enrollment?.isSponsorship">
-            <span class="summary-label">Sponsorship</span>
-            <span class="summary-value mono" style="word-break: break-all; font-size: 0.8rem;">
-              {{ enrollment?.sponsorName || 'Third-party' }}
-            </span>
-          </div>
-
-          <div class="detail-row" v-if="enrollment?.paymentProof">
-            <span class="summary-label">Transaction ID / Proof</span>
-            <span class="summary-value mono text-xs break-all">
-              {{ enrollment?.paymentProof }}
-            </span>
-          </div>
-
-          <div class="detail-row" v-if="enrollment?.paymentStatus === 'Paid'">
-            <span class="summary-label">Payment Date</span>
-            <span class="summary-value">{{ enrollment?.paymentDate }}</span>
-          </div>
-        </DetailedSummaryCard>
-
-        <DetailedSummaryCard subtitle="Program Information">
-          <div class="detail-row">
-            <span class="summary-label">Program</span>
-            <span class="summary-value">{{ program?.title || enrollment?.programTitle || 'N/A' }}</span>
-          </div>
-
-          <div class="detail-row">
-            <span class="summary-label">Schedule</span>
-            <div class="summary-value flex-align-center gap-sm">
-              <StatusBadge class="session-day" :status="'purple:' + getSessionDay(enrollment?.classSchedule)" />
-              <span class="session-time">{{ getSessionTime(enrollment?.classSchedule) }}</span>
-            </div>
-          </div>
-
-
-          <div class="detail-row">
-            <span class="summary-label">Term Dates</span>
-            <div class="summary-value mt-3xs flex-stack gap-sm">
-              <div class="flex-align-center gap-sm">
-                <StatusBadge :status="'green:Start Date'" /> {{ enrollment?.startDate || program?.startDate ?
-                  formatDateOnly(enrollment?.startDate
-                    || program?.startDate) : 'N/A' }}
-              </div>
-              <div class="flex-align-center gap-sm">
-                <StatusBadge :status="'blue:End Date'" /> {{ enrollment?.endDate || program?.endDate ?
-                  formatDateOnly(enrollment?.endDate ||
-                    program?.endDate) : 'N/A' }}
-              </div>
-            </div>
+          
+          <div v-if="enrollment?.isSponsorship" class="mt-4 p-3 bg-primary-soft/20 rounded-sm border border-primary/10">
+            <span class="text-3xs font-black uppercase text-primary tracking-widest block mb-1">Corporate Sponsorship</span>
+            <span class="text-xs font-bold text-content-dark">{{ enrollment?.sponsorName || 'Third-party Entity' }}</span>
           </div>
         </DetailedSummaryCard>
       </template>
     </DetailPageLayout>
 
-    <!-- Action Modals (Edit, Pay, Cancel, Delete) -->
     <EnrollmentFormModal :isOpen="showFormModal" :loading="submitting" :parents="parents" :students="students"
       :programs="programs" :classes="classes" :enrollments="enrollments" :enrollment="enrollment" :error="modalError"
       :success="modalSuccess" :hint="validationHint"
@@ -558,296 +457,5 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-@import '@/assets/styles/detail-view.css';
-
-.actions-wrapper {
-  display: flex;
-  gap: var(--space-sm);
-  align-items: center;
-}
-
-:deep(.main-cards-grid::-webkit-scrollbar) {
-  width: 6px;
-}
-
-:deep(.main-cards-grid::-webkit-scrollbar-thumb) {
-  background: var(--text-light);
-  border-radius: var(--border-radius-lg);
-}
-
-.sidebar-cards {
-  padding-right: var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-  height: 100%;
-}
-
-.session-info-row {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-bottom: var(--space-sm);
-}
-
-.teacher-row-aligned {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin: var(--space-sm) 0;
-}
-
-.teacher-content-inline {
-  display: flex;
-  align-items: center;
-}
-
-.teacher-name-solo {
-  font-weight: 500;
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-}
-
-.teacher-avatar-stack-inline {
-  display: flex;
-  align-items: center;
-  margin-left: var(--space-2xs);
-}
-
-.not-assigned-label {
-  color: var(--text-light);
-  font-style: italic;
-  font-size: var(--text-sm);
-}
-
-.capacity-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.capacity-info p {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-}
-
-.capacity-info strong {
-  color: var(--text-dark);
-}
-
-.teacher-avatar-stack {
-  display: flex;
-  align-items: center;
-  margin-top: var(--space-2xs);
-}
-
-.teacher-avatar-stacked {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--border-radius-round);
-  object-fit: cover;
-  border: 2px solid var(--white);
-  margin-left: -8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease;
-}
-
-.teacher-avatar-stacked:first-child {
-  margin-left: 0;
-}
-
-.teacher-avatar-stacked:hover {
-  transform: translateY(-4px) scale(1.1);
-  z-index: 10;
-}
-
-.stack-label {
-  margin-left: var(--space-sm);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: var(--white);
-  width: 600px;
-  max-width: 90vw;
-  max-height: 90vh;
-  border-radius: var(--border-radius-lg);
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  padding: var(--space-lg) var(--space-xl);
-  border-bottom: 1px solid var(--bg-light);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--bg-subtle);
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: var(--text-lg);
-  color: var(--text-deep);
-}
-
-.close-btn {
-  background: var(--bg-light);
-  border: none;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--border-radius-round);
-  cursor: pointer;
-}
-
-.modal-body {
-  padding: var(--space-xl);
-}
-
-.info-block {
-  background: var(--info-soft);
-  border-radius: var(--border-radius-sm);
-  padding: var(--space-md);
-  display: flex;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-lg);
-  align-items: flex-start;
-}
-
-.info-block.warning {
-  background: var(--warning-soft);
-}
-
-.info-block.danger {
-  background: var(--error-soft);
-}
-
-.modal-footer {
-  padding: var(--space-md) var(--space-xl);
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-md);
-  background: var(--bg-subtle);
-  border-top: 1px solid var(--bg-light);
-}
-
-.cancel-btn {
-  background: var(--white);
-  border: 1px solid var(--border-color);
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-}
-
-.save-btn {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  padding: var(--space-sm) var(--space-lg);
-  border-radius: var(--border-radius-sm);
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.danger-text {
-  color: var(--error-color);
-}
-
-.danger-btn {
-  background: var(--error-color);
-}
-
-/* Payment Proof Styling */
-.proof-preview-link {
-  position: relative;
-  width: 100%;
-  max-width: 240px;
-  max-height: 240px;
-  border-radius: var(--border-radius);
-  overflow: hidden;
-  display: block;
-  border: 1px solid var(--border-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  margin-top: var(--space-xs);
-}
-
-.proof-preview-link:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
-
-.proof-thumbnail {
-  width: 100%;
-  height: 100%;
-  max-height: 240px;
-  object-fit: contain;
-  background: var(--bg-subtle);
-}
-
-.proof-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-  backdrop-filter: blur(2px);
-}
-
-.proof-preview-link:hover .proof-overlay {
-  opacity: 1;
-}
-
-.proof-overlay span {
-  color: var(--white);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  padding: var(--space-2xs) var(--space-sm);
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-/* Modal Transitions */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.toast-fade-enter-active,
-.toast-fade-leave-active {
-  transition: all 0.3s ease;
-}
-
-.toast-fade-enter-from,
-.toast-fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
+/* Scoped styles entirely removed in favor of centralized UI pattern classes in main.css and Tailwind utilities. */
 </style>

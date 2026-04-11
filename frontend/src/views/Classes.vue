@@ -1,70 +1,100 @@
 <template>
-  <DataPageLayout title="Class Management" :stats="statsCards" :headers="classHeaders" :items="filteredClasses"
-    :loading="loading" searchPlaceholder="Search classes by program, teacher, or branch..." @add="openAddModal">
-
-    <template #table-row="{ item, index }">
-      <tr class="table-row">
-        <td class="hide-on-mobile text-center">{{ index + 1 }}</td>
-        <td>
-          <div class="info-cell">
-            <div class="program-icon-mini">
-              <img :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)" alt="program" />
+  <DataPageLayout
+    title="Class Management"
+    :stats="statsCards"
+    :headers="classHeaders"
+    :items="filteredClasses"
+    :loading="loading"
+    searchPlaceholder="Search classes by program, teacher, or branch..."
+    @add="openAddModal"
+  >
+    <template #table-row="{ item, index, headers }">
+      <tr class="ui-row">
+        <td class="ui-cell text-center font-bold text-content-muted/40 hide-on-mobile" :style="{ width: headers[0].width }">
+          {{ index + 1 }}
+        </td>
+        <td class="ui-cell" :style="{ width: headers[1].width }">
+          <div class="ui-identity-cell">
+            <div class="ui-avatar-sm ring-1 ring-border bg-white">
+              <img
+                :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)"
+                alt="program"
+              />
             </div>
-            <div class="text-group">
-              <span class="bold">{{ item.program?.name || 'Unknown Program' }}</span>
-              <span class="subtext">{{ item.program?.category }}</span>
+            <div class="ui-identity-info">
+              <span class="font-bold text-content-dark">{{ item.program?.name || 'Unknown Program' }}</span>
+              <span class="text-3xs text-content-muted uppercase font-bold tracking-tight">{{ item.program?.category }}</span>
             </div>
           </div>
         </td>
-        <td class="bold">{{ item.term?.name }}</td>
-        <td>
+        <td class="ui-cell font-bold text-content-dark" :style="{ width: headers[2].width }">
+          {{ item.term?.name }}
+        </td>
+        <td class="ui-cell text-center" :style="{ width: headers[3].width }">
           <StatusBadge :status="item.branch?.name || item.branch?.abbr" type="blue" />
         </td>
-        <td>
-          <div v-if="item.teacher" class="info-cell">
-            <div class="avatar-mini">
-              <img :src="item.teacher.profileURL || getImageUrl('profiles/avatar-parent')" alt="teacher" />
+        <td class="ui-cell" :style="{ width: headers[4].width }">
+          <div v-if="item.teacher" class="ui-identity-cell">
+            <div class="ui-avatar-sm">
+              <img
+                :src="item.teacher.profileURL || getImageUrl('profiles/avatar-parent')"
+                alt="teacher"
+              />
             </div>
-            <span>{{ item.teacher.name }}</span>
+            <span class="font-bold text-xs text-content-dark">{{ item.teacher.name }}</span>
           </div>
-          <span v-else class="help-text">Not assigned</span>
+          <span v-else class="text-content-muted/40 italic text-xs">Not assigned</span>
         </td>
-        <td>
-          <div class="schedule-cell">
-            <span class="day">{{ item.day }}</span>
-            <span class="time">{{ item.timeslot }}</span>
+        <td class="ui-cell" :style="{ width: headers[5].width }">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{ item.day }}</span>
+            <span class="text-3xs text-content-muted font-bold uppercase">{{ item.timeslot }}</span>
           </div>
         </td>
-        <td class="text-center">
-          <div class="capacity-cell">
-            <div class="capacity-bar">
-              <div class="bar-fill" :style="{ width: (item.numStudent / item.capacity * 100) + '%' }"
-                :class="getCapacityClass(item)"></div>
+        <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+          <div class="flex flex-col items-center gap-1 w-full">
+            <div class="w-16 h-1.5 bg-surface-light rounded-full overflow-hidden">
+              <div
+                class="h-full transition-all duration-500 rounded-full"
+                :style="{ width: (item.numStudent / item.capacity) * 100 + '%' }"
+                :class="getCapacityClass(item)"
+              ></div>
             </div>
-            <span class="count">{{ item.numStudent }}/{{ item.capacity }}</span>
+            <span class="text-3xs font-black text-content-muted uppercase tracking-widest">{{ item.numStudent }}/{{ item.capacity }}</span>
           </div>
         </td>
-        <td class="text-center">
-          <StatusBadge :status="item.status" :type="item.status === 'open' ? 'success' : 'neutral'" />
+        <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+          <StatusBadge
+            :status="item.status"
+            :type="item.status === 'open' ? 'success' : 'neutral'"
+          />
         </td>
-        <td class="action-cell text-center">
-          <button class="btn-icon" @click.stop="openEditModal(item)" title="Edit Class">
-            <img :src="getActionIcon('edit')" />
-          </button>
+        <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+          <div class="ui-action-menu">
+            <button class="ui-btn-dots" @click.stop="openEditModal(item)">
+              <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-70" />
+            </button>
+          </div>
         </td>
       </tr>
     </template>
 
     <template #extra-actions>
-      <AppButton variant="outline" size="small" @click="openDuplicateModal">
-        <img :src="getActionIcon('calendar')" class="btn-icon-img" />
+      <AppButton variant="secondary" @click="openDuplicateModal">
+        <img :src="getActionIcon('calendar')" class="w-4 h-4 brightness-0 invert opacity-70 mr-2" />
         Bulk Duplicate
       </AppButton>
     </template>
   </DataPageLayout>
 
-  <ClassActionModal :isOpen="modal.isOpen" :type="modal.type" :classItem="modal.classItem" :loading="modal.loading"
-    @close="closeModal" @submit="handleModalSubmit" />
+  <ClassActionModal
+    :isOpen="modal.isOpen"
+    :type="modal.type"
+    :classItem="modal.classItem"
+    :loading="modal.loading"
+    @close="closeModal"
+    @submit="handleModalSubmit"
+  />
 </template>
 
 <script setup>
@@ -92,9 +122,24 @@ const classHeaders = [
 ]
 
 const statsCards = computed(() => [
-  { label: 'Live Classes', value: classes.value.length, image: getImageUrl('programs/total-program'), color: 'var(--accent-light)' },
-  { label: 'Open Classes', value: classes.value.filter(c => c.status === 'open').length, image: getImageUrl('programs/active-program'), color: 'var(--accent-light)' },
-  { label: 'Full Capacity', value: classes.value.filter(c => c.numStudent >= c.capacity).length, image: getImageUrl('programs/archived-program'), color: 'var(--danger-light)' },
+  {
+    label: 'Live Classes',
+    value: classes.value.length,
+    image: getImageUrl('programs/total-program'),
+    color: 'var(--accent-light)',
+  },
+  {
+    label: 'Open Classes',
+    value: classes.value.filter((c) => c.status === 'open').length,
+    image: getImageUrl('programs/active-program'),
+    color: 'var(--accent-light)',
+  },
+  {
+    label: 'Full Capacity',
+    value: classes.value.filter((c) => c.numStudent >= c.capacity).length,
+    image: getImageUrl('programs/archived-program'),
+    color: 'var(--danger-light)',
+  },
 ])
 
 const fetchClasses = async () => {
@@ -124,7 +169,7 @@ const modal = ref({
   isOpen: false,
   type: 'add',
   classItem: null,
-  loading: false
+  loading: false,
 })
 
 const openAddModal = () => {
@@ -166,103 +211,5 @@ onMounted(fetchClasses)
 </script>
 
 <style scoped>
-.info-cell {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-
-.program-icon-mini {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--border-radius-sm);
-  overflow: hidden;
-  background: var(--bg-light);
-}
-
-.program-icon-mini img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.text-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.subtext {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.avatar-mini {
-  width: 24px;
-  height: 24px;
-  border-radius: var(--border-radius-round);
-  overflow: hidden;
-}
-
-.avatar-mini img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.schedule-cell {
-  display: flex;
-  flex-direction: column;
-}
-
-.day {
-  font-weight: 600;
-  font-size: var(--text-sm);
-}
-
-.time {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.capacity-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3xs);
-}
-
-.capacity-bar {
-  width: 60px;
-  height: 6px;
-  background: var(--border-color);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.bar-fill {
-  height: 100%;
-  background: var(--accent-color);
-  border-radius: 3px;
-}
-
-.bar-fill.near-full {
-  background: var(--warning-color);
-}
-
-.bar-fill.full {
-  background: var(--error-color);
-}
-
-.count {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.btn-icon-img {
-  width: 14px;
-  height: 14px;
-  margin-right: 6px;
-  filter: brightness(0) saturate(100%) invert(43%) sepia(94%) saturate(1637%) hue-rotate(170deg) brightness(101%) contrast(101%);
-}
+/* Scoped styles removed in favor of Tailwind CSS utility classes and global UI components */
 </style>

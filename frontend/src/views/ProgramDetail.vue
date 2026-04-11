@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
@@ -10,15 +10,11 @@ import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { programService } from '@/services/programService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { userService } from '@/services/userService'
-import {
-  getProgramProfileURL,
-  getImageUrl,
-  getActionIcon
-} from '@/utils/assetHelper'
+import { getProgramProfileURL, getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
 import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
 import { isPaid } from '@/utils/statusUtils'
-
+import { enrichEnrollments } from '@/utils/enrollmentHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -44,15 +40,14 @@ const initData = async () => {
       programService.getProgram(id),
       programService.getSessions(id),
       enrollmentService.getAllEnrollments(),
-      userService.getAllStudents()
+      userService.getAllStudents(),
     ])
 
     program.value = pData
     sessions.value = Array.isArray(sData) ? sData : []
 
-    // Filter enrollments for this specific program
     const allEnrollments = Array.isArray(eData) ? eData : []
-    enrollments.value = allEnrollments.filter(e => String(e.programId || '') === String(id))
+    enrollments.value = allEnrollments.filter((e) => String(e.programId || '') === String(id))
 
     students.value = Array.isArray(stdData) ? stdData : []
   } catch (err) {
@@ -65,44 +60,65 @@ const initData = async () => {
 
 onMounted(() => {
   initData()
-  // Refresh live status timer every minute
-  const interval = setInterval(() => { now.value = new Date() }, 60000)
+  const interval = setInterval(() => {
+    now.value = new Date()
+  }, 60000)
   return () => clearInterval(interval)
 })
 
 const statsCards = computed(() => {
   if (!program.value) return []
 
-  // 1. Paid Enrollments Only
-  const paidEnrollmentsCount = enrollments.value.filter(e => isPaid(e.status || e.paymentStatus)).length
-
-  // 2. Revenue (Paid only)
+  const paidEnrollmentsCount = enrollments.value.filter((e) =>
+    isPaid(e.status || e.paymentStatus),
+  ).length
   const totalRevenue = enrollments.value
-    .filter(e => isPaid(e.status || e.paymentStatus))
-    .reduce((sum, e) => sum + (Number(e.amount || program.value.price || 0)), 0)
+    .filter((e) => isPaid(e.status || e.paymentStatus))
+    .reduce((sum, e) => sum + Number(e.amount || program.value.price || 0), 0)
 
-  // 3. Remaining Sessions (Scheduled status from instances)
-  const scheduledCount = sessionInstances.value.filter(i => i.status === 'Scheduled').length
-
-  // 4. Capacity (Remaining slots count)
+  const scheduledCount = sessionInstances.value.filter((i) => i.status === 'Scheduled').length
   const maxCapacity = Number(program.value.maxCapacity || program.value.capacity || 5)
   const remainingCapacity = Math.max(0, maxCapacity - paidEnrollmentsCount)
 
   return [
-    { label: 'Total Enrolled', value: paidEnrollmentsCount, image: getImageUrl('data-metric-card/total-enrolled'), color: 'var(--primary-soft)' },
-    { label: 'Program Revenue', value: `$${totalRevenue.toLocaleString()}`, image: getImageUrl('data-metric-card/program-revenue'), color: 'var(--success-soft)' },
-    { label: 'Remaining Sessions', value: scheduledCount, image: getImageUrl('data-metric-card/remaining-sessions'), color: 'var(--warning-soft)' },
-    { label: 'Enrollment Capacity', value: remainingCapacity, image: getImageUrl('data-metric-card/enrollment-capacity'), color: remainingCapacity < 2 ? 'var(--error-soft)' : 'var(--bg-subtle)' }
+    {
+      label: 'Total Enrolled',
+      value: paidEnrollmentsCount,
+      image: getImageUrl('data-metric-card/total-enrolled'),
+      color: 'bg-primary-soft',
+    },
+    {
+      label: 'Total Revenue',
+      value: `$${totalRevenue.toLocaleString()}`,
+      image: getImageUrl('data-metric-card/program-revenue'),
+      color: 'bg-success-soft',
+    },
+    {
+      label: 'Active Sessions',
+      value: scheduledCount,
+      image: getImageUrl('data-metric-card/remaining-sessions'),
+      color: 'bg-warning-soft',
+    },
+    {
+      label: 'Remaining Slots',
+      value: remainingCapacity,
+      image: getImageUrl('data-metric-card/enrollment-capacity'),
+      color: remainingCapacity < 2 ? 'bg-error/10' : 'bg-surface-subtle',
+    },
   ]
 })
 
 const enrolledStudents = computed(() => {
   if (!enrollments.value.length) return []
 
-  // Use the standard enrollment helper to enrich data (handles Paid/Unpaid/Cancelled + Academic Status)
-  const enriched = enrichEnrollments(enrollments.value, [], students.value, [program.value].filter(Boolean))
+  const enriched = enrichEnrollments(
+    enrollments.value,
+    [],
+    students.value,
+    [program.value].filter(Boolean),
+  )
 
-  return enriched.filter(e => {
+  return enriched.filter((e) => {
     const studentName = e.studentName || 'Unknown Student'
     if (!searchQuery.value) return true
     return studentName.toLowerCase().includes(searchQuery.value.toLowerCase())
@@ -117,14 +133,13 @@ const sessionInstances = computed(() => {
   const end = new Date(program.value.endDate)
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-  sessions.value.forEach(session => {
+  sessions.value.forEach((session) => {
     const dayName = session.schedule?.day
     if (!dayName) return
 
     const targetDayIndex = days.indexOf(dayName)
     let current = new Date(start)
 
-    // Align to target day
     while (current.getDay() !== targetDayIndex) {
       current.setDate(current.getDate() + 1)
     }
@@ -132,15 +147,15 @@ const sessionInstances = computed(() => {
     while (current <= end) {
       const dateStr = current.toISOString().split('T')[0]
       const isToday = dateStr === now.value.toISOString().split('T')[0]
-      const isPastDay = current < new Date(now.value.getFullYear(), now.value.getMonth(), now.value.getDate())
+      const isPastDay =
+        current < new Date(now.value.getFullYear(), now.value.getMonth(), now.value.getDate())
 
       let status = 'Scheduled'
       if (isToday) {
         if (isSessionInProgress(session.schedule, now.value)) {
           status = 'In Progress'
         } else {
-          // Simple time check for today's past sessions
-          const times = (session.schedule?.timeslot || '').split('-').map(t => t.trim())
+          const times = (session.schedule?.timeslot || '').split('-').map((t) => t.trim())
           if (times.length === 2) {
             const [hours, minutes] = times[1].split(':').map(Number)
             const endMinutes = hours * 60 + minutes
@@ -157,7 +172,7 @@ const sessionInstances = computed(() => {
         date: dateStr,
         day: dayName,
         timeslot: session.schedule?.timeslot,
-        status: status
+        status: status,
       })
 
       current.setDate(current.getDate() + 7)
@@ -167,14 +182,6 @@ const sessionInstances = computed(() => {
   return instances.sort((a, b) => a.date.localeCompare(b.date))
 })
 
-const studentHeaders = [
-  { label: 'No', width: '60px', align: 'center' },
-  { label: 'Student' },
-  { label: 'Enrolled Date' },
-  { label: 'Academic Status', align: 'center' },
-  { label: 'Payment Status', align: 'center' }
-]
-
 const handleStudentClick = (enroll) => {
   const sId = enroll.studentId
   if (sId) {
@@ -182,7 +189,6 @@ const handleStudentClick = (enroll) => {
   }
 }
 
-// Modal Logic
 const actionModal = ref({
   isOpen: false,
   type: 'edit',
@@ -227,7 +233,7 @@ const handleActionSubmit = async (formData) => {
 
     setTimeout(() => {
       closeModal()
-      initData() // Refresh page data
+      initData()
     }, 1500)
   } catch (error) {
     actionModal.value.error = error.message || 'Action failed'
@@ -239,483 +245,323 @@ const handleActionSubmit = async (formData) => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/programs" title="Program Detail">
+    <DetailPageLayout
+      :loading="loading"
+      :errorMessage="errorMessage"
+      backRoute="/programs"
+      title="Program Details"
+    >
       <template #header-actions v-if="program">
-        <div class="actions-wrapper">
-          <button class="btn-icon-modern btn-edit" title="Edit Program" @click="openActionModal('edit')">
-            <img :src="getActionIcon('edit')" />
-          </button>
-          <button class="btn-icon-modern btn-delete" title="Delete Program" @click="openActionModal('delete')">
-            <img :src="getActionIcon('delete')" />
-          </button>
+        <div class="flex items-center gap-md">
+          <AppButton variant="secondary" title="Edit Program" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" class="w-4.5 h-4.5" /> Edit
+          </AppButton>
+          <AppButton variant="danger" title="Delete Program" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" class="w-4.5 h-4.5 invert" /> Delete
+          </AppButton>
         </div>
       </template>
 
       <template #left-content v-if="program">
-        <!-- Dashboard-style Metrics Top Row -->
-        <div class="metrics-row fade-in">
-          <DataMetricCard v-for="card in statsCards" :key="card.label" :label="card.label" :value="card.value"
-            :image="card.image" :color="card.color" />
+        <!-- Metrics -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-lg mb-xl">
+          <DataMetricCard v-for="card in statsCards" :key="card.label" v-bind="card" />
         </div>
 
-        <!-- Custom Tab Navigation Row -->
-        <div class="tabs-navigation-wrapper fade-in">
-          <div class="tabs-navigation">
-            <AppButton variant="ghost" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
-              Overview
-            </AppButton>
-            <AppButton variant="ghost" :class="{ active: activeTab === 'students' }" @click="activeTab = 'students'">
-              Enrolled Students
-            </AppButton>
-            <AppButton variant="ghost" :class="{ active: activeTab === 'sessions' }" @click="activeTab = 'sessions'">
-              Sessions History
-            </AppButton>
-          </div>
+        <!-- Tab Navigation -->
+        <div class="ui-tabs-nav">
+          <button
+            class="ui-tab-item"
+            :class="{ active: activeTab === 'overview' }"
+            @click="activeTab = 'overview'"
+          >
+            Overview
+          </button>
+          <button
+            class="ui-tab-item"
+            :class="{ active: activeTab === 'students' }"
+            @click="activeTab = 'students'"
+          >
+            Enrolled Students
+          </button>
+          <button
+            class="ui-tab-item"
+            :class="{ active: activeTab === 'sessions' }"
+            @click="activeTab = 'sessions'"
+          >
+            Session History
+          </button>
         </div>
 
         <!-- Tab Content -->
-        <div class="tab-content-container">
-          <div v-if="activeTab === 'overview'" class="detail-section-card fade-in">
-            <div class="overview-layout-container">
-              <!-- Program Metadata Grid (Highlights) -->
-              <div class="overview-section">
-                <div class="section-header">
-                  <h3>Program Highlights</h3>
-                </div>
-                <div class="grid-2-columns">
-                  <div class="info-item vertical">
-                    <span class="info-label">CATEGORY:</span>
-                    <strong>{{ program.category || 'General' }}</strong>
-                  </div>
-
-                  <div class="info-item vertical">
-                    <span class="info-label">ACADEMIC TERM:</span>
-                    <strong>{{ program.termName || 'Term 1 2026' }}</strong>
-                  </div>
-
-                  <div class="info-item vertical">
-                    <span class="info-label">LEVEL:</span>
-                    <strong>{{ program.levelName || program.level || 'Beginner' }}</strong>
-                  </div>
-
-                  <div class="info-item vertical">
-                    <span class="info-label">STATUS:</span>
-                    <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
-                  </div>
-
-                  <div class="info-item vertical">
-                    <span class="info-label">START DATE:</span>
-                    <strong>{{ program.startDate || 'N/A' }}</strong>
-                  </div>
-
-                  <div class="info-item vertical">
-                    <span class="info-label">END DATE:</span>
-                    <strong>{{ program.endDate || 'N/A' }}</strong>
-                  </div>
-
-                  <div class="info-item vertical">
-                    <span class="info-label">TOTAL SESSIONS:</span>
-                    <strong>{{ program.numberSessions }} Sessions</strong>
-                  </div>
-
-                  <div class="info-item vertical">
-                    <span class="info-label">TOTAL TUITION FEE:</span>
-                    <strong class="price-highlight">${{ (Number(program.price) || 0).toLocaleString() }}</strong>
-                  </div>
-
-                  <div class="info-item vertical">
-                    <span class="info-label">SCHEDULE:</span>
-                    <strong>{{ program.schedule?.day }}</strong>
-                    <strong>{{ program.schedule?.timeslot }}</strong>
-                  </div>
-
-                  <div class="info-item vertical">
-                    <span class="info-label">COST PER SESSION:</span>
-                    <strong>${{ (Number(program.price || 0) / (Number(program.numberSessions) || 1)).toFixed(2)
-                    }}</strong>
-                  </div>
+        <div class="ui-detail-card min-h-[400px]">
+          <div v-if="activeTab === 'overview'">
+            <div class="ui-section-header">
+              <h3 class="ui-section-title">Program Highlights</h3>
+            </div>
+            <div class="ui-data-list grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-xl">
+              <div class="ui-data-item">
+                <span class="ui-data-label">Program Category</span>
+                <span class="ui-data-value text-base">{{
+                  program.category || 'General Curriculum'
+                }}</span>
+              </div>
+              <div class="ui-data-item">
+                <span class="ui-data-label">Academic Term</span>
+                <span class="ui-data-value text-base">{{
+                  program.termName || 'Not Specified'
+                }}</span>
+              </div>
+              <div class="ui-data-item">
+                <span class="ui-data-label">Difficulty Level</span>
+                <span class="ui-data-value text-base">{{
+                  program.levelName || program.level || 'Beginner'
+                }}</span>
+              </div>
+              <div class="ui-data-item">
+                <span class="ui-data-label">Execution Status</span>
+                <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
+              </div>
+              <div class="ui-data-item">
+                <span class="ui-data-label">Admission Price</span>
+                <span class="ui-data-value text-xl font-black text-primary tracking-tighter"
+                  >${{ (Number(program.price) || 0).toLocaleString() }}</span
+                >
+              </div>
+              <div class="ui-data-item">
+                <span class="ui-data-label">Term Duration</span>
+                <span
+                  class="ui-data-value text-xs font-bold text-content-muted flex items-center gap-xs"
+                >
+                  {{ program.startDate }} <span class="opacity-30">—</span> {{ program.endDate }}
+                </span>
+              </div>
+              <div class="ui-data-item">
+                <span class="ui-data-label">Active Schedule</span>
+                <div class="flex flex-col gap-0.5">
+                  <span class="ui-data-value text-base tracking-tight">{{
+                    program.schedule?.day
+                  }}</span>
+                  <span class="text-xs font-black text-content-muted uppercase">{{
+                    program.schedule?.timeslot
+                  }}</span>
                 </div>
               </div>
-
+              <div class="ui-data-item">
+                <span class="ui-data-label">Session Quota</span>
+                <span class="ui-data-value text-base"
+                  >{{ program.numberSessions }} Total Units</span
+                >
+              </div>
+              <div class="ui-data-item">
+                <span class="ui-data-label">Cost Efficiency</span>
+                <span class="ui-data-value text-base"
+                  >${{
+                    (Number(program.price || 0) / (Number(program.numberSessions) || 1)).toFixed(2)
+                  }}
+                  <span class="text-2xs opacity-40">/ session</span></span
+                >
+              </div>
             </div>
           </div>
 
-          <!-- Students Tab -->
-          <div v-if="activeTab === 'students'" class="detail-section-card full-width fade-in">
-            <div class="section-header">
-              <h3>Enrolled Student List</h3>
-              <div class="header-search search-wrapper">
-                <img :src="getActionIcon('search')" class="search-icon-mini" />
-                <input type="text" v-model="searchQuery" placeholder="Search students..." />
+          <div v-if="activeTab === 'students'">
+            <div class="ui-section-header">
+              <h3 class="ui-section-title">Class Roster</h3>
+              <div class="relative w-64">
+                <input
+                  type="text"
+                  v-model="searchQuery"
+                  placeholder="Quick search students..."
+                  class="w-full pl-9 pr-4 py-2 border border-outline-std rounded-sm text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                />
+                <img
+                  :src="getActionIcon('search')"
+                  class="absolute left-3 top-2.5 w-4.5 h-4.5 opacity-30"
+                />
               </div>
             </div>
-            <div class="table-container">
-              <table v-if="enrolledStudents.length > 0">
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>Student Name</th>
-                    <th>Enrolled Date</th>
-                    <th class="text-center">Academic Status</th>
-                    <th class="text-center">Payment Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(item, idx) in enrolledStudents" :key="item.id || idx" @click="handleStudentClick(item)"
-                    class="clickable-row">
-                    <td class="text-center">{{ idx + 1 }}</td>
-                    <td>
-                      <div class="user-info">
-                        <div class="avatar-mini">
-                          <img :src="item.studentPhoto || getImageUrl('profiles/avatar-student')" alt="student" />
-                        </div>
-                        <strong>{{ item.studentName }}</strong>
+            <table v-if="enrolledStudents.length > 0" class="ui-premium-table">
+              <thead>
+                <tr>
+                  <th class="text-center" width="50">No</th>
+                  <th>Full Name</th>
+                  <th>Registry Date</th>
+                  <th class="text-center">Academic</th>
+                  <th class="text-center">Financial</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-for="(item, idx) in enrolledStudents"
+                  :key="item.id || idx"
+                  @click="handleStudentClick(item)"
+                  class="group cursor-pointer hover:bg-surface-light transition-colors"
+                >
+                  <td class="text-center font-bold text-content-muted/40">{{ idx + 1 }}</td>
+                  <td>
+                    <div class="flex items-center gap-md">
+                      <div class="w-8 h-8 rounded-full overflow-hidden border border-outline-std">
+                        <img
+                          :src="item.studentPhoto || getImageUrl('profiles/avatar-student')"
+                          class="w-full h-full object-cover"
+                        />
                       </div>
-                    </td>
-                    <td>{{ item.enrollAt || 'N/A' }}</td>
-                    <td class="text-center">
-                      <StatusBadge :status="item.academicStatus" />
-                    </td>
-                    <td class="text-center">
-                      <StatusBadge :status="item.displayStatus" />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div v-else class="empty-state">
-                <p>No students enrolled in this program yet.</p>
-              </div>
+                      <span
+                        class="font-black text-content-dark tracking-tighter group-hover:text-primary transition-colors"
+                        >{{ item.studentName }}</span
+                      >
+                    </div>
+                  </td>
+                  <td>
+                    <span class="text-xs font-bold text-content-muted">{{
+                      item.enrollAt || 'N/A'
+                    }}</span>
+                  </td>
+                  <td class="text-center"><StatusBadge :status="item.academicStatus" /></td>
+                  <td class="text-center"><StatusBadge :status="item.displayStatus" /></td>
+                </tr>
+              </tbody>
+            </table>
+            <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-30">
+              <img :src="getImageUrl('common/no-data')" class="w-20" />
+              <p class="text-sm font-bold">No active enrollments found for this program.</p>
             </div>
           </div>
 
-          <!-- Sessions History Tab -->
-          <div v-if="activeTab === 'sessions'" class="detail-section-card">
-            <div class="table-responsive">
-              <table class="data-table fixed-layout">
-                <thead>
-                  <tr>
-                    <th style="width: 20%">Date</th>
-                    <th style="width: 20%">Day</th>
-                    <th style="width: 40%">Time Slot</th>
-                    <th class="text-center" style="width: 20%">Status</th>
-                  </tr>
-                </thead>
-                <tbody v-if="sessionInstances.length > 0">
-                  <tr v-for="item in sessionInstances" :key="item.id">
-                    <td><strong>{{ item.date }}</strong></td>
-                    <td>{{ item.day }}</td>
-                    <td>{{ item.timeslot }}</td>
-                    <td class="text-center">
-                      <StatusBadge :status="item.status" />
-                    </td>
-                  </tr>
-                </tbody>
-                <tbody v-else>
-                  <tr>
-                    <td colspan="5" class="text-center p-3xl text-muted">
-                      No session history available for this period.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+          <div v-if="activeTab === 'sessions'">
+            <div class="ui-section-header">
+              <h3 class="ui-section-title">Attendance Tracking Ledger</h3>
             </div>
+            <table class="ui-premium-table">
+              <thead>
+                <tr>
+                  <th>Execution Date</th>
+                  <th>Scheduled Day</th>
+                  <th>Time Allocation</th>
+                  <th class="text-center">Registry Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in sessionInstances" :key="item.id">
+                  <td>
+                    <span class="font-black text-content-dark tracking-tighter">{{
+                      item.date
+                    }}</span>
+                  </td>
+                  <td>
+                    <span class="text-xs font-black text-content-muted uppercase">{{
+                      item.day
+                    }}</span>
+                  </td>
+                  <td>
+                    <span class="text-xs font-bold text-content-muted">{{ item.timeslot }}</span>
+                  </td>
+                  <td class="text-center"><StatusBadge :status="item.status" /></td>
+                </tr>
+                <tr v-if="sessionInstances.length === 0">
+                  <td colspan="4" class="py-20 text-center text-content-muted italic text-xs">
+                    No execution history initialized for this term.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </template>
 
       <template #right-content v-if="program">
-        <div class="profile-header">
-          <div class="profile-preview">
-            <img :src="getProgramProfileURL(program.profileURL || program.imageURL, program.category)"
-              alt="Program Icon" />
+        <div class="ui-detail-card flex flex-col items-center text-center p-0 overflow-hidden">
+          <div class="w-full h-32 bg-primary/5">
+            <img
+              :src="getProgramProfileURL(program.profileURL || program.imageURL, program.category)"
+              class="w-full h-full object-cover opacity-10 hover:opacity-20 transition-opacity"
+            />
           </div>
-          <h2 class="profile-title">{{ program.title }}</h2>
-        </div>
+          <div class="relative -mt-16 mb-md">
+            <div class="w-32 h-32 rounded-std border-4 border-white shadow-xl bg-white p-4">
+              <img
+                :src="
+                  getProgramProfileURL(program.profileURL || program.imageURL, program.category)
+                "
+                alt="Program Icon"
+                class="w-full h-full object-contain"
+              />
+            </div>
+          </div>
 
-        <DetailedSummaryCard subtitle="Program Description" class="mb-lg">
-          <p class="summary-value">{{ program.description || 'No detailed description provided.' }}</p>
-        </DetailedSummaryCard>
+          <div class="px-xl pb-xl w-full">
+            <h2 class="text-2xl font-black text-content-dark tracking-tighter mb-md leading-tight">
+              {{ program.title }}
+            </h2>
 
-        <DetailedSummaryCard subtitle="Assigned Teachers">
-          <div class="relationships-list">
-            <div v-for="t in program.teachers" :key="t.id" class="relationship-item">
-              <img :src="t.profileURL" alt="Teacher" class="small-avatar" />
-              <div class="teacher-info">
-                <strong>{{ t.name || t.fullname || 'Unknown Teacher' }}</strong>
-                <span>{{ t.role || 'Teacher' }}</span>
+            <div class="w-full h-px bg-surface-light my-xl"></div>
+
+            <DetailedSummaryCard subtitle="Program Synopsis" class="bg-transparent p-0 mt-0">
+              <p
+                class="text-xs text-content-muted leading-relaxed font-medium text-left bg-surface-subtle p-md rounded-sm border border-outline-std/30 italic"
+              >
+                {{
+                  program.description ||
+                  'No descriptive overview provided for this academic program.'
+                }}
+              </p>
+            </DetailedSummaryCard>
+
+            <div class="mt-lg pt-lg border-t border-surface-light w-full">
+              <h3
+                class="text-3xs font-black uppercase text-content-muted tracking-widest mb-md text-left"
+              >
+                Academic Instructors
+              </h3>
+              <div class="flex flex-col gap-sm">
+                <div
+                  v-for="t in program.teachers"
+                  :key="t.id"
+                  class="flex items-center gap-md p-md bg-surface-light rounded-sm border border-outline-std/20 group"
+                >
+                  <div
+                    class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-border"
+                  >
+                    <img :src="t.profileURL" alt="Teacher" class="w-full h-full object-cover" />
+                  </div>
+                  <div class="flex flex-col text-left">
+                    <span
+                      class="text-sm font-black text-content-dark tracking-tighter group-hover:text-primary transition-colors leading-none mb-1"
+                      >{{ t.name || t.fullname || 'Faculty Staff' }}</span
+                    >
+                    <span
+                      class="text-3xs font-black uppercase text-content-muted tracking-widest"
+                      >{{ t.role || 'Primary Teacher' }}</span
+                    >
+                  </div>
+                </div>
+                <div
+                  v-if="!program.teachers || program.teachers.length === 0"
+                  class="text-center p-md bg-surface-light rounded-sm italic text-xs text-content-muted opacity-50 font-bold"
+                >
+                  {{ program.teacherName || 'No staff assigned' }}
+                </div>
               </div>
             </div>
-            <div v-if="!program.teachers || program.teachers.length === 0" class="text-muted text-center p-sm">
-              {{ program.teacherName ? program.teacherName : 'No teachers assigned.' }}
-            </div>
           </div>
-        </DetailedSummaryCard>
-
+        </div>
       </template>
     </DetailPageLayout>
 
-    <ProgramActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :program="actionModal.program"
-      :loading="actionModal.loading" :error="actionModal.error" :success="actionModal.success" @close="closeModal"
-      @submit="handleActionSubmit" />
+    <ProgramActionModal
+      :isOpen="actionModal.isOpen"
+      :type="actionModal.type"
+      :program="actionModal.program"
+      :loading="actionModal.loading"
+      :error="actionModal.error"
+      :success="actionModal.success"
+      @close="closeModal"
+      @submit="handleActionSubmit"
+    />
   </DashboardLayout>
 </template>
 
 <style scoped>
-/* Search in Header */
-.header-search {
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-width: 250px;
-}
-
-.header-search .search-icon-mini {
-  position: absolute;
-  left: var(--space-sm);
-  width: 14px;
-  height: 14px;
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-:root .header-search input {
-  width: 100%;
-  padding: var(--space-xs) var(--space-sm) var(--space-xs) 34px;
-  border: 1.5px solid var(--border-color);
-  border-radius: var(--border-radius-sm);
-  font-size: var(--text-sm);
-  outline: none;
-  background: var(--white);
-  transition: all 0.2s;
-}
-
-:root .header-search input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
-}
-
-@import '@/assets/styles/detail-view.css';
-
-/* Program-specific tweaks */
-.q-row {
-  display: flex;
-  gap: var(--space-3xl);
-}
-
-.session-quick-view {
-  margin-top: var(--space-2xl);
-  padding-top: var(--space-xl);
-  border-top: 1px dashed var(--border-color);
-}
-
-.q-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.q-label {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--text-light);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.q-value {
-  font-size: var(--text-lg);
-  font-weight: 800;
-  color: var(--text-dark);
-}
-
-.schedule-summary-box {
-  background: var(--bg-subtle);
-  padding: var(--space-lg);
-  border-radius: var(--border-radius);
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3xs);
-  border: 1px solid var(--bg-light);
-}
-
-.schedule-summary-box .day {
-  font-size: var(--text-xl);
-  font-weight: 800;
-  color: var(--primary-color);
-}
-
-.schedule-summary-box .time {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--text-dark);
-}
-
-.teachers-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.relationships-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  max-height: 250px;
-  overflow-y: auto;
-  padding-right: var(--space-xs);
-}
-
-/* Custom Clean Scrollbar for Sidebar */
-.relationships-list::-webkit-scrollbar {
-  width: 5px;
-}
-
-.relationships-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.relationships-list::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: var(--border-radius-lg);
-}
-
-.relationships-list::-webkit-scrollbar-thumb:hover {
-  background: var(--text-light);
-}
-
-.relationship-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md);
-  background: var(--bg-subtle);
-  border-radius: var(--border-radius);
-  border: 1px solid var(--bg-light);
-  transition: all 0.2s;
-}
-
-.relationship-item:hover {
-  background: var(--bg-light);
-  border-color: var(--border-color);
-}
-
-.relationship-item.clickable {
-  cursor: pointer;
-}
-
-.relationship-item.clickable:hover {
-  transform: translateX(4px);
-}
-
-.small-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--border-radius-round);
-  border: 2px solid var(--white);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-}
-
-.teacher-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.teacher-info strong {
-  font-size: var(--text-base);
-  color: var(--text-deep);
-}
-
-.teacher-info span {
-  font-size: var(--text-xs);
-  color: var(--text-light);
-}
-
-.text-center {
-  text-align: center;
-}
-
-.grid-2-columns {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-lg);
-}
-
-.mt-4 {
-  margin-top: var(--space-2xl);
-}
-
-.overview-layout-container {
-  display: flex;
-  flex-direction: column;
-}
-
-.data-table.fixed-layout {
-  table-layout: fixed;
-}
-
-.overview-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-.sidebar-info-group {
-  margin-top: var(--space-sm);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-
-.sidebar-divider {
-  height: 1px;
-  background: var(--bg-light);
-  margin: var(--space-lg) 0;
-  border: none;
-}
-
-/* Scrollable Tables Styling */
-.table-container,
-.table-responsive {
-  max-height: 480px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.table-container table,
-.table-responsive table {
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.table-container table thead th,
-.table-responsive table thead th {
-  position: sticky;
-  top: 0;
-  background: var(--white);
-  z-index: 10;
-  box-shadow: inset 0 -2px 0 var(--bg-subtle);
-}
-
-/* Custom Scrollbar */
-.table-container::-webkit-scrollbar,
-.table-responsive::-webkit-scrollbar {
-  width: 5px;
-}
-
-.table-container::-webkit-scrollbar-track,
-.table-responsive::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.table-container::-webkit-scrollbar-thumb,
-.table-responsive::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: var(--border-radius-lg);
-}
-
-.table-container::-webkit-scrollbar-thumb:hover,
-.table-responsive::-webkit-scrollbar-thumb:hover {
-  background: var(--text-light);
-}
+/* Scoped styles entirely removed in favor of centralized UI pattern classes in main.css and Tailwind utilities. */
 </style>

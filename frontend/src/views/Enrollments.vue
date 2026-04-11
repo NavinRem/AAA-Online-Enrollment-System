@@ -14,10 +14,7 @@ import { programService } from '../services/programService'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import { storageService } from '@/services/storageService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
-import {
-  calculateTotalEnrollment,
-  enrichEnrollments,
-} from '../utils/enrollmentHelper'
+import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { isPaid, isUnpaid, isCancelled } from '@/utils/statusUtils'
@@ -47,17 +44,13 @@ const childRegistrationModal = ref({
 })
 
 const getRowClass = (item) => {
-  return newlyCreatedId.value === item.id ? 'new-row-highlight' : ''
+  return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
 }
 
 onMounted(async () => {
   try {
     loading.value = true
-    await Promise.all([
-      fetchEnrollments(),
-      loadFormData()
-    ])
-    console.log('Enrollments loaded:', enrollments.value.length)
+    await Promise.all([fetchEnrollments(), loadFormData()])
   } catch (error) {
     console.error('Initial data load failed', error)
   } finally {
@@ -86,7 +79,9 @@ const loadFormData = async () => {
       programService.getAllClasses(),
     ])
     parents.value = Array.isArray(usersRes)
-      ? usersRes.filter((u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active')
+      ? usersRes.filter(
+          (u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active',
+        )
       : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
@@ -109,7 +104,6 @@ const handleProgramChange = async (programId) => {
   }
 }
 
-
 let hintTimeout = null
 const setValidationHint = (msg) => {
   validationHint.value = msg
@@ -125,9 +119,10 @@ const handleSaveEnrollment = async (formData) => {
   try {
     const parent = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
     const student = students.value.find((s) => s.id === formData.studentId)
-    const program = programs.value.find((c) => c.id === formData.programId || c.id === formData.courseId)
+    const program = programs.value.find(
+      (c) => c.id === formData.programId || c.id === formData.courseId,
+    )
     const classInstance = classes.value.find((c) => c.id === formData.classId)
-
 
     const payload = {
       parentId: parent.uid || parent.id,
@@ -138,21 +133,21 @@ const handleSaveEnrollment = async (formData) => {
       parent: {
         id: parent.uid || parent.id,
         name: parent.name || parent.email || 'Parent',
-        profile: parent.profile || null
+        profile: parent.profile || null,
       },
       student: {
         id: student.id,
         name: student.name || student.fullName || student.fullname || 'Student',
-        profile: student.profile || student.profileURL || student.childProfileURL || null
+        profile: student.profile || student.profileURL || student.childProfileURL || null,
       },
       program: {
         id: program.id,
         title: program.title || program.name || 'Program',
-        profile: program.profile || null
+        profile: program.profile || null,
       },
       class: {
         id: classInstance.id,
-        schedule: classInstance.day + ' ' + classInstance.timeslot
+        schedule: classInstance.day + ' ' + classInstance.timeslot,
       },
       classSchedule: classInstance.day + ' ' + classInstance.timeslot,
 
@@ -168,11 +163,13 @@ const handleSaveEnrollment = async (formData) => {
       remainingSessions: formData.remainingSessions || 0,
       passedSessions: formData.passedSessions || 0,
       prorateSavings: formData.prorateSavings || 0,
-      ...(!formData.id ? {
-        status: 'unpaid',
-        paymentStatus: 'unpaid',
-        enrollAt: new Date().toISOString(),
-      } : {})
+      ...(!formData.id
+        ? {
+            status: 'unpaid',
+            paymentStatus: 'unpaid',
+            enrollAt: new Date().toISOString(),
+          }
+        : {}),
     }
 
     if (formData.id) {
@@ -198,47 +195,85 @@ const handleSaveEnrollment = async (formData) => {
   }
 }
 
-// Status helpers imported from @/utils/statusHelper
-
 const enrollmentStats = computed(() => {
   const s = calculateTotalEnrollment(enrollments.value)
   return [
-    { label: 'Total Enrollments', value: s.total, image: getImageUrl('enrollment/total-enrollment'), color: 'var(--accent-light)' },
-    { label: 'Total Paid Enrollment', value: s.paidCount, image: getImageUrl('enrollment/total-paid-enrollment'), color: 'var(--accent-light)' },
-    { label: 'Total Unpaid Enrollment', value: s.unpaidCount, image: getImageUrl('enrollment/total-unpaid-enrollment'), color: 'var(--accent-light)' },
-    { label: 'Total Cancelled Enrollment', value: s.cancelledCount, image: getImageUrl('enrollment/total-canceled-enrollment'), color: 'var(--accent-light)' },
-    { label: 'Today Enrollments', value: s.todayCount, image: getImageUrl('enrollment/today-enrollment'), color: 'var(--accent-light)' }
+    {
+      label: 'Total Enrollments',
+      value: s.total,
+      image: getImageUrl('enrollment/total-enrollment'),
+      color: 'var(--accent-light)',
+    },
+    {
+      label: 'Total Paid Enrollment',
+      value: s.paidCount,
+      image: getImageUrl('enrollment/total-paid-enrollment'),
+      color: 'var(--accent-light)',
+    },
+    {
+      label: 'Total Unpaid Enrollment',
+      value: s.unpaidCount,
+      image: getImageUrl('enrollment/total-unpaid-enrollment'),
+      color: 'var(--accent-light)',
+    },
+    {
+      label: 'Total Cancelled Enrollment',
+      value: s.cancelledCount,
+      image: getImageUrl('enrollment/total-canceled-enrollment'),
+      color: 'var(--accent-light)',
+    },
+    {
+      label: 'Today Enrollments',
+      value: s.todayCount,
+      image: getImageUrl('enrollment/today-enrollment'),
+      color: 'var(--accent-light)',
+    },
   ]
 })
 
 const enrollmentHeaders = [
-  { label: 'No', width: '40px', align: 'center' },
-  { label: 'Parent', width: '160px' },
+  { label: 'No', width: '40px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'Parent', width: '160px', class: 'hidden lg:table-cell' },
   { label: 'Student', width: '160px' },
   { label: 'Program', width: '200px' },
-  { label: 'Schedule', width: '160px' },
-  { label: 'Branch', width: '70px', align: 'center' },
-  { label: 'Method', width: '100px', align: 'center', sortable: true, key: 'paymentMethod' },
+  { label: 'Schedule', width: '160px', class: 'hidden sm:table-cell' },
+  { label: 'Branch', width: '70px', align: 'center', class: 'hidden md:table-cell' },
+  {
+    label: 'Method',
+    width: '100px',
+    align: 'center',
+    sortable: true,
+    key: 'paymentMethod',
+    class: 'hidden lg:table-cell',
+  },
   { label: 'Amount', width: '100px', align: 'center', sortable: true, key: 'amount' },
   { label: 'Status', width: '90px', align: 'center' },
-  { label: 'Enrolled Date', width: '120px', align: 'center' },
-  { label: 'Action', width: '70px', align: 'center' }
+  { label: 'Date', width: '120px', align: 'center', class: 'hidden lg:table-cell' },
+  { label: 'Action', width: '70px', align: 'center' },
 ]
 
 const currentFilter = ref('all')
 
 const statusFilteredEnrollments = computed(() => {
-  const enriched = enrichEnrollments(enrollments.value, parents.value, students.value, programs.value, classes.value)
-
+  const enriched = enrichEnrollments(
+    enrollments.value,
+    parents.value,
+    students.value,
+    programs.value,
+    classes.value,
+  )
 
   let filtered = enriched
   if (currentFilter.value !== 'all') {
-    filtered = enriched.filter(r => {
+    filtered = enriched.filter((r) => {
       if (currentFilter.value === 'paid') return isPaid(r.paymentStatus) && !isCancelled(r.status)
-      if (currentFilter.value === 'unpaid') return isUnpaid(r.paymentStatus) && !isCancelled(r.status)
+      if (currentFilter.value === 'unpaid')
+        return isUnpaid(r.paymentStatus) && !isCancelled(r.status)
       if (currentFilter.value === 'cancelled') return isCancelled(r.status)
-      if (currentFilter.value === 'full') return (r.enrollmentType || 'Full').toLowerCase() === 'full'
-      if (currentFilter.value === 'partial') return (r.enrollmentType || 'Full').toLowerCase() === 'partial'
+      if (currentFilter.value === 'full')
+        return (r.enrollmentType || 'Full').toLowerCase() === 'full'
+      if (currentFilter.value === 'partial')
+        return (r.enrollmentType || 'Full').toLowerCase() === 'partial'
       return true
     })
   }
@@ -271,8 +306,6 @@ const actionState = ref({
   enrollment: null,
 })
 
-
-
 const handleTableAction = ({ type, item }) => {
   errorMessage.value = ''
   successMessage.value = ''
@@ -297,28 +330,28 @@ const submitActionModal = async (payload) => {
   try {
     if (type === 'pay') {
       const { bankName, paymentMethod: methodType, proof, proofURL, remark } = payload
-
-      // Construct payment info
       const updateData = {
         paymentStatus: 'paid',
-        status: 'confirmed', // Auto-confirm when paid
-        paymentMethod: methodType === 'cash' ? 'Cash' : (bankName || 'Online'),
+        status: 'confirmed',
+        paymentMethod: methodType === 'cash' ? 'Cash' : bankName || 'Online',
         transactionId: proof,
         paymentProofURL: proofURL || '',
         paidAt: new Date().toISOString(),
-        remark: remark?.trim() || ''
+        remark: remark?.trim() || '',
       }
-
       await enrollmentService.updateEnrollment(enrollment.id, updateData)
     } else if (type === 'cancel') {
-      await enrollmentService.updateEnrollment(enrollment.id, { status: 'cancelled', cancelReason: reason })
+      await enrollmentService.updateEnrollment(enrollment.id, {
+        status: 'cancelled',
+        cancelReason: reason,
+      })
     } else if (type === 'delete') {
       await enrollmentService.deleteEnrollment(enrollment.id)
     }
     const messages = {
       pay: 'Payment confirmed successfully!',
       cancel: 'Enrollment has been cancelled.',
-      delete: 'Enrollment record deleted permanently.'
+      delete: 'Enrollment record deleted permanently.',
     }
     successMessage.value = messages[type] || 'Action completed successfully.'
     await fetchEnrollments()
@@ -339,7 +372,7 @@ const closeActionModal = () => {
 }
 
 const handleOpenRegisterStudent = (parentId) => {
-  const parent = parents.value.find(p => (p.uid || p.id) === parentId)
+  const parent = parents.value.find((p) => (p.uid || p.id) === parentId)
   if (!parent) return
 
   childRegistrationModal.value = {
@@ -358,16 +391,17 @@ const handleRegisterStudent = async (formData) => {
 
   try {
     const { parentId, name, dob, profile, medicalNote } = formData
-
-    // Finalize Profile Image (if temp)
     let finalProfile = profile
     if (profile && profile.includes('/profiles/temp/')) {
       const extension = profile.split('?')[0].split('.').pop()
-      const sanitizedName = (name || 'child').toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      const sanitizedName = (name || 'child')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '')
       const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
       finalProfile = await storageService.moveProfileImage(profile, newPath)
     }
-
     const result = await userService.registerStudentProfile(parentId, {
       name,
       dob,
@@ -375,18 +409,12 @@ const handleRegisterStudent = async (formData) => {
       medicalNote,
       status: 'Inactive',
     })
-
     childRegistrationModal.value.success = 'Student registered successfully!'
-
-    // Refresh student list
     const studentsRes = await userService.getAllStudents()
     students.value = Array.isArray(studentsRes) ? studentsRes : []
-
-    // Map new student if possible
     if (result && result.id && enrollmentForm.value) {
       enrollmentForm.value.setStudent(result.id)
     }
-
     setTimeout(() => {
       childRegistrationModal.value.isOpen = false
     }, 1500)
@@ -397,8 +425,6 @@ const handleRegisterStudent = async (formData) => {
     childRegistrationModal.value.loading = false
   }
 }
-
-// UI Helpers
 </script>
 
 <template>
@@ -409,108 +435,249 @@ const handleRegisterStudent = async (formData) => {
       </template>
 
       <template #table>
-        <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="paginatedEnrollments"
-          entityName="enrollment" :loading="loading" :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize"
-          :totalItems="totalItems" @update:currentPage="currentPage = $event" v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search Enrollments" :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
+        <DataTable
+          title="Enrollment Lists"
+          :headers="enrollmentHeaders"
+          :items="paginatedEnrollments"
+          entityName="enrollment"
+          :loading="loading"
+          :hasPagination="true"
+          :currentPage="currentPage"
+          :pageSize="pageSize"
+          :totalItems="totalItems"
+          @update:currentPage="currentPage = $event"
+          v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search Enrollments"
+          :hasFilter="true"
+          v-model:currentFilter="currentFilter"
+          :filterOptions="[
             { label: 'All Enrollments', value: 'all' },
             { label: 'Paid Only', value: 'paid' },
             { label: 'Unpaid Only', value: 'unpaid' },
             { label: 'Cancelled Only', value: 'cancelled' },
             { label: 'Full Only', value: 'full' },
             { label: 'Partial Only', value: 'partial' },
-          ]" :rowClass="getRowClass" @action="handleTableAction" @row-click="item => {
-            if (item.id === newlyCreatedId) newlyCreatedId = null;
-            $router.push(`/enrollments/${item.id}`);
-          }">
+          ]"
+          :rowClass="getRowClass"
+          @action="handleTableAction"
+          @row-click="
+            (item) => {
+              if (item.id === newlyCreatedId) newlyCreatedId = null
+              $router.push(`/enrollments/${item.id}`)
+            }
+          "
+        >
           <template #toolbar-actions>
             <AppButton variant="primary" @click="showModal = true">
-              <img :src="getActionIcon('plus')" class="btn-icon-mini reverse-icon" /> New Enrollment
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> New Enrollment
             </AppButton>
           </template>
 
-          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, headers }">
-            <td class="hide-on-mobile text-center" :style="{ width: headers[0].width }">
+          <template
+            #row="{
+              item,
+              index,
+              toggleMenu,
+              activeMenuId,
+              isMenuAbove,
+              menuStyles,
+              handleAction,
+              closeMenu,
+              headers,
+            }"
+          >
+            <td
+              class="ui-cell text-center font-bold text-content-muted/50 hidden md:table-cell"
+              :style="{ width: headers[0].width }"
+            >
               {{ index + 1 }}
             </td>
-            <td class="hide-on-tablet" :style="{ width: headers[1].width }">
-              <div class="info-cell">
-                <div class="avatar-mini">
+            <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[1].width }">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar-sm">
                   <img :src="item.parent?.profileURL" alt="parent" />
                 </div>
-                <span>{{ item.parent?.name }}</span>
+                <div class="ui-identity-info">
+                  <span class="font-bold text-xs text-content-dark">{{ item.parent?.name }}</span>
+                  <span class="text-3xs text-content-muted uppercase font-bold tracking-tight"
+                    >Guardian</span
+                  >
+                </div>
               </div>
             </td>
-            <td :style="{ width: headers[2].width }">
-              <div class="info-cell">
-                <div class="avatar-mini">
+            <td class="ui-cell" :style="{ width: headers[2].width }">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar">
                   <img :src="item.student?.profileURL" alt="student" />
                 </div>
-                <span>{{ item.student?.name }}</span>
+                <div class="ui-identity-info">
+                  <span class="font-bold text-content-dark">{{ item.student?.name }}</span>
+                  <span class="text-3xs text-content-muted uppercase font-semibold">Student</span>
+                </div>
               </div>
             </td>
-            <td :style="{ width: headers[3].width }">
-              <div class="info-cell">
-                <div class="program-icon-mini">
+            <td class="ui-cell" :style="{ width: headers[3].width }">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar-sm bg-white ring-1 ring-border">
                   <img :src="item.program?.profileURL" alt="program" />
                 </div>
-                <div class="program-cell">
-                  <div class="stext-truncate">{{ item.program?.title }}</div>
+                <div class="ui-identity-info overflow-hidden">
+                  <span
+                    class="font-bold text-xs text-content-dark truncate max-w-[140px] block"
+                    :title="item.program?.title"
+                  >
+                    {{ item.program?.title }}
+                  </span>
+                  <span class="text-3xs text-primary uppercase font-black tracking-widest"
+                    >Program</span
+                  >
                 </div>
               </div>
             </td>
-            <td :style="{ width: headers[4].width }">
-              <div class="session-cell">
-                <div class="session-day"><strong>{{ getSessionDay(item.classSchedule) }}</strong></div>
-                <div class="session-time">{{ getSessionTime(item.classSchedule) }}</div>
+            <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[4].width }">
+              <div class="flex flex-col gap-0.5">
+                <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
+                  getSessionDay(item.classSchedule)
+                }}</span>
+                <span class="text-3xs font-semibold text-content-muted uppercase">{{
+                  getSessionTime(item.classSchedule)
+                }}</span>
               </div>
             </td>
-            <td class="text-center" :style="{ width: headers[5].width }">
-              <StatusBadge :status="item.branchAbbr || 'N/A'" />
+            <td
+              class="ui-cell text-center hidden md:table-cell"
+              :style="{ width: headers[5].width }"
+            >
+              <StatusBadge :status="item.branchAbbr || 'N/A'" type="blue" />
             </td>
-            <td class="text-center" :style="{ width: headers[6].width }">
-              <span v-if="!item.paymentMethod && isUnpaid(item.status || item.paymentStatus)"
-                class="not-assigned-label">—</span>
-              <StatusBadge v-else
-                :status="item.paymentMethod || (isPaid(item.status || item.paymentStatus) ? 'NotSpecified' : '—')" />
+            <td
+              class="ui-cell text-center hidden lg:table-cell"
+              :style="{ width: headers[6].width }"
+            >
+              <span
+                v-if="!item.paymentMethod && isUnpaid(item.status || item.paymentStatus)"
+                class="text-content-muted/30 italic text-xs"
+                >—</span
+              >
+              <StatusBadge
+                v-else
+                :status="
+                  item.paymentMethod || (isPaid(item.status || item.paymentStatus) ? 'Paid' : '—')
+                "
+              />
             </td>
-            <td class="bold hide-on-mobile text-center" :style="{ width: headers[7].width }">
-              <div class="amount-cell">
-                <StatusBadge :status="'$' + formatPrice(item.amount || 0)"
-                  :type="(item.enrollmentType || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'">
-                </StatusBadge>
-              </div>
+            <td class="ui-cell text-center font-bold" :style="{ width: headers[7].width }">
+              <StatusBadge
+                :status="'$' + formatPrice(item.amount || 0)"
+                :type="
+                  (item.enrollmentType || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'
+                "
+              >
+              </StatusBadge>
             </td>
-            <td class="text-center" :style="{ width: headers[8].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
               <StatusBadge :status="item.displayStatus || 'Unpaid'" />
             </td>
-            <td class="text-center" :style="{ width: headers[9].width }">
-              <span class="date-text">{{ formatDate(item.enrollAt) }}</span>
+            <td
+              class="ui-cell text-center hidden lg:table-cell"
+              :style="{ width: headers[9].width }"
+            >
+              <span class="text-xs font-bold text-content-muted/70 tracking-tight">{{
+                formatDate(item.enrollAt)
+              }}</span>
             </td>
-            <td class="action-cell text-center" :style="{ width: headers[10].width }">
-              <div class="menu-container">
-                <button class="btn-dots" @click.stop="toggleMenu($event, item.id)">
-                  <span class="dots-icon">⋮</span>
+            <td class="ui-cell text-center" :style="{ width: headers[10].width }">
+              <div class="ui-action-menu">
+                <button class="ui-btn-dots" @click.stop="toggleMenu($event, item.id)">
+                  <span class="font-bold">⋮</span>
                 </button>
                 <Teleport to="body">
-                  <transition name="fade">
-                    <div v-if="activeMenuId === item.id" class="action-dropdown" :class="{ 'open-up': isMenuAbove }"
-                      :style="menuStyles" @click.stop>
-                      <button v-if="!isPaid(item.status) && !isPaid(item.paymentStatus) && !isCancelled(item.status)"
-                        class="btn-edit" @click="handleAction('edit', item)">
-                        <img :src="getActionIcon('edit')" class="action-icon-mini" /> Edit
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="activeMenuId === item.id"
+                      class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
+                      :style="menuStyles"
+                      @click.stop
+                    >
+                      <button
+                        v-if="
+                          !isPaid(item.status) &&
+                          !isPaid(item.paymentStatus) &&
+                          !isCancelled(item.status)
+                        "
+                        class="ui-dropdown-item hover:text-info group"
+                        @click="
+                          () => {
+                            handleAction('edit', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity"
+                        />
+                        Edit
                       </button>
-                      <button v-if="!isPaid(item.status) && !isPaid(item.paymentStatus) && !isCancelled(item.status)"
-                        class="btn-pay" @click="handleAction('pay', item)">
-                        <img :src="getActionIcon('pay')" class="action-icon-mini" /> Pay
+                      <button
+                        v-if="
+                          !isPaid(item.status) &&
+                          !isPaid(item.paymentStatus) &&
+                          !isCancelled(item.status)
+                        "
+                        class="ui-dropdown-item hover:text-success group text-success"
+                        @click="
+                          () => {
+                            handleAction('pay', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('pay')"
+                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
+                        />
+                        Pay
                       </button>
-                      <button v-if="!isCancelled(item.status || item.paymentStatus)" class="btn-cancel"
-                        @click="handleAction('cancel', item)">
-                        <img :src="getActionIcon('cancel')" class="action-icon-mini" /> Cancel
+                      <button
+                        v-if="!isCancelled(item.status || item.paymentStatus)"
+                        class="ui-dropdown-item hover:text-error group text-error"
+                        @click="
+                          () => {
+                            handleAction('cancel', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('cancel')"
+                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
+                        />
+                        Cancel
                       </button>
-                      <div class="menu-divider"></div>
-                      <button class="btn-delete" @click="handleAction('delete', item)">
-                        <img :src="getActionIcon('delete')" class="action-icon-mini" /> Delete
+                      <div class="h-px bg-surface-light mx-1 my-1"></div>
+                      <button
+                        class="ui-dropdown-item hover:bg-error/5 hover:text-error group text-error/70 font-bold"
+                        @click="
+                          () => {
+                            handleAction('delete', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('delete')"
+                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
+                        />
+                        Delete
                       </button>
                     </div>
                   </transition>
@@ -522,48 +689,63 @@ const handleRegisterStudent = async (formData) => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentFormModal ref="enrollmentForm" :isOpen="showModal" :loading="submitting" :parents="parents"
-      :students="students" :programs="programs" :classes="classes" :enrollments="enrollments"
-      :enrollment="selectedEnrollment" :error="errorMessage" :success="successMessage" :hint="validationHint"
-      @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
-      @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint"
-      @register-student="handleOpenRegisterStudent" />
+    <EnrollmentFormModal
+      ref="enrollmentForm"
+      :isOpen="showModal"
+      :loading="submitting"
+      :parents="parents"
+      :students="students"
+      :programs="programs"
+      :classes="classes"
+      :enrollments="enrollments"
+      :enrollment="selectedEnrollment"
+      :error="errorMessage"
+      :success="successMessage"
+      :hint="validationHint"
+      @close="
+        () => {
+          showModal = false
+          selectedEnrollment = null
+          errorMessage = ''
+          successMessage = ''
+          validationHint = ''
+        }
+      "
+      @program-change="handleProgramChange"
+      @submit="handleSaveEnrollment"
+      @hint="setValidationHint"
+      @register-student="handleOpenRegisterStudent"
+    />
 
-    <ParentActionModal :isOpen="childRegistrationModal.isOpen" type="plus" :user="childRegistrationModal.parent"
-      :selectableParents="parents" :loading="childRegistrationModal.loading" :error="childRegistrationModal.error"
+    <ParentActionModal
+      :isOpen="childRegistrationModal.isOpen"
+      type="plus"
+      :user="childRegistrationModal.parent"
+      :selectableParents="parents"
+      :loading="childRegistrationModal.loading"
+      :error="childRegistrationModal.error"
       :success="childRegistrationModal.success"
-      @close="() => { childRegistrationModal.isOpen = false; childRegistrationModal.error = ''; childRegistrationModal.success = ''; }"
-      @submit="handleRegisterStudent" />
+      @close="
+        () => {
+          childRegistrationModal.isOpen = false
+          childRegistrationModal.error = ''
+          childRegistrationModal.success = ''
+        }
+      "
+      @submit="handleRegisterStudent"
+    />
 
-    <EnrollmentActionModal v-bind="actionState" :loading="submitting" v-model:error="errorMessage"
-      v-model:success="successMessage" @close="closeActionModal" @submit="submitActionModal" />
+    <EnrollmentActionModal
+      v-bind="actionState"
+      :loading="submitting"
+      v-model:error="errorMessage"
+      v-model:success="successMessage"
+      @close="closeActionModal"
+      @submit="submitActionModal"
+    />
   </DashboardLayout>
 </template>
 
 <style scoped>
-.action-modal {
-  padding: var(--space-xl);
-}
-
-.user-info {
-  cursor: pointer;
-}
-
-.session-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.date-text {
-  font-size: var(--text-sm);
-  color: var(--text-dark);
-}
-
-.prorate-note {
-  font-size: 0.65rem;
-  font-weight: 800;
-  color: var(--primary-color);
-  letter-spacing: 0.05em;
-}
+/* Scoped styles entirely removed in favor of centralized UI pattern classes in main.css and Tailwind utilities. */
 </style>
