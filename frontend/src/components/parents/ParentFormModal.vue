@@ -1,95 +1,127 @@
 <template>
-    <AppModal :show="isOpen" @close="$emit('close')" title="Register New Parent" :icon="getActionIcon('plus')">
-        <form id="newParentForm" @submit.prevent="handleFormSubmit" class="form-standard">
-            <div class="form-grid">
-                <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.name }">
-                    <label>Full Name <span class="required">*</span></label>
-                    <input type="text" v-model="formData.name" placeholder="Enter full name" class="standard-input" />
-                    <div v-if="isSubmittingAttempted && errors.name" class="field-error-msg">{{ errors.name }}</div>
-                </div>
+  <AppModal
+    :show="isOpen"
+    @close="$emit('close')"
+    title="Register New Parent"
+    :icon="getActionIcon('plus')"
+  >
+    <form id="newParentForm" novalidate @submit.prevent="handleFormSubmit" class="flex flex-col gap-lg">
+      <div class="grid grid-cols-2 gap-lg">
+        <AppInput
+          v-model="form.name"
+          label="Full Name"
+          placeholder="Enter full name"
+          required
+          :error="errors.name"
+          :shake="shaking.name"
+          @input="clearError('name')"
+        />
 
-                <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.email }">
-                    <label>Email Address <span class="required">*</span></label>
-                    <input type="email" v-model="formData.email" placeholder="example@email.com" class="standard-input" />
-                    <div v-if="isSubmittingAttempted && errors.email" class="field-error-msg">{{ errors.email }}</div>
-                </div>
+        <AppInput
+          v-model="form.email"
+          type="email"
+          label="Email Address"
+          placeholder="example@email.com"
+          required
+          :error="errors.email"
+          :shake="shaking.email"
+          @input="clearError('email')"
+        />
 
-                <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.phone }">
-                    <label>Phone Number <span class="required">*</span></label>
-                    <input type="tel" v-model="formData.phone" placeholder="012 345 678" class="standard-input" />
-                    <div v-if="isSubmittingAttempted && errors.phone" class="field-error-msg">{{ errors.phone }}</div>
-                </div>
+        <AppInput
+          v-model="form.phone"
+          type="tel"
+          label="Phone Number"
+          placeholder="012 345 678"
+          required
+          :error="errors.phone"
+          :shake="shaking.phone"
+          @input="clearError('phone')"
+        />
 
-                <div class="form-group" :class="{ 'field-error': isSubmittingAttempted && errors.profile }">
-                    <label>Select Profile Avatar <span class="required">*</span></label>
-                    <AvatarSelector v-model="formData.profileURL" role="parent" :customFileName="`${formData.name}_parent`" />
-                    <div v-if="isSubmittingAttempted && errors.profile" class="field-error-msg">{{ errors.profile }}</div>
-                </div>
-            </div>
-        </form>
+        <div class="flex flex-col gap-xs">
+          <label class="text-sm font-semibold text-content-dark"
+            >Select Profile Avatar <span class="text-error font-bold">*</span></label
+          >
+          <AvatarSelector
+            v-model="form.profileURL"
+            role="parent"
+            :customFileName="`${form.name}_parent`"
+            :error="errors.profileURL"
+            :shake="shaking.profileURL"
+            @update:modelValue="clearError('profileURL')"
+          />
+        </div>
+      </div>
+    </form>
 
-        <template #footer>
-            <div class="flex-align-center flex-end w-full gap-sm">
-                <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-                <AppButton variant="primary" form="newParentForm" type="submit" :loading="loading"
-                    :class="{ 'button-disabled-visual': isFormInvalid }">
-                    Register Parent
-                </AppButton>
-            </div>
-        </template>
-    </AppModal>
+    <template #footer>
+      <div class="flex items-center justify-end w-full gap-sm">
+        <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
+        <AppButton
+          variant="primary"
+          form="newParentForm"
+          type="submit"
+          :loading="loading"
+          class="px-8"
+        >
+          Register Parent
+        </AppButton>
+      </div>
+    </template>
+  </AppModal>
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { watch } from 'vue'
+import { useForm } from '@/composables/useForm'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
-    isOpen: Boolean,
-    loading: Boolean,
-    error: String,
-    success: String,
+  isOpen: Boolean,
+  loading: Boolean,
+  error: String,
+  success: String,
 })
 
 const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
 
-const isSubmittingAttempted = ref(false)
-const formData = ref({
-    name: '',
-    email: '',
-    phone: '',
-    profileURL: '',
+const { form, errors, shaking, validate, clearError, resetForm } = useForm({
+  name: '',
+  email: '',
+  phone: '',
+  profileURL: '',
 })
 
-watch(() => props.isOpen, (newVal) => {
+watch(
+  () => props.isOpen,
+  (newVal) => {
     if (newVal) {
-        formData.value = { name: '', email: '', phone: '', profileURL: '' }
-        isSubmittingAttempted.value = false
+      resetForm({ name: '', email: '', phone: '', profileURL: '' })
+    } else {
+      clearError()
     }
-})
-
-const errors = computed(() => {
-    const data = formData.value
-    const errs = {}
-    if (!data.name?.trim()) errs.name = 'Full name is required.'
-    if (!data.email?.trim() || !data.email.includes('@')) errs.email = 'Valid email is required.'
-    if (!data.phone?.trim()) errs.phone = 'Phone number is required.'
-    if (!data.profileURL) errs.profile = 'Please select a profile avatar.'
-    return errs
-})
-
-const isFormInvalid = computed(() => Object.keys(errors.value).length > 0)
+  },
+)
 
 const handleFormSubmit = () => {
-    isSubmittingAttempted.value = true
-    if (isFormInvalid.value) return
-    emit('submit', { ...formData.value, role: 'parent' })
+  const isValid = validate({
+    required: ['name', 'email', 'phone', 'profileURL'],
+    custom: {
+      email: (val) => (!val?.includes('@') ? 'Valid email is required.' : null),
+    },
+  })
+
+  if (!isValid) return
+  emit('submit', { ...form, role: 'parent' })
+  clearError()
 }
 </script>
 
 <style scoped>
-@import "@/assets/styles/components/ActionModalShared.css";
+/* Scoped styles removed in favor of Tailwind */
 </style>
