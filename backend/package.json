@@ -1,5 +1,5 @@
 {
-  "name": "functions",
+  "name": "backend",
   "description": "Cloud Functions for Firebase (Enrollment)",
   "scripts": {
     "lint": "eslint .",
