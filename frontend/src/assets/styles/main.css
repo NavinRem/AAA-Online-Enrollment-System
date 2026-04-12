@@ -189,7 +189,7 @@ svg {
   }
 
   .ui-header-cell {
-    @apply px-sm py-2 text-content-muted text-xs font-bold uppercase tracking-widest border-b-2 border-surface-light bg-white sticky top-0 whitespace-nowrap;
+    @apply px-md py-2 text-content-muted text-xs font-bold uppercase tracking-widest border-b-2 border-surface-light bg-white sticky top-0 whitespace-nowrap;
     z-index: var(--z-sidebar);
   }
 

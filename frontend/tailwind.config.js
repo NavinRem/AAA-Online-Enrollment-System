@@ -5,40 +5,40 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#00aeef',
-          dark: '#0096d1',
-          soft: '#f0f9ff',
-          light: '#e0f2fe',
-          deep: '#0084bf',
+          DEFAULT: '#00aeef', // Vibrant Sky Blue
+          dark: '#0096d1',    // Deep Sky Blue
+          soft: '#f0f9ff',    // Ice Blue (Very Light)
+          light: '#e0f2fe',   // Pale Sky Blue
+          deep: '#0084bf',    // Ocean Blue
         },
         success: {
-          DEFAULT: '#10b981',
-          soft: '#f0fdf4',
-          deep: '#065f46',
+          DEFAULT: '#10b981', // Emerald Green
+          soft: '#f0fdf4',    // Mint White
+          deep: '#065f46',    // Forest Green
         },
         error: {
-          DEFAULT: '#ef4444',
-          soft: '#fef2f2',
-          deep: '#b91c1c',
+          DEFAULT: '#ef4444', // Vivid Red
+          soft: '#fef2f2',    // Rose White
+          deep: '#b91c1c',    // Blood Red
         },
         warning: {
-          DEFAULT: '#f59e0b',
-          soft: '#fff7ed',
-          deep: '#92400e',
+          DEFAULT: '#f59e0b', // Amber Orange
+          soft: '#fff7ed',    // Cream Orange
+          deep: '#92400e',    // Burnt Orange
         },
         info: {
-          DEFAULT: '#3b82f6',
-          soft: '#f0f9ff',
-          deep: '#0284c7',
+          DEFAULT: '#3b82f6', // Royal Blue
+          soft: '#f0f9ff',    // Sky White
+          deep: '#0284c7',    // Deep Cerulean
         },
         // Semantic Surfaces & Content
-        'surface-light': '#f2f4f7',
-        'surface-subtle': '#f8fafc',
-        'content-dark': '#1e293b',
-        'content-muted': '#64748b',
-        'content-deep': '#1a1a1a',
-        'content-light': '#94a3b8',
-        'outline-std': '#e2e8f0',
+        'surface-light': '#f2f4f7',  // Cool Gray (Lighter)
+        'surface-subtle': '#f8fafc', // Ghost White
+        'content-dark': '#1e293b',   // Slate 800 (Deep Blue-Gray)
+        'content-muted': '#64748b',  // Slate 500 (Medium Gray)
+        'content-deep': '#1a1a1a',   // Almost Black
+        'content-light': '#94a3b8',  // Slate 400 (Light Gray)
+        'outline-std': '#e2e8f0',    // Slate 200 (Border Gray)
 
         // Legacy Support (Compatibility)
         'bg-light': '#f2f4f7',
