@@ -212,34 +212,26 @@ const mappedEnrollments = computed(() => {
 
 <template>
   <DashboardLayout>
-    <div
-      v-if="loading"
-      class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted"
-    >
-      <div
-        class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"
-      ></div>
+    <div v-if="loading" class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted">
+      <div class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"></div>
       <p class="font-bold text-sm tracking-widest uppercase opacity-70">
         Loading Dashboard Data...
       </p>
     </div>
-    <div
-      v-else
-      class="grid gap-xl px-xl pb-xl h-[calc(100vh-100px)] overflow-hidden grid-cols-1 lg:grid-cols-[1fr_340px]"
-    >
-      <div
-        class="flex flex-col gap-xl overflow-y-auto pr-md min-h-0 lg:overflow-y-auto lg:pr-md scrollable-v"
-      >
+    <div v-else class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full h-[calc(100vh-100px)] overflow-hidden">
+      <div class="flex flex-col flex-1 min-w-0 h-full gap-lg overflow-y-auto pr-md scrollable-v">
         <section class="ui-detail-card !p-lg">
-          <div class="ui-section-header !mb-md !pb-xs border-none">
-            <h2 class="ui-section-title !text-base">Today Summary</h2>
+          <div class="ui-section-header !mb-md !pb-xs border-none flex items-center gap-md">
+            <h2 class="ui-section-title !text-base whitespace-nowrap">Today Summary</h2>
+            <div class="h-px bg-content-light flex-1 mt-1 opacity-50"></div>
           </div>
           <DataMetrics :stats="todayStats" />
         </section>
 
         <section class="ui-detail-card !p-lg">
-          <div class="ui-section-header !mb-md !pb-xs border-none">
-            <h2 class="ui-section-title !text-base">This Week</h2>
+          <div class="ui-section-header !mb-md !pb-xs border-none flex items-center gap-md">
+            <h2 class="ui-section-title !text-base whitespace-nowrap">This Week</h2>
+            <div class="h-px bg-content-light flex-1 mt-1 opacity-50"></div>
           </div>
           <DataMetrics :stats="thisWeekStats" />
         </section>
@@ -247,20 +239,14 @@ const mappedEnrollments = computed(() => {
         <RecentEnrollmentTable :enrollments="mappedEnrollments" />
       </div>
 
-      <div class="hidden lg:block lg:min-w-[340px]">
-        <div class="ui-detail-card h-full flex flex-col gap-md !p-lg overflow-y-auto scrollable-v">
-          <div
-            class="border-b border-surface-light pb-lg flex flex-col items-center text-center gap-2"
-          >
-            <div
-              class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2"
-            >
+      <div class="hidden lg:block lg:min-w-[300px] h-full min-h-0 max-w-[320px] flex-shrink-0">
+        <div class="ui-detail-card h-full flex flex-col min-h-0 gap-md !p-lg">
+          <div class="border-b-[1px] border-gray-200 pb-lg flex flex-col items-center text-center gap-2">
+            <div class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2">
               <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
             </div>
             <div class="flex flex-col items-center">
-              <p
-                class="text-xs font-black text-content-muted uppercase tracking-[0.14em] mb-1 opacity-70"
-              >
+              <p class="text-xs font-black text-content-muted uppercase tracking-[0.14em] mb-1 opacity-70">
                 {{ userProfile?.role }}
               </p>
               <h3 class="text-xl font-black text-content-dark tracking-tighter leading-tight">
@@ -268,46 +254,24 @@ const mappedEnrollments = computed(() => {
               </h3>
             </div>
           </div>
-          <div class="flex flex-col gap-md">
-            <h3 class="text-xs font-black uppercase tracking-widest text-content-dark text-center">
+          <div class="flex flex-1 flex-col min-h-0 gap-md">
+            <h3 class="flex-shrink-0 text-xs font-black uppercase tracking-widest text-content-dark text-center">
               Basic Information
             </h3>
-            <div class="flex flex-col gap-3">
-              <MiniCard
-                title="All-time Enrollments"
-                :value="stats.totals.enrollments"
-                :image="getImageUrl('dashboard/card-top-program')"
-              />
-              <MiniCard
-                title="Total Parents"
-                :value="stats.totals.parents"
-                :image="getImageUrl('parent/total-parent')"
-              />
-              <MiniCard
-                title="Total Students"
-                :value="stats.totals.students"
-                :image="getImageUrl('student/total-student')"
-              />
-              <MiniCard
-                title="Total Branches"
-                :value="stats.totals.branches"
-                :image="getImageUrl('dashboard/card-branch')"
-              />
-              <MiniCard
-                title="Total Programs"
-                :value="stats.totals.programs"
-                :image="getImageUrl('dashboard/card-available-program')"
-              />
-              <MiniCard
-                title="Total Trial"
-                :value="stats.totals.trials"
-                :image="getImageUrl('dashboard/card-trial')"
-              />
-              <MiniCard
-                title="Total Revenue"
-                :value="`$${formatPrice(stats.totals.totalRevenue)}`"
-                :image="getImageUrl('dashboard/card-revenue')"
-              />
+            <div class="flex flex-1 flex-col min-h-0 gap-3 scrollable-v">
+              <MiniCard title="Total Enrollments" :value="stats.totals.enrollments"
+                :image="getImageUrl('dashboard/card-top-program')" />
+              <MiniCard title="Total Parents" :value="stats.totals.parents"
+                :image="getImageUrl('parent/total-parent')" />
+              <MiniCard title="Total Students" :value="stats.totals.students"
+                :image="getImageUrl('student/total-student')" />
+              <MiniCard title="Total Branches" :value="stats.totals.branches"
+                :image="getImageUrl('dashboard/card-branch')" />
+              <MiniCard title="Total Programs" :value="stats.totals.programs"
+                :image="getImageUrl('dashboard/card-available-program')" />
+              <MiniCard title="Total Trial" :value="stats.totals.trials" :image="getImageUrl('dashboard/card-trial')" />
+              <MiniCard title="Total Revenue" :value="`$${formatPrice(stats.totals.totalRevenue)}`"
+                :image="getImageUrl('dashboard/card-revenue')" />
             </div>
           </div>
         </div>
