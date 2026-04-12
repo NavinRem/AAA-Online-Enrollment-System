@@ -12,7 +12,7 @@
 
 ## The "Centralized Map" Pattern
 
-In this project, we use a central configuration file (`backend/functions/src/config/database.js`) to act as a "Map" for the entire backend.
+In this project, we use a central configuration file (`backend/src/config/database.js`) to act as a "Map" for the entire backend.
 
 ### Benefits for Growth
 

@@ -5,7 +5,7 @@ This directory contains the Firebase configurations and Cloud Functions for the 
 ## Structure
 
 - **configs/**: Security rules (`firestore.rules`, `storage.rules`) and database indexes.
-- **functions/**: Node.js Cloud Functions source code.
+- **src/**: Node.js Cloud Functions source code.
 
 ## Deployment
 

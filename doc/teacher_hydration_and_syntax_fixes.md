@@ -4,7 +4,7 @@ This document summarizes the technical fixes implemented to resolve data display
 
 ## 1. Teacher Data Hydration Fix
 
-**Location**: `backend/functions/src/services/academic/courseService.js`
+**Location**: `backend/src/services/academic/courseService.js`
 
 ### The Problem
 

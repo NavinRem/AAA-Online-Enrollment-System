@@ -35,12 +35,12 @@ The root `firebase.json` serves as the master manifest. It orchestrates how loca
 
 ## Deployment Strategy
 
-| Service       | Source Folder        | Security Concern             |
-| :------------ | :------------------- | :--------------------------- |
-| **Database**  | `backend/configs/`   | Access control & Indexing    |
-| **Functions** | `backend/functions/` | API authentication & Secrets |
-| **Storage**   | `backend/configs/`   | File size limits & User IDs  |
-| **Hosting**   | `frontend/dist/`     | HTTPS & SEO Meta Tags        |
+| Service       | Source Folder      | Security Concern             |
+| :------------ | :----------------- | :--------------------------- |
+| **Database**  | `backend/configs/` | Access control & Indexing    |
+| **Functions** | `backend/`         | API authentication & Secrets |
+| **Storage**   | `backend/configs/` | File size limits & User IDs  |
+| **Hosting**   | `frontend/dist/`   | HTTPS & SEO Meta Tags        |
 
 ## Command Reference
 
