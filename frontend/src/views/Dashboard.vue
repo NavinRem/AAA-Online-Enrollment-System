@@ -223,7 +223,7 @@ const mappedEnrollments = computed(() => {
         <section class="ui-detail-card !p-lg">
           <div class="ui-section-header !mb-md !pb-xs border-none flex items-center gap-md">
             <h2 class="ui-section-title !text-base whitespace-nowrap">Today Summary</h2>
-            <div class="h-px bg-content-light flex-1 mt-1 opacity-50"></div>
+            <div class="ui-section-divider"></div>
           </div>
           <DataMetrics :stats="todayStats" />
         </section>
@@ -231,7 +231,7 @@ const mappedEnrollments = computed(() => {
         <section class="ui-detail-card !p-lg">
           <div class="ui-section-header !mb-md !pb-xs border-none flex items-center gap-md">
             <h2 class="ui-section-title !text-base whitespace-nowrap">This Week</h2>
-            <div class="h-px bg-content-light flex-1 mt-1 opacity-50"></div>
+            <div class="ui-section-divider"></div>
           </div>
           <DataMetrics :stats="thisWeekStats" />
         </section>

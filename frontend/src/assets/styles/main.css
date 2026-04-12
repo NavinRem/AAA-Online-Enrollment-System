@@ -267,6 +267,10 @@ svg {
     @apply text-lg font-black text-content-dark tracking-tight;
   }
 
+  .ui-section-divider {
+    @apply h-px bg-content-light flex-1 mt-1 opacity-50;
+  }
+
   .ui-tabs-nav {
     @apply flex items-center gap-xs p-xs bg-white rounded-std border border-outline-std shadow-sm mb-xl overflow-x-auto whitespace-nowrap;
   }
