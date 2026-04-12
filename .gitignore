@@ -21,20 +21,18 @@ firestore-debug.log
 firebase-data/
 
 # ==========================================
-# BACKEND (Firebase & Functions)
+# BACKEND (Firebase & Node.js)
 # ==========================================
-backend/functions/node_modules/
-backend/functions/.npm/
-backend/functions/.eslintcache
-backend/functions/.env
-backend/functions/.env.local
-backend/functions/*.log
-backend/functions/firebase-debug.log*
-backend/functions/firebase-debug.*.log*
-backend/functions/*.local
 backend/node_modules/
-backend/functions/.env
+backend/.env
+backend/.env.local
+backend/*.log
+backend/firebase-debug.log*
+backend/firebase-debug.*.log*
+backend/*.local
+backend/firebase-data/
 backend/.dataconnect/
+backend/.firebaserc
 
 # ==========================================
 # FRONTEND (Vue/Vite)

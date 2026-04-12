@@ -70,7 +70,7 @@ export default [
 
   // Node.js Configuration (Backend/Functions)
   {
-    files: ['backend/functions/**/*.js'],
+    files: ['backend/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',
