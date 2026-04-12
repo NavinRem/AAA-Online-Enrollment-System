@@ -119,26 +119,3 @@ const handleNavClick = () => {
     </div>
   </aside>
 </template>
-
-<script>
-export default {
-  name: 'Sidebar',
-}
-</script>
-
-<style scoped>
-/* Scoped styles removed in favor of Tailwind utilities */
-/* Custom scrollbar for nav menu */
-nav::-webkit-scrollbar {
-  width: 4px;
-}
-
-nav::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-nav::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 10px;
-}
-</style>

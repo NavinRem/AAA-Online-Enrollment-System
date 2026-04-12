@@ -266,9 +266,3 @@ const handleFileUpload = async (event) => {
   }
 }
 </script>
-
-<style scoped>
-.avatar-option:hover .remove-avatar-btn {
-  opacity: 1;
-}
-</style>

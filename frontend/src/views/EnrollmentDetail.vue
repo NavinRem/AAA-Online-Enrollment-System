@@ -370,9 +370,7 @@ onMounted(async () => {
               </template>
               <template v-else>
                 <span class="text-sm font-bold text-content-dark">
-                  {{
-                    enrollment.numberSessions || enrollment.program?.numberSessions || '10'
-                  }}
+                  {{ enrollment.numberSessions || enrollment.program?.numberSessions || '10' }}
                   Sessions
                 </span>
               </template>
@@ -427,8 +425,8 @@ onMounted(async () => {
 
       <template #right-content v-if="enrollment">
         <DetailedSummaryCard title="Transaction Summary" subtitle="Enrollment Status">
-          <div class="detail-row align-center">
-            <span class="summary-label">Registry Status</span>
+          <div class="ui-detail-row align-center">
+            <span class="ui-summary-label">Registry Status</span>
             <StatusBadge
               :status="
                 enrollment.status === 'cancelled'
@@ -440,8 +438,8 @@ onMounted(async () => {
             />
           </div>
 
-          <div class="detail-row align-center">
-            <span class="summary-label">Admission Mode</span>
+          <div class="ui-detail-row align-center">
+            <span class="ui-summary-label">Admission Mode</span>
             <StatusBadge :status="enrollment.enrollmentType" />
           </div>
 
@@ -449,41 +447,41 @@ onMounted(async () => {
             v-if="
               enrollment.status === 'cancelled' && (enrollment.cancelReason || enrollment.reason)
             "
-            class="detail-row"
+            class="ui-detail-row"
           >
-            <span class="summary-label text-error">Termination Reason</span>
+            <span class="ui-summary-label text-error">Termination Reason</span>
             <span
-              class="summary-value opacity-100 font-bold text-error bg-error/5 p-2 rounded-sm border border-error/10 w-full text-xs"
+              class="ui-summary-value opacity-100 font-bold text-error bg-error/5 p-2 rounded-sm border border-error/10 w-full text-xs"
             >
               {{ enrollment.cancelReason || enrollment.reason }}
             </span>
           </div>
 
-          <div class="detail-row">
-            <span class="summary-label">Internal Remark</span>
-            <span class="summary-value italic text-xs">{{
+          <div class="ui-detail-row">
+            <span class="ui-summary-label">Internal Remark</span>
+            <span class="ui-summary-value italic text-xs">{{
               enrollment.remark || 'No administrative notes'
             }}</span>
           </div>
         </DetailedSummaryCard>
 
         <DetailedSummaryCard subtitle="Financial Ledger" class="mt-lg">
-          <div class="detail-row align-center">
-            <span class="summary-label">Course Price</span>
+          <div class="ui-detail-row align-center">
+            <span class="ui-summary-label">Course Price</span>
             <span class="font-black text-content-dark text-lg tracking-tighter"
               >${{ formatPrice(enrollment?.basePrice || enrollment?.amount || 0) }}</span
             >
           </div>
 
-          <div v-if="enrollment?.prorateSavings" class="detail-row align-center">
-            <span class="summary-label text-magenta">Prorate Discount</span>
+          <div v-if="enrollment?.prorateSavings" class="ui-detail-row align-center">
+            <span class="ui-summary-label text-magenta">Prorate Discount</span>
             <span class="font-bold text-magenta"
               >- ${{ formatPrice(enrollment.prorateSavings) }}</span
             >
           </div>
 
-          <div v-if="enrollment?.discountAmount" class="detail-row align-center">
-            <span class="summary-label text-magenta">Manual Adjust</span>
+          <div v-if="enrollment?.discountAmount" class="ui-detail-row align-center">
+            <span class="ui-summary-label text-magenta">Manual Adjust</span>
             <span class="font-bold text-magenta"
               >- ${{ formatPrice(enrollment.discountAmount) }}</span
             >
@@ -491,15 +489,15 @@ onMounted(async () => {
 
           <div class="w-full h-px bg-surface-light my-2"></div>
 
-          <div class="detail-row align-center">
-            <span class="summary-label">Total Payable</span>
+          <div class="ui-detail-row align-center">
+            <span class="ui-summary-label">Total Payable</span>
             <span class="font-black text-primary text-xl tracking-tighter"
               >${{ formatPrice(enrollment?.amount || 0) }}</span
             >
           </div>
 
-          <div class="detail-row align-center">
-            <span class="summary-label">Payment Status</span>
+          <div class="ui-detail-row align-center">
+            <span class="ui-summary-label">Payment Status</span>
             <StatusBadge
               :status="
                 enrollment?.displayStatus ||
@@ -510,8 +508,8 @@ onMounted(async () => {
             />
           </div>
 
-          <div class="detail-row align-center">
-            <span class="summary-label">Channel</span>
+          <div class="ui-detail-row align-center">
+            <span class="ui-summary-label">Channel</span>
             <StatusBadge
               :status="
                 enrollment?.paymentMethod ||
@@ -520,24 +518,26 @@ onMounted(async () => {
             />
           </div>
 
-          <div v-if="enrollment?.transactionId" class="detail-row">
-            <span class="summary-label">{{
+          <div v-if="enrollment?.transactionId" class="ui-detail-row">
+            <span class="ui-summary-label">{{
               enrollment?.paymentMethod === 'Cash' ? 'Receipt No' : 'Transaction ID'
             }}</span>
             <span
-              class="summary-value font-mono text-[11px] bg-surface-light p-1 px-2 rounded-sm select-all tracking-wider text-content-dark"
+              class="ui-summary-value font-mono text-[11px] bg-surface-light p-1 px-2 rounded-sm select-all tracking-wider text-content-dark"
             >
               {{ enrollment.transactionId }}
             </span>
           </div>
 
-          <div v-if="enrollment?.paidAt" class="detail-row">
-            <span class="summary-label">Value Date</span>
-            <span class="summary-value text-xs font-bold">{{ formatDate(enrollment.paidAt) }}</span>
+          <div v-if="enrollment?.paidAt" class="ui-detail-row">
+            <span class="ui-summary-label">Value Date</span>
+            <span class="ui-summary-value text-xs font-bold">{{
+              formatDate(enrollment.paidAt)
+            }}</span>
           </div>
 
-          <div v-if="enrollment?.paymentProofURL" class="detail-row mt-2">
-            <span class="summary-label">Attachment Proof</span>
+          <div v-if="enrollment?.paymentProofURL" class="ui-detail-row mt-2">
+            <span class="ui-summary-label">Attachment Proof</span>
             <a
               :href="enrollment.paymentProofURL"
               target="_blank"
@@ -607,7 +607,3 @@ onMounted(async () => {
     />
   </DashboardLayout>
 </template>
-
-<style scoped>
-/* Scoped styles entirely removed in favor of centralized UI pattern classes in main.css and Tailwind utilities. */
-</style>

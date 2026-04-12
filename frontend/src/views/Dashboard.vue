@@ -212,12 +212,24 @@ const mappedEnrollments = computed(() => {
 
 <template>
   <DashboardLayout>
-    <div v-if="loading" class="dashboard-loading">
-      <div class="loader"></div>
-      <p>Loading Dashboard Data...</p>
+    <div
+      v-if="loading"
+      class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted"
+    >
+      <div
+        class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"
+      ></div>
+      <p class="font-bold text-sm tracking-widest uppercase opacity-70">
+        Loading Dashboard Data...
+      </p>
     </div>
-    <div v-else class="dashboard-grid">
-      <div class="main-column scrollable-v">
+    <div
+      v-else
+      class="grid gap-xl px-xl pb-xl h-[calc(100vh-100px)] overflow-hidden grid-cols-1 lg:grid-cols-[1fr_340px]"
+    >
+      <div
+        class="flex flex-col gap-xl overflow-y-auto pr-md min-h-0 lg:overflow-y-auto lg:pr-md scrollable-v"
+      >
         <section class="ui-detail-card !p-lg">
           <div class="ui-section-header !mb-md !pb-xs border-none">
             <h2 class="ui-section-title !text-base">Today Summary</h2>
@@ -235,14 +247,20 @@ const mappedEnrollments = computed(() => {
         <RecentEnrollmentTable :enrollments="mappedEnrollments" />
       </div>
 
-      <div class="right-column">
+      <div class="hidden lg:block lg:min-w-[340px]">
         <div class="ui-detail-card h-full flex flex-col gap-md !p-lg overflow-y-auto scrollable-v">
-          <div class="profile-card border-b border-surface-light pb-lg flex flex-col items-center text-center gap-2">
-            <div class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2">
+          <div
+            class="border-b border-surface-light pb-lg flex flex-col items-center text-center gap-2"
+          >
+            <div
+              class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2"
+            >
               <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
             </div>
             <div class="flex flex-col items-center">
-              <p class="text-xs font-black text-content-muted uppercase tracking-[0.14em] mb-1 opacity-70">
+              <p
+                class="text-xs font-black text-content-muted uppercase tracking-[0.14em] mb-1 opacity-70"
+              >
                 {{ userProfile?.role }}
               </p>
               <h3 class="text-xl font-black text-content-dark tracking-tighter leading-tight">
@@ -250,24 +268,46 @@ const mappedEnrollments = computed(() => {
               </h3>
             </div>
           </div>
-          <div class="flex flex-col gap-md scrollable-v">
+          <div class="flex flex-col gap-md">
             <h3 class="text-xs font-black uppercase tracking-widest text-content-dark text-center">
               Basic Information
             </h3>
-            <div class="mini-cards-stack flex flex-col gap-3">
-              <MiniCard title="All-time Enrollments" :value="stats.totals.enrollments"
-                :image="getImageUrl('dashboard/card-top-program')" />
-              <MiniCard title="Total Parents" :value="stats.totals.parents"
-                :image="getImageUrl('parent/total-parent')" />
-              <MiniCard title="Total Students" :value="stats.totals.students"
-                :image="getImageUrl('student/total-student')" />
-              <MiniCard title="Total Branches" :value="stats.totals.branches"
-                :image="getImageUrl('dashboard/card-branch')" />
-              <MiniCard title="Total Programs" :value="stats.totals.programs"
-                :image="getImageUrl('dashboard/card-available-program')" />
-              <MiniCard title="Total Trial" :value="stats.totals.trials" :image="getImageUrl('dashboard/card-trial')" />
-              <MiniCard title="Total Revenue" :value="`$${formatPrice(stats.totals.totalRevenue)}`"
-                :image="getImageUrl('dashboard/card-revenue')" />
+            <div class="flex flex-col gap-3">
+              <MiniCard
+                title="All-time Enrollments"
+                :value="stats.totals.enrollments"
+                :image="getImageUrl('dashboard/card-top-program')"
+              />
+              <MiniCard
+                title="Total Parents"
+                :value="stats.totals.parents"
+                :image="getImageUrl('parent/total-parent')"
+              />
+              <MiniCard
+                title="Total Students"
+                :value="stats.totals.students"
+                :image="getImageUrl('student/total-student')"
+              />
+              <MiniCard
+                title="Total Branches"
+                :value="stats.totals.branches"
+                :image="getImageUrl('dashboard/card-branch')"
+              />
+              <MiniCard
+                title="Total Programs"
+                :value="stats.totals.programs"
+                :image="getImageUrl('dashboard/card-available-program')"
+              />
+              <MiniCard
+                title="Total Trial"
+                :value="stats.totals.trials"
+                :image="getImageUrl('dashboard/card-trial')"
+              />
+              <MiniCard
+                title="Total Revenue"
+                :value="`$${formatPrice(stats.totals.totalRevenue)}`"
+                :image="getImageUrl('dashboard/card-revenue')"
+              />
             </div>
           </div>
         </div>
@@ -275,53 +315,3 @@ const mappedEnrollments = computed(() => {
     </div>
   </DashboardLayout>
 </template>
-
-<style scoped>
-.dashboard-grid {
-  @apply grid gap-xl px-xl pb-xl h-[calc(100vh-100px)] overflow-hidden;
-  grid-template-columns: 1fr 340px;
-}
-
-.main-column {
-  @apply flex flex-col gap-xl overflow-y-auto pr-md min-h-0;
-}
-
-@media (max-width: 1024px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-    height: auto;
-    overflow: visible;
-    padding: 0 15px 30px 15px;
-  }
-
-  .main-column {
-    overflow-y: visible;
-    padding-right: 0;
-  }
-}
-
-.dashboard-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 60vh;
-  gap: var(--space-lg);
-  color: var(--text-muted);
-}
-
-.loader {
-  width: 50px;
-  aspect-ratio: 1;
-  border-radius: var(--border-radius-round);
-  border: 4px solid var(--border-color);
-  border-right-color: var(--primary-color);
-  animation: l2 1s infinite linear;
-}
-
-@keyframes l2 {
-  to {
-    transform: rotate(1turn);
-  }
-}
-</style>

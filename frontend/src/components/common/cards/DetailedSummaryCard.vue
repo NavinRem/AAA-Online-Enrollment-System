@@ -36,26 +36,3 @@ defineProps({
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Logic migrated to standard utility naming to resolve PostCSS expansion errors with custom tokens. */
-:deep(.detail-row) {
-  @apply flex flex-col mb-5 items-start last:mb-0;
-}
-
-:deep(.detail-row.align-center) {
-  @apply flex-row justify-between items-center;
-}
-
-:deep(.summary-label) {
-  @apply text-[15px] font-black text-content-dark mb-1 leading-none tracking-tight opacity-80;
-}
-
-:deep(.summary-value) {
-  @apply text-sm text-content-muted font-bold leading-relaxed;
-}
-
-:deep(.summary-value.inline) {
-  @apply inline-block ml-2;
-}
-</style>

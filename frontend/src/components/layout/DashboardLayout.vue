@@ -34,7 +34,3 @@ const toggleSidebar = () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Scoped styles removed in favor of centralized Tailwind utility classes */
-</style>

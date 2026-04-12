@@ -50,14 +50,3 @@ defineProps({
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Scoped patterns standardized to resolve expansion errors during production builds. */
-:deep(p) {
-  @apply m-0 text-sm text-content-dark leading-relaxed flex flex-row items-baseline gap-1.5 flex-wrap font-medium;
-}
-
-:deep(strong) {
-  @apply text-content-dark font-black text-[15px] min-w-[120px] whitespace-nowrap;
-}
-</style>

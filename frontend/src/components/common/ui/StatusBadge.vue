@@ -30,7 +30,3 @@ const badgeStyle = computed(() => {
   return getStatusTheme(props.status, props.type)
 })
 </script>
-
-<style scoped>
-/* Scoped styles removed in favor of Tailwind */
-</style>

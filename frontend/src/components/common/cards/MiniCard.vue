@@ -33,7 +33,3 @@ const handleImageError = (e) => {
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Scoped styles removed in favor of Tailwind CSS utility classes */
-</style>

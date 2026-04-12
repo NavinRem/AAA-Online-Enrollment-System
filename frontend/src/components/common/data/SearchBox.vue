@@ -43,7 +43,3 @@ defineProps({
 
 defineEmits(['update:modelValue'])
 </script>
-
-<style scoped>
-/* Scoped styles removed in favor of Tailwind */
-</style>

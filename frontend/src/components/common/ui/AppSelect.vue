@@ -176,7 +176,3 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside)
 })
 </script>
-
-<style scoped>
-/* Scoped styles entirely removed in favor of utility classes and centralized scrollable-v pattern. */
-</style>

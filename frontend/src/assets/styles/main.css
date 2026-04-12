@@ -334,6 +334,35 @@ svg {
   .ui-premium-table tr:last-child td {
     @apply border-b-0;
   }
+
+  /* --- Detail Slot Patterns --- */
+  .ui-detail-card p {
+    @apply m-0 text-sm text-content-dark leading-relaxed flex flex-row items-baseline gap-1.5 flex-wrap font-medium;
+  }
+
+  .ui-detail-card strong {
+    @apply text-content-dark font-black text-[15px] min-w-[120px] whitespace-nowrap;
+  }
+
+  .ui-detail-row {
+    @apply flex flex-col mb-5 items-start last:mb-0;
+  }
+
+  .ui-detail-row.align-center {
+    @apply flex-row justify-between items-center;
+  }
+
+  .ui-summary-label {
+    @apply text-[15px] font-black text-content-dark mb-1 leading-none tracking-tight opacity-80;
+  }
+
+  .ui-summary-value {
+    @apply text-sm text-content-muted font-bold leading-relaxed;
+  }
+
+  .ui-summary-value.inline {
+    @apply inline-block ml-2;
+  }
 }
 
 /* ==========================================================================

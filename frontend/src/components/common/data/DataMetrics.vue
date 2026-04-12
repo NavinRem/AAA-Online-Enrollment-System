@@ -24,7 +24,3 @@ const props = defineProps({
     />
   </div>
 </template>
-
-<style scoped>
-/* Scoped styles removed in favor of responsive Tailwind grid utilities */
-</style>

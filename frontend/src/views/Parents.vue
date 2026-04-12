@@ -526,9 +526,3 @@ const navigateToDetail = (item) => {
     />
   </DashboardLayout>
 </template>
-
-<style scoped>
-/* Scoped styles entirely removed in favor of centralized UI pattern classes in main.css and Tailwind utilities.
-   This significantly reduces per-file CSS maintenance and ensures visual consistency.
-*/
-</style>

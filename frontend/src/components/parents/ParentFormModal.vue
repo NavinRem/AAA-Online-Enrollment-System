@@ -126,7 +126,3 @@ const handleFormSubmit = () => {
   clearError()
 }
 </script>
-
-<style scoped>
-/* Scoped styles removed in favor of Tailwind */
-</style>

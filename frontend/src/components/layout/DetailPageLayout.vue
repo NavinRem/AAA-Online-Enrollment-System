@@ -94,21 +94,3 @@ const props = defineProps({
 const router = useRouter()
 const goBack = () => router.push(props.backRoute)
 </script>
-
-<style scoped>
-/* Scoped styles removed in favor of Tailwind */
-/* Custom scrollbar utility for scrollable areas */
-.scrollable-v::-webkit-scrollbar {
-  width: 6px;
-}
-.scrollable-v::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scrollable-v::-webkit-scrollbar-thumb {
-  background: var(--border-color);
-  border-radius: 10px;
-}
-.scrollable-v::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-</style>

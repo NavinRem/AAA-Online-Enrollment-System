@@ -632,7 +632,3 @@ watch(
   },
 )
 </script>
-
-<style scoped>
-/* Scoped styles removed in favor of Tailwind utility-first patterns. */
-</style>

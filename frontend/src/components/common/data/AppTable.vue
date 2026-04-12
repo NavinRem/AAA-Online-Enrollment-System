@@ -60,7 +60,3 @@ defineProps({
   },
 })
 </script>
-
-<style scoped>
-/* Scoped styles removed in favor of centralized UI pattern classes in main.css */
-</style>

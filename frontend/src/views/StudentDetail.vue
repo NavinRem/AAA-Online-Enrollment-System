@@ -1009,7 +1009,3 @@ watch(
     />
   </DashboardLayout>
 </template>
-
-<style scoped>
-/* Scoped styles entirely removed in favor of centralized UI pattern classes in main.css and Tailwind utilities. */
-</style>

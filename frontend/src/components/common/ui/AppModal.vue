@@ -101,9 +101,3 @@ defineProps({
 
 defineEmits(['close'])
 </script>
-
-<style scoped>
-/* Scoped styles removed in favor of utility-first Tailwind CSS.
-   Transitions are now handled via Vue Transition component classes for 100% utility-based styling.
-*/
-</style>

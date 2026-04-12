@@ -61,7 +61,3 @@ const variantClasses = {
 
 defineEmits(['close'])
 </script>
-
-<style scoped>
-/* Scoped styles entirely removed. Transitions are handled via Vue transition classes. */
-</style>

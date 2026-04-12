@@ -453,7 +453,3 @@ watch(
   },
 )
 </script>
-
-<style scoped>
-/* Scoped styles entirely removed. UI standardizing complete via utility patterns. */
-</style>

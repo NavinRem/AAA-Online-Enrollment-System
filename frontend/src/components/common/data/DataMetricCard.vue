@@ -37,7 +37,3 @@ defineProps({
   },
 })
 </script>
-
-<style scoped>
-/* Logic migrated to standard utility naming to resolve PostCSS expansion errors with custom tokens. */
-</style>

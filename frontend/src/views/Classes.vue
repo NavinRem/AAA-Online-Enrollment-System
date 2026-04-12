@@ -220,7 +220,3 @@ const handleModalSubmit = async (formData) => {
 
 onMounted(fetchClasses)
 </script>
-
-<style scoped>
-/* Scoped styles removed in favor of Tailwind CSS utility classes and global UI components */
-</style>

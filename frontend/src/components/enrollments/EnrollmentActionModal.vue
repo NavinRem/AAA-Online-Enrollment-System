@@ -387,7 +387,3 @@ const modalIcon = computed(() => {
   return getActionIcon('edit')
 })
 </script>
-
-<style scoped>
-/* Scoped styles entirely removed. Logic migrated to Tailwind utility-first patterns. */
-</style>

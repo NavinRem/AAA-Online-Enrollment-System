@@ -101,13 +101,3 @@ onMounted(() => {
     </div>
   </header>
 </template>
-
-<script>
-export default {
-  name: 'Topbar',
-}
-</script>
-
-<style scoped>
-/* Scoped styles removed in favor of Tailwind utilities */
-</style>

@@ -482,7 +482,3 @@ watch(
   },
 )
 </script>
-
-<style scoped>
-/* Scoped styles entirely removed. Logic migrated to Tailwind utility-first naming conventions. */
-</style>
