@@ -14,13 +14,11 @@
           <th
             v-for="(col, index) in headers"
             :key="index"
-            :style="typeof col === 'object' ? { width: col.width } : { flex: 1 }"
+            :style="typeof col === 'object' && col.width ? { width: col.width, flex: '0 0 auto', minWidth: col.width } : { flex: 1, minWidth: 0 }"
             class="ui-header-cell flex items-center"
             :class="[
               typeof col === 'object' ? col.class : '',
               typeof col === 'object' && col.align ? `text-${col.align}` : 'text-left',
-              index === 0 ? 'pl-md sm:pl-xl' : '',
-              index === headers.length - 1 ? 'pr-md sm:pr-xl' : '',
             ]"
           >
             {{ typeof col === 'object' ? col.label : col }}

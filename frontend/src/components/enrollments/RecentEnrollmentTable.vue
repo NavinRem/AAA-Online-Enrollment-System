@@ -19,13 +19,13 @@ defineProps({
 const router = useRouter()
 
 const enrollmentHeaders = [
-  { label: 'No', width: '30px', align: 'center' },
-  { label: 'Parent', width: '250px' },
-  { label: 'Child', width: '250px' },
-  { label: 'Program', width: '200px' },
-  { label: 'Status', width: '100px', align: 'center' },
-  { label: 'Amount', width: '100px', align: 'center' },
-  { label: 'Enrolled Date', width: '200px', align: 'center' },
+  { label: 'No', width: '40px', align: 'center' },
+  { label: 'Parent' },
+  { label: 'Child' },
+  { label: 'Program' },
+  { label: 'Status', width: '90px', align: 'center' },
+  { label: 'Amount', width: '90px', align: 'center' },
+  { label: 'Enrolled Date', align: 'center' },
 ]
 
 const navigateToDetail = (item) => {
@@ -43,49 +43,57 @@ const navigateToDetail = (item) => {
 
     <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
       <tr v-for="item in enrollments" :key="item.id || item.no" class="ui-row" @click="navigateToDetail(item)">
-        <td class="ui-cell !py-4 text-center" :style="{ width: enrollmentHeaders[0].width }">
+        <td class="ui-cell !py-4 text-center"
+          :style="{ width: enrollmentHeaders[0].width, flex: '0 0 auto', minWidth: enrollmentHeaders[0].width }">
           {{ item.no }}
         </td>
-        <td class="ui-cell !py-4" :style="{ width: enrollmentHeaders[1].width }">
-          <div class="ui-identity-cell">
+        <td class="ui-cell !py-4 overflow-hidden"
+          :style="{ flex: '1 1 0%', minWidth: 0 }">
+          <div class="ui-identity-cell min-w-0 w-full">
             <div class="ui-avatar">
               <img :src="getParentProfileURL(item.parent?.profileURL)" alt="parent" />
             </div>
-            <div class="ui-identity-info">
-              <span class="text-sm font-bold text-content-dark">{{ item.parent?.name }}</span>
+            <div class="ui-identity-info min-w-0">
+              <span class="text-sm font-bold text-content-dark truncate block" :title="item.parent?.name">{{
+                item.parent?.name }}</span>
             </div>
           </div>
         </td>
-        <td class="ui-cell !py-4" :style="{ width: enrollmentHeaders[2].width }">
-          <div class="ui-identity-cell">
+        <td class="ui-cell !py-4 overflow-hidden"
+          :style="{ flex: '1 1 0%', minWidth: 0 }">
+          <div class="ui-identity-cell min-w-0 w-full">
             <div class="ui-avatar">
               <img :src="getStudentProfileURL(item.student?.profileURL)" alt="child" />
             </div>
-            <div class="ui-identity-info">
-              <span class="text-sm font-bold text-content-dark">{{ item.student?.name }}</span>
+            <div class="ui-identity-info min-w-0">
+              <span class="text-sm font-bold text-content-dark truncate block" :title="item.student?.name">{{
+                item.student?.name }}</span>
             </div>
           </div>
         </td>
-        <td class="ui-cell !py-4" :style="{ width: enrollmentHeaders[3].width }">
-          <div class="ui-identity-cell">
+        <td class="ui-cell !py-4 overflow-hidden"
+          :style="{ flex: '1 1 0%', minWidth: 0 }">
+          <div class="ui-identity-cell min-w-0 w-full">
             <div class="ui-avatar">
               <img :src="getProgramProfileURL(item.program?.profileURL)" :alt="item.program?.title" />
             </div>
-            <span class="text-sm font-bold text-content-dark truncate">{{
+            <span class="text-sm font-bold text-content-dark truncate block" :title="item.program?.title">{{
               item.program?.title
-            }}</span>
+              }}</span>
           </div>
         </td>
-        <td class="ui-cell !py-4 text-center" :style="{ width: enrollmentHeaders[4].width }">
+        <td class="ui-cell !py-4 text-center"
+          :style="{ width: enrollmentHeaders[4].width, flex: '0 0 auto', minWidth: enrollmentHeaders[4].width }">
           <StatusBadge :status="item.status" />
         </td>
-        <td class="ui-cell !py-4 text-center" :style="{ width: enrollmentHeaders[5].width }">
+        <td class="ui-cell !py-4 text-center"
+          :style="{ width: enrollmentHeaders[5].width, flex: '0 0 auto', minWidth: enrollmentHeaders[5].width }">
           <StatusBadge :status="'$' + formatPrice(item.amount)"
             :type="(item.mode || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'" />
         </td>
-        <td class="ui-cell !py-4 text-center text-xs text-content-muted font-bold"
-          :style="{ width: enrollmentHeaders[6].width }">
-          {{ formatDate(item.date) }}
+        <td class="ui-cell !py-4 text-center text-xs text-content-muted font-bold overflow-hidden"
+          :style="{ flex: '1 1 0%', minWidth: 0 }">
+          <span class="truncate block" :title="formatDate(item.date)">{{ formatDate(item.date) }}</span>
         </td>
       </tr>
     </AppTable>
