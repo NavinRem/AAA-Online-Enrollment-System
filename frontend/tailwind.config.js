@@ -22,9 +22,34 @@ export default {
           deep: '#b91c1c',    // Blood Red
         },
         warning: {
-          DEFAULT: '#f59e0b', // Amber Orange
-          soft: '#fff7ed',    // Cream Orange
-          deep: '#92400e',    // Burnt Orange
+          DEFAULT: '#f59e0b',
+          soft: '#fff7ed',
+          deep: '#92400e',
+        },
+        orange: {
+          DEFAULT: '#e65100',
+          soft: '#fff3e0',
+          deep: '#e65100',
+        },
+        magenta: {
+          DEFAULT: '#c2185b',
+          soft: '#fce4ec',
+          deep: '#9d174d',
+        },
+        purple: {
+          DEFAULT: '#6a1b9a',
+          soft: '#f3e5f5',
+          deep: '#6b21a8',
+        },
+        teal: {
+          DEFAULT: '#0f766e',
+          soft: '#ccfbf1',
+          deep: '#0f766e',
+        },
+        gray: {
+          DEFAULT: '#5f6368',
+          soft: '#f1f3f4',
+          deep: '#5f6368',
         },
         info: {
           DEFAULT: '#3b82f6', // Royal Blue
