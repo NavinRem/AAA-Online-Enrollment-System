@@ -108,7 +108,9 @@
         label="Program Master Templates"
         placeholder="Autofill from master template..."
         class="col-span-2"
+        :disabled="!localData.programId"
         @change="onScheduleTemplatePick"
+        @click-disabled="handleDisabledClick('scheduleTemplate')"
       />
 
       <AppSelect
@@ -191,7 +193,17 @@
           rows="2"
           placeholder="Private internal record notes..."
           class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-semibold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
+          :class="{
+            'border-error bg-error-soft ring-error/10': errors.adminNote,
+            'animate-shake': shaking.adminNote,
+          }"
         ></textarea>
+        <div
+          v-if="errors.adminNote"
+          class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest"
+        >
+          {{ errors.adminNote }}
+        </div>
       </div>
     </form>
 
@@ -259,7 +271,7 @@ const mapSourceToForm = () => {
   return getInitialData()
 }
 
-const { localData, isDirty, errors, shaking, clearError, submitForm } = useActionModal(
+const { localData, isDirty, errors, shaking, clearError, triggerShake, submitForm } = useActionModal(
   props,
   emit,
   {
@@ -332,7 +344,10 @@ const fetchData = async () => {
       branchService.getAllBranches(),
       userService.getAllUsers(),
     ])
-    programs.value = p || []
+    programs.value = (p || []).map((prog) => ({
+      ...prog,
+      profileURL: prog.profileURL || '',
+    }))
     terms.value = t || []
     branches.value = b || []
     teachers.value = u
@@ -340,6 +355,13 @@ const fetchData = async () => {
       .map((t) => ({ id: t.uid || t.id, name: t.name }))
   } catch (err) {
     console.error(err)
+  }
+}
+
+const handleDisabledClick = (field) => {
+  if (field === 'scheduleTemplate' && !localData.programId) {
+    errors.programId = 'PLEASE SELECT A MASTER PROGRAM FIRST'
+    triggerShake('programId')
   }
 }
 

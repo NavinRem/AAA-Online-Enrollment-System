@@ -68,8 +68,18 @@
             placeholder="e.g. Nut allergy, ADHD..."
             rows="2"
             class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft disabled:bg-surface-light disabled:cursor-not-allowed disabled:opacity-70"
+            :class="{
+              'border-error bg-error-soft ring-error/10': errors.medicalNote,
+              'animate-shake': shaking.medicalNote,
+            }"
             :disabled="type !== 'edit'"
           ></textarea>
+          <div
+            v-if="errors.medicalNote"
+            class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest"
+          >
+            {{ errors.medicalNote }}
+          </div>
           <div class="flex flex-wrap gap-xs mt-sm" v-if="type === 'edit'">
             <button
               v-for="preset in ['None', 'G6PD', 'ADHD', 'Asthma']"
@@ -121,7 +131,7 @@
               'animate-shake': shaking.overrideRemark,
             }"
           ></textarea>
-          <div v-if="errors.overrideRemark" class="text-error text-xs font-bold mt-1">
+          <div v-if="errors.overrideRemark" class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest">
             {{ errors.overrideRemark }}
           </div>
         </div>
@@ -133,6 +143,8 @@
             role="student"
             :uid="student?.id || enrollment?.studentId"
             :customFileName="`${localData.name}_student`"
+            :error="errors.profileURL"
+            :shake="shaking.profileURL"
           />
         </div>
       </div>

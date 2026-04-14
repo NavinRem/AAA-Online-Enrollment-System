@@ -229,7 +229,7 @@
             rows="3"
             placeholder="Provide a detailed audit reason..."
           ></textarea>
-          <div v-if="errors.reason" class="text-error text-3xs font-black px-1 mt-1 uppercase">
+          <div v-if="errors.reason" class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest">
             {{ errors.reason }}
           </div>
         </div>

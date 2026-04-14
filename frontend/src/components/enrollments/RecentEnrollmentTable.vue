@@ -37,8 +37,9 @@ const navigateToDetail = (item) => {
 
 <template>
   <div class="ui-detail-card !p-lg">
-    <div class="ui-section-header !mb-md !pb-xs border-none">
-      <h3 class="ui-section-title !text-base">Recent Enrollment</h3>
+    <div class="ui-section-header border-none gap-md">
+      <h3 class="ui-section-title">Recent Enrollment</h3>
+      <div class="ui-section-divider"></div>
     </div>
 
     <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
@@ -47,8 +48,7 @@ const navigateToDetail = (item) => {
           :style="{ width: enrollmentHeaders[0].width, flex: '0 0 auto', minWidth: enrollmentHeaders[0].width }">
           {{ item.no }}
         </td>
-        <td class="ui-cell !py-4 overflow-hidden"
-          :style="{ flex: '1 1 0%', minWidth: 0 }">
+        <td class="ui-cell !py-4 overflow-hidden" :style="{ flex: '1 1 0%', minWidth: 0 }">
           <div class="ui-identity-cell min-w-0 w-full">
             <div class="ui-avatar">
               <img :src="getParentProfileURL(item.parent?.profileURL)" alt="parent" />
@@ -59,8 +59,7 @@ const navigateToDetail = (item) => {
             </div>
           </div>
         </td>
-        <td class="ui-cell !py-4 overflow-hidden"
-          :style="{ flex: '1 1 0%', minWidth: 0 }">
+        <td class="ui-cell !py-4 overflow-hidden" :style="{ flex: '1 1 0%', minWidth: 0 }">
           <div class="ui-identity-cell min-w-0 w-full">
             <div class="ui-avatar">
               <img :src="getStudentProfileURL(item.student?.profileURL)" alt="child" />
@@ -71,15 +70,14 @@ const navigateToDetail = (item) => {
             </div>
           </div>
         </td>
-        <td class="ui-cell !py-4 overflow-hidden"
-          :style="{ flex: '1 1 0%', minWidth: 0 }">
+        <td class="ui-cell !py-4 overflow-hidden" :style="{ flex: '1 1 0%', minWidth: 0 }">
           <div class="ui-identity-cell min-w-0 w-full">
             <div class="ui-avatar">
               <img :src="getProgramProfileURL(item.program?.profileURL)" :alt="item.program?.title" />
             </div>
             <span class="text-sm font-bold text-content-dark truncate block" :title="item.program?.title">{{
               item.program?.title
-              }}</span>
+            }}</span>
           </div>
         </td>
         <td class="ui-cell !py-4 text-center"

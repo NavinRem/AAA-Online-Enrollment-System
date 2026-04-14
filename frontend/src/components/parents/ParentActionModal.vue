@@ -79,12 +79,9 @@
             :role="localData.role"
             :uid="user?.uid || user?.id"
             :customFileName="`${localData.name}_${localData.role}`"
-            :error="!!errors.profile"
+            :error="errors.profile"
             :shake="shaking.profile"
           />
-          <div v-if="errors.profile" class="text-error text-3xs font-black px-1 mt-1 uppercase">
-            {{ errors.profile }}
-          </div>
         </div>
       </div>
 
@@ -93,7 +90,7 @@
         <AppSelect
           v-if="!user && selectableParents && selectableParents.length > 0"
           v-model="localData.parentId"
-          :items="filteredParents.map((p) => ({ id: p.uid || p.id, name: p.name }))"
+          :items="filteredParents.map((p) => ({ id: p.uid || p.id, name: p.name, profileURL: p.profileURL }))"
           label="Link to Parent Registry"
           placeholder="Search parent database..."
           required
@@ -103,41 +100,44 @@
         />
 
         <div class="grid grid-cols-2 gap-x-lg gap-y-md">
-          <AppInput
-            v-model="localData.name"
-            label="Student Full Name"
-            placeholder="Full name of student"
-            required
-            :error="errors.name"
-            :shake="shaking.name"
-            @input="clearError('name')"
-          />
-
-          <AppInput
-            v-model="localData.dob"
-            type="date"
-            label="Birth Registry Date"
-            required
-            :error="errors.dob"
-            :shake="shaking.dob"
-            @input="clearError('dob')"
-          />
-
-          <div class="flex flex-col gap-xs col-span-2">
-            <label class="text-xs font-black uppercase text-content-muted tracking-widest"
-              >Student Avatar <span class="text-error">*</span></label
-            >
-            <AvatarSelector
-              v-model="localData.profile"
-              role="student"
-              :customFileName="`${localData.name}_student` || ''"
-              :error="!!errors.profile"
-              :shake="shaking.profile"
+            <AppInput
+              v-model="localData.name"
+              label="Student Full Name"
+              placeholder="Full name of student"
+              required
+              :disabled="!user && !localData.parentId"
+              :error="errors.name"
+              :shake="shaking.name"
+              @input="clearError('name')"
+              @click-disabled="handleDisabledClick('childInfo')"
             />
-            <div v-if="errors.profile" class="text-error text-3xs font-black px-1 mt-1 uppercase">
-              {{ errors.profile }}
+
+            <AppInput
+              v-model="localData.dob"
+              type="date"
+              label="Birth Registry Date"
+              required
+              :disabled="!user && !localData.parentId"
+              :error="errors.dob"
+              :shake="shaking.dob"
+              @input="clearError('dob')"
+              @click-disabled="handleDisabledClick('childInfo')"
+            />
+
+            <div class="flex flex-col gap-xs col-span-2">
+              <label class="text-xs font-black uppercase text-content-muted tracking-widest"
+                >Student Avatar <span class="text-error">*</span></label
+              >
+              <AvatarSelector
+                v-model="localData.profile"
+                role="student"
+                :customFileName="`${localData.name}_student` || ''"
+                :disabled="!user && !localData.parentId"
+                :error="errors.profile"
+                :shake="shaking.profile"
+                @click-disabled="handleDisabledClick('childInfo')"
+              />
             </div>
-          </div>
 
           <div class="flex flex-col gap-xs col-span-2 mt-sm">
             <label class="text-xs font-black uppercase text-content-muted tracking-widest"
@@ -148,7 +148,24 @@
               placeholder="List any allergies, requirements, or pedagogical notes..."
               rows="3"
               class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-semibold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
+              :class="{
+                'border-error bg-error-soft ring-error/10': errors.medicalNote,
+                'animate-shake': shaking.medicalNote,
+              }"
+              :disabled="!user && !localData.parentId"
             ></textarea>
+            <!-- Wrapper for textarea click detection since it's not an AppInput -->
+            <div
+              v-if="!user && !localData.parentId"
+              class="absolute inset-0 z-10 cursor-not-allowed"
+              @click="handleDisabledClick('childInfo')"
+            ></div>
+            <div
+              v-if="errors.medicalNote"
+              class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest"
+            >
+              {{ errors.medicalNote }}
+            </div>
             <div
               class="flex flex-wrap gap-xs mt-sm bg-surface-light p-2 rounded-sm border border-outline-std/20"
             >
@@ -350,7 +367,7 @@
       </AppAlert>
       <div
         v-if="errors.resetMode"
-        class="text-error text-3xs font-black text-center uppercase animate-shake"
+        class="text-error text-3xs font-black text-center uppercase tracking-widest animate-shake mt-2"
       >
         {{ errors.resetMode }}
       </div>
@@ -468,7 +485,7 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, originalData, isDirty, errors, shaking, clearError, submitForm } =
+const { localData, originalData, isDirty, errors, shaking, clearError, triggerShake, submitForm } =
   useActionModal(props, emit, {
     getInitialData,
     mapSourceToForm,
@@ -620,6 +637,13 @@ const isPresetActive = (field, chipValue) => {
     .split(',')
     .map((v) => v.trim())
     .includes(chipValue)
+}
+
+const handleDisabledClick = (field) => {
+  if (field === 'childInfo' && !props.user && !localData.parentId) {
+    errors.parentId = 'PLEASE LINK TO A PARENT RECORD FIRST'
+    triggerShake('parentId')
+  }
 }
 
 watch(
