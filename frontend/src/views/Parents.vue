@@ -286,6 +286,7 @@ const navigateToDetail = (item) => {
           :items="filteredParents"
           :loading="loading"
           entityName="parent"
+          :flexible="true"
           v-model:searchQuery="searchQuery"
           searchPlaceholder="Search Parent..."
           :hasFilter="true"

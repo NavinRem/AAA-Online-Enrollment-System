@@ -1,102 +1,110 @@
-<template>
-  <DataPageLayout
-    title="Class Management"
-    :stats="statsCards"
-    :headers="classHeaders"
-    :items="filteredClasses"
-    :loading="loading"
-    searchPlaceholder="Search classes by program, teacher, or branch..."
-    @add="openAddModal"
-  >
-    <template #table-row="{ item, index, headers }">
-      <tr class="ui-row">
-        <td
-          class="ui-cell text-center font-bold text-content-muted/40 hide-on-mobile"
-          :style="{ width: headers[0].width }"
-        >
-          {{ index + 1 }}
-        </td>
-        <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-          <div class="ui-identity-cell">
-            <div class="ui-avatar-sm ring-1 ring-border bg-white">
-              <img
-                :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)"
-                alt="program"
-              />
-            </div>
-            <div class="ui-identity-info">
-              <span class="font-bold text-content-dark">{{
-                item.program?.name || 'Unknown Program'
-              }}</span>
-              <span class="text-3xs text-content-muted uppercase font-bold tracking-tight">{{
-                item.program?.category
-              }}</span>
-            </div>
-          </div>
-        </td>
-        <td class="ui-cell font-bold text-content-dark" :style="{ width: headers[2].width }">
-          {{ item.term?.name }}
-        </td>
-        <td class="ui-cell text-center" :style="{ width: headers[3].width }">
-          <StatusBadge :status="item.branch?.name || item.branch?.abbr" type="blue" />
-        </td>
-        <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-          <div v-if="item.teacher" class="ui-identity-cell">
-            <div class="ui-avatar-sm">
-              <img
-                :src="item.teacher.profileURL || getImageUrl('profiles/avatar-parent')"
-                alt="teacher"
-              />
-            </div>
-            <span class="font-bold text-xs text-content-dark">{{ item.teacher.name }}</span>
-          </div>
-          <span v-else class="text-content-muted/40 italic text-xs">Not assigned</span>
-        </td>
-        <td class="ui-cell" :style="{ width: headers[5].width }">
-          <div class="flex flex-col gap-0.5">
-            <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
-              item.day
-            }}</span>
-            <span class="text-3xs text-content-muted font-bold uppercase">{{ item.timeslot }}</span>
-          </div>
-        </td>
-        <td class="ui-cell text-center" :style="{ width: headers[6].width }">
-          <div class="flex flex-col items-center gap-1 w-full">
-            <div class="w-16 h-1.5 bg-surface-light rounded-full overflow-hidden">
-              <div
-                class="h-full transition-all duration-500 rounded-full"
-                :style="{ width: (item.numStudent / item.capacity) * 100 + '%' }"
-                :class="getCapacityClass(item)"
-              ></div>
-            </div>
-            <span class="text-3xs font-black text-content-muted uppercase tracking-widest"
-              >{{ item.numStudent }}/{{ item.capacity }}</span
-            >
-          </div>
-        </td>
-        <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-          <StatusBadge
-            :status="item.status"
-            :type="item.status === 'open' ? 'success' : 'neutral'"
-          />
-        </td>
-        <td class="ui-cell text-center" :style="{ width: headers[8].width }">
-          <div class="ui-action-menu">
-            <button class="ui-btn-dots" @click.stop="openEditModal(item)">
-              <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-70" />
-            </button>
-          </div>
-        </td>
-      </tr>
-    </template>
+  <DashboardLayout>
+    <DataPageLayout overviewTitle="Class Overview">
+      <template #overview>
+        <DataMetrics :stats="statsCards" />
+      </template>
 
-    <template #extra-actions>
-      <AppButton variant="secondary" @click="openDuplicateModal">
-        <img :src="getActionIcon('calendar')" class="w-4 h-4 brightness-0 invert opacity-70 mr-2" />
-        Bulk Duplicate
-      </AppButton>
-    </template>
-  </DataPageLayout>
+      <template #table>
+        <DataTable
+          title="Class List"
+          :headers="classHeaders"
+          :items="filteredClasses"
+          :loading="loading"
+          :flexible="true"
+          searchPlaceholder="Search classes by program, teacher, or branch..."
+        >
+          <template #toolbar-actions>
+            <AppButton variant="primary" size="md" class="!rounded-std shadow-sm" @click="openAddModal">
+              <img :src="getActionIcon('plus')" class="w-3.5 h-3.5 brightness-0 invert mt-px" />
+              <span class="font-bold">New Class</span>
+            </AppButton>
+          </template>
+
+          <template #row="{ item, index, headers }">
+            <tr class="ui-row">
+              <td
+                class="ui-cell text-center font-bold text-content-muted/40 hidden md:table-cell"
+                :style="{ width: headers[0].width }"
+              >
+                {{ index + 1 }}
+              </td>
+              <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
+                <div class="ui-identity-cell">
+                  <div class="ui-avatar-sm ring-1 ring-border bg-white">
+                    <img
+                      :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)"
+                      alt="program"
+                    />
+                  </div>
+                  <div class="ui-identity-info">
+                    <span class="font-bold text-content-dark">{{
+                      item.program?.name || 'Unknown Program'
+                    }}</span>
+                    <span class="text-3xs text-content-muted uppercase font-bold tracking-tight">{{
+                      item.program?.category
+                    }}</span>
+                  </div>
+                </div>
+              </td>
+              <td class="ui-cell font-bold text-content-dark hidden md:table-cell" :style="{ width: headers[2].width }">
+                {{ item.term?.name }}
+              </td>
+              <td class="ui-cell text-center" :style="{ width: headers[3].width }">
+                <StatusBadge :status="item.branch?.name || item.branch?.abbr" type="blue" />
+              </td>
+              <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
+                <div v-if="item.teacher" class="ui-identity-cell">
+                  <div class="ui-avatar-sm">
+                    <img
+                      :src="item.teacher.profileURL || getImageUrl('profiles/avatar-parent')"
+                      alt="teacher"
+                    />
+                  </div>
+                  <span class="font-bold text-xs text-content-dark">{{ item.teacher.name }}</span>
+                </div>
+                <span v-else class="text-content-muted/40 italic text-xs">Not assigned</span>
+              </td>
+              <td class="ui-cell" :style="{ width: headers[5].width }">
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
+                    item.day
+                  }}</span>
+                  <span class="text-3xs text-content-muted font-bold uppercase">{{ item.timeslot }}</span>
+                </div>
+              </td>
+              <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[6].width }">
+                <div class="flex flex-col items-center gap-1 w-full">
+                  <div class="w-16 h-1.5 bg-surface-light rounded-full overflow-hidden">
+                    <div
+                      class="h-full transition-all duration-500 rounded-full"
+                      :style="{ width: (item.numStudent / item.capacity) * 100 + '%' }"
+                      :class="getCapacityClass(item)"
+                    ></div>
+                  </div>
+                  <span class="text-3xs font-black text-content-muted uppercase tracking-widest"
+                    >{{ item.numStudent }}/{{ item.capacity }}</span
+                  >
+                </div>
+              </td>
+              <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+                <StatusBadge
+                  :status="item.status"
+                  :type="item.status === 'open' ? 'success' : 'neutral'"
+                />
+              </td>
+              <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+                <div class="ui-action-menu">
+                  <button class="ui-btn-dots" @click.stop="openEditModal(item)">
+                    <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-70" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </DataTable>
+      </template>
+    </DataPageLayout>
+  </DashboardLayout>
 
   <ClassActionModal
     :isOpen="modal.isOpen"

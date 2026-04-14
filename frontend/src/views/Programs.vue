@@ -254,6 +254,7 @@ const onRowClick = (item) => {
           :items="filteredPrograms"
           :loading="loading"
           entityName="program"
+          :flexible="true"
           v-model:searchQuery="searchQuery"
           searchPlaceholder="Search programs..."
           :hasFilter="true"

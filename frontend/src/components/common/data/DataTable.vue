@@ -26,6 +26,7 @@ const props = defineProps({
   totalItems: { type: Number, default: 0 },
   hasPagination: { type: Boolean, default: false },
   entityName: { type: String, default: 'record' },
+  flexible: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -81,7 +82,10 @@ const handleAction = (type, item) => {
 </script>
 
 <template>
-  <div class="flex-1 min-h-0 flex flex-col w-full">
+  <div :class="[
+    'w-full flex flex-col',
+    flexible ? '' : 'flex-1 min-h-0'
+  ]">
     <TableToolbar :hasSearch="hasSearch" :searchQuery="searchQuery"
       @update:searchQuery="emit('update:searchQuery', $event)" :searchPlaceholder="searchPlaceholder"
       :hasFilter="hasFilter" :currentFilter="currentFilter" @update:currentFilter="emit('update:currentFilter', $event)"
@@ -91,8 +95,11 @@ const handleAction = (type, item) => {
       </template>
     </TableToolbar>
 
-    <div class="flex-1 min-h-0 flex flex-col w-full p-xs overflow-hidden">
-      <AppTable :headers="headers" :loading="loading" :empty="!items || items.length === 0">
+    <div :class="[
+      'w-full flex flex-col p-xs',
+      flexible ? '' : 'flex-1 min-h-0 overflow-hidden'
+    ]">
+      <AppTable :headers="headers" :loading="loading" :empty="!items || items.length === 0" :flexible="flexible">
         <template #loading>{{ displayEmptyMessage }}</template>
         <template #empty>
           <div class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic">
@@ -122,14 +129,9 @@ const handleAction = (type, item) => {
             </td>
           </slot>
         </tr>
-
         <template #footer>
-          <tr v-if="hasPagination && items && items.length > 0" class="mt-4 block w-full">
-            <td :colspan="headers.length" class="p-0 border-none bg-transparent w-full block">
-              <TablePagination :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
-                @update:currentPage="emit('update:currentPage', $event)" />
-            </td>
-          </tr>
+          <TablePagination v-if="hasPagination && items && items.length > 0" :currentPage="currentPage"
+            :pageSize="pageSize" :totalItems="totalItems" @update:currentPage="emit('update:currentPage', $event)" />
         </template>
       </AppTable>
     </div>

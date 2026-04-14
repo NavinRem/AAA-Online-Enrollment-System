@@ -130,6 +130,7 @@ const handleTableAction = ({ type, item }) => {
           :items="filteredTrials"
           entityName="trial"
           :loading="loading"
+          :flexible="true"
           v-model:searchQuery="searchQuery"
           searchPlaceholder="Search Trials..."
           :rowClass="getRowClass"

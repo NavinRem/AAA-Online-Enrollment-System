@@ -380,6 +380,7 @@ const submitActionModal = async (formData) => {
           :items="filteredStudents"
           :loading="loading"
           entityName="student"
+          :flexible="true"
           v-model:searchQuery="searchQuery"
           searchPlaceholder="Search students..."
           :hasFilter="true"

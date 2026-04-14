@@ -8,7 +8,10 @@
     </div>
 
     <!-- Table Container (Scrollable) -->
-    <div v-else class="flex-1 flex flex-col min-h-0 w-full scrollable-v">
+    <div v-else :class="[
+      'w-full flex flex-col min-h-0',
+      flexible ? '' : 'flex-1 scrollable-v'
+    ]">
       <table class="w-full border-separate border-spacing-0 table-fixed">
         <!-- Sticky Header -->
         <thead class="sticky top-0 z-20 bg-white">
@@ -35,10 +38,10 @@
             </td>
           </tr>
 
-          <!-- Footer Slot (for pagination) -->
-          <slot name="footer"></slot>
         </tbody>
       </table>
+      <!-- Footer Slot (for pagination) -->
+      <slot name="footer"></slot>
     </div>
   </div>
 </template>
@@ -54,6 +57,10 @@ defineProps({
     default: false,
   },
   empty: {
+    type: Boolean,
+    default: false,
+  },
+  flexible: {
     type: Boolean,
     default: false,
   },

@@ -226,14 +226,14 @@ const enrollmentStats = computed(() => {
 })
 
 const enrollmentHeaders = [
-  { label: 'No', width: '30px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'No', width: '50px', align: 'center', class: 'hidden md:table-cell' },
   { label: 'Parent', class: 'hidden lg:table-cell' },
   { label: 'Student' },
   { label: 'Program' },
-  { label: 'Schedule', class: 'hidden sm:table-cell' },
-  { label: 'Branch', width: '100px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Amount', width: '100px', align: 'center', sortable: true, key: 'amount' },
-  { label: 'Status', width: '100px', align: 'center' },
+  { label: 'Schedule', width: '150px', class: 'hidden sm:table-cell' },
+  { label: 'Branch', width: '90px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'Amount', width: '90px', align: 'center', sortable: true, key: 'amount' },
+  { label: 'Status', width: '120px', align: 'center' },
   { label: 'Date', width: '150px', align: 'center', class: 'hidden lg:table-cell' },
   { label: 'Action', width: '90px', align: 'center' },
 ]
@@ -422,7 +422,7 @@ const handleRegisterStudent = async (formData) => {
 
       <template #table>
         <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="paginatedEnrollments"
-          entityName="enrollment" :loading="loading" :hasPagination="true" :currentPage="currentPage"
+          entityName="enrollment" :loading="loading" :hasPagination="true" :currentPage="currentPage" :flexible="true"
           :pageSize="pageSize" :totalItems="totalItems" @update:currentPage="currentPage = $event"
           v-model:searchQuery="searchQuery" searchPlaceholder="Search Enrollments" :hasFilter="true"
           v-model:currentFilter="currentFilter" :filterOptions="[
@@ -498,10 +498,10 @@ const handleRegisterStudent = async (formData) => {
               <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col gap-0.5">
                 <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
                   getSessionDay(item.classSchedule)
-                  }}</span>
+                }}</span>
                 <span class="text-3xs font-semibold text-content-muted uppercase">{{
                   getSessionTime(item.classSchedule)
-                  }}</span>
+                }}</span>
               </div>
               <span v-else class="text-content-muted/30 italic text-xs pl-2">—</span>
             </td>
@@ -521,7 +521,7 @@ const handleRegisterStudent = async (formData) => {
             <td class="ui-cell text-center hidden lg:table-cell">
               <span class="text-xs font-bold text-content-muted/70 tracking-tight">{{
                 formatDate(item.enrollAt)
-                }}</span>
+              }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[9].width, minWidth: headers[9].width }">
               <div class="ui-action-menu">

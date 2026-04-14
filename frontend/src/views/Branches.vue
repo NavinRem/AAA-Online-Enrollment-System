@@ -299,6 +299,7 @@ const isBranchRecentlyActive = (branchId) => {
           :items="filteredBranches"
           :loading="loading"
           entityName="branch"
+          :flexible="true"
           :rowClass="getRowClass"
           :hasSearch="true"
           v-model:searchQuery="searchQuery"
