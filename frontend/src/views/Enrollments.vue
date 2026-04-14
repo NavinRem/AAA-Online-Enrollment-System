@@ -17,7 +17,7 @@ import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
-import { isPaid, isUnpaid, isCancelled } from '@/utils/statusUtils'
+import { isPaid, isUnpaid, isCancelled, getStatusFilter } from '@/utils/statusUtils'
 import { formatPrice, formatDate } from '@/utils/formatUtils'
 
 const enrollments = ref([])
@@ -226,24 +226,16 @@ const enrollmentStats = computed(() => {
 })
 
 const enrollmentHeaders = [
-  { label: 'No', width: '40px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Parent', width: '160px', class: 'hidden lg:table-cell' },
-  { label: 'Student', width: '160px' },
-  { label: 'Program', width: '200px' },
-  { label: 'Schedule', width: '160px', class: 'hidden sm:table-cell' },
-  { label: 'Branch', width: '70px', align: 'center', class: 'hidden md:table-cell' },
-  {
-    label: 'Method',
-    width: '100px',
-    align: 'center',
-    sortable: true,
-    key: 'paymentMethod',
-    class: 'hidden lg:table-cell',
-  },
+  { label: 'No', width: '30px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'Parent', class: 'hidden lg:table-cell' },
+  { label: 'Student' },
+  { label: 'Program' },
+  { label: 'Schedule', class: 'hidden sm:table-cell' },
+  { label: 'Branch', width: '100px', align: 'center', class: 'hidden md:table-cell' },
   { label: 'Amount', width: '100px', align: 'center', sortable: true, key: 'amount' },
-  { label: 'Status', width: '90px', align: 'center' },
-  { label: 'Date', width: '120px', align: 'center', class: 'hidden lg:table-cell' },
-  { label: 'Action', width: '70px', align: 'center' },
+  { label: 'Status', width: '100px', align: 'center' },
+  { label: 'Date', width: '150px', align: 'center', class: 'hidden lg:table-cell' },
+  { label: 'Action', width: '90px', align: 'center' },
 ]
 
 const currentFilter = ref('all')
@@ -423,7 +415,7 @@ const handleRegisterStudent = async (formData) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Enrollment Overview">
+    <DataPageLayout title="Enrollment Overview">
       <template #overview>
         <DataMetrics :stats="enrollmentStats" />
       </template>
@@ -447,9 +439,11 @@ const handleRegisterStudent = async (formData) => {
             }
           ">
           <template #toolbar-actions>
-            <AppButton variant="primary" @click="showModal = true">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> New
-              Enrollment
+            <AppButton variant="primary" size="md"
+              class="!rounded-std shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-px transition-all duration-300 !px-xl bg-gradient-to-tr from-primary to-primary-hover border-none"
+              @click="showModal = true">
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
+              <span class="font-bold tracking-tight">New Enrollment</span>
             </AppButton>
           </template>
 
@@ -464,48 +458,44 @@ const handleRegisterStudent = async (formData) => {
             closeMenu,
             headers,
           }">
-            <td class="ui-cell text-center font-bold text-content-muted/50 hidden md:table-cell"
-              :style="{ width: headers[0].width }">
-              {{ index + 1 }}
+            <td class="ui-cell text-center font-bold text-content-muted/30 hidden md:table-cell"
+              :style="{ width: headers[0].width, minWidth: headers[0].width }">
+              {{ index + (currentPage - 1) * pageSize + 1 }}
             </td>
-            <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[1].width }">
+            <td class="ui-cell hidden lg:table-cell">
               <div class="ui-identity-cell">
                 <div class="ui-avatar-sm">
                   <img :src="item.parent?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="font-bold text-xs text-content-dark">{{ item.parent?.name }}</span>
-                  <span class="text-3xs text-content-muted uppercase font-bold tracking-tight">Guardian</span>
+                  <span class="font-bold text-content-dark">{{ item.parent?.name }}</span>
                 </div>
               </div>
             </td>
-            <td class="ui-cell" :style="{ width: headers[2].width }">
+            <td class="ui-cell">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
                   <img :src="item.student?.profileURL" alt="student" />
                 </div>
                 <div class="ui-identity-info">
                   <span class="font-bold text-content-dark">{{ item.student?.name }}</span>
-                  <span class="text-3xs text-content-muted uppercase font-semibold">Student</span>
                 </div>
               </div>
             </td>
-            <td class="ui-cell" :style="{ width: headers[3].width }">
+            <td class="ui-cell">
               <div class="ui-identity-cell">
                 <div class="ui-avatar-sm bg-white ring-1 ring-border">
                   <img :src="item.program?.profileURL" alt="program" />
                 </div>
                 <div class="ui-identity-info overflow-hidden">
-                  <span class="font-bold text-xs text-content-dark truncate max-w-[140px] block"
-                    :title="item.program?.title">
+                  <span class="font-bold text-content-dark truncate max-w-[140px] block" :title="item.program?.title">
                     {{ item.program?.title }}
                   </span>
-                  <span class="text-3xs text-primary uppercase font-black tracking-widest">Program</span>
                 </div>
               </div>
             </td>
-            <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[4].width }">
-              <div class="flex flex-col gap-0.5">
+            <td class="ui-cell hidden sm:table-cell">
+              <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col gap-0.5">
                 <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
                   getSessionDay(item.classSchedule)
                   }}</span>
@@ -513,30 +503,27 @@ const handleRegisterStudent = async (formData) => {
                   getSessionTime(item.classSchedule)
                   }}</span>
               </div>
+              <span v-else class="text-content-muted/30 italic text-xs pl-2">—</span>
             </td>
-            <td class="ui-cell text-center hidden md:table-cell" :style="{ width: headers[5].width }">
-              <StatusBadge :status="item.branchAbbr || 'N/A'" type="blue" />
+            <td class="ui-cell text-center hidden md:table-cell"
+              :style="{ width: headers[5].width, minWidth: headers[5].width }">
+              <StatusBadge :status="item.branchAbbr || '—'" :type="item.branchAbbr ? 'blue' : 'neutral'" />
             </td>
-            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[6].width }">
-              <span v-if="!item.paymentMethod && isUnpaid(item.status || item.paymentStatus)"
-                class="text-content-muted/30 italic text-xs">—</span>
-              <StatusBadge v-else :status="item.paymentMethod || (isPaid(item.status || item.paymentStatus) ? 'Paid' : '—')
-                " />
-            </td>
-            <td class="ui-cell text-center font-bold" :style="{ width: headers[7].width }">
+
+            <td class="ui-cell text-center font-bold" :style="{ width: headers[6].width, minWidth: headers[6].width }">
               <StatusBadge :status="'$' + formatPrice(item.amount || 0)" :type="(item.enrollmentType || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'
                 ">
               </StatusBadge>
             </td>
-            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[7].width, minWidth: headers[7].width }">
               <StatusBadge :status="item.displayStatus || 'Unpaid'" />
             </td>
-            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[9].width }">
+            <td class="ui-cell text-center hidden lg:table-cell">
               <span class="text-xs font-bold text-content-muted/70 tracking-tight">{{
                 formatDate(item.enrollAt)
                 }}</span>
             </td>
-            <td class="ui-cell text-center" :style="{ width: headers[10].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[9].width, minWidth: headers[9].width }">
               <div class="ui-action-menu">
                 <button class="ui-btn-dots" @click.stop="toggleMenu($event, item.id)">
                   <span class="font-bold">⋮</span>
@@ -553,51 +540,50 @@ const handleRegisterStudent = async (formData) => {
                         !isPaid(item.status) &&
                         !isPaid(item.paymentStatus) &&
                         !isCancelled(item.status)
-                      " class="ui-dropdown-item hover:text-info group" @click="
-                          () => {
-                            handleAction('edit', item)
-                            closeMenu()
-                          }
-                        ">
-                        <img :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" />
+                      " class="ui-dropdown-item ui-dropdown-item-info group" @click="
+                        () => {
+                          handleAction('edit', item)
+                          closeMenu()
+                        }
+                      ">
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 transition-opacity"
+                          :style="{ filter: getStatusFilter('blue') }" />
                         Edit
                       </button>
                       <button v-if="
                         !isPaid(item.status) &&
                         !isPaid(item.paymentStatus) &&
                         !isCancelled(item.status)
-                      " class="ui-dropdown-item hover:text-success group text-success" @click="
-                          () => {
-                            handleAction('pay', item)
-                            closeMenu()
-                          }
-                        ">
-                        <img :src="getActionIcon('pay')"
-                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity" />
+                      " class="ui-dropdown-item ui-dropdown-item-success group" @click="
+                        () => {
+                          handleAction('pay', item)
+                          closeMenu()
+                        }
+                      ">
+                        <img :src="getActionIcon('pay')" class="w-4 h-4 transition-opacity"
+                          :style="{ filter: getStatusFilter('green') }" />
                         Pay
                       </button>
                       <button v-if="!isCancelled(item.status || item.paymentStatus)"
-                        class="ui-dropdown-item hover:text-error group text-error" @click="
+                        class="ui-dropdown-item ui-dropdown-item-danger group" @click="
                           () => {
                             handleAction('cancel', item)
                             closeMenu()
                           }
                         ">
-                        <img :src="getActionIcon('cancel')"
-                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity" />
+                        <img :src="getActionIcon('cancel')" class="w-4 h-4 transition-opacity"
+                          :style="{ filter: getStatusFilter('red') }" />
                         Cancel
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item hover:bg-error/5 hover:text-error group text-error/70 font-bold"
-                        @click="
-                          () => {
-                            handleAction('delete', item)
-                            closeMenu()
-                          }
-                        ">
-                        <img :src="getActionIcon('delete')"
-                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity" />
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold" @click="
+                        () => {
+                          handleAction('delete', item)
+                          closeMenu()
+                        }
+                      ">
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 transition-opacity"
+                          :style="{ filter: getStatusFilter('red') }" />
                         Delete
                       </button>
                     </div>

@@ -16,7 +16,7 @@
         >
           {{ index + 1 }}
         </td>
-        <td class="ui-cell" :style="{ width: headers[1].width }">
+        <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
           <div class="ui-identity-cell">
             <div class="ui-avatar-sm ring-1 ring-border bg-white">
               <img
@@ -40,7 +40,7 @@
         <td class="ui-cell text-center" :style="{ width: headers[3].width }">
           <StatusBadge :status="item.branch?.name || item.branch?.abbr" type="blue" />
         </td>
-        <td class="ui-cell" :style="{ width: headers[4].width }">
+        <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
           <div v-if="item.teacher" class="ui-identity-cell">
             <div class="ui-avatar-sm">
               <img
@@ -122,10 +122,10 @@ const classes = ref([])
 
 const classHeaders = [
   { label: 'No', width: '50px', class: 'hide-on-mobile', align: 'center' },
-  { label: 'Program Model', width: '250px' },
+  { label: 'Program Model' },
   { label: 'Term', width: '120px' },
   { label: 'Branch', width: '100px' },
-  { label: 'Teacher', width: '150px' },
+  { label: 'Teacher' },
   { label: 'Schedule', width: '150px' },
   { label: 'Enrollment', width: '120px', align: 'center' },
   { label: 'Status', width: '100px', align: 'center' },

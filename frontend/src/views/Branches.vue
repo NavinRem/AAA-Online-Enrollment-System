@@ -163,7 +163,7 @@ const statsCards = computed(() => {
 
 const branchHeaders = [
   { label: 'No', width: '50px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Branch Name', width: '180px' },
+  { label: 'Branch Name' },
   { label: 'Abbr', width: '85px', align: 'center' },
   { label: 'Location' },
   { label: 'Classes', width: '100px', align: 'center', class: 'hidden lg:table-cell' },
@@ -322,13 +322,13 @@ const isBranchRecentlyActive = (branchId) => {
             >
               {{ index + 1 }}
             </td>
-            <td :style="{ width: headers[1].width }" class="ui-cell">
+            <td :style="{ flex: '1 1 0%', minWidth: 0 }" class="ui-cell">
               <span class="font-bold text-content-dark tracking-tighter">{{ item.name }}</span>
             </td>
             <td :style="{ width: headers[2].width }" class="ui-cell text-center">
               <StatusBadge :status="item.abbr" type="blue" />
             </td>
-            <td :style="{ width: headers[3].width }" class="ui-cell pl-6">
+            <td :style="{ flex: '1 1 0%', minWidth: 0 }" class="ui-cell pl-6">
               <div
                 class="text-xs text-content-muted leading-relaxed truncate max-w-[250px]"
                 :title="item.location"

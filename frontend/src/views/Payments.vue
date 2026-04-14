@@ -44,10 +44,10 @@ const paymentStats = computed(() => {
 const paymentHeaders = [
   { label: 'ID', width: '80px', align: 'center', class: 'hidden md:table-cell' },
   { label: 'Parent' },
-  { label: 'Amount', align: 'center' },
+  { label: 'Amount', align: 'center', width: '100px' },
   { label: 'Method', class: 'hidden sm:table-cell' },
-  { label: 'Status', align: 'center' },
-  { label: 'Date', class: 'hidden lg:table-cell' },
+  { label: 'Status', align: 'center', width: '100px' },
+  { label: 'Date', class: 'hidden lg:table-cell', width: '120px' },
 ]
 </script>
 
@@ -78,7 +78,7 @@ const paymentHeaders = [
             >
               #{{ item.id }}
             </td>
-            <td class="ui-cell" :style="{ width: headers[1].width }">
+            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <span class="font-extrabold text-content-dark tracking-tighter">{{
                 item.parent
               }}</span>
@@ -86,7 +86,7 @@ const paymentHeaders = [
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
               <span class="font-black text-primary tracking-tighter">${{ item.amount }}</span>
             </td>
-            <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[3].width }">
+            <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <span class="text-xs font-bold text-content-muted tracking-tight uppercase">{{
                 item.method
               }}</span>

@@ -67,11 +67,11 @@ const statsCards = computed(() => {
 
 const parentHeaders = [
   { label: 'No', width: '60px', class: 'hidden md:table-cell', align: 'center' },
-  { label: 'Fullname', width: '250px' },
+  { label: 'Fullname' },
   { label: 'Child', class: 'hidden lg:table-cell', width: '100px' },
   { label: 'Phone Number', class: 'hidden md:table-cell', width: '150px' },
-  { label: 'Email', class: 'hidden lg:table-cell', width: '200px' },
-  { label: 'Joined Date', class: 'hidden lg:table-cell', width: '200px', align: 'center' },
+  { label: 'Email', class: 'hidden lg:table-cell' },
+  { label: 'Joined Date', class: 'hidden lg:table-cell', width: '150px', align: 'center' },
   { label: 'Status', align: 'center', width: '80px' },
   { label: 'Action', width: '70px', align: 'center' },
 ]
@@ -302,9 +302,9 @@ const navigateToDetail = (item) => {
           @action="({ type, item }) => openActionModal(type, item)"
         >
           <template #toolbar-actions>
-            <AppButton variant="primary" @click="showNewParentModal = true">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> New
-              Parent
+            <AppButton variant="primary" size="md" class="!rounded-std shadow-sm" @click="showNewParentModal = true">
+              <img :src="getActionIcon('plus')" class="w-3.5 h-3.5 brightness-0 invert mt-px" />
+              <span class="font-bold">Add Parent</span>
             </AppButton>
           </template>
 
@@ -327,7 +327,7 @@ const navigateToDetail = (item) => {
             >
               {{ index + 1 }}
             </td>
-            <td class="ui-cell" :style="{ width: headers[1].width }">
+            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
                   <img :src="item.profileURL" alt="avatar" />
@@ -366,7 +366,7 @@ const navigateToDetail = (item) => {
             >
               {{ item.phone }}
             </td>
-            <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[4].width }">
+            <td class="ui-cell hidden lg:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <span class="text-xs text-content-muted font-medium truncate block max-w-[180px]">{{
                 item.email
               }}</span>
@@ -403,91 +403,97 @@ const navigateToDetail = (item) => {
                       :style="menuStyles"
                       @click.stop
                     >
-                      <button
-                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item hover:text-primary group"
-                        @click="
-                          () => {
-                            openAddChildModal(item)
-                            closeMenu()
-                          }
-                        "
-                      >
-                        <img
-                          :src="getActionIcon('plus')"
-                          class="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                        Register Child
-                      </button>
-                      <button
-                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item hover:text-info group"
-                        @click="
-                          () => {
-                            openActionModal('edit', item)
-                            closeMenu()
-                          }
-                        "
-                      >
-                        <img
-                          :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                        Edit Profile
-                      </button>
-                      <button
-                        v-if="(item.status || 'Active').toLowerCase() === 'inactive'"
-                        class="ui-dropdown-item hover:text-success group text-success"
-                        @click="handleAction('activate', item)"
-                      >
-                        <img
-                          :src="getActionIcon('reactivate')"
-                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                        Reactivate
-                      </button>
-                      <button
-                        v-else
-                        class="ui-dropdown-item hover:text-error group text-error"
-                        @click="handleAction('deactivate', item)"
-                      >
-                        <img
-                          :src="getActionIcon('cancel')"
-                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                        Deactivate
-                      </button>
-                      <button
-                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item hover:text-purple-600 group"
-                        @click="
-                          () => {
-                            openActionModal('reset-password', item)
-                            closeMenu()
-                          }
-                        "
-                      >
-                        <img
-                          :src="getActionIcon('reset-password')"
-                          class="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                        Reset Password
-                      </button>
-                      <div
-                        class="h-px bg-surface-light mx-1 my-1"
-                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                      ></div>
-                      <button
-                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item hover:bg-error/5 hover:text-error group text-error/70 font-bold"
-                        @click="handleAction('delete', item)"
-                      >
-                        <img
-                          :src="getActionIcon('delete')"
-                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                        Delete Account
-                      </button>
+                        <button
+                          v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
+                          class="ui-dropdown-item ui-dropdown-item-info group"
+                          @click="
+                            () => {
+                              openAddChildModal(item)
+                              closeMenu()
+                            }
+                          "
+                        >
+                          <img
+                            :src="getActionIcon('plus')"
+                            class="w-4 h-4 transition-opacity"
+                            :style="{ filter: getStatusFilter('blue') }"
+                          />
+                          Register Child
+                        </button>
+                        <button
+                          v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
+                          class="ui-dropdown-item ui-dropdown-item-info group"
+                          @click="
+                            () => {
+                              openActionModal('edit', item)
+                              closeMenu()
+                            }
+                          "
+                        >
+                          <img
+                            :src="getActionIcon('edit')"
+                            class="w-4 h-4 transition-opacity"
+                            :style="{ filter: getStatusFilter('blue') }"
+                          />
+                          Edit Profile
+                        </button>
+                        <button
+                          v-if="(item.status || 'Active').toLowerCase() === 'inactive'"
+                          class="ui-dropdown-item ui-dropdown-item-success group"
+                          @click="handleAction('activate', item)"
+                        >
+                          <img
+                            :src="getActionIcon('reactivate')"
+                            class="w-4 h-4 transition-opacity"
+                            :style="{ filter: getStatusFilter('green') }"
+                          />
+                          Reactivate
+                        </button>
+                        <button
+                          v-else
+                          class="ui-dropdown-item ui-dropdown-item-danger group"
+                          @click="handleAction('deactivate', item)"
+                        >
+                          <img
+                            :src="getActionIcon('cancel')"
+                            class="w-4 h-4 transition-opacity"
+                            :style="{ filter: getStatusFilter('red') }"
+                          />
+                          Deactivate
+                        </button>
+                        <button
+                          v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
+                          class="ui-dropdown-item ui-dropdown-item-info group"
+                          @click="
+                            () => {
+                              openActionModal('reset-password', item)
+                              closeMenu()
+                            }
+                          "
+                        >
+                          <img
+                            :src="getActionIcon('reset-password')"
+                            class="w-4 h-4 transition-opacity"
+                            :style="{ filter: getStatusFilter('purple') }"
+                          />
+                          Reset Password
+                        </button>
+                        <div
+                          class="h-px bg-surface-light mx-1 my-1"
+                          v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
+                        ></div>
+                        <button
+                          v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
+                          class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
+                          @click="handleAction('delete', item)"
+                        >
+                          <img
+                            :src="getActionIcon('delete')"
+                            class="w-4 h-4 transition-opacity"
+                            :style="{ filter: getStatusFilter('red') }"
+                          />
+                          Delete Account
+                        </button>
                     </div>
                   </transition>
                 </Teleport>

@@ -93,9 +93,9 @@ const trialStats = computed(() => {
 
 const trialHeaders = [
   { label: 'No', width: '40px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Student', width: '160px' },
-  { label: 'Program', width: '200px' },
-  { label: 'Schedule', width: '160px', class: 'hidden sm:table-cell' },
+  { label: 'Student' },
+  { label: 'Program' },
+  { label: 'Schedule', class: 'hidden sm:table-cell' },
   { label: 'Branch', width: '70px', align: 'center', class: 'hidden md:table-cell' },
   { label: 'Status', width: '90px', align: 'center' },
   { label: 'Trial Date', width: '120px', align: 'center' },
@@ -142,7 +142,7 @@ const handleTableAction = ({ type, item }) => {
             >
               {{ index + 1 }}
             </td>
-            <td class="ui-cell" :style="{ width: headers[1].width }">
+            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
                   <img :src="item.student?.profileURL" alt="student" />
@@ -153,7 +153,7 @@ const handleTableAction = ({ type, item }) => {
                 </div>
               </div>
             </td>
-            <td class="ui-cell" :style="{ width: headers[2].width }">
+            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar-sm bg-white ring-1 ring-border">
                   <img :src="item.program?.profileURL" alt="program" />
@@ -171,7 +171,7 @@ const handleTableAction = ({ type, item }) => {
                 </div>
               </div>
             </td>
-            <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[3].width }">
+            <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <div class="flex flex-col gap-0.5">
                 <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
                   getSessionDay(item.class?.schedule) || getSessionDay(item.classSchedule)

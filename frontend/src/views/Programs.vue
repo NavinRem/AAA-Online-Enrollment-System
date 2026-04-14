@@ -102,8 +102,8 @@ onMounted(() => {
 
 const programHeaders = [
   { label: 'No', width: '50px', class: 'hidden md:table-cell', align: 'center' },
-  { label: 'Category', width: '150px' },
-  { label: 'Program Model', width: '250px' },
+  { label: 'Category' },
+  { label: 'Program Model' },
   { label: 'Sessions', align: 'center', width: '80px', class: 'hidden sm:table-cell' },
   { label: 'Weeks', align: 'center', width: '80px', class: 'hidden sm:table-cell' },
   { label: 'Base Price', align: 'center', width: '100px' },
@@ -338,9 +338,9 @@ const onRowClick = (item) => {
                 </transition>
               </Teleport>
             </div>
-            <AppButton variant="primary" @click="openModal('add')">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> Add
-              Program
+            <AppButton variant="primary" size="md" class="!rounded-std shadow-sm" @click="openModal('add')">
+              <img :src="getActionIcon('plus')" class="w-3.5 h-3.5 brightness-0 invert mt-px" />
+              <span class="font-bold">Add Program</span>
             </AppButton>
           </template>
 
@@ -362,7 +362,7 @@ const onRowClick = (item) => {
             >
               {{ index + 1 }}
             </td>
-            <td class="ui-cell" :style="{ width: headers[1].width }">
+            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar-sm ring-1 ring-border">
                   <img
@@ -380,7 +380,7 @@ const onRowClick = (item) => {
                 </div>
               </div>
             </td>
-            <td class="ui-cell" :style="{ width: headers[2].width }">
+            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <span class="font-black text-content-dark tracking-tighter">{{
                 item.name || item.title
               }}</span>
@@ -438,7 +438,7 @@ const onRowClick = (item) => {
                       @click.stop
                     >
                       <button
-                        class="ui-dropdown-item hover:text-info group"
+                        class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="
                           () => {
                             handleAction('edit', item)
@@ -448,13 +448,13 @@ const onRowClick = (item) => {
                       >
                         <img
                           :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity"
+                          class="w-4 h-4 transition-opacity" :style="{ filter: getStatusFilter('blue') }"
                         />
                         Edit
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
                       <button
-                        class="ui-dropdown-item hover:bg-error/5 hover:text-error group text-error/70 font-bold"
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
                         @click="
                           () => {
                             handleAction('delete', item)
@@ -464,7 +464,7 @@ const onRowClick = (item) => {
                       >
                         <img
                           :src="getActionIcon('delete')"
-                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
+                          class="w-4 h-4 transition-opacity" :style="{ filter: getStatusFilter('red') }"
                         />
                         Delete
                       </button>

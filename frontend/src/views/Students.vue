@@ -103,12 +103,12 @@ const statsCards = computed(() => {
 const studentHeaders = [
   { label: 'No', width: '60px', class: 'hidden md:table-cell', align: 'center' },
   { label: 'Age', class: 'hidden md:table-cell', width: '80px', align: 'center' },
-  { label: 'Fullname', width: '300px' },
-  { label: 'Parent', class: 'hidden md:table-cell', width: '300px' },
+  { label: 'Fullname' },
+  { label: 'Parent', class: 'hidden md:table-cell' },
   { label: 'Program', class: 'hidden lg:table-cell', width: '150px' },
   { label: 'Medical Note', class: 'hidden lg:table-cell' },
   { label: 'Status', align: 'center', width: '120px' },
-  { label: 'Joined Date', class: 'hidden lg:table-cell', width: '250px', align: 'center' },
+  { label: 'Joined Date', class: 'hidden lg:table-cell', width: '150px', align: 'center' },
   { label: 'Action', width: '80px', align: 'center' },
 ]
 
@@ -397,9 +397,9 @@ const submitActionModal = async (formData) => {
           @action="({ type, item }) => openActionModal(type, item)"
         >
           <template #toolbar-actions>
-            <AppButton variant="primary" @click="handleOpenAddStudent">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert mt-px" /> Add
-              Student
+            <AppButton variant="primary" size="md" class="!rounded-std shadow-sm" @click="handleOpenAddStudent">
+              <img :src="getActionIcon('plus')" class="w-3.5 h-3.5 brightness-0 invert mt-px" />
+              <span class="font-bold">New Student</span>
             </AppButton>
           </template>
 
@@ -429,7 +429,7 @@ const submitActionModal = async (formData) => {
               <StatusBadge :status="calculateAge(item.dob)" type="blue" />
             </td>
             <td
-              :style="{ width: headers[2].width }"
+              :style="{ flex: '1 1 0%', minWidth: 0 }"
               class="ui-cell"
               @click="navigateToDetail(item)"
             >
@@ -455,7 +455,7 @@ const submitActionModal = async (formData) => {
                 </div>
               </div>
             </td>
-            <td :style="{ width: headers[3].width }" class="ui-cell hidden md:table-cell">
+            <td :style="{ flex: '1 1 0%', minWidth: 0 }" class="ui-cell hidden md:table-cell">
               <div class="ui-identity-cell opacity-80 group-hover:opacity-100 transition-opacity">
                 <div class="ui-avatar-sm ring-1 ring-border">
                   <img :src="item.parentInfo?.profileURL" alt="parent avatar" />
@@ -496,7 +496,7 @@ const submitActionModal = async (formData) => {
                 <div v-else class="text-content-muted text-xs italic opacity-40">—</div>
               </div>
             </td>
-            <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[5].width }">
+            <td class="ui-cell hidden lg:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <div class="max-w-[200px]" :title="item.medicalNote">
                 <span
                   v-if="item.medicalNote"
@@ -540,7 +540,7 @@ const submitActionModal = async (formData) => {
                       @click.stop
                     >
                       <button
-                        class="ui-dropdown-item hover:text-info group"
+                        class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="
                           () => {
                             handleAction('edit', item)
@@ -552,12 +552,12 @@ const submitActionModal = async (formData) => {
                       >
                         <img
                           :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity"
+                          class="w-4 h-4 transition-opacity" :style="{ filter: getStatusFilter('blue') }"
                         />
                         Edit Profile
                       </button>
                       <button
-                        class="ui-dropdown-item hover:text-primary group"
+                        class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="
                           () => {
                             handleAction('override', item)
@@ -569,18 +569,18 @@ const submitActionModal = async (formData) => {
                       >
                         <img
                           :src="getActionIcon('view')"
-                          class="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity"
+                          class="w-4 h-4 transition-opacity" :style="{ filter: getStatusFilter('blue') }"
                         />
                         Override Status
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
                       <button
-                        class="ui-dropdown-item hover:bg-error/5 hover:text-error group text-error/70 font-bold"
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
                         @click="handleAction('delete', item)"
                       >
                         <img
                           :src="getActionIcon('delete')"
-                          class="w-4 h-4 brightness-0 invert opacity-60 group-hover:opacity-100 transition-opacity"
+                          class="w-4 h-4 transition-opacity" :style="{ filter: getStatusFilter('red') }"
                         />
                         Delete Record
                       </button>
