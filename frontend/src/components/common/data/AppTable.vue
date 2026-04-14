@@ -1,44 +1,45 @@
 <template>
-  <div class="w-full px-2xs relative mt-xl flex flex-1 flex-col min-h-0">
-    <div
-      v-if="loading"
-      class="text-center p-xl sm:p-3xl text-content-light font-bold text-base bg-white rounded-std border border-outline-std animate-pulse"
-    >
+  <div
+    class="w-full relative flex flex-1 flex-col min-h-0 overflow-hidden bg-white rounded-md border border-outline-std group shadow-sm">
+    <!-- Loading State -->
+    <div v-if="loading"
+      class="flex-1 flex items-center justify-center p-xl sm:p-3xl text-content-light font-bold text-base animate-pulse">
       <slot name="loading">Loading data...</slot>
     </div>
 
-    <table v-else class="ui-table group">
-      <!-- Fixed Header -->
-      <thead class="flex-none block w-full z-10 bg-white">
-        <tr class="flex w-full">
-          <th
-            v-for="(col, index) in headers"
-            :key="index"
-            :style="typeof col === 'object' && col.width ? { width: col.width, flex: '0 0 auto', minWidth: col.width } : { flex: 1, minWidth: 0 }"
-            class="ui-header-cell flex items-center"
-            :class="[
-              typeof col === 'object' ? col.class : '',
-              typeof col === 'object' && col.align ? `text-${col.align}` : 'text-left',
-            ]"
-          >
-            {{ typeof col === 'object' ? col.label : col }}
-          </th>
-        </tr>
-      </thead>
+    <!-- Table Container (Scrollable) -->
+    <div v-else class="flex-1 flex flex-col min-h-0 w-full scrollable-v">
+      <table class="w-full border-separate border-spacing-0 table-fixed">
+        <!-- Sticky Header -->
+        <thead class="sticky top-0 z-20 bg-white">
+          <tr class="w-full">
+            <th v-for="(col, index) in headers" :key="index"
+              :style="typeof col === 'object' && col.width ? { width: col.width, minWidth: col.width } : {}"
+              class="ui-header-cell shadow-[0_1px_rgba(0,0,0,0.05)] backdrop-blur-sm bg-white/95" :class="[
+                typeof col === 'object' ? col.class : '',
+                typeof col === 'object' && col.align ? `text-${col.align}` : 'text-left',
+              ]">
+              {{ typeof col === 'object' ? col.label : col }}
+            </th>
+          </tr>
+        </thead>
 
-      <!-- Scrollable Body -->
-      <tbody class="flex-1 block w-full overflow-y-auto min-h-0 scrollable-v pr-1">
-        <slot></slot>
-        <tr v-if="empty" class="w-full flex">
-          <td
-            class="text-center p-3xl text-content-light font-semibold text-base w-full bg-white rounded-std border border-outline-std mt-2 flex items-center justify-center min-h-[200px]"
-          >
-            <slot name="empty">No records found.</slot>
-          </td>
-        </tr>
-        <slot name="footer"></slot>
-      </tbody>
-    </table>
+        <!-- Body -->
+        <tbody class="w-full">
+          <slot></slot>
+
+          <!-- Empty State -->
+          <tr v-if="empty">
+            <td :colspan="headers.length" class="text-center p-3xl text-content-light font-semibold text-base py-20">
+              <slot name="empty">No records found.</slot>
+            </td>
+          </tr>
+
+          <!-- Footer Slot (for pagination) -->
+          <slot name="footer"></slot>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
@@ -58,3 +59,19 @@ defineProps({
   },
 })
 </script>
+
+<style scoped>
+/* Ensure table layout is consistent */
+table {
+  border-collapse: separate;
+}
+
+thead th {
+  transition: background-color 0.2s;
+}
+
+/* Subtle header divider shade on scroll */
+.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+}
+</style>

@@ -82,72 +82,41 @@ const handleAction = (type, item) => {
 
 <template>
   <div class="flex-1 min-h-0 flex flex-col w-full">
-    <TableToolbar
-      :hasSearch="hasSearch"
-      :searchQuery="searchQuery"
-      @update:searchQuery="emit('update:searchQuery', $event)"
-      :searchPlaceholder="searchPlaceholder"
-      :hasFilter="hasFilter"
-      :currentFilter="currentFilter"
-      @update:currentFilter="emit('update:currentFilter', $event)"
-      :filterOptions="filterOptions"
-      :title="title"
-    >
+    <TableToolbar :hasSearch="hasSearch" :searchQuery="searchQuery"
+      @update:searchQuery="emit('update:searchQuery', $event)" :searchPlaceholder="searchPlaceholder"
+      :hasFilter="hasFilter" :currentFilter="currentFilter" @update:currentFilter="emit('update:currentFilter', $event)"
+      :filterOptions="filterOptions" :title="title">
       <template #actions>
         <slot name="toolbar-actions"></slot>
       </template>
     </TableToolbar>
 
-    <div class="flex-1 min-h-0 flex flex-col w-full px-xs overflow-hidden">
+    <div class="flex-1 min-h-0 flex flex-col w-full p-xs overflow-hidden">
       <AppTable :headers="headers" :loading="loading" :empty="!items || items.length === 0">
         <template #loading>{{ displayEmptyMessage }}</template>
         <template #empty>
-          <div
-            class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic"
-          >
+          <div class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic">
             <span v-if="emptyState.prefix">{{ emptyState.prefix }}</span>
-            <StatusBadge
-              v-if="emptyState.label"
-              :status="currentFilter"
-              :type="getStatusCategory(currentFilter)"
-            >
+            <StatusBadge v-if="emptyState.label" :status="currentFilter" :type="getStatusCategory(currentFilter)">
               {{ getStatusDisplay(emptyState.label) }}
             </StatusBadge>
             <span v-if="emptyState.suffix">{{ emptyState.suffix }}</span>
           </div>
         </template>
 
-        <tr
-          v-for="(item, index) in items"
-          :key="item.id || index"
-          class="ui-row group"
-          :class="rowClass(item)"
-          @click="emit('row-click', item)"
-        >
-          <slot
-            name="row"
-            :item="item"
-            :index="index"
-            :toggleMenu="toggleMenu"
-            :activeMenuId="activeMenuId"
-            :isMenuAbove="isMenuAbove"
-            :menuStyles="menuStyles"
-            :handleAction="handleAction"
-            :closeMenu="closeMenu"
-            :headers="headers"
-          >
-            <td
-              v-for="(header, hIdx) in headers"
-              :key="hIdx"
-              class="ui-cell"
+        <tr v-for="(item, index) in items" :key="item.id || index" class="ui-row group" :class="rowClass(item)"
+          @click="emit('row-click', item)">
+          <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId"
+            :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction" :closeMenu="closeMenu"
+            :headers="headers">
+            <td v-for="(header, hIdx) in headers" :key="hIdx" class="ui-cell"
               :class="typeof header === 'object' && header.align ? `text-${header.align}` : ''"
-              :style="typeof header === 'object' ? { width: header.width } : {}"
-            >
+              :style="typeof header === 'object' && header.width ? { width: header.width, minWidth: header.width } : {}">
               {{
                 item[
-                  typeof header === 'object'
-                    ? header.key || header.label.toLowerCase().replace(' ', '')
-                    : header.toLowerCase().replace(' ', '')
+                typeof header === 'object'
+                  ? header.key || header.label.toLowerCase().replace(' ', '')
+                  : header.toLowerCase().replace(' ', '')
                 ]
               }}
             </td>
@@ -155,14 +124,10 @@ const handleAction = (type, item) => {
         </tr>
 
         <template #footer>
-          <tr v-if="hasPagination && items && items.length > 0" class="ui-footer-row">
-            <td :colspan="headers.length" class="p-0 border-none bg-transparent">
-              <TablePagination
-                :currentPage="currentPage"
-                :pageSize="pageSize"
-                :totalItems="totalItems"
-                @update:currentPage="emit('update:currentPage', $event)"
-              />
+          <tr v-if="hasPagination && items && items.length > 0" class="mt-4 block w-full">
+            <td :colspan="headers.length" class="p-0 border-none bg-transparent w-full block">
+              <TablePagination :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
+                @update:currentPage="emit('update:currentPage', $event)" />
             </td>
           </tr>
         </template>

@@ -1,71 +1,40 @@
 <template>
-  <div
-    class="flex items-center justify-between px-2xl py-lg bg-white border-b border-outline-std min-h-[80px] w-full"
-  >
+  <div class="flex items-center justify-between p-lg bg-white min-h-[80px] w-full">
     <div class="flex flex-col gap-[2px]">
       <h2 v-if="title" class="text-xl font-extrabold text-content-dark tracking-tight">
         {{ title }}
       </h2>
     </div>
-    <div class="flex items-center gap-md">
-      <SearchBox
-        v-if="hasSearch"
-        :modelValue="searchQuery"
-        @update:modelValue="$emit('update:searchQuery', $event)"
-        :placeholder="searchPlaceholder"
-        variant="default"
-      />
+    <div class="flex items-center gap-lg">
+      <SearchBox v-if="hasSearch" :modelValue="searchQuery" @update:modelValue="$emit('update:searchQuery', $event)"
+        :placeholder="searchPlaceholder" variant="default" class="!w-[350px] flex-shrink-0" />
       <div v-if="hasFilter" class="relative">
-        <AppButton
-          ref="filterToggleRef"
-          variant="secondary"
-          :class="{
-            'ring-2 ring-primary ring-offset-2': currentFilter !== 'all' && currentFilter !== '',
-          }"
-          :style="
-            isActiveFilter
-              ? {
-                  backgroundColor: getStatusTheme(currentFilter).backgroundColor,
-                  color: getStatusTheme(currentFilter).color,
-                  borderColor: getStatusTheme(currentFilter).color + '33',
-                }
-              : {}
-          "
-          @click="toggleFilter"
-        >
-          <img
-            :src="getActionIcon('filter')"
-            class="w-3 h-3 transition-all"
-            :style="
-              isActiveFilter ? { filter: getStatusFilter(currentFilter) } : { filter: 'none' }
-            "
-          />
+        <AppButton ref="filterToggleRef" variant="light" size="md" :class="{
+          'border-px border-primary': currentFilter !== 'all' && currentFilter !== '',
+        }" :style="isActiveFilter
+          ? {
+            backgroundColor: getStatusTheme(currentFilter).backgroundColor,
+            color: getStatusTheme(currentFilter).color,
+          }
+          : {}
+          " @click="toggleFilter">
+          <img :src="getActionIcon('filter')" class="w-4 h-4 transition-all"
+            :style="{ filter: getStatusFilter(isActiveFilter ? currentFilter : 'filter') }" />
           <span class="font-bold">{{ activeFilterLabel }}</span>
         </AppButton>
         <Teleport to="body">
-          <transition
-            enter-active-class="transition duration-200 ease-out"
-            enter-from-class="transform scale-95 opacity-0"
-            enter-to-class="transform scale-100 opacity-100"
-            leave-active-class="transition duration-150 ease-in"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-          >
-            <div
-              v-if="isFilterOpen"
+          <transition enter-active-class="transition duration-200 ease-out"
+            enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+            leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+            leave-to-class="opacity-0">
+            <div v-if="isFilterOpen"
               class="fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[150px] overflow-hidden"
-              :style="filterMenuStyles"
-              @mousedown.stop
-            >
-              <div
-                v-for="option in filterOptions"
-                :key="option.value"
+              :style="filterMenuStyles" @mousedown.stop>
+              <div v-for="option in filterOptions" :key="option.value"
                 class="px-md py-sm text-sm font-semibold cursor-pointer transition-colors rounded-sm hover:bg-surface-subtle select-none"
                 :class="{
                   'bg-primary-soft text-primary font-bold': currentFilter === option.value,
-                }"
-                @click.stop="selectFilter(option.value)"
-              >
+                }" @click.stop="selectFilter(option.value)">
                 {{ option.label }}
               </div>
             </div>
