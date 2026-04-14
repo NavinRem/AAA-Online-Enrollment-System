@@ -115,6 +115,19 @@ export const programService = {
     })
   },
 
+  updateClass(id, data) {
+    return request(`/classes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
+
+  deleteClass(id) {
+    return request(`/classes/${id}`, {
+      method: 'DELETE',
+    })
+  },
+
   duplicateClasses(data) {
     return request('/classes/duplicate', {
       method: 'POST',

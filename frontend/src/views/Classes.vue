@@ -1,3 +1,4 @@
+<template>
   <DashboardLayout>
     <DataPageLayout overviewTitle="Class Overview">
       <template #overview>
@@ -5,14 +6,8 @@
       </template>
 
       <template #table>
-        <DataTable
-          title="Class List"
-          :headers="classHeaders"
-          :items="filteredClasses"
-          :loading="loading"
-          :flexible="true"
-          searchPlaceholder="Search classes by program, teacher, or branch..."
-        >
+        <DataTable title="Class List" :headers="classHeaders" :items="filteredClasses" :loading="loading"
+          :flexible="true" searchPlaceholder="Search classes by program, teacher, or branch...">
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="!rounded-std shadow-sm" @click="openAddModal">
               <img :src="getActionIcon('plus')" class="w-3.5 h-3.5 brightness-0 invert mt-px" />
@@ -22,27 +17,22 @@
 
           <template #row="{ item, index, headers }">
             <tr class="ui-row">
-              <td
-                class="ui-cell text-center font-bold text-content-muted/40 hidden md:table-cell"
-                :style="{ width: headers[0].width }"
-              >
+              <td class="ui-cell text-center font-bold text-content-muted/40 hidden md:table-cell"
+                :style="{ width: headers[0].width }">
                 {{ index + 1 }}
               </td>
               <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
                 <div class="ui-identity-cell">
                   <div class="ui-avatar-sm ring-1 ring-border bg-white">
-                    <img
-                      :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)"
-                      alt="program"
-                    />
+                    <img :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)" alt="program" />
                   </div>
                   <div class="ui-identity-info">
                     <span class="font-bold text-content-dark">{{
                       item.program?.name || 'Unknown Program'
-                    }}</span>
+                      }}</span>
                     <span class="text-3xs text-content-muted uppercase font-bold tracking-tight">{{
                       item.program?.category
-                    }}</span>
+                      }}</span>
                   </div>
                 </div>
               </td>
@@ -55,10 +45,7 @@
               <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
                 <div v-if="item.teacher" class="ui-identity-cell">
                   <div class="ui-avatar-sm">
-                    <img
-                      :src="item.teacher.profileURL || getImageUrl('profiles/avatar-parent')"
-                      alt="teacher"
-                    />
+                    <img :src="item.teacher.profileURL || getImageUrl('profiles/avatar-parent')" alt="teacher" />
                   </div>
                   <span class="font-bold text-xs text-content-dark">{{ item.teacher.name }}</span>
                 </div>
@@ -68,29 +55,23 @@
                 <div class="flex flex-col gap-0.5">
                   <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
                     item.day
-                  }}</span>
+                    }}</span>
                   <span class="text-3xs text-content-muted font-bold uppercase">{{ item.timeslot }}</span>
                 </div>
               </td>
               <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[6].width }">
                 <div class="flex flex-col items-center gap-1 w-full">
                   <div class="w-16 h-1.5 bg-surface-light rounded-full overflow-hidden">
-                    <div
-                      class="h-full transition-all duration-500 rounded-full"
-                      :style="{ width: (item.numStudent / item.capacity) * 100 + '%' }"
-                      :class="getCapacityClass(item)"
-                    ></div>
+                    <div class="h-full transition-all duration-500 rounded-full"
+                      :style="{ width: (item.numStudent / item.capacity) * 100 + '%' }" :class="getCapacityClass(item)">
+                    </div>
                   </div>
-                  <span class="text-3xs font-black text-content-muted uppercase tracking-widest"
-                    >{{ item.numStudent }}/{{ item.capacity }}</span
-                  >
+                  <span class="text-3xs font-black text-content-muted uppercase tracking-widest">{{ item.numStudent
+                    }}/{{ item.capacity }}</span>
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-                <StatusBadge
-                  :status="item.status"
-                  :type="item.status === 'open' ? 'success' : 'neutral'"
-                />
+                <StatusBadge :status="item.status" :type="item.status === 'open' ? 'success' : 'neutral'" />
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[8].width }">
                 <div class="ui-action-menu">
@@ -106,19 +87,16 @@
     </DataPageLayout>
   </DashboardLayout>
 
-  <ClassActionModal
-    :isOpen="modal.isOpen"
-    :type="modal.type"
-    :classItem="modal.classItem"
-    :loading="modal.loading"
-    @close="closeModal"
-    @submit="handleModalSubmit"
-  />
+  <ClassActionModal :isOpen="modal.isOpen" :type="modal.type" :classItem="modal.classItem" :loading="modal.loading"
+    @close="closeModal" @submit="handleModalSubmit" />
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DataPageLayout from '@/components/layout/DataPageLayout.vue'
+import DataMetrics from '@/components/common/data/DataMetrics.vue'
+import DataTable from '@/components/common/data/DataTable.vue'
 import StatusBadge from '@/components/common/ui/StatusBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
@@ -213,7 +191,7 @@ const handleModalSubmit = async (formData) => {
     if (modal.value.type === 'add') {
       await programService.createClass(formData)
     } else if (modal.value.type === 'edit') {
-      await programService.updateProgram(modal.value.classItem.id, formData) // Need to add updateClass to service
+      await programService.updateClass(modal.value.classItem.id, formData)
     } else if (modal.value.type === 'duplicate') {
       await programService.duplicateClasses(formData)
     }
