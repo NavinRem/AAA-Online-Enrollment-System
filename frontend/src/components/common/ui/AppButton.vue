@@ -1,28 +1,19 @@
 <template>
-  <button
-    class="inline-flex items-center justify-center gap-xs font-bold cursor-pointer border border-transparent whitespace-nowrap transition-all duration-200"
-    :class="[
-      variantClasses[variant] || variantClasses.primary,
-      sizeClasses[size] || sizeClasses.md,
-      {
-        'opacity-60 cursor-not-allowed pointer-events-none': disabled || loading,
-        'opacity-80 cursor-wait': loading,
-        'p-xs rounded-full': iconOnly,
-        'rounded-std': !iconOnly && size !== 'lg' && size !== 'sm',
-        'rounded-sm': !iconOnly && size === 'sm',
-        'rounded-[14px]': !iconOnly && size === 'lg',
-      },
-    ]"
-    :style="buttonStyle"
-    :type="type"
-    :disabled="disabled || loading"
-    @click="$emit('click', $event)"
-  >
+  <button class="flex items-center justify-center gap-xs font-bold cursor-pointer whitespace-nowrap" :class="[
+    variantClasses[variant] || variantClasses.primary,
+    sizeClasses[size] || sizeClasses.md,
+    {
+      'opacity-60 cursor-not-allowed pointer-events-none': disabled || loading,
+      'opacity-80 cursor-wait': loading,
+      'p-xs rounded-full': iconOnly,
+      'rounded-std': !iconOnly && size !== 'lg' && size !== 'sm',
+      'rounded-sm': !iconOnly && size === 'sm',
+      'rounded-[14px]': !iconOnly && size === 'lg',
+    },
+  ]" :style="buttonStyle" :type="type" :disabled="disabled || loading" @click="$emit('click', $event)">
     <!-- Loading Spinner -->
-    <span
-      v-if="loading"
-      class="w-4 h-4 border-2 border-white/40 border-t-current rounded-full animate-spin mr-[-4px]"
-    ></span>
+    <span v-if="loading"
+      class="w-4 h-4 border-2 border-white/40 border-t-current rounded-full animate-spin mr-[-4px]"></span>
 
     <!-- Left Icon Slot -->
     <span v-if="$slots['icon-left'] && !loading" class="flex items-center justify-center">
@@ -30,18 +21,13 @@
     </span>
 
     <!-- Standard Icon -->
-    <span
-      v-if="icon && !loading"
-      class="flex items-center justify-center material-symbols-rounded text-[1.25em]"
-      >{{ icon }}</span
-    >
+    <span v-if="icon && !loading" class="flex items-center justify-center text-[1.25em]">{{
+      icon }}</span>
 
     <!-- Content -->
-    <span
-      v-if="!iconOnly && ($slots.default || text)"
-      class="transition-opacity duration-200"
-      :class="{ 'opacity-30': loading }"
-    >
+    <span v-if="!iconOnly && ($slots.default || text)"
+      class="w-full flex items-center justify-center gap-xs transition-opacity duration-200"
+      :class="{ 'opacity-30': loading }">
       <slot>{{ text }}</slot>
     </span>
 
@@ -81,7 +67,7 @@ const variantClasses = {
 
 const sizeClasses = {
   sm: 'px-3 py-1 text-xs',
-  md: 'px-5 py-2 text-sm',
+  md: 'px-5 py-3 text-sm',
   lg: 'px-8 py-3 text-base font-black',
 }
 

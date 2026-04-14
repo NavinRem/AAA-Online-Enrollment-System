@@ -42,6 +42,11 @@
       >
         <slot name="suffix"></slot>
       </div>
+      <div
+        v-if="disabled"
+        class="absolute inset-0 z-10 cursor-not-allowed"
+        @click.stop="$emit('click-disabled')"
+      ></div>
     </div>
 
     <!-- Error Message -->
@@ -79,7 +84,7 @@ const props = defineProps({
   inputClass: String,
 })
 
-defineEmits(['update:modelValue'])
+defineEmits(['update:modelValue', 'click-disabled'])
 
 const isPasswordVisible = ref(false)
 
