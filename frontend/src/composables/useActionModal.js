@@ -23,6 +23,7 @@ export function useActionModal(props, emit, options = {}) {
     shaking,
     validate,
     clearError,
+    triggerShake,
     resetForm,
   } = useForm(getInitial(), {
     autoClear: options.autoClear || 2000,
@@ -92,6 +93,7 @@ export function useActionModal(props, emit, options = {}) {
     shaking,
     validate,
     clearError,
+    triggerShake,
     resetForm,
     submitForm: executeSubmit,
     sync,

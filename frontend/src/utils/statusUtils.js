@@ -71,6 +71,7 @@ const STATUS_CATEGORIES = {
     'aeon',
     'high-students',
     'registered-today',
+    'filter',
   ],
   purple: [
     'make-up',
@@ -111,17 +112,17 @@ const THEMES = {
 }
 
 const THEME_FILTERS = {
-  green: 'invert(34%) sepia(35%) saturate(1005%) hue-rotate(85deg) brightness(97%) contrast(85%)',
-  yellow: 'invert(53%) sepia(99%) saturate(718%) hue-rotate(5deg) brightness(96%) contrast(102%)',
-  orange: 'invert(35%) sepia(87%) saturate(2470%) hue-rotate(15deg) brightness(95%) contrast(105%)',
-  red: 'invert(19%) sepia(91%) saturate(3015%) hue-rotate(352deg) brightness(85%) contrast(101%)',
-  blue: 'invert(18%) sepia(93%) saturate(3147%) hue-rotate(211deg) brightness(91%) contrast(101%)',
+  green: 'invert(55%) sepia(86%) saturate(382%) hue-rotate(113deg) brightness(95%) contrast(89%)',
+  yellow: 'invert(61%) sepia(95%) saturate(1633%) hue-rotate(1deg) brightness(101%) contrast(93%)',
+  orange: 'invert(24%) sepia(99%) saturate(3736%) hue-rotate(16deg) brightness(94%) contrast(101%)',
+  red: 'invert(39%) sepia(81%) saturate(2314%) hue-rotate(336deg) brightness(95%) contrast(97%)',
+  blue: 'invert(51%) sepia(87%) saturate(2371%) hue-rotate(167deg) brightness(101%) contrast(105%)',
   purple:
-    'invert(14%) sepia(91%) saturate(4174%) hue-rotate(274deg) brightness(88%) contrast(101%)',
+    'invert(16%) sepia(94%) saturate(3848%) hue-rotate(282deg) brightness(79%) contrast(110%)',
   magenta:
-    'invert(12%) sepia(97%) saturate(5451%) hue-rotate(328deg) brightness(86%) contrast(101%)',
-  teal: 'invert(34%) sepia(21%) saturate(3014%) hue-rotate(136deg) brightness(92%) contrast(93%)',
-  gray: 'invert(41%) sepia(4%) saturate(546%) hue-rotate(173deg) brightness(94%) contrast(91%)',
+    'invert(18%) sepia(61%) saturate(6015%) hue-rotate(323deg) brightness(85%) contrast(106%)',
+  teal: 'invert(24%) sepia(87%) saturate(638%) hue-rotate(130deg) brightness(96%) contrast(93%)',
+  gray: 'invert(38%) sepia(10%) saturate(394%) hue-rotate(170deg) brightness(94%) contrast(89%)',
 }
 
 export { THEMES }
