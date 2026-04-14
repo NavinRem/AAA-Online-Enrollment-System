@@ -17,9 +17,8 @@
           :disabled="!form.parentId || isSelectionLocked" :error="errors.studentId" :shake="shaking.studentId"
           @change="handleStudentChange" @click-disabled="handleDisabledClick('studentId')" />
 
-        <!-- Program Selection -->
         <AppSelect v-model="form.programId"
-          :items="availableProgramsForStudent.map((p) => ({ id: p.id, name: p.title, profileURL: p.profileURL }))"
+          :items="availableProgramsForStudent.map((p) => ({ id: p.id, name: p.name, profileURL: p.profileURL }))"
           label="Program Name" placeholder="Choose Program..." required class="col-span-2 sm:col-span-1"
           :disabled="!form.studentId" :error="errors.programId" :shake="shaking.programId" @change="handleProgramChange"
           @click-disabled="handleDisabledClick('programId')" />
@@ -117,61 +116,6 @@
               </transition>
             </div>
           </div>
-          <div class="flex flex-col gap-md bg-white p-xl rounded-sm border-2 border-outline-std shadow-sm">
-            <span
-              class="text-2xs font-black text-content-muted uppercase tracking-[2px] border-b border-outline-std/40 pb-1 mb-1">Economic
-              Adjustments</span>
-            <div class="flex flex-col gap-lg">
-              <label class="flex items-center justify-between cursor-pointer group">
-                <span
-                  class="text-xs font-black uppercase text-content-dark group-hover:text-primary transition-colors tracking-tighter">Proration
-                  logic</span>
-                <div
-                  class="relative inline-flex items-center h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out bg-border"
-                  :class="{ 'bg-primary': form.isProrated }">
-                  <input type="checkbox" v-model="form.isProrated" class="sr-only" />
-                  <span
-                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"
-                    :class="form.isProrated ? 'translate-x-5' : 'translate-x-0'"></span>
-                </div>
-              </label>
-
-              <AppInput v-model.number="form.discountAmount" type="number" label="Manual Discount ($)" placeholder="0"
-                @input="clearError('discountAmount')">
-                <template #suffix>
-                  <span class="text-xs font-black text-content-muted">$</span>
-                </template>
-              </AppInput>
-
-              <div class="h-px bg-border/40"></div>
-
-              <label class="flex items-center justify-between cursor-pointer group">
-                <span
-                  class="text-xs font-black uppercase text-content-dark group-hover:text-error transition-colors tracking-tighter">Custom
-                  override</span>
-                <div
-                  class="relative inline-flex items-center h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out bg-border"
-                  :class="{ 'bg-error': form.isCustomPrice }">
-                  <input type="checkbox" v-model="form.isCustomPrice" class="sr-only" />
-                  <span
-                    class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"
-                    :class="form.isCustomPrice ? 'translate-x-5' : 'translate-x-0'"></span>
-                </div>
-              </label>
-
-              <transition enter-active-class="transition duration-200 ease-out"
-                enter-from-class="opacity-0 -translate-y-2" enter-to-class="opacity-100 translate-y-0">
-                <div v-if="form.isCustomPrice">
-                  <AppInput v-model.number="form.customPrice" type="number" label="Custom Override Price ($)"
-                    placeholder="0" inputClass="border-error focus:ring-error/20" @input="clearError('customPrice')">
-                    <template #suffix>
-                      <span class="text-xs font-black text-error">$</span>
-                    </template>
-                  </AppInput>
-                </div>
-              </transition>
-            </div>
-          </div>
 
           <div class="flex flex-col gap-lg">
             <div
@@ -203,7 +147,7 @@
       </transition>
 
       <!-- Remarks Section -->
-      <div class="flex flex-col gap-xs mt-md">
+      <div class="flex flex-col gap-xs mt-md" v-if="selectedClass">
         <label class="text-xs font-black uppercase text-content-muted tracking-widest">Administrative Audit
           Remarks</label>
         <div class="flex flex-wrap gap-xs mb-sm bg-surface-light p-2 rounded-sm border border-outline-std/20">

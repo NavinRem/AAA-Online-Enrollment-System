@@ -57,11 +57,11 @@ class ProfileHelper {
 
     return {
       id: programId,
-      name: data.name || data.title, // Handle migration
+      name: data.name,
       category: data.category,
-      sessionNumber: data.sessionNumber || data.totalSessions || 0,
+      sessionNumber: data.sessionNumber || 0,
       weeksNumber: data.weeksNumber || 0,
-      basePrice: data.basePrice || data.price || 0,
+      basePrice: data.basePrice || 0,
       maxCapacity: data.maxCapacity || 0,
       type: data.type || 'group',
       profileURL: data.profileURL,

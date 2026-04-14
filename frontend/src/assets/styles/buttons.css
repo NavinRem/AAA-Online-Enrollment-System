@@ -1,0 +1,35 @@
+/* ==========================================================================
+   BUTTONS — Reusable button patterns
+   ========================================================================== */
+
+@layer components {
+  /* --- Back Button (Reusable) --- */
+  .ui-back-button {
+    @apply flex items-center gap-xs px-md py-sm rounded-sm text-xs font-bold transition-all border border-primary/20 shadow-sm;
+    background-color: var(--primary-soft);
+    color: var(--primary-deep);
+  }
+
+  .ui-back-button:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-color);
+  }
+
+  .ui-back-button img,
+  .ui-back-button svg {
+    @apply w-3 h-3 transition-transform duration-200;
+    opacity: 0.8;
+    filter: invert(40%) sepia(100%) saturate(400%) hue-rotate(170deg) brightness(90%) contrast(100%);
+  }
+
+  .ui-back-button:hover img,
+  .ui-back-button:hover svg {
+    @apply -translate-x-0.5;
+    opacity: 1;
+  }
+
+  /* --- Dots Menu Button --- */
+  .ui-btn-dots {
+    @apply bg-surface-light w-8 h-8 rounded-full flex items-center justify-center text-content-muted transition-all hover:bg-outline-std hover:text-content-dark;
+  }
+}

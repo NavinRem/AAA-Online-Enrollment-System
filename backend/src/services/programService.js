@@ -111,11 +111,15 @@ class ProgramService {
       }),
     )
 
-    return programs.map((p) => ({
-      ...p,
-      category: categoriesMap[p.categoryId] || p.category,
-      levelName: levelsMap[p.levelId] || p.level,
-    }))
+    return programs.map((p) => {
+      return {
+        ...p,
+        name: p.name,
+        category: categoriesMap[p.categoryId] || p.category,
+        levelName: levelsMap[p.levelId] || p.level,
+        profileURL: p.profileURL,
+      }
+    })
   }
 
   async updateProgram(id, updateData) {

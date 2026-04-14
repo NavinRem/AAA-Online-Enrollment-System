@@ -1,0 +1,99 @@
+/* ==========================================================================
+   TABLES — Data table patterns
+   ========================================================================== */
+
+@layer components {
+  /* --- Table Core --- */
+  .ui-table {
+    @apply w-full border-separate border-spacing-0 text-left flex flex-col flex-1 min-h-0 overflow-hidden;
+  }
+
+  .ui-row {
+    @apply transition-all duration-200 cursor-pointer w-full bg-white min-h-[64px];
+  }
+
+  .ui-row:hover {
+    @apply bg-[var(--accent-light)];
+  }
+
+  .ui-row-new {
+    @apply ring-2 ring-primary bg-primary-soft;
+  }
+
+  .ui-cell {
+    @apply px-md py-sm text-base transition-colors;
+    display: table-cell;
+    vertical-align: middle;
+    min-height: inherit;
+  }
+
+  .ui-cell.text-center {
+    text-align: center;
+  }
+
+  .ui-header-cell {
+    @apply px-md py-md text-content-muted text-xs font-black uppercase tracking-widest border-b border-outline-std bg-surface-subtle/50 sticky top-0 whitespace-nowrap;
+    z-index: var(--z-sticky-header);
+  }
+
+  .ui-footer-row {
+    @apply block w-full mt-xl shadow-none bg-transparent hover:transform-none;
+  }
+
+  /* --- Identity & Avatar Patterns --- */
+  .ui-identity-cell {
+    @apply flex items-center gap-md;
+  }
+
+  .ui-identity-info {
+    @apply flex flex-col leading-tight;
+  }
+
+  .ui-avatar {
+    @apply w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm bg-surface-light flex-shrink-0;
+  }
+
+  .ui-avatar-sm {
+    @apply w-8 h-8 rounded-full overflow-hidden border-white shadow-sm bg-surface-light flex-shrink-0;
+    border-width: 2px;
+  }
+
+  .ui-avatar img {
+    @apply w-full h-full object-cover;
+  }
+
+  /* --- Stack Patterns --- */
+  .ui-avatar-stack {
+    @apply flex items-center;
+  }
+
+  .ui-stack-item {
+    @apply -ml-2.5 w-7 h-7 rounded-full overflow-hidden border-2 border-white shadow-sm bg-surface-light transition-transform duration-200;
+  }
+
+  .ui-stack-item:first-child {
+    @apply ml-0;
+  }
+
+  .ui-stack-item:hover {
+    @apply z-50 -translate-y-0.5 scale-110;
+  }
+
+  /* --- Action & Dropdown Patterns --- */
+  .ui-action-menu {
+    @apply relative flex items-center justify-center;
+  }
+
+  .ui-dropdown-menu {
+    @apply fixed bg-white rounded-md shadow-2xl border border-outline-std p-xs min-w-[160px] overflow-hidden;
+    z-index: var(--z-dropdown);
+  }
+
+  .ui-dropdown-item {
+    @apply w-full p-md text-sm font-semibold cursor-pointer transition-colors rounded-sm flex items-center gap-sm hover:bg-surface-subtle select-none;
+  }
+
+  .ui-dropdown-item-info { @apply hover:bg-primary-soft hover:text-primary !opacity-100; }
+  .ui-dropdown-item-success { @apply hover:bg-success-soft hover:text-success !opacity-100; }
+  .ui-dropdown-item-danger { @apply hover:bg-error-soft hover:text-error !opacity-100; }
+}

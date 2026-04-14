@@ -16,14 +16,8 @@
     >
       <div class="text-5xl">⚠️</div>
       <p class="text-xl font-bold text-content-dark">{{ errorMessage }}</p>
-      <button
-        class="flex items-center gap-xs px-6 py-2.5 bg-white border border-outline-std rounded-std text-sm font-bold text-content-muted hover:text-primary hover:border-primary transition-all shadow-sm group"
-        @click="goBack"
-      >
-        <img
-          :src="getActionIcon('back')"
-          class="w-4 h-4 opacity-60 group-hover:opacity-100 group-hover:-translate-x-1 transition-all"
-        />
+      <button class="ui-back-button" @click="goBack">
+        <img :src="getActionIcon('back')" />
         Back to Safety
       </button>
     </div>
@@ -35,14 +29,8 @@
         <!-- Left Content (Main) -->
         <div class="md:col-span-8 flex flex-col gap-lg min-h-0">
           <div class="flex items-center justify-between min-h-[48px]">
-            <button
-              class="flex items-center gap-xs px-md py-sm bg-white border border-outline-std rounded-sm text-xs font-bold text-content-muted hover:text-primary hover:border-primary transition-all shadow-sm group"
-              @click="goBack"
-            >
-              <img
-                :src="getActionIcon('back')"
-                class="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:-translate-x-0.5 transition-all"
-              />
+            <button class="ui-back-button" @click="goBack">
+              <img :src="getActionIcon('back')" />
               Back
             </button>
             <div class="flex items-center gap-md">
