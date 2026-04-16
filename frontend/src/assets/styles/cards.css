@@ -174,4 +174,55 @@
     color: var(--magenta-deep);
     border: 1px solid rgba(194, 24, 91, 0.2);
   }
+
+  /* --- Administrative Identity Banner --- */
+  .ui-identity-banner {
+    @apply flex items-center gap-xl px-2xl py-xl rounded-std mb-xl relative overflow-hidden shadow-lg border border-white/20 transition-all duration-500;
+  }
+
+  .ui-identity-banner::after {
+    @apply content-[''] absolute top-0 right-0 bottom-0 w-40 bg-gradient-to-l from-white/10 to-transparent pointer-events-none;
+  }
+
+  .ui-identity-avatar {
+    @apply w-20 h-20 rounded-sm border-[4px] border-white shadow-2xl overflow-hidden flex-shrink-0 bg-white transition-transform duration-300;
+  }
+
+  .ui-identity-avatar-round {
+    @apply w-16 h-16 rounded-full border-[3px] border-white shadow-lg overflow-hidden flex-shrink-0 bg-white transition-transform duration-300;
+  }
+
+  .ui-identity-banner:hover .ui-identity-avatar,
+  .ui-identity-banner:hover .ui-identity-avatar-round {
+    @apply scale-105;
+  }
+
+  .ui-identity-info {
+    @apply flex flex-col gap-1;
+  }
+
+  .ui-identity-name {
+    @apply text-3xl font-black text-content-dark tracking-tighter leading-none;
+  }
+
+  .ui-identity-name-compact {
+    @apply text-2xl font-black text-content-dark tracking-tighter leading-tight;
+  }
+
+  .ui-identity-meta {
+    @apply flex items-center gap-md mt-1;
+  }
+
+  .ui-identity-meta-compact {
+    @apply text-sm text-content-muted mt-0.5 font-medium flex items-center gap-xs;
+  }
+
+  /* --- Administrative Form Layouts --- */
+  .ui-form-grid {
+    @apply grid grid-cols-2 gap-x-lg gap-y-md;
+  }
+
+  .ui-form-grid-lg {
+    @apply grid grid-cols-2 gap-lg;
+  }
 }

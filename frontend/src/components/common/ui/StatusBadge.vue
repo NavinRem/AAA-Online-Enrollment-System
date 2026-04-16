@@ -1,8 +1,7 @@
 <template>
   <span
-    class="inline-flex items-center justify-center px-3 py-[3px] rounded-full text-sm font-bold leading-none whitespace-nowrap text-center transition-all"
-    :style="badgeStyle"
-  >
+    class="inline-flex items-center justify-center w-fit px-3 py-[3px] rounded-full text-sm font-bold leading-none whitespace-nowrap text-center transition-all"
+    :style="badgeStyle">
     <slot>{{ displayStatus }}</slot>
   </span>
 </template>

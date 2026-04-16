@@ -11,19 +11,46 @@ const handleImageError = (e) => {
 </script>
 
 <template>
-  <div
-    class="rounded-std p-md sm:p-lg flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-1 shadow-sm border border-outline-std bg-[var(--accent-light)] group">
+  <div class="summary-card-root">
     <div class="flex flex-col items-center justify-between h-full w-full gap-xs">
-      <h3 class="text-2xs sm:text-xs font-black text-content-muted tracking-widest uppercase mb-1">
+      <h3 class="summary-title">
         {{ title }}
       </h3>
-      <div class="w-full h-[60px] sm:h-[85px] flex items-center justify-center my-1 sm:my-2 overflow-hidden">
-        <img :src="image" :alt="title" @error="handleImageError"
-          class="w-[100px] sm:w-[100px] h-[100px] sm:h-[100px] object-contain transition-transform duration-500 group-hover:scale-110" />
+      <div class="summary-image-box">
+        <img :src="image" :alt="title" @error="handleImageError" class="summary-image" />
       </div>
-      <div class="text-2xl sm:text-3xl font-black text-content-dark tracking-tighter">
+      <div class="summary-value">
         {{ value }}
       </div>
     </div>
   </div>
 </template>
+<style scoped>
+.summary-card-root {
+  @apply rounded-std p-md sm:p-lg flex flex-col items-center text-center shadow-sm border border-outline-std bg-[var(--accent-light)];
+}
+
+.summary-card-root:hover {
+  @apply -translate-y-1;
+}
+
+.summary-title {
+  @apply text-2xs sm:text-xs font-black text-content-muted tracking-widest uppercase mb-1;
+}
+
+.summary-image-box {
+  @apply w-full h-[60px] sm:h-[85px] flex items-center justify-center my-1 sm:my-2 overflow-hidden;
+}
+
+.summary-image {
+  @apply w-[100px] sm:w-[100px] h-[100px] sm:h-[100px] object-contain transition-transform duration-500;
+}
+
+.group:hover .summary-image {
+  @apply scale-110;
+}
+
+.summary-value {
+  @apply text-2xl sm:text-3xl font-black text-content-dark tracking-tighter;
+}
+</style>

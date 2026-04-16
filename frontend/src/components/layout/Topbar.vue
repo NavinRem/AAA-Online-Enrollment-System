@@ -46,19 +46,16 @@ onMounted(() => {
 </script>
 
 <template>
-  <header
-    class="flex items-center justify-between p-4 px-8 bg-surface-light/95 w-full sticky top-0 z-50 backdrop-blur-md border-b border-surface-light/50"
-  >
+  <header class="topbar-root">
     <div class="flex items-center gap-md">
       <button
         class="lg:hidden flex flex-col items-center justify-center gap-[5px] w-10 h-10 bg-white shadow-sm rounded-std"
-        @click="emit('toggle-menu')"
-      >
+        @click="emit('toggle-menu')">
         <span class="w-6 h-0.5 bg-text-dark rounded-full"></span>
         <span class="w-6 h-0.5 bg-text-dark rounded-full"></span>
         <span class="w-6 h-0.5 bg-text-dark rounded-full"></span>
       </button>
-      <h1 class="text-2xl font-extrabold text-content-dark whitespace-nowrap tracking-tight">
+      <h1 class="topbar-title">
         {{ pageTitle }}
       </h1>
     </div>
@@ -68,36 +65,57 @@ onMounted(() => {
     </div>
 
     <div class="flex items-center gap-md">
-      <button
-        class="hidden sm:flex bg-white w-10 h-10 rounded-full items-center justify-center shadow-md shadow-black/5 cursor-pointer hover:bg-white hover:ring-4 hover:ring-primary/5 transition-all"
-      >
-        <img
-          :src="getIconUrl('action', 'bell-svgrepo.svg')"
-          alt="Notifications"
-          class="w-5 opacity-60"
-        />
+      <button class="topbar-action-btn">
+        <img :src="getIconUrl('action', 'bell-svgrepo.svg')" alt="Notifications" class="w-5 opacity-60" />
       </button>
-      <button
-        class="hidden sm:flex bg-white w-10 h-10 rounded-full items-center justify-center shadow-md shadow-black/5 cursor-pointer hover:bg-white hover:ring-4 hover:ring-primary/5 transition-all"
-      >
+      <button class="topbar-action-btn">
         <img :src="getIconUrl('navigation', 'setting.svg')" alt="Settings" class="w-5 opacity-60" />
       </button>
 
-      <div
-        class="flex items-center gap-sm bg-white p-1.5 pl-6 rounded-full shadow-md shadow-black/5 ml-sm border border-outline-std/50 group hover:border-primary/20 transition-all cursor-pointer"
-      >
+      <div class="topbar-user-pill">
         <div class="flex flex-col text-right">
           <span class="font-extrabold text-xs text-content-dark leading-tight">{{ userName }}</span>
           <span class="text-2xs font-bold text-content-muted uppercase tracking-wider">{{
             userRole
           }}</span>
         </div>
-        <div
-          class="w-10 h-10 rounded-full overflow-hidden border border-outline-std/50 bg-primary/5 group-hover:scale-105 transition-transform"
-        >
+        <div class="topbar-user-avatar">
           <img :src="avatarUrl" alt="Profile" class="w-full h-full object-cover" />
         </div>
       </div>
     </div>
   </header>
 </template>
+<style scoped>
+.topbar-root {
+  @apply flex items-center justify-between p-4 px-8 bg-surface-light/95 w-full sticky top-0 z-50 backdrop-blur-md border-b border-surface-light/50;
+}
+
+.topbar-title {
+  @apply text-2xl font-extrabold text-content-dark whitespace-nowrap tracking-tight;
+}
+
+.topbar-action-btn {
+  @apply hidden sm:flex bg-white w-10 h-10 rounded-full items-center justify-center shadow-md shadow-black/5 cursor-pointer transition-all;
+}
+
+.topbar-action-btn:hover {
+  @apply bg-white ring-4 ring-primary/5;
+}
+
+.topbar-user-pill {
+  @apply flex items-center gap-sm bg-white p-1.5 pl-6 rounded-full shadow-md shadow-black/5 ml-sm border border-outline-std/50 cursor-pointer;
+}
+
+.topbar-user-pill:hover {
+  @apply border-primary/20;
+}
+
+.topbar-user-avatar {
+  @apply w-10 h-10 rounded-full overflow-hidden border border-outline-std/50 bg-primary/5 transition-transform;
+}
+
+.group:hover .topbar-user-avatar {
+  @apply scale-105;
+}
+</style>

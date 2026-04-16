@@ -1,18 +1,18 @@
 <template>
-  <div class="avatar-selector w-full flex flex-col gap-xs" :class="{ 'animate-shake': shake }">
+  <div class="avatar-selector-root" :class="{ 'animate-shake': shake }">
     <div
-      class="selector-container flex items-center justify-between bg-surface-subtle p-md px-xl rounded-std border-2 transition-all"
+      class="avatar-selector-container"
       :class="error ? 'border-error bg-error-soft' : 'border-outline-std'"
     >
       <div class="avatar-gallery flex gap-4">
         <div
           v-for="avatar in availableAvatars"
           :key="avatar.id + avatar.url"
-          class="avatar-option relative w-14 h-14 rounded-full cursor-pointer border-2 transition-all p-0.5 bg-white"
+          class="avatar-item"
           :class="
             isSelected(avatar.url)
-              ? 'border-primary ring-4 ring-primary/5'
-              : 'border-transparent hover:border-text-light'
+              ? 'avatar-item--active'
+              : 'avatar-item--inactive'
           "
           @click="selectAvatar(avatar.url)"
         >
@@ -32,7 +32,7 @@
         <!-- Custom Slot -->
         <div
           v-if="customAvatar"
-          class="avatar-option relative w-14 h-14 rounded-full cursor-pointer border-2 transition-all p-0.5 bg-white border-primary ring-4 ring-primary/5"
+          class="avatar-item avatar-item--custom"
           :class="{
             'opacity-100': isSelected(customAvatar),
             'opacity-60': !isSelected(customAvatar),
@@ -47,7 +47,7 @@
             <i class="fas fa-check"></i>
           </div>
           <button
-            class="remove-avatar-btn absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error text-white border-2 border-white flex items-center justify-center text-[10px] opacity-0 hover:scale-110 transition-all z-10 group-hover:opacity-100 shadow-md"
+            class="avatar-remove-btn"
             @click.stop="removeCustomAvatar"
           >
             <i class="fas fa-times"></i>
@@ -66,7 +66,7 @@
           @change="handleFileUpload"
         />
         <div
-          class="upload-btn w-14 h-14 rounded-full border-2 border-dashed border-text-light flex flex-col items-center justify-center cursor-pointer transition-all bg-white text-content-light/50 hover:border-primary hover:text-primary hover:bg-primary-soft"
+          class="avatar-upload-btn"
           @click="fileInput?.click()"
         >
           <div
@@ -92,13 +92,13 @@
     >
       <div
         v-if="error || props.error"
-        class="text-3xs font-black text-error uppercase tracking-widest pl-1"
+        class="avatar-feedback-err"
       >
         {{ error || props.error }}
       </div>
       <div
         v-else-if="success"
-        class="text-3xs font-black text-success uppercase tracking-widest pl-1 flex items-center gap-1"
+        class="avatar-feedback-success"
       >
         <i class="fas fa-check-circle"></i> Profile upload acknowledged
       </div>
@@ -266,3 +266,44 @@ const handleFileUpload = async (event) => {
   }
 }
 </script>
+<style scoped>
+.avatar-selector-root {
+  @apply w-full flex flex-col gap-xs;
+}
+
+.avatar-selector-container {
+  @apply flex items-center justify-between bg-surface-subtle p-md px-xl rounded-std border-2 transition-all;
+}
+
+.avatar-item {
+  @apply relative w-14 h-14 rounded-full cursor-pointer border-2 transition-all p-0.5 bg-white;
+}
+
+.avatar-item--active {
+  @apply border-primary ring-4 ring-primary/5;
+}
+
+.avatar-item--inactive {
+  @apply border-transparent hover:border-text-light;
+}
+
+.avatar-item--custom {
+  @apply border-primary ring-4 ring-primary/5;
+}
+
+.avatar-remove-btn {
+  @apply absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error text-white border-2 border-white flex items-center justify-center text-[10px] opacity-0 hover:scale-110 transition-all z-10 shadow-md group-hover:opacity-100;
+}
+
+.avatar-upload-btn {
+  @apply w-14 h-14 rounded-full border-2 border-dashed border-text-light flex flex-col items-center justify-center cursor-pointer transition-all bg-white text-content-light/50 hover:border-primary hover:text-primary hover:bg-primary-soft;
+}
+
+.avatar-feedback-err {
+  @apply text-3xs font-black text-error uppercase tracking-widest pl-1;
+}
+
+.avatar-feedback-success {
+  @apply text-3xs font-black text-success uppercase tracking-widest pl-1 flex items-center gap-1;
+}
+</style>

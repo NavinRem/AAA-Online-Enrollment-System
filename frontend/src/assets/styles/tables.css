@@ -9,7 +9,7 @@
   }
 
   .ui-row {
-    @apply transition-all duration-200 cursor-pointer w-full bg-white min-h-[64px];
+    @apply transition-all duration-200 cursor-pointer w-full bg-white min-h-[52px];
   }
 
   .ui-row:hover {
@@ -21,7 +21,7 @@
   }
 
   .ui-cell {
-    @apply px-md py-sm text-base transition-colors;
+    @apply px-md py-xs text-sm transition-colors;
     display: table-cell;
     vertical-align: middle;
     min-height: inherit;
@@ -32,7 +32,7 @@
   }
 
   .ui-header-cell {
-    @apply px-md py-md text-content-muted text-xs font-black uppercase tracking-widest border-b border-outline-std bg-surface-subtle/50 sticky top-0 whitespace-nowrap;
+    @apply px-md py-sm text-content-muted text-[11px] font-black uppercase tracking-widest border-b border-outline-std bg-surface-subtle/50 sticky top-0 whitespace-nowrap;
     z-index: var(--z-sticky-header);
   }
 
@@ -50,11 +50,11 @@
   }
 
   .ui-avatar {
-    @apply w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm bg-surface-light flex-shrink-0;
+    @apply w-7 h-7 rounded-full overflow-hidden border-2 border-white shadow-sm bg-surface-light flex-shrink-0;
   }
 
   .ui-avatar-sm {
-    @apply w-8 h-8 rounded-full overflow-hidden border-white shadow-sm bg-surface-light flex-shrink-0;
+    @apply w-5 h-5 rounded-full overflow-hidden border-white shadow-sm bg-surface-light flex-shrink-0;
     border-width: 2px;
   }
 
@@ -93,7 +93,25 @@
     @apply w-full p-md text-sm font-semibold cursor-pointer transition-colors rounded-sm flex items-center gap-sm hover:bg-surface-subtle select-none;
   }
 
-  .ui-dropdown-item-info { @apply hover:bg-primary-soft hover:text-primary !opacity-100; }
-  .ui-dropdown-item-success { @apply hover:bg-success-soft hover:text-success !opacity-100; }
-  .ui-dropdown-item-danger { @apply hover:bg-error-soft hover:text-error !opacity-100; }
+  .ui-dropdown-item-info {
+    @apply hover:bg-primary-soft hover:text-primary !opacity-100;
+  }
+  .ui-dropdown-item-info:hover img {
+    filter: invert(42%) sepia(97%) saturate(536%) hue-rotate(166deg) brightness(96%) contrast(101%);
+    opacity: 1;
+  }
+  .ui-dropdown-item-success {
+    @apply hover:bg-success-soft hover:text-success !opacity-100;
+  }
+  .ui-dropdown-item-success:hover img {
+    filter: invert(55%) sepia(74%) saturate(432%) hue-rotate(105deg) brightness(89%) contrast(90%);
+    opacity: 1;
+  }
+  .ui-dropdown-item-danger {
+    @apply hover:bg-error-soft hover:text-error !opacity-100;
+  }
+  .ui-dropdown-item-danger:hover img {
+    filter: invert(32%) sepia(93%) saturate(600%) hue-rotate(330deg) brightness(95%) contrast(95%);
+    opacity: 1;
+  }
 }

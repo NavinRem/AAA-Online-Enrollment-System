@@ -1,11 +1,11 @@
 <template>
-  <div class="flex items-center justify-between p-lg bg-white min-h-[80px] w-full">
-    <div class="flex flex-col gap-[2px]">
-      <h2 v-if="title" class="text-xl font-extrabold text-content-dark tracking-tight">
+  <div class="toolbar-root">
+    <div class="toolbar-title-box">
+      <h2 v-if="title" class="toolbar-title">
         {{ title }}
       </h2>
     </div>
-    <div class="flex items-center gap-lg">
+    <div class="toolbar-actions">
       <SearchBox v-if="hasSearch" :modelValue="searchQuery" @update:modelValue="$emit('update:searchQuery', $event)"
         :placeholder="searchPlaceholder" variant="default" class="!w-[350px] flex-shrink-0" />
       <div v-if="hasFilter" class="relative">
@@ -27,14 +27,10 @@
             enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
             leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
             leave-to-class="opacity-0">
-            <div v-if="isFilterOpen"
-              class="fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[150px] overflow-hidden"
-              :style="filterMenuStyles" @mousedown.stop>
-              <div v-for="option in filterOptions" :key="option.value"
-                class="px-md py-sm text-sm font-semibold cursor-pointer transition-colors rounded-sm hover:bg-surface-subtle select-none"
-                :class="{
-                  'bg-primary-soft text-primary font-bold': currentFilter === option.value,
-                }" @click.stop="selectFilter(option.value)">
+            <div v-if="isFilterOpen" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
+              <div v-for="option in filterOptions" :key="option.value" class="toolbar-filter-option" :class="{
+                'bg-primary-soft text-primary font-bold': currentFilter === option.value,
+              }" @click.stop="selectFilter(option.value)">
                 {{ option.label }}
               </div>
             </div>
@@ -133,3 +129,28 @@ const selectFilter = (val) => {
   isFilterOpen.value = false
 }
 </script>
+<style scoped>
+.toolbar-root {
+  @apply flex items-center justify-between p-md bg-white min-h-[64px] w-full rounded-md;
+}
+
+.toolbar-title-box {
+  @apply flex flex-col gap-[2px];
+}
+
+.toolbar-title {
+  @apply text-lg font-extrabold text-content-dark tracking-tight;
+}
+
+.toolbar-actions {
+  @apply flex items-center gap-lg;
+}
+
+.toolbar-filter-menu {
+  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[150px] overflow-hidden;
+}
+
+.toolbar-filter-option {
+  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-colors rounded-sm hover:bg-surface-subtle select-none;
+}
+</style>

@@ -32,4 +32,17 @@
   .ui-btn-dots {
     @apply bg-surface-light w-8 h-8 rounded-full flex items-center justify-center text-content-muted transition-all hover:bg-outline-std hover:text-content-dark;
   }
+
+  /* --- Premium Primary Button (Glow & Gradient) --- */
+  .ui-btn-premium {
+    @apply shadow-lg shadow-primary/20 transition-all duration-300 !px-xl bg-gradient-to-tr from-primary border-none font-black tracking-tight;
+  }
+
+  .ui-btn-premium:hover:not(:disabled) {
+    @apply shadow-xl shadow-primary/30 -translate-y-px;
+  }
+
+  .ui-btn-premium:disabled {
+    @apply opacity-50 cursor-not-allowed grayscale-[0.2];
+  }
 }

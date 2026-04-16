@@ -1,3 +1,11 @@
+/* ==========================================================================
+   MODULAR COMPONENT IMPORTS (Must be at top)
+   ========================================================================== */
+
+@import './tables.css';
+@import './cards.css';
+@import './buttons.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -127,6 +135,21 @@ body {
   line-height: 1.5;
 }
 
+/* Ensure all interactive & form elements inherit the project font */
+button,
+input,
+select,
+textarea,
+optgroup,
+option,
+a,
+label,
+th,
+td {
+  font-family: inherit;
+  font-size: inherit;
+}
+
 h1,
 h2,
 h3,
@@ -156,14 +179,6 @@ svg {
   font-style: italic;
   opacity: 0.8;
 }
-
-/* ==========================================================================
-   MODULAR COMPONENT IMPORTS
-   ========================================================================== */
-
-@import './tables.css';
-@import './cards.css';
-@import './buttons.css';
 
 /* ==========================================================================
    GLOBAL UTILITIES & OVERRIDES (@layer utilities)
@@ -246,5 +261,28 @@ svg {
 
   .ui-input-invalid-ring {
     @apply ring-4 ring-error/10 !important;
+  }
+
+  /* --- Administrative Field Patterns --- */
+  .ui-remark-textarea {
+    @apply w-full px-md py-sm border-2 rounded-sm bg-white text-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft disabled:bg-surface-light disabled:cursor-not-allowed disabled:opacity-70;
+  }
+
+  .ui-remark-textarea.border-error {
+    border-color: var(--error-color);
+    background-color: var(--error-soft);
+    box-shadow: 0 0 0 3px rgb(239 68 68 / 0.1);
+  }
+
+  .ui-preset-bar {
+    @apply flex flex-wrap gap-xs mt-sm bg-surface-light p-2 rounded-sm border border-outline-std/20;
+  }
+
+  .ui-preset-btn {
+    @apply px-[14px] py-[6px] bg-white border-[1.5px] border-outline-std/50 rounded-[6px] text-xs cursor-pointer font-semibold transition-all hover:bg-primary-soft hover:text-primary hover:border-primary/20;
+  }
+
+  .ui-preset-btn-active {
+    @apply bg-primary text-white border-primary-dark shadow-md scale-105;
   }
 }
