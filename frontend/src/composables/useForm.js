@@ -83,9 +83,10 @@ export function useForm(initialValues = {}, options = {}) {
     })
 
     Object.entries(custom).forEach(([field, validator]) => {
-      const errorMsg = validator(form[field])
-      if (errorMsg) {
-        errors[field] = errorMsg
+      const result = validator(form[field])
+      // If result is a string, it's an error message
+      if (typeof result === 'string') {
+        errors[field] = result
         triggerFeedback(field)
         isValid = false
       }

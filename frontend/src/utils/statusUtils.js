@@ -38,6 +38,7 @@ const STATUS_CATEGORIES = {
     'cash',
     'ph',
     'created at',
+    'parent paid',
   ],
   yellow: [
     'unpaid',
@@ -52,7 +53,7 @@ const STATUS_CATEGORIES = {
     'wing',
     'idle',
   ],
-  magenta: ['unmarked', 'archived', 'full', 'parent', 'ocic', 'high-revenue'],
+  magenta: ['unmarked', 'archived', 'full', 'parent', 'ocic', 'high-revenue', 'private'],
   blue: [
     'graduated',
     'late',
@@ -72,6 +73,9 @@ const STATUS_CATEGORIES = {
     'high-students',
     'registered-today',
     'filter',
+    'group',
+    'student',
+    'sponsored',
   ],
   purple: [
     'make-up',

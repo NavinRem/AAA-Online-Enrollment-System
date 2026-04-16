@@ -75,9 +75,9 @@ const navigateToDetail = (item) => {
             <div class="ui-avatar">
               <img :src="getProgramProfileURL(item.program?.profileURL)" :alt="item.program?.title" />
             </div>
-            <span class="text-sm font-bold text-content-dark truncate block" :title="item.program?.title">{{
-              item.program?.title
-            }}</span>
+            <span class="text-sm font-bold text-content-dark truncate block">{{
+              item.program?.title || item.class?.program?.title || item.programTitle
+              }}</span>
           </div>
         </td>
         <td class="ui-cell !py-4 text-center"

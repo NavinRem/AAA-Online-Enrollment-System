@@ -13,7 +13,7 @@ import { programService } from '@/services/programService'
 import { trackingService } from '@/services/trackingService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/formatUtils'
 import { calculateStudentStatus } from '@/utils/statusUtils'
-import { filterDetailEnrollments, getAcademicStatus } from '@/utils/enrollmentHelper'
+import { filterDetailEnrollments, getAcademicStatus, enrichEnrollments } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 
@@ -454,34 +454,24 @@ const fetchData = async (id) => {
         console.warn('Could not fetch parent context silently', e)
       }
     }
-    const [allEnrollments, allPrograms] = await Promise.all([
+    const [allEnrollments, allPrograms, allParents, allStudents, allClasses] = await Promise.all([
       enrollmentService.getAllEnrollments(),
       programService.getAllPrograms(),
+      userService.getUsersByRole('parent'),
+      userService.getStudents(),
+      programService.getAllClasses(),
     ])
-    const programs = allPrograms || []
-    enrollments.value = (allEnrollments || [])
-      .filter((r) => String(r.studentId || '') === String(id))
-      .map((r) => {
-        const program = programs.find((c) => (c.id || c.uid) === r.programId)
-        return {
-          ...r,
-          programTitle:
-            program?.title ||
-            r.program?.title ||
-            r.programTitle ||
-            r.courseTitle ||
-            'Unknown Program',
-          parentName: r.parent?.name || r.parentName || 'Parent',
-          studentName: r.student?.name || r.studentName || 'Student',
-          termName: program?.termName || program?.term || r.termName || null,
-          schedule: program?.schedule || r.schedule || null,
-          startDate: program?.startDate || r.startDate || null,
-          endDate: program?.endDate || r.endDate || null,
-          sessionSchedule:
-            r.sessionSchedule ||
-            (program?.schedule ? `${program.schedule.day} ${program.schedule.timeslot}` : null),
-        }
-      })
+
+    const sid = String(id)
+    const rawEnrollments = (allEnrollments || []).filter((r) => String(r.studentId || '') === sid)
+
+    enrollments.value = enrichEnrollments(
+      rawEnrollments,
+      allParents,
+      allStudents,
+      allPrograms,
+      allClasses,
+    )
     try {
       const [attendance, progress] = await Promise.all([
         trackingService.getAttendanceHistory(id),
@@ -702,7 +692,7 @@ watch(
                   <td>
                     <div class="flex flex-col">
                       <span class="font-bold text-content-dark">{{
-                        item.programTitle || '-'
+                        item.program?.title || '-'
                       }}</span>
                       <span class="text-3xs text-content-muted uppercase font-black"
                         >Enrolled {{ formatDateOnly(item.enrollAt || item.createdAt) }}</span
@@ -710,24 +700,18 @@ watch(
                     </div>
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="item.termName || '—'" type="blue" />
+                    <StatusBadge :status="item.termName || item.program?.termName || '—'" type="blue" />
                   </td>
                   <td>
-                    <div v-if="item.schedule || item.sessionSchedule" class="flex flex-col">
+                    <div v-if="item.class?.schedule || item.classSchedule" class="flex flex-col">
                       <span
                         class="text-xs font-black text-content-dark uppercase tracking-tighter"
                         >{{
-                          item.schedule?.day ||
-                          (typeof item.sessionSchedule === 'string'
-                            ? item.sessionSchedule.split(' ')[0]
-                            : '')
+                          item.class?.day || (item.classSchedule || '').split(' ')[0]
                         }}</span
                       >
                       <span class="text-2xs text-content-muted font-bold uppercase">{{
-                        item.schedule?.timeslot ||
-                        (typeof item.sessionSchedule === 'string'
-                          ? item.sessionSchedule.split(' ').slice(1).join(' ')
-                          : '')
+                        item.class?.timeslot || (item.classSchedule || '').split(' ').slice(1).join(' ')
                       }}</span>
                     </div>
                     <span v-else class="text-content-muted/30 italic text-xs">N/A</span>

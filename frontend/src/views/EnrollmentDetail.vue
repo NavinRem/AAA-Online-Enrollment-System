@@ -194,16 +194,11 @@ const handleEditSubmit = async (formData) => {
         name: sRecord.fullname || sRecord.fullName || sRecord.name || 'Student',
         profile: sRecord.profile || sRecord.profileURL || sRecord.childProfileURL || null,
       },
-      program: {
-        id: progRecord.id,
-        title: progRecord.title || progRecord.name || 'Program',
-        profile: progRecord.profile || null,
-      },
       class: {
+        ...classRecord, // Includes nested program data if available
         id: classRecord.id,
         schedule: classRecord.day + ' ' + classRecord.timeslot,
       },
-      classSchedule: classRecord.day + ' ' + classRecord.timeslot,
 
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
@@ -339,18 +334,18 @@ onMounted(async () => {
           <DetailCard
             title="Program Details"
             :avatarUrl="
-              getProgramProfileURL(enrollment.program?.profileURL, enrollment.program?.category)
+              getProgramProfileURL(enrollment.class?.program?.profileURL || enrollment.program?.profileURL, enrollment.class?.program?.category || enrollment.program?.category)
             "
           >
-            <p><strong>Program</strong> {{ enrollment.program?.title }}</p>
+            <p><strong>Program</strong> {{ enrollment.class?.program?.title || enrollment.program?.title }}</p>
             <div class="flex flex-col gap-1 mb-md">
               <strong class="text-3xs uppercase font-black tracking-widest text-content-light"
                 >Schedule</strong
               >
               <div class="flex items-center gap-2">
-                <StatusBadge :status="'purple:' + getSessionDay(enrollment.classSchedule)" />
+                <StatusBadge :status="'purple:' + getSessionDay(enrollment.class?.schedule || enrollment.classSchedule)" />
                 <span class="text-xs font-bold text-content-muted">{{
-                  getSessionTime(enrollment.classSchedule)
+                  getSessionTime(enrollment.class?.schedule || enrollment.classSchedule)
                 }}</span>
               </div>
             </div>
@@ -370,7 +365,7 @@ onMounted(async () => {
               </template>
               <template v-else>
                 <span class="text-sm font-bold text-content-dark">
-                  {{ enrollment.numberSessions || enrollment.program?.numberSessions || '10' }}
+                  {{ enrollment.numberSessions || enrollment.class?.program?.sessionNumber || enrollment.program?.numberSessions || '10' }}
                   Sessions
                 </span>
               </template>
@@ -385,17 +380,17 @@ onMounted(async () => {
             title="Class Environment"
             :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)"
           >
-            <p><strong>Curriculum</strong> {{ enrollment.program?.title || 'N/A' }}</p>
+            <p><strong>Curriculum</strong> {{ enrollment.class?.program?.title || enrollment.program?.title || 'N/A' }}</p>
             <div class="flex flex-col gap-1 mb-md">
               <strong class="text-3xs uppercase font-black tracking-widest text-content-light"
                 >Assigned Staff</strong
               >
               <div
-                v-if="enrollment.program?.teachers?.length > 0"
+                v-if="enrollment.class?.program?.teachers?.length > 0 || enrollment.program?.teachers?.length > 0"
                 class="flex -space-x-2 overflow-hidden ring-1 ring-white rounded-full p-0.5 mt-1"
               >
                 <img
-                  v-for="t in enrollment.program.teachers"
+                  v-for="t in (enrollment.class?.program?.teachers || enrollment.program?.teachers)"
                   :key="t.id"
                   :src="getTeacherProfileURL(t.profileURL)"
                   class="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover"

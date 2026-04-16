@@ -34,7 +34,7 @@ export function useActionModal(props, emit, options = {}) {
 
   // Detect unsaved changes for UI feedback (simple JSON comparison for flat-ish objects)
   const isDirty = computed(() => {
-    return JSON.stringify(localData.value) !== JSON.stringify(originalData.value)
+    return JSON.stringify(localData) !== JSON.stringify(originalData)
   })
 
   // Deep clone utility to prevent reference mutations
@@ -42,8 +42,8 @@ export function useActionModal(props, emit, options = {}) {
 
   const sync = () => {
     const data = options.mapSourceToForm ? options.mapSourceToForm() : getInitial()
-    localData.value = clone(data)
-    originalData.value = clone(data)
+    Object.assign(localData, clone(data))
+    Object.assign(originalData, clone(data))
   }
 
   // Handle Modal Open/Close lifecycle
@@ -81,7 +81,7 @@ export function useActionModal(props, emit, options = {}) {
     if (validationOptions) {
       if (!validate(validationOptions)) return false
     }
-    emit('submit', clone(localData.value))
+    emit('submit', clone(localData))
     return true
   }
 

@@ -126,39 +126,43 @@ const handleSaveEnrollment = async (formData) => {
 
     const payload = {
       parentId: parent.uid || parent.id,
-      studentId: student.id,
+      studentId: student.id || student.uid,
       programId: program.id,
       classId: classInstance.id,
 
       parent: {
         id: parent.uid || parent.id,
-        name: parent.name || parent.email || 'Parent',
-        profile: parent.profile || null,
+        name: parent.name,
+        profileURL: parent.profileURL,
       },
       student: {
-        id: student.id,
-        name: student.name || student.fullName || student.fullname || 'Student',
-        profile: student.profile || student.profileURL || student.childProfileURL || null,
+        id: student.id || student.uid,
+        name: student.name,
+        profileURL: student.profileURL,
       },
       program: {
         id: program.id,
-        title: program.title || program.name || 'Program',
-        profile: program.profile || null,
+        title: program.title,
+        type: program.type || 'Group',
+        profileURL: program.profileURL,
+        basePrice: program.basePrice || 0,
+        sessionNumber: program.sessionNumber || 0,
       },
       class: {
         id: classInstance.id,
-        schedule: classInstance.day + ' ' + classInstance.timeslot,
+        day: classInstance.day,
+        timeslot: classInstance.timeslot,
+        branchAbbr: classInstance.branch?.abbr || 'N/A',
+        schedule: `${classInstance.day} (${classInstance.timeslot})`,
       },
-      classSchedule: classInstance.day + ' ' + classInstance.timeslot,
 
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
       isSponsorship: formData.isSponsorship || false,
       sponsorName: formData.sponsorName || '',
       isProrated: formData.isProrated,
-      enrollmentType: formData.enrollmentType || 'Full',
+      enrollmentType: formData.enrollmentType || '',
       remark: formData.remark || '',
-      basePrice: formData.basePrice || 0,
       totalSessions: formData.totalSessions || 0,
       remainingSessions: formData.remainingSessions || 0,
       passedSessions: formData.passedSessions || 0,
@@ -439,9 +443,7 @@ const handleRegisterStudent = async (formData) => {
             }
           ">
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md"
-              class="!rounded-std shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-px transition-all duration-300 !px-xl bg-gradient-to-tr from-primary to-primary-hover border-none"
-              @click="showModal = true">
+            <AppButton variant="primary" size="md" class="ui-btn-premium" @click="showModal = true">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-bold tracking-tight">New Enrollment</span>
             </AppButton>
@@ -464,7 +466,7 @@ const handleRegisterStudent = async (formData) => {
             </td>
             <td class="ui-cell hidden lg:table-cell">
               <div class="ui-identity-cell">
-                <div class="ui-avatar-sm">
+                <div class="ui-avatar">
                   <img :src="item.parent?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
@@ -484,7 +486,7 @@ const handleRegisterStudent = async (formData) => {
             </td>
             <td class="ui-cell">
               <div class="ui-identity-cell">
-                <div class="ui-avatar-sm bg-white ring-1 ring-border">
+                <div class="ui-avatar bg-white ring-1 ring-border">
                   <img :src="item.program?.profileURL" alt="program" />
                 </div>
                 <div class="ui-identity-info overflow-hidden">
@@ -496,9 +498,7 @@ const handleRegisterStudent = async (formData) => {
             </td>
             <td class="ui-cell hidden sm:table-cell">
               <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col gap-0.5">
-                <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
-                  getSessionDay(item.classSchedule)
-                }}</span>
+                <span class="font-bold">{{ getSessionDay(item.classSchedule, true) }}</span>
                 <span class="text-3xs font-semibold text-content-muted uppercase">{{
                   getSessionTime(item.classSchedule)
                 }}</span>
@@ -546,8 +546,7 @@ const handleRegisterStudent = async (formData) => {
                           closeMenu()
                         }
                       ">
-                        <img :src="getActionIcon('edit')" class="w-4 h-4 transition-opacity"
-                          :style="{ filter: getStatusFilter('blue') }" />
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 transition-all opacity-60" />
                         Edit
                       </button>
                       <button v-if="
@@ -560,8 +559,7 @@ const handleRegisterStudent = async (formData) => {
                           closeMenu()
                         }
                       ">
-                        <img :src="getActionIcon('pay')" class="w-4 h-4 transition-opacity"
-                          :style="{ filter: getStatusFilter('green') }" />
+                        <img :src="getActionIcon('pay')" class="w-4 h-4 transition-all opacity-60" />
                         Pay
                       </button>
                       <button v-if="!isCancelled(item.status || item.paymentStatus)"
@@ -571,19 +569,18 @@ const handleRegisterStudent = async (formData) => {
                             closeMenu()
                           }
                         ">
-                        <img :src="getActionIcon('cancel')" class="w-4 h-4 transition-opacity"
-                          :style="{ filter: getStatusFilter('red') }" />
+                        <img :src="getActionIcon('cancel')" class="w-4 h-4 transition-all opacity-60" />
                         Cancel
                       </button>
-                      <div class="h-px bg-surface-light mx-1 my-1"></div>
+                      <div class="h-px bg-surface-light mx-1 my-1"
+                        v-if="!isCancelled(item.status || item.paymentStatus)"></div>
                       <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold" @click="
                         () => {
                           handleAction('delete', item)
                           closeMenu()
                         }
                       ">
-                        <img :src="getActionIcon('delete')" class="w-4 h-4 transition-opacity"
-                          :style="{ filter: getStatusFilter('red') }" />
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 transition-all opacity-60" />
                         Delete
                       </button>
                     </div>
