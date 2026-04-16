@@ -6,19 +6,17 @@
         (student || enrollment) &&
         (type === 'edit' || type === 'override' || type === 'enrollment-override')
       "
-      class="flex items-center gap-xl px-2xl py-xl rounded-std mb-xl relative overflow-hidden shadow-sm border border-transparent after:content-[''] after:absolute after:top-0 after:right-0 after:bottom-0 after:w-[120px] after:bg-gradient-to-l after:from-white/10 after:to-transparent after:pointer-events-none"
+      class="ui-identity-banner"
       :class="studentThemeClasses"
     >
-      <div
-        class="w-16 h-16 rounded-full border-[3px] border-white shadow-lg overflow-hidden flex-shrink-0 bg-white"
-      >
+      <div class="ui-identity-avatar-round">
         <img :src="getStudentProfileURL(localData.profileURL)" class="w-full h-full object-cover" />
       </div>
-      <div class="flex flex-col">
-        <h2 class="text-2xl font-[850] text-content-dark tracking-tighter leading-[1.1]">
+      <div class="ui-identity-info">
+        <h2 class="ui-identity-name-compact">
           {{ localData.name || 'Student Name' }}
         </h2>
-        <div class="text-sm text-content-muted mt-[2px] font-medium flex items-center gap-xs">
+        <div class="ui-identity-meta-compact">
           <span>{{ studentTheme === 'theme-pink' ? 'Female' : 'Male' }}</span>
           <span class="opacity-50">•</span>
           <span>{{ calculateAge(localData.dob) }} yrs old</span>
@@ -30,7 +28,7 @@
       <!-- Edit Profile / Override Form -->
       <div
         v-if="type === 'edit' || type === 'override' || type === 'enrollment-override'"
-        class="grid grid-cols-2 gap-lg"
+        class="ui-form-grid-lg"
       >
         <AppInput
           v-model="localData.name"
@@ -63,37 +61,36 @@
               >Original: {{ originalData.medicalNote }}</span
             >
           </label>
-          <textarea
-            v-model="localData.medicalNote"
-            placeholder="e.g. Nut allergy, ADHD..."
-            rows="2"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft disabled:bg-surface-light disabled:cursor-not-allowed disabled:opacity-70"
-            :class="{
-              'border-error bg-error-soft ring-error/10': errors.medicalNote,
-              'animate-shake': shaking.medicalNote,
-            }"
-            :disabled="type !== 'edit'"
-          ></textarea>
+            <textarea
+              v-model="localData.medicalNote"
+              placeholder="e.g. Nut allergy, ADHD..."
+              rows="2"
+              class="ui-remark-textarea"
+              :class="{
+                'border-error bg-error-soft ring-error/10': errors.medicalNote,
+                'animate-shake': shaking.medicalNote,
+              }"
+              :disabled="type !== 'edit'"
+            ></textarea>
           <div
             v-if="errors.medicalNote"
             class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest"
           >
             {{ errors.medicalNote }}
           </div>
-          <div class="flex flex-wrap gap-xs mt-sm" v-if="type === 'edit'">
-            <button
-              v-for="preset in ['None', 'G6PD', 'ADHD', 'Asthma']"
-              :key="preset"
-              type="button"
-              class="px-[14px] py-[6px] bg-surface-light border-[1.5px] border-outline-std rounded-[6px] text-xs cursor-pointer font-semibold transition-all hover:bg-primary-soft hover:text-primary"
-              :class="{
-                'bg-primary text-white border-primary hover:bg-primary-dark hover:text-white':
-                  isPresetActive('medicalNote', preset),
-              }"
-              @click="togglePreset('medicalNote', preset)"
-            >
-              {{ preset }}
-            </button>
+            <div class="ui-preset-bar" v-if="type === 'edit'">
+              <button
+                v-for="preset in ['None', 'G6PD', 'ADHD', 'Asthma']"
+                :key="preset"
+                type="button"
+                class="ui-preset-btn"
+                :class="{
+                  'ui-preset-btn-active': isPresetActive('medicalNote', preset),
+                }"
+                @click="togglePreset('medicalNote', preset)"
+              >
+                {{ preset }}
+              </button>
           </div>
         </div>
 
@@ -125,7 +122,7 @@
             v-model="localData.overrideRemark"
             placeholder="Document reason for status change..."
             rows="3"
-            class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
+            class="ui-remark-textarea"
             :class="{
               'border-error bg-error-soft ring-error/10': errors.overrideRemark,
               'animate-shake': shaking.overrideRemark,
@@ -151,11 +148,9 @@
 
       <!-- Delete Panel -->
       <div v-if="type === 'delete' || type === 'enrollment-delete'" class="mt-lg">
-        <div
-          class="flex items-center gap-xl p-xl bg-error-soft border border-error-soft rounded-std mb-xl"
-        >
+        <div class="student-delete-alert">
           <div class="text-3xl">🚨</div>
-          <div class="flex flex-col gap-[2px]">
+          <div class="flex flex-col gap-0.5">
             <strong class="text-lg text-error-deep">Critical Record Deletion</strong>
             <p class="text-sm text-error-deep opacity-90 leading-relaxed">
               This will permanently remove the record and all associated history. This action cannot
@@ -359,3 +354,8 @@ watch(
   },
 )
 </script>
+<style scoped>
+.student-delete-alert {
+  @apply flex items-center gap-xl p-xl bg-error-soft border border-error-soft rounded-std mb-xl;
+}
+</style>

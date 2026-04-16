@@ -79,17 +79,48 @@ const handleSubmit = async () => {
   }
 }
 </script>
+<style scoped>
+.auth-banner {
+  @apply flex-[1.2] bg-[url('@/assets/images/backgrounds/blue-bg-school.jpg')] bg-[80%_center] bg-cover bg-no-repeat relative border-r border-outline-std;
+}
+
+.auth-banner::after {
+  @apply content-[''] absolute top-0 left-0 right-0 bottom-0 bg-primary/5;
+}
+
+.auth-card {
+  @apply w-full max-w-md bg-white p-12 px-8 border border-black/5 rounded-std shadow-2xl text-center;
+}
+
+.auth-logo-box {
+  @apply mb-11;
+}
+
+.auth-logo {
+  @apply w-full max-w-36 h-auto mx-auto;
+}
+
+.auth-divider {
+  @apply relative flex items-center gap-4 my-10;
+}
+
+.auth-divider-line {
+  @apply h-px flex-grow bg-content-muted opacity-20;
+}
+
+.auth-divider-hint {
+  @apply text-2xs font-black text-content-muted uppercase tracking-widest whitespace-nowrap;
+}
+</style>
 
 <template>
   <div class="flex min-h-screen w-full">
-    <div
-      class="flex-[1.2] bg-[url('@/assets/images/backgrounds/blue-bg-school.jpg')] bg-[80%_center] bg-cover bg-no-repeat relative border-r border-outline-std after:content-[''] after:absolute after:top-0 after:left-0 after:right-0 after:bottom-0 after:bg-primary/5">
-    </div>
+    <div class="auth-banner"></div>
     <div class="flex-1 bg-white flex items-center justify-center p-12 lg:p-16">
-      <div class="w-full max-w-[440px] bg-white p-12 px-8 border border-black/5 rounded-std shadow-2xl text-center">
-        <div class="mb-11">
+      <div class="auth-card">
+        <div class="auth-logo-box">
           <img :src="getImageUrl('common/logo-main')" alt="Active Kids Academy"
-            class="w-full max-w-[140px] h-auto mx-auto" />
+            class="auth-logo" />
         </div>
 
         <h2 class="text-2xl font-bold mb-8 text-content-dark">
@@ -110,12 +141,12 @@ const handleSubmit = async () => {
           </AppButton>
         </form>
 
-        <div v-if="!isResetMode" class="relative flex items-center gap-4 my-10">
-          <div class="h-px flex-grow bg-content-muted/20"></div>
-          <span class="text-2xs font-[900] text-content-muted uppercase tracking-[3px] whitespace-nowrap">
+        <div v-if="!isResetMode" class="auth-divider">
+          <div class="auth-divider-line"></div>
+          <span class="auth-divider-hint">
             SECURE ACCESS
           </span>
-          <div class="h-px flex-grow bg-content-muted/20"></div>
+          <div class="auth-divider-line"></div>
         </div>
 
         <p class="mt-4">

@@ -188,23 +188,27 @@ const mappedEnrollments = computed(() => {
             ? { id: s.id || s.uid, name: s.name || s.fullName, profile: s.profile || s.profileURL }
             : null),
         program:
+          r.class?.program ||
           r.program ||
-          (c ? { id: c.id, title: c.title || c.name, profile: c.profile || c.profileURL } : null),
+          (c
+            ? { id: c.id, title: c.title || c.name, profile: c.profileURL }
+            : {
+              id: r.programId,
+              title: r.programTitle || r.program?.title || 'N/A',
+              profile: r.programProfileURL || r.program?.profileURL || null,
+            }),
 
-        parentName: r.parent?.name || r.parentName || p?.name || 'N/A',
-        parentProfileURL: getParentProfileURL(r.parentProfileURL || p?.profileURL),
-        studentName: r.student?.name || r.studentName || s?.name || 'N/A',
-        studentProfileURL: getStudentProfileURL(r.studentProfileURL || s?.profileURL),
-        programTitle: r.program?.title || r.programTitle || c?.title || 'N/A',
-        programProfileURL: getProgramProfileURL(
-          r.programProfileURL || c?.profileURL,
-          r.programCategory || c?.category,
-        ),
+        parentName: r.parent?.name,
+        parentProfileURL: getParentProfileURL(p?.profileURL),
+        studentName: r.student?.name,
+        studentProfileURL: getStudentProfileURL(s?.profileURL),
+        programTitle: r.program?.title,
+        programProfileURL: getProgramProfileURL(c?.profileURL, c?.category),
 
-        status: r.displayStatus || r.status,
-        mode: r.enrollmentType || (r.isProrated ? 'Partial' : 'Full'),
-        amount: r.amount || 0,
-        date: r.enrollAt || r.createdAt,
+        status: r.status,
+        mode: r.enrollmentType,
+        amount: r.amount,
+        date: r.enrollAt,
       }
     })
 })

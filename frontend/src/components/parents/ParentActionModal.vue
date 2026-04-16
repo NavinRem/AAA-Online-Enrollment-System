@@ -9,26 +9,24 @@
     <!-- Identity Banner -->
     <div
       v-if="selectedParent && type !== 'edit' && type !== 'delete'"
-      class="flex items-center gap-xl px-2xl py-xl rounded-std mb-xl relative overflow-hidden shadow-lg border border-white/20 after:content-[''] after:absolute after:top-0 after:right-0 after:bottom-0 after:w-[150px] after:bg-gradient-to-l after:from-white/10 after:to-transparent after:pointer-events-none transition-all duration-500"
+      class="ui-identity-banner"
       :class="parentThemeClasses"
     >
-      <div
-        class="w-20 h-20 rounded-sm border-[4px] border-white shadow-2xl overflow-hidden flex-shrink-0 bg-white group hover:scale-105 transition-transform duration-300"
-      >
+      <div class="ui-identity-avatar">
         <img :src="selectedParent.profileURL" class="w-full h-full object-cover" />
       </div>
-      <div class="flex flex-col gap-1">
-        <h2 class="text-3xl font-black text-content-dark tracking-tighter leading-none">
+      <div class="ui-identity-info">
+        <h2 class="ui-identity-name">
           {{ selectedParent.name }}
         </h2>
-        <div class="flex items-center gap-md mt-1">
+        <div class="ui-identity-meta">
           <span
-            class="text-xs font-black uppercase text-content-muted/60 tracking-widest"
+            class="parent-identity-email"
             v-if="selectedParent.email"
             >{{ selectedParent.email }}</span
           >
           <span
-            class="px-2 py-0.5 bg-white/40 text-3xs font-black uppercase rounded-full shadow-sm"
+            class="parent-identity-phone"
             v-if="selectedParent.phone"
             >{{ selectedParent.phone }}</span
           >
@@ -38,7 +36,7 @@
 
     <form id="parentActionForm" @submit.prevent="handleActionSubmit" novalidate>
       <!-- Edit Parent Form -->
-      <div v-if="type === 'edit'" class="grid grid-cols-2 gap-x-lg gap-y-md">
+      <div v-if="type === 'edit'" class="ui-form-grid">
         <AppInput
           v-model="localData.name"
           label="Legal Full Name"
@@ -99,7 +97,7 @@
           @change="clearError('parentId')"
         />
 
-        <div class="grid grid-cols-2 gap-x-lg gap-y-md">
+        <div class="ui-form-grid">
             <AppInput
               v-model="localData.name"
               label="Student Full Name"
@@ -147,7 +145,7 @@
               v-model="localData.medicalNote"
               placeholder="List any allergies, requirements, or pedagogical notes..."
               rows="3"
-              class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-semibold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
+              class="ui-remark-textarea"
               :class="{
                 'border-error bg-error-soft ring-error/10': errors.medicalNote,
                 'animate-shake': shaking.medicalNote,
@@ -166,16 +164,14 @@
             >
               {{ errors.medicalNote }}
             </div>
-            <div
-              class="flex flex-wrap gap-xs mt-sm bg-surface-light p-2 rounded-sm border border-outline-std/20"
-            >
+            <div class="ui-preset-bar">
               <button
                 v-for="preset in ['None', 'G6PD', 'ADHD', 'Dyslexia', 'Asthma', 'Vision']"
                 :key="preset"
                 type="button"
-                class="px-3 py-1 bg-white border-2 border-outline-std/50 rounded-sm text-2xs font-black uppercase tracking-widest cursor-pointer transition-all hover:bg-primary-soft hover:text-primary hover:border-primary/20"
+                class="ui-preset-btn"
                 :class="{
-                  'bg-primary text-white border-primary-dark shadow-md scale-105': isPresetActive(
+                  'ui-preset-btn-active': isPresetActive(
                     'medicalNote',
                     preset,
                   ),
@@ -287,7 +283,7 @@
     <!-- Password Management View -->
     <div v-if="type === 'reset-password'" class="flex flex-col gap-lg">
       <div class="bg-surface-subtle/50 p-md rounded-sm border border-outline-std/30">
-        <h3 class="text-xs font-black uppercase tracking-[2px] mb-1 text-content-dark">
+        <h3 class="text-xs font-black uppercase tracking-widest mb-1 text-content-dark">
           Recovery Logic Selection
         </h3>
         <p
@@ -299,22 +295,20 @@
 
       <div class="grid grid-cols-2 gap-md">
         <div
-          class="group flex flex-col gap-md p-xl rounded-sm border-2 cursor-pointer transition-all relative overflow-hidden"
+          class="parent-reset-card group"
           :class="
             selectedResetMode === 'email'
-              ? 'border-primary bg-primary-soft shadow-lg scale-[1.02]'
-              : 'border-outline-std bg-white hover:border-text-muted'
+              ? 'parent-reset-card--email-active'
+              : 'parent-reset-card--inactive'
           "
           @click="selectedResetMode = 'email'"
         >
-          <div
-            class="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-primary/20 shadow-sm group-hover:scale-110 transition-transform"
-          >
+          <div class="parent-reset-icon parent-reset-icon--email">
             <img :src="getActionIcon('email')" class="w-5 h-5 opacity-80" />
           </div>
-          <div class="flex flex-col gap-1">
-            <strong class="text-xs font-black uppercase tracking-tighter">Automated Link</strong>
-            <p class="text-3xs text-content-muted font-bold leading-tight uppercase opacity-60">
+          <div class="parent-reset-info">
+            <strong class="parent-reset-title">Automated Link</strong>
+            <p class="parent-reset-sub">
               Send link to registered email address.
             </p>
           </div>
@@ -327,24 +321,20 @@
         </div>
 
         <div
-          class="group flex flex-col gap-md p-xl rounded-sm border-2 cursor-pointer transition-all relative overflow-hidden"
+          class="parent-reset-card group"
           :class="
             selectedResetMode === 'manual'
-              ? 'border-warning bg-warning-soft shadow-lg scale-[1.02]'
-              : 'border-outline-std bg-white hover:border-text-muted'
+              ? 'parent-reset-card--manual-active'
+              : 'parent-reset-card--inactive'
           "
           @click="selectedResetMode = 'manual'"
         >
-          <div
-            class="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-warning/20 shadow-sm group-hover:scale-110 transition-transform"
-          >
+          <div class="parent-reset-icon parent-reset-icon--manual">
             <img :src="getActionIcon('edit')" class="w-5 h-5 opacity-80" />
           </div>
-          <div class="flex flex-col gap-1">
-            <strong class="text-xs font-black uppercase tracking-tighter"
-              >Administrative Override</strong
-            >
-            <p class="text-3xs text-content-muted font-bold leading-tight uppercase opacity-60">
+          <div class="parent-reset-info">
+            <strong class="parent-reset-title">Administrative Override</strong>
+            <p class="parent-reset-sub">
               Initialize with temporary credentials.
             </p>
           </div>
@@ -656,3 +646,56 @@ watch(
   },
 )
 </script>
+<style scoped>
+.parent-identity-email {
+  @apply text-xs font-black uppercase text-content-muted opacity-60 tracking-widest;
+}
+
+.parent-identity-phone {
+  @apply px-2 py-0.5 bg-white/40 text-3xs font-black uppercase rounded-full shadow-sm;
+}
+
+.parent-reset-card {
+  @apply flex flex-col gap-md p-xl rounded-sm border-2 cursor-pointer transition-all relative overflow-hidden;
+}
+
+.parent-reset-card--inactive {
+  @apply border-outline-std bg-white hover:border-text-muted;
+}
+
+.parent-reset-card--email-active {
+  @apply border-primary bg-primary-soft shadow-lg scale-105;
+}
+
+.parent-reset-card--manual-active {
+  @apply border-warning bg-warning-soft shadow-lg scale-105;
+}
+
+.parent-reset-icon {
+  @apply w-10 h-10 rounded-full flex items-center justify-center bg-white border shadow-sm transition-transform duration-300;
+}
+
+.parent-reset-card:hover .parent-reset-icon {
+  @apply scale-110;
+}
+
+.parent-reset-icon--email {
+  @apply border-primary;
+}
+
+.parent-reset-icon--manual {
+  @apply border-warning;
+}
+
+.parent-reset-info {
+  @apply flex flex-col gap-1;
+}
+
+.parent-reset-title {
+  @apply text-xs font-black uppercase tracking-tighter;
+}
+
+.parent-reset-sub {
+  @apply text-3xs text-content-muted font-bold leading-tight uppercase opacity-60;
+}
+</style>
