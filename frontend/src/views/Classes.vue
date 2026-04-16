@@ -27,12 +27,10 @@
                     <img :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)" alt="program" />
                   </div>
                   <div class="ui-identity-info">
-                    <span class="font-bold text-content-dark">{{
-                      item.program?.name || 'Unknown Program'
-                      }}</span>
+                    <span class="font-bold text-content-dark">{{ item.program?.title }}</span>
                     <span class="text-3xs text-content-muted uppercase font-bold tracking-tight">{{
                       item.program?.category
-                      }}</span>
+                    }}</span>
                   </div>
                 </div>
               </td>
@@ -55,7 +53,7 @@
                 <div class="flex flex-col gap-0.5">
                   <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
                     item.day
-                    }}</span>
+                  }}</span>
                   <span class="text-3xs text-content-muted font-bold uppercase">{{ item.timeslot }}</span>
                 </div>
               </td>
@@ -67,7 +65,7 @@
                     </div>
                   </div>
                   <span class="text-3xs font-black text-content-muted uppercase tracking-widest">{{ item.numStudent
-                    }}/{{ item.capacity }}</span>
+                  }}/{{ item.capacity }}</span>
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[7].width }">

@@ -56,7 +56,7 @@
     <form
       v-else
       id="classActionForm"
-      class="grid grid-cols-2 gap-x-lg gap-y-md"
+      class="ui-form-grid"
       @submit.prevent="handleActionSubmit"
       novalidate
     >
@@ -96,7 +96,7 @@
 
       <div class="col-span-2 flex items-center gap-md py-2 opacity-50 mt-sm">
         <div class="h-px bg-border flex-1"></div>
-        <span class="text-3xs font-black uppercase tracking-[2px] text-content-muted"
+        <span class="text-3xs font-black uppercase tracking-widest text-content-muted"
           >Scheduling & Personnel</span
         >
         <div class="h-px bg-border flex-1"></div>
@@ -148,7 +148,7 @@
 
       <div class="col-span-2 flex items-center gap-md py-2 opacity-50 mt-sm">
         <div class="h-px bg-border flex-1"></div>
-        <span class="text-3xs font-black uppercase tracking-[2px] text-content-muted"
+        <span class="text-3xs font-black uppercase tracking-widest text-content-muted"
           >Economic Overrides</span
         >
         <div class="h-px bg-border flex-1"></div>
@@ -192,7 +192,7 @@
           v-model="localData.adminNote"
           rows="2"
           placeholder="Private internal record notes..."
-          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-semibold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
+          class="ui-remark-textarea"
           :class="{
             'border-error bg-error-soft ring-error/10': errors.adminNote,
             'animate-shake': shaking.adminNote,

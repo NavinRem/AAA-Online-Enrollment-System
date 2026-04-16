@@ -245,12 +245,7 @@ const handleActionSubmit = async (formData) => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout
-      :loading="loading"
-      :errorMessage="errorMessage"
-      backRoute="/programs"
-      title="Program Details"
-    >
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/programs" title="Program Details">
       <template #header-actions v-if="program">
         <div class="flex items-center gap-md">
           <AppButton variant="secondary" title="Edit Program" @click="openActionModal('edit')">
@@ -270,25 +265,13 @@ const handleActionSubmit = async (formData) => {
 
         <!-- Tab Navigation -->
         <div class="ui-tabs-nav">
-          <button
-            class="ui-tab-item"
-            :class="{ active: activeTab === 'overview' }"
-            @click="activeTab = 'overview'"
-          >
+          <button class="ui-tab-item" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
             Overview
           </button>
-          <button
-            class="ui-tab-item"
-            :class="{ active: activeTab === 'students' }"
-            @click="activeTab = 'students'"
-          >
+          <button class="ui-tab-item" :class="{ active: activeTab === 'students' }" @click="activeTab = 'students'">
             Enrolled Students
           </button>
-          <button
-            class="ui-tab-item"
-            :class="{ active: activeTab === 'sessions' }"
-            @click="activeTab = 'sessions'"
-          >
+          <button class="ui-tab-item" :class="{ active: activeTab === 'sessions' }" @click="activeTab = 'sessions'">
             Session History
           </button>
         </div>
@@ -304,19 +287,19 @@ const handleActionSubmit = async (formData) => {
                 <span class="ui-data-label">Program Category</span>
                 <span class="ui-data-value text-base">{{
                   program.category || 'General Curriculum'
-                }}</span>
+                  }}</span>
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Academic Term</span>
                 <span class="ui-data-value text-base">{{
                   program.termName || 'Not Specified'
-                }}</span>
+                  }}</span>
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Difficulty Level</span>
                 <span class="ui-data-value text-base">{{
                   program.levelName || program.level || 'Beginner'
-                }}</span>
+                  }}</span>
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Execution Status</span>
@@ -324,15 +307,12 @@ const handleActionSubmit = async (formData) => {
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Admission Price</span>
-                <span class="ui-data-value text-xl font-black text-primary tracking-tighter"
-                  >${{ (Number(program.price) || 0).toLocaleString() }}</span
-                >
+                <span class="ui-data-value text-xl font-black text-primary tracking-tighter">${{ (Number(program.price)
+                  || 0).toLocaleString() }}</span>
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Term Duration</span>
-                <span
-                  class="ui-data-value text-xs font-bold text-content-muted flex items-center gap-xs"
-                >
+                <span class="ui-data-value text-xs font-bold text-content-muted flex items-center gap-xs">
                   {{ program.startDate }} <span class="opacity-30">—</span> {{ program.endDate }}
                 </span>
               </div>
@@ -341,26 +321,22 @@ const handleActionSubmit = async (formData) => {
                 <div class="flex flex-col gap-0.5">
                   <span class="ui-data-value text-base tracking-tight">{{
                     program.schedule?.day
-                  }}</span>
+                    }}</span>
                   <span class="text-xs font-black text-content-muted uppercase">{{
                     program.schedule?.timeslot
-                  }}</span>
+                    }}</span>
                 </div>
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Session Quota</span>
-                <span class="ui-data-value text-base"
-                  >{{ program.numberSessions }} Total Units</span
-                >
+                <span class="ui-data-value text-base">{{ program.numberSessions }} Total Units</span>
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Cost Efficiency</span>
-                <span class="ui-data-value text-base"
-                  >${{
-                    (Number(program.price || 0) / (Number(program.numberSessions) || 1)).toFixed(2)
-                  }}
-                  <span class="text-2xs opacity-40">/ session</span></span
-                >
+                <span class="ui-data-value text-base">${{
+                  (Number(program.price || 0) / (Number(program.numberSessions) || 1)).toFixed(2)
+                }}
+                  <span class="text-2xs opacity-40">/ session</span></span>
               </div>
             </div>
           </div>
@@ -369,16 +345,9 @@ const handleActionSubmit = async (formData) => {
             <div class="ui-section-header">
               <h3 class="ui-section-title">Class Roster</h3>
               <div class="relative w-64">
-                <input
-                  type="text"
-                  v-model="searchQuery"
-                  placeholder="Quick search students..."
-                  class="w-full pl-9 pr-4 py-2 border border-outline-std rounded-sm text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                />
-                <img
-                  :src="getActionIcon('search')"
-                  class="absolute left-3 top-2.5 w-4.5 h-4.5 opacity-30"
-                />
+                <input type="text" v-model="searchQuery" placeholder="Quick search students..."
+                  class="w-full pl-9 pr-4 py-2 border border-outline-std rounded-sm text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                <img :src="getActionIcon('search')" class="absolute left-3 top-2.5 w-4.5 h-4.5 opacity-30" />
               </div>
             </div>
             <table v-if="enrolledStudents.length > 0" class="ui-premium-table">
@@ -392,34 +361,31 @@ const handleActionSubmit = async (formData) => {
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  v-for="(item, idx) in enrolledStudents"
-                  :key="item.id || idx"
-                  @click="handleStudentClick(item)"
-                  class="group cursor-pointer hover:bg-surface-light transition-colors"
-                >
+                <tr v-for="(item, idx) in enrolledStudents" :key="item.id || idx" @click="handleStudentClick(item)"
+                  class="group cursor-pointer hover:bg-surface-light transition-colors">
                   <td class="text-center font-bold text-content-muted/40">{{ idx + 1 }}</td>
                   <td>
                     <div class="flex items-center gap-md">
                       <div class="w-8 h-8 rounded-full overflow-hidden border border-outline-std">
-                        <img
-                          :src="item.studentPhoto || getImageUrl('profiles/avatar-student')"
-                          class="w-full h-full object-cover"
-                        />
+                        <img :src="item.studentPhoto || getImageUrl('profiles/avatar-student')"
+                          class="w-full h-full object-cover" />
                       </div>
                       <span
-                        class="font-black text-content-dark tracking-tighter group-hover:text-primary transition-colors"
-                        >{{ item.studentName }}</span
-                      >
+                        class="font-black text-content-dark tracking-tighter group-hover:text-primary transition-colors">{{
+                        item.studentName }}</span>
                     </div>
                   </td>
                   <td>
                     <span class="text-xs font-bold text-content-muted">{{
                       item.enrollAt || 'N/A'
-                    }}</span>
+                      }}</span>
                   </td>
-                  <td class="text-center"><StatusBadge :status="item.academicStatus" /></td>
-                  <td class="text-center"><StatusBadge :status="item.displayStatus" /></td>
+                  <td class="text-center">
+                    <StatusBadge :status="item.academicStatus" />
+                  </td>
+                  <td class="text-center">
+                    <StatusBadge :status="item.displayStatus" />
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -447,17 +413,19 @@ const handleActionSubmit = async (formData) => {
                   <td>
                     <span class="font-black text-content-dark tracking-tighter">{{
                       item.date
-                    }}</span>
+                      }}</span>
                   </td>
                   <td>
                     <span class="text-xs font-black text-content-muted uppercase">{{
                       item.day
-                    }}</span>
+                      }}</span>
                   </td>
                   <td>
                     <span class="text-xs font-bold text-content-muted">{{ item.timeslot }}</span>
                   </td>
-                  <td class="text-center"><StatusBadge :status="item.status" /></td>
+                  <td class="text-center">
+                    <StatusBadge :status="item.status" />
+                  </td>
                 </tr>
                 <tr v-if="sessionInstances.length === 0">
                   <td colspan="4" class="py-20 text-center text-content-muted italic text-xs">
@@ -473,20 +441,13 @@ const handleActionSubmit = async (formData) => {
       <template #right-content v-if="program">
         <div class="ui-detail-card flex flex-col items-center text-center p-0 overflow-hidden">
           <div class="w-full h-32 bg-primary/5">
-            <img
-              :src="getProgramProfileURL(program.profileURL || program.imageURL, program.category)"
-              class="w-full h-full object-cover opacity-10 hover:opacity-20 transition-opacity"
-            />
+            <img :src="getProgramProfileURL(program.profileURL || program.imageURL, program.category)"
+              class="w-full h-full object-cover opacity-10 hover:opacity-20 transition-opacity" />
           </div>
           <div class="relative -mt-16 mb-md">
             <div class="w-32 h-32 rounded-std border-4 border-white shadow-xl bg-white p-4">
-              <img
-                :src="
-                  getProgramProfileURL(program.profileURL || program.imageURL, program.category)
-                "
-                alt="Program Icon"
-                class="w-full h-full object-contain"
-              />
+              <img :src="getProgramProfileURL(program.profileURL || program.imageURL, program.category)
+                " alt="Program Icon" class="w-full h-full object-contain" />
             </div>
           </div>
 
@@ -499,8 +460,7 @@ const handleActionSubmit = async (formData) => {
 
             <DetailedSummaryCard subtitle="Program Synopsis" class="bg-transparent p-0 mt-0">
               <p
-                class="text-xs text-content-muted leading-relaxed font-medium text-left bg-surface-subtle p-md rounded-sm border border-outline-std/30 italic"
-              >
+                class="text-xs text-content-muted leading-relaxed font-medium text-left bg-surface-subtle p-md rounded-sm border border-outline-std/30 italic">
                 {{
                   program.description ||
                   'No descriptive overview provided for this academic program.'
@@ -509,37 +469,26 @@ const handleActionSubmit = async (formData) => {
             </DetailedSummaryCard>
 
             <div class="mt-lg pt-lg border-t border-surface-light w-full">
-              <h3
-                class="text-3xs font-black uppercase text-content-muted tracking-widest mb-md text-left"
-              >
+              <h3 class="text-3xs font-black uppercase text-content-muted tracking-widest mb-md text-left">
                 Academic Instructors
               </h3>
               <div class="flex flex-col gap-sm">
-                <div
-                  v-for="t in program.teachers"
-                  :key="t.id"
-                  class="flex items-center gap-md p-md bg-surface-light rounded-sm border border-outline-std/20 group"
-                >
+                <div v-for="t in program.teachers" :key="t.id"
+                  class="flex items-center gap-md p-md bg-surface-light rounded-sm border border-outline-std/20 group">
                   <div
-                    class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-border"
-                  >
+                    class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-border">
                     <img :src="t.profileURL" alt="Teacher" class="w-full h-full object-cover" />
                   </div>
                   <div class="flex flex-col text-left">
                     <span
-                      class="text-sm font-black text-content-dark tracking-tighter group-hover:text-primary transition-colors leading-none mb-1"
-                      >{{ t.name || t.fullname || 'Faculty Staff' }}</span
-                    >
-                    <span
-                      class="text-3xs font-black uppercase text-content-muted tracking-widest"
-                      >{{ t.role || 'Primary Teacher' }}</span
-                    >
+                      class="text-sm font-black text-content-dark tracking-tighter group-hover:text-primary transition-colors leading-none mb-1">{{
+                        t.name || t.fullname || 'Faculty Staff' }}</span>
+                    <span class="text-3xs font-black uppercase text-content-muted tracking-widest">{{ t.role || 'Primary
+                      Teacher' }}</span>
                   </div>
                 </div>
-                <div
-                  v-if="!program.teachers || program.teachers.length === 0"
-                  class="text-center p-md bg-surface-light rounded-sm italic text-xs text-content-muted opacity-50 font-bold"
-                >
+                <div v-if="!program.teachers || program.teachers.length === 0"
+                  class="text-center p-md bg-surface-light rounded-sm italic text-xs text-content-muted opacity-50 font-bold">
                   {{ program.teacherName || 'No staff assigned' }}
                 </div>
               </div>
@@ -549,15 +498,8 @@ const handleActionSubmit = async (formData) => {
       </template>
     </DetailPageLayout>
 
-    <ProgramActionModal
-      :isOpen="actionModal.isOpen"
-      :type="actionModal.type"
-      :program="actionModal.program"
-      :loading="actionModal.loading"
-      :error="actionModal.error"
-      :success="actionModal.success"
-      @close="closeModal"
-      @submit="handleActionSubmit"
-    />
+    <ProgramActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :program="actionModal.program"
+      :loading="actionModal.loading" :error="actionModal.error" :success="actionModal.success" @close="closeModal"
+      @submit="handleActionSubmit" />
   </DashboardLayout>
 </template>

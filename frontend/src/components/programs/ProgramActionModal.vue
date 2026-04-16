@@ -1,6 +1,6 @@
 <template>
   <AppModal :show="isOpen" :title="modalTitle" :icon="modalIcon" maxWidth="600px" @close="$emit('close')">
-    <form v-if="type === 'add' || type === 'edit'" id="programActionForm" class="grid grid-cols-2 gap-x-lg gap-y-md"
+    <form v-if="type === 'add' || type === 'edit'" id="programActionForm" class="ui-form-grid"
       @submit.prevent="handleActionSubmit" novalidate>
       <AppInput v-model="localData.name" label="Program Identity / Model" placeholder="e.g. Master Class: Piano"
         class="col-span-2" required :error="errors.name" :shake="shaking.name" @input="clearError('name')">
@@ -19,7 +19,7 @@
 
       <div class="col-span-2 flex items-center gap-md py-2 opacity-50">
         <div class="h-px bg-border flex-1"></div>
-        <span class="text-3xs font-black uppercase tracking-[2px] text-content-muted select-none">Economic & Operational
+        <span class="text-3xs font-black uppercase tracking-widest text-content-muted select-none">Economic & Operational
           Logic</span>
         <div class="h-px bg-border flex-1"></div>
       </div>
@@ -50,7 +50,7 @@
         <label class="text-xs font-black uppercase text-content-muted tracking-widest">Description / Synopsis</label>
         <textarea v-model="localData.description"
           placeholder="A brief overview for administrative and parent reference..." rows="2"
-          class="w-full px-md py-sm border-2 border-outline-std rounded-sm bg-white text-sm font-semibold outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft"
+          class="ui-remark-textarea"
           :class="{
             'border-error bg-error-soft ring-error/10': errors.description,
             'animate-shake': shaking.description,
@@ -94,7 +94,7 @@
       <template v-if="type === 'edit'">
         <div class="col-span-2 flex items-center gap-md py-2 opacity-50 mt-sm">
           <div class="h-px bg-border flex-1"></div>
-          <span class="text-3xs font-black uppercase tracking-[2px] text-content-muted">Master Schedule Nodes</span>
+          <span class="text-3xs font-black uppercase tracking-widest text-content-muted">Master Schedule Nodes</span>
           <div class="h-px bg-border flex-1"></div>
         </div>
 
@@ -124,7 +124,7 @@
             <AppSelect v-model="newSchedule.day" :items="['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(
               (d) => ({ id: d, name: d }),
             )
-              " :searchable="false" class="w-[140px]" />
+              " :searchable="false" class="w-36" />
             <AppSelect v-model="newSchedule.timeslot" :items="['08:30 - 10:00', '10:30 - 12:00', '13:30 - 15:00', '15:30 - 17:00'].map((s) => ({
               id: s,
               name: s,

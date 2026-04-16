@@ -7,15 +7,37 @@
  * @param {string|object} schedule - The schedule data
  * @returns {string} The day (e.g., "Monday")
  */
-export const getSessionDay = (schedule) => {
-  if (!schedule) return ''
-  if (typeof schedule === 'object' && schedule.day) return schedule.day
+const DAY_MAP = {
+  mon: 'Monday',
+  tue: 'Tuesday',
+  tues: 'Tuesday',
+  wed: 'Wednesday',
+  thu: 'Thursday',
+  thur: 'Thursday',
+  thurs: 'Thursday',
+  fri: 'Friday',
+  sat: 'Saturday',
+  sun: 'Sunday',
+}
 
-  const day = String(schedule)
-    .replace(/Day:/i, '')
-    .trim()
-    .split(/[\s,:]/)[0]
-  return day
+export const getSessionDay = (schedule, full = false) => {
+  if (!schedule) return ''
+
+  const rawDay = (typeof schedule === 'object' && schedule.day)
+    ? schedule.day
+    : String(schedule)
+      .replace(/Day:/i, '')
+      .trim()
+      .split(/[\s,:]/)[0]
+
+  if (!rawDay) return ''
+
+  if (full) {
+    const key = rawDay.toLowerCase()
+    return DAY_MAP[key] || rawDay
+  }
+
+  return rawDay.substring(0, 3)
 }
 
 /**
@@ -31,12 +53,13 @@ export const getSessionTime = (schedule) => {
     )
   }
 
-  const dayPart = getSessionDay(schedule)
-  const time = String(schedule)
+  // Robust parsing: strip common prefixes and skip the first word (the day)
+  const rawStr = String(schedule)
     .replace(/Timeslot:|Time:|Day:/gi, '')
-    .replace(dayPart, '')
-    .replace(/^[\s,:]+/, '')
     .trim()
 
-  return time
+  const firstWord = rawStr.split(/[\s,:]/)[0]
+  if (!firstWord) return rawStr
+
+  return rawStr.substring(firstWord.length).replace(/^[\s,:]+/, '').trim()
 }
