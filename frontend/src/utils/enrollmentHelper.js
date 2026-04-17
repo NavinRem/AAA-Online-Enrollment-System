@@ -20,6 +20,7 @@ export const calculateTotalEnrollment = (regs = []) => {
 
 /**
  * Enriches enrollment data using backend snapshots.
+ * Standardized to prioritize 'Direct Parent Only' backend snapshots.
  */
 export const enrichEnrollments = (
   regs = [],
@@ -30,11 +31,13 @@ export const enrichEnrollments = (
 ) => {
   return regs
     .map((r) => {
+      // 1. Favor backend snapshots if they exist
       const parent = r.parent || parents.find((p) => (p.uid || p.id) === r.parentId)
       const student = r.student || students.find((s) => (s.uid || s.id) === r.studentId)
       const prog =
         r.program || r.class?.program || programs.find((p) => (p.id || p.uid) === r.programId)
       const classInst = r.class || classes.find((c) => c.id === r.classId)
+      
       const scheduleVal =
         r.class?.schedule ||
         r.classSchedule ||
@@ -44,34 +47,34 @@ export const enrichEnrollments = (
         ...r,
         parent: {
           id: parent?.id || parent?.uid || r.parentId,
-          name: parent?.name || r.parent?.name || r.parentName || 'N/A',
+          name: parent?.name || r.parent?.name || 'N/A',
           profileURL: getParentProfileURL(
-            parent?.profileURL || r.parent?.profileURL || r.parentProfileURL,
+            parent?.profileURL || r.parent?.profileURL,
           ),
           status: parent?.status || r.parent?.status || 'Active',
         },
         student: {
           id: student?.id || student?.uid || r.studentId,
-          name: student?.name || r.student?.name || r.studentName || 'N/A',
+          name: student?.name || r.student?.name || 'N/A',
           profileURL: getStudentProfileURL(
-            student?.profileURL || r.student?.profileURL || r.studentProfileURL,
+            student?.profileURL || r.student?.profileURL,
           ),
         },
         program: {
           id: prog?.id || prog?.uid || r.programId,
-          title: prog?.title || r.program?.title || r.programTitle || 'N/A',
+          name: prog?.name || prog?.title || r.program?.name || r.programTitle || 'N/A',
           profileURL: getProgramProfileURL(
-            prog?.profileURL || prog?.profile || r.program?.profileURL || r.programProfileURL,
+            prog?.profileURL || prog?.profile || r.program?.profileURL,
           ),
           type: prog?.type || r.program?.type || 'Group',
         },
         branchAbbr: r.class?.branchAbbr || r.branchAbbr || classInst?.branch?.abbr || 'N/A',
         classSchedule: scheduleVal,
 
-        // Direct access properties for table rendering
-        parentName: parent?.name || r.parent?.name || r.parentName || 'N/A',
-        studentName: student?.name || r.student?.name || r.studentName || 'N/A',
-        programTitle: prog?.title || r.program?.title || r.programTitle || 'N/A',
+        // Direct access properties for table rendering (Backwards compatibility with templates)
+        parentName: parent?.name || r.parent?.name || 'N/A',
+        studentName: student?.name || r.student?.name || 'N/A',
+        programName: prog?.name || prog?.title || r.program?.name || r.programTitle || 'N/A',
         displayStatus: r.displayStatus || getEnrollmentDisplayStatus(r),
       }
     })
