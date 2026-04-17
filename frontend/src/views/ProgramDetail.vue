@@ -271,8 +271,8 @@ const handleActionSubmit = async (formData) => {
           <button class="ui-tab-item" :class="{ active: activeTab === 'students' }" @click="activeTab = 'students'">
             Enrolled Students
           </button>
-          <button class="ui-tab-item" :class="{ active: activeTab === 'sessions' }" @click="activeTab = 'sessions'">
-            Session History
+          <button class="ui-tab-item" :class="{ active: activeTab === 'classes' }" @click="activeTab = 'classes'">
+            Class History
           </button>
         </div>
 
@@ -307,7 +307,7 @@ const handleActionSubmit = async (formData) => {
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Admission Price</span>
-                <span class="ui-data-value text-xl font-black text-primary tracking-tighter">${{ (Number(program.price)
+                <span class="ui-data-value text-xl font-black text-primary tracking-tighter">${{ (Number(program.basePrice || program.price)
                   || 0).toLocaleString() }}</span>
               </div>
               <div class="ui-data-item">
@@ -329,14 +329,14 @@ const handleActionSubmit = async (formData) => {
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Session Quota</span>
-                <span class="ui-data-value text-base">{{ program.numberSessions }} Total Units</span>
+                <span class="ui-data-value text-base">{{ program.totalSessions || program.numberSessions }} Total Units</span>
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Cost Efficiency</span>
                 <span class="ui-data-value text-base">${{
-                  (Number(program.price || 0) / (Number(program.numberSessions) || 1)).toFixed(2)
+                  (Number(program.basePrice || program.price || 0) / (Number(program.totalSessions || program.numberSessions) || 1)).toFixed(2)
                 }}
-                  <span class="text-2xs opacity-40">/ session</span></span>
+                  <span class="text-2xs opacity-40">/ unit</span></span>
               </div>
             </div>
           </div>
@@ -395,7 +395,7 @@ const handleActionSubmit = async (formData) => {
             </div>
           </div>
 
-          <div v-if="activeTab === 'sessions'">
+          <div v-if="activeTab === 'classes'">
             <div class="ui-section-header">
               <h3 class="ui-section-title">Attendance Tracking Ledger</h3>
             </div>
@@ -453,7 +453,7 @@ const handleActionSubmit = async (formData) => {
 
           <div class="px-xl pb-xl w-full">
             <h2 class="text-2xl font-black text-content-dark tracking-tighter mb-md leading-tight">
-              {{ program.title }}
+              {{ program.name || program.title }}
             </h2>
 
             <div class="w-full h-px bg-surface-light my-xl"></div>

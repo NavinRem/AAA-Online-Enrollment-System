@@ -490,8 +490,8 @@ const handleRegisterStudent = async (formData) => {
                   <img :src="item.program?.profileURL" alt="program" />
                 </div>
                 <div class="ui-identity-info overflow-hidden">
-                  <span class="font-bold text-content-dark truncate max-w-[140px] block" :title="item.program?.title">
-                    {{ item.program?.title }}
+                  <span class="font-bold text-content-dark truncate max-w-[140px] block" :title="item.programName">
+                    {{ item.programName }}
                   </span>
                 </div>
               </div>

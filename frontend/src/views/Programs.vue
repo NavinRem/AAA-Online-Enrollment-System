@@ -390,7 +390,7 @@ const onRowClick = (item) => {
               class="ui-cell text-center hidden sm:table-cell"
               :style="{ width: headers[3].width }"
             >
-              <span class="font-bold text-content-muted/70">{{ item.sessionNumber || '—' }}</span>
+              <span class="font-bold text-content-muted/70">{{ item.totalSessions || item.sessionNumber || '—' }}</span>
             </td>
             <td
               class="ui-cell text-center hidden sm:table-cell"
