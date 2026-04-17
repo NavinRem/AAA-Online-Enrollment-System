@@ -54,13 +54,12 @@ export const programService = {
     })
   },
 
-  getAllLevels(categoryId) {
-    if (!categoryId) return Promise.resolve([])
-    return request(`/categories/${categoryId}/levels`)
+  getAllLevels() {
+    return request('/levels')
   },
 
-  createLevel(categoryId, data) {
-    return request(`/categories/${categoryId}/levels`, {
+  createLevel(data) {
+    return request('/levels', {
       method: 'POST',
       body: JSON.stringify(data),
     })
@@ -74,36 +73,6 @@ export const programService = {
     return request('/terms', {
       method: 'POST',
       body: JSON.stringify(data),
-    })
-  },
-
-  async uploadImage(file) {
-    const formData = new FormData()
-    formData.append('image', file)
-    return request('/uploads', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Content-Type': undefined,
-      },
-    })
-  },
-
-  // --- Schedule Management (Sub-collection under Program) ---
-  addSchedule(programId, data) {
-    return request(`/programs/${programId}/schedules`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  },
-
-  getSchedules(programId) {
-    return request(`/programs/${programId}/schedules`)
-  },
-
-  removeSchedule(programId, scheduleId) {
-    return request(`/programs/${programId}/schedules/${scheduleId}`, {
-      method: 'DELETE',
     })
   },
 
