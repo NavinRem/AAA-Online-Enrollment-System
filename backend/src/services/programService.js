@@ -1,67 +1,31 @@
 const { db, COLLECTIONS } = require('../config/database')
-const profileHelper = require('../utils/profileHelper')
+const {
+  validateProgram,
+  validateUpdateProgram,
+} = require('../validators/programValidator')
 
 class ProgramService {
   /**
    * Create a new Program (Model Product)
    */
   async createProgram(programData) {
-    const {
-      name,
-      categoryId,
-      description,
-      sessionNumber,
-      weeksNumber,
-      basePrice,
-      maxCapacity,
-      type,
-      profileURL,
-      levelId,
-    } = programData
+    const validatedData = validateProgram(programData)
+    const { categoryId, levelId } = validatedData
 
-    if (!name || !categoryId) {
-      throw new Error('Program Name and Category are required')
-    }
-
-    // Authoritative check for Category Name
-    const catDoc = await db
-      .collection(COLLECTIONS.CATEGORY)
-      .doc(categoryId)
-      .get()
-    if (!catDoc.exists) throw new Error('Category not found')
-    const categoryName = catDoc.data().name
-
-    // Authoritative check for Level Name
-    let levelName = null
-    if (levelId) {
-      const lvlDoc = await db
+    if (categoryId) {
+      const catDoc = await db
         .collection(COLLECTIONS.CATEGORY)
         .doc(categoryId)
-        .collection(COLLECTIONS.LEVEL)
-        .doc(levelId)
         .get()
-      if (lvlDoc.exists) levelName = lvlDoc.data().name
+      if (catDoc.exists) validatedData.category = catDoc.data().name
+    }
+    if (levelId) {
+      const levelDoc = await db.collection(COLLECTIONS.LEVEL).doc(levelId).get()
+      if (levelDoc.exists) validatedData.level = levelDoc.data().name
     }
 
-    const data = {
-      name: name.trim(),
-      categoryId,
-      category: categoryName,
-      description: description || '',
-      levelId: levelId || null,
-      level: levelName,
-      sessionNumber: parseInt(sessionNumber || 0),
-      weeksNumber: parseInt(weeksNumber || 0),
-      basePrice: parseFloat(basePrice || 0),
-      maxCapacity: parseInt(maxCapacity || 15),
-      type: type || 'group',
-      profileURL: profileURL || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-
-    const docRef = await db.collection(COLLECTIONS.PROGRAM).add(data)
-    return { id: docRef.id, ...data }
+    const docRef = await db.collection(COLLECTIONS.PROGRAM).add(validatedData)
+    return { id: docRef.id, ...validatedData }
   }
 
   /**
@@ -69,86 +33,86 @@ class ProgramService {
    */
   async getAllPrograms() {
     const snapshot = await db.collection(COLLECTIONS.PROGRAM).get()
-    const programs = snapshot.docs.map((doc) => ({
+    return snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }))
-
-    return this._hydratePrograms(programs)
   }
 
   async getProgram(id) {
     const doc = await db.collection(COLLECTIONS.PROGRAM).doc(id).get()
     if (!doc.exists) throw new Error('Program not found')
-
-    const programs = [{ id: doc.id, ...doc.data() }]
-    const hydrated = await this._hydratePrograms(programs)
-    return hydrated[0]
-  }
-
-  /**
-   * Hydrates category and level names
-   */
-  async _hydratePrograms(programs) {
-    if (!programs || programs.length === 0) return []
-
-    const categoriesSnapshot = await db.collection(COLLECTIONS.CATEGORY).get()
-    const categoriesMap = {}
-    const levelsMap = {}
-
-    categoriesSnapshot.docs.forEach((doc) => {
-      categoriesMap[doc.id] = doc.data().name
-    })
-
-    await Promise.all(
-      categoriesSnapshot.docs.map(async (catDoc) => {
-        const levelsSnapshot = await catDoc.ref
-          .collection(COLLECTIONS.LEVEL)
-          .get()
-        levelsSnapshot.docs.forEach((lvlDoc) => {
-          levelsMap[lvlDoc.id] = lvlDoc.data().name
-        })
-      }),
-    )
-
-    return programs.map((p) => {
-      return {
-        ...p,
-        name: p.name,
-        category: categoriesMap[p.categoryId] || p.category,
-        levelName: levelsMap[p.levelId] || p.level,
-        profileURL: p.profileURL,
-      }
-    })
+    return { id: doc.id, ...doc.data() }
   }
 
   async updateProgram(id, updateData) {
+    const validatedUpdate = validateUpdateProgram(updateData)
     const ref = db.collection(COLLECTIONS.PROGRAM).doc(id)
-    const updates = { ...updateData }
+    const doc = await ref.get()
+    if (!doc.exists) throw new Error('Program not found')
 
-    // If ID changed, fetch authoritative name
-    if (updateData.categoryId) {
+    if (validatedUpdate.categoryId) {
       const catDoc = await db
         .collection(COLLECTIONS.CATEGORY)
-        .doc(updateData.categoryId)
+        .doc(validatedUpdate.categoryId)
         .get()
-      if (catDoc.exists) updates.category = catDoc.data().name
+      if (catDoc.exists) validatedUpdate.category = catDoc.data().name
     }
-
-    if (updateData.levelId && updateData.categoryId) {
-      const lvlDoc = await db
-        .collection(COLLECTIONS.CATEGORY)
-        .doc(updateData.categoryId)
+    if (validatedUpdate.levelId) {
+      const levelDoc = await db
         .collection(COLLECTIONS.LEVEL)
-        .doc(updateData.levelId)
+        .doc(validatedUpdate.levelId)
         .get()
-      if (lvlDoc.exists) updates.level = lvlDoc.data().name
+      if (levelDoc.exists) validatedUpdate.level = levelDoc.data().name
     }
 
-    updates.updatedAt = new Date().toISOString()
-    await ref.set(updates, { merge: true })
+    await ref.update(validatedUpdate)
 
-    return { id, ...updates }
+    const updatedDoc = await ref.get()
+    const classService = require('./classService')
+    const profileHelper = require('../utils/profileHelper')
+    const programSnapshot = profileHelper.getProgramSnapshot(
+      id,
+      updatedDoc.data(),
+    )
+    await classService.syncClassesWithProgram(id, programSnapshot)
+
+    return { id, ...validatedUpdate }
+  }
+
+  /**
+   * Sync all programs when a category name changes
+   */
+  async syncProgramsWithCategory(categoryId, categoryName) {
+    const snapshot = await db
+      .collection(COLLECTIONS.PROGRAM)
+      .where('categoryId', '==', categoryId)
+      .get()
+
+    if (snapshot.empty) return
+
+    const batch = db.batch()
+    snapshot.docs.forEach((doc) => {
+      batch.update(doc.ref, {
+        category: categoryName,
+        updatedAt: new Date().toISOString(),
+      })
+    })
+    await batch.commit()
+    console.log(
+      `🔄 Synced Category name "${categoryName}" to ${snapshot.size} Programs`,
+    )
+
+    for (const doc of snapshot.docs) {
+      const programData = { ...doc.data(), category: categoryName }
+      const profileHelper = require('../utils/profileHelper')
+      const classService = require('./classService')
+      const programSnapshot = profileHelper.getProgramSnapshot(
+        doc.id,
+        programData,
+      )
+      await classService.syncClassesWithProgram(doc.id, programSnapshot)
+    }
   }
 
   async deleteProgram(id) {
@@ -160,16 +124,15 @@ class ProgramService {
     const { day, timeslot } = scheduleData
     if (!day || !timeslot) throw new Error('Day and Timeslot are required')
 
-    const ref = db
+    const docRef = await db
       .collection(COLLECTIONS.PROGRAM)
       .doc(programId)
       .collection(COLLECTIONS.SCHEDULE)
-
-    const docRef = await ref.add({
-      day,
-      timeslot,
-      createdAt: new Date().toISOString(),
-    })
+      .add({
+        day,
+        timeslot,
+        createdAt: new Date().toISOString(),
+      })
 
     return { id: docRef.id, day, timeslot }
   }

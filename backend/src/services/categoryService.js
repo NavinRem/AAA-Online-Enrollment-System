@@ -1,4 +1,5 @@
 const { db, COLLECTIONS } = require('../config/database')
+const { validateCategory } = require('../validators/academicValidator')
 
 class CategoryService {
   async getAllCategories() {
@@ -10,44 +11,35 @@ class CategoryService {
   }
 
   async createCategory(categoryData) {
-    const { name } = categoryData
-    if (!name) throw new Error('Category name is required')
-
-    const forbiddenKeywords = [
-      'term',
-      'level',
-      'category',
-      'session',
-      'program',
-      'course',
-    ]
-    const lowerName = name.toLowerCase()
-    const foundKeyword = forbiddenKeywords.find((keyword) =>
-      lowerName.includes(keyword),
-    )
-
-    if (foundKeyword) {
-      throw new Error(
-        `Category name cannot contain the word "${foundKeyword}" to prevent inconsistency.`,
-      )
-    }
+    const validatedData = validateCategory(categoryData)
+    const { name } = validatedData
 
     const snapshot = await db.collection(COLLECTIONS.CATEGORY).get()
     const exists = snapshot.docs.some(
-      (doc) => doc.data().name.toLowerCase() === name.trim().toLowerCase(),
+      (doc) => doc.data().name.toLowerCase() === name.toLowerCase(),
     )
 
     if (exists) {
       throw new Error(`Category "${name}" already exists`)
     }
 
-    const data = {
-      name: name.trim(),
-      createdAt: new Date().toISOString(),
-    }
+    const docRef = await db.collection(COLLECTIONS.CATEGORY).add(validatedData)
+    return { id: docRef.id, ...validatedData }
+  }
 
-    const docRef = await db.collection(COLLECTIONS.CATEGORY).add(data)
-    return { id: docRef.id, ...data }
+  async updateCategory(id, data) {
+    const validatedData = validateCategory(data)
+    const ref = db.collection(COLLECTIONS.CATEGORY).doc(id)
+    const doc = await ref.get()
+
+    if (!doc.exists) throw new Error('Category not found')
+
+    await ref.update(validatedData)
+
+    const programService = require('./programService')
+    await programService.syncProgramsWithCategory(id, validatedData.name)
+
+    return { id, ...validatedData }
   }
 
   async deleteCategory(id) {

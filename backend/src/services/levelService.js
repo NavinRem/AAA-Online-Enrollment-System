@@ -1,4 +1,5 @@
 const { db, COLLECTIONS } = require('../config/database')
+const { validateLevel } = require('../validators/academicValidator')
 
 class LevelService {
   async getAllLevels(categoryId) {
@@ -15,21 +16,9 @@ class LevelService {
   }
 
   async createLevel(categoryId, levelData) {
-    const { name } = levelData
     if (!categoryId) throw new Error('Category ID is required')
-    if (!name) throw new Error('Level name is required')
-
-    const forbiddenKeywords = ['term', 'category', 'program', 'course']
-    const lowerName = name.toLowerCase()
-    const foundKeyword = forbiddenKeywords.find((keyword) =>
-      lowerName.includes(keyword),
-    )
-
-    if (foundKeyword) {
-      throw new Error(
-        `Level name cannot contain the word "${foundKeyword}" to prevent inconsistency.`,
-      )
-    }
+    const validatedData = validateLevel(levelData)
+    const { name } = validatedData
 
     const snapshot = await db
       .collection(COLLECTIONS.CATEGORY)
@@ -37,25 +26,21 @@ class LevelService {
       .collection(COLLECTIONS.LEVEL)
       .get()
     const exists = snapshot.docs.some(
-      (doc) => doc.data().name.toLowerCase() === name.trim().toLowerCase(),
+      (doc) => doc.data().name.toLowerCase() === name.toLowerCase(),
     )
 
     if (exists) {
       throw new Error(`Level "${name}" already exists in this category`)
     }
 
-    const data = {
-      name: name.trim(),
-      createdAt: new Date().toISOString(),
-    }
-
     const docRef = await db
       .collection(COLLECTIONS.CATEGORY)
       .doc(categoryId)
       .collection(COLLECTIONS.LEVEL)
-      .add(data)
-    return { id: docRef.id, ...data }
+      .add(validatedData)
+    return { id: docRef.id, ...validatedData }
   }
+
 
   async deleteLevel(categoryId, id) {
     await db

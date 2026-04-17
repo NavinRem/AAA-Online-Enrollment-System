@@ -1,39 +1,116 @@
 /**
  * ProfileHelper - Source of Truth for Data Snapshots
- * Used to ensure mirrored data (Parents/Students) is consistent across collections.
+ * Used to ensure mirrored data is consistent across collections.
  */
 class ProfileHelper {
   /**
-   * Creates a standardized snapshot of a User (Admin or Parent)
+   * BASE: Standardized snapshot for identity (Used by all people roles)
    */
-  getUserSnapshot(uid, userData) {
-    if (!uid || !userData) return null
-
+  getUserSnapshot(userId, userData) {
+    if (!userId || !userData) return null
     return {
-      id: uid,
-      uid: uid,
+      id: userId,
       name: userData.name,
-      email: userData.email,
-      phone: userData.phone,
-      role: userData.role,
-      profileURL: userData.profileURL,
+      profileURL: userData.profileURL || null,
+      status: userData.status || 'active',
     }
   }
 
   /**
-   * Creates a standardized snapshot of a Student
+   * SPECIFIC: Parent Snapshot (Extensions of User)
    */
-  getStudentSnapshot(sid, studentData) {
-    if (!sid || !studentData) return null
-
+  getParentSnapshot(parentId, parentData) {
+    const base = this.getUserSnapshot(parentId, parentData)
+    if (!base) return null
     return {
-      id: sid,
-      sid: sid,
-      name: studentData.name,
+      ...base,
+      email: parentData.email,
+      phone: parentData.phone,
+    }
+  }
+
+  /**
+   * SPECIFIC: Student Snapshot (Extensions of User)
+   */
+  getStudentSnapshot(studentId, studentData) {
+    const base = this.getUserSnapshot(studentId, studentData)
+    if (!base) return null
+    return {
+      ...base,
       dob: studentData.dob,
-      medicalNote: studentData.medicalNote,
-      profileURL: studentData.profileURL,
-      status: studentData.status,
+      age: this.calculateAge(studentData.dob),
+    }
+  }
+
+  /**
+   * SPECIFIC: Teacher Snapshot (Extensions of User)
+   */
+  getTeacherSnapshot(teacherId, teacherData) {
+    return this.getUserSnapshot(teacherId, teacherData)
+  }
+
+  /**
+   * METADATA: Program (Product)
+   */
+  getProgramSnapshot(programId, programData) {
+    if (!programId || !programData) return null
+    return {
+      id: programId,
+      name: programData.name,
+      totalSessions: programData.totalSessions || 0,
+      basePrice: programData.basePrice || 0,
+      description: programData.description || '',
+      category: programData.category || '',
+      level: programData.level || '',
+      maxCapacity: programData.maxCapacity || 0,
+      type: programData.type || '',
+      profileURL: programData.profileURL || null,
+    }
+  }
+
+  /**
+   * METADATA: Branch (Location)
+   */
+  getBranchSnapshot(branchId, branchData) {
+    if (!branchId || !branchData) return null
+    return {
+      id: branchId,
+      name: branchData.name,
+      abbr: branchData.abbr,
+      location: branchData.location,
+      phone: branchData.phone,
+    }
+  }
+
+  /**
+   * METADATA: Term (Academic Period)
+   */
+  getTermSnapshot(termId, data) {
+    if (!termId || !data) return null
+    return {
+      id: termId,
+      name: data.name,
+      startDate: data.startDate,
+      endDate: data.endDate,
+    }
+  }
+
+  /**
+   * MIRROR: Class (Operational Unit)
+   */
+  getClassSnapshot(classId, data) {
+    if (!classId || !data) return null
+    return {
+      id: classId,
+      program: data.program, // Snapshot of Program
+      term: data.term,       // Snapshot of Term
+      branch: data.branch,   // Snapshot of Branch
+      teacher: data.teacher, // Snapshot of Teacher
+      schedules: data.schedules || [],
+      status: data.status || 'open',
+      maxCapacity: data.maxCapacity || 0,
+      enrolledCount: data.enrolledCount || 0,
+      isFull: (data.enrolledCount || 0) >= (data.maxCapacity || 0),
     }
   }
 
@@ -50,70 +127,19 @@ class ProfileHelper {
   }
 
   /**
-   * Standardized Program Snapshot (Model Product)
+   * Calculate age based on DOB string (YYYY-MM-DD)
    */
-  getProgramSnapshot(programId, data) {
-    if (!programId || !data) return null
-
-    return {
-      id: programId,
-      name: data.name,
-      category: data.category,
-      sessionNumber: data.sessionNumber || 0,
-      weeksNumber: data.weeksNumber || 0,
-      basePrice: data.basePrice || 0,
-      maxCapacity: data.maxCapacity || 0,
-      type: data.type || 'group',
-      profileURL: data.profileURL,
+  calculateAge(dob) {
+    if (!dob) return 0
+    const birthDate = new Date(dob)
+    if (isNaN(birthDate)) return 0
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const m = today.getMonth() - birthDate.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--
     }
-  }
-
-  /**
-   * Standardized Term Snapshot
-   */
-  getTermSnapshot(termId, data) {
-    if (!termId || !data) return null
-    return {
-      id: termId,
-      name: data.name,
-      startDate: data.startDate,
-      endDate: data.endDate,
-    }
-  }
-
-  /**
-   * Standardized Branch Snapshot
-   */
-  getBranchSnapshot(branchId, data) {
-    if (!branchId || !data) return null
-    return {
-      id: branchId,
-      name: data.name,
-      abbr: data.abbr,
-      location: data.location,
-    }
-  }
-
-  /**
-   * Standardized Class Snapshot
-   */
-  getClassSnapshot(classId, data) {
-    if (!classId || !data) return null
-    return {
-      id: classId,
-      program: data.program, // Mirror
-      term: data.term, // Mirror
-      branch: data.branch, // Mirror
-      teacher: data.teacher, // Mirror
-      day: data.day,
-      timeslot: data.timeslot,
-      status: data.status || 'open',
-      capacity: data.capacity || data.program?.maxCapacity || 0,
-      numStudent: data.numStudent || 0,
-      isFull:
-        (data.numStudent || 0) >=
-        (data.capacity || data.program?.maxCapacity || 0),
-    }
+    return age
   }
 }
 

@@ -1,14 +1,14 @@
 const { db, COLLECTIONS } = require('../config/database')
 const profileHelper = require('../utils/profileHelper')
-const branchService = require('./branchService')
+const {
+  validateStudent,
+  validateUpdateStudent,
+} = require('../validators/studentValidator')
 
 class StudentService {
   async createStudent(studentData) {
-    const { parentId, name, dob, medicalNote } = studentData
-
-    if (!parentId || !name || !dob) {
-      throw new Error('Parent ID, Name, and Date of Birth are required')
-    }
+    const validatedData = validateStudent(studentData)
+    const { parentId } = validatedData
 
     const parentDoc = await db
       .collection(COLLECTIONS.PARENT)
@@ -21,18 +21,9 @@ class StudentService {
     const parentInfo = profileHelper.getUserSnapshot(parentId, pData)
 
     const studentId = db.collection(COLLECTIONS.STUDENT).doc().id
-    const now = new Date().toISOString()
-
     const data = {
-      parentId,
+      ...validatedData,
       parentInfo,
-      name,
-      dob,
-      medicalNote: medicalNote || 'None',
-      profileURL: studentData.profileURL || studentData.profile || null,
-      status: 'Inactive',
-      createdAt: now,
-      updatedAt: now,
     }
 
     const batch = db.batch()
@@ -58,32 +49,26 @@ class StudentService {
   }
 
   async updateStudent(id, updateData) {
+    const validatedUpdate = validateUpdateStudent(updateData)
     const studentRef = db.collection(COLLECTIONS.STUDENT).doc(id)
     const doc = await studentRef.get()
     if (!doc.exists) throw new Error('Student not found')
 
     const currentData = doc.data()
     const parentId = currentData.parentId
-    const now = new Date().toISOString()
-
-    const mergedData = { ...updateData, updatedAt: now }
-
-    Object.keys(mergedData).forEach(
-      (key) => mergedData[key] === undefined && delete mergedData[key],
-    )
 
     const batch = db.batch()
-    batch.update(studentRef, mergedData)
+    batch.update(studentRef, validatedUpdate)
 
     const syncFields = ['name', 'dob', 'medicalNote', 'profileURL']
-    const shouldSync = Object.keys(updateData).some((key) =>
+    const shouldSync = Object.keys(validatedUpdate).some((key) =>
       syncFields.includes(key),
     )
 
     if (shouldSync) {
       const snapshot = profileHelper.getStudentSnapshot(id, {
         ...currentData,
-        ...updateData,
+        ...validatedUpdate,
       })
       await this._syncStudentMirrors(id, snapshot, parentId, batch)
     }

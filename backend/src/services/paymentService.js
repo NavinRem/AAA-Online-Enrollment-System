@@ -1,25 +1,19 @@
 const { db, COLLECTIONS } = require('../config/database')
+const { validatePayment } = require('../validators/paymentValidator')
 
 class PaymentService {
   async initiatePayment(paymentData) {
-    const { enrollmentId, amount, method, parentId } = paymentData
+    const validatedData = validatePayment(paymentData)
     const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc()
-    const data = {
-      enrollmentId,
-      parentId,
-      amount,
-      method: method || 'credit_card',
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    }
 
-    await paymentRef.set(data)
+    await paymentRef.set(validatedData)
     return {
       transactionId: paymentRef.id,
       clientSecret: 'placeholder_secret_for_frontend',
       message: 'Payment initiated',
     }
   }
+
 
   async verifyPayment(transactionId) {
     const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc(transactionId)

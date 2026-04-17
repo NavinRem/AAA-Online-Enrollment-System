@@ -10,16 +10,16 @@ exports.createEnrollment = async (req, res) => {
     res.status(201).json(result)
   } catch (error) {
     if (
-      error.message === 'Session not found' ||
+      error.message === 'Class not found' ||
       error.message === 'Student not found' ||
       error.message === 'Program not found'
     ) {
       return res.status(404).json({ error: error.message })
     }
     if (
-      error.message === 'Student already enrolled for this session' ||
-      error.message === 'Session is full' ||
-      error.message === 'studentId, programId, and sessionId are required'
+      error.message === 'Student already enrolled for this class' ||
+      error.message === 'Class is full' ||
+      error.message === 'studentId, programId, and classId are required'
     ) {
       return res.status(400).json({ error: error.message })
     }
