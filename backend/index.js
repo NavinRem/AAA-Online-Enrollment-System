@@ -20,7 +20,6 @@ const userRoutes = require('./src/routes/users')
 
 // --- Academic Content ---
 const programRoutes = require('./src/routes/programs')
-const sessionRoutes = require('./src/routes/sessions')
 const categoryRoutes = require('./src/routes/categories')
 const termRoutes = require('./src/routes/terms')
 const branchRoutes = require('./src/routes/branches')
@@ -28,7 +27,6 @@ const classRoutes = require('./src/routes/classes')
 const trialRoutes = require('./src/routes/trials')
 
 // --- Administrative & Academic Tracking ---
-const uploadRoutes = require('./src/routes/uploads')
 
 // Middleware
 app.use(helmet())
@@ -48,7 +46,6 @@ apiRouter.use('/users', userRoutes)
 
 // --- Academic Content ---
 apiRouter.use('/programs', programRoutes)
-apiRouter.use('/sessions', sessionRoutes)
 apiRouter.use('/categories', categoryRoutes)
 apiRouter.use('/terms', termRoutes)
 apiRouter.use('/branches', branchRoutes)
@@ -56,7 +53,6 @@ apiRouter.use('/classes', classRoutes)
 apiRouter.use('/trials', trialRoutes)
 
 // --- Administrative & Academic Recording ---
-apiRouter.use('/uploads', uploadRoutes)
 
 // Main app uses both prefixed and non-prefixed routes for maximum compatibility
 app.use('/api', apiRouter)
