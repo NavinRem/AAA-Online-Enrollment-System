@@ -1,4 +1,8 @@
 const { db, COLLECTIONS } = require('../config/database')
+const {
+  validateBranch,
+  validateUpdateBranch,
+} = require('../validators/branchValidator')
 
 class BranchService {
   async getAllBranches() {
@@ -13,49 +17,28 @@ class BranchService {
   }
 
   async createBranch(data) {
-    const id = data.abbr?.toUpperCase().trim()
-    if (!id) throw new Error('Branch Abbreviation is required')
-    if (!data.name) throw new Error('Branch Name is required')
+    const validatedData = validateBranch(data)
+    const id = validatedData.abbr
 
     const ref = db.collection(COLLECTIONS.BRANCH).doc(id)
     const doc = await ref.get()
     if (doc.exists)
       throw new Error(`Branch with abbreviation "${id}" already exists`)
 
-    const branchData = {
-      name: data.name.trim(),
-      abbr: id,
-      location: data.location?.trim() || '',
-      // Calculated stats — initialized at 0, auto-updated by event triggers
-      studentCount: 0,
-      programCount: 0,
-      sessionCount: 0,
-      newTodayCount: 0,
-      totalRevenue: 0,
-      pendingRevenue: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }
-
-    await ref.set(branchData)
-    return { id, ...branchData }
+    await ref.set(validatedData)
+    return { id, ...validatedData }
   }
 
   async updateBranch(id, data) {
+    const validatedUpdate = validateUpdateBranch(data)
     const ref = db.collection(COLLECTIONS.BRANCH).doc(id)
     const doc = await ref.get()
     if (!doc.exists) throw new Error('Branch not found')
 
-    // Only allow updating editable fields — stats are managed by event triggers
-    const updateData = {
-      ...(data.name && { name: data.name.trim() }),
-      ...(data.location !== undefined && { location: data.location.trim() }),
-      updatedAt: new Date().toISOString(),
-    }
-
-    await ref.update(updateData)
-    return { id, ...doc.data(), ...updateData }
+    await ref.update(validatedUpdate)
+    return { id, ...doc.data(), ...validatedUpdate }
   }
+
 
   async deleteBranch(id) {
     const ref = db.collection(COLLECTIONS.BRANCH).doc(id)
@@ -66,23 +49,14 @@ class BranchService {
     return { id, message: 'Branch deleted successfully' }
   }
 
-  /**
-   * Returns a minimal branch snapshot for embedding in Student records.
-   */
-  getBranchSnapshot(id, data) {
+  async getBranchSnapshot(id, data) {
     if (!id || !data) return null
     return { id, name: data.name, abbr: data.abbr }
   }
 
-  /**
-   * Recalculates and persists all stats for a single branch.
-   * Optimized to use filtered queries instead of fetching full collections.
-   */
   async calculateAndSyncStats(branchId) {
     if (!branchId) return
     const today = new Date().toISOString().split('T')[0]
-
-    // Build optimized queries
     const [enrollmentsSnap, classesSnap] = await Promise.all([
       db
         .collection(COLLECTIONS.ENROLLMENT)
@@ -108,10 +82,10 @@ class BranchService {
 
     enrollments.forEach((doc) => {
       const data = doc.data()
-      const status = (data.paymentStatus || '').toLowerCase()
-      const amount = data.amount || 0
+      const status = data.paymentStatus.toLowerCase()
+      const amount = data.amount
 
-      if (['paid', 'confirmed', 'active', 'success'].includes(status)) {
+      if (status === 'paid') {
         totalRevenue += amount
       } else {
         pendingRevenue += amount
@@ -140,3 +114,4 @@ class BranchService {
 }
 
 module.exports = new BranchService()
+
