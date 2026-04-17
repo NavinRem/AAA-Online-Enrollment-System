@@ -1,4 +1,7 @@
-const userService = require('../services/userService')
+const authService = require('../services/authService')
+const adminService = require('../services/adminService')
+const parentService = require('../services/parentService')
+const teacherService = require('../services/teacherService')
 const studentService = require('../services/studentService')
 const { db, COLLECTIONS } = require('../config/database')
 
@@ -8,7 +11,7 @@ const { db, COLLECTIONS } = require('../config/database')
  */
 exports.registerParentAccount = async (req, res) => {
   try {
-    const result = await userService.registerParentAccount(req.body)
+    const result = await parentService.registerParent(req.body)
     res.status(200).json(result)
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -21,7 +24,13 @@ exports.registerParentAccount = async (req, res) => {
  */
 exports.registerStaffAccount = async (req, res) => {
   try {
-    const result = await userService.registerAdminAccount(req.body)
+    const { role } = req.body
+    let result
+    if (role?.toLowerCase() === 'teacher') {
+      result = await teacherService.registerTeacher(req.body)
+    } else {
+      result = await adminService.registerAdmin(req.body)
+    }
     res.status(201).json(result)
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -34,8 +43,12 @@ exports.registerStaffAccount = async (req, res) => {
  */
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await userService.getAllUsers()
-    res.status(200).json(users)
+    const [admins, parents, teachers] = await Promise.all([
+      adminService.getAllAdmins(),
+      parentService.getAllParents(),
+      teacherService.getAllTeachers(),
+    ])
+    res.status(200).json([...admins, ...parents, ...teachers])
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -47,7 +60,7 @@ exports.getAllUsers = async (req, res) => {
  */
 exports.getUser = async (req, res) => {
   try {
-    const user = await userService.getUser(req.params.uid)
+    const user = await authService.getUser(req.params.uid)
     res.status(200).json(user)
   } catch (error) {
     if (error.message.includes('not found'))
@@ -62,7 +75,7 @@ exports.getUser = async (req, res) => {
  */
 exports.getUserRole = async (req, res) => {
   try {
-    const roleData = await userService.getUserRole(req.params.uid)
+    const roleData = await authService.getUserRole(req.params.uid)
     res.status(200).json(roleData)
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -119,7 +132,25 @@ exports.getStudentsByParentID = async (req, res) => {
  */
 exports.updateUser = async (req, res) => {
   try {
-    const result = await userService.updateUser(req.params.uid, req.body)
+    const { uid: id } = req.params
+    const user = await authService.getUser(id)
+    let result
+
+    switch (user.role?.toLowerCase()) {
+      case 'admin':
+        result = await adminService.updateAdmin(id, req.body)
+        break
+      case 'parent':
+      case 'guardian':
+        result = await parentService.updateParent(id, req.body)
+        break
+      case 'teacher':
+        result = await teacherService.updateTeacher(id, req.body)
+        break
+      default:
+        throw new Error('Unsupported user role for update')
+    }
+
     res.status(200).json(result)
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -132,7 +163,25 @@ exports.updateUser = async (req, res) => {
  */
 exports.deleteUser = async (req, res) => {
   try {
-    const result = await userService.deleteUser(req.params.uid)
+    const { uid: id } = req.params
+    const user = await authService.getUser(id)
+    let result
+
+    switch (user.role?.toLowerCase()) {
+      case 'admin':
+        result = await adminService.deleteAdmin(id)
+        break
+      case 'parent':
+      case 'guardian':
+        result = await parentService.deleteParent(id)
+        break
+      case 'teacher':
+        result = await teacherService.deleteTeacher(id)
+        break
+      default:
+        throw new Error('Unsupported user role for deletion')
+    }
+
     res.status(200).json(result)
   } catch (error) {
     res.status(500).json({ error: error.message })
@@ -158,19 +207,20 @@ exports.getAllStudents = async (req, res) => {
  */
 exports.runStandardization = async (req, res) => {
   try {
-    console.log('🚀 Starting data standardization and mirroring...')
+    const [admins, parents, teachers] = await Promise.all([
+      adminService.getAllAdmins(),
+      parentService.getAllParents(),
+      teacherService.getAllTeachers(),
+    ])
 
-    const users = await userService.getAllUsers()
+    const allUsers = [...admins, ...parents, ...teachers]
     let count = 0
 
-    for (const user of users) {
-      const collection =
-        user.role === 'admin' ? COLLECTIONS.ADMIN : COLLECTIONS.PARENT
-      await userService._syncUserMirrors(
-        user.uid,
-        db.collection(collection).doc(user.uid),
-      )
-      count++
+    for (const user of allUsers) {
+      if (user.role === 'parent' || user.role === 'guardian') {
+        await parentService.syncParentMirrors(user.id)
+        count++
+      }
     }
 
     res.status(200).json({
@@ -189,7 +239,7 @@ exports.runStandardization = async (req, res) => {
  */
 exports.resetPassword = async (req, res) => {
   try {
-    const result = await userService.manualPasswordReset(req.params.uid)
+    const result = await authService.manualPasswordReset(req.params.uid)
     res.status(200).json(result)
   } catch (error) {
     res.status(500).json({ error: error.message })
