@@ -30,7 +30,7 @@
 
         <!-- Program Selection -->
         <AppSelect v-model="form.programId"
-          :items="availableProgramsForStudent.map((p) => ({ id: p.id, name: p.title, profileURL: p.profileURL, type: p.type || 'group' }))"
+          :items="availableProgramsForStudent.map((p) => ({ id: p.id, name: p.name || p.title, profileURL: p.profileURL, type: p.type || 'group' }))"
           label="Program Name" placeholder="Choose Program..." required class="col-span-2 sm:col-span-1"
           :disabled="!form.studentId" :error="errors.programId" :shake="shaking.programId" @change="handleProgramChange"
           @click-disabled="handleDisabledClick('programId')">
@@ -72,7 +72,7 @@
             <div class="enroll-info-grid">
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Program</span>
-                <span class="enroll-info-val">{{ selectedClass?.program?.title || '—' }}</span>
+                <span class="enroll-info-val">{{ selectedClass?.program?.name || selectedClass?.program?.title || '—' }}</span>
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Type</span>
@@ -95,9 +95,9 @@
                 <span class="enroll-info-val">{{ formatDateOnly(selectedClass?.term?.endDate) }}</span>
               </div>
               <div class="enroll-info-item">
-                <span class="enroll-info-key">Total Sessions</span>
+                <span class="enroll-info-key">Total Units</span>
                 <span class="enroll-info-val enroll-info-val--strong">{{
-                  (selectedProgram?.sessionNumber
+                  (selectedProgram?.totalSessions || selectedProgram?.sessionNumber
                     || '—') }}</span>
               </div>
               <div class="enroll-info-item">
@@ -442,7 +442,7 @@ const isSubmittable = computed(() =>
 // Build the rows for the confirmation overlay dynamically
 const confirmRows = computed(() => [
   { key: 'Student', value: selectedStudent.value?.name },
-  { key: 'Program', value: selectedClass.value?.program?.title, badge: false },
+  { key: 'Program', value: selectedClass.value?.program?.name || selectedClass.value?.program?.title, badge: false },
   { key: 'Type', value: selectedClass.value?.program?.type, badge: true },
   { key: 'Schedule', value: selectedClass.value ? `${selectedClass.value.day} (${selectedClass.value.timeslot})` : null },
   { key: 'Branch', value: selectedClass.value?.branch?.abbr || selectedClass.value?.branch?.name, badge: true },
