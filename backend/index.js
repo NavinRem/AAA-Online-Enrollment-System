@@ -6,6 +6,7 @@ const express = require('express')
 const cors = require('cors')
 const helmet = require('helmet')
 const app = express()
+app.set('trust proxy', 1)
 
 const { limiter } = require('./src/config/limiters')
 
