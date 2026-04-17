@@ -18,7 +18,9 @@ router.get('/:id', verifyToken, classController.getClass)
 router.patch('/:id', verifyToken, isAdmin, classController.updateClass)
 router.delete('/:id', verifyToken, isAdmin, classController.deleteClass)
 
-// Syncing
+// Operational/Syncing
+router.get('/:id/validate-capacity', verifyToken, classController.validateCapacity)
 router.post('/:id/sync', verifyToken, isAdmin, classController.syncCount)
+router.post('/sync-all', verifyToken, isAdmin, classController.syncAllCounts)
 
 module.exports = router

@@ -18,6 +18,20 @@ exports.getAllClasses = async (req, res) => {
   }
 }
 
+exports.getAvailableClasses = async (req, res) => {
+  try {
+    const { id } = req.params // Program ID
+    const { branchId } = req.query
+    const filters = { programId: id, status: 'open' }
+    if (branchId) filters.branchId = branchId
+
+    const classes = await classService.getAllClasses(filters)
+    res.status(200).json(classes)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
 exports.getClass = async (req, res) => {
   try {
     const classData = await classService.getClass(req.params.id)
@@ -69,8 +83,26 @@ exports.duplicateClasses = async (req, res) => {
 
 exports.syncCount = async (req, res) => {
   try {
-    const count = await classService.syncStudentCount(req.params.id)
-    res.status(200).json({ id: req.params.id, activeCount: count })
+    const result = await classService.syncStudentCount(req.params.id)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+exports.syncAllCounts = async (req, res) => {
+  try {
+    const result = await classService.syncAllClassCounts()
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+exports.validateCapacity = async (req, res) => {
+  try {
+    const result = await classService.validateCapacity(req.params.id)
+    res.status(200).json(result)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }

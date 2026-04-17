@@ -1,77 +1,35 @@
 const { db, COLLECTIONS } = require('../config/database')
 const profileHelper = require('../utils/profileHelper')
+const { validateClass, validateUpdateClass } = require('../validators/classValidator')
 
 class ClassService {
-  /**
-   * Create a new Class instance
-   * Joins Program, Term, Branch, Teacher, and Schedule
-   */
   async createClass(classData) {
-    const {
-      programId,
-      termId,
-      branchId,
-      teacherId,
-      day,
-      timeslot,
-      scheduleType,
-      status,
-      adminNote,
-      price,
-      capacity,
-    } = classData
+    const validatedData = validateClass(classData)
+    const { programId, termId, branchId, teacherId } = validatedData
 
-    if (!programId || !termId || !branchId) {
-      throw new Error(
-        'Program, Term, and Branch are required to create a class',
-      )
-    }
-
-    // 1. Fetch related docs for snapshots
     const [programDoc, termDoc, branchDoc, teacherDoc] = await Promise.all([
       db.collection(COLLECTIONS.PROGRAM).doc(programId).get(),
       db.collection(COLLECTIONS.TERM).doc(termId).get(),
       db.collection(COLLECTIONS.BRANCH).doc(branchId).get(),
-      teacherId
-        ? db.collection(COLLECTIONS.TEACHER).doc(teacherId).get()
-        : Promise.resolve({ exists: false, data: () => null }),
+      db.collection(COLLECTIONS.TEACHER).doc(teacherId).get(),
     ])
 
     if (!programDoc.exists) throw new Error('Program not found')
     if (!termDoc.exists) throw new Error('Term not found')
     if (!branchDoc.exists) throw new Error('Branch not found')
+    if (!teacherDoc.exists) throw new Error('Teacher not found')
 
     const pData = programDoc.data()
     const tData = termDoc.data()
     const bData = branchDoc.data()
-    const uData = teacherDoc.exists ? teacherDoc.data() : null
+    const uData = teacherDoc.data()
 
-    // 2. Build the Class document with Snapshots
     const data = {
-      programId,
-      termId,
-      branchId,
-      teacherId: teacherId || null,
-
+      ...validatedData,
       program: profileHelper.getProgramSnapshot(programId, pData),
       term: profileHelper.getTermSnapshot(termId, tData),
       branch: profileHelper.getBranchSnapshot(branchId, bData),
-      teacher: uData ? profileHelper.getUserSnapshot(teacherId, uData) : null,
-
-      day: day || 'TBD',
-      timeslot: timeslot || 'TBD',
-      scheduleType: scheduleType || 'fix',
-      status: status || 'open',
-      adminNote: adminNote || '',
-
-      price: parseFloat(price !== undefined ? price : pData.basePrice || 0),
-      capacity: parseInt(
-        capacity !== undefined ? capacity : pData.maxCapacity || 15,
-      ),
-
-      numStudent: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      teacher: profileHelper.getUserSnapshot(teacherId, uData),
     }
 
     const docRef = await db.collection(COLLECTIONS.CLASS).add(data)
@@ -103,40 +61,74 @@ class ClassService {
   }
 
   async updateClass(id, updateData) {
+    const validatedUpdate = validateUpdateClass(updateData)
     const ref = db.collection(COLLECTIONS.CLASS).doc(id)
     const doc = await ref.get()
     if (!doc.exists) throw new Error('Class not found')
 
-    const data = {
-      ...updateData,
-      updatedAt: new Date().toISOString(),
-    }
-
-    if (updateData.teacherId) {
+    if (validatedUpdate.teacherId) {
       const teacherDoc = await db
         .collection(COLLECTIONS.TEACHER)
-        .doc(updateData.teacherId)
+        .doc(validatedUpdate.teacherId)
         .get()
       if (teacherDoc.exists) {
-        data.teacher = profileHelper.getUserSnapshot(
-          updateData.teacherId,
+        validatedUpdate.teacher = profileHelper.getUserSnapshot(
+          validatedUpdate.teacherId,
           teacherDoc.data(),
         )
       }
     }
 
-    await ref.update(data)
+    await ref.update(validatedUpdate)
 
-    if (updateData.branchId || doc.data().branchId) {
+    // Trigger cascading sync to Enrollments
+    const updatedDoc = await ref.get()
+    const enrollmentService = require('./enrollmentService')
+    const classSnapshot = profileHelper.getClassSnapshot(id, updatedDoc.data())
+    await enrollmentService.syncEnrollmentsWithClass(id, classSnapshot)
+
+    if (validatedUpdate.branchId || doc.data().branchId) {
       const branchService = require('./branchService')
-      if (updateData.branchId)
-        await branchService.calculateAndSyncStats(updateData.branchId)
-      if (doc.data().branchId && doc.data().branchId !== updateData.branchId) {
+      if (validatedUpdate.branchId)
+        await branchService.calculateAndSyncStats(validatedUpdate.branchId)
+      if (
+        doc.data().branchId &&
+        doc.data().branchId !== validatedUpdate.branchId
+      ) {
         await branchService.calculateAndSyncStats(doc.data().branchId)
       }
     }
 
-    return { id, ...data }
+    return { id, ...validatedUpdate }
+  }
+
+  /**
+   * Sync all classes when a program snapshot changes
+   */
+  async syncClassesWithProgram(programId, programSnapshot) {
+    const snapshot = await db.collection(COLLECTIONS.CLASS)
+      .where('programId', '==', programId)
+      .get()
+    
+    if (snapshot.empty) return
+
+    const batch = db.batch()
+    snapshot.docs.forEach(doc => {
+      batch.update(doc.ref, { 
+        program: programSnapshot,
+        updatedAt: new Date().toISOString()
+      })
+    })
+    await batch.commit()
+    console.log(`🔄 Synced Program snapshot to ${snapshot.size} Classes`)
+
+    // Propagate to Enrollments
+    for (const doc of snapshot.docs) {
+      const classData = { ...doc.data(), program: programSnapshot }
+      const enrollmentService = require('./enrollmentService')
+      const classSnapshot = profileHelper.getClassSnapshot(doc.id, classData)
+      await enrollmentService.syncEnrollmentsWithClass(doc.id, classSnapshot)
+    }
   }
 
   async deleteClass(id) {
@@ -185,7 +177,7 @@ class ClassService {
         ...oldData,
         termId: targetTermId,
         term: termSnapshot,
-        numStudent: 0,
+        enrolledCount: 0,
         status: 'open',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -211,9 +203,6 @@ class ClassService {
     }
   }
 
-  /**
-   * Synchronize student count for a class based on active enrollments
-   */
   async syncStudentCount(classId) {
     const enrollmentSnapshot = await db
       .collection(COLLECTIONS.ENROLLMENT)
@@ -221,16 +210,52 @@ class ClassService {
       .get()
 
     const activeCount = enrollmentSnapshot.docs.filter((doc) => {
-      const status = (doc.data().status || '').toLowerCase()
+      const status = doc.data().status.toLowerCase()
       return !['cancelled', 'canceled'].includes(status)
     }).length
 
     await db.collection(COLLECTIONS.CLASS).doc(classId).update({
-      numStudent: activeCount,
+      enrolledCount: activeCount,
       updatedAt: new Date().toISOString(),
     })
 
-    return activeCount
+    return { id: classId, enrolledCount: activeCount }
+  }
+
+  async validateCapacity(classId) {
+    const doc = await db.collection(COLLECTIONS.CLASS).doc(classId).get()
+    if (!doc.exists) throw new Error('Class not found')
+
+    const data = doc.data()
+    const enrolledCount = data.enrolledCount || 0
+    const maxCapacity = data.maxCapacity || 0
+    const available = enrolledCount < maxCapacity
+
+    return {
+      id: classId,
+      hasCapacity: available,
+      current: enrolledCount,
+      maxCapacity: maxCapacity,
+    }
+  }
+
+  async syncAllClassCounts() {
+    const snapshot = await db.collection(COLLECTIONS.CLASS).get()
+    const results = []
+
+    for (const doc of snapshot.docs) {
+      try {
+        const result = await this.syncStudentCount(doc.id)
+        results.push(result)
+      } catch (err) {
+        console.error(`Failed to sync class ${doc.id}:`, err)
+      }
+    }
+
+    return {
+      message: `Synchronized ${results.length} classes`,
+      details: results,
+    }
   }
 }
 
