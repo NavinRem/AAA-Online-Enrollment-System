@@ -3,18 +3,18 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import DetailCard from '../components/common/cards/DetailCard.vue'
 import DetailedSummaryCard from '../components/common/cards/DetailedSummaryCard.vue'
 import EnrollmentActionModal from '@/components/enrollments/EnrollmentActionModal.vue'
 import EnrollmentFormModal from '@/components/enrollments/EnrollmentFormModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { enrollmentService } from '@/services/enrollmentService'
-import { userService } from '@/services/userService'
+import { parentService } from '@/services/parentService'
+import { studentService } from '@/services/studentService'
 import { programService } from '@/services/programService'
 import { formatDate, formatDateOnly, formatPrice, calculateAge } from '@/utils/formatUtils'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
-import { isPaid, isCancelled } from '@/utils/statusUtils'
 
 import {
   getProgramProfileURL,
@@ -135,17 +135,13 @@ const handleActionSubmit = async (payload) => {
 const fetchDependencyData = async () => {
   try {
     formLoading.value = true
-    const [usersRes, programsRes, studentsRes, enrollmentsRes] = await Promise.all([
-      userService.getAllUsers(),
+    const [parentsRes, programsRes, studentsRes, enrollmentsRes] = await Promise.all([
+      parentService.getAllParents(),
       programService.getAllPrograms(),
-      userService.getAllStudents(),
+      studentService.getAllStudents(),
       enrollmentService.getAllEnrollments(),
     ])
-    parents.value = Array.isArray(usersRes)
-      ? usersRes.filter(
-          (u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active',
-        )
-      : []
+    parents.value = Array.isArray(parentsRes) ? parentsRes : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
     enrollments.value = Array.isArray(enrollmentsRes) ? enrollmentsRes : []
@@ -173,45 +169,13 @@ const handleEditSubmit = async (formData) => {
   submitting.value = true
   modalError.value = ''
   try {
-    const pRecord = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
-    const sRecord = students.value.find((s) => s.id === formData.studentId)
-    const progRecord = programs.value.find((c) => c.id === formData.programId)
-    const classRecord = classes.value.find((c) => c.id === formData.classId)
-
     const payload = {
-      parentId: pRecord.uid || pRecord.id,
-      studentId: sRecord.id,
-      programId: progRecord.id,
-      classId: classRecord.id,
-
-      parent: {
-        id: pRecord.uid || pRecord.id,
-        name: pRecord.name || pRecord.email || 'Parent',
-        profile: pRecord.profile || null,
-      },
-      student: {
-        id: sRecord.id,
-        name: sRecord.fullname || sRecord.fullName || sRecord.name || 'Student',
-        profile: sRecord.profile || sRecord.profileURL || sRecord.childProfileURL || null,
-      },
-      class: {
-        ...classRecord, // Includes nested program data if available
-        id: classRecord.id,
-        schedule: classRecord.day + ' ' + classRecord.timeslot,
-      },
-
-      amount: formData.amount,
-      discountAmount: formData.discountAmount || 0,
-      isSponsorship: formData.isSponsorship || false,
-      sponsorName: formData.sponsorName || '',
-      isProrated: formData.isProrated,
-      enrollmentType: formData.enrollmentType || 'Full',
-      remark: formData.remark || '',
-      basePrice: formData.basePrice || 0,
-      passedSessions: formData.passedSessions || 0,
-      prorateSavings: formData.prorateSavings || 0,
-      studentCountAtEnrollment: classRecord.numStudent || 0,
-      updatedAt: new Date().toISOString(),
+      ...formData,
+      amount: Number(formData.amount),
+      discountAmount: Number(formData.discountAmount || 0),
+      basePrice: Number(formData.basePrice || 0),
+      passedSessions: Number(formData.passedSessions || 0),
+      prorateSavings: Number(formData.prorateSavings || 0),
     }
 
     await enrollmentService.updateEnrollment(enrollment.value.id, payload)
@@ -272,9 +236,9 @@ onMounted(async () => {
         <div class="flex items-center gap-md">
           <AppButton
             v-if="
-              !isPaid(enrollment.status) &&
-              !isPaid(enrollment.paymentStatus) &&
-              !isCancelled(enrollment.status)
+              enrollment.status !== 'confirmed' &&
+              enrollment.paymentStatus !== 'paid' &&
+              enrollment.status !== 'cancelled'
             "
             variant="secondary"
             title="Edit Enrollment"
@@ -284,9 +248,9 @@ onMounted(async () => {
           </AppButton>
           <AppButton
             v-if="
-              !isPaid(enrollment.status) &&
-              !isPaid(enrollment.paymentStatus) &&
-              !isCancelled(enrollment.status)
+              enrollment.status !== 'confirmed' &&
+              enrollment.paymentStatus !== 'paid' &&
+              enrollment.status !== 'cancelled'
             "
             variant="primary"
             title="Pay Enrollment"
@@ -295,7 +259,7 @@ onMounted(async () => {
             <img :src="getActionIcon('pay')" class="w-4 h-4 brightness-0 invert" /> Pay Now
           </AppButton>
           <AppButton
-            v-if="!isCancelled(enrollment.status)"
+            v-if="enrollment.status !== 'cancelled'"
             variant="danger"
             title="Cancel Enrollment"
             @click="openActionModal('cancel')"
@@ -327,7 +291,7 @@ onMounted(async () => {
             <p><strong>Birth Date</strong> {{ formatDateOnly(enrollment.student?.dob) }}</p>
             <p>
               <strong>Current Age</strong>
-              <StatusBadge :status="'Age: ' + calculateAge(enrollment.student?.dob)" type="blue" />
+              <AppBadge :status="'Age: ' + calculateAge(enrollment.student?.dob)" type="blue" />
             </p>
           </DetailCard>
 
@@ -337,13 +301,13 @@ onMounted(async () => {
               getProgramProfileURL(enrollment.class?.program?.profileURL || enrollment.program?.profileURL, enrollment.class?.program?.category || enrollment.program?.category)
             "
           >
-            <p><strong>Program</strong> {{ enrollment.class?.program?.title || enrollment.program?.title }}</p>
+            <p><strong>Program</strong> {{ enrollment.class?.program?.name || enrollment.program?.name }}</p>
             <div class="flex flex-col gap-1 mb-md">
               <strong class="text-3xs uppercase font-black tracking-widest text-content-light"
                 >Schedule</strong
               >
               <div class="flex items-center gap-2">
-                <StatusBadge :status="'purple:' + getSessionDay(enrollment.class?.schedule || enrollment.classSchedule)" />
+                <AppBadge :status="'purple:' + getSessionDay(enrollment.class?.schedule || enrollment.classSchedule)" />
                 <span class="text-xs font-bold text-content-muted">{{
                   getSessionTime(enrollment.class?.schedule || enrollment.classSchedule)
                 }}</span>
@@ -356,7 +320,7 @@ onMounted(async () => {
               <template v-if="enrollment.remainingSessions !== undefined">
                 <span class="text-sm font-bold text-content-dark">
                   {{ enrollment.remainingSessions }} Sessions (Prorated)
-                  <StatusBadge
+                  <AppBadge
                     v-if="enrollment.totalSessions > 0"
                     :status="'of ' + enrollment.totalSessions"
                     type="blue"
@@ -365,7 +329,7 @@ onMounted(async () => {
               </template>
               <template v-else>
                 <span class="text-sm font-bold text-content-dark">
-                  {{ enrollment.numberSessions || enrollment.class?.program?.sessionNumber || enrollment.program?.numberSessions || '10' }}
+                  {{ enrollment.totalSessions || enrollment.class?.program?.totalSessions || enrollment.program?.totalSessions || '10' }}
                   Sessions
                 </span>
               </template>
@@ -380,7 +344,7 @@ onMounted(async () => {
             title="Class Environment"
             :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)"
           >
-            <p><strong>Curriculum</strong> {{ enrollment.class?.program?.title || enrollment.program?.title || 'N/A' }}</p>
+            <p><strong>Curriculum</strong> {{ enrollment.class?.program?.name || enrollment.program?.name || 'N/A' }}</p>
             <div class="flex flex-col gap-1 mb-md">
               <strong class="text-3xs uppercase font-black tracking-widest text-content-light"
                 >Assigned Staff</strong
@@ -422,7 +386,7 @@ onMounted(async () => {
         <DetailedSummaryCard title="Transaction Summary" subtitle="Enrollment Status">
           <div class="ui-detail-row align-center">
             <span class="ui-summary-label">Registry Status</span>
-            <StatusBadge
+            <AppBadge
               :status="
                 enrollment.status === 'cancelled'
                   ? 'Canceled'
@@ -435,12 +399,12 @@ onMounted(async () => {
 
           <div class="ui-detail-row align-center">
             <span class="ui-summary-label">Admission Mode</span>
-            <StatusBadge :status="enrollment.enrollmentType" />
+            <AppBadge :status="enrollment.enrollmentType" />
           </div>
 
           <div
             v-if="
-              enrollment.status === 'cancelled' && (enrollment.cancelReason || enrollment.reason)
+              enrollment.status === 'cancelled' && enrollment.cancelReason
             "
             class="ui-detail-row"
           >
@@ -448,7 +412,7 @@ onMounted(async () => {
             <span
               class="ui-summary-value opacity-100 font-bold text-error bg-error/5 p-2 rounded-sm border border-error/10 w-full text-xs"
             >
-              {{ enrollment.cancelReason || enrollment.reason }}
+              {{ enrollment.cancelReason }}
             </span>
           </div>
 
@@ -464,7 +428,7 @@ onMounted(async () => {
           <div class="ui-detail-row align-center">
             <span class="ui-summary-label">Course Price</span>
             <span class="font-black text-content-dark text-lg tracking-tighter"
-              >${{ formatPrice(enrollment?.basePrice || enrollment?.amount || 0) }}</span
+              >${{ formatPrice(enrollment?.basePrice || 0) }}</span
             >
           </div>
 
@@ -493,9 +457,8 @@ onMounted(async () => {
 
           <div class="ui-detail-row align-center">
             <span class="ui-summary-label">Payment Status</span>
-            <StatusBadge
+            <AppBadge
               :status="
-                enrollment?.displayStatus ||
                 enrollment?.status ||
                 enrollment?.paymentStatus ||
                 'Unpaid'
@@ -505,10 +468,10 @@ onMounted(async () => {
 
           <div class="ui-detail-row align-center">
             <span class="ui-summary-label">Channel</span>
-            <StatusBadge
+            <AppBadge
               :status="
                 enrollment?.paymentMethod ||
-                (isPaid(enrollment?.status || enrollment?.paymentStatus) ? 'Paid' : '—')
+                (['paid', 'confirmed'].includes(String(enrollment?.status || enrollment?.paymentStatus).toLowerCase()) ? 'Paid' : '—')
               "
             />
           </div>

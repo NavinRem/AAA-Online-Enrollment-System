@@ -39,16 +39,29 @@ exports.registerStaffAccount = async (req, res) => {
 
 /**
  * @route GET /users
- * @description Get all users from the unified 'users' collection
+ * @description Get all users across all roles (Admin, Parent, Teacher)
  */
 exports.getAllUsers = async (req, res) => {
   try {
     const [admins, parents, teachers] = await Promise.all([
       adminService.getAllAdmins(),
-      parentService.getAllParents(),
+      parentService.getAllParents({ limit: 10 }),
       teacherService.getAllTeachers(),
     ])
     res.status(200).json([...admins, ...parents, ...teachers])
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+/**
+ * @route GET /users/allParents
+ * @description Admin Only: Get all parent accounts
+ */
+exports.getAllParents = async (req, res) => {
+  try {
+    const parents = await parentService.getAllParents({ limit: 1000 })
+    res.status(200).json(parents)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }

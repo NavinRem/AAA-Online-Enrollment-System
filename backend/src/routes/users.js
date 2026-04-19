@@ -44,6 +44,9 @@ router.patch(
 // Get All Students (Admin Only)
 router.get('/allStudents', verifyToken, isAdmin, userController.getAllStudents)
 
+// Get All Parents (Admin Only)
+router.get('/allParents', verifyToken, isAdmin, userController.getAllParents)
+
 // Get All Users (Admin Only)
 router.get('/', verifyToken, isAdmin, userController.getAllUsers)
 

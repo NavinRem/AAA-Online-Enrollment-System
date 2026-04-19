@@ -1,10 +1,13 @@
-import { parseDate } from './formatUtils'
+import { storageService } from '@/services/storageService'
+import { isSameProfileAsset } from './assetHelper'
 
-/**
- * Enriches parent data with linked students.
+/*
+  Enriches parent objects with their linked students by scanning the student list.
+  This function performs a reverse-lookup to populate studentInfo arrays, ensuring the frontend
+  has access to child data without requiring expensive cross-collection joins in the backend.
  */
-export const enrichParents = (users = [], students = []) => {
-  const byParent = students.reduce((acc, s) => {
+export const enrichParents = (parents = [], students = []) => {
+  const parent = students.reduce((acc, s) => {
     const pid = s.parentId
     if (pid) {
       if (!acc[pid]) acc[pid] = []
@@ -13,87 +16,101 @@ export const enrichParents = (users = [], students = []) => {
         name: s.name,
         dob: s.dob,
         profileURL: s.profileURL,
-        status: s.status || 'Active',
+        status: s.status,
       })
     }
     return acc
   }, {})
 
-  return users
-    .filter((u) => u.role === 'parent')
-    .map((u) => ({
-      ...u,
-      studentInfo: byParent[u.uid || u.id] || u.studentInfo || [],
-    }))
+  return parents.map((u) => ({
+    ...u,
+    studentInfo: parent[u.id] || [],
+  }))
 }
 
-/**
- * Helper to check if a user was registered today.
- */
-export const isRegisteredToday = (user, todayStart) => {
-  const createdAt = user.createdAt?.toDate
-    ? user.createdAt.toDate()
-    : user.createdAt
-      ? new Date(user.createdAt)
-      : null
-  return createdAt && createdAt.getTime() >= todayStart
+export const isRegisteredToday = (parent, todayStart) => {
+  const createdAt = parent?.createdAt
+  if (!createdAt) return false
+  const date = typeof createdAt === 'string' ? new Date(createdAt) : createdAt
+  return date.getTime() >= todayStart
 }
 
-/**
- * Helper to check if a parent has any enrollment paid today.
- */
-export const hasPaidToday = (parentUid, enrollments = [], todayStart) => {
-  return enrollments.some((e) => {
-    if (e.parentId !== parentUid) return false
-    const paidAt = e.paidAt?.toDate ? e.paidAt.toDate() : e.paidAt ? new Date(e.paidAt) : null
-    if (!paidAt) return false
-    return (e.status === 'paid' || e.status === 'confirmed') && paidAt.getTime() >= todayStart
-  })
+export const isActiveParent = (parent) => {
+  return (parent?.status || 'active').toLowerCase() === 'active'
 }
 
-/**
- * Calculates parent-related statistics.
- */
-export const calculateParentStats = (users = [], enrollments = []) => {
-  const now = new Date()
-  const todayStart = new Date(now.setHours(0, 0, 0, 0)).getTime()
-  const parents = users.filter((u) => u.role === 'parent')
+const PAID_STATUSES = ['paid', 'confirmed', 'success']
 
-  const parentsPaidToday = parents.filter((p) =>
-    hasPaidToday(p.uid || p.id, enrollments, todayStart),
-  ).length
-
-  return {
-    parentCount: parents.length,
-    todayCount: parents.filter((u) => isRegisteredToday(u, todayStart)).length,
-    paidTodayCount: parentsPaidToday,
-    activeCount: parents.filter((u) => (u.status || 'Active').toLowerCase() === 'active').length,
-    totalUsers: users.length,
+export const hasPaidToday = (parentId, enrollments = [], todayStart) => {
+  try {
+    return enrollments.some((e) => {
+      if (e.parentId !== parentId) return false
+      const paidAt = e.paidAt
+      if (!paidAt) return false
+      const status = String(e.status || e.paymentStatus || '').toLowerCase()
+      return PAID_STATUSES.includes(status) && new Date(paidAt).getTime() >= todayStart
+    })
+  } catch (error) {
+    console.error('Error checking if parent has paid today:', error)
+    return false
   }
 }
 
-/**
- * Robust filtering for Parent list.
- */
-export const filterParents = (parents = [], enrollments = [], filterType = 'all') => {
-  if (filterType === 'all') return parents
-
+export const calculateParentStats = (parents = [], enrollments = []) => {
   const now = new Date()
   const todayStart = new Date(now.setHours(0, 0, 0, 0)).getTime()
 
-  return parents.filter((u) => {
-    const status = (u.status || 'Active').toLowerCase()
-    switch (filterType) {
-      case 'active':
-        return status === 'active'
-      case 'inactive':
-        return status === 'inactive'
-      case 'registered-today':
-        return isRegisteredToday(u, todayStart)
-      case 'paid-today':
-        return hasPaidToday(u.uid || u.id, enrollments, todayStart)
-      default:
-        return true
-    }
-  })
+  return {
+    parentCount: parents.length,
+    todayCount: parents.filter((p) => isRegisteredToday(p, todayStart)).length,
+    paidTodayCount: parents.filter((p) => hasPaidToday(p.id, enrollments, todayStart)).length,
+    activeCount: parents.filter((p) => isActiveParent(p)).length,
+  }
+}
+
+export const filterParents = (parents = [], enrollments = [], filterType = 'all') => {
+  const todayStart = new Date().setHours(0, 0, 0, 0)
+
+  const strategies = {
+    active: (p) => isActiveParent(p),
+    inactive: (p) => !isActiveParent(p),
+    'registered-today': (p) => isRegisteredToday(p, todayStart),
+    'paid-today': (p) => hasPaidToday(p.id, enrollments, todayStart),
+  }
+
+  const filterFn = strategies[filterType]
+  return filterFn ? parents.filter(filterFn) : parents
+}
+
+export const processParentProfileImage = async (profileURL, name, currentProfile = '') => {
+  if (!profileURL || !profileURL.includes('/profiles/temp/')) {
+    return profileURL
+  }
+  if (currentProfile && isSameProfileAsset(profileURL, currentProfile)) {
+    return currentProfile
+  }
+
+  try {
+    const extension = profileURL.split('?')[0].split('.').pop()
+    const sanitizedName = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '')
+    const newPath = `profiles/parent/${sanitizedName}_parent.${extension}`
+    return await storageService.moveProfileImage(profileURL, newPath)
+  } catch (error) {
+    console.warn('Failed to process parent profile image, fallback to temp:', error)
+    return profileURL
+  }
+}
+
+export const prepareParentPayload = (data) => {
+  return {
+    name: data.name?.trim(),
+    email: data.email?.trim(),
+    phone: data.phone?.trim(),
+    profileURL: data.profileURL,
+    status: data.status || 'Active',
+  }
 }

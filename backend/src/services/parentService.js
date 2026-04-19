@@ -1,10 +1,7 @@
 const { db, COLLECTIONS } = require('../config/database')
 const authService = require('./authService')
 const profileHelper = require('../utils/profileHelper')
-const {
-  validateParent,
-  validateUpdateParent,
-} = require('../validators/parentValidator')
+const { validateUpdateParent } = require('../validators/parentValidator')
 
 const SYNC_PARENT_FIELDS = ['name', 'email', 'phone', 'profileURL', 'status']
 
@@ -43,7 +40,6 @@ class ParentService {
 
     const batch = db.batch()
     batch.update(ref, validatedData)
-
 
     const shouldSync = Object.keys(updateData).some((key) =>
       SYNC_PARENT_FIELDS.includes(key),

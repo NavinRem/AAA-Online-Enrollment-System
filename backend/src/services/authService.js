@@ -11,12 +11,21 @@ class AuthService {
     let targetRole = (userData.role || defaultRole).toLowerCase()
     if (targetRole === 'guardian') targetRole = 'parent'
 
-    const validatedData = this._validateByRole(targetRole, userData)
-    let { id, email, password } = userData
+    // Separate Auth/Control fields from business data to pass strict validation
+    const {
+      id: providedId,
+      password: providedPassword,
+      ...businessData
+    } = userData
+
+    const validatedData = this._validateByRole(targetRole, businessData)
+
+    let id = providedId
+    let email = userData.email || validatedData.email
+    let password = providedPassword
     let generatedPassword = null
 
     if (!id) {
-      email = email || validatedData.email
       if (!email) throw new Error('Email is required to create an account')
       try {
         const userConfig = { email, displayName: validatedData.name || null }
@@ -48,6 +57,7 @@ class AuthService {
       updatedAt: now,
     }
 
+    // Add bcrypt hash for secondary credential check (optional but consistent with user request)
     if (password) {
       const salt = await bcrypt.genSalt(10)
       data.passwordHash = await bcrypt.hash(password, salt)
@@ -60,7 +70,6 @@ class AuthService {
     }
 
     await docRef.set(data, { merge: true })
-
 
     return {
       id,

@@ -1,8 +1,17 @@
 import { getImageUrl } from '@/utils/assetHelper'
 
 /**
- * Standardizes profile image URL resolution.
- * @param {object|string} profile - The user profile object or a direct URL string.
+ * Utility for resolving and standardizing user avatar URLs.
+ * Part of the "Universal Perfect State" visual layer, ensuring consistent fallback
+ * behavior across different user roles.
+ */
+
+/**
+ * Standardizes profile image URL resolution based on the user object or a raw string.
+ * Generates semantic role-based fallbacks if a direct URL is missing.
+ *
+ * @param {Object|string} profile - The user profile record or a direct URL string
+ * @returns {string} Fully qualified avatar URL or role-based fallback
  */
 export const getAvatarUrl = (profile) => {
   if (!profile) return getImageUrl('profiles', 'avatar-guest')
@@ -13,7 +22,8 @@ export const getAvatarUrl = (profile) => {
   try {
     const url = getImageUrl('profiles', `avatar-${role}`)
     return url || getImageUrl('profiles', 'avatar-guest')
-  } catch (e) {
+  } catch (err) {
+    console.error('Failed to get avatar URL:', err)
     return getImageUrl('profiles', 'avatar-guest')
   }
 }
