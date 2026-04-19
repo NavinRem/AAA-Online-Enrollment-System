@@ -93,20 +93,32 @@ function validateUpdateEnrollment(updateData) {
     }
   })
 
-  if (updateData.parentId !== undefined) cleanData.parentId = updateData.parentId
-  if (updateData.studentId !== undefined) cleanData.studentId = updateData.studentId
-  if (updateData.programId !== undefined) cleanData.programId = updateData.programId
+  if (updateData.parentId !== undefined)
+    cleanData.parentId = updateData.parentId
+  if (updateData.studentId !== undefined)
+    cleanData.studentId = updateData.studentId
+  if (updateData.programId !== undefined)
+    cleanData.programId = updateData.programId
   if (updateData.classId !== undefined) cleanData.classId = updateData.classId
   if (updateData.status !== undefined) cleanData.status = updateData.status
-  if (updateData.paymentStatus !== undefined) cleanData.paymentStatus = updateData.paymentStatus
-  if (updateData.enrollmentType !== undefined) cleanData.enrollmentType = updateData.enrollmentType
-  if (updateData.isProrated !== undefined) cleanData.isProrated = !!updateData.isProrated
-  if (updateData.isSponsorship !== undefined) cleanData.isSponsorship = !!updateData.isSponsorship
-  if (updateData.sponsorName !== undefined) cleanData.sponsorName = updateData.sponsorName
-  if (updateData.isCustomPrice !== undefined) cleanData.isCustomPrice = !!updateData.isCustomPrice
-  if (updateData.discountAmount !== undefined) cleanData.discountAmount = parseFloat(updateData.discountAmount || 0)
-  if (updateData.enrolledSessions !== undefined) cleanData.enrolledSessions = parseInt(updateData.enrolledSessions || 0)
-  if (updateData.amount !== undefined) cleanData.amount = parseFloat(updateData.amount || 0)
+  if (updateData.paymentStatus !== undefined)
+    cleanData.paymentStatus = updateData.paymentStatus
+  if (updateData.enrollmentType !== undefined)
+    cleanData.enrollmentType = updateData.enrollmentType
+  if (updateData.isProrated !== undefined)
+    cleanData.isProrated = !!updateData.isProrated
+  if (updateData.isSponsorship !== undefined)
+    cleanData.isSponsorship = !!updateData.isSponsorship
+  if (updateData.sponsorName !== undefined)
+    cleanData.sponsorName = updateData.sponsorName
+  if (updateData.isCustomPrice !== undefined)
+    cleanData.isCustomPrice = !!updateData.isCustomPrice
+  if (updateData.discountAmount !== undefined)
+    cleanData.discountAmount = parseFloat(updateData.discountAmount || 0)
+  if (updateData.enrolledSessions !== undefined)
+    cleanData.enrolledSessions = parseInt(updateData.enrolledSessions || 0)
+  if (updateData.amount !== undefined)
+    cleanData.amount = parseFloat(updateData.amount || 0)
   if (updateData.remark !== undefined) cleanData.remark = updateData.remark
 
   // Update snapshots if provided

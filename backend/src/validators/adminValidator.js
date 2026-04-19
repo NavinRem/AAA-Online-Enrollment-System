@@ -40,7 +40,8 @@ function validateUpdateAdmin(updateData) {
   })
 
   if (updateData.name !== undefined) cleanData.name = updateData.name.trim()
-  if (updateData.email !== undefined) cleanData.email = updateData.email.trim().toLowerCase()
+  if (updateData.email !== undefined)
+    cleanData.email = updateData.email.trim().toLowerCase()
   if (updateData.profileURL !== undefined) {
     cleanData.profileURL = updateData.profileURL
   }

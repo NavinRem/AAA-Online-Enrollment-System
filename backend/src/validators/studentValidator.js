@@ -49,7 +49,6 @@ function validateUpdateStudent(updateData) {
     'dob',
     'age',
     'profileURL',
-    'profile',
     'status',
   ]
   const cleanData = {}

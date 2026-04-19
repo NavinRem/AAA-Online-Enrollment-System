@@ -14,7 +14,11 @@ function validateTeacher(teacherData) {
     throw new Error('Name is required for teacher registration')
   }
 
-  if (profileURL && typeof profileURL === 'string' && !profileURL.match(/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/)) {
+  if (
+    profileURL &&
+    typeof profileURL === 'string' &&
+    !profileURL.match(/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/)
+  ) {
     throw new Error('Invalid profileURL format')
   }
 
