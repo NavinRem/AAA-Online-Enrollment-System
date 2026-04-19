@@ -188,6 +188,8 @@ const submitActionModal = async (formData) => {
         ...formData,
         profileURL: formData.profileURL,
       }
+      delete updatePayload.updatedAt
+      delete updatePayload.createdAt
       await studentService.updateStudent(sid, updatePayload)
       globalSuccess.value = 'Student profile updated!'
     } else if (type === 'override') {

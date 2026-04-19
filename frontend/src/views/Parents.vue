@@ -169,6 +169,8 @@ const submitActionModal = async (formData) => {
     if (type === 'edit') {
       const profileURL = await processParentProfileImage(formData.profileURL, formData.name)
       const payload = prepareParentPayload({ ...formData, profileURL })
+      delete payload.updatedAt
+      delete payload.createdAt
       await parentService.updateParent(id, payload)
       updateLocalParent(id, payload)
       successMessage.value = 'Profile updated successfully!'
@@ -224,6 +226,8 @@ const submitNewParent = async (data) => {
     const profileURL = await processParentProfileImage(data.profileURL, data.name)
     const payload = prepareParentPayload({ ...data, profileURL })
     if (data.password) payload.password = data.password
+    delete payload.updatedAt
+    delete payload.createdAt
 
     const result = await parentService.registerParent(payload)
     const newUser = {
