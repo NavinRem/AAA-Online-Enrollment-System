@@ -27,14 +27,14 @@
               <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program Selection</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <img :src="resolvedSummary.programAvatar" class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.programTitle }}</span>
+                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.programName }}</span>
               </div>
             </div>
             <!-- Class & Branch -->
             <div class="flex flex-col gap-xs">
               <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Class and Branch</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <StatusBadge :status="resolvedSummary.branchAbbr" class="shadow-sm" />
+                <AppBadge :status="resolvedSummary.branchAbbr" class="shadow-sm" />
                 <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.classTitle }}</span>
               </div>
             </div>
@@ -45,9 +45,9 @@
             <div class="flex flex-col gap-1">
               <span class="text-2xs font-black text-white/80 uppercase tracking-widest">Calculated Tuition Fee</span>
               <div class="flex gap-xs">
-                <StatusBadge :status="resolvedSummary.mode || resolvedSummary.status"
+                <AppBadge :status="resolvedSummary.mode || resolvedSummary.status"
                   class="bg-white/20 text-white border-transparent" />
-                <StatusBadge :status="resolvedSummary.status" class="bg-white/20 text-white border-transparent" />
+                <AppBadge :status="resolvedSummary.status" class="bg-white/20 text-white border-transparent" />
               </div>
             </div>
             <div class="text-white">
@@ -170,14 +170,14 @@
               <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program Selection</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <img :src="resolvedSummary.programAvatar" class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.programTitle }}</span>
+                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.programName }}</span>
               </div>
             </div>
             <!-- Class & Branch -->
             <div class="flex flex-col gap-xs">
               <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Class and Branch</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <StatusBadge :status="resolvedSummary.branchAbbr" class="shadow-sm" />
+                <AppBadge :status="resolvedSummary.branchAbbr" class="shadow-sm" />
                 <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.classTitle }}</span>
               </div>
             </div>
@@ -234,7 +234,7 @@ import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import EnrollConfirmOverlay from '@/components/enrollments/EnrollConfirmOverlay.vue'
 import { formatPrice } from '@/utils/formatUtils'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
@@ -339,7 +339,7 @@ const resolvedSummary = computed(() => {
   if (!e) return null
   return {
     studentName: e.student?.name,
-    programTitle: e.program?.title,
+    programName: e.program?.name,
     amount: e.amount || 0,
     status: e.status || 'Pending',
     studentAvatar: e.student?.profileURL || null,
@@ -362,7 +362,7 @@ const confirmRows = computed(() => {
   const summary = resolvedSummary.value
   const base = [
     { key: 'Student', value: summary?.studentName },
-    { key: 'Program', value: summary?.programTitle },
+    { key: 'Program', value: summary?.programName },
     { key: 'Amount', value: `$${formatPrice(summary?.amount || 0)}` },
   ]
   if (props.type === 'pay') {

@@ -1,6 +1,8 @@
 <script setup>
 import { authService } from '../services/authService'
 import { userService } from '../services/userService'
+import { parentService } from '../services/parentService'
+import { studentService } from '../services/studentService'
 import { programService } from '../services/programService'
 import { enrollmentService } from '../services/enrollmentService'
 import { trialService } from '../services/trialService'
@@ -65,19 +67,19 @@ onMounted(() => {
       const profile = await userService.getProfile(currentUser.uid)
       userProfile.value = profile
 
-      const [uData, rData, pData, sData, sessData, bData, tData] = await Promise.all([
-        userService.getAllUsers(),
+      const [pData, rData, prData, sData, sessData, bData, tData] = await Promise.all([
+        parentService.getAllParents(),
         enrollmentService.getAllEnrollments(),
         programService.getAllPrograms(),
-        userService.getAllStudents(),
+        studentService.getAllStudents(),
         programService.getAllClasses(),
         branchService.getAllBranches(),
         trialService.getAllTrials(),
       ])
 
-      users.value = Array.isArray(uData) ? uData : []
+      users.value = Array.isArray(pData) ? pData : []
       enrollments.value = Array.isArray(rData) ? rData : []
-      programs.value = Array.isArray(pData) ? pData : []
+      programs.value = Array.isArray(prData) ? prData : []
       students.value = Array.isArray(sData) ? sData : []
       sessions.value = Array.isArray(sessData) ? sessData : []
       branches.value = Array.isArray(bData) ? bData : []
@@ -161,56 +163,18 @@ const thisWeekStats = computed(() => [
   },
 ])
 
+import { enrichEnrollments } from '@/utils/enrollmentHelper'
+
 const mappedEnrollments = computed(() => {
-  return [...enrollments.value]
+  const raw = [...enrollments.value]
     .sort((a, b) => {
       const timeB = parseDate(b.enrollAt || b.createdAt).getTime()
       const timeA = parseDate(a.enrollAt || a.createdAt).getTime()
       return timeB - timeA
     })
     .slice(0, 5)
-    .map((r, index) => {
-      const p = users.value.find((u) => u.uid === r.parentId)
-      const s = students.value.find((s) => s.id === r.studentId)
-      const c = programs.value.find((prog) => prog.id === (r.programId || r.courseId))
 
-      return {
-        id: r.id,
-        no: index + 1,
-        parent:
-          r.parent ||
-          (p
-            ? { id: p.uid, name: p.name || p.fullName, profile: p.profile || p.profileURL }
-            : null),
-        student:
-          r.student ||
-          (s
-            ? { id: s.id || s.uid, name: s.name || s.fullName, profile: s.profile || s.profileURL }
-            : null),
-        program:
-          r.class?.program ||
-          r.program ||
-          (c
-            ? { id: c.id, title: c.title || c.name, profile: c.profileURL }
-            : {
-              id: r.programId,
-              title: r.programTitle || r.program?.title || 'N/A',
-              profile: r.programProfileURL || r.program?.profileURL || null,
-            }),
-
-        parentName: r.parent?.name,
-        parentProfileURL: getParentProfileURL(p?.profileURL),
-        studentName: r.student?.name,
-        studentProfileURL: getStudentProfileURL(s?.profileURL),
-        programTitle: r.program?.title,
-        programProfileURL: getProgramProfileURL(c?.profileURL, c?.category),
-
-        status: r.status,
-        mode: r.enrollmentType,
-        amount: r.amount,
-        date: r.enrollAt,
-      }
-    })
+  return enrichEnrollments(raw, users.value, students.value, programs.value, sessions.value)
 })
 </script>
 

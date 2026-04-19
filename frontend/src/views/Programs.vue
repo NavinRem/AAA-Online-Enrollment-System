@@ -6,7 +6,7 @@ import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
-import StatusBadge from '../components/common/ui/StatusBadge.vue'
+import AppBadge from '../components/common/ui/AppBadge.vue'
 import ProgramActionModal from '../components/programs/ProgramActionModal.vue'
 import { programService } from '../services/programService'
 import { useSearch, programSearchMapper } from '../composables/useSearch'
@@ -125,7 +125,7 @@ const filteredPrograms = computed(() => {
   if (currentFilter.value.startsWith('status:')) {
     const filterStatus = currentFilter.value.replace('status:', '')
     result = result.filter((p) => {
-      const displayStatus = getProgramDisplayStatus(p, sessions.value, now.value).toLowerCase()
+      const displayStatus = getProgramDisplayStatus(p).toLowerCase()
       return displayStatus === filterStatus.toLowerCase()
     })
   }
@@ -135,7 +135,7 @@ const filteredPrograms = computed(() => {
       const catA = (a.category || 'General').toLowerCase()
       const catB = (b.category || 'General').toLowerCase()
       if (catA !== catB) return catA.localeCompare(catB)
-      return (a.title || '').toLowerCase().localeCompare((b.title || '').toLowerCase())
+      return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())
     })
   } else {
     result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
@@ -367,7 +367,7 @@ const onRowClick = (item) => {
               <div class="ui-identity-cell">
                 <div class="ui-avatar-sm ring-1 ring-border">
                   <img
-                    :src="getProgramProfileURL(item.profileURL || item.imageURL, item.category)"
+                    :src="getProgramProfileURL(item.profileURL, item.category)"
                     alt="program"
                   />
                 </div>
@@ -383,14 +383,14 @@ const onRowClick = (item) => {
             </td>
             <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <span class="font-black text-content-dark tracking-tighter">{{
-                item.name || item.title
+                item.name
               }}</span>
             </td>
             <td
               class="ui-cell text-center hidden sm:table-cell"
               :style="{ width: headers[3].width }"
             >
-              <span class="font-bold text-content-muted/70">{{ item.totalSessions || item.sessionNumber || '—' }}</span>
+              <span class="font-bold text-content-muted/70">{{ item.totalSessions || '—' }}</span>
             </td>
             <td
               class="ui-cell text-center hidden sm:table-cell"
@@ -402,7 +402,7 @@ const onRowClick = (item) => {
               class="ui-cell text-center font-bold text-primary"
               :style="{ width: headers[5].width }"
             >
-              <StatusBadge :status="'$' + (item.basePrice || 0)" />
+              <AppBadge :status="'$' + (item.basePrice || 0)" />
             </td>
             <td
               class="ui-cell text-center hidden lg:table-cell font-bold text-content-muted/50 uppercase text-2xs"
@@ -411,7 +411,7 @@ const onRowClick = (item) => {
               {{ item.maxCapacity || '∞' }}
             </td>
             <td class="ui-cell text-center font-black" :style="{ width: headers[7].width }">
-              <StatusBadge
+              <AppBadge
                 :status="item.type || 'group'"
                 :type="item.type === 'private' ? 'purple' : 'blue'"
               />

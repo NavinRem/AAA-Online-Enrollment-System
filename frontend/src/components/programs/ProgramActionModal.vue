@@ -32,8 +32,8 @@
       <AppInput v-model="localData.basePrice" type="number" label="Catalog Price ($)" placeholder="0.00" step="0.01"
         required :error="errors.basePrice" :shake="shaking.basePrice" @input="clearError('basePrice')" />
 
-      <AppInput v-model="localData.sessionNumber" type="number" label="Total Units" placeholder="1" required
-        :error="errors.sessionNumber" :shake="shaking.sessionNumber" @input="clearError('sessionNumber')" />
+      <AppInput v-model="localData.totalSessions" type="number" label="Total Units" placeholder="1" required
+        :error="errors.totalSessions" :shake="shaking.totalSessions" @input="clearError('totalSessions')" />
 
       <AppInput v-model="localData.weeksNumber" type="number" label="Term Duration" placeholder="1" required
         :error="errors.weeksNumber" :shake="shaking.weeksNumber" @input="clearError('weeksNumber')">
@@ -202,7 +202,7 @@ const getInitialData = () => ({
   levelId: '',
   type: 'group',
   basePrice: 0.0,
-  sessionNumber: 1,
+  totalSessions: 1,
   weeksNumber: 1,
   maxCapacity: 10,
   description: '',
@@ -343,7 +343,7 @@ const handleActionSubmit = () => {
     rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Invalid confirmation string'
   } else {
     rules.custom.basePrice = (val) => val >= 0 || 'Negative price'
-    rules.custom.sessionNumber = (val) => val >= 1 || 'Min 1 unit'
+    rules.custom.totalSessions = (val) => val >= 1 || 'Min 1 unit'
     rules.custom.weeksNumber = (val) => val >= 1 || 'Min 1 duration'
     rules.custom.maxCapacity = (val) => val >= 1 || 'Capacity error'
   }

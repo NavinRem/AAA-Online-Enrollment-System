@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
@@ -9,12 +9,12 @@ import DataTable from '../components/common/data/DataTable.vue'
 import { branchService } from '../services/branchService'
 import { programService } from '../services/programService'
 import { authService } from '../services/authService'
-import { userService } from '../services/userService'
+import { studentService } from '../services/studentService'
 import { enrollmentService } from '../services/enrollmentService'
 import { trialService } from '../services/trialService'
 import { getImageUrl } from '@/utils/assetHelper'
-import StatusBadge from '../components/common/ui/StatusBadge.vue'
-import { formatPrice } from '@/utils/statusUtils'
+import AppBadge from '../components/common/ui/AppBadge.vue'
+import { formatPrice } from '@/utils/formatUtils'
 import { useSearch, branchSearchMapper } from '../composables/useSearch'
 
 const branches = ref([])
@@ -41,7 +41,7 @@ const fetchData = async () => {
   try {
     const [bData, sData, eData, pData, sesData, tData] = await Promise.all([
       branchService.getAllBranches(),
-      userService.getAllStudents(),
+      studentService.getAllStudents(),
       enrollmentService.getAllEnrollments(),
       programService.getAllPrograms(),
       programService.getAllClasses(),
@@ -184,6 +184,20 @@ const filteredBranches = computed(() => {
   return searchResults.value
 })
 
+const currentPage = ref(1)
+const pageSize = 10
+const totalItems = computed(() => filteredBranches.value.length)
+
+const paginatedBranches = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredBranches.value.slice(start, end)
+})
+
+watch(searchQuery, () => {
+  currentPage.value = 1
+})
+
 const getProgramCount = (branchId) => {
   const branch = branches.value.find((b) => b.id === branchId)
   if (branch && branch.programCount !== undefined) return branch.programCount
@@ -253,6 +267,23 @@ const getBranchCapacity = (branchId) => {
   return totalCapacity > 0 ? Math.round((totalStudents / totalCapacity) * 100) : 0
 }
 
+const getTrialTodayCount = (branchId) => {
+  const today = new Date().toISOString().split('T')[0]
+  return trials.value.filter((t) => {
+    const trialDate = (t.trialDate || t.createdAt || '').split('T')[0]
+    return t.branchId === branchId && trialDate === today
+  }).length
+}
+
+const getTrialWeekCount = (branchId) => {
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+  return trials.value.filter((t) => {
+    const trialDate = new Date(t.trialDate || t.createdAt)
+    return t.branchId === branchId && trialDate >= sevenDaysAgo
+  }).length
+}
+
 const getWeeklyGrowth = (branchId) => {
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
@@ -296,7 +327,7 @@ const isBranchRecentlyActive = (branchId) => {
         <DataTable
           title="Branch List"
           :headers="branchHeaders"
-          :items="filteredBranches"
+          :items="paginatedBranches"
           :loading="loading"
           entityName="branch"
           :flexible="true"
@@ -304,6 +335,10 @@ const isBranchRecentlyActive = (branchId) => {
           :hasSearch="true"
           v-model:searchQuery="searchQuery"
           searchPlaceholder="Search Branches..."
+          :hasPagination="true"
+          :totalItems="totalItems"
+          :pageSize="pageSize"
+          v-model:currentPage="currentPage"
         >
           <template #empty>
             <div class="p-20 text-center flex flex-col items-center gap-4">
@@ -327,7 +362,7 @@ const isBranchRecentlyActive = (branchId) => {
               <span class="font-bold text-content-dark tracking-tighter">{{ item.name }}</span>
             </td>
             <td :style="{ width: headers[2].width }" class="ui-cell text-center">
-              <StatusBadge :status="item.abbr" type="blue" />
+              <AppBadge :status="item.abbr" type="blue" />
             </td>
             <td :style="{ flex: '1 1 0%', minWidth: 0 }" class="ui-cell pl-6">
               <div

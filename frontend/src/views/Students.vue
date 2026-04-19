@@ -1,24 +1,30 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
-import StatusBadge from '../components/common/ui/StatusBadge.vue'
+import AppBadge from '../components/common/ui/AppBadge.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import StudentActionModal from '../components/students/StudentActionModal.vue'
+import { studentService } from '../services/studentService'
+import { parentService } from '../services/parentService'
 import { userService } from '../services/userService'
 import { authService } from '../services/authService'
 import { enrollmentService } from '../services/enrollmentService'
 import { storageService } from '../services/storageService'
 import { useSearch, studentSearchMapper } from '@/composables/useSearch'
 import { formatDate, calculateAge } from '@/utils/formatUtils'
+import { getProgramProfileURL } from '@/utils/assetHelper'
 import { programService } from '../services/programService'
-import { getProgramProfileURL, getImageUrl, getActionIcon } from '@/utils/assetHelper'
-import { calculateTotalStudent, enrichStudents } from '@/utils/studentHelper'
-import { getEnrollmentDisplayStatus } from '@/utils/statusUtils'
+import {
+  calculateTotalStudent,
+  enrichStudents,
+  processStudentProfileImage,
+  prepareStudentPayload,
+} from '@/utils/studentHelper'
 
 const router = useRouter()
 const students = ref([])
@@ -26,7 +32,7 @@ const loading = ref(true)
 const newlyCreatedId = ref(null)
 
 const getRowClass = (item) => {
-  return newlyCreatedId.value === (item.id || item.uid) ? 'ui-row-new' : ''
+  return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
 }
 
 const fetchStudents = async () => {
@@ -49,14 +55,14 @@ const fetchStudents = async () => {
     const activeTermId = activeTerm?.id || null
 
     if (profile?.role === 'admin') {
-      const [sData, rData, uData] = await Promise.all([
-        userService.getAllStudents(),
+      const [sData, rData, pData] = await Promise.all([
+        studentService.getAllStudents(),
         enrollmentService.getAllEnrollments(),
-        userService.getAllUsers(),
+        parentService.getAllParents(),
       ])
-      students.value = enrichStudents(sData, rData || [], uData || [], activeTermId)
+      students.value = enrichStudents(sData, rData || [], pData || [], activeTermId)
     } else {
-      const sData = await userService.getStudentsByParentID(currentUser.uid)
+      const sData = await studentService.getStudentsByParent(currentUser.uid)
       students.value = enrichStudents(sData, [], [], activeTermId)
     }
   } catch (error) {
@@ -80,6 +86,20 @@ const filteredStudents = computed(() => {
     list = list.filter((s) => (s.status || 'studying').toLowerCase() === currentFilter.value)
   }
   return [...list].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+})
+
+const currentPage = ref(1)
+const pageSize = 10
+const totalItems = computed(() => filteredStudents.value.length)
+
+const paginatedStudents = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredStudents.value.slice(start, end)
+})
+
+watch([currentFilter, searchQuery], () => {
+  currentPage.value = 1
 })
 
 const statsCards = computed(() => {
@@ -128,10 +148,7 @@ const handleOpenAddStudent = async () => {
   parentActionModal.value.type = 'plus'
 
   try {
-    const allUsers = await userService.getAllUsers()
-    parentsList.value = allUsers.filter(
-      (u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active',
-    )
+    parentsList.value = await parentService.getAllParents()
   } catch (err) {
     console.error('Failed to load parents list', err)
     modalError.value = 'Could not load parent options.'
@@ -147,19 +164,9 @@ const handleRegisterStudent = async (formData) => {
     const { parentId, name, dob, profileURL, medicalNote } = formData
     if (!parentId) throw new Error('No parent selected')
 
-    let finalProfile = profileURL
-    if (profileURL && profileURL.includes('/profiles/temp/')) {
-      const extension = profileURL.split('?')[0].split('.').pop()
-      const sanitizedName = (name || 'child')
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '_')
-        .replace(/_+/g, '_')
-        .replace(/^_|_$/g, '')
-      const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
-      finalProfile = await storageService.moveProfileImage(profileURL, newPath)
-    }
+    const finalProfile = await processStudentProfileImage(profileURL, name)
 
-    const result = await userService.registerStudentProfile(parentId, {
+    const payload = prepareStudentPayload({
       name,
       dob,
       profileURL: finalProfile,
@@ -167,29 +174,10 @@ const handleRegisterStudent = async (formData) => {
       status: 'Inactive',
     })
 
-    const chosenParent = parentsList.value.find((p) => (p.uid || p.id) === parentId)
+    const result = await studentService.registerStudent(parentId, payload)
 
-    const newStudent = {
-      id: result.id,
-      name,
-      dob,
-      profileURL: finalProfile,
-      medicalNote,
-      parentId: parentId,
-      parentInfo: chosenParent
-        ? {
-            id: parentId,
-            name: chosenParent.name || chosenParent.email,
-            profileURL: chosenParent.profileURL,
-          }
-        : null,
-      status: 'Inactive',
-      created: new Date().toISOString(),
-      programs: [],
-    }
-
-    students.value.unshift(newStudent)
     newlyCreatedId.value = result.id
+    modalSuccess.value = 'Student registered successfully!'
 
     modalSuccess.value = 'Student registered successfully!'
     setTimeout(() => {
@@ -234,11 +222,9 @@ const openActionModal = async (type, studentItem) => {
   }
 
   if (parentsList.value.length === 0) {
+  if (parentsList.value.length === 0) {
     try {
-      const allUsers = await userService.getAllUsers()
-      parentsList.value = allUsers.filter(
-        (u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active',
-      )
+      parentsList.value = await parentService.getAllParents()
     } catch (err) {
       console.warn('Could not load parent options for edit form', err)
     }
@@ -254,80 +240,33 @@ const submitActionModal = async (formData) => {
 
   try {
     if (type === 'edit') {
-      await userService.updateMedicalInfo(student.id || student.uid, medicalNote)
-      await userService.updateStudent(student.id || student.uid, {
+      const finalProfile = await processStudentProfileImage(profileURL, name, student.profileURL)
+      const payload = prepareStudentPayload({
         name,
-        status,
         dob,
-        parentId: parentId,
-        profileURL: profileURL,
+        profileURL: finalProfile,
+        medicalNote,
+        status,
+        parentId,
       })
 
-      const idx = students.value.findIndex((s) => s.id === student.id || s.uid === student.uid)
-      if (idx !== -1) {
-        const chosenParent = parentsList.value.find((p) => (p.uid || p.id) === parentId)
-
-        students.value[idx].name = name
-        students.value[idx].medicalNote = medicalNote
-        students.value[idx].status = status
-        if (dob) students.value[idx].dob = dob
-        if (profileURL) students.value[idx].profileURL = profileURL
-        if (chosenParent) {
-          students.value[idx].parentId = parentId
-          students.value[idx].parentInfo = {
-            id: parentId,
-            name: chosenParent.name || chosenParent.email,
-            profileURL: chosenParent.profileURL,
-          }
-        }
-
-        if (parentId) {
-          try {
-            const parentData = await userService.getProfile(parentId)
-            const updatedProfiles = (parentData.studentInfo || []).map((p) => {
-              if (p.id === (student.id || student.uid)) {
-                return {
-                  ...p,
-                  name: name,
-                  dob,
-                  profileURL,
-                  medicalNote,
-                  status,
-                }
-              }
-              return p
-            })
-            await userService.updateUser(parentId, { studentInfo: updatedProfiles })
-          } catch (syncErr) {
-            console.warn('Sync to parent failed, but student was updated.', syncErr)
-          }
-        }
-      }
-      newlyCreatedId.value = student.id || student.uid
+      await studentService.updateMedicalInfo(student.id, medicalNote)
+      await studentService.updateStudent(student.id, payload)
+      newlyCreatedId.value = student.id
+      modalSuccess.value = 'Student profile updated successfully!'
       modalSuccess.value = 'Student profile updated successfully!'
     } else if (type === 'delete') {
-      const studentId = student.id || student.uid
+      const studentId = student.id
       const parentId = student.parentId
 
-      await userService.deleteStudent(studentId)
-
-      if (parentId) {
-        try {
-          const parentData = await userService.getProfile(parentId)
-          const updatedProfiles = (parentData.studentInfo || []).filter((p) => p.id !== studentId)
-          await userService.updateUser(parentId, { studentInfo: updatedProfiles })
-        } catch (syncErr) {
-          console.warn('Removal from parent nested list failed.', syncErr)
-        }
-      }
-
-      students.value = students.value.filter((s) => (s.id || s.uid) !== studentId)
+      await studentService.deleteStudent(studentId)
+      students.value = students.value.filter((s) => s.id !== studentId)
       modalSuccess.value = 'Student record permanently deleted.'
     } else if (type === 'override') {
       const { overrideReason, overrideRemark } = formData
       const isStopping = status === 'Stopped'
 
-      await userService.updateStudent(student.id || student.uid, {
+      await studentService.updateStudent(student.id, {
         status,
         overrideReason,
         overrideRemark,
@@ -337,13 +276,13 @@ const submitActionModal = async (formData) => {
 
       if (isStopping && student.parentId) {
         try {
-          await userService.updateUser(student.parentId, { status: 'Inactive' })
+          await parentService.updateParent(student.parentId, { status: 'Inactive' })
         } catch (autoErr) {
           console.warn('Auto-deactivation of parent failed', autoErr)
         }
       }
 
-      const idx = students.value.findIndex((s) => s.id === student.id || s.uid === student.uid)
+      const idx = students.value.findIndex((s) => s.id === student.id)
       if (idx !== -1) {
         students.value[idx].status = status
         students.value[idx].overrideReason = overrideReason
@@ -377,7 +316,7 @@ const submitActionModal = async (formData) => {
         <DataTable
           title="Student List"
           :headers="studentHeaders"
-          :items="filteredStudents"
+          :items="paginatedStudents"
           :loading="loading"
           entityName="student"
           :flexible="true"
@@ -394,6 +333,10 @@ const submitActionModal = async (formData) => {
             { label: 'Stopped', value: 'stopped' },
           ]"
           :rowClass="getRowClass"
+          :hasPagination="true"
+          :totalItems="totalItems"
+          :pageSize="pageSize"
+          v-model:currentPage="currentPage"
           @row-click="navigateToDetail"
           @action="({ type, item }) => openActionModal(type, item)"
         >
@@ -427,7 +370,7 @@ const submitActionModal = async (formData) => {
               :style="{ width: headers[1].width }"
               class="ui-cell text-center hidden md:table-cell"
             >
-              <StatusBadge :status="calculateAge(item.dob)" type="blue" />
+              <AppBadge :status="calculateAge(item.dob)" type="blue" />
             </td>
             <td
               :style="{ flex: '1 1 0%', minWidth: 0 }"
@@ -476,20 +419,20 @@ const submitActionModal = async (formData) => {
                 <template
                   v-if="
                     item.enrollments &&
-                    item.enrollments.some((r) => getEnrollmentDisplayStatus(r) === 'Paid')
+                    item.enrollments.some((r) => ['paid', 'confirmed'].includes(String(r.paymentStatus).toLowerCase()))
                   "
                 >
                   <div
                     v-for="(reg, rIdx) in item.enrollments.filter(
-                      (r) => getEnrollmentDisplayStatus(r) === 'Paid',
+                      (r) => ['paid', 'confirmed'].includes(String(r.paymentStatus).toLowerCase()),
                     )"
                     :key="rIdx"
                     class="ui-stack-item border-primary/20"
-                    :title="reg.programTitle || 'Program'"
+                    :title="reg.programName || 'Program'"
                     :style="{ zIndex: item.enrollments.length - rIdx }"
                   >
                     <img
-                      :src="getProgramProfileURL(reg.programProfileURL || reg.program?.profileURL)"
+                      :src="getProgramProfileURL(reg.program?.profileURL)"
                       alt="program"
                     />
                   </div>
@@ -509,7 +452,7 @@ const submitActionModal = async (formData) => {
               </div>
             </td>
             <td :style="{ width: headers[6].width }" class="ui-cell text-center">
-              <StatusBadge :status="item.status || 'Inactive'" />
+              <AppBadge :status="item.status || 'Inactive'" />
             </td>
             <td
               :style="{ width: headers[7].width }"

@@ -3,11 +3,13 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
+import { parentService } from '@/services/parentService'
+import { studentService } from '@/services/studentService'
 import { userService } from '@/services/userService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate, formatPrice } from '@/utils/formatUtils'
@@ -16,11 +18,10 @@ import { enrichStudents } from '@/utils/studentHelper'
 import { programService } from '@/services/programService'
 import { branchService } from '@/services/branchService'
 import {
-  processUserProfileImage,
-  processStudentProfileImage,
-  prepareUserPayload,
-  prepareStudentPayload,
-} from '../utils/userHelper'
+  processParentProfileImage,
+  prepareParentPayload,
+} from '../utils/parentHelper'
+import { processStudentProfileImage, prepareStudentPayload } from '../utils/studentHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const route = useRoute()
@@ -29,7 +30,7 @@ const router = useRouter()
 const parent = ref(null)
 const students = ref([])
 const enrollments = ref([])
-const selectedChildUid = ref('all')
+const selectedChildId = ref('all')
 const activeTab = ref('children')
 const currentFilter = ref('all')
 
@@ -66,7 +67,7 @@ const errorMessage = ref('')
 
 const studentEnrollments = computed(() => {
   return filterDetailEnrollments(enrollments.value, {
-    studentId: selectedChildUid.value,
+    studentId: selectedChildId.value,
     academicStatus: 'studying',
   })
 })
@@ -92,12 +93,12 @@ const fetchData = async (id) => {
     loading.value = true
     errorMessage.value = ''
 
-    const parentData = await userService.getProfile(id)
+    const parentData = await parentService.getParent(id)
     if (!parentData) throw new Error('Parent not found')
 
     parent.value = parentData
     const [studentsData, allEnrollments, allPrograms, allClasses] = await Promise.all([
-      userService.getStudentsByParentID(id),
+      studentService.getStudentsByParent(id),
       enrollmentService.getAllEnrollments(),
       programService.getAllPrograms(),
       programService.getAllClasses(),
@@ -107,12 +108,12 @@ const fetchData = async (id) => {
 
     if (
       students.value.length > 0 &&
-      (selectedChildUid.value === 'all' || !selectedChildUid.value)
+      (selectedChildId.value === 'all' || !selectedChildId.value)
     ) {
-      selectedChildUid.value = students.value[0].id || students.value[0].uid
+      selectedChildId.value = students.value[0].id
     }
 
-    const pId = parent.value.uid || parent.value.id
+    const pId = parent.value.id
     const rawEnrollments = (allEnrollments || []).filter((r) => String(r.parentId) === String(pId))
 
     enrollments.value = enrichEnrollments(
@@ -162,45 +163,39 @@ const openAddChildModal = () => {
 
 const submitActionModal = async (formData) => {
   const { type, user } = actionModal.value
-  const uid = user.uid || user.id
+  const id = user.id
   submitting.value = true
   globalError.value = ''
 
   try {
     if (type === 'edit') {
-      const finalProfile = await processUserProfileImage(
+      const finalProfile = await processParentProfileImage(
         formData.profile,
         formData.name,
-        formData.role,
-        user.profile,
+        user.profileURL,
       )
-      const payload = prepareUserPayload({ ...formData, profile: finalProfile })
-      await userService.updateUser(uid, payload)
+      const payload = prepareParentPayload({ ...formData, profileURL: finalProfile })
+      await parentService.updateParent(id, payload)
       globalSuccess.value = 'Profile updated successfully!'
     } else if (type === 'deactivate') {
-      await userService.updateUser(uid, { status: 'Inactive' })
+      await parentService.updateParent(id, { status: 'inactive' })
       globalSuccess.value = 'Account deactivated successfully!'
     } else if (type === 'activate') {
-      await userService.updateUser(uid, { status: 'Active' })
+      await parentService.updateParent(id, { status: 'active' })
       globalSuccess.value = 'Account reactivated successfully!'
     } else if (type === 'delete') {
-      await userService.deleteUser(uid)
+      await parentService.deleteParent(id)
       router.push('/parents')
       return
     } else if (type === 'register-child') {
       const finalProfile = await processStudentProfileImage(formData.profile, formData.name)
       const payload = prepareStudentPayload({ ...formData, profile: finalProfile })
 
-      const result = await userService.registerStudentProfile(uid, payload)
-
-      const currentStudentInfo = parent.value.studentInfo || []
-      const newChild = { id: result.id || result.UID, ...payload, parentId: uid }
-
-      await userService.updateUser(uid, {
-        studentInfo: [...currentStudentInfo, newChild],
-      })
-
+      await studentService.registerStudent(id, payload)
       globalSuccess.value = 'Child registered successfully!'
+    } else if (type === 'reset-password') {
+      await userService.resetPassword(id)
+      globalSuccess.value = 'Password reset email sent!'
     }
 
     setTimeout(() => {
@@ -209,7 +204,7 @@ const submitActionModal = async (formData) => {
     }, 1500)
 
     try {
-      await fetchData(uid)
+      await fetchData(id)
     } catch (fetchErr) {
       console.warn('Data refreshed partially after modal save:', fetchErr)
     }
@@ -222,7 +217,7 @@ const submitActionModal = async (formData) => {
 }
 
 const navigateToStudent = (student) => {
-  const sId = student.id || student.uid
+  const sId = student.id
   if (sId) {
     router.push(`/students/${sId}`)
   }
@@ -302,11 +297,11 @@ watch(
 
             <!-- Child Selector Chips -->
             <div class="flex flex-wrap gap-sm mb-xl" v-if="students.length > 0">
-              <button v-for="s in students" :key="s.id || s.uid"
-                class="flex items-center gap-sm px-md py-sm rounded-std border transition-all duration-200" :class="selectedChildUid === (s.id || s.uid)
+              <button v-for="s in students" :key="s.id" class="flex items-center gap-sm px-md py-sm rounded-std border transition-all duration-200"
+                :class="selectedChildId === s.id
                     ? 'bg-primary-soft border-primary text-primary shadow-sm'
                     : 'bg-white border-outline-std text-content-muted hover:border-text-muted'
-                  " @click="selectedChildUid = s.id || s.uid" @dblclick="navigateToStudent(s)">
+                  " @click="selectedChildId = s.id" @dblclick="navigateToStudent(s)">
                 <div class="w-8 h-8 rounded-full overflow-hidden border border-outline-std bg-surface-light">
                   <img :src="s.profileURL" class="w-full h-full object-cover"
                     @error="(e) => (e.target.src = getImageUrl('profiles/avatar-student'))" />
@@ -339,7 +334,7 @@ watch(
                 <tr v-for="(reg, idx) in studentEnrollments" :key="reg.id">
                   <td class="text-center font-bold text-content-muted/40">{{ idx + 1 }}</td>
                   <td class="font-bold text-content-dark">
-                    {{ reg.program?.title || 'N/A' }}
+                    {{ reg.program?.name || 'N/A' }}
                   </td>
                   <td>
                     <div class="flex flex-col">
@@ -351,10 +346,10 @@ watch(
                     </div>
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="'$' + formatPrice(reg.amount || 0)" />
+                    <AppBadge :status="'$' + formatPrice(reg.amount || 0)" />
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="reg.displayStatus || reg.status || 'Unpaid'" />
+                    <AppBadge :status="reg.displayStatus || reg.status || 'Unpaid'" />
                   </td>
                 </tr>
               </tbody>
@@ -394,13 +389,13 @@ watch(
                     {{ reg.id.substring(0, 8) + '...' }}
                   </td>
                   <td class="text-center font-black text-emerald-600 text-base">
-                    <StatusBadge :status="'$' + formatPrice(reg.amount || 0)"></StatusBadge>
+                    <AppBadge :status="'$' + formatPrice(reg.amount || 0)"></AppBadge>
                   </td>
                   <td class="text-center text-xs font-bold text-content-muted">
                     {{ formatDate(reg.updatedAt || reg.createdAt) }}
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="reg.paymentStatus || 'Pending'" />
+                    <AppBadge :status="reg.paymentStatus || 'Pending'" />
                   </td>
                 </tr>
               </tbody>
@@ -434,13 +429,13 @@ watch(
                 <tr v-for="(reg, idx) in filteredHistory" :key="reg.id">
                   <td class="text-center font-bold text-content-muted/40">{{ idx + 1 }}</td>
                   <td class="font-mono text-xs text-content-muted opacity-50">{{ reg.id }}</td>
-                  <td class="font-bold text-content-dark">{{ reg.program?.title }}</td>
+                  <td class="font-bold text-content-dark">{{ reg.program?.name }}</td>
                   <td class="text-xs font-bold text-primary italic">{{ reg.student?.name }}</td>
                   <td class="text-center text-xs font-bold text-content-muted">
                     {{ formatDate(reg.createdAt) }}
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="reg.status?.toLowerCase() === 'confirmed' ? 'Paid' : reg.status" />
+                    <AppBadge :status="reg.status?.toLowerCase() === 'confirmed' ? 'Paid' : reg.status" />
                   </td>
                 </tr>
               </tbody>
@@ -460,7 +455,7 @@ watch(
                 class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
             </div>
             <div class="absolute bottom-1 right-1">
-              <StatusBadge :status="parent?.status" :showLabel="false" />
+              <AppBadge :status="parent?.status" :showLabel="false" />
             </div>
           </div>
 
@@ -468,7 +463,7 @@ watch(
             <h2 class="text-2xl font-black text-content-dark tracking-tighter mb-xs">
               {{ parent?.name }}
             </h2>
-            <StatusBadge :status="parent?.status" />
+            <AppBadge :status="parent?.status" />
 
             <div class="w-full h-px bg-surface-light my-xl"></div>
 
@@ -496,7 +491,7 @@ watch(
             </h3>
           </div>
           <div class="flex flex-col gap-sm">
-            <div v-for="s in students" :key="s.id || s.uid"
+            <div v-for="s in students" :key="s.id"
               class="group flex items-center gap-md p-md rounded-sm bg-surface-light cursor-pointer transition-all hover:bg-white hover:shadow-md hover:ring-2 hover:ring-primary/20"
               @click="navigateToStudent(s)">
               <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-border">

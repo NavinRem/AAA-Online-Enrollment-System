@@ -3,16 +3,16 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.vue'
-import { userService } from '@/services/userService'
+import { studentService } from '@/services/studentService'
+import { parentService } from '@/services/parentService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { programService } from '@/services/programService'
 import { trackingService } from '@/services/trackingService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/formatUtils'
-import { calculateStudentStatus } from '@/utils/statusUtils'
 import { filterDetailEnrollments, getAcademicStatus, enrichEnrollments } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
@@ -31,8 +31,7 @@ const progressData = ref(null)
 const branches = ref([])
 
 const computedStatus = computed(() => {
-  if (!student.value) return 'Inactive'
-  return calculateStudentStatus(student.value, enrollments.value)
+  return student.value?.status || 'Inactive'
 })
 
 const primaryParent = computed(() => {
@@ -99,7 +98,7 @@ const getSelectedProgramLabel = (tab) => {
 
   if (id === 'all') return 'All Programs'
   const p = registeredPrograms.value.find((p) => p.id === id)
-  return p ? p.title : 'All Programs'
+  return p ? p.name : 'All Programs'
 }
 
 const activeTab = ref('academic')
@@ -114,7 +113,7 @@ const registeredPrograms = computed(() => {
   return enrollments.value
     .map((e) => ({
       id: e.programId,
-      title: e.programTitle || 'Unknown Program',
+      name: e.programName || 'Unknown Program',
     }))
     .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i)
 })
@@ -189,11 +188,11 @@ const submitActionModal = async (formData) => {
         ...formData,
         profileURL: formData.profileURL,
       }
-      await userService.updateStudent(sid, updatePayload)
+      await studentService.updateStudent(sid, updatePayload)
       globalSuccess.value = 'Student profile updated!'
     } else if (type === 'override') {
       const isStopping = formData.status === 'Stopped'
-      await userService.updateStudent(sid, {
+      await studentService.updateStudent(sid, {
         status: formData.status,
         overrideReason: formData.overrideReason,
         overrideRemark: formData.overrideRemark,
@@ -202,7 +201,7 @@ const submitActionModal = async (formData) => {
 
       if (isStopping && student.value?.parentId) {
         try {
-          await userService.updateUser(student.value.parentId, { status: 'Inactive' })
+          await parentService.updateParent(student.value.parentId, { status: 'Inactive' })
         } catch (autoErr) {
           console.warn('Auto-deactivation of parent failed', autoErr)
         }
@@ -215,8 +214,8 @@ const submitActionModal = async (formData) => {
 
       if (activeEnrollments.length > 0) {
         await Promise.all(
-          activeEnrollments.map((enrollment) =>
-            enrollmentService.updateEnrollment(enrollment.id, {
+          activeEnrollments.map((e) =>
+            enrollmentService.updateEnrollment(e.id, {
               status: formData.status,
               overrideReason: formData.overrideReason,
               overrideRemark: formData.overrideRemark,
@@ -242,7 +241,7 @@ const submitActionModal = async (formData) => {
       globalSuccess.value = 'Academic record deleted permanently!'
     } else if (type === 'delete') {
       if (formData.deleteConfirm !== 'DELETE') throw new Error('Please type DELETE to confirm.')
-      await userService.deleteStudent(sid)
+      await studentService.deleteStudent(sid)
       router.push('/students')
       return
     }
@@ -335,7 +334,7 @@ const filteredAcademic = computed(() => {
   return result
     .filter((r) =>
       searchQuery.value
-        ? (r.programTitle || '').toLowerCase().includes(searchQuery.value.toLowerCase())
+        ? (r.programName || '').toLowerCase().includes(searchQuery.value.toLowerCase())
         : true,
     )
     .sort((a, b) => {
@@ -440,7 +439,7 @@ const fetchData = async (id) => {
     loading.value = true
     errorMessage.value = ''
     const [studentData, branchData] = await Promise.all([
-      userService.getStudent(id),
+      studentService.getStudent(id),
       branchService.getAllBranches(),
     ])
     if (!studentData) throw new Error('Student not found')
@@ -449,7 +448,7 @@ const fetchData = async (id) => {
     const pId = studentData.parentId
     if (pId) {
       try {
-        parent.value = await userService.getProfile(pId)
+        parent.value = await parentService.getParent(pId)
       } catch (e) {
         console.warn('Could not fetch parent context silently', e)
       }
@@ -457,8 +456,8 @@ const fetchData = async (id) => {
     const [allEnrollments, allPrograms, allParents, allStudents, allClasses] = await Promise.all([
       enrollmentService.getAllEnrollments(),
       programService.getAllPrograms(),
-      userService.getUsersByRole('parent'),
-      userService.getStudents(),
+      parentService.getAllParents(),
+      studentService.getAllStudents(),
       programService.getAllClasses(),
     ])
 
@@ -477,29 +476,9 @@ const fetchData = async (id) => {
         trackingService.getAttendanceHistory(id),
         trackingService.getStudentProgress(id),
       ])
-      attendanceHistory.value = (attendance || []).map((a) => {
-        const program = programs.find((c) => (c.id || c.uid) === a.programId)
-        return {
-          ...a,
-          programTitle: program?.title || a.programTitle || a.courseTitle || 'Unknown Program',
-        }
-      })
+      attendanceHistory.value = attendance || []
       if (progress) {
-        progress.behaviorLogs = (progress.behaviorLogs || []).map((b) => {
-          const program = programs.find((c) => (c.id || c.uid) === b.programId)
-          return {
-            ...b,
-            programTitle: program?.title || b.programTitle || b.courseTitle || 'Unknown Program',
-          }
-        })
-        progress.examRecords = (progress.examRecords || []).map((e) => {
-          const program = programs.find((c) => (c.id || c.uid) === e.programId)
-          return {
-            ...e,
-            programTitle: program?.title || e.programTitle || e.courseTitle || 'Unknown Program',
-          }
-        })
-        progressData.value = progress || null
+        progressData.value = progress
       }
     } catch (e) {
       console.warn('Could not fetch tracking data silently', e)
@@ -665,7 +644,7 @@ watch(
                       class="ui-dropdown-item"
                       @click.stop="selectProgramFilter(activeTab, p.id)"
                     >
-                      {{ p.title }}
+                      {{ p.name }}
                     </div>
                   </div>
                 </transition>
@@ -679,7 +658,7 @@ watch(
               <thead>
                 <tr>
                   <th class="text-center" width="50">No</th>
-                  <th>Program Title</th>
+                  <th>Program Name</th>
                   <th class="text-center">Term</th>
                   <th>Schedule</th>
                   <th class="text-center">Status</th>
@@ -692,7 +671,7 @@ watch(
                   <td>
                     <div class="flex flex-col">
                       <span class="font-bold text-content-dark">{{
-                        item.program?.title || '-'
+                        item.program?.name || '-'
                       }}</span>
                       <span class="text-3xs text-content-muted uppercase font-black"
                         >Enrolled {{ formatDateOnly(item.enrollAt || item.createdAt) }}</span
@@ -700,7 +679,7 @@ watch(
                     </div>
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="item.termName || item.program?.termName || '—'" type="blue" />
+                    <AppBadge :status="item.termName || item.program?.termName || '—'" type="blue" />
                   </td>
                   <td>
                     <div v-if="item.class?.schedule || item.classSchedule" class="flex flex-col">
@@ -716,7 +695,7 @@ watch(
                     </div>
                     <span v-else class="text-content-muted/30 italic text-xs">N/A</span>
                   </td>
-                  <td class="text-center"><StatusBadge :status="getAcademicStatus(item)" /></td>
+                  <td class="text-center"><AppBadge :status="getAcademicStatus(item)" /></td>
                   <td class="text-center">
                     <div class="flex flex-col text-2xs font-bold text-content-muted gap-0.5">
                       <span>{{ formatDateOnly(item.startDate) }}</span>
@@ -747,7 +726,7 @@ watch(
               <tbody>
                 <tr v-for="(item, idx) in filteredAttendance" :key="item.id || idx">
                   <td class="text-center text-content-muted/40 font-bold">{{ idx + 1 }}</td>
-                  <td class="font-bold text-content-dark">{{ item.programTitle || '-' }}</td>
+                  <td class="font-bold text-content-dark">{{ item.programName || '-' }}</td>
                   <td>
                     <div class="flex flex-col">
                       <span class="font-black text-content-dark tracking-tighter uppercase">{{
@@ -761,7 +740,7 @@ watch(
                     </div>
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="item.status || item.displayStatus" />
+                    <AppBadge :status="item.status || item.displayStatus" />
                   </td>
                 </tr>
               </tbody>
@@ -787,14 +766,14 @@ watch(
               <tbody>
                 <tr v-for="(item, idx) in filteredBehavior" :key="item.id || idx">
                   <td class="text-center text-content-muted/40 font-bold">{{ idx + 1 }}</td>
-                  <td class="font-bold text-content-dark">{{ item.programTitle || '-' }}</td>
+                  <td class="font-bold text-content-dark">{{ item.programName || '-' }}</td>
                   <td>
                     <span class="text-xs font-black text-content-muted tracking-tight">{{
                       formatDateTime(item.date || item.behaviorDate || item.createdAt)
                     }}</span>
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="item.category || item.status || 'General'" />
+                    <AppBadge :status="item.category || item.status || 'General'" />
                   </td>
                   <td class="text-xs text-content-muted leading-relaxed font-medium italic">
                     {{ item.remark || item.note || item.displayStatus || '-' }}
@@ -824,7 +803,7 @@ watch(
               <tbody>
                 <tr v-for="(item, idx) in filteredExams" :key="item.id || idx">
                   <td class="text-center text-content-muted/40 font-bold">{{ idx + 1 }}</td>
-                  <td class="font-bold text-content-dark">{{ item.programTitle || '-' }}</td>
+                  <td class="font-bold text-content-dark">{{ item.programName || '-' }}</td>
                   <td class="text-center font-black text-content-muted/70 text-xs">
                     {{ formatDateOnly(item.date || item.examDate) }}
                   </td>
@@ -833,7 +812,7 @@ watch(
                     {{ item.score || '-' }}
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="item.score >= 50 ? 'Passed' : 'Failed'" />
+                    <AppBadge :status="item.score >= 50 ? 'Passed' : 'Failed'" />
                   </td>
                 </tr>
               </tbody>
@@ -855,13 +834,13 @@ watch(
               class="w-32 h-32 rounded-full border-4 border-white shadow-xl bg-white overflow-hidden"
             >
               <img
-                :src="student?.profile || getImageUrl('profiles/avatar-student')"
+                :src="student?.profileURL || getImageUrl('profiles/avatar-student')"
                 alt="Student Profile"
                 class="w-full h-full object-cover"
               />
             </div>
             <div class="absolute bottom-1 right-1">
-              <StatusBadge :status="computedStatus" :showLabel="false" />
+              <AppBadge :status="computedStatus" :showLabel="false" />
             </div>
           </div>
 
@@ -869,7 +848,7 @@ watch(
             <h2 class="text-2xl font-black text-content-dark tracking-tighter mb-xs">
               {{ student?.name }}
             </h2>
-            <StatusBadge :status="computedStatus" />
+            <AppBadge :status="computedStatus" />
 
             <div class="w-full h-px bg-surface-light my-xl"></div>
 
@@ -878,7 +857,7 @@ watch(
                 <span class="ui-data-label text-left">Date of Birth</span>
                 <span class="ui-data-value text-left flex items-center justify-between">
                   {{ formatDateOnly(student?.dob) || '—' }}
-                  <StatusBadge
+                  <AppBadge
                     :status="'Age: ' + (calculateAge(student?.dob) || '—')"
                     type="blue"
                   />
@@ -936,7 +915,7 @@ watch(
               class="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-border"
             >
               <img
-                :src="student?.parentInfo?.profile || getImageUrl('profiles/avatar-parent')"
+                :src="student?.parentInfo?.profileURL || getImageUrl('profiles/avatar-parent')"
                 alt="Parent Profile"
                 class="w-full h-full object-cover"
               />

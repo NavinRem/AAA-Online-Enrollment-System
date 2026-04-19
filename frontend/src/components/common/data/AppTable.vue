@@ -1,5 +1,10 @@
 <template>
   <div class="table-root">
+    <!-- Toolbar Slot -->
+    <div v-if="$slots.toolbar" class="table-toolbar-container">
+      <slot name="toolbar"></slot>
+    </div>
+
     <!-- Loading State -->
     <div v-if="loading"
       class="flex-1 flex items-center justify-center p-xl sm:p-3xl text-content-light font-bold text-base animate-pulse">
@@ -42,6 +47,7 @@
   </div>
 </template>
 
+
 <script setup>
 defineProps({
   headers: {
@@ -66,6 +72,10 @@ defineProps({
 <style scoped>
 .table-root {
   @apply w-full relative flex flex-1 flex-col min-h-0 overflow-hidden bg-white rounded-md border border-outline-std shadow-sm;
+}
+
+.table-toolbar-container {
+  @apply w-full flex-shrink-0 border-b border-outline-std/50;
 }
 
 .table-container {

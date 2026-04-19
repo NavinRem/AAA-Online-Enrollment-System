@@ -15,7 +15,7 @@
             <span class="enroll-confirm-key">{{ row.key }}</span>
             <!-- Slot-based custom rendering per row -->
             <slot :name="`row-${row.key}`" :row="row">
-              <StatusBadge v-if="row.badge" :status="row.value" size="sm" />
+              <AppBadge v-if="row.badge" :status="row.value" size="sm" />
               <span v-else class="enroll-confirm-val" :class="row.valueClass">{{ row.value ?? '—' }}</span>
             </slot>
           </div>
@@ -41,7 +41,7 @@
 
 <script setup>
 import AppButton from '@/components/common/ui/AppButton.vue'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import { formatPrice } from '@/utils/formatUtils'
 
 defineProps({

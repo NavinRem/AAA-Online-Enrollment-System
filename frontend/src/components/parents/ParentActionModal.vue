@@ -73,12 +73,12 @@
             >Avatar Signature <span class="text-error">*</span></label
           >
           <AvatarSelector
-            v-model="localData.profile"
+            v-model="localData.profileURL"
             :role="localData.role"
-            :uid="user?.uid || user?.id"
+            :uid="user?.uid"
             :customFileName="`${localData.name}_${localData.role}`"
-            :error="errors.profile"
-            :shake="shaking.profile"
+            :error="errors.profileURL"
+            :shake="shaking.profileURL"
           />
         </div>
       </div>
@@ -88,7 +88,7 @@
         <AppSelect
           v-if="!user && selectableParents && selectableParents.length > 0"
           v-model="localData.parentId"
-          :items="filteredParents.map((p) => ({ id: p.uid || p.id, name: p.name, profileURL: p.profileURL }))"
+          :items="filteredParents.map((p) => ({ id: p.uid, name: p.name, profileURL: p.profileURL }))"
           label="Link to Parent Registry"
           placeholder="Search parent database..."
           required
@@ -127,12 +127,12 @@
                 >Student Avatar <span class="text-error">*</span></label
               >
               <AvatarSelector
-                v-model="localData.profile"
+                v-model="localData.profileURL"
                 role="student"
                 :customFileName="`${localData.name}_student` || ''"
                 :disabled="!user && !localData.parentId"
-                :error="errors.profile"
-                :shake="shaking.profile"
+                :error="errors.profileURL"
+                :shake="shaking.profileURL"
                 @click-disabled="handleDisabledClick('childInfo')"
               />
             </div>
@@ -246,7 +246,7 @@
               >Current Status</span
             >
             <div class="w-fit">
-              <StatusBadge :status="selectedParent.status" />
+              <AppBadge :status="selectedParent.status" />
             </div>
           </div>
         </div>
@@ -416,7 +416,7 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { getActionIcon, isSameProfileAsset } from '@/utils/assetHelper'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
@@ -444,9 +444,9 @@ const getInitialData = () => ({
   email: '',
   role: 'parent',
   status: 'Active',
-  profile: '',
+  profileURL: '',
   deleteConfirm: '',
-  parentId: props.user?.uid || props.user?.id || '',
+  parentId: props.user?.uid || '',
   dob: '',
   medicalNote: '',
 })
@@ -458,8 +458,8 @@ const mapSourceToForm = () => {
   if (props.type === 'plus') {
     return {
       ...base,
-      parentId: u.uid || u.id || '',
-      profile: '',
+      parentId: u.uid || '',
+      profileURL: '',
       medicalNote: '',
     }
   }
@@ -471,7 +471,7 @@ const mapSourceToForm = () => {
     email: u.email || '',
     role: u.role || 'parent',
     status: u.status || 'Active',
-    profile: u.profileURL || '',
+    profileURL: u.profileURL || '',
   }
 }
 
@@ -487,7 +487,7 @@ const isChanged = computed(() => {
   const d = localData.value
   const o = originalData.value
 
-  const hasProfileChanged = !isSameProfileAsset(d.profile, o.profile)
+  const hasProfileChanged = !isSameProfileAsset(d.profileURL, o.profileURL)
   const hasNameChanged = d.name !== o.name
   const hasEmailChanged = d.email !== o.email
   const hasPhoneChanged = d.phone !== o.phone
@@ -525,10 +525,10 @@ const handleActionSubmit = () => {
 
   if (props.type === 'edit') {
     if (!isChanged.value) return
-    rules.required = ['name', 'phone', 'profile']
+    rules.required = ['name', 'phone', 'profileURL']
     rules.custom.email = (val) => (!!val?.trim() && val.includes('@')) || 'Valid email required'
   } else if (props.type === 'plus') {
-    rules.required = ['name', 'dob', 'profile']
+    rules.required = ['name', 'dob', 'profileURL']
     if (!props.user) rules.required.push('parentId')
   } else if (props.type === 'delete') {
     rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Authorization string invalid'
@@ -555,7 +555,7 @@ const submittingLocal = ref(false)
 const parentThemeClasses = computed(() => {
   const p = props.user || selectedParent.value
   if (!p) return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
-  const url = (p.profileURL || p.profile || '').toLowerCase()
+  const url = (p.profileURL || '').toLowerCase()
   if (url.includes('woman') || url.includes('girl'))
     return 'bg-gradient-to-br from-magenta-soft/80 to-magenta-soft/30 border-magenta-soft'
   if (url.includes('man') || url.includes('boy'))
@@ -596,12 +596,8 @@ const { searchResults: filteredParents } = useSearch(activeParents, parentSearch
 
 const selectedParent = computed(() => {
   if (!localData.value.parentId) return null
-  if (
-    props.user &&
-    (props.user.uid === localData.value.parentId || props.user.id === localData.value.parentId)
-  )
-    return props.user
-  return props.selectableParents?.find((p) => (p.uid || p.id) === localData.value.parentId)
+  if (props.user && props.user.uid === localData.value.parentId) return props.user
+  return props.selectableParents?.find((p) => p.uid === localData.value.parentId)
 })
 
 const togglePreset = (field, chipValue) => {

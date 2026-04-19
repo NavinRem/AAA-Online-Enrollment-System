@@ -43,7 +43,7 @@ const handleImageError = (e) => {
 }
 
 .summary-image {
-  @apply w-[100px] sm:w-[100px] h-[100px] sm:h-[100px] object-contain transition-transform duration-500;
+  @apply w-[80px] h-[80px] object-contain transition-transform duration-500;
 }
 
 .group:hover .summary-image {

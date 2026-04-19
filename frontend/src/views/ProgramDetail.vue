@@ -3,17 +3,16 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { programService } from '@/services/programService'
 import { enrollmentService } from '@/services/enrollmentService'
-import { userService } from '@/services/userService'
+import { studentService } from '@/services/studentService'
 import { getProgramProfileURL, getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
 import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
-import { isPaid } from '@/utils/statusUtils'
 import { enrichEnrollments } from '@/utils/enrollmentHelper'
 
 const route = useRoute()
@@ -40,7 +39,7 @@ const initData = async () => {
       programService.getProgram(id),
       programService.getSessions(id),
       enrollmentService.getAllEnrollments(),
-      userService.getAllStudents(),
+      studentService.getAllStudents(),
     ])
 
     program.value = pData
@@ -70,14 +69,14 @@ const statsCards = computed(() => {
   if (!program.value) return []
 
   const paidEnrollmentsCount = enrollments.value.filter((e) =>
-    isPaid(e.status || e.paymentStatus),
+    ['paid', 'confirmed'].includes(String(e.status || e.paymentStatus).toLowerCase()),
   ).length
   const totalRevenue = enrollments.value
-    .filter((e) => isPaid(e.status || e.paymentStatus))
-    .reduce((sum, e) => sum + Number(e.amount || program.value.price || 0), 0)
+    .filter((e) => ['paid', 'confirmed'].includes(String(e.status || e.paymentStatus).toLowerCase()))
+    .reduce((sum, e) => sum + Number(e.amount || program.value.basePrice || 0), 0)
 
   const scheduledCount = sessionInstances.value.filter((i) => i.status === 'Scheduled').length
-  const maxCapacity = Number(program.value.maxCapacity || program.value.capacity || 5)
+  const maxCapacity = Number(program.value.maxCapacity || 5)
   const remainingCapacity = Math.max(0, maxCapacity - paidEnrollmentsCount)
 
   return [
@@ -152,7 +151,7 @@ const sessionInstances = computed(() => {
 
       let status = 'Scheduled'
       if (isToday) {
-        if (isSessionInProgress(session.schedule, now.value)) {
+        if (isSessionInProgress(session.schedule)) {
           status = 'In Progress'
         } else {
           const times = (session.schedule?.timeslot || '').split('-').map((t) => t.trim())
@@ -303,12 +302,12 @@ const handleActionSubmit = async (formData) => {
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Execution Status</span>
-                <StatusBadge :status="getProgramDisplayStatus(program, sessions, now)" />
+                <AppBadge :status="getProgramDisplayStatus(program)" />
               </div>
               <div class="ui-data-item">
-                <span class="ui-data-label">Admission Price</span>
-                <span class="ui-data-value text-xl font-black text-primary tracking-tighter">${{ (Number(program.basePrice || program.price)
-                  || 0).toLocaleString() }}</span>
+                <span class="ui-data-value text-xl font-black text-primary tracking-tighter">${{
+                  (Number(program.basePrice)
+                    || 0).toLocaleString() }}</span>
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Term Duration</span>
@@ -329,12 +328,11 @@ const handleActionSubmit = async (formData) => {
               </div>
               <div class="ui-data-item">
                 <span class="ui-data-label">Session Quota</span>
-                <span class="ui-data-value text-base">{{ program.totalSessions || program.numberSessions }} Total Units</span>
+                <span class="ui-data-value text-base">{{ program.totalSessions }} Total Units</span>
               </div>
               <div class="ui-data-item">
-                <span class="ui-data-label">Cost Efficiency</span>
                 <span class="ui-data-value text-base">${{
-                  (Number(program.basePrice || program.price || 0) / (Number(program.totalSessions || program.numberSessions) || 1)).toFixed(2)
+                  (Number(program.basePrice || 0) / (Number(program.totalSessions) || 1)).toFixed(2)
                 }}
                   <span class="text-2xs opacity-40">/ unit</span></span>
               </div>
@@ -367,12 +365,12 @@ const handleActionSubmit = async (formData) => {
                   <td>
                     <div class="flex items-center gap-md">
                       <div class="w-8 h-8 rounded-full overflow-hidden border border-outline-std">
-                        <img :src="item.studentPhoto || getImageUrl('profiles/avatar-student')"
+                        <img :src="item.student?.profileURL || getImageUrl('profiles/avatar-student')"
                           class="w-full h-full object-cover" />
                       </div>
                       <span
                         class="font-black text-content-dark tracking-tighter group-hover:text-primary transition-colors">{{
-                        item.studentName }}</span>
+                          item.student?.name || 'N/A' }}</span>
                     </div>
                   </td>
                   <td>
@@ -381,10 +379,10 @@ const handleActionSubmit = async (formData) => {
                       }}</span>
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="item.academicStatus" />
+                    <AppBadge :status="item.academicStatus" />
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="item.displayStatus" />
+                    <AppBadge :status="item.displayStatus" />
                   </td>
                 </tr>
               </tbody>
@@ -424,7 +422,7 @@ const handleActionSubmit = async (formData) => {
                     <span class="text-xs font-bold text-content-muted">{{ item.timeslot }}</span>
                   </td>
                   <td class="text-center">
-                    <StatusBadge :status="item.status" />
+                    <AppBadge :status="item.status" />
                   </td>
                 </tr>
                 <tr v-if="sessionInstances.length === 0">
@@ -441,19 +439,19 @@ const handleActionSubmit = async (formData) => {
       <template #right-content v-if="program">
         <div class="ui-detail-card flex flex-col items-center text-center p-0 overflow-hidden">
           <div class="w-full h-32 bg-primary/5">
-            <img :src="getProgramProfileURL(program.profileURL || program.imageURL, program.category)"
+            <img :src="getProgramProfileURL(program.profileURL, program.category)"
               class="w-full h-full object-cover opacity-10 hover:opacity-20 transition-opacity" />
           </div>
           <div class="relative -mt-16 mb-md">
             <div class="w-32 h-32 rounded-std border-4 border-white shadow-xl bg-white p-4">
-              <img :src="getProgramProfileURL(program.profileURL || program.imageURL, program.category)
+              <img :src="getProgramProfileURL(program.profileURL, program.category)
                 " alt="Program Icon" class="w-full h-full object-contain" />
             </div>
           </div>
 
           <div class="px-xl pb-xl w-full">
             <h2 class="text-2xl font-black text-content-dark tracking-tighter mb-md leading-tight">
-              {{ program.name || program.title }}
+              {{ program.name }}
             </h2>
 
             <div class="w-full h-px bg-surface-light my-xl"></div>
@@ -482,9 +480,8 @@ const handleActionSubmit = async (formData) => {
                   <div class="flex flex-col text-left">
                     <span
                       class="text-sm font-black text-content-dark tracking-tighter group-hover:text-primary transition-colors leading-none mb-1">{{
-                        t.name || t.fullname || 'Faculty Staff' }}</span>
-                    <span class="text-3xs font-black uppercase text-content-muted tracking-widest">{{ t.role || 'Primary
-                      Teacher' }}</span>
+                        t.name || 'Faculty Staff' }}</span>
+                    <span class="text-3xs font-black uppercase text-content-muted tracking-widest">{{ t.role }}</span>
                   </div>
                 </div>
                 <div v-if="!program.teachers || program.teachers.length === 0"

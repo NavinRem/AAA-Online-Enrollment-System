@@ -5,9 +5,10 @@ import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
-import StatusBadge from '../components/common/ui/StatusBadge.vue'
+import AppBadge from '../components/common/ui/AppBadge.vue'
 import { trialService } from '@/services/trialService'
-import { userService } from '../services/userService'
+import { parentService } from '../services/parentService'
+import { studentService } from '../services/studentService'
 import { programService } from '../services/programService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
@@ -33,13 +34,13 @@ const fetchData = async () => {
     loading.value = true
     const [tData, pData, sData, progData, cData] = await Promise.all([
       trialService.getAllTrials(),
-      userService.getAllUsers(),
-      userService.getAllStudents(),
+      parentService.getAllParents(),
+      studentService.getAllStudents(),
       programService.getAllPrograms(),
       programService.getAllClasses(),
     ])
     trials.value = Array.isArray(tData) ? tData : []
-    parents.value = Array.isArray(pData) ? pData.filter((u) => u.role === 'parent') : []
+    parents.value = Array.isArray(pData) ? pData : []
     students.value = Array.isArray(sData) ? sData : []
     programs.value = Array.isArray(progData) ? progData : []
     classes.value = Array.isArray(cData) ? cData : []
@@ -107,6 +108,20 @@ const { searchQuery, searchResults: filteredTrials } = useSearch(
   enrollmentSearchMapper, // Reusing enrollment mapper as structure is similar
 )
 
+const currentPage = ref(1)
+const pageSize = 10
+const totalItems = computed(() => filteredTrials.value.length)
+
+const paginatedTrials = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredTrials.value.slice(start, end)
+})
+
+watch(searchQuery, () => {
+  currentPage.value = 1
+})
+
 const handleTableAction = ({ type, item }) => {
   if (type === 'delete') {
     if (confirm('Are you sure you want to delete this trial record?')) {
@@ -127,13 +142,17 @@ const handleTableAction = ({ type, item }) => {
         <DataTable
           title="Trial Records"
           :headers="trialHeaders"
-          :items="filteredTrials"
+          :items="paginatedTrials"
           entityName="trial"
           :loading="loading"
           :flexible="true"
           v-model:searchQuery="searchQuery"
           searchPlaceholder="Search Trials..."
           :rowClass="getRowClass"
+          :hasPagination="true"
+          :totalItems="totalItems"
+          :pageSize="pageSize"
+          v-model:currentPage="currentPage"
           @action="handleTableAction"
         >
           <template #row="{ item, index, headers }">
@@ -162,9 +181,9 @@ const handleTableAction = ({ type, item }) => {
                 <div class="ui-identity-info overflow-hidden">
                   <span
                     class="font-bold text-xs text-content-dark truncate max-w-[140px] block"
-                    :title="item.program?.title"
+                    :title="item.program?.name"
                   >
-                    {{ item.program?.title }}
+                    {{ item.program?.name }}
                   </span>
                   <span class="text-3xs text-primary uppercase font-black tracking-widest"
                     >Program</span
@@ -186,10 +205,10 @@ const handleTableAction = ({ type, item }) => {
               class="ui-cell text-center hidden md:table-cell"
               :style="{ width: headers[4].width }"
             >
-              <StatusBadge :status="item.branch?.abbr || 'N/A'" type="blue" />
+              <AppBadge :status="item.branch?.abbr || 'N/A'" type="blue" />
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
-              <StatusBadge :status="item.status || 'Booked'" />
+              <AppBadge :status="item.status || 'Booked'" />
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <span class="text-xs font-bold text-content-dark tracking-tight">{{

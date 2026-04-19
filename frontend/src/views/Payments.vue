@@ -2,7 +2,7 @@
 import { ref, computed } from 'vue'
 import { formatDate } from '@/utils/formatUtils'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import DataMetrics from '@/components/common/data/DataMetrics.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
 import DataPageLayout from '@/components/layout/DataPageLayout.vue'
@@ -92,7 +92,7 @@ const paymentHeaders = [
               }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">
-              <StatusBadge :status="item.status" />
+              <AppBadge :status="item.status" />
             </td>
             <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[5].width }">
               <span class="text-xs font-bold text-content-muted/70 tracking-tight">{{

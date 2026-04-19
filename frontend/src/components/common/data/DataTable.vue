@@ -3,9 +3,9 @@ import { computed } from 'vue'
 import AppTable from '@/components/common/data/AppTable.vue'
 import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import { useTableActions } from '@/composables/useTableActions'
-import StatusBadge from '../ui/StatusBadge.vue'
+import AppBadge from '../ui/AppBadge.vue'
 import TablePagination from './TablePagination.vue'
-import { getStatusCategory, getStatusDisplay } from '@/utils/statusUtils'
+import { getStatusUI } from '@/utils/badgeUtils'
 
 const props = defineProps({
   headers: { type: Array, required: true },
@@ -86,54 +86,56 @@ const handleAction = (type, item) => {
     'w-full flex flex-col',
     flexible ? '' : 'flex-1 min-h-0'
   ]">
-    <TableToolbar :hasSearch="hasSearch" :searchQuery="searchQuery"
-      @update:searchQuery="emit('update:searchQuery', $event)" :searchPlaceholder="searchPlaceholder"
-      :hasFilter="hasFilter" :currentFilter="currentFilter" @update:currentFilter="emit('update:currentFilter', $event)"
-      :filterOptions="filterOptions" :title="title">
-      <template #actions>
-        <slot name="toolbar-actions"></slot>
+    <AppTable :headers="headers" :loading="loading" :empty="!items || items.length === 0" :flexible="flexible">
+      <!-- Integrated Toolbar -->
+      <template #toolbar>
+        <TableToolbar :hasSearch="hasSearch" :searchQuery="searchQuery"
+          @update:searchQuery="emit('update:searchQuery', $event)" :searchPlaceholder="searchPlaceholder"
+          :hasFilter="hasFilter" :currentFilter="currentFilter"
+          @update:currentFilter="emit('update:currentFilter', $event)" :filterOptions="filterOptions" :title="title">
+          <template #actions>
+            <slot name="toolbar-actions"></slot>
+          </template>
+        </TableToolbar>
       </template>
-    </TableToolbar>
 
-    <div :class="[
-      'w-full flex flex-col p-xs',
-      flexible ? '' : 'flex-1 min-h-0 overflow-hidden'
-    ]">
-      <AppTable :headers="headers" :loading="loading" :empty="!items || items.length === 0" :flexible="flexible">
-        <template #loading>{{ displayEmptyMessage }}</template>
-        <template #empty>
-          <div class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic">
-            <span v-if="emptyState.prefix">{{ emptyState.prefix }}</span>
-            <StatusBadge v-if="emptyState.label" :status="currentFilter" :type="getStatusCategory(currentFilter)">
-              {{ getStatusDisplay(emptyState.label) }}
-            </StatusBadge>
-            <span v-if="emptyState.suffix">{{ emptyState.suffix }}</span>
-          </div>
-        </template>
+      <!-- Loading State Customization -->
+      <template #loading>{{ displayEmptyMessage }}</template>
 
-        <tr v-for="(item, index) in items" :key="item.id || index" class="ui-row group" :class="rowClass(item)"
-          @click="emit('row-click', item)">
-          <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId"
-            :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction" :closeMenu="closeMenu"
-            :headers="headers">
-            <td v-for="(header, hIdx) in headers" :key="hIdx" class="ui-cell"
-              :class="typeof header === 'object' && header.align ? `text-${header.align}` : ''"
-              :style="typeof header === 'object' && header.width ? { width: header.width, minWidth: header.width } : {}">
-              {{
-                item[
-                typeof header === 'object'
-                  ? header.key || header.label.toLowerCase().replace(' ', '')
-                  : header.toLowerCase().replace(' ', '')
-                ]
-              }}
-            </td>
-          </slot>
-        </tr>
-        <template #footer>
-          <TablePagination v-if="hasPagination && items && items.length > 0" :currentPage="currentPage"
-            :pageSize="pageSize" :totalItems="totalItems" @update:currentPage="emit('update:currentPage', $event)" />
-        </template>
-      </AppTable>
-    </div>
+      <!-- Empty State Customization -->
+      <template #empty>
+        <div class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic">
+          <span v-if="emptyState.prefix">{{ emptyState.prefix }}</span>
+          <AppBadge v-if="emptyState.label" :value="emptyState.label" :type="currentFilter" />
+          <span v-if="emptyState.suffix">{{ emptyState.suffix }}</span>
+        </div>
+      </template>
+
+      <!-- Main Row Content -->
+      <tr v-for="(item, index) in items" :key="item.id || index" class="ui-row group" :class="rowClass(item)"
+        @click="emit('row-click', item)">
+        <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId"
+          :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction" :closeMenu="closeMenu"
+          :headers="headers">
+          <td v-for="(header, hIdx) in headers" :key="hIdx" class="ui-cell"
+            :class="typeof header === 'object' && header.align ? `text-${header.align}` : ''"
+            :style="typeof header === 'object' && header.width ? { width: header.width, minWidth: header.width } : {}">
+            {{
+              item[
+              typeof header === 'object'
+                ? header.key || header.label.toLowerCase().replace(' ', '')
+                : header.toLowerCase().replace(' ', '')
+              ]
+            }}
+          </td>
+        </slot>
+      </tr>
+
+      <!-- Table Footer (Pagination) -->
+      <template #footer>
+        <TablePagination v-if="hasPagination && items && items.length > 0" :currentPage="currentPage"
+          :pageSize="pageSize" :totalItems="totalItems" @update:currentPage="emit('update:currentPage', $event)" />
+      </template>
+    </AppTable>
   </div>
 </template>

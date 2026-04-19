@@ -9,18 +9,11 @@
       <SearchBox v-if="hasSearch" :modelValue="searchQuery" @update:modelValue="$emit('update:searchQuery', $event)"
         :placeholder="searchPlaceholder" variant="default" class="!w-[350px] flex-shrink-0" />
       <div v-if="hasFilter" class="relative">
-        <AppButton ref="filterToggleRef" variant="light" size="md" :class="{
-          'border-px border-primary': currentFilter !== 'all' && currentFilter !== '',
-        }" :style="isActiveFilter
-          ? {
-            backgroundColor: getStatusTheme(currentFilter).backgroundColor,
-            color: getStatusTheme(currentFilter).color,
-          }
-          : {}
-          " @click="toggleFilter">
+        <AppButton ref="filterToggleRef" :variant="isActiveFilter ? currentFilter : 'light'" size="md"
+          :class="{ 'border-primary shadow-sm': isActiveFilter }" @click="toggleFilter">
           <img :src="getActionIcon('filter')" class="w-4 h-4 transition-all"
             :style="{ filter: getStatusFilter(isActiveFilter ? currentFilter : 'filter') }" />
-          <span class="font-bold">{{ activeFilterLabel }}</span>
+          <span class="font-extrabold tracking-tight">{{ activeFilterLabel }}</span>
         </AppButton>
         <Teleport to="body">
           <transition enter-active-class="transition duration-200 ease-out"
@@ -46,7 +39,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import SearchBox from '@/components/common/data/SearchBox.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import { getStatusTheme, getStatusFilter } from '@/utils/statusUtils'
+import { getStatusTheme, getStatusFilter } from '@/utils/badgeUtils'
 import { getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
@@ -131,7 +124,7 @@ const selectFilter = (val) => {
 </script>
 <style scoped>
 .toolbar-root {
-  @apply flex items-center justify-between p-md bg-white min-h-[64px] w-full rounded-md;
+  @apply flex items-center justify-between px-md py-sm min-h-[56px] w-full;
 }
 
 .toolbar-title-box {
@@ -139,7 +132,7 @@ const selectFilter = (val) => {
 }
 
 .toolbar-title {
-  @apply text-lg font-extrabold text-content-dark tracking-tight;
+  @apply text-base font-extrabold text-content-dark tracking-tight;
 }
 
 .toolbar-actions {

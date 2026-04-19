@@ -5,11 +5,12 @@ import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
-import StatusBadge from '../components/common/ui/StatusBadge.vue'
+import AppBadge from '../components/common/ui/AppBadge.vue'
 import EnrollmentFormModal from '../components/enrollments/EnrollmentFormModal.vue'
 import EnrollmentActionModal from '../components/enrollments/EnrollmentActionModal.vue'
 import { enrollmentService } from '@/services/enrollmentService'
-import { userService } from '../services/userService'
+import { parentService } from '../services/parentService'
+import { studentService } from '../services/studentService'
 import { programService } from '../services/programService'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import { storageService } from '@/services/storageService'
@@ -17,7 +18,7 @@ import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
-import { isPaid, isUnpaid, isCancelled, getStatusFilter } from '@/utils/statusUtils'
+import { getStatusFilter } from '@/utils/badgeUtils'
 import { formatPrice, formatDate } from '@/utils/formatUtils'
 
 const enrollments = ref([])
@@ -72,17 +73,13 @@ const fetchEnrollments = async () => {
 
 const loadFormData = async () => {
   try {
-    const [usersRes, programsRes, studentsRes, classesRes] = await Promise.all([
-      userService.getAllUsers(),
+    const [parentsRes, programsRes, studentsRes, classesRes] = await Promise.all([
+      parentService.getAllParents(),
       programService.getAllPrograms(),
-      userService.getAllStudents(),
+      studentService.getAllStudents(),
       programService.getAllClasses(),
     ])
-    parents.value = Array.isArray(usersRes)
-      ? usersRes.filter(
-        (u) => u.role === 'parent' && (u.status || 'Active').toLowerCase() === 'active',
-      )
-      : []
+    parents.value = Array.isArray(parentsRes) ? parentsRes : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
     classes.value = Array.isArray(classesRes) ? classesRes : []
@@ -120,7 +117,7 @@ const handleSaveEnrollment = async (formData) => {
     const parent = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
     const student = students.value.find((s) => s.id === formData.studentId)
     const program = programs.value.find(
-      (c) => c.id === formData.programId || c.id === formData.courseId,
+      (c) => c.id === formData.programId,
     )
     const classInstance = classes.value.find((c) => c.id === formData.classId)
 
@@ -142,11 +139,11 @@ const handleSaveEnrollment = async (formData) => {
       },
       program: {
         id: program.id,
-        title: program.title,
+        name: program.name,
         type: program.type || 'Group',
         profileURL: program.profileURL,
         basePrice: program.basePrice || 0,
-        sessionNumber: program.sessionNumber || 0,
+        totalSessions: program.totalSessions || 0,
       },
       class: {
         id: classInstance.id,
@@ -256,10 +253,12 @@ const statusFilteredEnrollments = computed(() => {
   let filtered = enriched
   if (currentFilter.value !== 'all') {
     filtered = enriched.filter((r) => {
-      if (currentFilter.value === 'paid') return isPaid(r.paymentStatus) && !isCancelled(r.status)
-      if (currentFilter.value === 'unpaid')
-        return isUnpaid(r.paymentStatus) && !isCancelled(r.status)
-      if (currentFilter.value === 'cancelled') return isCancelled(r.status)
+      const s = String(r.status || '').toLowerCase()
+      const p = String(r.paymentStatus || '').toLowerCase()
+
+      if (currentFilter.value === 'paid') return (p === 'paid' || p === 'confirmed') && s !== 'cancelled'
+      if (currentFilter.value === 'unpaid') return p === 'unpaid' && s !== 'cancelled'
+      if (currentFilter.value === 'cancelled') return s === 'cancelled'
       if (currentFilter.value === 'full')
         return (r.enrollmentType || 'Full').toLowerCase() === 'full'
       if (currentFilter.value === 'partial')
@@ -392,7 +391,7 @@ const handleRegisterStudent = async (formData) => {
       const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
       finalProfile = await storageService.moveProfileImage(profile, newPath)
     }
-    const result = await userService.registerStudentProfile(parentId, {
+    const result = await studentService.registerStudent(parentId, {
       name,
       dob,
       profile: finalProfile,
@@ -400,7 +399,7 @@ const handleRegisterStudent = async (formData) => {
       status: 'Inactive',
     })
     childRegistrationModal.value.success = 'Student registered successfully!'
-    const studentsRes = await userService.getAllStudents()
+    const studentsRes = await studentService.getAllStudents()
     students.value = Array.isArray(studentsRes) ? studentsRes : []
     if (result && result.id && enrollmentForm.value) {
       enrollmentForm.value.setStudent(result.id)
@@ -490,8 +489,9 @@ const handleRegisterStudent = async (formData) => {
                   <img :src="item.program?.profileURL" alt="program" />
                 </div>
                 <div class="ui-identity-info overflow-hidden">
-                  <span class="font-bold text-content-dark truncate max-w-[140px] block" :title="item.programName">
-                    {{ item.programName }}
+                  <span class="font-bold text-content-dark truncate max-w-[140px] block"
+                    :title="item.class?.program?.name">
+                    {{ item.class?.program?.name }}
                   </span>
                 </div>
               </div>
@@ -501,27 +501,27 @@ const handleRegisterStudent = async (formData) => {
                 <span class="font-bold">{{ getSessionDay(item.classSchedule, true) }}</span>
                 <span class="text-3xs font-semibold text-content-muted uppercase">{{
                   getSessionTime(item.classSchedule)
-                }}</span>
+                  }}</span>
               </div>
               <span v-else class="text-content-muted/30 italic text-xs pl-2">—</span>
             </td>
             <td class="ui-cell text-center hidden md:table-cell"
               :style="{ width: headers[5].width, minWidth: headers[5].width }">
-              <StatusBadge :status="item.branchAbbr || '—'" :type="item.branchAbbr ? 'blue' : 'neutral'" />
+              <AppBadge :status="item.branchAbbr || '—'" :type="item.branchAbbr ? 'blue' : 'neutral'" />
             </td>
 
             <td class="ui-cell text-center font-bold" :style="{ width: headers[6].width, minWidth: headers[6].width }">
-              <StatusBadge :status="'$' + formatPrice(item.amount || 0)" :type="(item.enrollmentType || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'
+              <AppBadge :status="'$' + formatPrice(item.amount || 0)" :type="(item.enrollmentType || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'
                 ">
-              </StatusBadge>
+              </AppBadge>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[7].width, minWidth: headers[7].width }">
-              <StatusBadge :status="item.displayStatus || 'Unpaid'" />
+              <AppBadge :status="item.status || item.paymentStatus || 'Unpaid'" />
             </td>
             <td class="ui-cell text-center hidden lg:table-cell">
               <span class="text-xs font-bold text-content-muted/70 tracking-tight">{{
                 formatDate(item.enrollAt)
-              }}</span>
+                }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[9].width, minWidth: headers[9].width }">
               <div class="ui-action-menu">
@@ -537,9 +537,9 @@ const handleRegisterStudent = async (formData) => {
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
                       <button v-if="
-                        !isPaid(item.status) &&
-                        !isPaid(item.paymentStatus) &&
-                        !isCancelled(item.status)
+                        item.status !== 'confirmed' &&
+                        item.paymentStatus !== 'paid' &&
+                        item.status !== 'cancelled'
                       " class="ui-dropdown-item ui-dropdown-item-info group" @click="
                         () => {
                           handleAction('edit', item)
@@ -550,9 +550,9 @@ const handleRegisterStudent = async (formData) => {
                         Edit
                       </button>
                       <button v-if="
-                        !isPaid(item.status) &&
-                        !isPaid(item.paymentStatus) &&
-                        !isCancelled(item.status)
+                        item.status !== 'confirmed' &&
+                        item.paymentStatus !== 'paid' &&
+                        item.status !== 'cancelled'
                       " class="ui-dropdown-item ui-dropdown-item-success group" @click="
                         () => {
                           handleAction('pay', item)
@@ -562,8 +562,8 @@ const handleRegisterStudent = async (formData) => {
                         <img :src="getActionIcon('pay')" class="w-4 h-4 transition-all opacity-60" />
                         Pay
                       </button>
-                      <button v-if="!isCancelled(item.status || item.paymentStatus)"
-                        class="ui-dropdown-item ui-dropdown-item-danger group" @click="
+                      <button v-if="item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-danger group"
+                        @click="
                           () => {
                             handleAction('cancel', item)
                             closeMenu()
@@ -572,8 +572,7 @@ const handleRegisterStudent = async (formData) => {
                         <img :src="getActionIcon('cancel')" class="w-4 h-4 transition-all opacity-60" />
                         Cancel
                       </button>
-                      <div class="h-px bg-surface-light mx-1 my-1"
-                        v-if="!isCancelled(item.status || item.paymentStatus)"></div>
+                      <div class="h-px bg-surface-light mx-1 my-1" v-if="item.status !== 'cancelled'"></div>
                       <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold" @click="
                         () => {
                           handleAction('delete', item)

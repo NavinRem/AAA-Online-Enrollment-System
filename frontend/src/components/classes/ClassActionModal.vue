@@ -236,7 +236,7 @@ import AppAlert from '@/components/common/ui/AppAlert.vue'
 import { getActionIcon } from '@/utils/assetHelper'
 import { programService } from '@/services/programService'
 import { branchService } from '@/services/branchService'
-import { userService } from '@/services/userService'
+import { teacherService } from '@/services/teacherService'
 import { useActionModal } from '@/composables/useActionModal'
 
 const props = defineProps({
@@ -338,11 +338,11 @@ const onScheduleTemplatePick = (scheduleId) => {
 
 const fetchData = async () => {
   try {
-    const [p, t, b, u] = await Promise.all([
+    const [p, t, b, teachersData] = await Promise.all([
       programService.getAllPrograms(),
       programService.getAllTerms(),
       branchService.getAllBranches(),
-      userService.getAllUsers(),
+      teacherService.getAllTeachers(),
     ])
     programs.value = (p || []).map((prog) => ({
       ...prog,
@@ -350,9 +350,7 @@ const fetchData = async () => {
     }))
     terms.value = t || []
     branches.value = b || []
-    teachers.value = u
-      .filter((user) => user.role === 'teacher')
-      .map((t) => ({ id: t.uid || t.id, name: t.name }))
+    teachers.value = (teachersData || []).map((t) => ({ id: t.uid || t.id, name: t.name }))
   } catch (err) {
     console.error(err)
   }

@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppTable from '@/components/common/data/AppTable.vue'
 import { formatDate, formatPrice } from '@/utils/formatUtils'
 import {
@@ -36,13 +36,14 @@ const navigateToDetail = (item) => {
 </script>
 
 <template>
-  <div class="ui-detail-card !p-lg">
-    <div class="ui-section-header border-none gap-md">
-      <h3 class="ui-section-title">Recent Enrollment</h3>
-      <div class="ui-section-divider"></div>
-    </div>
-
+  <div class="w-full h-full">
     <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
+      <template #toolbar>
+        <div class="ui-section-header border-none gap-md !p-md">
+          <h3 class="ui-section-title">Recent Enrollment</h3>
+          <div class="ui-section-divider"></div>
+        </div>
+      </template>
       <tr v-for="item in enrollments" :key="item.id || item.no" class="ui-row" @click="navigateToDetail(item)">
         <td class="ui-cell !py-4 text-center"
           :style="{ width: enrollmentHeaders[0].width, flex: '0 0 auto', minWidth: enrollmentHeaders[0].width }">
@@ -82,11 +83,11 @@ const navigateToDetail = (item) => {
         </td>
         <td class="ui-cell !py-4 text-center"
           :style="{ width: enrollmentHeaders[4].width, flex: '0 0 auto', minWidth: enrollmentHeaders[4].width }">
-          <StatusBadge :status="item.status" />
+          <AppBadge :status="item.status" />
         </td>
         <td class="ui-cell !py-4 text-center"
           :style="{ width: enrollmentHeaders[5].width, flex: '0 0 auto', minWidth: enrollmentHeaders[5].width }">
-          <StatusBadge :status="'$' + formatPrice(item.amount)"
+          <AppBadge :status="'$' + formatPrice(item.amount)"
             :type="(item.mode || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'" />
         </td>
         <td class="ui-cell !py-4 text-center text-xs text-content-muted font-bold overflow-hidden"

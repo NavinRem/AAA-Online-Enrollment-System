@@ -17,28 +17,28 @@
           :disabled="!form.parentId || isSelectionLocked" :error="errors.studentId" :shake="shaking.studentId"
           @change="handleStudentChange" @click-disabled="handleDisabledClick('studentId')">
           <template #selected-badge="{ item }">
-            <StatusBadge v-if="item.dob" status="student" class="mr-4">
+            <AppBadge v-if="item.dob" status="student" class="mr-4">
               {{ calculateAge(item.dob) }} years old
-            </StatusBadge>
+            </AppBadge>
           </template>
           <template #item-badge="{ item }">
-            <StatusBadge v-if="item.dob" status="student">
+            <AppBadge v-if="item.dob" status="student">
               {{ calculateAge(item.dob) }} years old
-            </StatusBadge>
+            </AppBadge>
           </template>
         </AppSelect>
 
         <!-- Program Selection -->
         <AppSelect v-model="form.programId"
-          :items="availableProgramsForStudent.map((p) => ({ id: p.id, name: p.name || p.title, profileURL: p.profileURL, type: p.type || 'group' }))"
+          :items="availableProgramsForStudent.map((p) => ({ id: p.id, name: p.name, profileURL: p.profileURL, type: p.type || 'group' }))"
           label="Program Name" placeholder="Choose Program..." required class="col-span-2 sm:col-span-1"
           :disabled="!form.studentId" :error="errors.programId" :shake="shaking.programId" @change="handleProgramChange"
           @click-disabled="handleDisabledClick('programId')">
           <template #selected-badge="{ item }">
-            <StatusBadge :status="item.type" class="mr-4" />
+            <AppBadge :status="item.type" class="mr-4" />
           </template>
           <template #item-badge="{ item }">
-            <StatusBadge :status="item.type" />
+            <AppBadge :status="item.type" />
           </template>
         </AppSelect>
 
@@ -53,10 +53,10 @@
           :disabled="!form.programId" :error="errors.classId" :shake="shaking.classId" @change="clearError('classId')"
           @click-disabled="handleDisabledClick('classId')">
           <template #selected-badge="{ item }">
-            <StatusBadge v-if="item.branchAbbr" :status="item.branchAbbr" class="mr-4" />
+            <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" class="mr-4" />
           </template>
           <template #item-badge="{ item }">
-            <StatusBadge v-if="item.branchAbbr" :status="item.branchAbbr" />
+            <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" />
           </template>
         </AppSelect>
       </div>
@@ -72,11 +72,11 @@
             <div class="enroll-info-grid">
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Program</span>
-                <span class="enroll-info-val">{{ selectedClass?.program?.name || selectedClass?.program?.title || '—' }}</span>
+                <span class="enroll-info-val">{{ selectedClass?.program?.name || '—' }}</span>
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Type</span>
-                <StatusBadge :status="selectedClass?.program?.type" class="mt-[2px] " />
+                <AppBadge :status="selectedClass?.program?.type" class="mt-[2px] " />
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Term</span>
@@ -84,7 +84,7 @@
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Branch</span>
-                <StatusBadge :status="selectedClass?.branch?.abbr" class="mt-[2px] " />
+                <AppBadge :status="selectedClass?.branch?.abbr" class="mt-[2px] " />
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Start Date</span>
@@ -97,8 +97,7 @@
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Total Units</span>
                 <span class="enroll-info-val enroll-info-val--strong">{{
-                  (selectedProgram?.totalSessions || selectedProgram?.sessionNumber
-                    || '—') }}</span>
+                  (selectedProgram?.totalSessions || '—') }}</span>
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Remaining</span>
@@ -109,9 +108,9 @@
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Base Price</span>
-                <StatusBadge class="" :status="'$' + formatPrice(selectedProgram?.basePrice || 0)"
+                <AppBadge class="" :status="'$' + formatPrice(selectedProgram?.basePrice || 0)"
                   :type="(selectedProgram?.type || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'">
-                </StatusBadge>
+                </AppBadge>
               </div>
             </div>
           </div>
@@ -125,7 +124,7 @@
                 <span class="enroll-info-key">Billing Mode</span>
                 <div class="ui-box-toggle" :class="{ 'ui-box-toggle--active': form.isProrated }"
                   @click="form.isProrated = !form.isProrated">
-                  <StatusBadge :status="form.isProrated ? 'Partial' : 'Full'" />
+                  <AppBadge :status="form.isProrated ? 'Partial' : 'Full'" />
                 </div>
               </div>
 
@@ -134,7 +133,7 @@
                 <span class="enroll-info-key">Sponsorship</span>
                 <div class="ui-box-toggle" :class="{ 'ui-box-toggle--active': form.isSponsorship }"
                   @click="form.isSponsorship = !form.isSponsorship">
-                  <StatusBadge :status="form.isSponsorship ? 'Sponsored' : 'Parent Paid'" />
+                  <AppBadge :status="form.isSponsorship ? 'Sponsored' : 'Parent Paid'" />
                 </div>
               </div>
 
@@ -274,7 +273,7 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import EnrollConfirmOverlay from '@/components/enrollments/EnrollConfirmOverlay.vue'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 import { formatPrice, formatDateOnly, calculateAge } from '@/utils/formatUtils'
@@ -442,7 +441,7 @@ const isSubmittable = computed(() =>
 // Build the rows for the confirmation overlay dynamically
 const confirmRows = computed(() => [
   { key: 'Student', value: selectedStudent.value?.name },
-  { key: 'Program', value: selectedClass.value?.program?.name || selectedClass.value?.program?.title, badge: false },
+  { key: 'Program', value: selectedClass.value?.program?.name, badge: false },
   { key: 'Type', value: selectedClass.value?.program?.type, badge: true },
   { key: 'Schedule', value: selectedClass.value ? `${selectedClass.value.day} (${selectedClass.value.timeslot})` : null },
   { key: 'Branch', value: selectedClass.value?.branch?.abbr || selectedClass.value?.branch?.name, badge: true },

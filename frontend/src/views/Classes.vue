@@ -27,7 +27,7 @@
                     <img :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)" alt="program" />
                   </div>
                   <div class="ui-identity-info">
-                    <span class="font-bold text-content-dark">{{ item.program?.title }}</span>
+                    <span class="font-bold text-content-dark">{{ item.program?.name }}</span>
                     <span class="text-3xs text-content-muted uppercase font-bold tracking-tight">{{
                       item.program?.category
                     }}</span>
@@ -38,7 +38,7 @@
                 {{ item.term?.name }}
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[3].width }">
-                <StatusBadge :status="item.branch?.name || item.branch?.abbr" type="blue" />
+                <AppBadge :status="item.branch?.name || item.branch?.abbr" type="blue" />
               </td>
               <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
                 <div v-if="item.teacher" class="ui-identity-cell">
@@ -69,7 +69,7 @@
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-                <StatusBadge :status="item.status" :type="item.status === 'open' ? 'success' : 'neutral'" />
+                <AppBadge :status="item.status" :type="item.status === 'open' ? 'success' : 'neutral'" />
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[8].width }">
                 <div class="ui-action-menu">
@@ -95,7 +95,7 @@ import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DataPageLayout from '@/components/layout/DataPageLayout.vue'
 import DataMetrics from '@/components/common/data/DataMetrics.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
-import StatusBadge from '@/components/common/ui/StatusBadge.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import { programService } from '@/services/programService'
