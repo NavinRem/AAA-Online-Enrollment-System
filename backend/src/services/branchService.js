@@ -5,17 +5,6 @@ const {
 } = require('../validators/branchValidator')
 
 class BranchService {
-  async getAllBranches() {
-    const snapshot = await db.collection(COLLECTIONS.BRANCH).get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-  }
-
-  async getBranch(id) {
-    const doc = await db.collection(COLLECTIONS.BRANCH).doc(id).get()
-    if (!doc.exists) return null
-    return { id: doc.id, ...doc.data() }
-  }
-
   async createBranch(data) {
     const validatedData = validateBranch(data)
     const id = validatedData.abbr
@@ -29,6 +18,17 @@ class BranchService {
     return { id, ...validatedData }
   }
 
+  async getBranch(id) {
+    const doc = await db.collection(COLLECTIONS.BRANCH).doc(id).get()
+    if (!doc.exists) return null
+    return { id: doc.id, ...doc.data() }
+  }
+
+  async getAllBranches() {
+    const snapshot = await db.collection(COLLECTIONS.BRANCH).get()
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  }
+
   async updateBranch(id, data) {
     const validatedUpdate = validateUpdateBranch(data)
     const ref = db.collection(COLLECTIONS.BRANCH).doc(id)
@@ -38,7 +38,6 @@ class BranchService {
     await ref.update(validatedUpdate)
     return { id, ...doc.data(), ...validatedUpdate }
   }
-
 
   async deleteBranch(id) {
     const ref = db.collection(COLLECTIONS.BRANCH).doc(id)
@@ -114,4 +113,3 @@ class BranchService {
 }
 
 module.exports = new BranchService()
-
