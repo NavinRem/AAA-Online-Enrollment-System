@@ -1,24 +1,14 @@
-/**
- * ProfileHelper - Source of Truth for Data Snapshots
- * Used to ensure mirrored data is consistent across collections.
- */
 class ProfileHelper {
-  /**
-   * BASE: Standardized snapshot for identity (Used by all people roles)
-   */
   getUserSnapshot(userId, userData) {
     if (!userId || !userData) return null
     return {
       id: userId,
       name: userData.name,
-      profileURL: userData.profileURL || null,
+      profileURL: userData.profileURL || '',
       status: userData.status || 'active',
     }
   }
 
-  /**
-   * SPECIFIC: Parent Snapshot (Extensions of User)
-   */
   getParentSnapshot(parentId, parentData) {
     const base = this.getUserSnapshot(parentId, parentData)
     if (!base) return null
@@ -29,29 +19,28 @@ class ProfileHelper {
     }
   }
 
-  /**
-   * SPECIFIC: Student Snapshot (Extensions of User)
-   */
   getStudentSnapshot(studentId, studentData) {
-    const base = this.getUserSnapshot(studentId, studentData)
-    if (!base) return null
+    if (!studentId || !studentData) return null
+
+    const dob =
+      studentData.dob instanceof Date
+        ? studentData.dob
+        : new Date(studentData.dob)
+
     return {
-      ...base,
-      dob: studentData.dob,
-      age: this.calculateAge(studentData.dob),
+      id: studentId,
+      name: studentData.name,
+      profileURL: studentData.profileURL || '',
+      status: studentData.status || 'active',
+      dob,
+      age: this.calculateAge(dob),
     }
   }
 
-  /**
-   * SPECIFIC: Teacher Snapshot (Extensions of User)
-   */
   getTeacherSnapshot(teacherId, teacherData) {
     return this.getUserSnapshot(teacherId, teacherData)
   }
 
-  /**
-   * METADATA: Program (Product)
-   */
   getProgramSnapshot(programId, programData) {
     if (!programId || !programData) return null
     return {
@@ -64,13 +53,10 @@ class ProfileHelper {
       level: programData.level || '',
       maxCapacity: programData.maxCapacity || 0,
       type: programData.type || '',
-      profileURL: programData.profileURL || null,
+      profileURL: programData.profileURL || '',
     }
   }
 
-  /**
-   * METADATA: Branch (Location)
-   */
   getBranchSnapshot(branchId, branchData) {
     if (!branchId || !branchData) return null
     return {
@@ -82,9 +68,6 @@ class ProfileHelper {
     }
   }
 
-  /**
-   * METADATA: Term (Academic Period)
-   */
   getTermSnapshot(termId, data) {
     if (!termId || !data) return null
     return {
@@ -95,17 +78,14 @@ class ProfileHelper {
     }
   }
 
-  /**
-   * MIRROR: Class (Operational Unit)
-   */
   getClassSnapshot(classId, data) {
     if (!classId || !data) return null
     return {
       id: classId,
-      program: data.program, // Snapshot of Program
-      term: data.term,       // Snapshot of Term
-      branch: data.branch,   // Snapshot of Branch
-      teacher: data.teacher, // Snapshot of Teacher
+      program: data.program,
+      term: data.term,
+      branch: data.branch,
+      teacher: data.teacher,
       schedules: data.schedules || [],
       status: data.status || 'open',
       maxCapacity: data.maxCapacity || 0,
@@ -114,21 +94,26 @@ class ProfileHelper {
     }
   }
 
-  /**
-   * Helper to merge updates into an existing snapshot
-   */
   getUpdatedSnapshot(existingSnapshot, updates) {
     if (!existingSnapshot) return null
+
+    const allowedFields = Object.keys(existingSnapshot)
+
+    const cleanUpdates = {}
+
+    Object.keys(updates).forEach((key) => {
+      if (allowedFields.includes(key)) {
+        cleanUpdates[key] = updates[key]
+      }
+    })
+
     return {
       ...existingSnapshot,
-      ...updates,
+      ...cleanUpdates,
       id: existingSnapshot.id,
     }
   }
 
-  /**
-   * Calculate age based on DOB string (YYYY-MM-DD)
-   */
   calculateAge(dob) {
     if (!dob) return 0
     const birthDate = new Date(dob)
