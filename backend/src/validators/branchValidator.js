@@ -21,6 +21,7 @@ function validateBranch(branchData) {
     phone: branchData.phone?.trim() || '',
     studentCount: 0,
     classCount: 0,
+    programCount: 0,
     newTodayCount: 0,
     totalRevenue: 0,
     pendingRevenue: 0,
@@ -40,8 +41,9 @@ function validateUpdateBranch(updateData) {
   })
 
   if (updateData.name !== undefined) cleanData.name = updateData.name.trim()
-  if (updateData.location !== undefined)
-    cleanData.location = updateData.location.trim()
+  if (updateData.abbr !== undefined) cleanData.abbr = updateData.abbr.toUpperCase().trim()
+  if (updateData.location !== undefined) cleanData.location = updateData.location.trim()
+  if (updateData.phone !== undefined) cleanData.phone = updateData.phone.trim()
 
   if (Object.keys(cleanData).length === 0) {
     throw new Error('No valid fields provided for update')
