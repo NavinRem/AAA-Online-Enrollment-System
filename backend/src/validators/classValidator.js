@@ -10,10 +10,6 @@ function validateClass(classData) {
     'adminNote',
     'maxCapacity',
     'enrolledCount',
-    'program',
-    'term',
-    'branch',
-    'teacher',
   ]
 
   Object.keys(classData).forEach((key) => {
@@ -28,21 +24,25 @@ function validateClass(classData) {
     throw new Error('Program, Term, Branch, and Teacher IDs are required')
   }
 
+  const rawSchedules = Array.isArray(classData.schedules)
+    ? classData.schedules
+    : []
+  const schedules = rawSchedules.map((s) => ({
+    day: s.day || '',
+    time: s.time || s.timeslot || '',
+  }))
+
   return {
     programId,
     termId,
     branchId,
     teacherId,
-    schedules: classData.schedules || [],
+    schedules,
     scheduleType: classData.scheduleType || 'group',
     adminNote: classData.adminNote || '',
     maxCapacity: parseInt(classData.maxCapacity || 0),
     enrolledCount: parseInt(classData.enrolledCount || 0),
     status: classData.status || 'open',
-    program: classData.program || null,
-    term: classData.term || null,
-    branch: classData.branch || null,
-    teacher: classData.teacher || null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -60,48 +60,33 @@ function validateUpdateClass(updateData) {
     'adminNote',
     'maxCapacity',
     'enrolledCount',
-    'program',
-    'term',
-    'branch',
-    'teacher',
   ]
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
-    if (!allowedFields.includes(key)) {
-      throw new Error(`Invalid field: ${key}`)
+    if (allowedFields.includes(key)) {
+      cleanData[key] = updateData[key]
     }
   })
-
-  if (updateData.programId !== undefined)
-    cleanData.programId = updateData.programId
-  if (updateData.termId !== undefined) cleanData.termId = updateData.termId
-  if (updateData.branchId !== undefined)
-    cleanData.branchId = updateData.branchId
-  if (updateData.teacherId !== undefined)
-    cleanData.teacherId = updateData.teacherId
-
-  if (updateData.schedules !== undefined)
-    cleanData.schedules = updateData.schedules
-  if (updateData.scheduleType !== undefined)
-    cleanData.scheduleType = updateData.scheduleType
-  if (updateData.status !== undefined) cleanData.status = updateData.status
-  if (updateData.adminNote !== undefined)
-    cleanData.adminNote = updateData.adminNote
-  if (updateData.maxCapacity !== undefined)
-    cleanData.maxCapacity = parseInt(updateData.maxCapacity || 0)
-  if (updateData.enrolledCount !== undefined)
-    cleanData.enrolledCount = parseInt(updateData.enrolledCount || 0)
-
-  // Standard snapshots
-  if (updateData.program !== undefined) cleanData.program = updateData.program
-  if (updateData.term !== undefined) cleanData.term = updateData.term
-  if (updateData.branch !== undefined) cleanData.branch = updateData.branch
-  if (updateData.teacher !== undefined) cleanData.teacher = updateData.teacher
 
   if (Object.keys(cleanData).length === 0) {
     throw new Error('No valid fields provided for update')
   }
+
+  if (cleanData.schedules !== undefined) {
+    const rawSchedules = Array.isArray(cleanData.schedules)
+      ? cleanData.schedules
+      : []
+    cleanData.schedules = rawSchedules.map((s) => ({
+      day: s.day || '',
+      time: s.time || s.timeslot || '',
+    }))
+  }
+
+  if (cleanData.maxCapacity !== undefined)
+    cleanData.maxCapacity = parseInt(cleanData.maxCapacity || 0)
+  if (cleanData.enrolledCount !== undefined)
+    cleanData.enrolledCount = parseInt(cleanData.enrolledCount || 0)
 
   cleanData.updatedAt = new Date().toISOString()
   return cleanData
