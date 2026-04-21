@@ -1,13 +1,50 @@
 const { db, COLLECTIONS } = require('../config/database')
 const authService = require('./authService')
 const profileHelper = require('../utils/profileHelper')
-const { validateUpdateParent } = require('../validators/parentValidator')
-
-const SYNC_PARENT_FIELDS = ['name', 'email', 'phone', 'profileURL', 'status']
+const {
+  validateParent,
+  validateUpdateParent,
+} = require('../validators/parentValidator')
 
 class ParentService {
-  async registerParent(parentData) {
-    return authService.registerAccount(parentData, 'parent', COLLECTIONS.PARENT)
+  async createParent(parentData) {
+    const validated = validateParent(parentData)
+    const { studentId } = validated
+
+    const studentRef = db.collection(COLLECTIONS.STUDENT).doc(studentId)
+    const studentDoc = await studentRef.get()
+
+    if (!studentDoc.exists) {
+      throw new Error(`Student not found with ID: ${studentId}`)
+    }
+
+    const sData = studentDoc.data()
+    const studentInfo = profileHelper.getStudentSnapshot(studentId, sData)
+
+    const parentId = db.collection(COLLECTIONS.PARENT).doc().id
+
+    const cleanData = {
+      studentId: validated.studentId,
+      name: validated.name,
+      email: validated.email,
+      phone: validated.phone,
+      profileURL: validated.profileURL,
+      status: validated.status,
+    }
+
+    const snapshot = profileHelper.getParentSnapshot(studentId, cleanData)
+
+    const parentInfo = [...(sData.parentInfo || []), snapshot]
+
+    const batch = db.batch()
+
+    batch.set(db.collection(COLLECTIONS.PARENT).doc(parentId), cleanData)
+
+    batch.update(studentRef, { parentInfo })
+
+    await batch.commit()
+
+    return { id: parentId }
   }
 
   async getParent(id) {
@@ -17,83 +54,109 @@ class ParentService {
     return { id: doc.id, ...doc.data() }
   }
 
-  async getAllParents({ limit = 10, startAfter = null } = {}) {
-    let query = db.collection(COLLECTIONS.PARENT).limit(limit)
-    if (startAfter) {
-      const cursor = await db
-        .collection(COLLECTIONS.PARENT)
-        .doc(startAfter)
-        .get()
-      if (cursor.exists) query = query.startAfter(cursor)
-    }
-    const snapshot = await query.get()
+  async getAllParents() {
+    const snapshot = await db.collection(COLLECTIONS.PARENT).get()
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 
   async updateParent(id, updateData) {
     if (!id) throw new Error('Parent ID is required for update')
-    const validatedData = validateUpdateParent(updateData)
+    const validated = validateUpdateParent(updateData)
 
-    const ref = db.collection(COLLECTIONS.PARENT).doc(id)
-    const doc = await ref.get()
-    if (!doc.exists) throw new Error('Parent not found')
+    const parentRef = db.collection(COLLECTIONS.PARENT).doc(id)
+    const parentDoc = await parentRef.get()
+
+    if (!parentDoc.exists) throw new Error('Parent not found')
+
+    const currentParentData = parentDoc.data()
+    const studentId = currentParentData.studentId
+
+    const cleanUpdate = {
+      ...(validated.name && { name: validated.name }),
+      ...(validated.email && { email: validated.email }),
+      ...(validated.phone && { phone: validated.phone }),
+      ...(validated.profileURL && { profileURL: validated.profileURL }),
+      ...(validated.status && { status: validated.status }),
+    }
 
     const batch = db.batch()
-    batch.update(ref, validatedData)
+    batch.update(parentRef, cleanUpdate)
 
-    const shouldSync = Object.keys(updateData).some((key) =>
-      SYNC_PARENT_FIELDS.includes(key),
+    const syncFields = ['name', 'email', 'phone', 'profileURL', 'status']
+    const shouldSync = Object.keys(cleanUpdate).some((k) =>
+      syncFields.includes(k),
     )
 
     if (shouldSync) {
-      await this.syncParentMirrors(id, ref, batch)
+      const snapshot = profileHelper.getParentSnapshot(id, {
+        ...currentParentData,
+        ...cleanUpdate,
+      })
+
+      await this.syncParentMirrors(id, snapshot, studentId, batch)
     }
 
     await batch.commit()
-    const updatedDoc = await ref.get()
-    return { id: updatedDoc.id, ...updatedDoc.data() }
+
+    return { message: 'Updated successfully' }
   }
 
   async deleteParent(id) {
     if (!id) throw new Error('Parent ID is required for deletion')
-    const ref = db.collection(COLLECTIONS.PARENT).doc(id)
-    const doc = await ref.get()
+    const parentRef = db.collection(COLLECTIONS.PARENT).doc(id)
+    const parentDoc = await parentRef.get()
 
-    if (!doc.exists) throw new Error('Parent not found')
+    if (!parentDoc.exists) throw new Error('Parent not found')
 
-    await this.clearParentMirrors(id)
+    const currentParentData = parentDoc.data()
+    const studentId = currentParentData.studentId
 
-    await ref.delete()
-    await authService.deleteAccount(id)
+    const batch = db.batch()
+
+    batch.delete(parentRef)
+
+    const studentRef = db.collection(COLLECTIONS.STUDENT).doc(studentId)
+    const studentDoc = await studentRef.get()
+
+    if (studentDoc.exists) {
+      let parentInfo = [...(studentDoc.data().parentInfo || [])]
+      parentInfo = parentInfo.filter((p) => p.id !== id)
+      batch.update(studentRef, { parentInfo })
+    }
+
+    const enrollmentsSnap = await db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .where('parentId', '==', id)
+      .get()
+    enrollmentsSnap.forEach((eDoc) => batch.delete(eDoc.ref))
+
+    await batch.commit()
 
     return { id, message: 'Parent deleted successfully from system' }
   }
 
-  async syncParentMirrors(id, userRef = null, incomingBatch = null) {
-    const ref = userRef || db.collection(COLLECTIONS.PARENT).doc(id)
-    const userDoc = await ref.get()
-    if (!userDoc.exists) return
+  async syncParentMirrors(pid, snapshot, studentId, batch) {
+    const studentRef = db.collection(COLLECTIONS.STUDENT).doc(studentId)
+    const studentDoc = await studentRef.get()
 
-    const userData = userDoc.data()
-    const snapshot = profileHelper.getUserSnapshot(id, userData)
+    if (studentDoc.exists) {
+      let parentInfo = [...(studentDoc.data().parentInfo || [])]
+      const index = parentInfo.findIndex((p) => p.id === pid)
+      if (index !== -1) {
+        parentInfo[index] = snapshot
+      } else {
+        parentInfo.push(snapshot)
+      }
+      batch.update(studentRef, { parentInfo })
+    }
 
-    const [studentsSnap, enrollmentsSnap] = await Promise.all([
-      db.collection(COLLECTIONS.STUDENT).where('parentId', '==', id).get(),
-      db.collection(COLLECTIONS.ENROLLMENT).where('parentId', '==', id).get(),
-    ])
-
-    const writes = [
-      ...studentsSnap.docs.map((sDoc) => ({
-        ref: sDoc.ref,
-        data: { parentInfo: snapshot },
-      })),
-      ...enrollmentsSnap.docs.map((eDoc) => ({
-        ref: eDoc.ref,
-        data: { parentInfo: snapshot },
-      })),
-    ]
-
-    await this._commitInChunks(writes, incomingBatch)
+    const enrollmentsSnap = await db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .where('parentId', '==', pid)
+      .get()
+    enrollmentsSnap.forEach((eDoc) =>
+      batch.update(eDoc.ref, { parentInfo: snapshot }),
+    )
   }
 
   async clearParentMirrors(id) {
@@ -109,7 +172,7 @@ class ParentService {
       })),
       ...enrollmentsSnap.docs.map((doc) => ({
         ref: doc.ref,
-        data: { parentInfo: null },
+        data: { student: null },
       })),
     ]
 

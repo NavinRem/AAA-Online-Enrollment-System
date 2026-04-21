@@ -18,7 +18,7 @@ class StudentService {
     }
 
     const pData = parentDoc.data()
-    const parentInfo = profileHelper.getUserSnapshot(parentId, pData)
+    const parentInfo = profileHelper.getParentSnapshot(parentId, pData)
 
     const studentId = db.collection(COLLECTIONS.STUDENT).doc().id
 
@@ -39,13 +39,13 @@ class StudentService {
 
     const snapshot = profileHelper.getStudentSnapshot(studentId, cleanData)
 
-    const studentInfo = [...(pData.studentInfo || []), snapshot]
+    const childrenInfo = [...(pData.childrenInfo || []), snapshot]
 
     const batch = db.batch()
 
     batch.set(db.collection(COLLECTIONS.STUDENT).doc(studentId), cleanData)
 
-    batch.update(parentRef, { studentInfo })
+    batch.update(parentRef, { childrenInfo })
 
     await batch.commit()
 
@@ -53,6 +53,7 @@ class StudentService {
   }
 
   async getStudent(id) {
+    if (!id) throw new Error('Student ID is required')
     const doc = await db.collection(COLLECTIONS.STUDENT).doc(id).get()
     if (!doc.exists) throw new Error('Student not found')
     return { id: doc.id, ...doc.data() }
@@ -72,15 +73,16 @@ class StudentService {
   }
 
   async updateStudent(id, updateData) {
+    if (!id) throw new Error('Student ID is required')
     const validated = validateUpdateStudent(updateData)
 
     const studentRef = db.collection(COLLECTIONS.STUDENT).doc(id)
-    const doc = await studentRef.get()
+    const studentDoc = await studentRef.get()
 
-    if (!doc.exists) throw new Error('Student not found')
+    if (!studentDoc.exists) throw new Error('Student not found')
 
-    const currentData = doc.data()
-    const parentId = currentData.parentId
+    const currentStudentData = studentDoc.data()
+    const parentId = currentStudentData.parentId
 
     let dobField = {}
 
@@ -117,7 +119,7 @@ class StudentService {
 
     if (shouldSync) {
       const snapshot = profileHelper.getStudentSnapshot(id, {
-        ...currentData,
+        ...currentStudentData,
         ...cleanUpdate,
       })
 
@@ -130,12 +132,13 @@ class StudentService {
   }
 
   async deleteStudent(id) {
+    if (!id) throw new Error('Student ID is required for deletion')
     const studentRef = db.collection(COLLECTIONS.STUDENT).doc(id)
-    const doc = await studentRef.get()
-    if (!doc.exists) throw new Error('Student not found')
+    const studentDoc = await studentRef.get()
+    if (!studentDoc.exists) throw new Error('Student not found')
 
-    const currentData = doc.data()
-    const parentId = currentData.parentId
+    const currentStudentData = studentDoc.data()
+    const parentId = currentStudentData.parentId
 
     const batch = db.batch()
     batch.delete(studentRef)
@@ -144,9 +147,9 @@ class StudentService {
     const parentDoc = await parentRef.get()
 
     if (parentDoc.exists) {
-      let studentInfo = [...(parentDoc.data().studentInfo || [])]
-      studentInfo = studentInfo.filter((s) => s.id !== id)
-      batch.update(parentRef, { studentInfo })
+      let childrenInfo = [...(parentDoc.data().childrenInfo || [])]
+      childrenInfo = childrenInfo.filter((s) => s.id !== id)
+      batch.update(parentRef, { childrenInfo })
     }
 
     const enrollmentsSnap = await db
@@ -165,14 +168,14 @@ class StudentService {
     const parentDoc = await parentRef.get()
 
     if (parentDoc.exists) {
-      let studentInfo = [...(parentDoc.data().studentInfo || [])]
-      const index = studentInfo.findIndex((s) => s.id === sid)
+      let childrenInfo = [...(parentDoc.data().childrenInfo || [])]
+      const index = childrenInfo.findIndex((s) => s.id === sid)
       if (index !== -1) {
-        studentInfo[index] = snapshot
+        childrenInfo[index] = snapshot
       } else {
-        studentInfo.push(snapshot)
+        childrenInfo.push(snapshot)
       }
-      batch.update(parentRef, { studentInfo })
+      batch.update(parentRef, { childrenInfo })
     }
 
     const enrollmentsSnap = await db
@@ -217,6 +220,42 @@ class StudentService {
     }
 
     return dateObj
+  }
+
+  async clearStudentMirrors(id) {
+    const [parentsSnap, enrollmentsSnap] = await Promise.all([
+      db.collection(COLLECTIONS.PARENT).where('studentId', '==', id).get(),
+      db.collection(COLLECTIONS.ENROLLMENT).where('studentId', '==', id).get(),
+    ])
+
+    const writes = [
+      ...parentsSnap.docs.map((doc) => ({
+        ref: doc.ref,
+        data: { parentInfo: null },
+      })),
+      ...enrollmentsSnap.docs.map((doc) => ({
+        ref: doc.ref,
+        data: { student: null },
+      })),
+    ]
+
+    await this._commitInChunks(writes)
+  }
+
+  async _commitInChunks(writes, incomingBatch = null) {
+    if (incomingBatch) {
+      writes.forEach(({ ref, data }) => incomingBatch.update(ref, data))
+      return
+    }
+
+    const CHUNK_SIZE = 400
+    for (let i = 0; i < writes.length; i += CHUNK_SIZE) {
+      const batch = db.batch()
+      writes
+        .slice(i, i + CHUNK_SIZE)
+        .forEach(({ ref, data }) => batch.update(ref, data))
+      await batch.commit()
+    }
   }
 }
 

@@ -1,12 +1,20 @@
 function validateParent(parentData) {
-  const parentFields = ['name', 'email', 'phone', 'profileURL', 'status']
+  const allowedFields = [
+    'studentId',
+    'name',
+    'email',
+    'phone',
+    'profileURL',
+    'status',
+  ]
 
   Object.keys(parentData).forEach((key) => {
-    if (!parentFields.includes(key)) {
+    if (!allowedFields.includes(key)) {
       throw new Error(`Invalid field: ${key}`)
     }
   })
 
+  const studentId = parentData.studentId
   const name = parentData.name?.trim()
   const email = parentData.email?.trim()
   const phone = parentData.phone?.trim()
@@ -32,13 +40,12 @@ function validateParent(parentData) {
   }
 
   return {
+    studentId,
     name,
     email,
     phone,
     profileURL,
     status,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   }
 }
 

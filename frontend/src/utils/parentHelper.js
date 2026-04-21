@@ -3,7 +3,7 @@ import { isSameProfileAsset } from './assetHelper'
 
 /*
   Enriches parent objects with their linked students by scanning the student list.
-  This function performs a reverse-lookup to populate studentInfo arrays, ensuring the frontend
+  This function performs a reverse-lookup to populate childrenInfo arrays, ensuring the frontend
   has access to child data without requiring expensive cross-collection joins in the backend.
  */
 export const enrichParents = (parents = [], students = []) => {
@@ -24,7 +24,7 @@ export const enrichParents = (parents = [], students = []) => {
 
   return parents.map((u) => ({
     ...u,
-    studentInfo: parent[u.id] || [],
+    childrenInfo: parent[u.id] || [],
   }))
 }
 

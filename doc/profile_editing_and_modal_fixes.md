@@ -46,7 +46,7 @@ This document technical explanation of the fixes implemented to resolve the prof
 
 - **Updated `UserAuth.vue`**: Integrated `AvatarSelector` into the registration form.
 - **Defaulting**: Set a default path (`profiles/avatar-man`) so that all new accounts start with a valid profile picture.
-- **Logic**: Passed the `profileURL` to the `registerParentAccount` (generic registration) service call.
+- **Logic**: Passed the `profileURL` to the `createParentAccount` (generic registration) service call.
 
 ## Related Files
 

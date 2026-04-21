@@ -195,10 +195,10 @@ const submitActionModal = async (formData) => {
       const result = await studentService.registerStudent(id, payload)
 
       const parent = parents.value.find(p => p.id === id)
-      const studentInfo = [...(parent?.studentInfo), { id: result.id, ...payload, parentId: id }]
+      const childrenInfo = [...(parent?.childrenInfo), { id: result.id, ...payload, parentId: id }]
 
-      await parentService.updateParent(id, { studentInfo })
-      updateLocalParent(id, { studentInfo })
+      await parentService.updateParent(id, { childrenInfo })
+      updateLocalParent(id, { childrenInfo })
       successMessage.value = 'Child registered successfully!'
     }
 
@@ -229,12 +229,12 @@ const submitNewParent = async (data) => {
     delete payload.updatedAt
     delete payload.createdAt
 
-    const result = await parentService.registerParent(payload)
+    const result = await parentService.createParent(payload)
     const newUser = {
       id: result.id,
       ...payload,
       createdAt: new Date().toISOString(),
-      studentInfo: [],
+      childrenInfo: [],
     }
 
     parents.value.unshift(newUser)
@@ -322,12 +322,12 @@ const navigateToDetail = (item) => {
             </td>
             <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[2].width }">
               <div class="ui-avatar-stack">
-                <span v-if="!item.studentInfo || item.studentInfo.length === 0"
+                <span v-if="!item.childrenInfo || item.childrenInfo.length === 0"
                   class="text-content-muted italic opacity-40">—</span>
                 <template v-else>
-                  <div v-for="(child, i) in item.studentInfo" :key="child.id || i"
+                  <div v-for="(child, i) in item.childrenInfo" :key="child.id || i"
                     class="ui-stack-item border-primary/20" :title="child.name || 'Child ' + (i + 1)"
-                    :style="{ zIndex: item.studentInfo.length - i }">
+                    :style="{ zIndex: item.childrenInfo.length - i }">
                     <img :src="child.profileURL" alt="child" />
                   </div>
                 </template>
@@ -339,12 +339,12 @@ const navigateToDetail = (item) => {
             <td class="ui-cell hidden lg:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
               <span class="text-xs text-content-muted font-medium truncate block max-w-[180px]">{{
                 item.email
-                }}</span>
+              }}</span>
             </td>
             <td class="ui-cell hidden lg:table-cell text-center" :style="{ width: headers[5].width }">
               <span class="text-xs font-bold text-content-muted/70 tracking-tight">{{
                 formatDate(item.createdAt)
-                }}</span>
+              }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <AppBadge :status="item.status" />

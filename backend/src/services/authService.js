@@ -67,6 +67,9 @@ class AuthService {
     if (!doc.exists) {
       data.createdAt = now
       data.mustChangePassword = true
+      if (targetRole === 'parent') {
+        data.childrenInfo = []
+      }
     }
 
     await docRef.set(data, { merge: true })
