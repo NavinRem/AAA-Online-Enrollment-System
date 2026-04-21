@@ -1,15 +1,7 @@
 const { db, COLLECTIONS } = require('../config/database')
-const { validateCategory } = require('../validators/academicValidator')
+const { validateCategory, validateUpdateCategory } = require('../validators/categoryValidator')
 
 class CategoryService {
-  async getAllCategories() {
-    const snapshot = await db.collection(COLLECTIONS.CATEGORY).get()
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
-  }
-
   async createCategory(categoryData) {
     const validatedData = validateCategory(categoryData)
     const { name } = validatedData
@@ -27,8 +19,24 @@ class CategoryService {
     return { id: docRef.id, ...validatedData }
   }
 
+  async getAllCategories() {
+    const snapshot = await db.collection(COLLECTIONS.CATEGORY).get()
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+  }
+
+  async getCategory(id) {
+    if (!id) throw new Error('Category ID is required')
+    const doc = await db.collection(COLLECTIONS.CATEGORY).doc(id).get()
+    if (!doc.exists) throw new Error('Category not found')
+    return { id: doc.id, ...doc.data() }
+  }
+
   async updateCategory(id, data) {
-    const validatedData = validateCategory(data)
+    if (!id) throw new Error('Category ID is required')
+    const validatedData = validateUpdateCategory(data)
     const ref = db.collection(COLLECTIONS.CATEGORY).doc(id)
     const doc = await ref.get()
 
@@ -43,7 +51,29 @@ class CategoryService {
   }
 
   async deleteCategory(id) {
-    await db.collection(COLLECTIONS.CATEGORY).doc(id).delete()
+    if (!id) throw new Error('Category ID is required for deletion')
+    const categoryRef = db.collection(COLLECTIONS.CATEGORY).doc(id)
+    const categoryDoc = await categoryRef.get()
+    if (!categoryDoc.exists) throw new Error('Category not found')
+
+    const batch = db.batch()
+    batch.delete(categoryRef)
+
+    const programsSnap = await db
+      .collection(COLLECTIONS.PROGRAM)
+      .where('categoryId', '==', id)
+      .get()
+
+    programsSnap.forEach((doc) => {
+      batch.update(doc.ref, {
+        categoryId: null,
+        category: 'Uncategorized',
+        categoryInfo: null,
+        updatedAt: new Date().toISOString(),
+      })
+    })
+
+    await batch.commit()
     return { message: 'Category deleted successfully' }
   }
 }

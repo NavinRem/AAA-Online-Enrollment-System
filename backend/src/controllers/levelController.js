@@ -1,20 +1,36 @@
 const levelService = require('../services/levelService')
 
+exports.createLevel = async (req, res) => {
+  try {
+    const result = await levelService.createLevel(req.body)
+    res.status(201).json(result)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
 exports.getAllLevels = async (req, res) => {
   try {
-    const { categoryId } = req.params
-    const levels = await levelService.getAllLevels(categoryId)
+    const levels = await levelService.getAllLevels()
     res.status(200).json(levels)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
 }
 
-exports.createLevel = async (req, res) => {
+exports.getLevel = async (req, res) => {
   try {
-    const { categoryId } = req.params
-    const result = await levelService.createLevel(categoryId, req.body)
-    res.status(201).json(result)
+    const level = await levelService.getLevel(req.params.id)
+    res.status(200).json(level)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+exports.updateLevel = async (req, res) => {
+  try {
+    const result = await levelService.updateLevel(req.params.id, req.body)
+    res.status(200).json(result)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -22,8 +38,7 @@ exports.createLevel = async (req, res) => {
 
 exports.deleteLevel = async (req, res) => {
   try {
-    const { categoryId, id } = req.params
-    const result = await levelService.deleteLevel(categoryId, id)
+    const result = await levelService.deleteLevel(req.params.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(500).json({ error: error.message })

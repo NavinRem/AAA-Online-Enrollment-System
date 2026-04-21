@@ -1,5 +1,6 @@
 const { db, COLLECTIONS } = require('../config/database')
 const profileHelper = require('../utils/profileHelper')
+const dateHelper = require('../utils/dateHelper')
 const {
   validateStudent,
   validateUpdateStudent,
@@ -22,7 +23,7 @@ class StudentService {
 
     const studentId = db.collection(COLLECTIONS.STUDENT).doc().id
 
-    const dobDate = this.validateAndParseDate(validated.dob)
+    const dobDate = dateHelper.validateAndParseDate(validated.dob, 'Date of Birth')
     const cleanData = {
       parentId: validated.parentId,
       name: validated.name,
@@ -87,7 +88,7 @@ class StudentService {
     let dobField = {}
 
     if (validated.dob) {
-      const dobDate = this.validateAndParseDate(validated.dob)
+      const dobDate = dateHelper.validateAndParseDate(validated.dob, 'Date of Birth')
       dobField = { dob: dobDate.toISOString() }
     }
 
@@ -185,41 +186,6 @@ class StudentService {
     enrollmentsSnap.forEach((eDoc) =>
       batch.update(eDoc.ref, { student: snapshot }),
     )
-  }
-
-  validateAndParseDate(dateStr) {
-    if (!dateStr) throw new Error('Date of Birth is required')
-
-    const dateRegex = /^(\d{4})-(\d{2})-(\d{2})$/
-    const match = dateStr.match(dateRegex)
-
-    if (!match) {
-      throw new Error(
-        `Invalid Date format: "${dateStr}". Please use YYYY-MM-DD.`,
-      )
-    }
-
-    const year = parseInt(match[1], 10)
-    const month = parseInt(match[2], 10)
-    const day = parseInt(match[3], 10)
-
-    if (month < 1 || month > 12) {
-      throw new Error(`Invalid Month: "${month}". Must be between 01 and 12.`)
-    }
-
-    const daysInMonth = new Date(year, month, 0).getDate()
-    if (day < 1 || day > daysInMonth) {
-      throw new Error(
-        `Invalid Day: "${day}". Day must be between 01 and ${daysInMonth} for the selected month.`,
-      )
-    }
-
-    const dateObj = new Date(year, month - 1, day)
-    if (dateObj > new Date()) {
-      throw new Error(`Date of Birth "${dateStr}" cannot be in the future.`)
-    }
-
-    return dateObj
   }
 
   async clearStudentMirrors(id) {

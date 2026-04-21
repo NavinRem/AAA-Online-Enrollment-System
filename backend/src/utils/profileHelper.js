@@ -78,6 +78,22 @@ class ProfileHelper {
     }
   }
 
+  getCategorySnapshot(categoryId, data) {
+    if (!categoryId || !data) return null
+    return {
+      id: categoryId,
+      name: data.name,
+    }
+  }
+
+  getLevelSnapshot(levelId, data) {
+    if (!levelId || !data) return null
+    return {
+      id: levelId,
+      name: data.name,
+    }
+  }
+
   getClassSnapshot(classId, data) {
     if (!classId || !data) return null
     return {

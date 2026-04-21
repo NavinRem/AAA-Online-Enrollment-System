@@ -6,8 +6,6 @@ function validateProgram(programData) {
     'totalSessions',
     'basePrice',
     'description',
-    'category',
-    'level',
     'maxCapacity',
     'type',
     'profileURL',
@@ -28,8 +26,6 @@ function validateProgram(programData) {
     name,
     categoryId: programData.categoryId,
     levelId: programData.levelId,
-    category: programData.category || '', // Optional during initial validation, usually filled by service
-    level: programData.level || '',       // Optional during initial validation, usually filled by service
     description: programData.description?.trim() || '',
     totalSessions: parseInt(programData.totalSessions || 0),
     basePrice: parseFloat(programData.basePrice || 0),
@@ -46,8 +42,6 @@ function validateUpdateProgram(updateData) {
     'name',
     'categoryId',
     'levelId',
-    'category',
-    'level',
     'description',
     'totalSessions',
     'basePrice',
@@ -64,16 +58,20 @@ function validateUpdateProgram(updateData) {
   })
 
   if (updateData.name !== undefined) cleanData.name = updateData.name.trim()
-  if (updateData.categoryId !== undefined) cleanData.categoryId = updateData.categoryId
+  if (updateData.categoryId !== undefined)
+    cleanData.categoryId = updateData.categoryId
   if (updateData.levelId !== undefined) cleanData.levelId = updateData.levelId
-  if (updateData.category !== undefined) cleanData.category = updateData.category
-  if (updateData.level !== undefined) cleanData.level = updateData.level
-  if (updateData.description !== undefined) cleanData.description = updateData.description.trim()
-  if (updateData.totalSessions !== undefined) cleanData.totalSessions = parseInt(updateData.totalSessions)
-  if (updateData.basePrice !== undefined) cleanData.basePrice = parseFloat(updateData.basePrice)
-  if (updateData.maxCapacity !== undefined) cleanData.maxCapacity = parseInt(updateData.maxCapacity)
+  if (updateData.description !== undefined)
+    cleanData.description = updateData.description.trim()
+  if (updateData.totalSessions !== undefined)
+    cleanData.totalSessions = parseInt(updateData.totalSessions)
+  if (updateData.basePrice !== undefined)
+    cleanData.basePrice = parseFloat(updateData.basePrice)
+  if (updateData.maxCapacity !== undefined)
+    cleanData.maxCapacity = parseInt(updateData.maxCapacity)
   if (updateData.type !== undefined) cleanData.type = updateData.type
-  if (updateData.profileURL !== undefined) cleanData.profileURL = updateData.profileURL
+  if (updateData.profileURL !== undefined)
+    cleanData.profileURL = updateData.profileURL
 
   if (Object.keys(cleanData).length === 0) {
     throw new Error('No valid fields provided for update')

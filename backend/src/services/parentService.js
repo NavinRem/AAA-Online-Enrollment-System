@@ -1,5 +1,4 @@
 const { db, COLLECTIONS } = require('../config/database')
-const authService = require('./authService')
 const profileHelper = require('../utils/profileHelper')
 const {
   validateParent,
@@ -30,9 +29,18 @@ class ParentService {
       phone: validated.phone,
       profileURL: validated.profileURL,
       status: validated.status,
+      childrenInfo: [studentInfo],
     }
 
-    const snapshot = profileHelper.getParentSnapshot(studentId, cleanData)
+    const parentDoc = await db
+      .collection(COLLECTIONS.PARENT)
+      .doc(parentId)
+      .get()
+    if (parentDoc.exists) {
+      throw new Error('Parent already exists')
+    }
+
+    const snapshot = profileHelper.getParentSnapshot(parentId, cleanData)
 
     const parentInfo = [...(sData.parentInfo || []), snapshot]
 
@@ -61,7 +69,7 @@ class ParentService {
 
   async updateParent(id, updateData) {
     if (!id) throw new Error('Parent ID is required for update')
-    const validated = validateUpdateParent(updateData)
+    const validatedUpdate = validateUpdateParent(updateData)
 
     const parentRef = db.collection(COLLECTIONS.PARENT).doc(id)
     const parentDoc = await parentRef.get()
@@ -72,11 +80,13 @@ class ParentService {
     const studentId = currentParentData.studentId
 
     const cleanUpdate = {
-      ...(validated.name && { name: validated.name }),
-      ...(validated.email && { email: validated.email }),
-      ...(validated.phone && { phone: validated.phone }),
-      ...(validated.profileURL && { profileURL: validated.profileURL }),
-      ...(validated.status && { status: validated.status }),
+      ...(validatedUpdate.name && { name: validatedUpdate.name }),
+      ...(validatedUpdate.email && { email: validatedUpdate.email }),
+      ...(validatedUpdate.phone && { phone: validatedUpdate.phone }),
+      ...(validatedUpdate.profileURL && {
+        profileURL: validatedUpdate.profileURL,
+      }),
+      ...(validatedUpdate.status && { status: validatedUpdate.status }),
     }
 
     const batch = db.batch()
