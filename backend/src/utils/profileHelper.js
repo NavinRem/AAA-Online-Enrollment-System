@@ -101,7 +101,7 @@ class ProfileHelper {
       program: data.program,
       term: data.term,
       branch: data.branch,
-      teacher: data.teacher,
+      teachers: data.teachers || [],
       schedules: data.schedules || [],
       status: data.status || 'open',
       maxCapacity: data.maxCapacity || 0,

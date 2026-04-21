@@ -1,9 +1,5 @@
 const enrollmentService = require('../services/enrollmentService')
 
-/**
- * @route POST /enrollments/createEnrollment
- * @description Register a student for a program
- */
 exports.createEnrollment = async (req, res) => {
   try {
     const result = await enrollmentService.createEnrollment(req.body)
@@ -27,10 +23,6 @@ exports.createEnrollment = async (req, res) => {
   }
 }
 
-/**
- * @route GET /enrollments/eligibility/:studentId/:programId
- * @description Check if a student is eligible for a program (placeholder for logic)
- */
 exports.getStudentEligibility = async (req, res) => {
   try {
     const { studentId, programId } = req.params
@@ -47,23 +39,15 @@ exports.getStudentEligibility = async (req, res) => {
   }
 }
 
-/**
- * @route GET /enrollments
- * @description Get all enrollments
- */
 exports.getAllEnrollments = async (req, res) => {
   try {
-    const enrollments = await enrollmentService.getAllEnrollments()
+    const enrollments = await enrollmentService.getAllEnrollments(req.query)
     res.status(200).json(enrollments)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
 }
 
-/**
- * @route GET /enrollments/:id
- * @description Get a single enrollment
- */
 exports.getEnrollment = async (req, res) => {
   try {
     const enrollment = await enrollmentService.getEnrollment(req.params.id)

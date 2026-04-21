@@ -3,34 +3,17 @@ const router = express.Router()
 const enrollmentController = require('../controllers/enrollmentController')
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware')
 
-// All enrollment routes require authentication
 router.use(verifyToken)
-
-// Create Enrollment
-router.post('/createEnrollment', enrollmentController.createEnrollment)
-
-// Check Eligibility
-router.get(
-  '/eligibility/:studentId/:programId',
-  enrollmentController.getStudentEligibility,
-)
-
-// Legacy (redirect/match previous direct root POST)
-router.post('/', enrollmentController.createEnrollment)
-
-// Get all enrollments (Admin Only)
+// CRUD
 router.get('/', isAdmin, enrollmentController.getAllEnrollments)
-
-// Get a single enrollment
 router.get('/:id', enrollmentController.getEnrollment)
-
-// Cancel Enrollment
-router.post('/:id/cancel', enrollmentController.cancelEnrollment)
-
-// Update Enrollment properties (Admin Only usually, or restricted)
+router.post('/', enrollmentController.createEnrollment)
 router.patch('/:id', isAdmin, enrollmentController.updateEnrollment)
-
-// Permanently Delete Enrollment (Admin Only)
 router.delete('/:id', isAdmin, enrollmentController.deleteEnrollment)
+
+// Special Actions
+router.post('/:id/cancel', enrollmentController.cancelEnrollment)
+router.get('/eligibility/:studentId/:programId', enrollmentController.getStudentEligibility)
+router.post('/createEnrollment', enrollmentController.createEnrollment) // Legacy support
 
 module.exports = router
