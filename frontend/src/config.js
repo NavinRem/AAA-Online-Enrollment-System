@@ -1,7 +1,3 @@
-/**
- * Centralize all environment variables here.
- * This makes it easier to manage defaults and types in one place.
- */
 const env = import.meta.env
 
 export const config = {

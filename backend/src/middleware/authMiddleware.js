@@ -1,9 +1,6 @@
 const admin = require('firebase-admin')
 const logger = require('firebase-functions/logger')
 
-/**
- * Middleware to verify Firebase ID Token from Authorization header
- */
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization
 
@@ -29,9 +26,6 @@ const verifyToken = async (req, res, next) => {
   }
 }
 
-/**
- * Middleware to check for Admin role (Full Management Access)
- */
 const isAdmin = (req, res, next) => {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({
@@ -42,9 +36,6 @@ const isAdmin = (req, res, next) => {
   next()
 }
 
-/**
- * Middleware to check for Staff/Admin role (Web Portal Access)
- */
 const isStaff = (req, res, next) => {
   if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'staff')) {
     return res.status(403).json({
@@ -56,10 +47,6 @@ const isStaff = (req, res, next) => {
   next()
 }
 
-/**
- * Middleware to ensure the user is accessing their own data or is Admin
- * Usage: path parameter must be called :uid
- */
 const isOwnerOrAdmin = (req, res, next) => {
   const targetUid = req.params.uid
   if (!req.user) return res.status(401).json({ error: 'Unauthorized' })

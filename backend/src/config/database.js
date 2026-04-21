@@ -3,7 +3,6 @@ const { getFirestore } = require('firebase-admin/firestore')
 const path = require('path')
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') })
 
-// Set emulator hosts if provided in .env
 if (process.env.INTERNAL_FIRESTORE_EMULATOR_HOST) {
   process.env.FIRESTORE_EMULATOR_HOST =
     process.env.INTERNAL_FIRESTORE_EMULATOR_HOST
