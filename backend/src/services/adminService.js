@@ -1,6 +1,6 @@
 const { db, COLLECTIONS } = require('../config/database')
 const authService = require('./authService')
-const { validateAdmin, validateUpdateAdmin } = require('../validators/adminValidator')
+const { validateUpdateAdmin } = require('../validators/adminValidator')
 
 class AdminService {
   async registerAdmin(adminData) {
@@ -30,7 +30,6 @@ class AdminService {
     await ref.update(validatedUpdate)
     return { id, ...validatedUpdate }
   }
-
 
   async deleteAdmin(id) {
     if (!id) throw new Error('Admin ID is required for deletion')

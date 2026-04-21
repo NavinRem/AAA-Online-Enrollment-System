@@ -11,14 +11,13 @@ class AuthService {
     let targetRole = (userData.role || defaultRole).toLowerCase()
     if (targetRole === 'guardian') targetRole = 'parent'
 
-    // Separate Auth/Control fields from business data to pass strict validation
     const {
       id: providedId,
       password: providedPassword,
       ...businessData
     } = userData
 
-    const validatedData = this._validateByRole(targetRole, businessData)
+    const validatedData = this.validateByRole(targetRole, businessData)
 
     let id = providedId
     let email = userData.email || validatedData.email
@@ -28,7 +27,7 @@ class AuthService {
     if (!id) {
       if (!email) throw new Error('Email is required to create an account')
       try {
-        const userConfig = { email, displayName: validatedData.name || null }
+        const userConfig = { email, displayName: validatedData.name }
 
         if (!password) {
           generatedPassword = 'AAA123456'
@@ -57,7 +56,6 @@ class AuthService {
       updatedAt: now,
     }
 
-    // Add bcrypt hash for secondary credential check (optional but consistent with user request)
     if (password) {
       const salt = await bcrypt.genSalt(10)
       data.passwordHash = await bcrypt.hash(password, salt)
@@ -96,7 +94,7 @@ class AuthService {
 
   async manualPasswordReset(id) {
     const user = await this.getUser(id)
-    const collection = this._getCollectionByRole(user.role)
+    const collection = this.getCollectionByRole(user.role)
 
     const tempPassword = `AAA${Math.floor(100000 + Math.random() * 900000)}`
     await getAuth().updateUser(id, { password: tempPassword })
@@ -149,10 +147,10 @@ class AuthService {
     }
 
     const user = await this.getUser(id)
-    return { id, role: user.role || 'parent' }
+    return { id, role: user.role }
   }
 
-  _validateByRole(role, data) {
+  validateByRole(role, data) {
     switch (role?.toLowerCase()) {
       case 'admin':
         return validateAdmin(data)
@@ -166,7 +164,7 @@ class AuthService {
     }
   }
 
-  _getCollectionByRole(role) {
+  getCollectionByRole(role) {
     switch (role?.toLowerCase()) {
       case 'admin':
         return COLLECTIONS.ADMIN
