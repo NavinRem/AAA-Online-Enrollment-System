@@ -1,25 +1,20 @@
 const studentService = require('../services/studentService')
 
-/**
- * @route POST /students
- * @description Create a new student
- */
 exports.createStudent = async (req, res) => {
   try {
     const result = await studentService.createStudent(req.body)
     res.status(201).json(result)
   } catch (error) {
-    if (error.message.includes('are required')) {
+    if (
+      error.message.includes('Invalid') ||
+      error.message.includes('required')
+    ) {
       return res.status(400).json({ error: error.message })
     }
     res.status(500).json({ error: error.message })
   }
 }
 
-/**
- * @route GET /students/:id
- * @description Get a student by ID
- */
 exports.getStudent = async (req, res) => {
   try {
     const student = await studentService.getStudent(req.params.id)
@@ -32,10 +27,26 @@ exports.getStudent = async (req, res) => {
   }
 }
 
-/**
- * @route PUT /students/:id
- * @description Update a student profile
- */
+exports.getAllStudents = async (req, res) => {
+  try {
+    const students = await studentService.getAllStudents()
+    res.status(200).json(students)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+exports.getStudentsByParentID = async (req, res) => {
+  try {
+    const students = await studentService.getStudentsByParentID(
+      req.params.parentId,
+    )
+    res.status(200).json(students)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
 exports.updateStudent = async (req, res) => {
   try {
     const result = await studentService.updateStudent(req.params.id, req.body)
@@ -48,52 +59,14 @@ exports.updateStudent = async (req, res) => {
   }
 }
 
-/**
- * @route PUT /students/:id/medical
- * @description Update medical info for a student
- */
-exports.updateMedicalInfo = async (req, res) => {
+exports.deleteStudent = async (req, res) => {
   try {
-    const result = await studentService.updateMedicalInfo(
-      req.params.id,
-      req.body.medicalNote,
-    )
+    const result = await studentService.deleteStudent(req.params.id)
     res.status(200).json(result)
   } catch (error) {
-    if (error.message === 'Medical note is required') {
-      return res.status(400).json({ error: error.message })
-    }
     if (error.message === 'Student not found') {
       return res.status(404).json({ error: error.message })
     }
-    res.status(500).json({ error: error.message })
-  }
-}
-
-/**
- * @route GET /students/parent/:parentId
- * @description Get all students for a parent
- */
-exports.getStudentsByParentID = async (req, res) => {
-  try {
-    const students = await studentService.getStudentsByParentID(
-      req.params.parentId,
-    )
-    res.status(200).json(students)
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-}
-
-/**
- * @route GET /students
- * @description Get ALL students (Admin/Teacher)
- */
-exports.getAllStudents = async (req, res) => {
-  try {
-    const students = await studentService.getAllStudents()
-    res.status(200).json(students)
-  } catch (error) {
     res.status(500).json({ error: error.message })
   }
 }
