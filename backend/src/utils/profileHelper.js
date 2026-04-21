@@ -24,8 +24,8 @@ class ProfileHelper {
 
     const dob =
       studentData.dob instanceof Date
-        ? studentData.dob
-        : new Date(studentData.dob)
+        ? studentData.dob.toISOString()
+        : new Date(studentData.dob).toISOString()
 
     return {
       id: studentId,

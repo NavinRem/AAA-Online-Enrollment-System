@@ -1,32 +1,31 @@
 import { request } from './api'
 
 export const teacherService = {
-  /**
-   * Register a new teacher staff account.
-   */
+  getAllTeachers() {
+    return request('/teachers')
+  },
+
+  getTeacher(id) {
+    return request(`/teachers/${id}`)
+  },
+
   registerTeacher(data) {
-    return request('/users/registerStaffAccount', {
+    return request('/teachers/register', {
       method: 'POST',
-      body: JSON.stringify({ ...data, role: 'teacher' }),
+      body: JSON.stringify(data),
     })
   },
 
-  /**
-   * Update a teacher profile.
-   */
   updateTeacher(id, data) {
-    return request(`/users/${id}`, {
+    return request(`/teachers/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   },
 
-  /**
-   * Delete a teacher account.
-   */
   deleteTeacher(id) {
-    return request(`/users/${id}`, {
+    return request(`/teachers/${id}`, {
       method: 'DELETE',
     })
-  }
+  },
 }

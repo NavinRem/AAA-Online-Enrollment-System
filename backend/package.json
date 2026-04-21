@@ -9,7 +9,7 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "test": "mocha --timeout 5000 test/*.test.js",
-    "seed:admin": "node src/scripts/seedAdmin.js",
+    "seed:admin": "node src/scripts/initAdmin.js",
     "seed:branch": "node src/scripts/seedBranch.js"
   },
   "engines": {

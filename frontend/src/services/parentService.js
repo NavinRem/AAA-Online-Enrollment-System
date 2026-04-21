@@ -1,46 +1,31 @@
 import { request } from './api'
 
 export const parentService = {
-  /**
-   * Register a new parent account.
-   */
+  getAllParents() {
+    return request('/parents')
+  },
+
+  getParent(id) {
+    return request(`/parents/${id}`)
+  },
+
   registerParent(data) {
-    return request('/users/registerParentAccount', {
+    return request('/parents/register', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   },
 
-  /**
-   * Get all parents in the system (Admin Only).
-   */
-  getAllParents() {
-    return request('/users/allParents')
-  },
-
-  /**
-   * Update a parent profile or status.
-   */
   updateParent(id, data) {
-    return request(`/users/${id}`, {
+    return request(`/parents/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   },
 
-  /**
-   * Permanently delete a parent account.
-   */
   deleteParent(id) {
-    return request(`/users/${id}`, {
+    return request(`/parents/${id}`, {
       method: 'DELETE',
     })
   },
-
-  /**
-   * Fetch a single parent profile (Role-agnostic but often used for parents).
-   */
-  getParent(id) {
-    return request(`/users/${id}`)
-  }
 }

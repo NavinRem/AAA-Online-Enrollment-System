@@ -8,25 +8,37 @@ import {
 } from 'firebase/auth'
 
 export const authService = {
-  register(email, password) {
-    return createUserWithEmailAndPassword(auth, email, password).then(
-      (userCredential) => userCredential.user,
-    )
+  async register(email, password) {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    const token = await userCredential.user.getIdToken()
+    return { user: userCredential.user, token }
   },
-  login(email, password) {
-    return signInWithEmailAndPassword(auth, email, password).then(
-      (userCredential) => userCredential.user,
-    )
+
+  async login(email, password) {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+
+    const token = await userCredential.user.getIdToken()
+
+    console.log('AUTH TOKEN:', token)
+
+    return {
+      user: userCredential.user,
+      token,
+    }
   },
+
   logout() {
     return signOut(auth)
   },
+
   onAuthStateChanged(callback) {
     return onAuthStateChanged(auth, callback)
   },
+
   getCurrentUser() {
     return auth.currentUser
   },
+
   resetPassword(email) {
     return sendPasswordResetEmail(auth, email)
   },

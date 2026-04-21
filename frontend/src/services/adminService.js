@@ -1,32 +1,31 @@
 import { request } from './api'
 
 export const adminService = {
-  /**
-   * Register a new admin staff account.
-   */
+  getAllAdmins() {
+    return request('/admins')
+  },
+
+  getAdmin(id) {
+    return request(`/admins/${id}`)
+  },
+
   registerAdmin(data) {
-    return request('/users/registerStaffAccount', {
+    return request('/admins/register', {
       method: 'POST',
-      body: JSON.stringify({ ...data, role: 'admin' }),
+      body: JSON.stringify(data),
     })
   },
 
-  /**
-   * Update an admin profile.
-   */
   updateAdmin(id, data) {
-    return request(`/users/${id}`, {
+    return request(`/admins/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   },
 
-  /**
-   * Delete an admin account.
-   */
   deleteAdmin(id) {
-    return request(`/users/${id}`, {
+    return request(`/admins/${id}`, {
       method: 'DELETE',
     })
-  }
+  },
 }

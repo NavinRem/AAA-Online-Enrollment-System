@@ -8,7 +8,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { getBadgeUI, getBadgeTheme } from '@/utils/badgeUtils'
+import { getStatusUI, getStatusTheme } from '@/utils/badgeUtils'
 
 const props = defineProps({
   value: { type: [String, Number], default: '' },
@@ -17,8 +17,8 @@ const props = defineProps({
 })
 
 const badgeValue = computed(() => props.value || props.status)
-const ui = computed(() => getBadgeUI(badgeValue.value, props.type))
+const ui = computed(() => getStatusUI(badgeValue.value, props.type))
 
 const displayLabel = computed(() => ui.value.label || badgeValue.value)
-const badgeStyle = computed(() => getBadgeTheme(badgeValue.value, props.type))
+const badgeStyle = computed(() => getStatusTheme(badgeValue.value, props.type))
 </script>

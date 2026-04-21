@@ -22,23 +22,19 @@ class StudentService {
 
     const studentId = db.collection(COLLECTIONS.STUDENT).doc().id
 
-    const dobDate = new Date(validated.dob)
-    if (isNaN(dobDate)) {
-      throw new Error('Invalid Date of Birth')
-    }
-
+    const dobDate = this.validateAndParseDate(validated.dob)
     const cleanData = {
       parentId: validated.parentId,
       name: validated.name,
-      dob: dobDate,
+      dob: dobDate.toISOString(),
       age:
         validated.age ??
         (profileHelper.calculateAge ? profileHelper.calculateAge(dobDate) : 0),
       profileURL: validated.profileURL,
       status: validated.status,
       parentInfo,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
     const snapshot = profileHelper.getStudentSnapshot(studentId, cleanData)
@@ -89,11 +85,8 @@ class StudentService {
     let dobField = {}
 
     if (validated.dob) {
-      const dobDate = new Date(validated.dob)
-      if (isNaN(dobDate)) {
-        throw new Error('Invalid Date of Birth')
-      }
-      dobField = { dob: dobDate }
+      const dobDate = this.validateAndParseDate(validated.dob)
+      dobField = { dob: dobDate.toISOString() }
     }
 
     let ageField = {}
@@ -112,7 +105,7 @@ class StudentService {
         profileURL: validated.profileURL,
       }),
       ...(validated.status !== undefined && { status: validated.status }),
-      updatedAt: new Date(),
+      updatedAt: new Date().toISOString(),
     }
     const batch = db.batch()
     batch.update(studentRef, cleanUpdate)
@@ -189,6 +182,41 @@ class StudentService {
     enrollmentsSnap.forEach((eDoc) =>
       batch.update(eDoc.ref, { student: snapshot }),
     )
+  }
+
+  validateAndParseDate(dateStr) {
+    if (!dateStr) throw new Error('Date of Birth is required')
+
+    const dateRegex = /^(\d{4})-(\d{2})-(\d{2})$/
+    const match = dateStr.match(dateRegex)
+
+    if (!match) {
+      throw new Error(
+        `Invalid Date format: "${dateStr}". Please use YYYY-MM-DD.`,
+      )
+    }
+
+    const year = parseInt(match[1], 10)
+    const month = parseInt(match[2], 10)
+    const day = parseInt(match[3], 10)
+
+    if (month < 1 || month > 12) {
+      throw new Error(`Invalid Month: "${month}". Must be between 01 and 12.`)
+    }
+
+    const daysInMonth = new Date(year, month, 0).getDate()
+    if (day < 1 || day > daysInMonth) {
+      throw new Error(
+        `Invalid Day: "${day}". Day must be between 01 and ${daysInMonth} for the selected month.`,
+      )
+    }
+
+    const dateObj = new Date(year, month - 1, day)
+    if (dateObj > new Date()) {
+      throw new Error(`Date of Birth "${dateStr}" cannot be in the future.`)
+    }
+
+    return dateObj
   }
 }
 

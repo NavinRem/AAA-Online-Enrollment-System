@@ -52,9 +52,9 @@ const handleSubmit = async () => {
       return
     }
 
-    const user = await authService.login(form.email, form.password)
+    const { user: firebaseUser } = await authService.login(form.email, form.password)
     try {
-      const profile = await userService.getProfile(user.uid)
+      const profile = await userService.getProfile(firebaseUser.uid)
       if (!profile || profile.role !== 'admin') {
         await authService.logout()
         apiError.value = 'Access Denied: This portal is reserved for administrators only.'
@@ -119,8 +119,7 @@ const handleSubmit = async () => {
     <div class="flex-1 bg-white flex items-center justify-center p-12 lg:p-16">
       <div class="auth-card">
         <div class="auth-logo-box">
-          <img :src="getImageUrl('common/logo-main')" alt="Active Kids Academy"
-            class="auth-logo" />
+          <img :src="getImageUrl('common/logo-main')" alt="Active Kids Academy" class="auth-logo" />
         </div>
 
         <h2 class="text-2xl font-bold mb-8 text-content-dark">

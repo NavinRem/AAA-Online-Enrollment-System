@@ -14,13 +14,15 @@ class AuthService {
     const {
       id: providedId,
       password: providedPassword,
+      email: providedEmail,
       ...businessData
     } = userData
+    delete businessData.role
 
     const validatedData = this.validateByRole(targetRole, businessData)
 
     let id = providedId
-    let email = userData.email || validatedData.email
+    let email = providedEmail
     let password = providedPassword
     let generatedPassword = null
 
