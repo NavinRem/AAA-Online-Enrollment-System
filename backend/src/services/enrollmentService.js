@@ -7,12 +7,15 @@ const {
 } = require('../validators/enrollmentValidator')
 
 class EnrollmentService {
-  /**
-   * Internal helper to check if a student can enroll in a program
-   */
   async checkEligibility(studentId, programId) {
-    const studentDoc = await db.collection(COLLECTIONS.STUDENT).doc(studentId).get()
-    const programDoc = await db.collection(COLLECTIONS.PROGRAM).doc(programId).get()
+    const studentDoc = await db
+      .collection(COLLECTIONS.STUDENT)
+      .doc(studentId)
+      .get()
+    const programDoc = await db
+      .collection(COLLECTIONS.PROGRAM)
+      .doc(programId)
+      .get()
 
     if (!studentDoc.exists) throw new Error('Student not found')
     if (!programDoc.exists) throw new Error('Program not found')
@@ -20,33 +23,40 @@ class EnrollmentService {
     const student = studentDoc.data()
     const program = programDoc.data()
 
-    // 1. Age Check
     if (program.minAge && student.age < program.minAge) {
-      return { isEligible: false, reason: `Student is too young (min age: ${program.minAge})` }
+      return {
+        isEligible: false,
+        reason: `Student is too young (min age: ${program.minAge})`,
+      }
     }
     if (program.maxAge && student.age > program.maxAge) {
-      return { isEligible: false, reason: `Student is too old (max age: ${program.maxAge})` }
+      return {
+        isEligible: false,
+        reason: `Student is too old (max age: ${program.maxAge})`,
+      }
     }
 
-    // 2. Duplicate Enrollment Check
-    const snapshot = await db.collection(COLLECTIONS.ENROLLMENT)
+    const snapshot = await db
+      .collection(COLLECTIONS.ENROLLMENT)
       .where('studentId', '==', studentId)
       .where('programId', '==', programId)
       .get()
-    
-    const activeEnrollment = snapshot.docs.find(doc => {
-      const s = doc.data().status.toLowerCase()
-      return s !== 'cancelled' && s !== 'canceled'
+
+    const activeEnrollment = snapshot.docs.find((doc) => {
+      const s = (doc.data().status || '').toLowerCase()
+      return s !== 'cancelled'
     })
 
     if (activeEnrollment) {
-      return { isEligible: false, reason: 'Student is already enrolled in this program' }
+      return {
+        isEligible: false,
+        reason: 'Student is already actively enrolled in this program',
+      }
     }
 
     return { isEligible: true, reason: null }
   }
 
-  // --- CREATE ---
   async createEnrollment(enrollmentData) {
     const validatedData = validateEnrollment(enrollmentData)
     const { parentId, studentId, programId, classId } = validatedData
@@ -101,24 +111,31 @@ class EnrollmentService {
       })
     })
 
-    const snap = await db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId).get()
+    const snap = await db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .doc(enrollmentId)
+      .get()
     const bId = snap.data()?.branchId
     if (bId) branchService.calculateAndSyncStats(bId).catch(console.error)
 
     return { id: enrollmentId, message: 'Enrollment created successfully' }
   }
 
-  // --- READ ---
   async getAllEnrollments(filters = {}) {
     let query = db.collection(COLLECTIONS.ENROLLMENT)
 
-    if (filters.parentId) query = query.where('parentId', '==', filters.parentId)
-    if (filters.studentId) query = query.where('studentId', '==', filters.studentId)
-    if (filters.programId) query = query.where('programId', '==', filters.programId)
+    if (filters.parentId)
+      query = query.where('parentId', '==', filters.parentId)
+    if (filters.studentId)
+      query = query.where('studentId', '==', filters.studentId)
+    if (filters.programId)
+      query = query.where('programId', '==', filters.programId)
     if (filters.classId) query = query.where('classId', '==', filters.classId)
-    if (filters.branchId) query = query.where('branchId', '==', filters.branchId)
+    if (filters.branchId)
+      query = query.where('branchId', '==', filters.branchId)
     if (filters.status) query = query.where('status', '==', filters.status)
-    if (filters.paymentStatus) query = query.where('paymentStatus', '==', filters.paymentStatus)
+    if (filters.paymentStatus)
+      query = query.where('paymentStatus', '==', filters.paymentStatus)
 
     const snapshot = await query.get()
     return snapshot.docs.map((doc) => {
@@ -144,7 +161,6 @@ class EnrollmentService {
     }
   }
 
-  // --- UPDATE ---
   async updateEnrollment(id, updateData) {
     if (!id) throw new Error('Enrollment ID is required')
     const validatedUpdate = validateUpdateEnrollment(updateData)
@@ -161,8 +177,8 @@ class EnrollmentService {
       const oldStatus = (oldData.status || '').toLowerCase()
       const newStatus = (validatedUpdate.status || oldStatus).toLowerCase()
 
-      const wasActive = !['cancelled', 'canceled'].includes(oldStatus)
-      const isActive = !['cancelled', 'canceled'].includes(newStatus)
+      const wasActive = oldStatus !== 'cancelled'
+      const isActive = newStatus !== 'cancelled'
 
       if (oldClassId !== newClassId) {
         if (wasActive) await this.updateClassCount(transaction, oldClassId, -1)
@@ -171,22 +187,57 @@ class EnrollmentService {
         await this.updateClassCount(transaction, oldClassId, isActive ? 1 : -1)
       }
 
-      // Refresh snapshots if IDs changed
-      if (validatedUpdate.parentId && validatedUpdate.parentId !== oldData.parentId) {
-        const pDoc = await transaction.get(db.collection(COLLECTIONS.PARENT).doc(validatedUpdate.parentId))
-        if (pDoc.exists) validatedUpdate.parent = profileHelper.getParentSnapshot(pDoc.id, pDoc.data())
+      if (
+        validatedUpdate.parentId &&
+        validatedUpdate.parentId !== oldData.parentId
+      ) {
+        const pDoc = await transaction.get(
+          db.collection(COLLECTIONS.PARENT).doc(validatedUpdate.parentId),
+        )
+        if (pDoc.exists)
+          validatedUpdate.parent = profileHelper.getParentSnapshot(
+            pDoc.id,
+            pDoc.data(),
+          )
       }
-      if (validatedUpdate.studentId && validatedUpdate.studentId !== oldData.studentId) {
-        const sDoc = await transaction.get(db.collection(COLLECTIONS.STUDENT).doc(validatedUpdate.studentId))
-        if (sDoc.exists) validatedUpdate.student = profileHelper.getStudentSnapshot(sDoc.id, sDoc.data())
+      if (
+        validatedUpdate.studentId &&
+        validatedUpdate.studentId !== oldData.studentId
+      ) {
+        const sDoc = await transaction.get(
+          db.collection(COLLECTIONS.STUDENT).doc(validatedUpdate.studentId),
+        )
+        if (sDoc.exists)
+          validatedUpdate.student = profileHelper.getStudentSnapshot(
+            sDoc.id,
+            sDoc.data(),
+          )
       }
-      if (validatedUpdate.programId && validatedUpdate.programId !== oldData.programId) {
-        const pDoc = await transaction.get(db.collection(COLLECTIONS.PROGRAM).doc(validatedUpdate.programId))
-        if (pDoc.exists) validatedUpdate.program = profileHelper.getProgramSnapshot(pDoc.id, pDoc.data())
+      if (
+        validatedUpdate.programId &&
+        validatedUpdate.programId !== oldData.programId
+      ) {
+        const pDoc = await transaction.get(
+          db.collection(COLLECTIONS.PROGRAM).doc(validatedUpdate.programId),
+        )
+        if (pDoc.exists)
+          validatedUpdate.program = profileHelper.getProgramSnapshot(
+            pDoc.id,
+            pDoc.data(),
+          )
       }
-      if (validatedUpdate.classId && validatedUpdate.classId !== oldData.classId) {
-        const cDoc = await transaction.get(db.collection(COLLECTIONS.CLASS).doc(validatedUpdate.classId))
-        if (cDoc.exists) validatedUpdate.class = profileHelper.getClassSnapshot(cDoc.id, cDoc.data())
+      if (
+        validatedUpdate.classId &&
+        validatedUpdate.classId !== oldData.classId
+      ) {
+        const cDoc = await transaction.get(
+          db.collection(COLLECTIONS.CLASS).doc(validatedUpdate.classId),
+        )
+        if (cDoc.exists)
+          validatedUpdate.class = profileHelper.getClassSnapshot(
+            cDoc.id,
+            cDoc.data(),
+          )
       }
 
       transaction.update(enrollmentRef, validatedUpdate)
@@ -195,7 +246,6 @@ class EnrollmentService {
     return { id, ...validatedUpdate }
   }
 
-  // --- DELETE ---
   async deleteEnrollment(id) {
     if (!id) throw new Error('Enrollment ID is required')
     const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc(id)
@@ -206,7 +256,7 @@ class EnrollmentService {
 
       const data = doc.data()
       const status = (data.status || '').toLowerCase()
-      const isActive = !['cancelled', 'canceled'].includes(status)
+      const isActive = status !== 'cancelled'
 
       if (isActive && data.classId) {
         await this.updateClassCount(transaction, data.classId, -1)
@@ -218,7 +268,6 @@ class EnrollmentService {
     return { message: 'Enrollment deleted permanently' }
   }
 
-  // --- SPECIAL ACTIONS ---
   async cancelEnrollment(id) {
     if (!id) throw new Error('Enrollment ID is required')
     return await this.updateEnrollment(id, { status: 'cancelled' })
@@ -228,7 +277,6 @@ class EnrollmentService {
     return await this.checkEligibility(studentId, programId)
   }
 
-  // --- UTILS & SYNC ---
   async updateClassCount(transaction, classId, increment) {
     const ref = db.collection(COLLECTIONS.CLASS).doc(classId)
     const doc = await transaction.get(ref)
@@ -242,11 +290,17 @@ class EnrollmentService {
   }
 
   async syncEnrollmentsWithClass(classId, classSnapshot) {
-    const snapshot = await db.collection(COLLECTIONS.ENROLLMENT).where('classId', '==', classId).get()
+    const snapshot = await db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .where('classId', '==', classId)
+      .get()
     if (snapshot.empty) return
     const batch = db.batch()
     snapshot.docs.forEach((doc) => {
-      batch.update(doc.ref, { class: classSnapshot, updatedAt: new Date().toISOString() })
+      batch.update(doc.ref, {
+        class: classSnapshot,
+        updatedAt: new Date().toISOString(),
+      })
     })
     await batch.commit()
   }
@@ -254,7 +308,7 @@ class EnrollmentService {
   getDisplayStatus(status, paymentStatus) {
     const s = (status || '').toLowerCase()
     const p = (paymentStatus || '').toLowerCase()
-    if (s === 'cancelled' || s === 'canceled') return 'Canceled'
+    if (s === 'cancelled') return 'Cancelled'
     if (p === 'paid') return 'Paid'
     if (s === 'pending') return 'Pending'
     return 'Unpaid'

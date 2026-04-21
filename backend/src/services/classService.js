@@ -269,7 +269,7 @@ class ClassService {
 
     const activeCount = enrollmentSnapshot.docs.filter((doc) => {
       const status = doc.data().status.toLowerCase()
-      return !['cancelled', 'canceled'].includes(status)
+      return status !== 'cancelled'
     }).length
 
     await db.collection(COLLECTIONS.CLASS).doc(classId).update({

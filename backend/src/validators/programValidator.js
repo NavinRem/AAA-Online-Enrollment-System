@@ -7,6 +7,8 @@ function validateProgram(programData) {
     'basePrice',
     'description',
     'maxCapacity',
+    'minAge',
+    'maxAge',
     'type',
     'profileURL',
   ]
@@ -30,6 +32,8 @@ function validateProgram(programData) {
     totalSessions: parseInt(programData.totalSessions || 0),
     basePrice: parseFloat(programData.basePrice || 0),
     maxCapacity: parseInt(programData.maxCapacity || 0),
+    minAge: parseInt(programData.minAge || 0),
+    maxAge: parseInt(programData.maxAge || 0),
     type: programData.type || 'General',
     profileURL: programData.profileURL || null,
     createdAt: new Date().toISOString(),
@@ -46,32 +50,32 @@ function validateUpdateProgram(updateData) {
     'totalSessions',
     'basePrice',
     'maxCapacity',
+    'minAge',
+    'maxAge',
     'type',
     'profileURL',
   ]
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
-    if (!allowedFields.includes(key)) {
-      throw new Error(`Invalid field: ${key}`)
-    }
+    if (allowedFields.includes(key)) {
+      cleanData[key] = updateData[key]
+    } else throw new Error(`Invalid field: ${key}`)
   })
 
-  if (updateData.name !== undefined) cleanData.name = updateData.name.trim()
-  if (updateData.categoryId !== undefined)
-    cleanData.categoryId = updateData.categoryId
-  if (updateData.levelId !== undefined) cleanData.levelId = updateData.levelId
-  if (updateData.description !== undefined)
-    cleanData.description = updateData.description.trim()
-  if (updateData.totalSessions !== undefined)
-    cleanData.totalSessions = parseInt(updateData.totalSessions)
-  if (updateData.basePrice !== undefined)
-    cleanData.basePrice = parseFloat(updateData.basePrice)
-  if (updateData.maxCapacity !== undefined)
-    cleanData.maxCapacity = parseInt(updateData.maxCapacity)
-  if (updateData.type !== undefined) cleanData.type = updateData.type
-  if (updateData.profileURL !== undefined)
-    cleanData.profileURL = updateData.profileURL
+  if (cleanData.name !== undefined) cleanData.name = cleanData.name.trim()
+  if (cleanData.description !== undefined)
+    cleanData.description = cleanData.description.trim()
+  if (cleanData.totalSessions !== undefined)
+    cleanData.totalSessions = parseInt(cleanData.totalSessions || 0)
+  if (cleanData.basePrice !== undefined)
+    cleanData.basePrice = parseFloat(cleanData.basePrice || 0)
+  if (cleanData.maxCapacity !== undefined)
+    cleanData.maxCapacity = parseInt(cleanData.maxCapacity || 0)
+  if (cleanData.minAge !== undefined)
+    cleanData.minAge = parseInt(cleanData.minAge || 0)
+  if (cleanData.maxAge !== undefined)
+    cleanData.maxAge = parseInt(cleanData.maxAge || 0)
 
   if (Object.keys(cleanData).length === 0) {
     throw new Error('No valid fields provided for update')
