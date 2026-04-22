@@ -1,10 +1,32 @@
 const { db, COLLECTIONS } = require('../config/database')
 const authService = require('./authService')
-const { validateUpdateAdmin } = require('../validators/adminValidator')
+const {
+  validateAdmin,
+  validateUpdateAdmin,
+} = require('../validators/adminValidator')
 
 class AdminService {
-  async registerAdmin(adminData) {
-    return authService.registerAccount(adminData, 'admin', COLLECTIONS.ADMIN)
+  async createAdmin(adminData) {
+    const { email, password, ...profileData } = adminData
+    const validatedProfile = validateAdmin({ email, ...profileData })
+
+    return authService.registerAccount(
+      { password, ...validatedProfile },
+      'admin',
+      COLLECTIONS.ADMIN,
+    )
+  }
+
+  async getAllAdmins(filters = {}) {
+    let query = db.collection(COLLECTIONS.ADMIN)
+
+    if (filters.status) query = query.where('status', '==', filters.status)
+
+    const snapshot = await query.get()
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
   }
 
   async getAdmin(id) {
@@ -12,11 +34,6 @@ class AdminService {
     const doc = await db.collection(COLLECTIONS.ADMIN).doc(id).get()
     if (!doc.exists) throw new Error('Admin not found')
     return { id: doc.id, ...doc.data() }
-  }
-
-  async getAllAdmins() {
-    const snapshot = await db.collection(COLLECTIONS.ADMIN).get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 
   async updateAdmin(id, updateData) {
@@ -32,16 +49,15 @@ class AdminService {
   }
 
   async deleteAdmin(id) {
-    if (!id) throw new Error('Admin ID is required for deletion')
-    const ref = db.collection(COLLECTIONS.ADMIN).doc(id)
-    const doc = await ref.get()
+    if (!id) throw new Error('Admin ID is required')
 
-    if (doc.exists) {
-      await ref.delete()
+    const snapshot = await db.collection(COLLECTIONS.ADMIN).get()
+    if (snapshot.size <= 1) {
+      throw new Error('Cannot delete the only remaining administrator.')
     }
 
-    await authService.deleteAccount(id)
-    return { id, message: 'Admin deleted successfully' }
+    await db.collection(COLLECTIONS.ADMIN).doc(id).delete()
+    return { message: 'Admin deleted successfully' }
   }
 }
 

@@ -9,7 +9,7 @@ export const adminService = {
     return request(`/admins/${id}`)
   },
 
-  registerAdmin(data) {
+  createAdmin(data) {
     return request('/admins/register', {
       method: 'POST',
       body: JSON.stringify(data),
