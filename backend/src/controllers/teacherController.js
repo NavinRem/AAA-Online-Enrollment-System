@@ -5,6 +5,15 @@ exports.createTeacher = async (req, res) => {
     const result = await teacherService.createTeacher(req.body)
     res.status(201).json(result)
   } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+}
+
+exports.getAllTeachers = async (req, res) => {
+  try {
+    const teachers = await teacherService.getAllTeachers(req.query)
+    res.status(200).json(teachers)
+  } catch (error) {
     res.status(500).json({ error: error.message })
   }
 }
@@ -18,21 +27,12 @@ exports.getTeacher = async (req, res) => {
   }
 }
 
-exports.getAllTeachers = async (req, res) => {
-  try {
-    const teachers = await teacherService.getAllTeachers(req.query)
-    res.status(200).json(teachers)
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-}
-
 exports.updateTeacher = async (req, res) => {
   try {
     const result = await teacherService.updateTeacher(req.params.id, req.body)
     res.status(200).json(result)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(400).json({ error: error.message })
   }
 }
 

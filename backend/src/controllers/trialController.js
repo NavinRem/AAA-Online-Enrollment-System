@@ -5,6 +5,15 @@ exports.createTrial = async (req, res) => {
     const result = await trialService.createTrial(req.body)
     res.status(201).json(result)
   } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+}
+
+exports.getAllTrials = async (req, res) => {
+  try {
+    const trials = await trialService.getAllTrials(req.query)
+    res.status(200).json(trials)
+  } catch (error) {
     res.status(500).json({ error: error.message })
   }
 }
@@ -18,21 +27,12 @@ exports.getTrial = async (req, res) => {
   }
 }
 
-exports.getAllTrials = async (req, res) => {
-  try {
-    const trials = await trialService.getAllTrials(req.query)
-    res.status(200).json(trials)
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-}
-
 exports.updateTrial = async (req, res) => {
   try {
     const result = await trialService.updateTrial(req.params.id, req.body)
     res.status(200).json(result)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(400).json({ error: error.message })
   }
 }
 

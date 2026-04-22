@@ -7,9 +7,14 @@ const {
 } = require('../validators/studentValidator')
 
 class StudentService {
-  async createStudent(studentData) {
+  async createStudent(studentData, requestingUser = null) {
     const validated = validateStudent(studentData)
     const { parentId } = validated
+
+    // Security: Only Admin or the Parent themselves can create a student for this parent
+    if (requestingUser && requestingUser.role !== 'admin' && requestingUser.uid !== parentId) {
+      throw new Error('Access Denied: You can only create students for your own account.')
+    }
 
     const parentRef = db.collection(COLLECTIONS.PARENT).doc(parentId)
     const parentDoc = await parentRef.get()
@@ -39,25 +44,14 @@ class StudentService {
     }
 
     const snapshot = profileHelper.getStudentSnapshot(studentId, cleanData)
-
     const childrenInfo = [...(pData.childrenInfo || []), snapshot]
 
     const batch = db.batch()
-
     batch.set(db.collection(COLLECTIONS.STUDENT).doc(studentId), cleanData)
-
     batch.update(parentRef, { childrenInfo })
-
     await batch.commit()
 
     return { id: studentId }
-  }
-
-  async getStudent(id) {
-    if (!id) throw new Error('Student ID is required')
-    const doc = await db.collection(COLLECTIONS.STUDENT).doc(id).get()
-    if (!doc.exists) throw new Error('Student not found')
-    return { id: doc.id, ...doc.data() }
   }
 
   async getAllStudents() {
@@ -65,7 +59,27 @@ class StudentService {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 
-  async getStudentsByParentID(parentId) {
+  async getStudent(id, requestingUser = null) {
+    if (!id) throw new Error('Student ID is required')
+    const doc = await db.collection(COLLECTIONS.STUDENT).doc(id).get()
+    if (!doc.exists) throw new Error('Student not found')
+    
+    const studentData = doc.data()
+
+    // Security: Only Admin or the Parent can view this student
+    if (requestingUser && requestingUser.role !== 'admin' && requestingUser.uid !== studentData.parentId) {
+      throw new Error('Access Denied: You do not have permission to view this student.')
+    }
+
+    return { id: doc.id, ...studentData }
+  }
+
+  async getStudentsByParentID(parentId, requestingUser = null) {
+    // Security: Only Admin or the Parent themselves can list these students
+    if (requestingUser && requestingUser.role !== 'admin' && requestingUser.uid !== parentId) {
+      throw new Error('Access Denied: You can only view your own children.')
+    }
+
     const snapshot = await db
       .collection(COLLECTIONS.STUDENT)
       .where('parentId', '==', parentId)
@@ -73,10 +87,9 @@ class StudentService {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 
-  async updateStudent(id, updateData) {
+  async updateStudent(id, updateData, requestingUser = null) {
     if (!id) throw new Error('Student ID is required')
-    const validated = validateUpdateStudent(updateData)
-
+    
     const studentRef = db.collection(COLLECTIONS.STUDENT).doc(id)
     const studentDoc = await studentRef.get()
 
@@ -85,15 +98,20 @@ class StudentService {
     const currentStudentData = studentDoc.data()
     const parentId = currentStudentData.parentId
 
-    let dobField = {}
+    // Security: Only Admin or the Parent can update this student
+    if (requestingUser && requestingUser.role !== 'admin' && requestingUser.uid !== parentId) {
+      throw new Error('Access Denied: You do not have permission to update this student.')
+    }
 
+    const validated = validateUpdateStudent(updateData)
+
+    let dobField = {}
     if (validated.dob) {
       const dobDate = dateHelper.validateAndParseDate(validated.dob, 'Date of Birth')
       dobField = { dob: dobDate.toISOString() }
     }
 
     let ageField = {}
-
     if (validated.age !== undefined && validated.age !== null) {
       ageField = { age: validated.age }
     } else if (dobField.dob) {
@@ -114,25 +132,21 @@ class StudentService {
     batch.update(studentRef, cleanUpdate)
 
     const syncFields = ['name', 'dob', 'profileURL', 'age']
-    const shouldSync = Object.keys(cleanUpdate).some((k) =>
-      syncFields.includes(k),
-    )
+    const shouldSync = Object.keys(cleanUpdate).some((k) => syncFields.includes(k))
 
     if (shouldSync) {
       const snapshot = profileHelper.getStudentSnapshot(id, {
         ...currentStudentData,
         ...cleanUpdate,
       })
-
       await this.syncStudentMirrors(id, snapshot, parentId, batch)
     }
 
     await batch.commit()
-
     return { message: 'Updated successfully' }
   }
 
-  async deleteStudent(id) {
+  async deleteStudent(id, requestingUser = null) {
     if (!id) throw new Error('Student ID is required for deletion')
     const studentRef = db.collection(COLLECTIONS.STUDENT).doc(id)
     const studentDoc = await studentRef.get()
@@ -140,6 +154,11 @@ class StudentService {
 
     const currentStudentData = studentDoc.data()
     const parentId = currentStudentData.parentId
+
+    // Security: Only Admin or the Parent can delete this student
+    if (requestingUser && requestingUser.role !== 'admin' && requestingUser.uid !== parentId) {
+      throw new Error('Access Denied: You do not have permission to delete this student.')
+    }
 
     const batch = db.batch()
     batch.delete(studentRef)
@@ -160,9 +179,10 @@ class StudentService {
     enrollmentsSnap.forEach((eDoc) => batch.delete(eDoc.ref))
 
     await batch.commit()
-
     return { message: 'Student deleted successfully' }
   }
+
+  // --- Utility & Mirroring Methods ---
 
   async syncStudentMirrors(sid, snapshot, parentId, batch) {
     const parentRef = db.collection(COLLECTIONS.PARENT).doc(parentId)

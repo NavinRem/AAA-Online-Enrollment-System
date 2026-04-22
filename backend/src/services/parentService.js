@@ -1,4 +1,5 @@
 const { db, COLLECTIONS } = require('../config/database')
+const authService = require('./authService')
 const profileHelper = require('../utils/profileHelper')
 const {
   validateParent,
@@ -41,18 +42,22 @@ class ParentService {
     }
 
     const snapshot = profileHelper.getParentSnapshot(parentId, cleanData)
-
     const parentInfo = [...(sData.parentInfo || []), snapshot]
 
     const batch = db.batch()
-
     batch.set(db.collection(COLLECTIONS.PARENT).doc(parentId), cleanData)
-
     batch.update(studentRef, { parentInfo })
-
     await batch.commit()
 
     return { id: parentId }
+  }
+
+  async getAllParents(filters = {}) {
+    let query = db.collection(COLLECTIONS.PARENT)
+    if (filters.limit) query = query.limit(parseInt(filters.limit))
+    
+    const snapshot = await query.get()
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 
   async getParent(id) {
@@ -60,11 +65,6 @@ class ParentService {
     const doc = await db.collection(COLLECTIONS.PARENT).doc(id).get()
     if (!doc.exists) throw new Error('Parent not found')
     return { id: doc.id, ...doc.data() }
-  }
-
-  async getAllParents() {
-    const snapshot = await db.collection(COLLECTIONS.PARENT).get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 
   async updateParent(id, updateData) {
@@ -83,9 +83,7 @@ class ParentService {
       ...(validatedUpdate.name && { name: validatedUpdate.name }),
       ...(validatedUpdate.email && { email: validatedUpdate.email }),
       ...(validatedUpdate.phone && { phone: validatedUpdate.phone }),
-      ...(validatedUpdate.profileURL && {
-        profileURL: validatedUpdate.profileURL,
-      }),
+      ...(validatedUpdate.profileURL && { profileURL: validatedUpdate.profileURL }),
       ...(validatedUpdate.status && { status: validatedUpdate.status }),
     }
 
@@ -93,21 +91,17 @@ class ParentService {
     batch.update(parentRef, cleanUpdate)
 
     const syncFields = ['name', 'email', 'phone', 'profileURL', 'status']
-    const shouldSync = Object.keys(cleanUpdate).some((k) =>
-      syncFields.includes(k),
-    )
+    const shouldSync = Object.keys(cleanUpdate).some((k) => syncFields.includes(k))
 
     if (shouldSync) {
       const snapshot = profileHelper.getParentSnapshot(id, {
         ...currentParentData,
         ...cleanUpdate,
       })
-
       await this.syncParentMirrors(id, snapshot, studentId, batch)
     }
 
     await batch.commit()
-
     return { message: 'Updated successfully' }
   }
 
@@ -122,7 +116,6 @@ class ParentService {
     const studentId = currentParentData.studentId
 
     const batch = db.batch()
-
     batch.delete(parentRef)
 
     const studentRef = db.collection(COLLECTIONS.STUDENT).doc(studentId)
@@ -141,9 +134,11 @@ class ParentService {
     enrollmentsSnap.forEach((eDoc) => batch.delete(eDoc.ref))
 
     await batch.commit()
-
+    await authService.deleteAccount(id)
     return { id, message: 'Parent deleted successfully from system' }
   }
+
+  // --- Utility & Mirroring Methods ---
 
   async syncParentMirrors(pid, snapshot, studentId, batch) {
     const studentRef = db.collection(COLLECTIONS.STUDENT).doc(studentId)

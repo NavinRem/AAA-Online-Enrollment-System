@@ -73,6 +73,7 @@ class TeacherService {
     }
 
     await db.collection(COLLECTIONS.TEACHER).doc(id).delete()
+    await authService.deleteAccount(id)
     return { message: 'Teacher deleted successfully' }
   }
 

@@ -14,6 +14,23 @@ class PaymentService {
     }
   }
 
+  async getAllPayments() {
+    const snapshot = await db.collection(COLLECTIONS.PAYMENT).get()
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  }
+
+  async getPaymentHistory(uid) {
+    if (!uid) {
+      throw new Error('User ID is required to fetch payment history')
+    }
+
+    const snapshot = await db
+      .collection(COLLECTIONS.PAYMENT)
+      .where('parentId', '==', uid)
+      .get()
+
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  }
 
   async verifyPayment(transactionId) {
     const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc(transactionId)
@@ -45,24 +62,6 @@ class PaymentService {
     }
 
     return { status: 'success', message: 'Payment verified' }
-  }
-
-  async getPaymentHistory(userId) {
-    if (!userId) {
-      throw new Error('User ID is required to fetch payment history')
-    }
-
-    const snapshot = await db
-      .collection(COLLECTIONS.PAYMENT)
-      .where('parentId', '==', userId)
-      .get()
-
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-  }
-
-  async getAllPayments() {
-    const snapshot = await db.collection(COLLECTIONS.PAYMENT).get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 }
 

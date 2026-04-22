@@ -1,191 +1,131 @@
 const { db, COLLECTIONS } = require('../config/database')
 const profileHelper = require('../utils/profileHelper')
-const {
-  validateTrial,
-  validateUpdateTrial,
-} = require('../validators/trialValidator')
+const { validateTrial } = require('../validators/trialValidator')
 
 class TrialService {
   async createTrial(trialData) {
-    const validatedData = validateTrial(trialData)
-    const { studentId, programId, classId, parentId, isGuest } = validatedData
+    const validated = validateTrial(trialData)
+    const { studentId, programId, classId, isGuest } = validated
 
-    let trialId
-    await db.runTransaction(async (transaction) => {
-      const programRef = db.collection(COLLECTIONS.PROGRAM).doc(programId)
-      const classRef = db.collection(COLLECTIONS.CLASS).doc(classId)
+    const [programDoc, classDoc] = await Promise.all([
+      db.collection(COLLECTIONS.PROGRAM).doc(programId).get(),
+      db.collection(COLLECTIONS.CLASS).doc(classId).get(),
+    ])
 
-      const [programDoc, classDoc] = await Promise.all([
-        transaction.get(programRef),
-        transaction.get(classRef),
-      ])
+    if (!programDoc.exists) throw new Error('Program not found')
+    if (!classDoc.exists) throw new Error('Class not found')
 
-      if (!programDoc.exists) throw new Error('Program not found')
-      if (!classDoc.exists) throw new Error('Class not found')
+    const programSnapshot = profileHelper.getProgramSnapshot(programId, programDoc.data())
+    const classSnapshot = profileHelper.getClassSnapshot(classId, classDoc.data())
+    const branchSnapshot = classDoc.data().branch
 
-      const classData = classDoc.data()
-      const programData = programDoc.data()
-
-      const trialRef = db.collection(COLLECTIONS.TRIAL).doc()
-      trialId = trialRef.id
-
-      const data = {
-        ...validatedData,
-        program: profileHelper.getProgramSnapshot(programId, programData),
-        class: profileHelper.getClassSnapshot(classId, classData),
-        branchId: classData.branchId,
+    let studentSnapshot = {}
+    if (isGuest) {
+      studentSnapshot = {
+        id: 'guest',
+        name: validated.guestStudentName,
+        parentName: validated.guestParentName,
+        phone: validated.guestPhone,
+        isGuest: true,
       }
-
-      if (isGuest) {
-        data.parent = {
-          name: validatedData.guestParentName,
-          phoneNumber: validatedData.guestPhone,
-          isGuest: true,
-        }
-        data.student = {
-          name: validatedData.guestStudentName,
-          age: validatedData.guestStudentAge,
-          isGuest: true,
-        }
-      } else {
-        const studentDoc = await transaction.get(
-          db.collection(COLLECTIONS.STUDENT).doc(studentId),
-        )
-        if (!studentDoc.exists) throw new Error('Student not found')
-
-        const effectiveParentId = parentId || studentDoc.data().parentId
-        const parentDoc = await transaction.get(
-          db.collection(COLLECTIONS.PARENT).doc(effectiveParentId),
-        )
-        if (!parentDoc.exists) throw new Error('Parent not found')
-
-        data.student = profileHelper.getStudentSnapshot(
-          studentId,
-          studentDoc.data(),
-        )
-        data.parent = profileHelper.getParentSnapshot(
-          effectiveParentId,
-          parentDoc.data(),
-        )
-        data.parentId = effectiveParentId
-      }
-
-      transaction.set(trialRef, data)
-    })
-
-    return {
-      id: trialId,
-      message: isGuest
-        ? 'Guest trial recorded'
-        : 'Trial booking created successfully',
+    } else {
+      const studentDoc = await db.collection(COLLECTIONS.STUDENT).doc(studentId).get()
+      if (!studentDoc.exists) throw new Error('Student not found')
+      studentSnapshot = profileHelper.getStudentSnapshot(studentId, studentDoc.data())
     }
+
+    const trialId = db.collection(COLLECTIONS.TRIAL).doc().id
+    const newTrial = {
+      ...validated,
+      student: studentSnapshot,
+      program: programSnapshot,
+      class: classSnapshot,
+      branch: branchSnapshot,
+      createdAt: new Date().toISOString(),
+    }
+
+    await db.collection(COLLECTIONS.TRIAL).doc(trialId).set(newTrial)
+    return { id: trialId, ...newTrial }
   }
 
   async getAllTrials(filters = {}) {
     let query = db.collection(COLLECTIONS.TRIAL)
-
-    if (filters.studentId)
-      query = query.where('studentId', '==', filters.studentId)
-    if (filters.programId)
-      query = query.where('programId', '==', filters.programId)
+    if (filters.studentId) query = query.where('studentId', '==', filters.studentId)
     if (filters.classId) query = query.where('classId', '==', filters.classId)
-    if (filters.branchId)
-      query = query.where('branchId', '==', filters.branchId)
     if (filters.status) query = query.where('status', '==', filters.status)
-    if (filters.isGuest !== undefined)
-      query = query.where('isGuest', '==', filters.isGuest === 'true')
 
-    const snapshot = await query.orderBy('createdAt', 'desc').get()
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
+    const snapshot = await query.get()
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 
   async getTrial(id) {
-    if (!id) throw new Error('Trial ID is required')
     const doc = await db.collection(COLLECTIONS.TRIAL).doc(id).get()
-    if (!doc.exists) throw new Error('Trial record not found')
+    if (!doc.exists) throw new Error('Trial not found')
     return { id: doc.id, ...doc.data() }
   }
 
   async updateTrial(id, updateData) {
-    if (!id) throw new Error('Trial ID is required')
-    const validatedUpdate = validateUpdateTrial(updateData)
     const trialRef = db.collection(COLLECTIONS.TRIAL).doc(id)
-
+    
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(trialRef)
-      if (!doc.exists) throw new Error('Trial record not found')
+      if (!doc.exists) throw new Error('Trial not found')
 
-      const oldData = doc.data()
+      const currentData = doc.data()
+      transaction.update(trialRef, { ...updateData, updatedAt: new Date().toISOString() })
 
-      if (
-        validatedUpdate.programId &&
-        validatedUpdate.programId !== oldData.programId
-      ) {
-        const pDoc = await transaction.get(
-          db.collection(COLLECTIONS.PROGRAM).doc(validatedUpdate.programId),
-        )
-        if (pDoc.exists)
-          validatedUpdate.program = profileHelper.getProgramSnapshot(
-            pDoc.id,
-            pDoc.data(),
-          )
-      }
-      if (
-        validatedUpdate.classId &&
-        validatedUpdate.classId !== oldData.classId
-      ) {
-        const cDoc = await transaction.get(
-          db.collection(COLLECTIONS.CLASS).doc(validatedUpdate.classId),
-        )
-        if (cDoc.exists) {
-          const cData = cDoc.data()
-          validatedUpdate.class = profileHelper.getClassSnapshot(cDoc.id, cData)
-          validatedUpdate.branchId = cData.branchId
+      if (updateData.classId && updateData.classId !== currentData.classId) {
+        const classDoc = await db.collection(COLLECTIONS.CLASS).doc(updateData.classId).get()
+        if (classDoc.exists) {
+          const classSnap = profileHelper.getClassSnapshot(updateData.classId, classDoc.data())
+          const branchSnap = classDoc.data().branch
+          transaction.update(trialRef, { class: classSnap, branch: branchSnap })
         }
       }
-
-      if (!oldData.isGuest) {
-        if (
-          validatedUpdate.studentId &&
-          validatedUpdate.studentId !== oldData.studentId
-        ) {
-          const sDoc = await transaction.get(
-            db.collection(COLLECTIONS.STUDENT).doc(validatedUpdate.studentId),
-          )
-          if (sDoc.exists)
-            validatedUpdate.student = profileHelper.getStudentSnapshot(
-              sDoc.id,
-              sDoc.data(),
-            )
-        }
-        if (
-          validatedUpdate.parentId &&
-          validatedUpdate.parentId !== oldData.parentId
-        ) {
-          const pDoc = await transaction.get(
-            db.collection(COLLECTIONS.PARENT).doc(validatedUpdate.parentId),
-          )
-          if (pDoc.exists)
-            validatedUpdate.parent = profileHelper.getParentSnapshot(
-              pDoc.id,
-              pDoc.data(),
-            )
-        }
-      }
-
-      transaction.update(trialRef, validatedUpdate)
     })
 
-    return { id, ...validatedUpdate }
+    return { id, message: 'Trial updated successfully' }
   }
 
   async deleteTrial(id) {
-    if (!id) throw new Error('Trial ID is required')
-    await db.collection(COLLECTIONS.TRIAL).doc(id).delete()
-    return { message: 'Trial record deleted successfully' }
+    const trialRef = db.collection(COLLECTIONS.TRIAL).doc(id)
+    const doc = await trialRef.get()
+    if (!doc.exists) throw new Error('Trial not found')
+
+    await trialRef.delete()
+    return { message: 'Trial deleted successfully' }
+  }
+
+  // --- Synchronization Utilities ---
+
+  async syncTrialsWithClass(classId, classSnapshot) {
+    const snapshot = await db
+      .collection(COLLECTIONS.TRIAL)
+      .where('classId', '==', classId)
+      .get()
+
+    if (snapshot.empty) return
+
+    const batch = db.batch()
+    snapshot.docs.forEach((doc) => {
+      batch.update(doc.ref, { class: classSnapshot })
+    })
+    await batch.commit()
+  }
+
+  async syncTrialsWithProgram(programId, programSnapshot) {
+    const snapshot = await db
+      .collection(COLLECTIONS.TRIAL)
+      .where('programId', '==', programId)
+      .get()
+
+    if (snapshot.empty) return
+
+    const batch = db.batch()
+    snapshot.docs.forEach((doc) => {
+      batch.update(doc.ref, { program: programSnapshot })
+    })
+    await batch.commit()
   }
 }
 

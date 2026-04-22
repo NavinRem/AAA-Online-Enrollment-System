@@ -19,16 +19,17 @@ class BranchService {
     return { id, ...validatedData }
   }
 
+  async getAllBranches(filters = {}) {
+    let query = db.collection(COLLECTIONS.BRANCH)
+    const snapshot = await query.get()
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  }
+
   async getBranch(id) {
     if (!id) throw new Error('Branch ID is required')
     const doc = await db.collection(COLLECTIONS.BRANCH).doc(id).get()
     if (!doc.exists) throw new Error('Branch not found')
     return { id: doc.id, ...doc.data() }
-  }
-
-  async getAllBranches() {
-    const snapshot = await db.collection(COLLECTIONS.BRANCH).get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 
   async updateBranch(id, data) {

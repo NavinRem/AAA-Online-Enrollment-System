@@ -54,10 +54,7 @@ class LevelService {
       const profileHelper = require('../utils/profileHelper')
 
       programsSnap.forEach((pDoc) => {
-        const updatedSnapshot = profileHelper.getLevelSnapshot(
-          id,
-          validatedData,
-        )
+        const updatedSnapshot = profileHelper.getLevelSnapshot(id, validatedData)
         batch.update(pDoc.ref, {
           level: validatedData.name,
           levelInfo: updatedSnapshot,

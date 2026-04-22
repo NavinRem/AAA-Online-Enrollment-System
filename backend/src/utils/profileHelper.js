@@ -49,11 +49,11 @@ class ProfileHelper {
       totalSessions: programData.totalSessions || 0,
       basePrice: programData.basePrice || 0,
       description: programData.description || '',
-      category: programData.category || '',
-      level: programData.level || '',
-      maxCapacity: programData.maxCapacity || 0,
       type: programData.type || '',
       profileURL: programData.profileURL || '',
+      maxCapacity: programData.maxCapacity || 0,
+      minAge: programData.minAge || 0,
+      maxAge: programData.maxAge || 0,
     }
   }
 
@@ -101,12 +101,13 @@ class ProfileHelper {
       program: data.program,
       term: data.term,
       branch: data.branch,
-      teachers: data.teachers || [],
-      schedules: data.schedules || [],
+      teacher: data.teacher || null,
+      level: data.level || null,
+      schedule: data.schedule || null,
       status: data.status || 'open',
-      maxCapacity: data.maxCapacity || 0,
-      enrolledCount: data.enrolledCount || 0,
-      isFull: (data.enrolledCount || 0) >= (data.maxCapacity || 0),
+      capacity: data.capacity || 0,
+      currentCount: data.currentCount || 0,
+      isFull: (data.currentCount || 0) >= (data.capacity || 0),
     }
   }
 
@@ -114,7 +115,6 @@ class ProfileHelper {
     if (!existingSnapshot) return null
 
     const allowedFields = Object.keys(existingSnapshot)
-
     const cleanUpdates = {}
 
     Object.keys(updates).forEach((key) => {

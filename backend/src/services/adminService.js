@@ -57,6 +57,7 @@ class AdminService {
     }
 
     await db.collection(COLLECTIONS.ADMIN).doc(id).delete()
+    await authService.deleteAccount(id)
     return { message: 'Admin deleted successfully' }
   }
 }
