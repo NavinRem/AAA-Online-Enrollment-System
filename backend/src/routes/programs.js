@@ -6,11 +6,10 @@ const { verifyToken, isAdmin } = require('../middleware/authMiddleware')
 
 router.use(verifyToken)
 
+router.post('/', isAdmin, programController.createProgram)
 router.get('/', programController.getAllPrograms)
 router.get('/:id', programController.getProgram)
 router.get('/:id/classes', classController.getAvailableClasses)
-
-router.post('/', isAdmin, programController.createProgram)
 router.patch('/:id', isAdmin, programController.updateProgram)
 router.delete('/:id', isAdmin, programController.deleteProgram)
 

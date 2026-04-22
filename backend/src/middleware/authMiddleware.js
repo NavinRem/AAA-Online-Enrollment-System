@@ -7,7 +7,7 @@ const verifyToken = async (req, res, next) => {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({
       error: 'Unauthorized',
-      message: 'No authentication token provided',
+      message: 'Authentication required. No token provided.',
     })
   }
 
@@ -21,7 +21,7 @@ const verifyToken = async (req, res, next) => {
     logger.error('Token verification failed:', error.message)
     return res.status(401).json({
       error: 'Unauthorized',
-      message: 'Invalid or expired authentication token',
+      message: 'Session expired or invalid token. Please log in again.',
     })
   }
 }
@@ -30,33 +30,34 @@ const isAdmin = (req, res, next) => {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({
       error: 'Forbidden',
-      message: 'Access Denied: Only administrators can access this portal.',
+      message: 'Access Denied: Administrative privileges required.',
     })
   }
   next()
 }
 
-const isStaff = (req, res, next) => {
-  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'staff')) {
-    return res.status(403).json({
-      error: 'Forbidden',
-      message:
-        'Access Denied: Only staff members and administrators can access this portal.',
-    })
-  }
-  next()
-}
-
+/**
+ * Ensures the logged-in user is either the owner of the account (by UID) or an admin.
+ * Primarily used for /auth/profile/:uid routes.
+ */
 const isOwnerOrAdmin = (req, res, next) => {
   const targetUid = req.params.uid
-  if (!req.user) return res.status(401).json({ error: 'Unauthorized' })
+  if (!req.user) {
+    return res.status(401).json({ 
+      error: 'Unauthorized',
+      message: 'Authentication required.' 
+    })
+  }
 
-  if (req.user.uid === targetUid || req.user.role === 'admin') {
+  const isOwner = req.user.uid === targetUid
+  const isAdminUser = req.user.role === 'admin'
+
+  if (isOwner || isAdminUser) {
     next()
   } else {
     return res.status(403).json({
       error: 'Forbidden',
-      message: 'You do not have permission to access this resource',
+      message: 'Access Denied: You can only access your own profile.',
     })
   }
 }
@@ -64,6 +65,5 @@ const isOwnerOrAdmin = (req, res, next) => {
 module.exports = {
   verifyToken,
   isAdmin,
-  isStaff,
   isOwnerOrAdmin,
 }

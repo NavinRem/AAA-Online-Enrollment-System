@@ -7,9 +7,9 @@ const { registrationLimiter } = require('../config/limiters')
 router.use(verifyToken)
 router.use(isAdmin)
 
+router.post('/', registrationLimiter, teacherController.createTeacher)
 router.get('/', teacherController.getAllTeachers)
 router.get('/:id', teacherController.getTeacher)
-router.post('/', registrationLimiter, teacherController.createTeacher)
 router.patch('/:id', teacherController.updateTeacher)
 router.delete('/:id', teacherController.deleteTeacher)
 

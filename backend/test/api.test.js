@@ -24,9 +24,9 @@ const enrollmentServiceMock = {
 
 // Use proxyquire to inject mocks
 const enrollmentController = proxyquire(
-  '../src/controllers/core/enrollmentController',
+  '../src/controllers/enrollmentController',
   {
-    '../../services/core/enrollmentService': enrollmentServiceMock,
+    '../services/enrollmentService': enrollmentServiceMock,
   },
 )
 
