@@ -13,9 +13,9 @@ const paymentRoutes = require('./src/routes/payments')
 
 const studentRoutes = require('./src/routes/students')
 const parentRoutes = require('./src/routes/parents')
+const authRoutes = require('./src/routes/auth')
 const adminRoutes = require('./src/routes/admins')
 const teacherRoutes = require('./src/routes/teachers')
-const userRoutes = require('./src/routes/users')
 
 const programRoutes = require('./src/routes/programs')
 const categoryRoutes = require('./src/routes/categories')
@@ -37,9 +37,10 @@ apiRouter.use('/payments', paymentRoutes)
 
 apiRouter.use('/students', studentRoutes)
 apiRouter.use('/parents', parentRoutes)
+apiRouter.use('/auth', authRoutes)
+apiRouter.use('/users', authRoutes)
 apiRouter.use('/admins', adminRoutes)
 apiRouter.use('/teachers', teacherRoutes)
-apiRouter.use('/users', userRoutes)
 
 apiRouter.use('/programs', programRoutes)
 apiRouter.use('/categories', categoryRoutes)
