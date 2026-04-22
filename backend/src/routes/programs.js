@@ -4,11 +4,14 @@ const programController = require('../controllers/programController')
 const classController = require('../controllers/classController')
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware')
 
-router.post('/', verifyToken, isAdmin, programController.createProgram)
-router.get('/', verifyToken, programController.getAllPrograms)
-router.get('/:id/classes', verifyToken, classController.getAvailableClasses)
-router.get('/:id', verifyToken, programController.getProgram)
-router.patch('/:id', verifyToken, isAdmin, programController.updateProgram)
-router.delete('/:id', verifyToken, isAdmin, programController.deleteProgram)
+router.use(verifyToken)
+
+router.get('/', programController.getAllPrograms)
+router.get('/:id', programController.getProgram)
+router.get('/:id/classes', classController.getAvailableClasses)
+
+router.post('/', isAdmin, programController.createProgram)
+router.patch('/:id', isAdmin, programController.updateProgram)
+router.delete('/:id', isAdmin, programController.deleteProgram)
 
 module.exports = router

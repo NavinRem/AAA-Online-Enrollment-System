@@ -5,16 +5,12 @@ const { verifyToken, isAdmin } = require('../middleware/authMiddleware')
 const { registrationLimiter } = require('../config/limiters')
 
 router.use(verifyToken)
+router.use(isAdmin)
 
-router.get('/', isAdmin, teacherController.getAllTeachers)
+router.get('/', teacherController.getAllTeachers)
 router.get('/:id', teacherController.getTeacher)
-router.post(
-  '/register',
-  isAdmin,
-  registrationLimiter,
-  teacherController.createTeacher,
-)
-router.patch('/:id', isAdmin, teacherController.updateTeacher)
-router.delete('/:id', isAdmin, teacherController.deleteTeacher)
+router.post('/', registrationLimiter, teacherController.createTeacher)
+router.patch('/:id', teacherController.updateTeacher)
+router.delete('/:id', teacherController.deleteTeacher)
 
 module.exports = router

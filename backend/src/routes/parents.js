@@ -4,9 +4,12 @@ const parentController = require('../controllers/parentController')
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware')
 const { registrationLimiter } = require('../config/limiters')
 
+router.use(verifyToken)
+
+router.get('/', isAdmin, parentController.getAllParents)
+router.get('/:id', parentController.getParent)
 router.post('/', registrationLimiter, parentController.createParent)
-router.get('/', verifyToken, isAdmin, parentController.getAllParents)
-router.get('/:id', verifyToken, parentController.getParent)
-router.patch('/:id', verifyToken, parentController.updateParent)
-router.delete('/:id', verifyToken, parentController.deleteParent)
+router.patch('/:id', parentController.updateParent)
+router.delete('/:id', parentController.deleteParent)
+
 module.exports = router

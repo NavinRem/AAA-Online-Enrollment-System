@@ -9,7 +9,7 @@ router.use(isAdmin)
 
 router.get('/', adminController.getAllAdmins)
 router.get('/:id', adminController.getAdmin)
-router.post('/register', registrationLimiter, adminController.createAdmin)
+router.post('/', registrationLimiter, adminController.createAdmin)
 router.patch('/:id', adminController.updateAdmin)
 router.delete('/:id', adminController.deleteAdmin)
 

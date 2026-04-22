@@ -3,24 +3,18 @@ const router = express.Router()
 const classController = require('../controllers/classController')
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware')
 
-// Bulk Operations
-router.post(
-  '/duplicate',
-  verifyToken,
-  isAdmin,
-  classController.duplicateClasses,
-)
+router.use(verifyToken)
 
-// CRUD
-router.post('/', verifyToken, isAdmin, classController.createClass)
-router.get('/', verifyToken, classController.getAllClasses)
-router.get('/:id', verifyToken, classController.getClass)
-router.patch('/:id', verifyToken, isAdmin, classController.updateClass)
-router.delete('/:id', verifyToken, isAdmin, classController.deleteClass)
+router.get('/', classController.getAllClasses)
+router.get('/:id', classController.getClass)
+router.get('/:id/validate-capacity', classController.validateCapacity)
 
-// Operational/Syncing
-router.get('/:id/validate-capacity', verifyToken, classController.validateCapacity)
-router.post('/:id/sync', verifyToken, isAdmin, classController.syncCount)
-router.post('/sync-all', verifyToken, isAdmin, classController.syncAllCounts)
+router.post('/', isAdmin, classController.createClass)
+router.patch('/:id', isAdmin, classController.updateClass)
+router.delete('/:id', isAdmin, classController.deleteClass)
+
+router.post('/duplicate', isAdmin, classController.duplicateClasses)
+router.post('/:id/sync', isAdmin, classController.syncCount)
+router.post('/sync-all', isAdmin, classController.syncAllCounts)
 
 module.exports = router

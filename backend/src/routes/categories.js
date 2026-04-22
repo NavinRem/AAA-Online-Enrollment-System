@@ -3,10 +3,10 @@ const router = express.Router()
 const categoryController = require('../controllers/categoryController')
 const { verifyToken, isAdmin } = require('../middleware/authMiddleware')
 
-router.get('/', verifyToken, categoryController.getAllCategories)
+router.use(verifyToken)
 
-router.post('/', verifyToken, isAdmin, categoryController.createCategory)
-
-router.delete('/:id', verifyToken, isAdmin, categoryController.deleteCategory)
+router.get('/', categoryController.getAllCategories)
+router.post('/', isAdmin, categoryController.createCategory)
+router.delete('/:id', isAdmin, categoryController.deleteCategory)
 
 module.exports = router
