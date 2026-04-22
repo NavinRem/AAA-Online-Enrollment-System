@@ -1,146 +1,63 @@
-<template>
-  <DashboardLayout>
-    <DataPageLayout overviewTitle="Class Overview">
-      <template #overview>
-        <DataMetrics :stats="statsCards" />
-      </template>
-
-      <template #table>
-        <DataTable title="Class List" :headers="classHeaders" :items="filteredClasses" :loading="loading"
-          :flexible="true" searchPlaceholder="Search classes by program, teacher, or branch...">
-          <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="!rounded-std shadow-sm" @click="openAddModal">
-              <img :src="getActionIcon('plus')" class="w-3.5 h-3.5 brightness-0 invert mt-px" />
-              <span class="font-bold">New Class</span>
-            </AppButton>
-          </template>
-
-          <template #row="{ item, index, headers }">
-            <tr class="ui-row">
-              <td class="ui-cell text-center font-bold text-content-muted/40 hidden md:table-cell"
-                :style="{ width: headers[0].width }">
-                {{ index + 1 }}
-              </td>
-              <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-                <div class="ui-identity-cell">
-                  <div class="ui-avatar-sm ring-1 ring-border bg-white">
-                    <img :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)" alt="program" />
-                  </div>
-                  <div class="ui-identity-info">
-                    <span class="font-bold text-content-dark">{{ item.program?.name }}</span>
-                    <span class="text-3xs text-content-muted uppercase font-bold tracking-tight">{{
-                      item.program?.category
-                    }}</span>
-                  </div>
-                </div>
-              </td>
-              <td class="ui-cell font-bold text-content-dark hidden md:table-cell" :style="{ width: headers[2].width }">
-                {{ item.term?.name }}
-              </td>
-              <td class="ui-cell text-center" :style="{ width: headers[3].width }">
-                <AppBadge :status="item.branch?.name || item.branch?.abbr" type="blue" />
-              </td>
-              <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-                <div v-if="item.teacher" class="ui-identity-cell">
-                  <div class="ui-avatar-sm">
-                    <img :src="item.teacher.profileURL || getImageUrl('profiles/avatar-parent')" alt="teacher" />
-                  </div>
-                  <span class="font-bold text-xs text-content-dark">{{ item.teacher.name }}</span>
-                </div>
-                <span v-else class="text-content-muted/40 italic text-xs">Not assigned</span>
-              </td>
-              <td class="ui-cell" :style="{ width: headers[5].width }">
-                <div class="flex flex-col gap-0.5">
-                  <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
-                    item.day
-                  }}</span>
-                  <span class="text-3xs text-content-muted font-bold uppercase">{{ item.timeslot }}</span>
-                </div>
-              </td>
-              <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[6].width }">
-                <div class="flex flex-col items-center gap-1 w-full">
-                  <div class="w-16 h-1.5 bg-surface-light rounded-full overflow-hidden">
-                    <div class="h-full transition-all duration-500 rounded-full"
-                      :style="{ width: (item.numStudent / item.capacity) * 100 + '%' }" :class="getCapacityClass(item)">
-                    </div>
-                  </div>
-                  <span class="text-3xs font-black text-content-muted uppercase tracking-widest">{{ item.numStudent
-                  }}/{{ item.capacity }}</span>
-                </div>
-              </td>
-              <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-                <AppBadge :status="item.status" :type="item.status === 'open' ? 'success' : 'neutral'" />
-              </td>
-              <td class="ui-cell text-center" :style="{ width: headers[8].width }">
-                <div class="ui-action-menu">
-                  <button class="ui-btn-dots" @click.stop="openEditModal(item)">
-                    <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-70" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </template>
-        </DataTable>
-      </template>
-    </DataPageLayout>
-  </DashboardLayout>
-
-  <ClassActionModal :isOpen="modal.isOpen" :type="modal.type" :classItem="modal.classItem" :loading="modal.loading"
-    @close="closeModal" @submit="handleModalSubmit" />
-</template>
-
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DataPageLayout from '@/components/layout/DataPageLayout.vue'
-import DataMetrics from '@/components/common/data/DataMetrics.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
+import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
-import { programService } from '@/services/programService'
+import { classService } from '@/services/classService'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import { getProgramProfileURL } from '@/utils/assetHelper'
 
 const loading = ref(false)
 const classes = ref([])
 
 const classHeaders = [
-  { label: 'No', width: '50px', class: 'hide-on-mobile', align: 'center' },
+  { label: 'No', width: '50px', class: 'hidden md:table-cell', align: 'center' },
   { label: 'Program Model' },
-  { label: 'Term', width: '120px' },
-  { label: 'Branch', width: '100px' },
-  { label: 'Teacher' },
+  { label: 'Term Identity', width: '120px' },
+  { label: 'Campus', width: '100px', align: 'center' },
+  { label: 'Instructor', class: 'hidden sm:table-cell' },
   { label: 'Schedule', width: '150px' },
-  { label: 'Enrollment', width: '120px', align: 'center' },
+  { label: 'Utilization', width: '120px', align: 'center' },
   { label: 'Status', width: '100px', align: 'center' },
   { label: 'Action', width: '80px', align: 'center' },
 ]
 
 const statsCards = computed(() => [
   {
-    label: 'Live Classes',
+    label: 'Live Inventory',
     value: classes.value.length,
     image: getImageUrl('programs/total-program'),
     color: 'var(--accent-light)',
   },
   {
-    label: 'Open Classes',
+    label: 'Open Registry',
     value: classes.value.filter((c) => c.status === 'open').length,
     image: getImageUrl('programs/active-program'),
     color: 'var(--accent-light)',
   },
   {
-    label: 'Full Capacity',
-    value: classes.value.filter((c) => c.numStudent >= c.capacity).length,
+    label: 'Peak Load',
+    value: classes.value.filter((c) => c.currentCount >= c.capacity).length,
     image: getImageUrl('programs/archived-program'),
     color: 'var(--danger-light)',
+  },
+  {
+    label: 'Total Learners',
+    value: classes.value.reduce((sum, c) => sum + (c.currentCount || 0), 0),
+    image: getImageUrl('dashboard/card-available-program'),
+    color: 'var(--accent-light)',
   },
 ])
 
 const fetchClasses = async () => {
   loading.value = true
   try {
-    classes.value = await programService.getAllClasses()
+    const data = await classService.getAllClasses()
+    classes.value = Array.isArray(data) ? data : []
   } catch (err) {
     console.error('Failed to fetch classes:', err)
   } finally {
@@ -149,15 +66,6 @@ const fetchClasses = async () => {
 }
 
 const filteredClasses = computed(() => classes.value)
-
-const getCapacityClass = (item) => {
-  const percent = (item.numStudent / item.capacity) * 100
-  if (percent >= 100) return 'full'
-  if (percent >= 80) return 'near-full'
-  return ''
-}
-
-const getProgramProfileURL = (url) => url || getImageUrl('programs/piano')
 
 // Modal State
 const modal = ref({
@@ -175,10 +83,6 @@ const openEditModal = (item) => {
   modal.value = { isOpen: true, type: 'edit', classItem: item, loading: false }
 }
 
-const openDuplicateModal = () => {
-  modal.value = { isOpen: true, type: 'duplicate', classItem: null, loading: false }
-}
-
 const closeModal = () => {
   modal.value.isOpen = false
 }
@@ -187,16 +91,14 @@ const handleModalSubmit = async (formData) => {
   modal.value.loading = true
   try {
     if (modal.value.type === 'add') {
-      await programService.createClass(formData)
+      await classService.createClass(formData)
     } else if (modal.value.type === 'edit') {
-      await programService.updateClass(modal.value.classItem.id, formData)
-    } else if (modal.value.type === 'duplicate') {
-      await programService.duplicateClasses(formData)
+      await classService.updateClass(modal.value.classItem.id, formData)
     }
     await fetchClasses()
     closeModal()
   } catch (err) {
-    alert(err.message)
+    console.error('Modal action failed:', err)
   } finally {
     modal.value.loading = false
   }
@@ -204,3 +106,112 @@ const handleModalSubmit = async (formData) => {
 
 onMounted(fetchClasses)
 </script>
+
+<template>
+  <DashboardLayout>
+    <DataPageLayout overviewTitle="Academic Class Repository">
+      <template #overview>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
+        </div>
+      </template>
+
+      <template #table>
+        <DataTable 
+          title="Active Schedules" 
+          :headers="classHeaders" 
+          :items="filteredClasses" 
+          :loading="loading"
+          :flexible="true" 
+          searchPlaceholder="Search by program, teacher, or campus entity..."
+        >
+          <template #toolbar-actions>
+            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
+              <span class="font-black tracking-tight text-sm">Deploy Class</span>
+            </AppButton>
+          </template>
+
+          <template #row="{ item, index, headers }">
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell" :style="{ width: headers[0].width }">
+              {{ index + 1 }}
+            </td>
+
+            <td class="ui-cell min-w-[200px]" :style="{ flex: '1 1 0%' }">
+              <div class="flex items-center gap-4 group">
+                <div class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm bg-white p-2">
+                  <img :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)" class="w-full h-full object-contain" />
+                </div>
+                <div class="flex flex-col">
+                  <span class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{ item.program?.name || 'Academic Course' }}</span>
+                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">{{ item.program?.category || 'General' }}</span>
+                </div>
+              </div>
+            </td>
+
+            <td class="ui-cell" :style="{ width: headers[2].width }">
+              <div class="flex flex-col">
+                 <span class="text-xs font-black text-content-dark tracking-tight">{{ item.term?.name || 'Active Term' }}</span>
+                 <span class="text-[8px] font-black text-content-muted uppercase tracking-widest leading-none mt-1">Registry Period</span>
+              </div>
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[3].width }">
+              <AppBadge :status="item.branch?.abbr || item.branch?.name" type="blue" />
+            </td>
+
+            <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%' }">
+              <div v-if="item.teacher" class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-border shadow-sm">
+                  <img :src="item.teacher.profileURL || getImageUrl('profiles/avatar-student')" class="w-full h-full object-cover" />
+                </div>
+                <span class="font-bold text-xs text-content-dark tracking-tight">{{ item.teacher.name }}</span>
+              </div>
+              <span v-else class="text-[10px] font-black uppercase text-content-muted/30 tracking-widest italic">Staff Pending</span>
+            </td>
+
+            <td class="ui-cell" :style="{ width: headers[5].width }">
+              <div class="flex flex-col">
+                <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{ item.day }}</span>
+                <span class="text-[9px] font-black text-primary uppercase tracking-widest mt-1">{{ item.timeslot }}</span>
+              </div>
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+              <div class="flex flex-col items-center gap-2 w-full px-4">
+                <div class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
+                  <div 
+                    class="h-full transition-all duration-700 ease-out rounded-full"
+                    :style="{ width: (item.currentCount / item.capacity) * 100 + '%' }" 
+                    :class="(item.currentCount / item.capacity) >= 1 ? 'bg-error' : (item.currentCount / item.capacity) >= 0.8 ? 'bg-warning' : 'bg-emerald-500'"
+                  >
+                  </div>
+                </div>
+                <span class="text-[10px] font-black text-content-muted tabular-nums tracking-widest uppercase">{{ item.currentCount }}/{{ item.capacity }}</span>
+              </div>
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+              <AppBadge :status="item.status" :type="item.status === 'open' ? 'success' : 'neutral'" />
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+               <button @click.stop="openEditModal(item)" class="p-2 hover:bg-surface-subtle rounded-xl transition-all group">
+                 <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+               </button>
+            </td>
+          </template>
+        </DataTable>
+      </template>
+    </DataPageLayout>
+  </DashboardLayout>
+
+  <ClassActionModal 
+    :isOpen="modal.isOpen" 
+    :type="modal.type" 
+    :classItem="modal.classItem" 
+    :loading="modal.loading"
+    @close="closeModal" 
+    @submit="handleModalSubmit" 
+  />
+</template>

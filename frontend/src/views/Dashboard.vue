@@ -1,9 +1,9 @@
 <script setup>
 import { authService } from '../services/authService'
-import { userService } from '../services/userService'
 import { parentService } from '../services/parentService'
 import { studentService } from '../services/studentService'
 import { programService } from '../services/programService'
+import { classService } from '../services/classService'
 import { enrollmentService } from '../services/enrollmentService'
 import { trialService } from '../services/trialService'
 import { ref, onMounted, computed } from 'vue'
@@ -16,7 +16,7 @@ import {
 import { parseDate, formatPrice } from '@/utils/formatUtils'
 import { calculateDashboardStats } from '@/utils/statsHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
-import branchService from '../services/branchService'
+import { branchService } from '../services/branchService'
 
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
@@ -31,7 +31,7 @@ const userProfile = ref({
 const students = ref([])
 const programs = ref([])
 const enrollments = ref([])
-const sessions = ref([])
+const classes = ref([])
 const branches = ref([])
 const users = ref([])
 const loading = ref(true)
@@ -64,15 +64,15 @@ onMounted(() => {
     }
 
     try {
-      const profile = await userService.getProfile(currentUser.uid)
+      const profile = await authService.getUserProfile(currentUser.uid)
       userProfile.value = profile
 
-      const [pData, rData, prData, sData, sessData, bData, tData] = await Promise.all([
+      const [pData, rData, prData, sData, clsData, bData, tData] = await Promise.all([
         parentService.getAllParents(),
         enrollmentService.getAllEnrollments(),
         programService.getAllPrograms(),
         studentService.getAllStudents(),
-        programService.getAllClasses(),
+        classService.getAllClasses(),
         branchService.getAllBranches(),
         trialService.getAllTrials(),
       ])
@@ -81,7 +81,7 @@ onMounted(() => {
       enrollments.value = Array.isArray(rData) ? rData : []
       programs.value = Array.isArray(prData) ? prData : []
       students.value = Array.isArray(sData) ? sData : []
-      sessions.value = Array.isArray(sessData) ? sessData : []
+      classes.value = Array.isArray(clsData) ? clsData : []
       branches.value = Array.isArray(bData) ? bData : []
       trials.value = Array.isArray(tData) ? tData : []
 
@@ -90,7 +90,7 @@ onMounted(() => {
         enrollments.value,
         programs.value,
         students.value,
-        sessions.value,
+        classes.value,
         branches.value,
         trials.value,
       )
@@ -174,7 +174,7 @@ const mappedEnrollments = computed(() => {
     })
     .slice(0, 5)
 
-  return enrichEnrollments(raw, users.value, students.value, programs.value, sessions.value)
+  return enrichEnrollments(raw, users.value, students.value, programs.value, classes.value)
 })
 </script>
 

@@ -5,21 +5,21 @@ import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.vue'
-import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { programService } from '@/services/programService'
+import { classService } from '@/services/classService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { studentService } from '@/services/studentService'
 import { getProgramProfileURL, getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
-import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
 import { enrichEnrollments } from '@/utils/enrollmentHelper'
+import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
+import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 
 const route = useRoute()
 const router = useRouter()
 
 const program = ref(null)
-const sessions = ref([])
+const classes = ref([])
 const enrollments = ref([])
 const students = ref([])
 const loading = ref(true)
@@ -35,15 +35,15 @@ const initData = async () => {
   errorMessage.value = ''
 
   try {
-    const [pData, sData, eData, stdData] = await Promise.all([
+    const [pData, cData, eData, stdData] = await Promise.all([
       programService.getProgram(id),
-      programService.getSessions(id),
+      classService.getAvailableClasses(id),
       enrollmentService.getAllEnrollments(),
       studentService.getAllStudents(),
     ])
 
     program.value = pData
-    sessions.value = Array.isArray(sData) ? sData : []
+    classes.value = Array.isArray(cData) ? cData : []
 
     const allEnrollments = Array.isArray(eData) ? eData : []
     enrollments.value = allEnrollments.filter((e) => String(e.programId || '') === String(id))
@@ -75,34 +75,34 @@ const statsCards = computed(() => {
     .filter((e) => ['paid', 'confirmed'].includes(String(e.status || e.paymentStatus).toLowerCase()))
     .reduce((sum, e) => sum + Number(e.amount || program.value.basePrice || 0), 0)
 
-  const scheduledCount = sessionInstances.value.filter((i) => i.status === 'Scheduled').length
+  const scheduledCount = classInstances.value.filter((i) => i.status === 'Scheduled').length
   const maxCapacity = Number(program.value.maxCapacity || 5)
   const remainingCapacity = Math.max(0, maxCapacity - paidEnrollmentsCount)
 
   return [
     {
-      label: 'Total Enrolled',
+      label: 'Live Enrollment',
       value: paidEnrollmentsCount,
       image: getImageUrl('data-metric-card/total-enrolled'),
-      color: 'bg-primary-soft',
+      color: 'var(--accent-light)',
     },
     {
-      label: 'Total Revenue',
+      label: 'Financial Yield',
       value: `$${totalRevenue.toLocaleString()}`,
       image: getImageUrl('data-metric-card/program-revenue'),
-      color: 'bg-success-soft',
+      color: 'var(--accent-light)',
     },
     {
-      label: 'Active Sessions',
+      label: 'Open Sessions',
       value: scheduledCount,
       image: getImageUrl('data-metric-card/remaining-sessions'),
-      color: 'bg-warning-soft',
+      color: 'var(--accent-light)',
     },
     {
-      label: 'Remaining Slots',
+      label: 'Available Slots',
       value: remainingCapacity,
       image: getImageUrl('data-metric-card/enrollment-capacity'),
-      color: remainingCapacity < 2 ? 'bg-error/10' : 'bg-surface-subtle',
+      color: 'var(--accent-light)',
     },
   ]
 })
@@ -124,16 +124,16 @@ const enrolledStudents = computed(() => {
   })
 })
 
-const sessionInstances = computed(() => {
-  if (!program.value || sessions.value.length === 0) return []
+const classInstances = computed(() => {
+  if (!program.value || classes.value.length === 0) return []
 
   const instances = []
   const start = new Date(program.value.startDate)
   const end = new Date(program.value.endDate)
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-  sessions.value.forEach((session) => {
-    const dayName = session.schedule?.day
+  classes.value.forEach((cls) => {
+    const dayName = cls.day
     if (!dayName) return
 
     const targetDayIndex = days.indexOf(dayName)
@@ -151,10 +151,10 @@ const sessionInstances = computed(() => {
 
       let status = 'Scheduled'
       if (isToday) {
-        if (isSessionInProgress(session.schedule)) {
+        if (isSessionInProgress(cls)) {
           status = 'In Progress'
         } else {
-          const times = (session.schedule?.timeslot || '').split('-').map((t) => t.trim())
+          const times = (cls.timeslot || '').split('-').map((t) => t.trim())
           if (times.length === 2) {
             const [hours, minutes] = times[1].split(':').map(Number)
             const endMinutes = hours * 60 + minutes
@@ -167,10 +167,10 @@ const sessionInstances = computed(() => {
       }
 
       instances.push({
-        id: `${session.id}-${dateStr}`,
+        id: `${cls.id}-${dateStr}`,
         date: dateStr,
         day: dayName,
-        timeslot: session.schedule?.timeslot,
+        timeslot: cls.timeslot,
         status: status,
       })
 
@@ -180,13 +180,6 @@ const sessionInstances = computed(() => {
 
   return instances.sort((a, b) => a.date.localeCompare(b.date))
 })
-
-const handleStudentClick = (enroll) => {
-  const sId = enroll.studentId
-  if (sId) {
-    router.push(`/students/${sId}`)
-  }
-}
 
 const actionModal = ref({
   isOpen: false,
@@ -244,253 +237,245 @@ const handleActionSubmit = async (formData) => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/programs" title="Program Details">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/programs" title="Program Analytics">
       <template #header-actions v-if="program">
-        <div class="flex items-center gap-md">
-          <AppButton variant="secondary" title="Edit Program" @click="openActionModal('edit')">
-            <img :src="getActionIcon('edit')" class="w-4.5 h-4.5" /> Edit
+        <div class="flex items-center gap-3">
+          <AppButton variant="secondary" class="rounded-xl border-outline-std" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-70" /> 
+            <span class="font-bold">Edit Core Data</span>
           </AppButton>
-          <AppButton variant="danger" title="Delete Program" @click="openActionModal('delete')">
-            <img :src="getActionIcon('delete')" class="w-4.5 h-4.5 invert" /> Delete
+          <div class="w-px h-6 bg-outline-std mx-1"></div>
+          <AppButton variant="danger" class="rounded-xl shadow-lg shadow-error/10" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" class="w-4 h-4 invert" />
+            <span class="font-black">Terminate</span>
           </AppButton>
         </div>
       </template>
 
       <template #left-content v-if="program">
-        <!-- Metrics -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-lg mb-xl">
+        <!-- Identity Header -->
+        <div class="mb-10 p-8 rounded-[2rem] bg-white border border-outline-std shadow-sm flex flex-col md:flex-row items-center gap-10">
+          <div class="w-40 h-40 rounded-[2.5rem] overflow-hidden ring-4 ring-primary/5 shadow-2xl bg-surface-subtle p-6">
+            <img :src="getProgramProfileURL(program.profileURL, program.category)" class="w-full h-full object-contain" />
+          </div>
+          
+          <div class="flex flex-col items-center md:items-start text-center md:text-left flex-1">
+            <div class="flex items-center gap-3 mb-2">
+               <h1 class="text-4xl font-black text-content-dark tracking-tighter">{{ program.name }}</h1>
+               <AppBadge :status="getProgramDisplayStatus(program)" />
+            </div>
+            <div class="flex flex-wrap items-center justify-center md:justify-start gap-6 text-content-muted">
+               <div class="flex flex-col">
+                  <span class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Course Category</span>
+                  <span class="text-lg font-black text-primary tracking-tight">{{ program.category || 'Standard' }}</span>
+               </div>
+               <div class="w-px h-8 bg-outline-std"></div>
+               <div class="flex flex-col">
+                  <span class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Academic Term</span>
+                  <span class="text-sm font-bold text-content-dark">{{ program.termName || 'Open Enrollment' }}</span>
+               </div>
+               <div class="w-px h-8 bg-outline-std"></div>
+               <div class="flex flex-col">
+                  <span class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Base Valuation</span>
+                  <span class="text-sm font-black text-emerald-600 tabular-nums">${{ program.basePrice || 0 }}</span>
+               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           <DataMetricCard v-for="card in statsCards" :key="card.label" v-bind="card" />
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="ui-tabs-nav">
-          <button class="ui-tab-item" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">
-            Overview
-          </button>
-          <button class="ui-tab-item" :class="{ active: activeTab === 'students' }" @click="activeTab = 'students'">
-            Enrolled Students
-          </button>
-          <button class="ui-tab-item" :class="{ active: activeTab === 'classes' }" @click="activeTab = 'classes'">
-            Class History
-          </button>
-        </div>
+        <!-- Repository Tabs -->
+        <div class="bg-white rounded-[2.5rem] border border-outline-std shadow-sm overflow-hidden min-h-[500px]">
+          <div class="flex items-center gap-2 p-3 bg-surface-subtle/30 border-b border-outline-std">
+            <button
+              v-for="tab in ['overview', 'students', 'classes']"
+              :key="tab"
+              class="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300"
+              :class="activeTab === tab ? 'bg-white text-primary shadow-sm ring-1 ring-black/5' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
+              @click="activeTab = tab"
+            >
+              {{ tab === 'overview' ? 'Syllabus Details' : tab === 'students' ? 'Class Roster' : 'Attendance Log' }}
+            </button>
+          </div>
 
-        <!-- Tab Content -->
-        <div class="ui-detail-card min-h-[400px]">
-          <div v-if="activeTab === 'overview'">
-            <div class="ui-section-header">
-              <h3 class="ui-section-title">Program Highlights</h3>
+          <div class="p-8">
+            <!-- Overview -->
+            <div v-if="activeTab === 'overview'" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div class="space-y-6">
+                  <div class="p-6 rounded-3xl bg-surface-subtle/50 border border-outline-std/50">
+                     <span class="text-[10px] font-black uppercase tracking-widest text-content-muted block mb-3">Program Synopsis</span>
+                     <p class="text-sm font-medium leading-relaxed text-content-dark italic">
+                        {{ program.description || 'Detailed administrative synopsis pending for this academic program.' }}
+                     </p>
+                  </div>
+                  
+                  <div class="grid grid-cols-2 gap-4">
+                     <div class="p-6 rounded-3xl bg-white border border-outline-std shadow-sm">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Difficulty Level</span>
+                        <span class="text-base font-black text-content-dark">{{ program.levelName || 'Standard' }}</span>
+                     </div>
+                     <div class="p-6 rounded-3xl bg-white border border-outline-std shadow-sm">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Max Capacity</span>
+                        <span class="text-base font-black text-content-dark uppercase">{{ program.maxCapacity || 'Unlimited' }}</span>
+                     </div>
+                  </div>
+               </div>
+
+               <div class="space-y-4">
+                  <div class="p-6 rounded-3xl bg-white border border-outline-std shadow-sm flex items-center justify-between">
+                     <div class="flex flex-col">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Active Schedule</span>
+                        <span class="text-lg font-black text-content-dark tracking-tight">{{ program.schedule?.day }}</span>
+                        <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{ program.schedule?.timeslot }}</span>
+                     </div>
+                     <div class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center">
+                        <img :src="getActionIcon('calendar')" class="w-6 h-6 opacity-30" />
+                     </div>
+                  </div>
+                  
+                  <div class="p-6 rounded-3xl bg-white border border-outline-std shadow-sm flex items-center justify-between">
+                     <div class="flex flex-col">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Total Unit Quota</span>
+                        <span class="text-lg font-black text-content-dark tracking-tight">{{ program.totalSessions }} Sessions</span>
+                        <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                           ${{ (Number(program.basePrice || 0) / (Number(program.totalSessions) || 1)).toFixed(2) }} / unit
+                        </span>
+                     </div>
+                     <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                        <img :src="getActionIcon('payment')" class="w-6 h-6 opacity-30" />
+                     </div>
+                  </div>
+               </div>
             </div>
-            <div class="ui-data-list grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-xl">
-              <div class="ui-data-item">
-                <span class="ui-data-label">Program Category</span>
-                <span class="ui-data-value text-base">{{
-                  program.category || 'General Curriculum'
-                  }}</span>
-              </div>
-              <div class="ui-data-item">
-                <span class="ui-data-label">Academic Term</span>
-                <span class="ui-data-value text-base">{{
-                  program.termName || 'Not Specified'
-                  }}</span>
-              </div>
-              <div class="ui-data-item">
-                <span class="ui-data-label">Difficulty Level</span>
-                <span class="ui-data-value text-base">{{
-                  program.levelName || program.level || 'Beginner'
-                  }}</span>
-              </div>
-              <div class="ui-data-item">
-                <span class="ui-data-label">Execution Status</span>
-                <AppBadge :status="getProgramDisplayStatus(program)" />
-              </div>
-              <div class="ui-data-item">
-                <span class="ui-data-value text-xl font-black text-primary tracking-tighter">${{
-                  (Number(program.basePrice)
-                    || 0).toLocaleString() }}</span>
-              </div>
-              <div class="ui-data-item">
-                <span class="ui-data-label">Term Duration</span>
-                <span class="ui-data-value text-xs font-bold text-content-muted flex items-center gap-xs">
-                  {{ program.startDate }} <span class="opacity-30">—</span> {{ program.endDate }}
-                </span>
-              </div>
-              <div class="ui-data-item">
-                <span class="ui-data-label">Active Schedule</span>
-                <div class="flex flex-col gap-0.5">
-                  <span class="ui-data-value text-base tracking-tight">{{
-                    program.schedule?.day
-                    }}</span>
-                  <span class="text-xs font-black text-content-muted uppercase">{{
-                    program.schedule?.timeslot
-                    }}</span>
+
+            <!-- Roster -->
+            <div v-if="activeTab === 'students'">
+              <div class="flex items-center justify-between mb-8">
+                <h3 class="text-lg font-black text-content-dark tracking-tight">Student Enrollment Registry</h3>
+                <div class="relative group">
+                  <input type="text" v-model="searchQuery" placeholder="Filter by name..."
+                    class="w-64 pl-10 pr-4 py-2.5 rounded-xl border border-outline-std text-xs font-bold focus:ring-4 focus:ring-primary/5 outline-none transition-all placeholder:text-content-muted/40" />
+                  <img :src="getActionIcon('search')" class="absolute left-3.5 top-3 w-4 h-4 opacity-20" />
                 </div>
               </div>
-              <div class="ui-data-item">
-                <span class="ui-data-label">Session Quota</span>
-                <span class="ui-data-value text-base">{{ program.totalSessions }} Total Units</span>
-              </div>
-              <div class="ui-data-item">
-                <span class="ui-data-value text-base">${{
-                  (Number(program.basePrice || 0) / (Number(program.totalSessions) || 1)).toFixed(2)
-                }}
-                  <span class="text-2xs opacity-40">/ unit</span></span>
-              </div>
-            </div>
-          </div>
 
-          <div v-if="activeTab === 'students'">
-            <div class="ui-section-header">
-              <h3 class="ui-section-title">Class Roster</h3>
-              <div class="relative w-64">
-                <input type="text" v-model="searchQuery" placeholder="Quick search students..."
-                  class="w-full pl-9 pr-4 py-2 border border-outline-std rounded-sm text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
-                <img :src="getActionIcon('search')" class="absolute left-3 top-2.5 w-4.5 h-4.5 opacity-30" />
+              <div v-if="enrolledStudents.length > 0" class="overflow-hidden rounded-3xl border border-outline-std">
+                <table class="w-full text-left">
+                  <thead class="bg-surface-subtle/50">
+                    <tr>
+                      <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Rank</th>
+                      <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Identity</th>
+                      <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Academic</th>
+                      <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-outline-std">
+                    <tr v-for="(item, idx) in enrolledStudents" :key="item.id" class="group hover:bg-surface-subtle/20 cursor-pointer transition-all" @click="router.push(`/students/${item.studentId}`)">
+                      <td class="px-6 py-5 text-xs font-black text-content-muted/30 tabular-nums">{{ idx + 1 }}</td>
+                      <td class="px-6 py-5">
+                        <div class="flex items-center gap-4">
+                           <div class="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all shadow-sm">
+                              <img :src="item.student?.profileURL" class="w-full h-full object-cover" />
+                           </div>
+                           <div class="flex flex-col">
+                              <span class="text-sm font-black text-content-dark group-hover:text-primary transition-colors tracking-tight">{{ item.student?.name }}</span>
+                              <span class="text-[9px] font-bold text-content-muted uppercase tracking-widest">Enrolled {{ item.enrollAt }}</span>
+                           </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-5 text-center">
+                        <AppBadge :status="item.academicStatus" />
+                      </td>
+                      <td class="px-6 py-5 text-center">
+                        <AppBadge :status="item.displayStatus" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else class="flex flex-col items-center justify-center py-20 opacity-30">
+                <img :src="getImageUrl('common/no-data')" class="w-20 mb-4 grayscale" />
+                <span class="text-sm font-black uppercase tracking-widest">No Registered Students</span>
               </div>
             </div>
-            <table v-if="enrolledStudents.length > 0" class="ui-premium-table">
-              <thead>
-                <tr>
-                  <th class="text-center" width="50">No</th>
-                  <th>Full Name</th>
-                  <th>Registry Date</th>
-                  <th class="text-center">Academic</th>
-                  <th class="text-center">Financial</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, idx) in enrolledStudents" :key="item.id || idx" @click="handleStudentClick(item)"
-                  class="group cursor-pointer hover:bg-surface-light transition-colors">
-                  <td class="text-center font-bold text-content-muted/40">{{ idx + 1 }}</td>
-                  <td>
-                    <div class="flex items-center gap-md">
-                      <div class="w-8 h-8 rounded-full overflow-hidden border border-outline-std">
-                        <img :src="item.student?.profileURL || getImageUrl('profiles/avatar-student')"
-                          class="w-full h-full object-cover" />
-                      </div>
-                      <span
-                        class="font-black text-content-dark tracking-tighter group-hover:text-primary transition-colors">{{
-                          item.student?.name || 'N/A' }}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <span class="text-xs font-bold text-content-muted">{{
-                      item.enrollAt || 'N/A'
-                      }}</span>
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="item.academicStatus" />
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="item.displayStatus" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-30">
-              <img :src="getImageUrl('common/no-data')" class="w-20" />
-              <p class="text-sm font-bold">No active enrollments found for this program.</p>
-            </div>
-          </div>
 
-          <div v-if="activeTab === 'classes'">
-            <div class="ui-section-header">
-              <h3 class="ui-section-title">Attendance Tracking Ledger</h3>
+            <!-- Attendance -->
+            <div v-if="activeTab === 'classes'">
+               <div v-if="classInstances.length > 0" class="overflow-hidden rounded-3xl border border-outline-std">
+                 <table class="w-full text-left">
+                   <thead class="bg-surface-subtle/50">
+                     <tr>
+                       <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Timeline</th>
+                       <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Session Slot</th>
+                       <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Live Status</th>
+                     </tr>
+                   </thead>
+                   <tbody class="divide-y divide-outline-std">
+                     <tr v-for="item in classInstances" :key="item.id" class="hover:bg-surface-subtle/20 transition-colors">
+                       <td class="px-6 py-5">
+                          <div class="flex flex-col">
+                             <span class="text-sm font-black text-content-dark tabular-nums tracking-tight">{{ item.date }}</span>
+                             <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.day }}</span>
+                          </div>
+                       </td>
+                       <td class="px-6 py-5 text-xs font-bold text-content-dark uppercase">
+                          {{ item.timeslot }}
+                       </td>
+                       <td class="px-6 py-5 text-center">
+                          <AppBadge :status="item.status" />
+                       </td>
+                     </tr>
+                   </tbody>
+                 </table>
+               </div>
+               <div v-else class="flex flex-col items-center justify-center py-20 opacity-30">
+                  <img :src="getImageUrl('common/no-data')" class="w-20 mb-4 grayscale" />
+                  <span class="text-sm font-black uppercase tracking-widest">No Class Records Available</span>
+               </div>
             </div>
-            <table class="ui-premium-table">
-              <thead>
-                <tr>
-                  <th>Execution Date</th>
-                  <th>Scheduled Day</th>
-                  <th>Time Allocation</th>
-                  <th class="text-center">Registry Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="item in sessionInstances" :key="item.id">
-                  <td>
-                    <span class="font-black text-content-dark tracking-tighter">{{
-                      item.date
-                      }}</span>
-                  </td>
-                  <td>
-                    <span class="text-xs font-black text-content-muted uppercase">{{
-                      item.day
-                      }}</span>
-                  </td>
-                  <td>
-                    <span class="text-xs font-bold text-content-muted">{{ item.timeslot }}</span>
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="item.status" />
-                  </td>
-                </tr>
-                <tr v-if="sessionInstances.length === 0">
-                  <td colspan="4" class="py-20 text-center text-content-muted italic text-xs">
-                    No execution history initialized for this term.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
       </template>
 
       <template #right-content v-if="program">
-        <div class="ui-detail-card flex flex-col items-center text-center p-0 overflow-hidden">
-          <div class="w-full h-32 bg-primary/5">
-            <img :src="getProgramProfileURL(program.profileURL, program.category)"
-              class="w-full h-full object-cover opacity-10 hover:opacity-20 transition-opacity" />
-          </div>
-          <div class="relative -mt-16 mb-md">
-            <div class="w-32 h-32 rounded-std border-4 border-white shadow-xl bg-white p-4">
-              <img :src="getProgramProfileURL(program.profileURL, program.category)
-                " alt="Program Icon" class="w-full h-full object-contain" />
-            </div>
-          </div>
-
-          <div class="px-xl pb-xl w-full">
-            <h2 class="text-2xl font-black text-content-dark tracking-tighter mb-md leading-tight">
-              {{ program.name }}
-            </h2>
-
-            <div class="w-full h-px bg-surface-light my-xl"></div>
-
-            <DetailedSummaryCard subtitle="Program Synopsis" class="bg-transparent p-0 mt-0">
-              <p
-                class="text-xs text-content-muted leading-relaxed font-medium text-left bg-surface-subtle p-md rounded-sm border border-outline-std/30 italic">
-                {{
-                  program.description ||
-                  'No descriptive overview provided for this academic program.'
-                }}
-              </p>
-            </DetailedSummaryCard>
-
-            <div class="mt-lg pt-lg border-t border-surface-light w-full">
-              <h3 class="text-3xs font-black uppercase text-content-muted tracking-widest mb-md text-left">
-                Academic Instructors
-              </h3>
-              <div class="flex flex-col gap-sm">
-                <div v-for="t in program.teachers" :key="t.id"
-                  class="flex items-center gap-md p-md bg-surface-light rounded-sm border border-outline-std/20 group">
-                  <div
-                    class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-border">
-                    <img :src="t.profileURL" alt="Teacher" class="w-full h-full object-cover" />
-                  </div>
-                  <div class="flex flex-col text-left">
-                    <span
-                      class="text-sm font-black text-content-dark tracking-tighter group-hover:text-primary transition-colors leading-none mb-1">{{
-                        t.name || 'Faculty Staff' }}</span>
-                    <span class="text-3xs font-black uppercase text-content-muted tracking-widest">{{ t.role }}</span>
-                  </div>
+        <!-- Faculty Card -->
+        <div class="bg-white rounded-[2rem] border border-outline-std shadow-sm overflow-hidden">
+           <div class="p-6 border-b border-outline-std bg-surface-subtle/30">
+              <h3 class="text-xs font-black uppercase tracking-widest text-content-muted">Assigned Faculty</h3>
+           </div>
+           <div class="p-6 space-y-4">
+              <template v-if="program.teachers?.length">
+                <div v-for="t in program.teachers" :key="t.id" class="flex items-center gap-4 group">
+                   <div class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all shadow-sm">
+                      <img :src="t.profileURL" class="w-full h-full object-cover" />
+                   </div>
+                   <div class="flex flex-col">
+                      <span class="text-sm font-black text-content-dark group-hover:text-primary transition-colors tracking-tight">{{ t.name }}</span>
+                      <span class="text-[9px] font-black text-content-muted uppercase tracking-widest">{{ t.role || 'Instructor' }}</span>
+                   </div>
                 </div>
-                <div v-if="!program.teachers || program.teachers.length === 0"
-                  class="text-center p-md bg-surface-light rounded-sm italic text-xs text-content-muted opacity-50 font-bold">
-                  {{ program.teacherName || 'No staff assigned' }}
-                </div>
+              </template>
+              <div v-else class="flex flex-col items-center py-6 opacity-30 italic">
+                 <span class="text-[10px] font-bold uppercase tracking-widest text-content-muted">Unassigned Staff</span>
+                 <span class="text-xs font-black text-content-dark mt-1">{{ program.teacherName || 'TBA' }}</span>
               </div>
-            </div>
-          </div>
+           </div>
+        </div>
+        
+        <!-- Action Summary -->
+        <div class="mt-6 flex flex-col gap-3 opacity-40 px-4">
+           <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+              <span>Initialized</span>
+              <span class="text-content-dark">{{ program.createdAt ? new Date(program.createdAt).toLocaleDateString() : 'N/A' }}</span>
+           </div>
+           <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
+              <span>Last Sync</span>
+              <span class="text-content-dark">{{ program.updatedAt ? new Date(program.updatedAt).toLocaleDateString() : 'Active' }}</span>
+           </div>
         </div>
       </template>
     </DetailPageLayout>

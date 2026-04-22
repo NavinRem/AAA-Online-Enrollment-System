@@ -11,6 +11,7 @@ import { studentService } from '@/services/studentService'
 import { parentService } from '@/services/parentService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { programService } from '@/services/programService'
+import { classService } from '@/services/classService'
 import { trackingService } from '@/services/trackingService'
 import { formatDate, formatDateOnly, calculateAge } from '@/utils/formatUtils'
 import { filterDetailEnrollments, getAcademicStatus, enrichEnrollments } from '@/utils/enrollmentHelper'
@@ -460,7 +461,7 @@ const fetchData = async (id) => {
       programService.getAllPrograms(),
       parentService.getAllParents(),
       studentService.getAllStudents(),
-      programService.getAllClasses(),
+      classService.getAllClasses(),
     ])
 
     const sid = String(id)
@@ -511,318 +512,268 @@ watch(
       :loading="loading"
       :errorMessage="errorMessage"
       backRoute="/students"
-      title="Student Details"
+      title="Student Profile"
     >
       <template #header-actions v-if="student">
-        <div class="flex items-center gap-md">
+        <div class="flex items-center gap-3">
           <AppButton
             variant="secondary"
-            title="Edit Profile"
+            class="rounded-xl border-outline-std bg-white/50 backdrop-blur-sm"
             @click="openActionModal('edit')"
             :disabled="isParentInactive || isArchived"
           >
-            <img :src="getActionIcon('edit')" class="w-4 h-4" /> Edit
+            <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-70" /> 
+            <span class="font-bold">Edit Profile</span>
           </AppButton>
           <AppButton
             variant="secondary"
-            title="Override Status"
+            class="rounded-xl border-outline-std bg-white/50 backdrop-blur-sm"
             @click="openActionModal('override')"
             :disabled="isParentInactive || isArchived"
           >
-            <img :src="getActionIcon('quick-action')" class="w-4 h-4" /> Status
+            <img :src="getActionIcon('quick-action')" class="w-4 h-4 opacity-70" /> 
+            <span class="font-bold">Status</span>
           </AppButton>
+          <div class="w-px h-6 bg-outline-std mx-1"></div>
           <AppButton
             variant="danger"
-            title="Delete Student"
+            class="rounded-xl shadow-lg shadow-error/10"
             @click="openActionModal('delete')"
             :disabled="isParentInactive || isArchived"
           >
-            <img :src="getActionIcon('delete')" class="w-4 h-4 invert" /> Delete
+            <img :src="getActionIcon('delete')" class="w-4 h-4 invert" /> 
+            <span class="font-black">Delete</span>
           </AppButton>
         </div>
       </template>
 
       <template #left-content v-if="student">
-        <!-- Alerts -->
-        <div v-if="isArchived || isParentInactive" class="mb-lg">
-          <div
-            v-if="isArchived"
-            class="p-md bg-info/10 border-l-4 border-info rounded-sm flex flex-col gap-1"
-          >
-            <strong class="text-info text-sm">Record Archived</strong>
-            <span class="text-xs text-content-muted"
-              >This student has stopped studying. This profile and all academic history are now
-              read-only.</span
-            >
+        <!-- Identity Header Card -->
+        <div class="mb-8 relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-white to-surface-subtle border border-white p-8 shadow-sm">
+          <div class="absolute top-0 right-0 p-8">
+             <AppBadge :status="student.status || 'Inactive'" />
           </div>
-          <div
-            v-else-if="isParentInactive"
-            class="p-md bg-warning/10 border-l-4 border-warning rounded-sm flex flex-col gap-1"
-          >
-            <strong class="text-warning text-sm">Parent Account Inactive</strong>
-            <span class="text-xs text-content-muted"
-              >The parent account is inactive. Reactivate it to manage this student.</span
-            >
+          <div class="flex flex-col md:flex-row items-center md:items-start gap-8 relative z-10">
+            <div class="relative group">
+              <div class="w-32 h-32 rounded-3xl overflow-hidden ring-4 ring-primary/5 shadow-xl transition-transform duration-500 group-hover:scale-105">
+                <img :src="student.profileURL" class="w-full h-full object-cover" />
+              </div>
+            </div>
+            <div class="flex flex-col items-center md:items-start text-center md:text-left">
+              <h1 class="text-4xl font-black text-content-dark tracking-tight mb-2">{{ student.name }}</h1>
+              <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-4">
+                <span class="px-3 py-1 rounded-lg bg-primary/5 text-primary text-xs font-black uppercase tracking-widest">{{ student.id.slice(-8) }}</span>
+                <span class="w-1 h-1 rounded-full bg-content-muted/30"></span>
+                <span class="text-sm font-bold text-content-muted">{{ calculateAge(student.dob) }} Years Old</span>
+                <span class="w-1 h-1 rounded-full bg-content-muted/30"></span>
+                <span class="text-sm font-bold text-content-muted">{{ formatDateOnly(student.dob) }}</span>
+              </div>
+              
+              <!-- Parent Info Shortcut -->
+              <div v-if="parent" class="flex items-center gap-3 p-3 rounded-2xl bg-white border border-outline-std shadow-sm group cursor-pointer hover:border-primary/30 transition-colors" @click="router.push(`/parents/${parent.id}`)">
+                <div class="w-8 h-8 rounded-lg overflow-hidden ring-2 ring-primary/5">
+                  <img :src="parent.profileURL" class="w-full h-full object-cover" />
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-[10px] font-black text-content-muted uppercase tracking-tighter leading-none mb-1">Primary Parent</span>
+                  <span class="text-xs font-black text-content-dark group-hover:text-primary transition-colors">{{ parent.name }}</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Metrics Row -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-lg mb-xl">
-          <DataMetricCard v-for="stat in studentStats" :key="stat.label" v-bind="stat" />
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <div v-for="stat in studentStats" :key="stat.label" class="bg-white rounded-2xl p-6 border border-outline-std shadow-sm hover:shadow-md transition-all duration-300 group">
+             <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center bg-surface-subtle group-hover:bg-primary/5 transition-colors">
+                  <img :src="stat.image" class="w-6 h-6 opacity-60 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div class="flex flex-col">
+                  <span class="text-[10px] font-black text-content-muted uppercase tracking-widest leading-none mb-1">{{ stat.label }}</span>
+                  <span class="text-xl font-black text-content-dark tracking-tight">{{ stat.value }}</span>
+                </div>
+             </div>
+          </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="ui-tabs-nav">
-          <button
-            class="ui-tab-item"
-            :class="{ active: activeTab === 'academic' }"
-            @click="activeTab = 'academic'"
-          >
-            Academic History
-          </button>
-          <button
-            class="ui-tab-item"
-            :class="{ active: activeTab === 'attendance' }"
-            @click="activeTab = 'attendance'"
-          >
-            Attendance Record
-          </button>
-          <button
-            class="ui-tab-item"
-            :class="{ active: activeTab === 'behavior' }"
-            @click="activeTab = 'behavior'"
-          >
-            Behavior Record
-          </button>
-          <button
-            class="ui-tab-item"
-            :class="{ active: activeTab === 'exam' }"
-            @click="activeTab = 'exam'"
-          >
-            Exam Record
-          </button>
-        </div>
+        <!-- Tab Interface -->
+        <div class="bg-white rounded-[2.5rem] border border-outline-std shadow-sm overflow-hidden min-h-[600px]">
+          <div class="flex items-center gap-2 p-3 bg-surface-subtle/30 border-b border-outline-std">
+            <button
+              v-for="tab in ['academic', 'attendance', 'behavior', 'exam']"
+              :key="tab"
+              class="px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300"
+              :class="activeTab === tab ? 'bg-white text-primary shadow-sm ring-1 ring-black/5' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
+              @click="activeTab = tab"
+            >
+              {{ tab }}
+            </button>
+          </div>
 
-        <!-- Tab Content -->
-        <div class="ui-detail-card min-h-[400px]">
-          <div class="ui-section-header">
-            <h3 class="ui-section-title">
-              {{ activeTab.charAt(0).toUpperCase() + activeTab.slice(1) }} Record
-            </h3>
-
-            <!-- Program Filters for Tracking Tabs -->
-            <div v-if="activeTab !== 'academic' && registeredPrograms.length > 0" class="relative">
-              <AppButton
-                variant="secondary"
-                @click="toggleProgramFilter(activeTab, $event)"
-                @blur="closeProgramFilter"
-              >
-                <span class="text-xs">{{ getSelectedProgramLabel(activeTab) }}</span>
-              </AppButton>
-              <Teleport to="body">
-                <transition
-                  enter-active-class="transition duration-200 ease-out"
-                  enter-from-class="transform scale-95 opacity-0"
-                  enter-to-class="transform scale-100 opacity-100"
-                  leave-active-class="transition duration-150 ease-in"
-                  leave-from-class="opacity-100"
-                  leave-to-class="opacity-0"
+          <div class="p-8">
+            <div class="flex items-center justify-between mb-8">
+              <h3 class="text-2xl font-black text-content-dark tracking-tight capitalize">{{ activeTab }} Repository</h3>
+              
+              <!-- Refined Filters -->
+              <div v-if="activeTab !== 'academic' && registeredPrograms.length > 0" class="relative">
+                <button
+                  class="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-outline-std bg-white text-xs font-bold text-content-dark hover:border-primary/30 transition-all shadow-sm"
+                  @click="toggleProgramFilter(activeTab, $event)"
+                  @blur="closeProgramFilter"
                 >
-                  <div
-                    v-if="activeDropdown === activeTab"
-                    class="ui-dropdown-menu program-filter-menu"
-                    :style="programMenuStyles"
-                    @mousedown.stop
-                  >
-                    <div
-                      class="ui-dropdown-item"
-                      @click.stop="selectProgramFilter(activeTab, 'all')"
-                    >
-                      All Programs
-                    </div>
-                    <div
-                      v-for="p in getFilterOptions(activeTab)"
-                      :key="p.id"
-                      class="ui-dropdown-item"
-                      @click.stop="selectProgramFilter(activeTab, p.id)"
-                    >
-                      {{ p.name }}
+                  <span class="opacity-50 font-black uppercase tracking-tighter">Filtering:</span>
+                  <span>{{ getSelectedProgramLabel(activeTab) }}</span>
+                  <span class="ml-1 opacity-30">▼</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Content Area -->
+            <transition name="fade-up" mode="out-in">
+              <div :key="activeTab">
+                <!-- Academic View -->
+                <div v-if="activeTab === 'academic'">
+                  <div v-if="filteredAcademic.length > 0" class="grid gap-4">
+                    <div v-for="(item, idx) in filteredAcademic" :key="item.id || idx" class="flex items-center p-6 rounded-3xl border border-outline-std bg-white hover:border-primary/20 transition-all group">
+                      <div class="w-10 h-10 rounded-xl bg-surface-subtle flex items-center justify-center font-black text-content-muted/30 text-xs mr-6">
+                        {{ idx + 1 }}
+                      </div>
+                      <div class="flex-1 flex flex-col">
+                        <span class="text-base font-black text-content-dark group-hover:text-primary transition-colors tracking-tight">{{ item.program?.name || '-' }}</span>
+                        <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">Enrolled on {{ formatDateOnly(item.enrollAt || item.createdAt) }}</span>
+                      </div>
+                      <div class="flex-1 hidden md:flex flex-col items-center">
+                        <span class="text-[10px] font-black text-content-muted uppercase tracking-tighter mb-1">Academic Cycle</span>
+                        <AppBadge :status="item.termName || '—'" type="blue" />
+                      </div>
+                      <div class="flex-1 hidden lg:flex flex-col items-center">
+                        <span class="text-[10px] font-black text-content-muted uppercase tracking-tighter mb-1">Schedule</span>
+                        <div class="flex items-center gap-2">
+                           <span class="px-2 py-0.5 rounded-md bg-surface-subtle text-[10px] font-black text-content-dark border border-outline-std">{{ item.class?.day || 'N/A' }}</span>
+                           <span class="text-[10px] font-bold text-content-muted">{{ item.class?.timeslot || 'TBD' }}</span>
+                        </div>
+                      </div>
+                      <div class="w-32 flex justify-center">
+                        <AppBadge :status="getAcademicStatus(item)" />
+                      </div>
                     </div>
                   </div>
-                </transition>
-              </Teleport>
-            </div>
-          </div>
+                  <div v-else class="flex flex-col items-center justify-center py-24 opacity-30">
+                    <img :src="getImageUrl('common/no-data')" class="w-24 mb-4 grayscale" />
+                    <span class="text-sm font-black uppercase tracking-widest">No Academic History Found</span>
+                  </div>
+                </div>
 
-          <!-- Academic Content -->
-          <div v-if="activeTab === 'academic'">
-            <table v-if="filteredAcademic.length > 0" class="ui-premium-table">
-              <thead>
-                <tr>
-                  <th class="text-center" width="50">No</th>
-                  <th>Program Name</th>
-                  <th class="text-center">Term</th>
-                  <th>Schedule</th>
-                  <th class="text-center">Status</th>
-                  <th class="text-center">Duration</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, idx) in filteredAcademic" :key="item.id || idx">
-                  <td class="text-center font-bold text-content-muted/40">{{ idx + 1 }}</td>
-                  <td>
-                    <div class="flex flex-col">
-                      <span class="font-bold text-content-dark">{{
-                        item.program?.name || '-'
-                      }}</span>
-                      <span class="text-3xs text-content-muted uppercase font-black"
-                        >Enrolled {{ formatDateOnly(item.enrollAt || item.createdAt) }}</span
-                      >
-                    </div>
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="item.termName || item.program?.termName || '—'" type="blue" />
-                  </td>
-                  <td>
-                    <div v-if="item.class?.schedule || item.classSchedule" class="flex flex-col">
-                      <span
-                        class="text-xs font-black text-content-dark uppercase tracking-tighter"
-                        >{{
-                          item.class?.day || (item.classSchedule || '').split(' ')[0]
-                        }}</span
-                      >
-                      <span class="text-2xs text-content-muted font-bold uppercase">{{
-                        item.class?.timeslot || (item.classSchedule || '').split(' ').slice(1).join(' ')
-                      }}</span>
-                    </div>
-                    <span v-else class="text-content-muted/30 italic text-xs">N/A</span>
-                  </td>
-                  <td class="text-center"><AppBadge :status="getAcademicStatus(item)" /></td>
-                  <td class="text-center">
-                    <div class="flex flex-col text-2xs font-bold text-content-muted gap-0.5">
-                      <span>{{ formatDateOnly(item.startDate) }}</span>
-                      <span class="opacity-50">—</span>
-                      <span>{{ formatDateOnly(item.endDate) }}</span>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-40">
-              <img :src="getImageUrl('common/no-data')" class="w-20" />
-              <p class="text-sm font-bold">No academic records found.</p>
-            </div>
-          </div>
+                <!-- Attendance View -->
+                <div v-if="activeTab === 'attendance'">
+                  <div v-if="filteredAttendance.length > 0" class="overflow-hidden rounded-3xl border border-outline-std">
+                    <table class="w-full text-left">
+                      <thead class="bg-surface-subtle/50">
+                        <tr>
+                          <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">No</th>
+                          <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Course</th>
+                          <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Session Date</th>
+                          <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Outcome</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-outline-std">
+                        <tr v-for="(item, idx) in filteredAttendance" :key="item.id || idx" class="hover:bg-surface-subtle/20 transition-colors">
+                          <td class="px-6 py-5 text-xs font-black text-content-muted/30 tabular-nums">{{ idx + 1 }}</td>
+                          <td class="px-6 py-5 font-bold text-content-dark text-sm">{{ item.programName }}</td>
+                          <td class="px-6 py-5">
+                            <div class="flex flex-col">
+                              <span class="text-xs font-black text-content-dark uppercase tracking-tight">{{ formatDateOnly(item.date || item.attendanceDate) }}</span>
+                              <span class="text-[10px] font-bold text-content-muted uppercase tabular-nums opacity-60">Session Check-in</span>
+                            </div>
+                          </td>
+                          <td class="px-6 py-5 text-center">
+                            <AppBadge :status="item.status || 'Present'" />
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div v-else class="flex flex-col items-center justify-center py-24 opacity-30">
+                    <img :src="getImageUrl('common/no-data')" class="w-24 mb-4 grayscale" />
+                    <span class="text-sm font-black uppercase tracking-widest">No Attendance Logs</span>
+                  </div>
+                </div>
 
-          <!-- Attendance Content -->
-          <div v-if="activeTab === 'attendance'">
-            <table v-if="filteredAttendance.length > 0" class="ui-premium-table">
-              <thead>
-                <tr>
-                  <th class="text-center" width="50">No</th>
-                  <th>Program</th>
-                  <th>Date & Time</th>
-                  <th class="text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, idx) in filteredAttendance" :key="item.id || idx">
-                  <td class="text-center text-content-muted/40 font-bold">{{ idx + 1 }}</td>
-                  <td class="font-bold text-content-dark">{{ item.programName || '-' }}</td>
-                  <td>
-                    <div class="flex flex-col">
-                      <span class="font-black text-content-dark tracking-tighter uppercase">{{
-                        formatDateOnly(item.date || item.attendanceDate || item.createdAt)
-                      }}</span>
-                      <span class="text-3xs text-content-muted font-bold uppercase">{{
-                        formatDateTime(item.date || item.attendanceDate || item.createdAt).split(
-                          'at ',
-                        )[1]
-                      }}</span>
-                    </div>
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="item.status || item.displayStatus" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-40">
-              <img :src="getImageUrl('common/no-data')" class="w-20" />
-              <p class="text-sm font-bold">No attendance logs found.</p>
-            </div>
-          </div>
+                <!-- Behavior Content -->
+                <div v-if="activeTab === 'behavior'">
+                  <table v-if="filteredBehavior.length > 0" class="ui-premium-table">
+                    <thead>
+                      <tr>
+                        <th class="text-center" width="50">No</th>
+                        <th>Program</th>
+                        <th>Date</th>
+                        <th class="text-center">Result</th>
+                        <th>Remark</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(item, idx) in filteredBehavior" :key="item.id || idx">
+                        <td class="text-center text-content-muted/40 font-bold">{{ idx + 1 }}</td>
+                        <td class="font-bold text-content-dark">{{ item.programName || '-' }}</td>
+                        <td>
+                          <span class="text-xs font-black text-content-muted tracking-tight">{{
+                            formatDateTime(item.date || item.behaviorDate || item.createdAt)
+                          }}</span>
+                        </td>
+                        <td class="text-center">
+                          <AppBadge :status="item.category || item.status || 'General'" />
+                        </td>
+                        <td class="text-xs text-content-muted leading-relaxed font-medium italic">
+                          {{ item.remark || item.note || item.displayStatus || '-' }}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-40">
+                    <img :src="getImageUrl('common/no-data')" class="w-20" />
+                    <p class="text-sm font-bold">No behavior logs found.</p>
+                  </div>
+                </div>
 
-          <!-- Behavior Content -->
-          <div v-if="activeTab === 'behavior'">
-            <table v-if="filteredBehavior.length > 0" class="ui-premium-table">
-              <thead>
-                <tr>
-                  <th class="text-center" width="50">No</th>
-                  <th>Program</th>
-                  <th>Date</th>
-                  <th class="text-center">Result</th>
-                  <th>Remark</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, idx) in filteredBehavior" :key="item.id || idx">
-                  <td class="text-center text-content-muted/40 font-bold">{{ idx + 1 }}</td>
-                  <td class="font-bold text-content-dark">{{ item.programName || '-' }}</td>
-                  <td>
-                    <span class="text-xs font-black text-content-muted tracking-tight">{{
-                      formatDateTime(item.date || item.behaviorDate || item.createdAt)
-                    }}</span>
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="item.category || item.status || 'General'" />
-                  </td>
-                  <td class="text-xs text-content-muted leading-relaxed font-medium italic">
-                    {{ item.remark || item.note || item.displayStatus || '-' }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-40">
-              <img :src="getImageUrl('common/no-data')" class="w-20" />
-              <p class="text-sm font-bold">No behavior logs found.</p>
-            </div>
-          </div>
-
-          <!-- Exam Content -->
-          <div v-if="activeTab === 'exam'">
-            <table v-if="filteredExams.length > 0" class="ui-premium-table">
-              <thead>
-                <tr>
-                  <th class="text-center" width="50">No</th>
-                  <th>Program</th>
-                  <th class="text-center">Date</th>
-                  <th>Examiner</th>
-                  <th class="text-center">Score</th>
-                  <th class="text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, idx) in filteredExams" :key="item.id || idx">
-                  <td class="text-center text-content-muted/40 font-bold">{{ idx + 1 }}</td>
-                  <td class="font-bold text-content-dark">{{ item.programName || '-' }}</td>
-                  <td class="text-center font-black text-content-muted/70 text-xs">
-                    {{ formatDateOnly(item.date || item.examDate) }}
-                  </td>
-                  <td class="text-xs font-bold text-content-muted">{{ item.examiner || '-' }}</td>
-                  <td class="text-center font-black text-lg text-primary tracking-tighter">
-                    {{ item.score || '-' }}
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="item.score >= 50 ? 'Passed' : 'Failed'" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-40">
-              <img :src="getImageUrl('common/no-data')" class="w-20" />
-              <p class="text-sm font-bold">No exam records found.</p>
-            </div>
+                <!-- Exam Content -->
+                <div v-if="activeTab === 'exam'">
+                  <table v-if="filteredExams.length > 0" class="ui-premium-table">
+                    <thead>
+                      <tr>
+                        <th class="text-center" width="50">No</th>
+                        <th>Program</th>
+                        <th class="text-center">Date</th>
+                        <th>Examiner</th>
+                        <th class="text-center">Score</th>
+                        <th class="text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="(item, idx) in filteredExams" :key="item.id || idx">
+                        <td class="text-center text-content-muted/40 font-bold">{{ idx + 1 }}</td>
+                        <td class="font-bold text-content-dark">{{ item.programName || '-' }}</td>
+                        <td class="text-center font-black text-content-muted/70 text-xs">
+                          {{ formatDateOnly(item.date || item.examDate) }}
+                        </td>
+                        <td class="text-xs font-bold text-content-muted">{{ item.examiner || '-' }}</td>
+                        <td class="text-center font-black text-lg text-primary tracking-tighter">
+                          {{ item.score || '-' }}
+                        </td>
+                        <td class="text-center">
+                          <AppBadge :status="item.score >= 50 ? 'Passed' : 'Failed'" />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-40">
+                    <img :src="getImageUrl('common/no-data')" class="w-20" />
+                    <p class="text-sm font-bold">No exam records found.</p>
+                  </div>
+                </div>
+              </div>
+            </transition>
           </div>
         </div>
       </template>

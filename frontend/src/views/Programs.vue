@@ -8,13 +8,16 @@ import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
 import ProgramActionModal from '../components/programs/ProgramActionModal.vue'
+import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { programService } from '../services/programService'
+import { categoryService } from '../services/categoryService'
+import { classService } from '../services/classService'
 import { useSearch, programSearchMapper } from '../composables/useSearch'
 import { getProgramProfileURL, getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { getProgramDisplayStatus } from '@/utils/programHelper'
 
 const programs = ref([])
-const sessions = ref([])
+const classes = ref([])
 const loading = ref(true)
 const currentFilter = ref('all')
 const categoryFilter = ref('all')
@@ -26,6 +29,8 @@ const now = ref(new Date())
 const newlyCreatedId = ref(null)
 
 const router = useRouter()
+const currentPage = ref(1)
+const pageSize = 10
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
@@ -71,7 +76,7 @@ const fetchPrograms = async () => {
         console.error('Error fetching programs:', e)
         return []
       }),
-      programService.getAllCategories().catch((e) => {
+      categoryService.getAllCategories().catch((e) => {
         console.error('Error fetching categories:', e)
         return []
       }),
@@ -174,18 +179,16 @@ const handleActionSubmit = async (formData) => {
       newlyCreatedId.value = result.id
 
       if (formData.schedule) {
-        await programService.createSession({
+        await classService.createClass({
           programId: result.id,
-          branch: { id: 'FM', name: 'Funmall', abbr: 'FM' },
-          schedule: {
-            day: formData.schedule.day,
-            timeslot: formData.schedule.timeslot,
-          },
+          branchId: 'FM',
+          day: formData.schedule.day,
+          timeslot: formData.schedule.timeslot,
           capacity: 20,
         })
       }
 
-      actionModal.value.success = 'Program & Initial Session created successfully!'
+      actionModal.value.success = 'Program & Initial Class created successfully!'
     } else if (actionModal.value.type === 'edit') {
       await programService.updateProgram(actionModal.value.program.id, formData)
       newlyCreatedId.value = actionModal.value.program.id
@@ -242,47 +245,51 @@ const onRowClick = (item) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Program Overview">
+    <DataPageLayout overviewTitle="Academic Program Repository">
       <template #overview>
-        <DataMetrics :stats="statsCards" />
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
+        </div>
       </template>
 
       <template #table>
         <DataTable
-          title="Program List"
+          title="Active Programs"
           :headers="programHeaders"
           :items="filteredPrograms"
           :loading="loading"
           entityName="program"
           :flexible="true"
           v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search programs..."
+          searchPlaceholder="Search programs by title or model..."
           :hasFilter="true"
           v-model:currentFilter="currentFilter"
           :filterOptions="[
-            { label: 'All Programs', value: 'all' },
-            { label: 'Sort: Category', value: 'sort:category' },
-            { label: 'Status: Active', value: 'status:active' },
-            { label: 'Status: Upcoming', value: 'status:upcoming' },
-            { label: 'Status: In Progress', value: 'status:in progress' },
-            { label: 'Status: Closed', value: 'status:closed' },
-            { label: 'Status: Archived', value: 'status:archived' },
+            { label: 'All Status', value: 'all' },
+            { label: 'Group Models', value: 'status:group' },
+            { label: 'Private Models', value: 'status:private' },
+            { label: 'Active Programs', value: 'status:active' },
+            { label: 'Upcoming Terms', value: 'status:upcoming' },
+            { label: 'Closed/Archive', value: 'status:closed' },
           ]"
           :rowClass="getRowClass"
           @row-click="onRowClick"
           @action="({ type, item }) => handleAction(type, item)"
         >
           <template #toolbar-actions>
-            <div class="relative">
-              <AppButton
-                variant="secondary"
-                :class="{ 'ring-2 ring-primary bg-primary-soft': categoryFilter !== 'all' }"
+            <div class="relative group">
+              <button
                 @click="toggleCategoryFilter"
                 @blur="closeCategoryFilter"
+                class="flex items-center gap-3 px-6 py-2.5 rounded-xl bg-white border border-outline-std hover:border-primary/30 hover:shadow-md transition-all group"
+                :class="{ 'ring-2 ring-primary/10 border-primary/40 bg-primary/5': categoryFilter !== 'all' }"
               >
-                <span v-if="categoryFilter === 'all'">All Categories</span>
-                <span v-else class="font-bold">{{ categoryFilter }}</span>
-              </AppButton>
+                <span class="text-[10px] font-black uppercase tracking-widest text-content-muted group-hover:text-primary transition-colors">
+                  {{ categoryFilter === 'all' ? 'All Categories' : categoryFilter }}
+                </span>
+                <span class="w-1.5 h-1.5 rounded-full bg-content-muted/30 group-hover:bg-primary/50"></span>
+              </button>
+              
               <Teleport to="body">
                 <transition
                   enter-active-class="transition duration-200 ease-out"
@@ -294,54 +301,45 @@ const onRowClick = (item) => {
                 >
                   <div
                     v-if="isCategoryFilterOpen"
-                    class="ui-dropdown-menu category-filter-menu"
+                    class="ui-dropdown-menu !p-2 !rounded-2xl shadow-2xl ring-1 ring-black/5"
                     :style="categoryMenuStyles"
                     @mousedown.stop
                   >
-                    <div class="px-md py-sm border-b border-surface-light">
+                    <div class="mb-2 p-1">
                       <input
                         type="text"
                         v-model="categorySearchQuery"
-                        placeholder="Search category..."
-                        class="w-full text-xs p-2 bg-surface-light rounded-sm border-none focus:ring-1 focus:ring-primary outline-none"
+                        placeholder="Quick search..."
+                        class="w-full text-xs font-bold px-4 py-2.5 bg-surface-subtle rounded-xl border-none focus:ring-2 focus:ring-primary/20 outline-none placeholder:text-content-muted/40"
                         @mousedown.stop
                       />
                     </div>
-                    <div class="max-h-[220px] overflow-y-auto scrollable-v">
-                      <div
-                        class="ui-dropdown-item"
-                        :class="{
-                          'bg-primary-soft text-primary font-bold': categoryFilter === 'all',
-                        }"
+                    <div class="max-h-[220px] overflow-y-auto scrollable-v px-1 pb-1">
+                      <button
+                        class="w-full text-left px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all mb-1"
+                        :class="categoryFilter === 'all' ? 'bg-primary text-white shadow-lg' : 'text-content-muted hover:bg-primary/5 hover:text-primary'"
                         @click.stop="selectCategory('all')"
                       >
-                        All Categories
-                      </div>
-                      <div
+                        Global View
+                      </button>
+                      <button
                         v-for="cat in filteredCategories"
                         :key="cat.id"
-                        class="ui-dropdown-item"
-                        :class="{
-                          'bg-primary-soft text-primary font-bold': categoryFilter === cat.name,
-                        }"
+                        class="w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all mb-1 truncate"
+                        :class="categoryFilter === cat.name ? 'bg-primary/10 text-primary ring-1 ring-primary/20' : 'text-content-muted hover:bg-surface-subtle hover:text-content-dark'"
                         @click.stop="selectCategory(cat.name)"
                       >
                         {{ cat.name }}
-                      </div>
-                      <div
-                        v-if="filteredCategories.length === 0"
-                        class="px-md py-xl text-center text-content-muted italic text-xs"
-                      >
-                        No matches found
-                      </div>
+                      </button>
                     </div>
                   </div>
                 </transition>
               </Teleport>
             </div>
-            <AppButton variant="primary" size="md" class="!rounded-std shadow-sm" @click="openModal('add')">
-              <img :src="getActionIcon('plus')" class="w-3.5 h-3.5 brightness-0 invert mt-px" />
-              <span class="font-bold">Add Program</span>
+
+            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openModal('add')">
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
+              <span class="font-black tracking-tight">Launch Program</span>
             </AppButton>
           </template>
 
@@ -357,70 +355,68 @@ const onRowClick = (item) => {
               headers,
             }"
           >
-            <td
-              class="ui-cell text-center font-bold text-content-muted/50 hidden md:table-cell"
-              :style="{ width: headers[0].width }"
-            >
-              {{ index + 1 }}
+            <!-- No -->
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell">
+              {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
-            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-              <div class="ui-identity-cell">
-                <div class="ui-avatar-sm ring-1 ring-border">
-                  <img
-                    :src="getProgramProfileURL(item.profileURL, item.category)"
-                    alt="program"
-                  />
-                </div>
-                <div class="ui-identity-info">
-                  <span class="font-bold text-xs text-content-dark">{{
-                    item.category || 'General'
-                  }}</span>
-                  <span class="text-3xs text-content-muted uppercase font-bold tracking-tight"
-                    >Category</span
-                  >
-                </div>
+
+            <!-- Category & Program -->
+            <td class="ui-cell min-w-[200px]" @click="onRowClick(item)">
+               <div class="flex items-center gap-4 group cursor-pointer">
+                  <div class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm">
+                    <img :src="getProgramProfileURL(item.profileURL, item.category)" alt="program" class="w-full h-full object-cover" />
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-[10px] font-black text-primary uppercase tracking-widest leading-tight mb-0.5">{{ item.category || 'Standard' }}</span>
+                    <span class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{ item.name }}</span>
+                  </div>
+               </div>
+            </td>
+
+            <!-- Academic Stats -->
+            <td class="ui-cell text-center hidden sm:table-cell">
+              <div class="flex flex-col items-center">
+                 <span class="text-sm font-black text-content-dark tabular-nums">{{ item.totalClasses || 0 }}</span>
+                 <span class="text-[9px] font-black text-content-muted uppercase tracking-tighter">Classes</span>
               </div>
             </td>
-            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-              <span class="font-black text-content-dark tracking-tighter">{{
-                item.name
-              }}</span>
+
+            <td class="ui-cell text-center hidden sm:table-cell">
+               <div class="flex flex-col items-center">
+                  <span class="text-sm font-black text-content-dark tabular-nums">{{ item.weeksNumber || 0 }}</span>
+                  <span class="text-[9px] font-black text-content-muted uppercase tracking-tighter">Duration</span>
+               </div>
             </td>
-            <td
-              class="ui-cell text-center hidden sm:table-cell"
-              :style="{ width: headers[3].width }"
-            >
-              <span class="font-bold text-content-muted/70">{{ item.totalSessions || '—' }}</span>
+
+            <!-- Financials -->
+            <td class="ui-cell text-center">
+               <div class="inline-flex flex-col items-center px-4 py-1.5 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                  <span class="text-sm font-black text-emerald-700 tabular-nums">${{ item.basePrice || 0 }}</span>
+                  <span class="text-[8px] font-black text-emerald-600/60 uppercase tracking-widest">Base Rate</span>
+               </div>
             </td>
-            <td
-              class="ui-cell text-center hidden sm:table-cell"
-              :style="{ width: headers[4].width }"
-            >
-              <span class="font-bold text-content-muted/70">{{ item.weeksNumber || '—' }}</span>
+
+            <!-- Capacity -->
+            <td class="ui-cell text-center hidden lg:table-cell">
+              <div class="flex flex-col items-center">
+                 <span class="text-xs font-black text-content-dark uppercase tracking-widest tabular-nums">{{ item.maxCapacity || '∞' }}</span>
+                 <span class="text-[9px] font-black text-content-muted uppercase tracking-tighter">Limit</span>
+              </div>
             </td>
-            <td
-              class="ui-cell text-center font-bold text-primary"
-              :style="{ width: headers[5].width }"
-            >
-              <AppBadge :status="'$' + (item.basePrice || 0)" />
-            </td>
-            <td
-              class="ui-cell text-center hidden lg:table-cell font-bold text-content-muted/50 uppercase text-2xs"
-              :style="{ width: headers[6].width }"
-            >
-              {{ item.maxCapacity || '∞' }}
-            </td>
-            <td class="ui-cell text-center font-black" :style="{ width: headers[7].width }">
+
+            <!-- Type -->
+            <td class="ui-cell text-center">
               <AppBadge
                 :status="item.type || 'group'"
                 :type="item.type === 'private' ? 'purple' : 'blue'"
               />
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
-              <div class="ui-action-menu">
-                <button class="ui-btn-dots" @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-bold">⋮</span>
+            <!-- Actions -->
+            <td class="ui-cell text-center">
+              <div class="relative">
+                <button @click.stop="toggleMenu($event, item.id)" class="p-2 hover:bg-surface-subtle rounded-lg transition-colors group">
+                  <span class="font-black text-content-muted group-hover:text-primary">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition
@@ -439,35 +435,21 @@ const onRowClick = (item) => {
                       @click.stop
                     >
                       <button
-                        class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="
-                          () => {
-                            handleAction('edit', item)
-                            closeMenu()
-                          }
-                        "
+                        class="ui-dropdown-item group"
+                        @click="handleAction('edit', item); closeMenu()"
                       >
-                        <img
-                          :src="getActionIcon('edit')"
-                          class="w-4 h-4 transition-opacity" :style="{ filter: getStatusFilter('blue') }"
-                        />
-                        Edit
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        <span class="font-bold text-sm">Modify Data</span>
                       </button>
-                      <div class="h-px bg-surface-light mx-1 my-1"></div>
+                      
+                      <div class="h-px bg-surface-subtle mx-2 my-1"></div>
+                      
                       <button
-                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
-                        @click="
-                          () => {
-                            handleAction('delete', item)
-                            closeMenu()
-                          }
-                        "
+                        class="ui-dropdown-item group text-error"
+                        @click="handleAction('delete', item); closeMenu()"
                       >
-                        <img
-                          :src="getActionIcon('delete')"
-                          class="w-4 h-4 transition-opacity" :style="{ filter: getStatusFilter('red') }"
-                        />
-                        Delete
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity invert" />
+                        <span class="font-black text-sm">Remove Program</span>
                       </button>
                     </div>
                   </transition>

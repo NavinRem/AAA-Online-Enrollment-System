@@ -3,22 +3,24 @@ import { ref, onMounted, computed, watch } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
-import DataMetrics from '../components/common/data/DataMetrics.vue'
+import DataMetricCard from '../components/common/data/DataMetricCard.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
 import EnrollmentFormModal from '../components/enrollments/EnrollmentFormModal.vue'
 import EnrollmentActionModal from '../components/enrollments/EnrollmentActionModal.vue'
+import ParentActionModal from '../components/parents/ParentActionModal.vue'
+
 import { enrollmentService } from '@/services/enrollmentService'
 import { parentService } from '../services/parentService'
 import { studentService } from '../services/studentService'
 import { programService } from '../services/programService'
-import ParentActionModal from '../components/parents/ParentActionModal.vue'
+import { classService } from '../services/classService'
 import { storageService } from '@/services/storageService'
+
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
-import { getStatusFilter } from '@/utils/badgeUtils'
 import { formatPrice, formatDate } from '@/utils/formatUtils'
 
 const enrollments = ref([])
@@ -36,6 +38,7 @@ const validationHint = ref('')
 const newlyCreatedId = ref(null)
 const selectedEnrollment = ref(null)
 const enrollmentForm = ref(null)
+
 const childRegistrationModal = ref({
   isOpen: false,
   parent: null,
@@ -61,13 +64,10 @@ onMounted(async () => {
 
 const fetchEnrollments = async () => {
   try {
-    loading.value = true
     const data = await enrollmentService.getAllEnrollments()
     enrollments.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error('Failed to fetch enrollments', error)
-  } finally {
-    loading.value = false
   }
 }
 
@@ -77,7 +77,7 @@ const loadFormData = async () => {
       parentService.getAllParents(),
       programService.getAllPrograms(),
       studentService.getAllStudents(),
-      programService.getAllClasses(),
+      classService.getAllClasses(),
     ])
     parents.value = Array.isArray(parentsRes) ? parentsRes : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
@@ -94,7 +94,7 @@ const handleProgramChange = async (programId) => {
     return
   }
   try {
-    const data = await programService.getClasses(programId)
+    const data = await classService.getAvailableClasses(programId)
     classes.value = Array.isArray(data) ? data : []
   } catch (err) {
     console.error('Failed to load classes', err)
@@ -116,9 +116,7 @@ const handleSaveEnrollment = async (formData) => {
   try {
     const parent = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
     const student = students.value.find((s) => s.id === formData.studentId)
-    const program = programs.value.find(
-      (c) => c.id === formData.programId,
-    )
+    const program = programs.value.find((c) => c.id === formData.programId)
     const classInstance = classes.value.find((c) => c.id === formData.classId)
 
     const payload = {
@@ -126,17 +124,8 @@ const handleSaveEnrollment = async (formData) => {
       studentId: student.id || student.uid,
       programId: program.id,
       classId: classInstance.id,
-
-      parent: {
-        id: parent.uid || parent.id,
-        name: parent.name,
-        profileURL: parent.profileURL,
-      },
-      student: {
-        id: student.id || student.uid,
-        name: student.name,
-        profileURL: student.profileURL,
-      },
+      parent: { id: parent.uid || parent.id, name: parent.name, profileURL: parent.profileURL },
+      student: { id: student.id || student.uid, name: student.name, profileURL: student.profileURL },
       program: {
         id: program.id,
         name: program.name,
@@ -152,7 +141,6 @@ const handleSaveEnrollment = async (formData) => {
         branchAbbr: classInstance.branch?.abbr || 'N/A',
         schedule: `${classInstance.day} (${classInstance.timeslot})`,
       },
-
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
       isSponsorship: formData.isSponsorship || false,
@@ -183,7 +171,6 @@ const handleSaveEnrollment = async (formData) => {
     }
 
     await fetchEnrollments()
-
     setTimeout(() => {
       showModal.value = false
       selectedEnrollment.value = null
@@ -200,43 +187,41 @@ const enrollmentStats = computed(() => {
   const s = calculateTotalEnrollment(enrollments.value)
   return [
     {
-      label: 'Total Enrollments',
+      label: 'Gross Enrollments',
       value: s.total,
       image: getImageUrl('enrollment/total-enrollment'),
       color: 'var(--accent-light)',
     },
     {
-      label: 'Total Paid Enrollment',
+      label: 'Authorized Assets',
       value: s.paidCount,
       image: getImageUrl('enrollment/total-paid-enrollment'),
       color: 'var(--accent-light)',
     },
     {
-      label: 'Total Unpaid Enrollment',
+      label: 'Pending Accounts',
       value: s.unpaidCount,
       image: getImageUrl('enrollment/total-unpaid-enrollment'),
       color: 'var(--accent-light)',
     },
     {
-      label: 'Total Cancelled Enrollment',
+      label: 'Voided Files',
       value: s.cancelledCount,
       image: getImageUrl('enrollment/total-canceled-enrollment'),
-      color: 'var(--accent-light)',
+      color: 'var(--danger-light)',
     },
   ]
 })
 
 const enrollmentHeaders = [
   { label: 'No', width: '50px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Parent', class: 'hidden lg:table-cell' },
-  { label: 'Student' },
-  { label: 'Program' },
-  { label: 'Schedule', width: '150px', class: 'hidden sm:table-cell' },
-  { label: 'Branch', width: '90px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Amount', width: '90px', align: 'center', sortable: true, key: 'amount' },
+  { label: 'Participant Registry' },
+  { label: 'Program Model' },
+  { label: 'Logistics', width: '150px', class: 'hidden sm:table-cell' },
+  { label: 'Value', width: '100px', align: 'center' },
   { label: 'Status', width: '120px', align: 'center' },
-  { label: 'Date', width: '150px', align: 'center', class: 'hidden lg:table-cell' },
-  { label: 'Action', width: '90px', align: 'center' },
+  { label: 'Timeline', width: '150px', align: 'center', class: 'hidden lg:table-cell' },
+  { label: 'Action', width: '80px', align: 'center' },
 ]
 
 const currentFilter = ref('all')
@@ -259,10 +244,6 @@ const statusFilteredEnrollments = computed(() => {
       if (currentFilter.value === 'paid') return (p === 'paid' || p === 'confirmed') && s !== 'cancelled'
       if (currentFilter.value === 'unpaid') return p === 'unpaid' && s !== 'cancelled'
       if (currentFilter.value === 'cancelled') return s === 'cancelled'
-      if (currentFilter.value === 'full')
-        return (r.enrollmentType || 'Full').toLowerCase() === 'full'
-      if (currentFilter.value === 'partial')
-        return (r.enrollmentType || 'Full').toLowerCase() === 'partial'
       return true
     })
   }
@@ -305,16 +286,11 @@ const handleTableAction = ({ type, item }) => {
     return
   }
 
-  actionState.value = {
-    isOpen: true,
-    type,
-    enrollment: item,
-  }
+  actionState.value = { isOpen: true, type, enrollment: item }
 }
 
 const submitActionModal = async (payload) => {
   const { type, enrollment } = actionState.value
-  const { reason } = payload
   submitting.value = true
   try {
     if (type === 'pay') {
@@ -332,21 +308,14 @@ const submitActionModal = async (payload) => {
     } else if (type === 'cancel') {
       await enrollmentService.updateEnrollment(enrollment.id, {
         status: 'cancelled',
-        cancelReason: reason,
+        cancelReason: payload.reason,
       })
     } else if (type === 'delete') {
       await enrollmentService.deleteEnrollment(enrollment.id)
     }
-    const messages = {
-      pay: 'Payment confirmed successfully!',
-      cancel: 'Enrollment has been cancelled.',
-      delete: 'Enrollment record deleted permanently.',
-    }
-    successMessage.value = messages[type] || 'Action completed successfully.'
+    successMessage.value = 'Action completed successfully.'
     await fetchEnrollments()
-    setTimeout(() => {
-      closeActionModal()
-    }, 2000)
+    setTimeout(() => closeActionModal(), 2000)
   } catch (err) {
     errorMessage.value = err.message
   } finally {
@@ -363,31 +332,17 @@ const closeActionModal = () => {
 const handleOpenRegisterStudent = (parentId) => {
   const parent = parents.value.find((p) => (p.uid || p.id) === parentId)
   if (!parent) return
-
-  childRegistrationModal.value = {
-    isOpen: true,
-    parent: parent,
-    loading: false,
-    error: '',
-    success: '',
-  }
+  childRegistrationModal.value = { isOpen: true, parent, loading: false, error: '', success: '' }
 }
 
 const handleRegisterStudent = async (formData) => {
   childRegistrationModal.value.loading = true
-  childRegistrationModal.value.error = ''
-  childRegistrationModal.value.success = ''
-
   try {
     const { parentId, name, dob, profile, medicalNote } = formData
     let finalProfile = profile
     if (profile && profile.includes('/profiles/temp/')) {
       const extension = profile.split('?')[0].split('.').pop()
-      const sanitizedName = (name || 'child')
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, '_')
-        .replace(/_+/g, '_')
-        .replace(/^_|_$/g, '')
+      const sanitizedName = name.toLowerCase().replace(/[^a-z0-9]/g, '_')
       const newPath = `profiles/temp_student/${sanitizedName}_student.${extension}`
       finalProfile = await storageService.moveProfileImage(profile, newPath)
     }
@@ -401,14 +356,9 @@ const handleRegisterStudent = async (formData) => {
     childRegistrationModal.value.success = 'Student registered successfully!'
     const studentsRes = await studentService.getAllStudents()
     students.value = Array.isArray(studentsRes) ? studentsRes : []
-    if (result && result.id && enrollmentForm.value) {
-      enrollmentForm.value.setStudent(result.id)
-    }
-    setTimeout(() => {
-      childRegistrationModal.value.isOpen = false
-    }, 1500)
+    if (result && result.id && enrollmentForm.value) enrollmentForm.value.setStudent(result.id)
+    setTimeout(() => { childRegistrationModal.value.isOpen = false }, 1500)
   } catch (err) {
-    console.error('Failed to register student', err)
     childRegistrationModal.value.error = err.message || 'Error registering student.'
   } finally {
     childRegistrationModal.value.loading = false
@@ -418,115 +368,117 @@ const handleRegisterStudent = async (formData) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout title="Enrollment Overview">
+    <DataPageLayout overviewTitle="Enrollment Registry Portal">
       <template #overview>
-        <DataMetrics :stats="enrollmentStats" />
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <DataMetricCard v-for="stat in enrollmentStats" :key="stat.label" v-bind="stat" />
+        </div>
       </template>
 
       <template #table>
-        <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="paginatedEnrollments"
-          entityName="enrollment" :loading="loading" :hasPagination="true" :currentPage="currentPage" :flexible="true"
-          :pageSize="pageSize" :totalItems="totalItems" @update:currentPage="currentPage = $event"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search Enrollments" :hasFilter="true"
-          v-model:currentFilter="currentFilter" :filterOptions="[
-            { label: 'All Enrollments', value: 'all' },
-            { label: 'Paid Only', value: 'paid' },
-            { label: 'Unpaid Only', value: 'unpaid' },
-            { label: 'Cancelled Only', value: 'cancelled' },
-            { label: 'Full Only', value: 'full' },
-            { label: 'Partial Only', value: 'partial' },
-          ]" :rowClass="getRowClass" @action="handleTableAction" @row-click="
-            (item) => {
-              if (item.id === newlyCreatedId) newlyCreatedId = null
-              $router.push(`/enrollments/${item.id}`)
-            }
-          ">
+        <DataTable 
+          title="Active Enrollments" 
+          :headers="enrollmentHeaders" 
+          :items="paginatedEnrollments"
+          entityName="enrollment" 
+          :loading="loading" 
+          :hasPagination="true" 
+          :flexible="true"
+          :pageSize="pageSize" 
+          :totalItems="totalItems" 
+          v-model:currentPage="currentPage"
+          v-model:searchQuery="searchQuery" 
+          searchPlaceholder="Search by student, parent, or program model..." 
+          :hasFilter="true"
+          v-model:currentFilter="currentFilter" 
+          :filterOptions="[
+            { label: 'All Files', value: 'all' },
+            { label: 'Authorized', value: 'paid' },
+            { label: 'Pending', value: 'unpaid' },
+            { label: 'Voided', value: 'cancelled' },
+          ]" 
+          :rowClass="getRowClass" 
+          @action="handleTableAction" 
+          @row-click="(item) => $router.push(`/enrollments/${item.id}`)"
+        >
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="ui-btn-premium" @click="showModal = true">
+            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="showModal = true">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold tracking-tight">New Enrollment</span>
+              <span class="font-black tracking-tight">New Enrollment</span>
             </AppButton>
           </template>
 
-          <template #row="{
-            item,
-            index,
-            toggleMenu,
-            activeMenuId,
-            isMenuAbove,
-            menuStyles,
-            handleAction,
-            closeMenu,
-            headers,
-          }">
-            <td class="ui-cell text-center font-bold text-content-muted/30 hidden md:table-cell"
-              :style="{ width: headers[0].width, minWidth: headers[0].width }">
-              {{ index + (currentPage - 1) * pageSize + 1 }}
-            </td>
-            <td class="ui-cell hidden lg:table-cell">
-              <div class="ui-identity-cell">
-                <div class="ui-avatar">
-                  <img :src="item.parent?.profileURL" alt="parent" />
-                </div>
-                <div class="ui-identity-info">
-                  <span class="font-bold text-content-dark">{{ item.parent?.name }}</span>
-                </div>
-              </div>
-            </td>
-            <td class="ui-cell">
-              <div class="ui-identity-cell">
-                <div class="ui-avatar">
-                  <img :src="item.student?.profileURL" alt="student" />
-                </div>
-                <div class="ui-identity-info">
-                  <span class="font-bold text-content-dark">{{ item.student?.name }}</span>
-                </div>
-              </div>
-            </td>
-            <td class="ui-cell">
-              <div class="ui-identity-cell">
-                <div class="ui-avatar bg-white ring-1 ring-border">
-                  <img :src="item.program?.profileURL" alt="program" />
-                </div>
-                <div class="ui-identity-info overflow-hidden">
-                  <span class="font-bold text-content-dark truncate max-w-[140px] block"
-                    :title="item.class?.program?.name">
-                    {{ item.class?.program?.name }}
-                  </span>
-                </div>
-              </div>
-            </td>
-            <td class="ui-cell hidden sm:table-cell">
-              <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col gap-0.5">
-                <span class="font-bold">{{ getSessionDay(item.classSchedule, true) }}</span>
-                <span class="text-3xs font-semibold text-content-muted uppercase">{{
-                  getSessionTime(item.classSchedule)
-                  }}</span>
-              </div>
-              <span v-else class="text-content-muted/30 italic text-xs pl-2">—</span>
-            </td>
-            <td class="ui-cell text-center hidden md:table-cell"
-              :style="{ width: headers[5].width, minWidth: headers[5].width }">
-              <AppBadge :status="item.branchAbbr || '—'" :type="item.branchAbbr ? 'blue' : 'neutral'" />
+          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell" :style="{ width: headers[0].width }">
+              {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
-            <td class="ui-cell text-center font-bold" :style="{ width: headers[6].width, minWidth: headers[6].width }">
-              <AppBadge :status="'$' + formatPrice(item.amount || 0)" :type="(item.enrollmentType || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'
-                ">
-              </AppBadge>
+            <td class="ui-cell min-w-[240px]" :style="{ flex: '1 1 0%' }">
+               <div class="flex flex-col gap-3">
+                  <div class="flex items-center gap-3 group/student cursor-pointer">
+                    <div class="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-primary/5 group-hover/student:ring-primary/20 transition-all duration-500">
+                      <img :src="item.student?.profileURL" class="w-full h-full object-cover" />
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="font-black text-content-dark group-hover/student:text-primary transition-colors tracking-tighter leading-tight">{{ item.student?.name }}</span>
+                      <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">Primary Learner</span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 pl-2 opacity-60">
+                    <div class="w-5 h-5 rounded-lg overflow-hidden ring-1 ring-border">
+                      <img :src="item.parent?.profileURL" class="w-full h-full object-cover" />
+                    </div>
+                    <span class="text-[10px] font-bold text-content-muted leading-none">{{ item.parent?.name }}</span>
+                  </div>
+               </div>
             </td>
-            <td class="ui-cell text-center" :style="{ width: headers[7].width, minWidth: headers[7].width }">
+
+            <td class="ui-cell" :style="{ flex: '1 1 0%' }">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white ring-1 ring-border p-1.5 shadow-sm overflow-hidden">
+                  <img :src="item.program?.profileURL" class="w-full h-full object-contain" />
+                </div>
+                <div class="flex flex-col overflow-hidden">
+                  <span class="font-black text-content-dark tracking-tighter truncate max-w-[140px] leading-tight">{{ item.class?.program?.name }}</span>
+                  <span class="text-[9px] font-black text-primary uppercase tracking-widest mt-0.5">{{ item.enrollmentType || 'Standard' }} Term</span>
+                </div>
+              </div>
+            </td>
+
+            <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[3].width }">
+              <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col">
+                <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{ getSessionDay(item.classSchedule, true) }}</span>
+                <span class="text-[10px] font-black text-content-muted uppercase tracking-widest mt-1">{{ getSessionTime(item.classSchedule) }}</span>
+                <div class="flex items-center gap-1 mt-1.5">
+                   <div class="w-1 h-1 rounded-full bg-blue-400"></div>
+                   <span class="text-[8px] font-black text-blue-500 uppercase tracking-widest">{{ item.branchAbbr || 'HQ' }} Campus</span>
+                </div>
+              </div>
+              <span v-else class="text-[10px] font-black uppercase text-content-muted/30 tracking-widest italic">Pending</span>
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[4].width }">
+               <div class="inline-flex flex-col items-center px-3 py-1.5 rounded-xl bg-surface-subtle border border-black/5">
+                  <span class="text-sm font-black text-content-dark tabular-nums tracking-tighter">${{ formatPrice(item.amount || 0) }}</span>
+                  <span class="text-[8px] font-black text-content-muted/60 uppercase tracking-widest">Fee Payload</span>
+               </div>
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <AppBadge :status="item.status || item.paymentStatus || 'Unpaid'" />
             </td>
-            <td class="ui-cell text-center hidden lg:table-cell">
-              <span class="text-xs font-bold text-content-muted/70 tracking-tight">{{
-                formatDate(item.enrollAt)
-                }}</span>
+
+            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[6].width }">
+              <div class="flex flex-col items-center">
+                 <span class="text-[11px] font-black text-content-dark tabular-nums tracking-tight">{{ formatDate(item.enrollAt) }}</span>
+                 <span class="text-[8px] font-black text-content-muted uppercase tracking-widest mt-1">Registry Stamp</span>
+              </div>
             </td>
-            <td class="ui-cell text-center" :style="{ width: headers[9].width, minWidth: headers[9].width }">
+
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
               <div class="ui-action-menu">
-                <button class="ui-btn-dots" @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-bold">⋮</span>
+                <button class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark" @click.stop="toggleMenu($event, item.id)">
+                  <span class="font-black text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -536,51 +488,22 @@ const handleRegisterStudent = async (formData) => {
                     <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
-                      <button v-if="
-                        item.status !== 'confirmed' &&
-                        item.paymentStatus !== 'paid' &&
-                        item.status !== 'cancelled'
-                      " class="ui-dropdown-item ui-dropdown-item-info group" @click="
-                        () => {
-                          handleAction('edit', item)
-                          closeMenu()
-                        }
-                      ">
-                        <img :src="getActionIcon('edit')" class="w-4 h-4 transition-all opacity-60" />
-                        Edit
+                      <button v-if="item.status !== 'confirmed' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-info group" @click="() => { handleAction('edit', item); closeMenu(); }">
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                        <span class="font-bold">Edit Details</span>
                       </button>
-                      <button v-if="
-                        item.status !== 'confirmed' &&
-                        item.paymentStatus !== 'paid' &&
-                        item.status !== 'cancelled'
-                      " class="ui-dropdown-item ui-dropdown-item-success group" @click="
-                        () => {
-                          handleAction('pay', item)
-                          closeMenu()
-                        }
-                      ">
-                        <img :src="getActionIcon('pay')" class="w-4 h-4 transition-all opacity-60" />
-                        Pay
+                      <button v-if="item.status !== 'confirmed' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-success group" @click="() => { handleAction('pay', item); closeMenu(); }">
+                        <img :src="getActionIcon('pay')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                        <span class="font-bold">Process Payment</span>
                       </button>
-                      <button v-if="item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-danger group"
-                        @click="
-                          () => {
-                            handleAction('cancel', item)
-                            closeMenu()
-                          }
-                        ">
-                        <img :src="getActionIcon('cancel')" class="w-4 h-4 transition-all opacity-60" />
-                        Cancel
+                      <button v-if="item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-danger group" @click="() => { handleAction('cancel', item); closeMenu(); }">
+                        <img :src="getActionIcon('cancel')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                        <span class="font-bold">Void Enrollment</span>
                       </button>
-                      <div class="h-px bg-surface-light mx-1 my-1" v-if="item.status !== 'cancelled'"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold" @click="
-                        () => {
-                          handleAction('delete', item)
-                          closeMenu()
-                        }
-                      ">
-                        <img :src="getActionIcon('delete')" class="w-4 h-4 transition-all opacity-60" />
-                        Delete
+                      <div class="h-px bg-surface-light mx-1 my-1"></div>
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black uppercase tracking-tighter" @click="() => { handleAction('delete', item); closeMenu(); }">
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                        Purge Record
                       </button>
                     </div>
                   </transition>
@@ -592,30 +515,45 @@ const handleRegisterStudent = async (formData) => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentFormModal ref="enrollmentForm" :isOpen="showModal" :loading="submitting" :parents="parents"
-      :students="students" :programs="programs" :classes="classes" :enrollments="enrollments"
-      :enrollment="selectedEnrollment" :error="errorMessage" :success="successMessage" :hint="validationHint" @close="
-        () => {
-          showModal = false
-          selectedEnrollment = null
-          errorMessage = ''
-          successMessage = ''
-          validationHint = ''
-        }
-      " @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint"
-      @register-student="handleOpenRegisterStudent" />
+    <EnrollmentFormModal 
+      ref="enrollmentForm" 
+      :isOpen="showModal" 
+      :loading="submitting" 
+      :parents="parents"
+      :students="students" 
+      :programs="programs" 
+      :classes="classes" 
+      :enrollments="enrollments"
+      :enrollment="selectedEnrollment" 
+      :error="errorMessage" 
+      :success="successMessage" 
+      :hint="validationHint" 
+      @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }" 
+      @program-change="handleProgramChange" 
+      @submit="handleSaveEnrollment" 
+      @hint="setValidationHint"
+      @register-student="handleOpenRegisterStudent" 
+    />
 
-    <ParentActionModal :isOpen="childRegistrationModal.isOpen" type="plus" :user="childRegistrationModal.parent"
-      :selectableParents="parents" :loading="childRegistrationModal.loading" :error="childRegistrationModal.error"
-      :success="childRegistrationModal.success" @close="
-        () => {
-          childRegistrationModal.isOpen = false
-          childRegistrationModal.error = ''
-          childRegistrationModal.success = ''
-        }
-      " @submit="handleRegisterStudent" />
+    <ParentActionModal 
+      :isOpen="childRegistrationModal.isOpen" 
+      type="plus" 
+      :user="childRegistrationModal.parent"
+      :selectableParents="parents" 
+      :loading="childRegistrationModal.loading" 
+      :error="childRegistrationModal.error"
+      :success="childRegistrationModal.success" 
+      @close="() => { childRegistrationModal.isOpen = false; childRegistrationModal.error = ''; childRegistrationModal.success = ''; }" 
+      @submit="handleRegisterStudent" 
+    />
 
-    <EnrollmentActionModal v-bind="actionState" :loading="submitting" v-model:error="errorMessage"
-      v-model:success="successMessage" @close="closeActionModal" @submit="submitActionModal" />
+    <EnrollmentActionModal 
+      v-bind="actionState" 
+      :loading="submitting" 
+      v-model:error="errorMessage"
+      v-model:success="successMessage" 
+      @close="closeActionModal" 
+      @submit="submitActionModal" 
+    />
   </DashboardLayout>
 </template>

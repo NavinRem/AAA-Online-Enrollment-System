@@ -1,18 +1,18 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { authService } from './services/authService'
-
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from './stores/auth'
 import './assets/styles/main.css'
 
-let app
+const app = createApp(App)
+const pinia = createPinia()
 
-authService.onAuthStateChanged(() => {
-  if (!app) {
-    app = createApp(App)
-    app.use(createPinia())
-    app.use(router)
-    app.mount('#app')
-  }
+app.use(pinia)
+app.use(router)
+
+// Initialize Auth before mounting
+const authStore = useAuthStore()
+authStore.init().then(() => {
+  app.mount('#app')
 })

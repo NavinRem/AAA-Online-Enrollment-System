@@ -3,16 +3,19 @@ import { ref, onMounted, computed, watch } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
-import DataMetrics from '../components/common/data/DataMetrics.vue'
+import DataMetricCard from '../components/common/data/DataMetricCard.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
+
 import { trialService } from '@/services/trialService'
 import { parentService } from '../services/parentService'
 import { studentService } from '../services/studentService'
 import { programService } from '../services/programService'
+import { classService } from '../services/classService'
+
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
-import { formatPrice, formatDate } from '@/utils/formatUtils'
+import { formatDate } from '@/utils/formatUtils'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 
 const trials = ref([])
@@ -22,7 +25,6 @@ const programs = ref([])
 const classes = ref([])
 
 const loading = ref(true)
-const showModal = ref(false)
 const newlyCreatedId = ref(null)
 
 const getRowClass = (item) => {
@@ -37,7 +39,7 @@ const fetchData = async () => {
       parentService.getAllParents(),
       studentService.getAllStudents(),
       programService.getAllPrograms(),
-      programService.getAllClasses(),
+      classService.getAllClasses(),
     ])
     trials.value = Array.isArray(tData) ? tData : []
     parents.value = Array.isArray(pData) ? pData : []
@@ -66,25 +68,25 @@ const trialStats = computed(() => {
 
   return [
     {
-      label: 'Total Trials',
+      label: 'Trial Pipeline',
       value: total,
       image: getImageUrl('enrollment/total-enrollment'),
       color: 'var(--accent-light)',
     },
     {
-      label: 'Trials Today',
+      label: 'Today Active',
       value: todayCount,
       image: getImageUrl('enrollment/today-enrollment'),
       color: 'var(--accent-light)',
     },
     {
-      label: 'Booked Status',
+      label: 'Confirmed Slot',
       value: bookedCount,
       image: getImageUrl('enrollment/total-unpaid-enrollment'),
       color: 'var(--accent-light)',
     },
     {
-      label: 'Attended Status',
+      label: 'Yielded Assets',
       value: attendedCount,
       image: getImageUrl('enrollment/total-paid-enrollment'),
       color: 'var(--accent-light)',
@@ -93,19 +95,19 @@ const trialStats = computed(() => {
 })
 
 const trialHeaders = [
-  { label: 'No', width: '40px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Student' },
-  { label: 'Program' },
-  { label: 'Schedule', class: 'hidden sm:table-cell' },
-  { label: 'Branch', width: '70px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Status', width: '90px', align: 'center' },
-  { label: 'Trial Date', width: '120px', align: 'center' },
-  { label: 'Date Created', width: '120px', align: 'center', class: 'hidden lg:table-cell' },
+  { label: 'No', width: '50px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'Learner Identity' },
+  { label: 'Program Model' },
+  { label: 'Scheduling', class: 'hidden sm:table-cell' },
+  { label: 'Campus', width: '80px', align: 'center' },
+  { label: 'Registry Status', width: '120px', align: 'center' },
+  { label: 'Event Date', width: '120px', align: 'center' },
+  { label: 'Action', width: '80px', align: 'center' },
 ]
 
 const { searchQuery, searchResults: filteredTrials } = useSearch(
   trials,
-  enrollmentSearchMapper, // Reusing enrollment mapper as structure is similar
+  enrollmentSearchMapper,
 )
 
 const currentPage = ref(1)
@@ -124,7 +126,7 @@ watch(searchQuery, () => {
 
 const handleTableAction = ({ type, item }) => {
   if (type === 'delete') {
-    if (confirm('Are you sure you want to delete this trial record?')) {
+    if (confirm('Are you sure you want to purge this trial record?')) {
       trialService.deleteTrial(item.id).then(() => fetchData())
     }
   }
@@ -133,21 +135,23 @@ const handleTableAction = ({ type, item }) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Trial Class Overview">
+    <DataPageLayout overviewTitle="Trial Engagement Repository">
       <template #overview>
-        <DataMetrics :stats="trialStats" />
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <DataMetricCard v-for="stat in trialStats" :key="stat.label" v-bind="stat" />
+        </div>
       </template>
 
       <template #table>
         <DataTable
-          title="Trial Records"
+          title="Active Trial Entries"
           :headers="trialHeaders"
           :items="paginatedTrials"
           entityName="trial"
           :loading="loading"
           :flexible="true"
           v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search Trials..."
+          searchPlaceholder="Search by student, program, or branch entity..."
           :rowClass="getRowClass"
           :hasPagination="true"
           :totalItems="totalItems"
@@ -156,72 +160,60 @@ const handleTableAction = ({ type, item }) => {
           @action="handleTableAction"
         >
           <template #row="{ item, index, headers }">
-            <td
-              class="ui-cell text-center font-bold text-content-muted/50 hidden md:table-cell"
-              :style="{ width: headers[0].width }"
-            >
-              {{ index + 1 }}
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell" :style="{ width: headers[0].width }">
+              {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
-            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-              <div class="ui-identity-cell">
-                <div class="ui-avatar">
-                  <img :src="item.student?.profileURL" alt="student" />
+
+            <td class="ui-cell min-w-[200px]" :style="{ flex: '1 1 0%' }">
+              <div class="flex items-center gap-4 group">
+                <div class="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm">
+                  <img :src="item.student?.profileURL" class="w-full h-full object-cover" />
                 </div>
-                <div class="ui-identity-info">
-                  <span class="font-bold text-content-dark">{{ item.student?.name }}</span>
-                  <span class="text-3xs text-content-muted uppercase font-semibold">Student</span>
+                <div class="flex flex-col">
+                  <span class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{ item.student?.name }}</span>
+                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">Primary Prospect</span>
                 </div>
               </div>
             </td>
-            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-              <div class="ui-identity-cell">
-                <div class="ui-avatar-sm bg-white ring-1 ring-border">
-                  <img :src="item.program?.profileURL" alt="program" />
+
+            <td class="ui-cell" :style="{ flex: '1 1 0%' }">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-white ring-1 ring-border p-1.5 shadow-sm overflow-hidden">
+                  <img :src="item.program?.profileURL" class="w-full h-full object-contain" />
                 </div>
-                <div class="ui-identity-info overflow-hidden">
-                  <span
-                    class="font-bold text-xs text-content-dark truncate max-w-[140px] block"
-                    :title="item.program?.name"
-                  >
-                    {{ item.program?.name }}
-                  </span>
-                  <span class="text-3xs text-primary uppercase font-black tracking-widest"
-                    >Program</span
-                  >
+                <div class="flex flex-col overflow-hidden">
+                  <span class="font-black text-content-dark tracking-tighter truncate max-w-[140px] leading-tight">{{ item.program?.name }}</span>
+                  <span class="text-[9px] font-black text-primary uppercase tracking-widest mt-0.5">Trial Unit</span>
                 </div>
               </div>
             </td>
-            <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-              <div class="flex flex-col gap-0.5">
-                <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{
-                  getSessionDay(item.class?.schedule) || getSessionDay(item.classSchedule)
-                }}</span>
-                <span class="text-3xs font-semibold text-content-muted uppercase">{{
-                  getSessionTime(item.class?.schedule) || getSessionTime(item.classSchedule)
-                }}</span>
+
+            <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%' }">
+              <div class="flex flex-col">
+                <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{ getSessionDay(item.class?.schedule) || getSessionDay(item.classSchedule, true) }}</span>
+                <span class="text-[10px] font-black text-content-muted uppercase tracking-widest mt-1">{{ getSessionTime(item.class?.schedule) || getSessionTime(item.classSchedule) }}</span>
               </div>
             </td>
-            <td
-              class="ui-cell text-center hidden md:table-cell"
-              :style="{ width: headers[4].width }"
-            >
-              <AppBadge :status="item.branch?.abbr || 'N/A'" type="blue" />
+
+            <td class="ui-cell text-center" :style="{ width: headers[4].width }">
+              <AppBadge :status="item.branch?.abbr || 'HQ'" type="blue" />
             </td>
+
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <AppBadge :status="item.status || 'Booked'" />
             </td>
+
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
-              <span class="text-xs font-bold text-content-dark tracking-tight">{{
-                formatDate(item.trialDate)
-              }}</span>
+              <div class="flex flex-col items-center">
+                 <span class="text-[11px] font-black text-content-dark tabular-nums tracking-tight">{{ formatDate(item.trialDate) }}</span>
+                 <span class="text-[8px] font-black text-content-muted uppercase tracking-widest mt-1">Event Date</span>
+              </div>
             </td>
-            <td
-              class="ui-cell text-center hidden lg:table-cell"
-              :style="{ width: headers[7].width }"
-            >
-              <span class="text-xs font-bold text-content-muted/70 tracking-tight">{{
-                formatDate(item.createdAt)
-              }}</span>
+
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+               <button @click.stop="handleTableAction({ type: 'delete', item })" class="p-2 hover:bg-red-50 rounded-xl transition-all group">
+                 <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-30 group-hover:opacity-100 group-hover:scale-110 transition-all filter-red" />
+               </button>
             </td>
           </template>
         </DataTable>

@@ -12,11 +12,11 @@ import AppBadge from '../components/common/ui/AppBadge.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import ParentFormModal from '../components/parents/ParentFormModal.vue'
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
+import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { parentService } from '../services/parentService'
 import { studentService } from '../services/studentService'
-import { userService } from '../services/userService'
 import { enrollmentService } from '../services/enrollmentService'
-import branchService from '../services/branchService'
+import { branchService } from '../services/branchService'
 import {
   enrichParents,
   calculateParentStats,
@@ -191,11 +191,11 @@ const submitActionModal = async (formData) => {
 
     if (type === 'register-child') {
       const profileURL = await processStudentProfileImage(formData.profileURL, formData.name)
-      const payload = prepareStudentPayload({ ...formData, profileURL })
-      const result = await studentService.registerStudent(id, payload)
+      const payload = prepareStudentPayload({ ...formData, profileURL, parentId: id })
+      const result = await studentService.createStudent(payload)
 
       const parent = parents.value.find(p => p.id === id)
-      const childrenInfo = [...(parent?.childrenInfo), { id: result.id, ...payload, parentId: id }]
+      const childrenInfo = [...(parent?.childrenInfo || []), { id: result.id, ...payload }]
 
       await parentService.updateParent(id, { childrenInfo })
       updateLocalParent(id, { childrenInfo })
@@ -203,7 +203,7 @@ const submitActionModal = async (formData) => {
     }
 
     if (type === 'reset-password') {
-      const result = await authService.manualPasswordReset(id)
+      const result = await authService.adminResetPassword(id)
       successMessage.value = `Password reset successfully! New Temporary Password: ${result.tempPassword}`
     }
 
@@ -271,27 +271,44 @@ const navigateToDetail = (item) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Parent Overview">
+    <DataPageLayout overviewTitle="Parent Management Hub">
       <template #overview>
-        <DataMetrics :stats="statsCards" />
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
+        </div>
       </template>
 
       <template #table>
-        <DataTable title="Parents List" :headers="parentHeaders" :items="paginatedParents" :loading="loading"
-          entityName="parent" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search Parent..."
-          :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
+        <DataTable 
+          title="Registered Parents" 
+          :headers="parentHeaders" 
+          :items="paginatedParents" 
+          :loading="loading"
+          entityName="parent" 
+          :flexible="true" 
+          v-model:searchQuery="searchQuery" 
+          searchPlaceholder="Search by name, email or phone..."
+          :hasFilter="true" 
+          v-model:currentFilter="currentFilter" 
+          :filterOptions="[
             { label: 'All Parents', value: 'all' },
-            { label: 'Registered Today', value: 'registered-today' },
-            { label: 'Paid Today', value: 'paid-today' },
+            { label: 'Recently Joined', value: 'registered-today' },
+            { label: 'Paid Accounts', value: 'paid-today' },
             { label: 'Active Only', value: 'active' },
             { label: 'Inactive Only', value: 'inactive' },
-          ]" :rowClass="getRowClass" :hasPagination="true" :totalItems="totalItems" :pageSize="pageSize"
-          v-model:currentPage="currentPage" @row-click="navigateToDetail"
-          @action="({ type, item }) => openActionModal(type, item)">
+          ]" 
+          :rowClass="getRowClass" 
+          :hasPagination="true" 
+          :totalItems="totalItems" 
+          :pageSize="pageSize"
+          v-model:currentPage="currentPage" 
+          @row-click="navigateToDetail"
+          @action="({ type, item }) => openActionModal(type, item)"
+        >
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="!rounded-std shadow-sm" @click="showNewParentModal = true">
-              <img :src="getActionIcon('plus')" class="w-3.5 h-3.5 brightness-0 invert mt-px" />
-              <span class="font-bold">Add Parent</span>
+            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="showNewParentModal = true">
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
+              <span class="font-black tracking-tight">Onboard Parent</span>
             </AppButton>
           </template>
 
@@ -306,53 +323,76 @@ const navigateToDetail = (item) => {
             closeMenu,
             headers,
           }">
-            <td class="ui-cell text-center font-bold text-content-muted/50 hidden md:table-cell"
-              :style="{ width: headers[0].width }">
-              {{ index + 1 }}
+            <!-- No -->
+            <td class="ui-cell text-center font-bold text-content-muted/30 hidden md:table-cell">
+              {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
-            <td class="ui-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-              <div class="ui-identity-cell">
-                <div class="ui-avatar">
-                  <img :src="item.profileURL" alt="avatar" />
+
+            <!-- Identity -->
+            <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
+              <div class="flex items-center gap-4 group cursor-pointer">
+                <div class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm">
+                  <img :src="item.profileURL" alt="avatar" class="w-full h-full object-cover" />
                 </div>
-                <div class="ui-identity-info">
-                  <span class="font-bold text-content-dark">{{ item.name }}</span>
+                <div class="flex flex-col">
+                  <span class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tight text-base leading-tight">{{ item.name }}</span>
+                  <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.id.slice(-6) }}</span>
                 </div>
               </div>
             </td>
-            <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[2].width }">
-              <div class="ui-avatar-stack">
-                <span v-if="!item.childrenInfo || item.childrenInfo.length === 0"
-                  class="text-content-muted italic opacity-40">—</span>
-                <template v-else>
-                  <div v-for="(child, i) in item.childrenInfo" :key="child.id || i"
-                    class="ui-stack-item border-primary/20" :title="child.name || 'Child ' + (i + 1)"
-                    :style="{ zIndex: item.childrenInfo.length - i }">
-                    <img :src="child.profileURL" alt="child" />
+
+            <!-- Children -->
+            <td class="ui-cell hidden lg:table-cell">
+              <div class="flex -space-x-2">
+                <template v-if="item.childrenInfo?.length">
+                  <div 
+                    v-for="(child, i) in item.childrenInfo.slice(0, 3)" 
+                    :key="child.id || i"
+                    class="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm hover:z-10 transition-transform hover:scale-110" 
+                    :title="child.name"
+                  >
+                    <img :src="child.profileURL" alt="child" class="w-full h-full object-cover" />
+                  </div>
+                  <div v-if="item.childrenInfo.length > 3" class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-[10px] font-black text-content-muted">
+                    +{{ item.childrenInfo.length - 3 }}
                   </div>
                 </template>
+                <span v-else class="text-[10px] font-bold text-content-muted/30 uppercase italic tracking-widest">No Children</span>
               </div>
             </td>
-            <td class="ui-cell hidden md:table-cell font-semibold" :style="{ width: headers[3].width }">
-              {{ item.phone }}
+
+            <!-- Contact Details -->
+            <td class="ui-cell hidden md:table-cell">
+               <div class="flex flex-col">
+                  <span class="text-xs font-black text-content-dark tracking-tighter">{{ item.phone }}</span>
+                  <span class="text-[10px] font-bold text-content-muted/60 uppercase">Phone</span>
+               </div>
             </td>
-            <td class="ui-cell hidden lg:table-cell" :style="{ flex: '1 1 0%', minWidth: 0 }">
-              <span class="text-xs text-content-muted font-medium truncate block max-w-[180px]">{{
-                item.email
-              }}</span>
+            
+            <td class="ui-cell hidden lg:table-cell">
+               <div class="flex flex-col max-w-[160px]">
+                  <span class="text-xs font-bold text-content-dark truncate">{{ item.email }}</span>
+                  <span class="text-[10px] font-bold text-content-muted/60 uppercase">Email</span>
+               </div>
             </td>
-            <td class="ui-cell hidden lg:table-cell text-center" :style="{ width: headers[5].width }">
-              <span class="text-xs font-bold text-content-muted/70 tracking-tight">{{
-                formatDate(item.createdAt)
-              }}</span>
+
+            <!-- Joined -->
+            <td class="ui-cell hidden lg:table-cell text-center">
+              <span class="text-[11px] font-bold text-content-muted/60 tabular-nums">
+                {{ formatDate(item.createdAt) }}
+              </span>
             </td>
-            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+
+            <!-- Status -->
+            <td class="ui-cell text-center">
               <AppBadge :status="item.status" />
             </td>
-            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-              <div class="ui-action-menu">
-                <button class="ui-btn-dots" @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-bold">⋮</span>
+
+            <!-- Actions -->
+            <td class="ui-cell text-center">
+              <div class="relative">
+                <button @click.stop="toggleMenu($event, item.id)" class="p-2 hover:bg-surface-subtle rounded-lg transition-colors group">
+                  <span class="font-black text-content-muted group-hover:text-primary">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -363,59 +403,40 @@ const navigateToDetail = (item) => {
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item ui-dropdown-item-info group" @click="
-                          () => {
-                            openAddChildModal(item)
-                            closeMenu()
-                          }
-                        ">
-                        <img :src="getActionIcon('plus')" class="w-4 h-4 transition-opacity"
-                          :style="{ filter: getStatusFilter('blue') }" />
-                        Register Child
+                        class="ui-dropdown-item group" @click="openAddChildModal(item); closeMenu()">
+                        <img :src="getActionIcon('plus')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        <span class="font-bold text-sm">Register Child</span>
                       </button>
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item ui-dropdown-item-info group" @click="
-                          () => {
-                            openActionModal('edit', item)
-                            closeMenu()
-                          }
-                        ">
-                        <img :src="getActionIcon('edit')" class="w-4 h-4 transition-opacity"
-                          :style="{ filter: getStatusFilter('blue') }" />
-                        Edit Profile
+                        class="ui-dropdown-item group" @click="openActionModal('edit', item); closeMenu()">
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        <span class="font-bold text-sm">Edit Profile</span>
                       </button>
+                      
+                      <div class="h-px bg-surface-subtle mx-2 my-1"></div>
+
                       <button v-if="(item.status || 'Active').toLowerCase() === 'inactive'"
-                        class="ui-dropdown-item ui-dropdown-item-success group" @click="handleAction('activate', item)">
-                        <img :src="getActionIcon('reactivate')" class="w-4 h-4 transition-opacity"
-                          :style="{ filter: getStatusFilter('green') }" />
-                        Reactivate
+                        class="ui-dropdown-item group text-success" @click="handleAction('activate', item); closeMenu()">
+                        <img :src="getActionIcon('reactivate')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        <span class="font-bold text-sm">Reactivate</span>
                       </button>
-                      <button v-else class="ui-dropdown-item ui-dropdown-item-danger group"
-                        @click="handleAction('deactivate', item)">
-                        <img :src="getActionIcon('cancel')" class="w-4 h-4 transition-opacity"
-                          :style="{ filter: getStatusFilter('red') }" />
-                        Deactivate
+                      <button v-else class="ui-dropdown-item group text-warning" @click="handleAction('deactivate', item); closeMenu()">
+                        <img :src="getActionIcon('cancel')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        <span class="font-bold text-sm">Deactivate</span>
                       </button>
+                      
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item ui-dropdown-item-info group" @click="
-                          () => {
-                            openActionModal('reset-password', item)
-                            closeMenu()
-                          }
-                        ">
-                        <img :src="getActionIcon('reset-password')" class="w-4 h-4 transition-opacity"
-                          :style="{ filter: getStatusFilter('purple') }" />
-                        Reset Password
+                        class="ui-dropdown-item group" @click="openActionModal('reset-password', item); closeMenu()">
+                        <img :src="getActionIcon('reset-password')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        <span class="font-bold text-sm">Security Reset</span>
                       </button>
-                      <div class="h-px bg-surface-light mx-1 my-1"
-                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'">
-                      </div>
+                      
+                      <div class="h-px bg-surface-subtle mx-2 my-1" v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"></div>
+                      
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
-                        @click="handleAction('delete', item)">
-                        <img :src="getActionIcon('delete')" class="w-4 h-4 transition-opacity"
-                          :style="{ filter: getStatusFilter('red') }" />
-                        Delete Account
+                        class="ui-dropdown-item group text-error" @click="handleAction('delete', item); closeMenu()">
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity invert" />
+                        <span class="font-black text-sm">Delete Account</span>
                       </button>
                     </div>
                   </transition>
@@ -432,12 +453,6 @@ const navigateToDetail = (item) => {
       @close="closeActionModal" @submit="submitActionModal" />
 
     <ParentFormModal :isOpen="showNewParentModal" :loading="submitting" :error="errorMessage" :success="successMessage"
-      @close="
-        () => {
-          showNewParentModal = false
-          errorMessage = ''
-          successMessage = ''
-        }
-      " @submit="submitNewParent" />
+      @close="showNewParentModal = false; errorMessage = ''; successMessage = ''" @submit="submitNewParent" />
   </DashboardLayout>
 </template>

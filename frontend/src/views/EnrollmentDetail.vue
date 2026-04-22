@@ -367,7 +367,7 @@ onMounted(async () => {
               <strong>Current Enrollment</strong>
               <span class="font-black text-content-dark"
                 >{{
-                  enrollment.studentCountAtEnrollment ?? enrollment.class?.numStudent ?? 0
+                  enrollment.studentCountAtEnrollment ?? enrollment.class?.currentCount ?? 0
                 }}
                 Students</span
               >

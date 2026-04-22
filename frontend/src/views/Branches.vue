@@ -1,18 +1,18 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
-import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
+import DataMetricCard from '../components/common/data/DataMetricCard.vue'
 
 import { branchService } from '../services/branchService'
 import { programService } from '../services/programService'
+import { classService } from '../services/classService'
 import { authService } from '../services/authService'
 import { studentService } from '../services/studentService'
 import { enrollmentService } from '../services/enrollmentService'
 import { trialService } from '../services/trialService'
-import { getImageUrl } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import AppBadge from '../components/common/ui/AppBadge.vue'
 import { formatPrice } from '@/utils/formatUtils'
 import { useSearch, branchSearchMapper } from '../composables/useSearch'
@@ -21,7 +21,7 @@ const branches = ref([])
 const students = ref([])
 const enrollments = ref([])
 const programs = ref([])
-const sessions = ref([])
+const classes = ref([])
 const trials = ref([])
 const loading = ref(true)
 const newlyCreatedId = ref(null)
@@ -39,19 +39,19 @@ const fetchData = async () => {
   }
 
   try {
-    const [bData, sData, eData, pData, sesData, tData] = await Promise.all([
+    const [bData, sData, eData, pData, cData, tData] = await Promise.all([
       branchService.getAllBranches(),
       studentService.getAllStudents(),
       enrollmentService.getAllEnrollments(),
       programService.getAllPrograms(),
-      programService.getAllClasses(),
+      classService.getAllClasses(),
       trialService.getAllTrials(),
     ])
     branches.value = Array.isArray(bData) ? bData : []
     students.value = Array.isArray(sData) ? sData : []
     enrollments.value = Array.isArray(eData) ? eData : []
     programs.value = Array.isArray(pData) ? pData : []
-    sessions.value = Array.isArray(sesData) ? sesData : []
+    classes.value = Array.isArray(cData) ? cData : []
     trials.value = Array.isArray(tData) ? tData : []
   } catch (error) {
     console.error('Failed to fetch branches data', error)
@@ -103,7 +103,7 @@ const statsCards = computed(() => {
   let maxRevenue = 0
   const revByBranch = {}
   todayEnrollments
-    .filter((e) => e.paymentStatus === 'paid')
+    .filter((e) => ['paid', 'confirmed'].includes(String(e.paymentStatus || '').toLowerCase()))
     .forEach((e) => {
       revByBranch[e.branchId] = (revByBranch[e.branchId] || 0) + (e.amount || 0)
     })
@@ -116,45 +116,28 @@ const statsCards = computed(() => {
     }
   })
 
-  const enrolledTodayList = branches.value.filter((b) =>
-    todayEnrollments.some((e) => e.branchId === b.id),
-  )
-  const enrolledValue =
-    enrolledTodayList.length === 1 ? enrolledTodayList[0].name : enrolledTodayList.length
-
-  const idleTodayList = branches.value.filter(
-    (b) => !todayEnrollments.some((e) => e.branchId === b.id),
-  )
-  const idleValue = idleTodayList.length === 1 ? idleTodayList[0].name : idleTodayList.length
-
   return [
     {
-      label: 'Top Enrolled Branch',
+      label: 'Premier Campus',
       value: topBranchName,
       image: getImageUrl('dashboard/branch'),
       color: 'var(--accent-light)',
     },
     {
-      label: 'Highest Earner Today',
+      label: 'Peak Revenue',
       value: bestEarnerName,
       image: getImageUrl('dashboard/high-payment'),
       color: 'var(--accent-light)',
     },
     {
-      label: 'Most Trials Branch',
+      label: 'Trial Hub',
       value: mostTrialBranchName,
       image: getImageUrl('dashboard/card-available-program'),
       color: 'var(--accent-light)',
     },
     {
-      label: 'Enrolled Today',
-      value: enrolledValue,
-      image: getImageUrl('dashboard/card-available-program'),
-      color: 'var(--accent-light)',
-    },
-    {
-      label: 'No Enrollment Today',
-      value: idleValue,
+      label: 'Active Terms',
+      value: programs.value.length,
       image: getImageUrl('dashboard/card-nearlyfull-program'),
       color: 'var(--accent-light)',
     },
@@ -163,19 +146,12 @@ const statsCards = computed(() => {
 
 const branchHeaders = [
   { label: 'No', width: '50px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Branch Name' },
-  { label: 'Abbr', width: '85px', align: 'center' },
+  { label: 'Campus Entity' },
+  { label: 'Abbr', width: '80px', align: 'center' },
   { label: 'Location' },
-  { label: 'Classes', width: '100px', align: 'center', class: 'hidden lg:table-cell' },
-  { label: 'Programs', width: '100px', align: 'center', class: 'hidden lg:table-cell' },
-  { label: 'Students', width: '100px', align: 'center' },
-  { label: 'Today', width: '80px', align: 'center', class: 'hidden sm:table-cell' },
-  { label: 'Trial Today', width: '80px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Trial Wk', width: '80px', align: 'center', class: 'hidden lg:table-cell' },
-  { label: 'Revenue', width: '120px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Pending', width: '120px', align: 'center', class: 'hidden lg:table-cell' },
-  { label: 'Cap %', width: '80px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Wk Growth', width: '100px', align: 'center', class: 'hidden lg:table-cell' },
+  { label: 'Metrics', align: 'center' },
+  { label: 'Yield', width: '120px', align: 'center' },
+  { label: 'Load', width: '80px', align: 'center', class: 'hidden lg:table-cell' },
 ]
 
 const { searchQuery, searchResults } = useSearch(branches, branchSearchMapper)
@@ -201,15 +177,15 @@ watch(searchQuery, () => {
 const getProgramCount = (branchId) => {
   const branch = branches.value.find((b) => b.id === branchId)
   if (branch && branch.programCount !== undefined) return branch.programCount
-  const branchSessions = sessions.value.filter((s) => s.branchId === branchId)
-  const uniqueProgramIds = new Set(branchSessions.map((s) => s.programId))
+  const branchClasses = classes.value.filter((s) => s.branchId === branchId)
+  const uniqueProgramIds = new Set(branchClasses.map((s) => s.programId))
   return uniqueProgramIds.size
 }
 
-const getSessionCount = (branchId) => {
+const getClassCount = (branchId) => {
   const branch = branches.value.find((b) => b.id === branchId)
-  if (branch && branch.sessionCount !== undefined) return branch.sessionCount
-  return sessions.value.filter((s) => s.branchId === branchId).length
+  if (branch && branch.classCount !== undefined) return branch.classCount
+  return classes.value.filter((s) => s.branchId === branchId).length
 }
 
 const getPendingRevenue = (branchId) => {
@@ -231,19 +207,6 @@ const getStudentCount = (branchId) => {
   return students.value.filter((s) => s.branch?.id === branchId || s.branchId === branchId).length
 }
 
-const getNewTodayCount = (branchId) => {
-  const branch = branches.value.find((b) => b.id === branchId)
-  if (branch && branch.newTodayCount !== undefined) return branch.newTodayCount
-  const today = new Date().toISOString().split('T')[0]
-  return enrollments.value.filter((e) => {
-    const eId = e.branchId
-    const eDate = e.createdAt?.toDate
-      ? e.createdAt.toDate().toISOString().split('T')[0]
-      : (e.createdAt || '').split('T')[0]
-    return eId === branchId && eDate === today
-  }).length
-}
-
 const getBranchRevenue = (branchId) => {
   const branch = branches.value.find((b) => b.id === branchId)
   if (branch && branch.totalRevenue !== undefined) return branch.totalRevenue
@@ -258,74 +221,35 @@ const getBranchRevenue = (branchId) => {
 }
 
 const getBranchCapacity = (branchId) => {
-  const branchClasses = sessions.value.filter((s) => s.branchId === branchId)
+  const branchClasses = classes.value.filter((s) => s.branchId === branchId)
   if (!branchClasses.length) return 0
 
   const totalCapacity = branchClasses.reduce((sum, c) => sum + (c.capacity || 0), 0)
-  const totalStudents = branchClasses.reduce((sum, c) => sum + (c.numStudent || 0), 0)
+  const totalStudents = branchClasses.reduce((sum, c) => sum + (c.currentCount || 0), 0)
 
   return totalCapacity > 0 ? Math.round((totalStudents / totalCapacity) * 100) : 0
-}
-
-const getTrialTodayCount = (branchId) => {
-  const today = new Date().toISOString().split('T')[0]
-  return trials.value.filter((t) => {
-    const trialDate = (t.trialDate || t.createdAt || '').split('T')[0]
-    return t.branchId === branchId && trialDate === today
-  }).length
-}
-
-const getTrialWeekCount = (branchId) => {
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-  return trials.value.filter((t) => {
-    const trialDate = new Date(t.trialDate || t.createdAt)
-    return t.branchId === branchId && trialDate >= sevenDaysAgo
-  }).length
-}
-
-const getWeeklyGrowth = (branchId) => {
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-  return enrollments.value.filter((e) => {
-    if (e.branchId !== branchId) return false
-    const enrollDate = e.createdAt?.toDate ? e.createdAt.toDate() : new Date(e.createdAt)
-    return enrollDate >= sevenDaysAgo
-  }).length
 }
 
 const getCapacityColor = (percent) => {
   if (percent >= 90) return 'text-error'
   if (percent >= 70) return 'text-warning'
-  if (percent >= 40) return 'text-success'
+  if (percent >= 40) return 'text-emerald-500'
   return 'text-content-muted'
-}
-
-const isBranchRecentlyActive = (branchId) => {
-  const FIVE_MINUTES = 5 * 60 * 1000
-  const now = new Date().getTime()
-
-  return enrollments.value.some((e) => {
-    if (e.branchId !== branchId) return false
-    const createdAt = e.createdAt?.toDate
-      ? e.createdAt.toDate().getTime()
-      : new Date(e.createdAt).getTime()
-    return now - createdAt < FIVE_MINUTES
-  })
 }
 </script>
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Branch Overview">
+    <DataPageLayout overviewTitle="Regional Campus Repository">
       <template #overview>
-        <DataMetrics :stats="statsCards" />
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
+        </div>
       </template>
 
       <template #table>
         <DataTable
-          title="Branch List"
+          title="Active Campuses"
           :headers="branchHeaders"
           :items="paginatedBranches"
           :loading="loading"
@@ -334,133 +258,67 @@ const isBranchRecentlyActive = (branchId) => {
           :rowClass="getRowClass"
           :hasSearch="true"
           v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search Branches..."
+          searchPlaceholder="Search campuses by name or location..."
           :hasPagination="true"
           :totalItems="totalItems"
           :pageSize="pageSize"
           v-model:currentPage="currentPage"
         >
           <template #empty>
-            <div class="p-20 text-center flex flex-col items-center gap-4">
-              <img :src="getImageUrl('common/no-data')" class="w-24 opacity-40" />
-              <h3 class="text-xl font-bold text-content-dark">No Branches Found</h3>
-              <p class="text-content-muted text-sm max-w-sm">
-                New campuses must be initialized via secure channels or the administrative
-                dashboard.
-              </p>
+            <div class="py-20 text-center flex flex-col items-center gap-4 opacity-30 grayscale">
+              <img :src="getImageUrl('common/no-data')" class="w-24" />
+              <span class="text-sm font-black uppercase tracking-widest">No Campuses Found</span>
             </div>
           </template>
 
           <template #row="{ item, index, headers }">
-            <td
-              :style="{ width: headers[0].width }"
-              class="ui-cell text-center font-bold text-content-muted/50 hidden md:table-cell"
-            >
-              {{ index + 1 }}
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell" :style="{ width: headers[0].width }">
+              {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
-            <td :style="{ flex: '1 1 0%', minWidth: 0 }" class="ui-cell">
-              <span class="font-bold text-content-dark tracking-tighter">{{ item.name }}</span>
+            
+            <td class="ui-cell min-w-[200px]" :style="{ flex: '1 1 0%' }">
+               <div class="flex flex-col">
+                  <span class="font-black text-content-dark tracking-tighter text-base leading-tight">{{ item.name }}</span>
+                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">Campus Entity</span>
+               </div>
             </td>
-            <td :style="{ width: headers[2].width }" class="ui-cell text-center">
+
+            <td class="ui-cell text-center" :style="{ width: headers[2].width }">
               <AppBadge :status="item.abbr" type="blue" />
             </td>
-            <td :style="{ flex: '1 1 0%', minWidth: 0 }" class="ui-cell pl-6">
-              <div
-                class="text-xs text-content-muted leading-relaxed truncate max-w-[250px]"
-                :title="item.location"
-              >
-                {{ item.location || 'No location set' }}
+
+            <td class="ui-cell min-w-[200px]" :style="{ flex: '1 1 0%' }">
+              <div class="flex items-center gap-2 text-content-muted">
+                 <img :src="getActionIcon('location')" class="w-3.5 h-3.5 opacity-30" />
+                 <span class="text-xs font-bold truncate max-w-[200px]" :title="item.location">{{ item.location || 'Central Facility' }}</span>
               </div>
             </td>
-            <td
-              :style="{ width: headers[4].width }"
-              class="ui-cell text-center hidden lg:table-cell"
-            >
-              <span class="font-black text-content-dark text-lg">{{
-                getSessionCount(item.id)
-              }}</span>
+
+            <td class="ui-cell">
+              <div class="flex items-center justify-center gap-8">
+                 <div class="flex flex-col items-center">
+                    <span class="text-sm font-black text-content-dark tabular-nums">{{ getStudentCount(item.id) }}</span>
+                    <span class="text-[8px] font-black text-content-muted uppercase tracking-tighter">Students</span>
+                 </div>
+                 <div class="flex flex-col items-center">
+                    <span class="text-sm font-black text-content-dark tabular-nums">{{ getClassCount(item.id) }}</span>
+                    <span class="text-[8px] font-black text-content-muted uppercase tracking-tighter">Classes</span>
+                 </div>
+              </div>
             </td>
-            <td
-              :style="{ width: headers[5].width }"
-              class="ui-cell text-center hidden lg:table-cell"
-            >
-              <span class="font-black text-content-dark text-lg">{{
-                getProgramCount(item.id)
-              }}</span>
+
+            <td class="ui-cell text-center" :style="{ width: headers[5].width }">
+               <div class="inline-flex flex-col items-center px-4 py-1.5 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                  <span class="text-sm font-black text-emerald-700 tabular-nums">${{ formatPrice(getBranchRevenue(item.id)) }}</span>
+                  <span class="text-[8px] font-black text-emerald-600/60 uppercase tracking-widest">Total Yield</span>
+               </div>
             </td>
-            <td :style="{ width: headers[6].width }" class="ui-cell text-center">
-              <span class="font-black text-content-dark text-lg">{{
-                getStudentCount(item.id)
-              }}</span>
-            </td>
-            <td
-              :style="{ width: headers[7].width }"
-              class="ui-cell text-center hidden sm:table-cell"
-            >
-              <span
-                class="inline-block px-3 py-1 rounded-sm text-sm font-black transition-all duration-500"
-                :class="
-                  isBranchRecentlyActive(item.id)
-                    ? 'bg-primary-soft text-primary animate-pulse'
-                    : 'text-primary/70'
-                "
-              >
-                +{{ getNewTodayCount(item.id) }}
-              </span>
-            </td>
-            <td
-              :style="{ width: headers[8].width }"
-              class="ui-cell text-center hidden md:table-cell"
-            >
-              <span class="font-black text-purple text-lg">+{{ getTrialTodayCount(item.id) }}</span>
-            </td>
-            <td
-              :style="{ width: headers[9].width }"
-              class="ui-cell text-center hidden lg:table-cell"
-            >
-              <span class="font-black text-purple text-lg">+{{ getTrialWeekCount(item.id) }}</span>
-            </td>
-            <td
-              :style="{ width: headers[10].width }"
-              class="ui-cell text-center hidden md:table-cell"
-            >
-              <span class="font-black text-success text-lg tracking-tighter"
-                >${{ formatPrice(getBranchRevenue(item.id)) }}</span
-              >
-            </td>
-            <td
-              :style="{ width: headers[11].width }"
-              class="ui-cell text-center hidden lg:table-cell"
-            >
-              <span class="font-bold text-warning text-sm tracking-tighter"
-                >${{ formatPrice(getPendingRevenue(item.id)) }}</span
-              >
-            </td>
-            <td
-              :style="{ width: headers[12].width }"
-              class="ui-cell text-center hidden md:table-cell"
-            >
-              <span
-                class="font-black text-lg"
-                :class="getCapacityColor(getBranchCapacity(item.id))"
-              >
-                {{ getBranchCapacity(item.id) }}%
-              </span>
-            </td>
-            <td
-              :style="{ width: headers[13].width }"
-              class="ui-cell text-center hidden lg:table-cell"
-            >
-              <span
-                class="px-2 py-0.5 rounded-sm font-bold text-xs"
-                :class="
-                  getWeeklyGrowth(item.id) >= 5
-                    ? 'bg-success/10 text-success border border-success/20'
-                    : 'bg-surface-light text-content-muted'
-                "
-              >
-                +{{ getWeeklyGrowth(item.id) }}
-              </span>
+
+            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[6].width }">
+               <div class="flex flex-col items-center">
+                  <span class="text-sm font-black tabular-nums" :class="getCapacityColor(getBranchCapacity(item.id))">{{ getBranchCapacity(item.id) }}%</span>
+                  <span class="text-[8px] font-black text-content-muted uppercase tracking-tighter">Utilized</span>
+               </div>
             </td>
           </template>
         </DataTable>

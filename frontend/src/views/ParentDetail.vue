@@ -5,24 +5,22 @@ import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import TableToolbar from '@/components/common/data/TableToolbar.vue'
-import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.vue'
-import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import { parentService } from '@/services/parentService'
 import { studentService } from '@/services/studentService'
-import { userService } from '@/services/userService'
+import { authService } from '@/services/authService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate, formatPrice } from '@/utils/formatUtils'
 import { filterDetailEnrollments, enrichEnrollments } from '@/utils/enrollmentHelper'
 import { enrichStudents } from '@/utils/studentHelper'
 import { programService } from '@/services/programService'
-import { branchService } from '@/services/branchService'
+import { classService } from '@/services/classService'
 import {
   processParentProfileImage,
   prepareParentPayload,
 } from '../utils/parentHelper'
 import { processStudentProfileImage, prepareStudentPayload } from '../utils/studentHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import ParentActionModal from '../components/parents/ParentActionModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -38,32 +36,11 @@ watch(activeTab, () => {
   currentFilter.value = 'all'
 })
 
-const filterOptions = computed(() => {
-  if (activeTab.value === 'children') {
-    return [
-      { label: 'All Status', value: 'all' },
-      { label: 'Studying', value: 'studying' },
-      { label: 'Completed', value: 'completed' },
-      { label: 'Cancelled', value: 'cancelled' },
-    ]
-  } else if (activeTab.value === 'payments') {
-    return [
-      { label: 'All Payments', value: 'all' },
-      { label: 'Paid', value: 'paid' },
-      { label: 'Pending', value: 'pending' },
-      { label: 'Cancelled', value: 'cancelled' },
-    ]
-  }
-  return [
-    { label: 'All History', value: 'all' },
-    { label: 'Pending', value: 'pending' },
-    { label: 'Paid', value: 'paid' },
-    { label: 'Cancelled', value: 'cancelled' },
-  ]
-})
-
 const loading = ref(true)
 const errorMessage = ref('')
+const submitting = ref(false)
+const globalSuccess = ref('')
+const globalError = ref('')
 
 const studentEnrollments = computed(() => {
   return filterDetailEnrollments(enrollments.value, {
@@ -101,7 +78,7 @@ const fetchData = async (id) => {
       studentService.getStudentsByParent(id),
       enrollmentService.getAllEnrollments(),
       programService.getAllPrograms(),
-      programService.getAllClasses(),
+      classService.getAllClasses(),
     ])
 
     students.value = enrichStudents(studentsData || [], [], [])
@@ -131,10 +108,6 @@ const fetchData = async (id) => {
   }
 }
 
-const submitting = ref(false)
-const globalSuccess = ref('')
-const globalError = ref('')
-
 const actionModal = ref({
   isOpen: false,
   type: '',
@@ -156,7 +129,7 @@ const openAddChildModal = () => {
   globalSuccess.value = ''
   actionModal.value = {
     isOpen: true,
-    type: 'plus',
+    type: 'register-child',
     user: parent.value,
   }
 }
@@ -188,26 +161,21 @@ const submitActionModal = async (formData) => {
       router.push('/parents')
       return
     } else if (type === 'register-child') {
-      const finalProfile = await processStudentProfileImage(formData.profile, formData.name)
-      const payload = prepareStudentPayload({ ...formData, profile: finalProfile })
-
-      await studentService.registerStudent(id, payload)
+      const finalProfile = await processStudentProfileImage(formData.profileURL, formData.name)
+      const payload = prepareStudentPayload({ ...formData, profileURL: finalProfile, parentId: id })
+      await studentService.createStudent(payload)
       globalSuccess.value = 'Child registered successfully!'
     } else if (type === 'reset-password') {
-      await userService.resetPassword(id)
-      globalSuccess.value = 'Password reset email sent!'
+      const result = await authService.adminResetPassword(id)
+      globalSuccess.value = `Temporary password generated: ${result.tempPassword}`
     }
 
     setTimeout(() => {
       actionModal.value.isOpen = false
       globalSuccess.value = ''
-    }, 1500)
+    }, type === 'reset-password' ? 5000 : 1500)
 
-    try {
-      await fetchData(id)
-    } catch (fetchErr) {
-      console.warn('Data refreshed partially after modal save:', fetchErr)
-    }
+    await fetchData(id)
   } catch (err) {
     console.error('Action failed:', err)
     globalError.value = err.message || 'Action failed'
@@ -216,312 +184,183 @@ const submitActionModal = async (formData) => {
   }
 }
 
-const navigateToStudent = (student) => {
-  const sId = student.id
-  if (sId) {
-    router.push(`/students/${sId}`)
-  }
-}
-
 onMounted(() => {
   if (route.params.id) fetchData(route.params.id)
 })
-
-watch(
-  () => route.params.id,
-  (newId) => {
-    if (newId) fetchData(newId)
-  },
-)
 </script>
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" title="Parent Details">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" title="Parent Dashboard">
       <template #header-actions v-if="parent">
-        <div class="flex items-center gap-md">
-          <AppButton v-if="!isInactive" variant="secondary" title="Register Child" @click="openAddChildModal">
-            <img :src="getActionIcon('plus')" class="w-4 h-4" /> Register Child
+        <div class="flex items-center gap-3">
+          <AppButton v-if="!isInactive" variant="secondary" class="rounded-xl border-outline-std" @click="openAddChildModal">
+            <img :src="getActionIcon('plus')" class="w-4 h-4 opacity-70" /> 
+            <span class="font-bold">Register Child</span>
           </AppButton>
-          <AppButton v-if="!isInactive" variant="secondary" title="Edit Parent" @click="openActionModal('edit')">
-            <img :src="getActionIcon('edit')" class="w-4 h-4" /> Edit
+          <AppButton v-if="!isInactive" variant="secondary" class="rounded-xl border-outline-std" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-70" />
+            <span class="font-bold">Edit</span>
           </AppButton>
-          <AppButton v-if="!isInactive" variant="secondary" title="Reset Password"
-            @click="openActionModal('reset-password')">
-            <img :src="getActionIcon('reset-password')" class="w-4 h-4" /> Password
+          <div class="w-px h-6 bg-outline-std mx-1"></div>
+          <AppButton v-if="!isInactive" variant="danger" class="rounded-xl shadow-lg shadow-error/10" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" class="w-4 h-4 invert" />
+            <span class="font-black">Delete</span>
           </AppButton>
-          <AppButton v-if="!isInactive" variant="danger" title="Deactivate Account"
-            @click="openActionModal('deactivate')">
-            <img :src="getActionIcon('cancel')" class="w-4 h-4 invert" /> Deactivate
-          </AppButton>
-          <AppButton v-if="isInactive" variant="primary" title="Activate Account" @click="openActionModal('activate')">
-            <img :src="getActionIcon('reactivate')" class="w-4 h-4 brightness-0 invert" /> Activate
-            Account
-          </AppButton>
-          <AppButton v-if="!isInactive" variant="danger" title="Delete Account" @click="openActionModal('delete')">
-            <img :src="getActionIcon('delete')" class="w-4 h-4 invert" /> Delete
+          <AppButton v-if="isInactive" variant="primary" class="rounded-xl shadow-lg shadow-primary/20" @click="openActionModal('activate')">
+            <img :src="getActionIcon('reactivate')" class="w-4 h-4 brightness-0 invert" />
+            <span class="font-black">Reactivate</span>
           </AppButton>
         </div>
       </template>
 
       <template #left-content v-if="parent">
-        <!-- Alerts -->
-        <div v-if="isInactive" class="mb-lg">
-          <div class="p-md bg-warning/10 border-l-4 border-warning rounded-sm flex flex-col gap-1">
-            <strong class="text-warning text-sm">Account Standardized Inactive</strong>
-            <span class="text-xs text-content-muted">This parent account is currently disabled. Access to registration
-              and profile updates
-              is restricted until reactivation.</span>
+        <!-- Identity Section -->
+        <div class="mb-10 p-8 rounded-[2rem] bg-white border border-outline-std shadow-sm flex flex-col md:flex-row items-center gap-10">
+          <div class="relative group">
+            <div class="w-40 h-40 rounded-[2.5rem] overflow-hidden ring-4 ring-primary/5 shadow-2xl transition-transform duration-500 group-hover:scale-105">
+              <img :src="parent.profileURL" class="w-full h-full object-cover" />
+            </div>
+            <div class="absolute -bottom-2 -right-2">
+              <AppBadge :status="parent.status" :showLabel="false" />
+            </div>
+          </div>
+          
+          <div class="flex flex-col items-center md:items-start text-center md:text-left flex-1">
+            <div class="flex items-center gap-3 mb-2">
+               <h1 class="text-4xl font-black text-content-dark tracking-tighter">{{ parent.name }}</h1>
+               <AppBadge :status="parent.status" />
+            </div>
+            <div class="flex flex-wrap items-center justify-center md:justify-start gap-6 text-content-muted">
+               <div class="flex flex-col">
+                  <span class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Primary Phone</span>
+                  <span class="text-lg font-black text-content-dark tracking-tight">{{ parent.phone }}</span>
+               </div>
+               <div class="w-px h-8 bg-outline-std"></div>
+               <div class="flex flex-col">
+                  <span class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Email Access</span>
+                  <span class="text-sm font-bold text-primary lowercase">{{ parent.email }}</span>
+               </div>
+            </div>
+          </div>
+          
+          <div class="flex flex-col gap-2">
+            <button @click="openActionModal('reset-password')" class="px-6 py-3 rounded-2xl bg-surface-subtle hover:bg-primary/5 text-primary text-xs font-black uppercase tracking-widest transition-all ring-1 ring-black/5">
+               Security Reset
+            </button>
+            <button v-if="!isInactive" @click="openActionModal('deactivate')" class="px-6 py-3 rounded-2xl bg-error-soft/30 hover:bg-error-soft text-error text-xs font-black uppercase tracking-widest transition-all ring-1 ring-error/10">
+               Freeze Account
+            </button>
           </div>
         </div>
 
-        <!-- Tab Navigation -->
-        <div class="ui-tabs-nav">
-          <button class="ui-tab-item" :class="{ active: activeTab === 'children' }" @click="activeTab = 'children'">
-            Children & Programs
-          </button>
-          <button class="ui-tab-item" :class="{ active: activeTab === 'payments' }" @click="activeTab = 'payments'">
-            Payment History
-          </button>
-          <button class="ui-tab-item" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
-            Enrollment Logs
+        <!-- Linked Children Discovery -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+          <div 
+            v-for="s in students" :key="s.id" 
+            class="group p-6 rounded-3xl bg-white border border-outline-std hover:border-primary/20 hover:shadow-md transition-all cursor-pointer"
+            @click="router.push(`/students/${s.id}`)"
+          >
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all">
+                <img :src="s.profileURL" class="w-full h-full object-cover" />
+              </div>
+              <div class="flex flex-col overflow-hidden">
+                <span class="text-base font-black text-content-dark group-hover:text-primary transition-colors truncate">{{ s.name }}</span>
+                <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">Active Student</span>
+              </div>
+            </div>
+          </div>
+          <button @click="openAddChildModal" class="p-6 rounded-3xl border-2 border-dashed border-outline-std hover:border-primary/30 hover:bg-primary/5 transition-all flex items-center justify-center gap-3 group">
+             <div class="w-10 h-10 rounded-full bg-surface-subtle flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                <span class="text-xl font-bold">+</span>
+             </div>
+             <span class="text-sm font-black text-content-muted group-hover:text-primary uppercase tracking-widest">Link New Child</span>
           </button>
         </div>
 
-        <div class="ui-detail-card min-h-[400px]">
-          <!-- Children Tab -->
-          <div v-if="activeTab === 'children'">
-            <div class="ui-section-header">
-              <h3 class="ui-section-title">Children's Academic Summary</h3>
-            </div>
+        <!-- Academic Repository -->
+        <div class="bg-white rounded-[2.5rem] border border-outline-std shadow-sm overflow-hidden min-h-[500px]">
+          <div class="flex items-center gap-2 p-3 bg-surface-subtle/30 border-b border-outline-std">
+            <button
+              v-for="tab in ['children', 'payments', 'history']"
+              :key="tab"
+              class="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300"
+              :class="activeTab === tab ? 'bg-white text-primary shadow-sm ring-1 ring-black/5' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
+              @click="activeTab = tab"
+            >
+              {{ tab === 'children' ? 'Current Programs' : tab === 'payments' ? 'Finance Logs' : 'Archive' }}
+            </button>
+          </div>
 
-            <!-- Child Selector Chips -->
-            <div class="flex flex-wrap gap-sm mb-xl" v-if="students.length > 0">
-              <button v-for="s in students" :key="s.id" class="flex items-center gap-sm px-md py-sm rounded-std border transition-all duration-200"
-                :class="selectedChildId === s.id
-                    ? 'bg-primary-soft border-primary text-primary shadow-sm'
-                    : 'bg-white border-outline-std text-content-muted hover:border-text-muted'
-                  " @click="selectedChildId = s.id" @dblclick="navigateToStudent(s)">
-                <div class="w-8 h-8 rounded-full overflow-hidden border border-outline-std bg-surface-light">
-                  <img :src="s.profileURL" class="w-full h-full object-cover"
-                    @error="(e) => (e.target.src = getImageUrl('profiles/avatar-student'))" />
-                </div>
-                <span class="text-xs font-bold">{{ s.name }}</span>
-              </button>
-            </div>
-
-            <table class="ui-premium-table">
-              <thead>
-                <tr>
-                  <th class="text-center" width="50">No</th>
-                  <th>Program Name</th>
-                  <th>Session Schedule</th>
-                  <th class="text-center">Amount</th>
-                  <th class="text-center">Academic Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="students.length === 0">
-                  <td colspan="5" class="py-20 text-center text-content-muted italic text-xs">
-                    No children linked to this parent account.
-                  </td>
-                </tr>
-                <tr v-else-if="studentEnrollments.length === 0">
-                  <td colspan="5" class="py-20 text-center text-content-muted italic text-xs">
-                    This child is not currently registered in any active programs.
-                  </td>
-                </tr>
-                <tr v-for="(reg, idx) in studentEnrollments" :key="reg.id">
-                  <td class="text-center font-bold text-content-muted/40">{{ idx + 1 }}</td>
-                  <td class="font-bold text-content-dark">
-                    {{ reg.program?.name || 'N/A' }}
-                  </td>
-                  <td>
-                    <div class="flex flex-col">
-                      <span class="text-xs font-black text-content-dark uppercase tracking-tighter">{{ reg.class?.day ||
-                        'N/A' }}</span>
-                      <span class="text-2xs text-content-muted font-bold">{{
-                        reg.class?.timeslot || ''
-                        }}</span>
+          <div class="p-8">
+             <div v-if="activeTab === 'children'">
+                <div v-if="students.length > 0" class="flex flex-wrap gap-2 mb-8">
+                  <button 
+                    v-for="s in students" :key="s.id"
+                    class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
+                    :class="selectedChildId === s.id ? 'bg-primary text-white shadow-lg' : 'bg-surface-subtle text-content-muted hover:bg-outline-std'"
+                    @click="selectedChildId = s.id"
+                  >
+                    <div class="w-5 h-5 rounded-full overflow-hidden border border-white/20">
+                      <img :src="s.profileURL" class="w-full h-full object-cover" />
                     </div>
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="'$' + formatPrice(reg.amount || 0)" />
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="reg.displayStatus || reg.status || 'Unpaid'" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Payments Tab -->
-          <div v-if="activeTab === 'payments'">
-            <div class="ui-section-header">
-              <h3 class="ui-section-title">Verified Payment History</h3>
-              <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
-                @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
-            </div>
-            <table class="ui-premium-table">
-              <thead>
-                <tr>
-                  <th class="text-center" width="50">No</th>
-                  <th>Transaction / Proof</th>
-                  <th>Reference ID</th>
-                  <th class="text-center">Amount</th>
-                  <th class="text-center">Processed Date</th>
-                  <th class="text-center">Payment Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="filteredPayments.length === 0">
-                  <td colspan="6" class="py-20 text-center text-content-muted italic text-xs">
-                    No payment history found matching criteria.
-                  </td>
-                </tr>
-                <tr v-for="(reg, idx) in filteredPayments" :key="'pay-' + reg.id">
-                  <td class="text-center font-bold text-content-muted/40">{{ idx + 1 }}</td>
-                  <td class="font-mono text-xs text-content-muted select-all">
-                    {{ reg.paymentProof || 'N/A' }}
-                  </td>
-                  <td class="font-mono text-xs text-content-muted opacity-50">
-                    {{ reg.id.substring(0, 8) + '...' }}
-                  </td>
-                  <td class="text-center font-black text-emerald-600 text-base">
-                    <AppBadge :status="'$' + formatPrice(reg.amount || 0)"></AppBadge>
-                  </td>
-                  <td class="text-center text-xs font-bold text-content-muted">
-                    {{ formatDate(reg.updatedAt || reg.createdAt) }}
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="reg.paymentStatus || 'Pending'" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- History Tab -->
-          <div v-if="activeTab === 'history'">
-            <div class="ui-section-header">
-              <h3 class="ui-section-title">Master Enrollment Logs</h3>
-              <TableToolbar :hasSearch="false" :hasFilter="true" :currentFilter="currentFilter"
-                @update:currentFilter="currentFilter = $event" :filterOptions="filterOptions" />
-            </div>
-            <table class="ui-premium-table">
-              <thead>
-                <tr>
-                  <th class="text-center" width="50">No</th>
-                  <th>Enrollment Reference</th>
-                  <th>Program Title</th>
-                  <th>Child</th>
-                  <th class="text-center">Log Date</th>
-                  <th class="text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="filteredHistory.length === 0">
-                  <td colspan="6" class="py-20 text-center text-content-muted italic text-xs">
-                    No enrollment history records found.
-                  </td>
-                </tr>
-                <tr v-for="(reg, idx) in filteredHistory" :key="reg.id">
-                  <td class="text-center font-bold text-content-muted/40">{{ idx + 1 }}</td>
-                  <td class="font-mono text-xs text-content-muted opacity-50">{{ reg.id }}</td>
-                  <td class="font-bold text-content-dark">{{ reg.program?.name }}</td>
-                  <td class="text-xs font-bold text-primary italic">{{ reg.student?.name }}</td>
-                  <td class="text-center text-xs font-bold text-content-muted">
-                    {{ formatDate(reg.createdAt) }}
-                  </td>
-                  <td class="text-center">
-                    <AppBadge :status="reg.status?.toLowerCase() === 'confirmed' ? 'Paid' : reg.status" />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </template>
-
-      <template #right-content v-if="parent">
-        <!-- Parent Profile Card -->
-        <div class="ui-detail-card flex flex-col items-center text-center p-0 overflow-hidden">
-          <div class="w-full h-32 bg-gradient-to-br from-primary to-magenta opacity-10"></div>
-          <div class="relative -mt-16 mb-md">
-            <div class="w-32 h-32 rounded-full border-4 border-white shadow-xl bg-white overflow-hidden group">
-              <img :src="parent?.profileURL" alt="Profile"
-                @error="(e) => (e.target.src = getImageUrl('profiles/avatar-admin'))"
-                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-            </div>
-            <div class="absolute bottom-1 right-1">
-              <AppBadge :status="parent?.status" :showLabel="false" />
-            </div>
-          </div>
-
-          <div class="px-xl pb-xl flex flex-col items-center w-full">
-            <h2 class="text-2xl font-black text-content-dark tracking-tighter mb-xs">
-              {{ parent?.name }}
-            </h2>
-            <AppBadge :status="parent?.status" />
-
-            <div class="w-full h-px bg-surface-light my-xl"></div>
-
-            <div class="ui-data-list w-full grid-cols-1 gap-y-lg">
-              <div class="ui-data-item">
-                <span class="ui-data-label text-left">Phone Primary</span>
-                <span class="ui-data-value text-left text-lg tracking-tight">{{
-                  parent?.phone
-                  }}</span>
-              </div>
-              <div class="ui-data-item">
-                <span class="ui-data-label text-left">Administrative Email</span>
-                <span class="ui-data-value text-left text-xs text-primary font-black lowercase truncate block w-full">{{
-                  parent?.email }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Children Discovery Card -->
-        <div class="ui-detail-card mt-lg">
-          <div class="ui-section-header mb-lg">
-            <h3 class="text-xs font-black uppercase tracking-widest text-content-muted">
-              Linked Child Profiles
-            </h3>
-          </div>
-          <div class="flex flex-col gap-sm">
-            <div v-for="s in students" :key="s.id"
-              class="group flex items-center gap-md p-md rounded-sm bg-surface-light cursor-pointer transition-all hover:bg-white hover:shadow-md hover:ring-2 hover:ring-primary/20"
-              @click="navigateToStudent(s)">
-              <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm ring-1 ring-border">
-                <img :src="s.profileURL || getImageUrl('profiles/avatar-student')" alt="child"
-                  class="w-full h-full object-cover" />
-              </div>
-              <div class="flex flex-col">
-                <span class="font-bold text-content-dark group-hover:text-primary transition-colors text-sm">{{ s.name
-                  }}</span>
-                <span class="text-3xs text-content-muted uppercase font-black tracking-widest">Child Account</span>
-              </div>
-            </div>
-            <div v-if="students.length === 0"
-              class="py-xl text-center border-2 border-dashed border-surface-light rounded-sm opacity-30 text-xs font-bold italic">
-              No children linked.
-            </div>
-          </div>
-        </div>
-
-        <!-- Activity Log -->
-        <div class="flex flex-col gap-sm mt-lg px-md opacity-40">
-          <div class="flex items-center justify-between text-3xs font-black uppercase tracking-tighter">
-            <span>Account Initialized</span>
-            <span class="text-content-dark font-black">{{ formatDate(parent?.createdAt) }}</span>
-          </div>
-          <div class="flex items-center justify-between text-3xs font-black uppercase tracking-tighter">
-            <span>System Last Sync</span>
-            <span class="text-content-dark font-black">{{
-              formatDate(parent?.updatedAt || parent?.createdAt)
-              }}</span>
+                    {{ s.name }}
+                  </button>
+                </div>
+                
+                <div v-if="studentEnrollments.length > 0" class="grid gap-4">
+                  <div v-for="reg in studentEnrollments" :key="reg.id" class="p-6 rounded-3xl border border-outline-std bg-white hover:border-primary/10 transition-all flex items-center group">
+                    <div class="flex-1 flex flex-col">
+                      <span class="text-base font-black text-content-dark group-hover:text-primary transition-colors tracking-tight">{{ reg.program?.name }}</span>
+                      <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ reg.class?.day }} • {{ reg.class?.timeslot }}</span>
+                    </div>
+                    <div class="flex-1 text-center font-black text-xl text-emerald-600">
+                      ${{ formatPrice(reg.amount || 0) }}
+                    </div>
+                    <div class="w-32 flex justify-center">
+                       <AppBadge :status="reg.displayStatus || reg.status || 'Unpaid'" />
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="flex flex-col items-center justify-center py-20 opacity-30">
+                  <img :src="getImageUrl('common/no-data')" class="w-20 mb-4 grayscale" />
+                  <span class="text-sm font-black uppercase tracking-widest">No Active Enrollments</span>
+                </div>
+             </div>
+             
+             <!-- Finance Logs -->
+             <div v-if="activeTab === 'payments'">
+                <div v-if="filteredPayments.length > 0" class="overflow-hidden rounded-3xl border border-outline-std">
+                  <table class="w-full text-left">
+                    <thead class="bg-surface-subtle/50">
+                      <tr>
+                        <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Log No</th>
+                        <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Evidence</th>
+                        <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Amount</th>
+                        <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-outline-std">
+                      <tr v-for="(reg, idx) in filteredPayments" :key="reg.id" class="hover:bg-surface-subtle/20 transition-colors">
+                        <td class="px-6 py-5 text-xs font-black text-content-muted/30 tabular-nums">{{ idx + 1 }}</td>
+                        <td class="px-6 py-5">
+                          <div class="flex flex-col">
+                            <span class="text-xs font-mono text-content-dark">{{ reg.paymentProof || 'Internal Receipt' }}</span>
+                            <span class="text-[10px] font-bold text-content-muted uppercase tabular-nums opacity-60">{{ formatDate(reg.updatedAt || reg.createdAt) }}</span>
+                          </div>
+                        </td>
+                        <td class="px-6 py-5 text-center font-black text-content-dark">
+                          ${{ formatPrice(reg.amount || 0) }}
+                        </td>
+                        <td class="px-6 py-5 text-center">
+                          <AppBadge :status="reg.paymentStatus || 'Pending'" />
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+             </div>
           </div>
         </div>
       </template>
