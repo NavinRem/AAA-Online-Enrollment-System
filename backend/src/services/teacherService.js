@@ -1,17 +1,32 @@
 const { db, COLLECTIONS } = require('../config/database')
 const authService = require('./authService')
+const profileHelper = require('../utils/profileHelper')
 const {
   validateTeacher,
   validateUpdateTeacher,
 } = require('../validators/teacherValidator')
 
 class TeacherService {
-  async registerTeacher(teacherData) {
+  async createTeacher(teacherData) {
+    const { email, password, ...profileData } = teacherData
+    const validatedProfile = validateTeacher(profileData)
     return authService.registerAccount(
-      teacherData,
+      { email, password, ...validatedProfile },
       'teacher',
       COLLECTIONS.TEACHER,
     )
+  }
+
+  async getAllTeachers(filters = {}) {
+    let query = db.collection(COLLECTIONS.TEACHER)
+
+    if (filters.status) query = query.where('status', '==', filters.status)
+
+    const snapshot = await query.get()
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
   }
 
   async getTeacher(id) {
@@ -21,35 +36,62 @@ class TeacherService {
     return { id: doc.id, ...doc.data() }
   }
 
-  async getAllTeachers() {
-    const snapshot = await db.collection(COLLECTIONS.TEACHER).get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-  }
-
   async updateTeacher(id, updateData) {
-    if (!id) throw new Error('Teacher ID is required for update')
-    const validatedUpdate = validateUpdateTeacher(updateData)
+    if (!id) throw new Error('Teacher ID is required')
+    const validatedData = validateUpdateTeacher(updateData)
+    const teacherRef = db.collection(COLLECTIONS.TEACHER).doc(id)
 
-    const ref = db.collection(COLLECTIONS.TEACHER).doc(id)
-    const doc = await ref.get()
-    if (!doc.exists) throw new Error('Teacher not found')
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(teacherRef)
+      if (!doc.exists) throw new Error('Teacher not found')
 
-    await ref.update(validatedUpdate)
-    return { id, ...validatedUpdate }
+      transaction.update(teacherRef, validatedData)
+
+      if (validatedData.name || validatedData.profileURL !== undefined) {
+        const newData = { ...doc.data(), ...validatedData }
+        const snapshot = profileHelper.getTeacherSnapshot(id, newData)
+        await this.syncClassesWithTeacher(id, snapshot)
+      }
+    })
+
+    return { id, ...validatedData }
   }
-
 
   async deleteTeacher(id) {
-    if (!id) throw new Error('Teacher ID is required for deletion')
-    const ref = db.collection(COLLECTIONS.TEACHER).doc(id)
-    const doc = await ref.get()
+    if (!id) throw new Error('Teacher ID is required')
 
-    if (doc.exists) {
-      await ref.delete()
+    const classesSnap = await db
+      .collection(COLLECTIONS.CLASS)
+      .where('teacherId', '==', id)
+      .where('status', '==', 'open')
+      .get()
+
+    if (!classesSnap.empty) {
+      throw new Error(
+        'Cannot delete teacher assigned to active classes. Please reassign classes first.',
+      )
     }
 
-    await authService.deleteAccount(id)
-    return { id, message: 'Teacher deleted successfully' }
+    await db.collection(COLLECTIONS.TEACHER).doc(id).delete()
+    return { message: 'Teacher deleted successfully' }
+  }
+
+  async syncClassesWithTeacher(teacherId, teacherSnapshot) {
+    const snapshot = await db
+      .collection(COLLECTIONS.CLASS)
+      .where('teacherId', '==', teacherId)
+      .get()
+
+    if (snapshot.empty) return
+
+    const batch = db.batch()
+    snapshot.docs.forEach((doc) => {
+      batch.update(doc.ref, {
+        teacher: teacherSnapshot,
+        updatedAt: new Date().toISOString(),
+      })
+    })
+    await batch.commit()
   }
 }
 

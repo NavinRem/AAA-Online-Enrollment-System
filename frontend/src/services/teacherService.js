@@ -9,7 +9,7 @@ export const teacherService = {
     return request(`/teachers/${id}`)
   },
 
-  registerTeacher(data) {
+  createTeacher(data) {
     return request('/teachers/register', {
       method: 'POST',
       body: JSON.stringify(data),

@@ -186,10 +186,10 @@ class ParentService {
       })),
     ]
 
-    await this._commitInChunks(writes)
+    await this.commitInChunks(writes)
   }
 
-  async _commitInChunks(writes, incomingBatch = null) {
+  async commitInChunks(writes, incomingBatch = null) {
     if (incomingBatch) {
       writes.forEach(({ ref, data }) => incomingBatch.update(ref, data))
       return
