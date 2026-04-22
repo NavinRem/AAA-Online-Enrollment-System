@@ -3,9 +3,15 @@ function validateTrial(trialData) {
     'studentId',
     'parentId',
     'classId',
+    'programId',
     'trialDate',
     'status',
     'remark',
+    'isGuest',
+    'guestParentName',
+    'guestStudentName',
+    'guestPhone',
+    'guestStudentAge',
   ]
 
   Object.keys(trialData).forEach((key) => {
@@ -14,17 +20,38 @@ function validateTrial(trialData) {
     }
   })
 
-  if (!trialData.studentId || !trialData.classId) {
-    throw new Error('studentId and classId are required')
+  if (!trialData.classId || !trialData.programId) {
+    throw new Error('classId and programId are required')
+  }
+
+  if (!trialData.isGuest && !trialData.studentId) {
+    throw new Error('studentId is required for registered students')
+  }
+
+  if (
+    trialData.isGuest &&
+    (!trialData.guestParentName || !trialData.guestStudentName)
+  ) {
+    throw new Error(
+      'Guest Parent Name and Student Name are required for walk-ins',
+    )
   }
 
   return {
-    studentId: trialData.studentId,
+    isGuest: !!trialData.isGuest,
+    studentId: trialData.studentId || null,
+    parentId: trialData.parentId || null,
     classId: trialData.classId,
-    parentId: trialData.parentId,
-    trialDate: trialData.trialDate,
-    status: trialData.status,
-    remark: trialData.remark,
+    programId: trialData.programId,
+
+    guestParentName: trialData.guestParentName?.trim() || null,
+    guestStudentName: trialData.guestStudentName?.trim() || null,
+    guestPhone: trialData.guestPhone?.trim() || null,
+    guestStudentAge: parseInt(trialData.guestStudentAge || 0),
+
+    trialDate: trialData.trialDate || new Date().toISOString(),
+    status: trialData.status || 'pending',
+    remark: trialData.remark || '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -34,28 +61,29 @@ function validateUpdateTrial(updateData) {
   const allowedFields = [
     'studentId',
     'classId',
+    'programId',
     'trialDate',
     'status',
     'remark',
     'parentId',
+    'isGuest',
+    'guestParentName',
+    'guestStudentName',
+    'guestPhone',
+    'guestStudentAge',
   ]
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
-    if (!allowedFields.includes(key)) {
+    if (allowedFields.includes(key)) {
+      cleanData[key] = updateData[key]
+    } else {
       throw new Error(`Invalid field: ${key}`)
     }
   })
 
-  if (updateData.studentId !== undefined)
-    cleanData.studentId = updateData.studentId
-  if (updateData.classId !== undefined) cleanData.classId = updateData.classId
-  if (updateData.parentId !== undefined)
-    cleanData.parentId = updateData.parentId
-  if (updateData.trialDate !== undefined)
-    cleanData.trialDate = updateData.trialDate
-  if (updateData.status !== undefined) cleanData.status = updateData.status
-  if (updateData.remark !== undefined) cleanData.remark = updateData.remark
+  if (cleanData.guestStudentAge !== undefined)
+    cleanData.guestStudentAge = parseInt(cleanData.guestStudentAge || 0)
 
   if (Object.keys(cleanData).length === 0) {
     throw new Error('No valid fields provided for update')

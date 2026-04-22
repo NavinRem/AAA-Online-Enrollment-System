@@ -9,23 +9,20 @@ exports.createTrial = async (req, res) => {
   }
 }
 
-exports.getAllTrials = async (req, res) => {
-  try {
-    const trials = await trialService.getAllTrials()
-    res.status(200).json(trials)
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-}
-
 exports.getTrial = async (req, res) => {
   try {
     const trial = await trialService.getTrial(req.params.id)
     res.status(200).json(trial)
   } catch (error) {
-    if (error.message === 'Trial not found') {
-      return res.status(404).json({ error: error.message })
-    }
+    res.status(404).json({ error: error.message })
+  }
+}
+
+exports.getAllTrials = async (req, res) => {
+  try {
+    const trials = await trialService.getAllTrials(req.query)
+    res.status(200).json(trials)
+  } catch (error) {
     res.status(500).json({ error: error.message })
   }
 }
