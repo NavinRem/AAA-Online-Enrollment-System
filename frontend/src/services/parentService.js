@@ -1,16 +1,6 @@
 import { request } from './api'
 
 export const parentService = {
-  getAllParents() {
-    return request('/parents', {
-      method: 'GET',
-    })
-  },
-
-  getParent(id) {
-    return request(`/parents/${id}`)
-  },
-
   createParent(data) {
     return request('/parents', {
       method: 'POST',
@@ -18,16 +8,26 @@ export const parentService = {
     })
   },
 
-  updateParent(id, data) {
-    return request(`/parents/${id}`, {
+  getAllParents() {
+    return request('/parents')
+  },
+
+  getParent(uid) {
+    return request(`/parents/${uid}`)
+  },
+
+  updateParent(uid, data) {
+    return request(`/parents/${uid}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
     })
   },
 
-  deleteParent(id) {
-    return request(`/parents/${id}`, {
+  deleteParent(uid) {
+    return request(`/parents/${uid}`, {
       method: 'DELETE',
     })
   },
 }
+
+export default parentService

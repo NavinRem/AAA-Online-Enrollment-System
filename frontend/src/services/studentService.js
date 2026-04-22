@@ -1,19 +1,19 @@
 import { request } from './api'
 
 export const studentService = {
+  createStudent(studentData) {
+    return request('/students', {
+      method: 'POST',
+      body: JSON.stringify(studentData),
+    })
+  },
+
   getAllStudents() {
     return request('/students')
   },
 
   getStudent(id) {
     return request(`/students/${id}`)
-  },
-
-  registerStudent(parentId, studentData) {
-    return request('/students', {
-      method: 'POST',
-      body: JSON.stringify({ ...studentData, parentId }),
-    })
   },
 
   updateStudent(id, data) {
@@ -23,17 +23,15 @@ export const studentService = {
     })
   },
 
-  getStudentsByParent(parentId) {
-    return request(`/students/parent/${parentId}`)
-  },
-
   deleteStudent(id) {
     return request(`/students/${id}`, {
       method: 'DELETE',
     })
   },
 
-  getStudents() {
-    return this.getAllStudents()
+  getStudentsByParent(parentId) {
+    return request(`/students/parent/${parentId}`)
   },
 }
+
+export default studentService

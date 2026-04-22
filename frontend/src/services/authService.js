@@ -1,26 +1,17 @@
 import { auth } from '../firebase'
 import {
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
 } from 'firebase/auth'
+import { request } from './api'
 
 export const authService = {
-  async register(email, password) {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-    const token = await userCredential.user.getIdToken()
-    return { user: userCredential.user, token }
-  },
-
+  // --- Auth Core ---
   async login(email, password) {
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
-
     const token = await userCredential.user.getIdToken()
-
-    console.log('AUTH TOKEN:', token)
-
     return {
       user: userCredential.user,
       token,
@@ -39,7 +30,37 @@ export const authService = {
     return auth.currentUser
   },
 
-  resetPassword(email) {
+  sendPasswordReset(email) {
     return sendPasswordResetEmail(auth, email)
+  },
+
+  // --- Identity & Profile Endpoints ---
+  getMe() {
+    return request('/auth/me')
+  },
+
+  getUserProfile(uid) {
+    return request(`/auth/profile/${uid}`)
+  },
+
+  getUserRole(uid) {
+    return request(`/auth/role/${uid}`)
+  },
+
+  // --- Admin Management ---
+  getAllUsers() {
+    return request('/auth/all')
+  },
+
+  adminResetPassword(uid) {
+    return request(`/auth/reset-password/${uid}`, { method: 'POST' })
+  },
+
+  // Public signup (creates Parent profile)
+  registerParent(parentData) {
+    return request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(parentData),
+    })
   },
 }

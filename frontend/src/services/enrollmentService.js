@@ -2,16 +2,18 @@ import { request } from './api'
 
 export const enrollmentService = {
   createEnrollment(data) {
-    return request('/enrollments/createEnrollment', {
+    return request('/enrollments', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   },
 
-  cancelEnrollment(enrollmentId) {
-    return request(`/enrollments/${enrollmentId}/cancel`, {
-      method: 'POST',
-    })
+  getAllEnrollments() {
+    return request('/enrollments')
+  },
+
+  getEnrollment(id) {
+    return request(`/enrollments/${id}`)
   },
 
   updateEnrollment(enrollmentId, data) {
@@ -27,11 +29,11 @@ export const enrollmentService = {
     })
   },
 
-  getAllEnrollments() {
-    return request('/enrollments')
-  },
-
-  getEnrollment(id) {
-    return request(`/enrollments/${id}`)
+  cancelEnrollment(enrollmentId) {
+    return request(`/enrollments/${enrollmentId}/cancel`, {
+      method: 'POST',
+    })
   },
 }
+
+export default enrollmentService
