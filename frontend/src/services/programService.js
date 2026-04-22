@@ -1,27 +1,19 @@
 import { request } from './api'
 
 export const programService = {
-  getAllPrograms() {
-    return request('/programs')
-  },
-
-  getClasses(programId) {
-    return request(`/classes?programId=${programId}`)
-  },
-
-  getAllClasses() {
-    return request('/classes')
-  },
-
-  getProgram(programId) {
-    return request(`/programs/${programId}`)
-  },
-
   createProgram(data) {
     return request('/programs', {
       method: 'POST',
       body: JSON.stringify(data),
     })
+  },
+
+  getAllPrograms() {
+    return request('/programs')
+  },
+
+  getProgram(id) {
+    return request(`/programs/${id}`)
   },
 
   updateProgram(id, data) {
@@ -37,77 +29,20 @@ export const programService = {
     })
   },
 
-  getAllCategories() {
-    return request('/categories')
+  async getProgramSchedules() {
+    // Return empty array locally to avoid out-of-scope backend requests
+    return []
   },
 
-  createCategory(data) {
-    return request('/categories', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
+  async addProgramSchedule(_, data) {
+    // Return mock success and local ID
+    return { id: `mock-${Date.now()}`, ...data }
   },
 
-  deleteCategory(id) {
-    return request(`/categories/${id}`, {
-      method: 'DELETE',
-    })
-  },
-
-  getAllLevels() {
-    return request('/levels')
-  },
-
-  createLevel(data) {
-    return request('/levels', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  },
-
-  getAllTerms() {
-    return request('/terms')
-  },
-
-  createTerm(data) {
-    return request('/terms', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  },
-
-  // --- Classes (Operational Instances) ---
-  createClass(data) {
-    return request('/classes', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  },
-
-  updateClass(id, data) {
-    return request(`/classes/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    })
-  },
-
-  deleteClass(id) {
-    return request(`/classes/${id}`, {
-      method: 'DELETE',
-    })
-  },
-
-  duplicateClasses(data) {
-    return request('/classes/duplicate', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  },
-
-  syncAllClasses() {
-    // This would be the updated version of syncAllSessions
-    return request('/classes/sync-all', {
-      method: 'POST',
-    })
+  async deleteProgramSchedule() {
+    // Return mock success
+    return { message: 'Schedule deleted successfully (mock)' }
   },
 }
+
+export default programService
