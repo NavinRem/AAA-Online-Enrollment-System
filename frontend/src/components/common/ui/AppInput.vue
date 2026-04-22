@@ -1,3 +1,38 @@
+<script setup>
+import { ref, computed } from 'vue'
+import { getActionIcon } from '@/utils/assetHelper'
+
+const props = defineProps({
+  modelValue: [String, Number],
+  label: String,
+  type: {
+    type: String,
+    default: 'text',
+  },
+  placeholder: String,
+  required: Boolean,
+  disabled: Boolean,
+  error: String,
+  shake: Boolean,
+  inputClass: String,
+})
+
+defineEmits(['update:modelValue', 'click-disabled'])
+
+const isPasswordVisible = ref(false)
+
+const inputType = computed(() => {
+  if (props.type === 'password') {
+    return isPasswordVisible.value ? 'text' : 'password'
+  }
+  return props.type
+})
+
+const togglePassword = () => {
+  isPasswordVisible.value = !isPasswordVisible.value
+}
+</script>
+
 <template>
   <div class="flex flex-col gap-xs text-left w-full" :class="{ 'animate-shake': shake }">
     <label v-if="label" class="text-sm font-semibold text-content-dark flex items-center gap-1">
@@ -64,38 +99,3 @@
     </transition>
   </div>
 </template>
-
-<script setup>
-import { ref, computed } from 'vue'
-import { getActionIcon } from '@/utils/assetHelper'
-
-const props = defineProps({
-  modelValue: [String, Number],
-  label: String,
-  type: {
-    type: String,
-    default: 'text',
-  },
-  placeholder: String,
-  required: Boolean,
-  disabled: Boolean,
-  error: String,
-  shake: Boolean,
-  inputClass: String,
-})
-
-defineEmits(['update:modelValue', 'click-disabled'])
-
-const isPasswordVisible = ref(false)
-
-const inputType = computed(() => {
-  if (props.type === 'password') {
-    return isPasswordVisible.value ? 'text' : 'password'
-  }
-  return props.type
-})
-
-const togglePassword = () => {
-  isPasswordVisible.value = !isPasswordVisible.value
-}
-</script>

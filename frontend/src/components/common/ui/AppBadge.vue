@@ -1,11 +1,3 @@
-<template>
-  <span
-    class="inline-flex items-center justify-center w-fit px-3 py-[3px] rounded-full text-sm font-bold leading-none whitespace-nowrap text-center transition-all"
-    :style="badgeStyle">
-    <slot>{{ displayLabel }}</slot>
-  </span>
-</template>
-
 <script setup>
 import { computed } from 'vue'
 import { getStatusUI, getStatusTheme } from '@/utils/badgeUtils'
@@ -22,3 +14,11 @@ const ui = computed(() => getStatusUI(badgeValue.value, props.type))
 const displayLabel = computed(() => ui.value.label || badgeValue.value)
 const badgeStyle = computed(() => getStatusTheme(badgeValue.value, props.type))
 </script>
+
+<template>
+  <span
+    class="inline-flex items-center justify-center w-fit px-3 py-[3px] rounded-full text-sm font-bold leading-none whitespace-nowrap text-center transition-all"
+    :style="badgeStyle">
+    <slot>{{ displayLabel }}</slot>
+  </span>
+</template>

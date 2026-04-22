@@ -24,6 +24,7 @@ const menuItems = [
   { name: 'Trials', path: '/trials', icon: 'navigation/trial.svg' },
   { name: 'Branches', path: '/branches', icon: 'navigation/branch.svg' },
   { name: 'Parents', path: '/parents', icon: 'navigation/parent.svg' },
+  { name: 'Teachers', path: '/teachers', icon: 'navigation/parent.svg' },
   { name: 'Students', path: '/students', icon: 'navigation/student.svg' },
   { name: 'Programs', path: '/programs', icon: 'navigation/program.svg' },
   { name: 'Classes', path: '/classes', icon: 'navigation/class.svg' },

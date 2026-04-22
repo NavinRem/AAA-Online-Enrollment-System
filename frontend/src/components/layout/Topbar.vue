@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { authService } from '@/services/authService'
-import { userService } from '@/services/userService'
+
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
 import SearchBox from '@/components/common/data/SearchBox.vue'
@@ -22,7 +22,7 @@ onMounted(() => {
   authService.onAuthStateChanged(async (user) => {
     if (user) {
       try {
-        const profile = await userService.getProfile(user.uid)
+        const profile = await authService.getUserProfile(user.uid)
         if (profile) {
           userProfile.value = profile
           userName.value = profile.name

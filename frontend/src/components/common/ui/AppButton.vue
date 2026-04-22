@@ -1,39 +1,3 @@
-<template>
-  <button
-    class="flex items-center justify-center gap-xs font-extrabold px-6 py-2.5 text-sm cursor-pointer whitespace-nowrap transition-all duration-200 active:scale-[0.98] select-none"
-    :class="[
-      !isSemantic ? (variantClasses[variant] || variantClasses.primary) : 'border border-transparent hover:brightness-95',
-      {
-        'opacity-60 cursor-not-allowed pointer-events-none grayscale-[0.2]': disabled || loading,
-        'p-xs rounded-full': iconOnly,
-        'rounded-std': !iconOnly,
-        'shadow-sm': !isSemantic && !['ghost', 'cancel'].includes(variant) && !disabled,
-      },
-    ]" :style="buttonStyle" :type="type" :disabled="disabled || loading" @click="$emit('click', $event)">
-    <span v-if="loading"
-      class="w-4 h-4 border-2 border-white/40 border-t-current rounded-full animate-spin mr-[-4px]"></span>
-
-    <span v-if="$slots['icon-left'] && !loading" class="flex items-center justify-center">
-      <slot name="icon-left"></slot>
-    </span>
-
-    <span v-if="icon && !loading" class="flex items-center justify-center text-[1.25em] translate-y-[0.5px]">
-      <img v-if="icon.includes('/')" :src="icon" class="w-[1em] h-[1em] object-contain" />
-      <span v-else>{{ icon }}</span>
-    </span>
-
-    <span v-if="!iconOnly && $slots.default"
-      class="w-full flex items-center justify-center gap-xs transition-opacity duration-200"
-      :class="{ 'opacity-30': loading }">
-      <slot></slot>
-    </span>
-
-    <span v-if="$slots['icon-right'] && !loading" class="flex items-center justify-center">
-      <slot name="icon-right"></slot>
-    </span>
-  </button>
-</template>
-
 <script setup>
 import { computed } from 'vue'
 import { getStatusUI } from '@/utils/badgeUtils'
@@ -83,6 +47,42 @@ const isSemantic = computed(() => {
 
 defineEmits(['click'])
 </script>
+
+<template>
+  <button
+    class="flex items-center justify-center gap-xs font-extrabold px-6 py-2.5 text-sm cursor-pointer whitespace-nowrap transition-all duration-200 active:scale-[0.98] select-none"
+    :class="[
+      !isSemantic ? (variantClasses[variant] || variantClasses.primary) : 'border border-transparent hover:brightness-95',
+      {
+        'opacity-60 cursor-not-allowed pointer-events-none grayscale-[0.2]': disabled || loading,
+        'p-xs rounded-full': iconOnly,
+        'rounded-std': !iconOnly,
+        'shadow-sm': !isSemantic && !['ghost', 'cancel'].includes(variant) && !disabled,
+      },
+    ]" :style="buttonStyle" :type="type" :disabled="disabled || loading" @click="$emit('click', $event)">
+    <span v-if="loading"
+      class="w-4 h-4 border-2 border-white/40 border-t-current rounded-full animate-spin mr-[-4px]"></span>
+
+    <span v-if="$slots['icon-left'] && !loading" class="flex items-center justify-center">
+      <slot name="icon-left"></slot>
+    </span>
+
+    <span v-if="icon && !loading" class="flex items-center justify-center text-[1.25em] translate-y-[0.5px]">
+      <img v-if="icon.includes('/')" :src="icon" class="w-[1em] h-[1em] object-contain" />
+      <span v-else>{{ icon }}</span>
+    </span>
+
+    <span v-if="!iconOnly && $slots.default"
+      class="w-full flex items-center justify-center gap-xs transition-opacity duration-200"
+      :class="{ 'opacity-30': loading }">
+      <slot></slot>
+    </span>
+
+    <span v-if="$slots['icon-right'] && !loading" class="flex items-center justify-center">
+      <slot name="icon-right"></slot>
+    </span>
+  </button>
+</template>
 
 <style scoped>
 .rounded-std {

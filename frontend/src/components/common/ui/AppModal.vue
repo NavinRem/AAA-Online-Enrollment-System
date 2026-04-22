@@ -1,3 +1,32 @@
+<script setup>
+import { getActionIcon } from '@/utils/assetHelper'
+
+defineProps({
+  show: {
+    type: Boolean,
+    default: false,
+  },
+  title: {
+    type: String,
+    default: '',
+  },
+  variant: {
+    type: String,
+    default: '',
+  },
+  icon: {
+    type: String,
+    default: '',
+  },
+  maxWidth: {
+    type: String,
+    default: '',
+  },
+})
+
+defineEmits(['close'])
+</script>
+
 <template>
   <transition enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0"
     enter-to-class="opacity-100" leave-active-class="transition duration-200 ease-in" leave-from-class="opacity-100"
@@ -50,32 +79,3 @@
     </div>
   </transition>
 </template>
-
-<script setup>
-import { getActionIcon } from '@/utils/assetHelper'
-
-defineProps({
-  show: {
-    type: Boolean,
-    default: false,
-  },
-  title: {
-    type: String,
-    default: '',
-  },
-  variant: {
-    type: String,
-    default: '',
-  },
-  icon: {
-    type: String,
-    default: '',
-  },
-  maxWidth: {
-    type: String,
-    default: '',
-  },
-})
-
-defineEmits(['close'])
-</script>

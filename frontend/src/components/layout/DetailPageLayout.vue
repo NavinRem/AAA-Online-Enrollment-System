@@ -1,3 +1,28 @@
+<script setup>
+import { useRouter } from 'vue-router'
+import { getActionIcon } from '@/utils/assetHelper'
+
+const props = defineProps({
+  loading: Boolean,
+  errorMessage: String,
+  backRoute: {
+    type: String,
+    default: '/',
+  },
+  scrollable: {
+    type: Boolean,
+    default: true,
+  },
+  rightScrollable: {
+    type: Boolean,
+    default: true,
+  },
+})
+
+const router = useRouter()
+const goBack = () => router.push(props.backRoute)
+</script>
+
 <template>
   <div class="flex-1 flex flex-col min-h-0 bg-surface-light w-full">
     <div
@@ -58,27 +83,3 @@
   </div>
 </template>
 
-<script setup>
-import { useRouter } from 'vue-router'
-import { getActionIcon } from '@/utils/assetHelper'
-
-const props = defineProps({
-  loading: Boolean,
-  errorMessage: String,
-  backRoute: {
-    type: String,
-    default: '/',
-  },
-  scrollable: {
-    type: Boolean,
-    default: true,
-  },
-  rightScrollable: {
-    type: Boolean,
-    default: true,
-  },
-})
-
-const router = useRouter()
-const goBack = () => router.push(props.backRoute)
-</script>

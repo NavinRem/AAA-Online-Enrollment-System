@@ -1,3 +1,23 @@
+<script setup>
+import AppButton from '@/components/common/ui/AppButton.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
+import { formatPrice } from '@/utils/formatUtils'
+
+defineProps({
+  show: { type: Boolean, default: false },
+  title: { type: String, default: '' },
+  subtitle: { type: String, default: '' },
+  icon: { type: String, default: '' },
+  rows: { type: Array, default: () => [] },
+  totalAmount: { type: Number, default: undefined },
+  totalLabel: { type: String, default: 'Total' },
+  confirmLabel: { type: String, default: 'Confirm & Submit' },
+  loading: { type: Boolean, default: false },
+})
+
+defineEmits(['confirm', 'back'])
+</script>
+
 <template>
   <transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 scale-95"
     enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-150 ease-in"
@@ -38,26 +58,6 @@
     </div>
   </transition>
 </template>
-
-<script setup>
-import AppButton from '@/components/common/ui/AppButton.vue'
-import AppBadge from '@/components/common/ui/AppBadge.vue'
-import { formatPrice } from '@/utils/formatUtils'
-
-defineProps({
-  show: { type: Boolean, default: false },
-  title: { type: String, default: '' },
-  subtitle: { type: String, default: '' },
-  icon: { type: String, default: '' },
-  rows: { type: Array, default: () => [] },
-  totalAmount: { type: Number, default: undefined },
-  totalLabel: { type: String, default: 'Total' },
-  confirmLabel: { type: String, default: 'Confirm & Submit' },
-  loading: { type: Boolean, default: false },
-})
-
-defineEmits(['confirm', 'back'])
-</script>
 
 <style scoped>
 .enroll-confirm-overlay {

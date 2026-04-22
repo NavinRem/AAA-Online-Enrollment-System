@@ -1,111 +1,3 @@
-<template>
-  <div class="avatar-selector-root" :class="{ 'animate-shake': shake }">
-    <div
-      class="avatar-selector-container"
-      :class="error ? 'border-error bg-error-soft' : 'border-outline-std'"
-    >
-      <div class="avatar-gallery flex gap-4">
-        <div
-          v-for="avatar in availableAvatars"
-          :key="avatar.id + avatar.url"
-          class="avatar-item"
-          :class="
-            isSelected(avatar.url)
-              ? 'avatar-item--active'
-              : 'avatar-item--inactive'
-          "
-          @click="selectAvatar(avatar.url)"
-        >
-          <img
-            :src="avatar.url"
-            :alt="avatar.name"
-            class="w-full h-full rounded-full object-cover"
-          />
-          <div
-            class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm"
-            v-if="isSelected(avatar.url)"
-          >
-            <i class="fas fa-check"></i>
-          </div>
-        </div>
-
-        <!-- Custom Slot -->
-        <div
-          v-if="customAvatar"
-          class="avatar-item avatar-item--custom"
-          :class="{
-            'opacity-100': isSelected(customAvatar),
-            'opacity-60': !isSelected(customAvatar),
-          }"
-          @click="selectAvatar(customAvatar)"
-        >
-          <img :src="customAvatar" alt="Custom" class="w-full h-full rounded-full object-cover" />
-          <div
-            class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm"
-            v-if="isSelected(customAvatar)"
-          >
-            <i class="fas fa-check"></i>
-          </div>
-          <button
-            class="avatar-remove-btn"
-            @click.stop="removeCustomAvatar"
-          >
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-      </div>
-
-      <div class="vertical-divider w-px h-10 bg-outline-std mx-2"></div>
-
-      <div class="upload-area">
-        <input
-          type="file"
-          ref="fileInput"
-          accept="image/*"
-          class="hidden"
-          @change="handleFileUpload"
-        />
-        <div
-          class="avatar-upload-btn"
-          @click="fileInput?.click()"
-        >
-          <div
-            v-if="uploading"
-            class="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"
-          ></div>
-          <template v-else>
-            <i class="fas fa-plus text-sm mb-0.5"></i>
-            <span class="text-[10px] font-black uppercase tracking-tighter">Upload</span>
-          </template>
-        </div>
-      </div>
-    </div>
-
-    <!-- Feedback States -->
-    <transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 -translate-y-1"
-      enter-to-class="opacity-100 translate-y-0"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 translate-y-0"
-      leave-to-class="opacity-0 -translate-y-1"
-    >
-      <div
-        v-if="error || props.error"
-        class="avatar-feedback-err"
-      >
-        {{ error || props.error }}
-      </div>
-      <div
-        v-else-if="success"
-        class="avatar-feedback-success"
-      >
-        <i class="fas fa-check-circle"></i> Profile upload acknowledged
-      </div>
-    </transition>
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { storage } from '@/firebase'
@@ -266,6 +158,115 @@ const handleFileUpload = async (event) => {
   }
 }
 </script>
+
+<template>
+  <div class="avatar-selector-root" :class="{ 'animate-shake': shake }">
+    <div
+      class="avatar-selector-container"
+      :class="error ? 'border-error bg-error-soft' : 'border-outline-std'"
+    >
+      <div class="avatar-gallery flex gap-4">
+        <div
+          v-for="avatar in availableAvatars"
+          :key="avatar.id + avatar.url"
+          class="avatar-item"
+          :class="
+            isSelected(avatar.url)
+              ? 'avatar-item--active'
+              : 'avatar-item--inactive'
+          "
+          @click="selectAvatar(avatar.url)"
+        >
+          <img
+            :src="avatar.url"
+            :alt="avatar.name"
+            class="w-full h-full rounded-full object-cover"
+          />
+          <div
+            class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm"
+            v-if="isSelected(avatar.url)"
+          >
+            <i class="fas fa-check"></i>
+          </div>
+        </div>
+
+        <!-- Custom Slot -->
+        <div
+          v-if="customAvatar"
+          class="avatar-item avatar-item--custom"
+          :class="{
+            'opacity-100': isSelected(customAvatar),
+            'opacity-60': !isSelected(customAvatar),
+          }"
+          @click="selectAvatar(customAvatar)"
+        >
+          <img :src="customAvatar" alt="Custom" class="w-full h-full rounded-full object-cover" />
+          <div
+            class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm"
+            v-if="isSelected(customAvatar)"
+          >
+            <i class="fas fa-check"></i>
+          </div>
+          <button
+            class="avatar-remove-btn"
+            @click.stop="removeCustomAvatar"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="vertical-divider w-px h-10 bg-outline-std mx-2"></div>
+
+      <div class="upload-area">
+        <input
+          type="file"
+          ref="fileInput"
+          accept="image/*"
+          class="hidden"
+          @change="handleFileUpload"
+        />
+        <div
+          class="avatar-upload-btn"
+          @click="fileInput?.click()"
+        >
+          <div
+            v-if="uploading"
+            class="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"
+          ></div>
+          <template v-else>
+            <i class="fas fa-plus text-sm mb-0.5"></i>
+            <span class="text-[10px] font-black uppercase tracking-tighter">Upload</span>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feedback States -->
+    <transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-1"
+    >
+      <div
+        v-if="error || props.error"
+        class="avatar-feedback-err"
+      >
+        {{ error || props.error }}
+      </div>
+      <div
+        v-else-if="success"
+        class="avatar-feedback-success"
+      >
+        <i class="fas fa-check-circle"></i> Profile upload acknowledged
+      </div>
+    </transition>
+  </div>
+</template>
+
 <style scoped>
 .avatar-selector-root {
   @apply w-full flex flex-col gap-xs;
