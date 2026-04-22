@@ -1,3 +1,238 @@
+<script setup>
+import { ref, computed, watch } from 'vue'
+import AppModal from '@/components/common/ui/AppModal.vue'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
+import AppSelect from '@/components/common/ui/AppSelect.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
+import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
+import { useActionModal } from '@/composables/useActionModal'
+import { getActionIcon, isSameProfileAsset } from '@/utils/assetHelper'
+import { useSearch, parentSearchMapper } from '@/composables/useSearch'
+
+import { auth } from '@/firebase'
+import { sendPasswordResetEmail } from 'firebase/auth'
+
+const selectedResetMode = ref(null)
+
+const props = defineProps({
+  isOpen: Boolean,
+  type: String, // 'edit', 'deactivate', 'activate', 'delete', 'plus', 'reset-password'
+  user: Object,
+  selectableParents: Array,
+  loading: Boolean,
+  error: String,
+  success: String,
+})
+
+const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
+
+const getInitialData = () => ({
+  name: '',
+  phone: '',
+  email: '',
+  role: 'parent',
+  status: 'Active',
+  profileURL: '',
+  deleteConfirm: '',
+  parentId: props.user?.uid || '',
+  dob: '',
+  medicalNote: '',
+})
+
+const mapSourceToForm = () => {
+  const u = props.user || {}
+  const base = getInitialData()
+
+  if (props.type === 'plus') {
+    return {
+      ...base,
+      parentId: u.uid || '',
+      profileURL: '',
+      medicalNote: '',
+    }
+  }
+
+  return {
+    ...base,
+    name: u.name || '',
+    phone: u.phone || u.phoneNumber || '',
+    email: u.email || '',
+    role: u.role || 'parent',
+    status: u.status || 'Active',
+    profileURL: u.profileURL || '',
+  }
+}
+
+const { localData, originalData, isDirty, errors, shaking, clearError, triggerShake, submitForm } =
+  useActionModal(props, emit, {
+    getInitialData,
+    mapSourceToForm,
+  })
+
+const isChanged = computed(() => {
+  if (props.type !== 'edit') return true
+
+  const d = localData
+  const o = originalData
+
+  const hasProfileChanged = !isSameProfileAsset(d.profileURL, o.profileURL)
+  const hasNameChanged = d.name !== o.name
+  const hasEmailChanged = d.email !== o.email
+  const hasPhoneChanged = d.phone !== o.phone
+  const hasStatusChanged = d.status !== o.status
+
+  return (
+    hasProfileChanged || hasNameChanged || hasEmailChanged || hasPhoneChanged || hasStatusChanged
+  )
+})
+
+const handleActionSubmit = () => {
+  if (props.type === 'reset-password') {
+    if (!selectedResetMode.value) {
+      // Manual error set for resetMode since it's not a form field
+      errors.value.resetMode = 'Selection required'
+      shaking.value.resetMode = true
+      setTimeout(() => {
+        delete errors.value.resetMode
+        shaking.value.resetMode = false
+      }, 2000)
+      return
+    }
+    if (selectedResetMode.value === 'email') {
+      handleSendResetEmail()
+    } else {
+      submitForm()
+    }
+    return
+  }
+
+  const rules = {
+    required: [],
+    custom: {},
+  }
+
+  if (props.type === 'edit') {
+    if (!isChanged.value) return
+    rules.required = ['name', 'phone', 'profileURL']
+    rules.custom.email = (val) => (!!val?.trim() && val.includes('@')) || 'Valid email required'
+  } else if (props.type === 'plus') {
+    rules.required = ['name', 'dob', 'profileURL']
+    if (!props.user) rules.required.push('parentId')
+  } else if (props.type === 'delete') {
+    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Authorization string invalid'
+  }
+
+  submitForm(rules)
+}
+
+const handleSendResetEmail = async () => {
+  if (!selectedParent.value?.email) return
+  submittingLocal.value = true
+  try {
+    await sendPasswordResetEmail(auth, selectedParent.value.email)
+    emit('submit', { type: 'reset-email-sent' })
+  } catch (err) {
+    console.error('Failed to send reset email:', err)
+  } finally {
+    submittingLocal.value = false
+  }
+}
+
+const submittingLocal = ref(false)
+
+const parentThemeClasses = computed(() => {
+  const p = props.user || selectedParent.value
+  if (!p) return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
+  const url = (p.profileURL || '').toLowerCase()
+  if (url.includes('woman') || url.includes('girl'))
+    return 'bg-gradient-to-br from-magenta-soft/80 to-magenta-soft/30 border-magenta-soft'
+  if (url.includes('man') || url.includes('boy'))
+    return 'bg-gradient-to-br from-info-soft to-primary-soft border-primary-light'
+  return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
+})
+
+const modalTitle = computed(() => {
+  const titles = {
+    edit: 'Engineer Parent Profile',
+    deactivate: 'Authorize Account Suspension',
+    activate: 'Authorize Account Restoration',
+    delete: 'Critical: Record Purge',
+    plus: 'Initialize Student Registry',
+    'reset-password': 'Initialize Recovery Protocol',
+  }
+  return titles[props.type] || 'Parental Administration'
+})
+
+const submitLabel = computed(() => {
+  if (props.type === 'plus') return 'Authorize Registry'
+  if (props.type === 'deactivate') return 'Execute Suspension'
+  if (props.type === 'activate') return 'Execute Restoration'
+  if (props.type === 'edit') return 'Commit Profile'
+  if (props.type === 'delete') return 'Force Delete Record'
+  if (props.type === 'reset-password') return 'Execute Recovery'
+  return 'Confirm'
+})
+
+const activeParents = computed(() => {
+  return (props.selectableParents || []).filter((p) => {
+    const s = (p.status || 'Active').toLowerCase().trim()
+    return s === 'active'
+  })
+})
+
+const { searchResults: filteredParents } = useSearch(activeParents, parentSearchMapper, ref(''))
+
+const selectedParent = computed(() => {
+  if (!localData.parentId) return null
+  if (props.user && props.user.uid === localData.parentId) return props.user
+  return props.selectableParents?.find((p) => p.uid === localData.parentId)
+})
+
+const togglePreset = (field, chipValue) => {
+  const currentText = localData[field] || ''
+  let values = currentText
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+  if (values.includes(chipValue)) {
+    values = values.filter((v) => v !== chipValue)
+  } else {
+    if (chipValue === 'None') values = ['None']
+    else {
+      values = values.filter((v) => v !== 'None')
+      values.push(chipValue)
+    }
+  }
+  localData[field] = values.join(', ')
+}
+
+const isPresetActive = (field, chipValue) => {
+  return (localData[field] || '')
+    .split(',')
+    .map((v) => v.trim())
+    .includes(chipValue)
+}
+
+const handleDisabledClick = (field) => {
+  if (field === 'childInfo' && !props.user && !localData.parentId) {
+    errors.parentId = 'PLEASE LINK TO A PARENT RECORD FIRST'
+    triggerShake('parentId')
+  }
+}
+
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    if (!newVal) {
+      submittingLocal.value = false
+      selectedResetMode.value = null
+    }
+  },
+)
+</script>
+
 <template>
   <AppModal
     :show="isOpen"
@@ -408,240 +643,6 @@
   </AppModal>
 </template>
 
-<script setup>
-import { ref, computed, watch } from 'vue'
-import AppModal from '@/components/common/ui/AppModal.vue'
-import AppAlert from '@/components/common/ui/AppAlert.vue'
-import AppButton from '@/components/common/ui/AppButton.vue'
-import AppSelect from '@/components/common/ui/AppSelect.vue'
-import AppInput from '@/components/common/ui/AppInput.vue'
-import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import AppBadge from '@/components/common/ui/AppBadge.vue'
-import { useActionModal } from '@/composables/useActionModal'
-import { getActionIcon, isSameProfileAsset } from '@/utils/assetHelper'
-import { useSearch, parentSearchMapper } from '@/composables/useSearch'
-
-import { auth } from '@/firebase'
-import { sendPasswordResetEmail } from 'firebase/auth'
-
-const selectedResetMode = ref(null)
-
-const props = defineProps({
-  isOpen: Boolean,
-  type: String, // 'edit', 'deactivate', 'activate', 'delete', 'plus', 'reset-password'
-  user: Object,
-  selectableParents: Array,
-  loading: Boolean,
-  error: String,
-  success: String,
-})
-
-const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
-
-const getInitialData = () => ({
-  name: '',
-  phone: '',
-  email: '',
-  role: 'parent',
-  status: 'Active',
-  profileURL: '',
-  deleteConfirm: '',
-  parentId: props.user?.uid || '',
-  dob: '',
-  medicalNote: '',
-})
-
-const mapSourceToForm = () => {
-  const u = props.user || {}
-  const base = getInitialData()
-
-  if (props.type === 'plus') {
-    return {
-      ...base,
-      parentId: u.uid || '',
-      profileURL: '',
-      medicalNote: '',
-    }
-  }
-
-  return {
-    ...base,
-    name: u.name || '',
-    phone: u.phone || u.phoneNumber || '',
-    email: u.email || '',
-    role: u.role || 'parent',
-    status: u.status || 'Active',
-    profileURL: u.profileURL || '',
-  }
-}
-
-const { localData, originalData, isDirty, errors, shaking, clearError, triggerShake, submitForm } =
-  useActionModal(props, emit, {
-    getInitialData,
-    mapSourceToForm,
-  })
-
-const isChanged = computed(() => {
-  if (props.type !== 'edit') return true
-
-  const d = localData.value
-  const o = originalData.value
-
-  const hasProfileChanged = !isSameProfileAsset(d.profileURL, o.profileURL)
-  const hasNameChanged = d.name !== o.name
-  const hasEmailChanged = d.email !== o.email
-  const hasPhoneChanged = d.phone !== o.phone
-  const hasStatusChanged = d.status !== o.status
-
-  return (
-    hasProfileChanged || hasNameChanged || hasEmailChanged || hasPhoneChanged || hasStatusChanged
-  )
-})
-
-const handleActionSubmit = () => {
-  if (props.type === 'reset-password') {
-    if (!selectedResetMode.value) {
-      // Manual error set for resetMode since it's not a form field
-      errors.value.resetMode = 'Selection required'
-      shaking.value.resetMode = true
-      setTimeout(() => {
-        delete errors.value.resetMode
-        shaking.value.resetMode = false
-      }, 2000)
-      return
-    }
-    if (selectedResetMode.value === 'email') {
-      handleSendResetEmail()
-    } else {
-      submitForm()
-    }
-    return
-  }
-
-  const rules = {
-    required: [],
-    custom: {},
-  }
-
-  if (props.type === 'edit') {
-    if (!isChanged.value) return
-    rules.required = ['name', 'phone', 'profileURL']
-    rules.custom.email = (val) => (!!val?.trim() && val.includes('@')) || 'Valid email required'
-  } else if (props.type === 'plus') {
-    rules.required = ['name', 'dob', 'profileURL']
-    if (!props.user) rules.required.push('parentId')
-  } else if (props.type === 'delete') {
-    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Authorization string invalid'
-  }
-
-  submitForm(rules)
-}
-
-const handleSendResetEmail = async () => {
-  if (!selectedParent.value?.email) return
-  submittingLocal.value = true
-  try {
-    await sendPasswordResetEmail(auth, selectedParent.value.email)
-    emit('submit', { type: 'reset-email-sent' })
-  } catch (err) {
-    console.error('Failed to send reset email:', err)
-  } finally {
-    submittingLocal.value = false
-  }
-}
-
-const submittingLocal = ref(false)
-
-const parentThemeClasses = computed(() => {
-  const p = props.user || selectedParent.value
-  if (!p) return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
-  const url = (p.profileURL || '').toLowerCase()
-  if (url.includes('woman') || url.includes('girl'))
-    return 'bg-gradient-to-br from-magenta-soft/80 to-magenta-soft/30 border-magenta-soft'
-  if (url.includes('man') || url.includes('boy'))
-    return 'bg-gradient-to-br from-info-soft to-primary-soft border-primary-light'
-  return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
-})
-
-const modalTitle = computed(() => {
-  const titles = {
-    edit: 'Engineer Parent Profile',
-    deactivate: 'Authorize Account Suspension',
-    activate: 'Authorize Account Restoration',
-    delete: 'Critical: Record Purge',
-    plus: 'Initialize Student Registry',
-    'reset-password': 'Initialize Recovery Protocol',
-  }
-  return titles[props.type] || 'Parental Administration'
-})
-
-const submitLabel = computed(() => {
-  if (props.type === 'plus') return 'Authorize Registry'
-  if (props.type === 'deactivate') return 'Execute Suspension'
-  if (props.type === 'activate') return 'Execute Restoration'
-  if (props.type === 'edit') return 'Commit Profile'
-  if (props.type === 'delete') return 'Force Delete Record'
-  if (props.type === 'reset-password') return 'Execute Recovery'
-  return 'Confirm'
-})
-
-const activeParents = computed(() => {
-  return (props.selectableParents || []).filter((p) => {
-    const s = (p.status || 'Active').toLowerCase().trim()
-    return s === 'active'
-  })
-})
-
-const { searchResults: filteredParents } = useSearch(activeParents, parentSearchMapper, ref(''))
-
-const selectedParent = computed(() => {
-  if (!localData.value.parentId) return null
-  if (props.user && props.user.uid === localData.value.parentId) return props.user
-  return props.selectableParents?.find((p) => p.uid === localData.value.parentId)
-})
-
-const togglePreset = (field, chipValue) => {
-  const currentText = localData.value[field] || ''
-  let values = currentText
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)
-  if (values.includes(chipValue)) {
-    values = values.filter((v) => v !== chipValue)
-  } else {
-    if (chipValue === 'None') values = ['None']
-    else {
-      values = values.filter((v) => v !== 'None')
-      values.push(chipValue)
-    }
-  }
-  localData.value[field] = values.join(', ')
-}
-
-const isPresetActive = (field, chipValue) => {
-  return (localData.value[field] || '')
-    .split(',')
-    .map((v) => v.trim())
-    .includes(chipValue)
-}
-
-const handleDisabledClick = (field) => {
-  if (field === 'childInfo' && !props.user && !localData.parentId) {
-    errors.parentId = 'PLEASE LINK TO A PARENT RECORD FIRST'
-    triggerShake('parentId')
-  }
-}
-
-watch(
-  () => props.isOpen,
-  (newVal) => {
-    if (!newVal) {
-      submittingLocal.value = false
-      selectedResetMode.value = null
-    }
-  },
-)
-</script>
 <style scoped>
 .parent-identity-email {
   @apply text-xs font-black uppercase text-content-muted opacity-60 tracking-widest;

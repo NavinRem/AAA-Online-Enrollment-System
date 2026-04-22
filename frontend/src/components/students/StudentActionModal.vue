@@ -1,3 +1,147 @@
+<script setup>
+import { computed, watch } from 'vue'
+import AppModal from '@/components/common/ui/AppModal.vue'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
+import AppSelect from '@/components/common/ui/AppSelect.vue'
+import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
+import { getStudentProfileURL, isSameProfileAsset, getActionIcon } from '@/utils/assetHelper'
+import { calculateAge } from '@/utils/formatUtils'
+import { useActionModal } from '@/composables/useActionModal'
+
+const props = defineProps({
+  isOpen: Boolean,
+  type: String, // 'edit', 'delete', 'override', 'enrollment-override', 'enrollment-delete'
+  student: Object,
+  enrollment: Object,
+  loading: Boolean,
+  error: String,
+})
+
+const emit = defineEmits(['close', 'submit', 'update:error'])
+
+const getInitialData = () => ({
+  name: '',
+  dob: '',
+  profileURL: '',
+  medicalNote: 'None',
+  status: 'Studying',
+  deleteConfirm: '',
+  overrideRemark: '',
+})
+
+const mapSourceToForm = () => {
+  const source = props.student || props.enrollment || {}
+  return {
+    name: source.name || '',
+    dob: source.dob || '',
+    profileURL: source.profileURL || '',
+    medicalNote: source.medicalNote || 'None',
+    status: source.status || 'Studying',
+    deleteConfirm: '',
+    overrideRemark: source.overrideRemark || '',
+  }
+}
+
+const { localData, originalData, isDirty, errors, shaking, clearError, submitForm } =
+  useActionModal(props, emit, {
+    getInitialData,
+    mapSourceToForm,
+  })
+
+const handleActionSubmit = () => {
+  if (props.type === 'edit' && !isDirty.value) return
+
+  const rules = {
+    required: [],
+    custom: {},
+  }
+
+  if (props.type === 'edit' || props.type?.includes('override')) {
+    rules.required = ['name', 'dob']
+    rules.custom.overrideRemark = (val) => {
+      if (['Suspended', 'Stopped'].includes(localData.status)) {
+        return !!val?.trim() || 'Detailed remark is required for this status change.'
+      }
+      return true
+    }
+  } else if (props.type?.includes('delete')) {
+    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Type DELETE to confirm.'
+  }
+
+  submitForm(rules)
+}
+
+const modalTitle = computed(() => {
+  const titles = {
+    edit: 'Edit Student Profile',
+    delete: 'Delete Student Record',
+    override: 'Manual Status Override',
+    'enrollment-override': 'Enrollment Status Override',
+    'enrollment-delete': 'Delete Enrollment Record',
+  }
+  return titles[props.type] || 'Student Action'
+})
+
+const submitLabel = computed(() => {
+  if (props.type === 'edit') return 'Save profile'
+  if (props.type?.includes('delete')) return 'Permanently Delete'
+  return 'Confirm action'
+})
+
+const modalIcon = computed(() => {
+  if (props.type?.includes('delete')) return getActionIcon('delete')
+  return getActionIcon('edit')
+})
+
+const studentTheme = computed(() => {
+  const url = (localData.profileURL || '').toLowerCase()
+  if (url.includes('woman') || url.includes('girl')) return 'theme-pink'
+  if (url.includes('man') || url.includes('boy')) return 'theme-blue'
+  return 'theme-default'
+})
+
+const studentThemeClasses = computed(() => {
+  if (studentTheme.value === 'theme-pink')
+    return 'bg-gradient-to-br from-magenta-soft/50 to-magenta-soft border-magenta-soft/80'
+  if (studentTheme.value === 'theme-blue')
+    return 'bg-gradient-to-br from-info-soft to-primary-soft border-primary-light'
+  return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
+})
+
+const isPresetActive = (field, chipValue) => {
+  const values = (localData[field] || '').split(',').map((v) => v.trim())
+  return values.includes(chipValue)
+}
+
+const togglePreset = (field, chipValue) => {
+  let values = (localData[field] || '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+  if (values.includes(chipValue)) {
+    values = values.filter((v) => v !== chipValue)
+  } else {
+    if (chipValue === 'None') values = ['None']
+    else {
+      values = values.filter((v) => v !== 'None')
+      values.push(chipValue)
+    }
+  }
+  localData[field] = values.join(', ')
+}
+
+watch(
+  () => props.isOpen,
+  (newVal) => {
+    if (!newVal) {
+      // clearError context is handled by useActionModal
+    }
+  },
+)
+</script>
+
 <template>
   <AppModal :show="isOpen" :title="modalTitle" @close="$emit('close')" :icon="modalIcon">
     <!-- Identity Banner -->
@@ -211,149 +355,6 @@
   </AppModal>
 </template>
 
-<script setup>
-import { computed, watch } from 'vue'
-import AppModal from '@/components/common/ui/AppModal.vue'
-import AppAlert from '@/components/common/ui/AppAlert.vue'
-import AppButton from '@/components/common/ui/AppButton.vue'
-import AppInput from '@/components/common/ui/AppInput.vue'
-import AppSelect from '@/components/common/ui/AppSelect.vue'
-import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import { getStudentProfileURL, isSameProfileAsset, getActionIcon } from '@/utils/assetHelper'
-import { calculateAge } from '@/utils/formatUtils'
-import { useActionModal } from '@/composables/useActionModal'
-
-const props = defineProps({
-  isOpen: Boolean,
-  type: String, // 'edit', 'delete', 'override', 'enrollment-override', 'enrollment-delete'
-  student: Object,
-  enrollment: Object,
-  loading: Boolean,
-  error: String,
-})
-
-const emit = defineEmits(['close', 'submit', 'update:error'])
-
-const getInitialData = () => ({
-  name: '',
-  dob: '',
-  profileURL: '',
-  medicalNote: 'None',
-  status: 'Studying',
-  deleteConfirm: '',
-  overrideRemark: '',
-})
-
-const mapSourceToForm = () => {
-  const source = props.student || props.enrollment || {}
-  return {
-    name: source.name || '',
-    dob: source.dob || '',
-    profileURL: source.profileURL || '',
-    medicalNote: source.medicalNote || 'None',
-    status: source.status || 'Studying',
-    deleteConfirm: '',
-    overrideRemark: source.overrideRemark || '',
-  }
-}
-
-const { localData, originalData, isDirty, errors, shaking, clearError, submitForm } =
-  useActionModal(props, emit, {
-    getInitialData,
-    mapSourceToForm,
-  })
-
-const handleActionSubmit = () => {
-  if (props.type === 'edit' && !isDirty.value) return
-
-  const rules = {
-    required: [],
-    custom: {},
-  }
-
-  if (props.type === 'edit' || props.type?.includes('override')) {
-    rules.required = ['name', 'dob']
-    rules.custom.overrideRemark = (val) => {
-      if (['Suspended', 'Stopped'].includes(localData.value.status)) {
-        return !!val?.trim() || 'Detailed remark is required for this status change.'
-      }
-      return true
-    }
-  } else if (props.type?.includes('delete')) {
-    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Type DELETE to confirm.'
-  }
-
-  submitForm(rules)
-}
-
-const modalTitle = computed(() => {
-  const titles = {
-    edit: 'Edit Student Profile',
-    delete: 'Delete Student Record',
-    override: 'Manual Status Override',
-    'enrollment-override': 'Enrollment Status Override',
-    'enrollment-delete': 'Delete Enrollment Record',
-  }
-  return titles[props.type] || 'Student Action'
-})
-
-const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Save profile'
-  if (props.type?.includes('delete')) return 'Permanently Delete'
-  return 'Confirm action'
-})
-
-const modalIcon = computed(() => {
-  if (props.type?.includes('delete')) return getActionIcon('delete')
-  return getActionIcon('edit')
-})
-
-const studentTheme = computed(() => {
-  const url = (localData.value.profileURL || '').toLowerCase()
-  if (url.includes('woman') || url.includes('girl')) return 'theme-pink'
-  if (url.includes('man') || url.includes('boy')) return 'theme-blue'
-  return 'theme-default'
-})
-
-const studentThemeClasses = computed(() => {
-  if (studentTheme.value === 'theme-pink')
-    return 'bg-gradient-to-br from-magenta-soft/50 to-magenta-soft border-magenta-soft/80'
-  if (studentTheme.value === 'theme-blue')
-    return 'bg-gradient-to-br from-info-soft to-primary-soft border-primary-light'
-  return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
-})
-
-const isPresetActive = (field, chipValue) => {
-  const values = (localData.value[field] || '').split(',').map((v) => v.trim())
-  return values.includes(chipValue)
-}
-
-const togglePreset = (field, chipValue) => {
-  let values = (localData.value[field] || '')
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)
-  if (values.includes(chipValue)) {
-    values = values.filter((v) => v !== chipValue)
-  } else {
-    if (chipValue === 'None') values = ['None']
-    else {
-      values = values.filter((v) => v !== 'None')
-      values.push(chipValue)
-    }
-  }
-  localData.value[field] = values.join(', ')
-}
-
-watch(
-  () => props.isOpen,
-  (newVal) => {
-    if (!newVal) {
-      // clearError context is handled by useActionModal
-    }
-  },
-)
-</script>
 <style scoped>
 .student-delete-alert {
   @apply flex items-center gap-xl p-xl bg-error-soft border border-error-soft rounded-std mb-xl;

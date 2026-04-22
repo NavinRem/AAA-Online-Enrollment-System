@@ -1,3 +1,165 @@
+<script setup>
+import { ref, computed, watch } from 'vue'
+import AppModal from '@/components/common/ui/AppModal.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
+import AppSelect from '@/components/common/ui/AppSelect.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
+import { getActionIcon } from '@/utils/assetHelper'
+import { programService } from '@/services/programService'
+import { branchService } from '@/services/branchService'
+import { teacherService } from '@/services/teacherService'
+import { termService } from '@/services/termService'
+import { useActionModal } from '@/composables/useActionModal'
+
+const props = defineProps({
+  isOpen: Boolean,
+  type: String, // 'add', 'edit', 'duplicate'
+  classInstance: Object,
+  loading: Boolean,
+})
+
+const emit = defineEmits(['close', 'submit'])
+
+const getInitialData = () => ({
+  programId: '',
+  termId: '',
+  branchId: '',
+  day: '',
+  timeslot: '',
+  teacherId: '',
+  price: 0,
+  capacity: 0,
+  status: 'open',
+  scheduleType: 'fix',
+  adminNote: '',
+  sourceTermId: '',
+  targetTermId: '',
+})
+
+const mapSourceToForm = () => {
+  if (props.type === 'edit' && props.classInstance) {
+    return { ...props.classInstance }
+  }
+  return getInitialData()
+}
+
+const { localData, isDirty, errors, shaking, clearError, triggerShake, submitForm } = useActionModal(
+  props,
+  emit,
+  {
+    getInitialData,
+    mapSourceToForm,
+  },
+)
+
+const programs = ref([])
+const terms = ref([])
+const branches = ref([])
+const teachers = ref([])
+const programSchedules = ref([])
+const selectedScheduleId = ref('')
+
+const sortedTerms = computed(() => [...terms.value].sort((a, b) => b.id.localeCompare(a.id)))
+
+const modalTitle = computed(() => {
+  if (props.type === 'edit') return 'Engineer Class Instance'
+  if (props.type === 'duplicate') return 'Batch Term Propagation'
+  return 'Initialize Class Instance'
+})
+
+const modalIcon = computed(() => {
+  if (props.type === 'edit') return getActionIcon('edit')
+  return getActionIcon('plus')
+})
+
+const submitLabel = computed(() => {
+  if (props.type === 'edit') return 'Update Session'
+  if (props.type === 'duplicate') return 'Authorize Propagation'
+  return 'Create Session'
+})
+
+const fetchProgramSchedules = async () => {
+  if (!localData.programId) return
+  try {
+    const schedules = await programService.getProgramSchedules(localData.programId)
+    programSchedules.value = schedules.map((s) => ({
+      id: s.id,
+      name: `${s.day} (${s.timeslot})`,
+    }))
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const onProgramChange = (programId) => {
+  localData.programId = programId
+  clearError('programId')
+  fetchProgramSchedules()
+}
+
+const onScheduleTemplatePick = (scheduleId) => {
+  const schedule = programSchedules.value.find((s) => s.id === scheduleId)
+  if (schedule) {
+    const [day, time] = schedule.name.split(' (')
+    localData.day = day
+    localData.timeslot = time.replace(')', '')
+    clearError('day')
+    clearError('timeslot')
+  }
+}
+
+const fetchData = async () => {
+  try {
+    const [p, t, b, teachersData] = await Promise.all([
+      programService.getAllPrograms(),
+      termService.getAllTerms(),
+      branchService.getAllBranches(),
+      teacherService.getAllTeachers(),
+    ])
+    programs.value = (p || []).map((prog) => ({
+      ...prog,
+      profileURL: prog.profileURL || '',
+    }))
+    terms.value = t || []
+    branches.value = b || []
+    teachers.value = (teachersData || []).map((t) => ({ id: t.uid || t.id, name: t.name }))
+  } catch (err) {
+    console.error(err)
+  }
+}
+
+const handleDisabledClick = (field) => {
+  if (field === 'scheduleTemplate' && !localData.programId) {
+    errors.programId = 'PLEASE SELECT A MASTER PROGRAM FIRST'
+    triggerShake('programId')
+  }
+}
+
+const handleActionSubmit = () => {
+  const validationRules = {
+    required:
+      props.type === 'duplicate'
+        ? ['sourceTermId', 'targetTermId']
+        : ['programId', 'termId', 'branchId', 'day', 'timeslot'],
+  }
+
+  if (props.type === 'edit' && !isDirty.value) return
+
+  submitForm(validationRules)
+}
+
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen) {
+      fetchData()
+      if (localData.programId) fetchProgramSchedules()
+    }
+  },
+)
+</script>
+
 <template>
   <AppModal
     :show="isOpen"
@@ -225,164 +387,3 @@
     </template>
   </AppModal>
 </template>
-
-<script setup>
-import { ref, computed, watch } from 'vue'
-import AppModal from '@/components/common/ui/AppModal.vue'
-import AppButton from '@/components/common/ui/AppButton.vue'
-import AppSelect from '@/components/common/ui/AppSelect.vue'
-import AppInput from '@/components/common/ui/AppInput.vue'
-import AppAlert from '@/components/common/ui/AppAlert.vue'
-import { getActionIcon } from '@/utils/assetHelper'
-import { programService } from '@/services/programService'
-import { branchService } from '@/services/branchService'
-import { teacherService } from '@/services/teacherService'
-import { useActionModal } from '@/composables/useActionModal'
-
-const props = defineProps({
-  isOpen: Boolean,
-  type: String, // 'add', 'edit', 'duplicate'
-  classInstance: Object,
-  loading: Boolean,
-})
-
-const emit = defineEmits(['close', 'submit'])
-
-const getInitialData = () => ({
-  programId: '',
-  termId: '',
-  branchId: '',
-  day: '',
-  timeslot: '',
-  teacherId: '',
-  price: 0,
-  capacity: 0,
-  status: 'open',
-  scheduleType: 'fix',
-  adminNote: '',
-  sourceTermId: '',
-  targetTermId: '',
-})
-
-const mapSourceToForm = () => {
-  if (props.type === 'edit' && props.classInstance) {
-    return { ...props.classInstance }
-  }
-  return getInitialData()
-}
-
-const { localData, isDirty, errors, shaking, clearError, triggerShake, submitForm } = useActionModal(
-  props,
-  emit,
-  {
-    getInitialData,
-    mapSourceToForm,
-  },
-)
-
-const programs = ref([])
-const terms = ref([])
-const branches = ref([])
-const teachers = ref([])
-const programSchedules = ref([])
-const selectedScheduleId = ref('')
-
-const sortedTerms = computed(() => [...terms.value].sort((a, b) => b.id.localeCompare(a.id)))
-
-const modalTitle = computed(() => {
-  if (props.type === 'edit') return 'Engineer Class Instance'
-  if (props.type === 'duplicate') return 'Batch Term Propagation'
-  return 'Initialize Class Instance'
-})
-
-const modalIcon = computed(() => {
-  if (props.type === 'edit') return getActionIcon('edit')
-  return getActionIcon('plus')
-})
-
-const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Update Session'
-  if (props.type === 'duplicate') return 'Authorize Propagation'
-  return 'Create Session'
-})
-
-const fetchProgramSchedules = async () => {
-  if (!localData.value.programId) return
-  try {
-    const schedules = await programService.getProgramSchedules(localData.value.programId)
-    programSchedules.value = schedules.map((s) => ({
-      id: s.id,
-      name: `${s.day} (${s.timeslot})`,
-    }))
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-const onProgramChange = (programId) => {
-  localData.value.programId = programId
-  clearError('programId')
-  fetchProgramSchedules()
-}
-
-const onScheduleTemplatePick = (scheduleId) => {
-  const schedule = programSchedules.value.find((s) => s.id === scheduleId)
-  if (schedule) {
-    const [day, time] = schedule.name.split(' (')
-    localData.value.day = day
-    localData.value.timeslot = time.replace(')', '')
-    clearError('day')
-    clearError('timeslot')
-  }
-}
-
-const fetchData = async () => {
-  try {
-    const [p, t, b, teachersData] = await Promise.all([
-      programService.getAllPrograms(),
-      programService.getAllTerms(),
-      branchService.getAllBranches(),
-      teacherService.getAllTeachers(),
-    ])
-    programs.value = (p || []).map((prog) => ({
-      ...prog,
-      profileURL: prog.profileURL || '',
-    }))
-    terms.value = t || []
-    branches.value = b || []
-    teachers.value = (teachersData || []).map((t) => ({ id: t.uid || t.id, name: t.name }))
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-const handleDisabledClick = (field) => {
-  if (field === 'scheduleTemplate' && !localData.programId) {
-    errors.programId = 'PLEASE SELECT A MASTER PROGRAM FIRST'
-    triggerShake('programId')
-  }
-}
-
-const handleActionSubmit = () => {
-  const validationRules = {
-    required:
-      props.type === 'duplicate'
-        ? ['sourceTermId', 'targetTermId']
-        : ['programId', 'termId', 'branchId', 'day', 'timeslot'],
-  }
-
-  if (props.type === 'edit' && !isDirty.value) return
-
-  submitForm(validationRules)
-}
-
-watch(
-  () => props.isOpen,
-  (isOpen) => {
-    if (isOpen) {
-      fetchData()
-      if (localData.value.programId) fetchProgramSchedules()
-    }
-  },
-)
-</script>

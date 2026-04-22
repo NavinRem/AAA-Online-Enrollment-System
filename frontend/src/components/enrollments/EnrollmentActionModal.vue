@@ -1,3 +1,187 @@
+<script setup>
+import { ref, computed } from 'vue'
+import { useActionModal } from '@/composables/useActionModal'
+import AppModal from '@/components/common/ui/AppModal.vue'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
+import AppSelect from '@/components/common/ui/AppSelect.vue'
+import AppInput from '@/components/common/ui/AppInput.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
+import EnrollConfirmOverlay from '@/components/enrollments/EnrollConfirmOverlay.vue'
+import { formatPrice } from '@/utils/formatUtils'
+import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
+
+const props = defineProps({
+  isOpen: Boolean,
+  type: String,
+  enrollment: Object,
+  resolvedSummary: Object,
+  loading: Boolean,
+  error: String,
+  success: String,
+})
+
+const emit = defineEmits(['close', 'submit', 'update:error'])
+
+const cancelPresets = ['Schedule Conflict', 'Relocation', 'Financial Issue', 'Duplicated']
+const activePreset = ref('')
+
+const getInitialData = () => ({
+  proof: '',
+  bankName: '',
+  remark: '',
+  reason: '',
+  deleteConfirm: '',
+  paymentMethod: 'online',
+})
+
+const { localData, isDirty, errors, shaking, clearError, validate, submitForm } = useActionModal(
+  props,
+  emit,
+  {
+    getInitialData,
+    sourceKey: 'enrollment',
+  },
+)
+
+const selectPreset = (preset) => {
+  if (activePreset.value === preset) {
+    activePreset.value = ''
+    localData.reason = ''
+  } else {
+    activePreset.value = preset
+    localData.reason = preset
+  }
+}
+
+const showConfirm = ref(false)
+
+const getValidationRules = () => {
+  const rules = { required: [], custom: {} }
+  if (props.type === 'delete') {
+    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Type DELETE to confirm'
+  } else if (props.type === 'cancel') {
+    rules.required = ['reason']
+  } else if (props.type === 'pay') {
+    if (localData.paymentMethod === 'online') rules.required.push('bankName')
+    rules.required.push('proof')
+  }
+  return rules
+}
+
+const isSubmittable = computed(() => {
+  if (props.type === 'pay') {
+    const hasProof = !!localData.proof?.trim()
+    const hasBank = props.type === 'pay' && localData.paymentMethod === 'online'
+      ? !!localData.bankName
+      : true
+    return hasProof && hasBank
+  }
+  if (props.type === 'cancel') return !!localData.reason?.trim()
+  if (props.type === 'delete') return localData.deleteConfirm === 'DELETE'
+  return isDirty.value
+})
+
+const requestConfirm = () => {
+  const rules = getValidationRules()
+  const requiresValidation = rules.required.length > 0 || Object.keys(rules.custom).length > 0
+  if (requiresValidation && !validate(rules)) return
+  showConfirm.value = true
+}
+
+const handleActionSubmit = () => {
+  showConfirm.value = false
+  emit('submit', { ...localData })
+}
+
+const confirmOverlayTitle = computed(() => {
+  const titles = { pay: 'Confirm Payment', cancel: 'Confirm Cancellation', delete: 'Confirm Deletion' }
+  return titles[props.type] || 'Confirm Action'
+})
+
+const confirmOverlaySubtitle = computed(() => {
+  if (props.type === 'delete') return 'This action is irreversible. All data will be permanently erased.'
+  if (props.type === 'cancel') return 'This seat will be permanently released from the session schedule.'
+  return 'Please verify the details before completing this action.'
+})
+
+const resolvedSummary = computed(() => {
+  if (props.resolvedSummary) return props.resolvedSummary
+  const e = props.enrollment
+  if (!e) return null
+  return {
+    studentName: e.student?.name,
+    programName: e.program?.name,
+    amount: e.amount || 0,
+    status: e.status || 'Pending',
+    studentAvatar: e.student?.profileURL || null,
+    parentAvatar: e.parent?.profileURL || null,
+    programAvatar: e.program?.profileURL || null,
+    parentName: e.parent?.name || 'Parent',
+    classTitle: e.class?.schedule || 'N/A',
+    branchAbbr: e.class?.branchAbbr || 'N/A',
+    classAvatar: getActionIcon('calendar'),
+  }
+})
+
+const confirmOverlayIcon = computed(() => {
+  if (props.type === 'pay') return getImageUrl('enrollment/total-paid-enrollment')
+  if (props.type === 'cancel') return getImageUrl('enrollment/total-canceled-enrollment')
+  return getActionIcon('delete')
+})
+
+const confirmRows = computed(() => {
+  const summary = resolvedSummary.value
+  const base = [
+    { key: 'Student', value: summary?.studentName },
+    { key: 'Program', value: summary?.programName },
+    { key: 'Amount', value: `$${formatPrice(summary?.amount || 0)}` },
+  ]
+  if (props.type === 'pay') {
+    return [
+      ...base,
+      { key: 'Payment Channel', value: localData.paymentMethod === 'online' ? 'Online / Bank' : 'Cash' },
+      ...(localData.bankName ? [{ key: 'Bank', value: localData.bankName }] : []),
+      { key: 'Reference', value: localData.proof },
+      ...(localData.remark ? [{ key: 'Remark', value: localData.remark, valueClass: 'italic' }] : []),
+    ]
+  }
+  if (props.type === 'cancel') {
+    return [
+      ...base,
+      { key: 'Reason', value: localData.reason, valueClass: 'italic' },
+    ]
+  }
+  if (props.type === 'delete') {
+    return [
+      ...base,
+      { key: 'Status', value: summary?.status },
+      { key: 'Authorization', value: localData.deleteConfirm },
+    ]
+  }
+  return base
+})
+
+// ── Labels / Titles ──
+const modalTitle = computed(() => {
+  const titles = { pay: 'Pay Enrollment', cancel: 'Cancel Enrollment', delete: 'Delete Enrollment', edit: 'Edit Enrollment' }
+  return titles[props.type] || 'Enrollment Administration'
+})
+
+const submitLabel = computed(() => {
+  if (props.type === 'pay') return 'Make Payment'
+  if (props.type === 'cancel') return 'Cancel Enrollment'
+  if (props.type === 'delete') return 'Delete Enrollment'
+  return 'Update Enrollment'
+})
+
+const modalIcon = computed(() => {
+  if (props.type === 'delete') return getActionIcon('delete')
+  if (props.type === 'pay') return getActionIcon('pay')
+  return getActionIcon('edit')
+})
+</script>
+
 <template>
   <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="modalIcon">
     <form id="enrollmentActionForm" @submit.prevent="requestConfirm" novalidate>
@@ -225,190 +409,6 @@
     </template>
   </AppModal>
 </template>
-
-<script setup>
-import { ref, computed } from 'vue'
-import { useActionModal } from '@/composables/useActionModal'
-import AppModal from '@/components/common/ui/AppModal.vue'
-import AppAlert from '@/components/common/ui/AppAlert.vue'
-import AppButton from '@/components/common/ui/AppButton.vue'
-import AppSelect from '@/components/common/ui/AppSelect.vue'
-import AppInput from '@/components/common/ui/AppInput.vue'
-import AppBadge from '@/components/common/ui/AppBadge.vue'
-import EnrollConfirmOverlay from '@/components/enrollments/EnrollConfirmOverlay.vue'
-import { formatPrice } from '@/utils/formatUtils'
-import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
-
-const props = defineProps({
-  isOpen: Boolean,
-  type: String,
-  enrollment: Object,
-  resolvedSummary: Object,
-  loading: Boolean,
-  error: String,
-  success: String,
-})
-
-const emit = defineEmits(['close', 'submit', 'update:error'])
-
-const cancelPresets = ['Schedule Conflict', 'Relocation', 'Financial Issue', 'Duplicated']
-const activePreset = ref('')
-
-const getInitialData = () => ({
-  proof: '',
-  bankName: '',
-  remark: '',
-  reason: '',
-  deleteConfirm: '',
-  paymentMethod: 'online',
-})
-
-const { localData, isDirty, errors, shaking, clearError, validate, submitForm } = useActionModal(
-  props,
-  emit,
-  {
-    getInitialData,
-    sourceKey: 'enrollment',
-  },
-)
-
-const selectPreset = (preset) => {
-  if (activePreset.value === preset) {
-    activePreset.value = ''
-    localData.reason = ''
-  } else {
-    activePreset.value = preset
-    localData.reason = preset
-  }
-}
-
-const showConfirm = ref(false)
-
-const getValidationRules = () => {
-  const rules = { required: [], custom: {} }
-  if (props.type === 'delete') {
-    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Type DELETE to confirm'
-  } else if (props.type === 'cancel') {
-    rules.required = ['reason']
-  } else if (props.type === 'pay') {
-    if (localData.paymentMethod === 'online') rules.required.push('bankName')
-    rules.required.push('proof')
-  }
-  return rules
-}
-
-const isSubmittable = computed(() => {
-  if (props.type === 'pay') {
-    const hasProof = !!localData.proof?.trim()
-    const hasBank = props.type === 'pay' && localData.paymentMethod === 'online'
-      ? !!localData.bankName
-      : true
-    return hasProof && hasBank
-  }
-  if (props.type === 'cancel') return !!localData.reason?.trim()
-  if (props.type === 'delete') return localData.deleteConfirm === 'DELETE'
-  return isDirty.value
-})
-
-const requestConfirm = () => {
-  const rules = getValidationRules()
-  const requiresValidation = rules.required.length > 0 || Object.keys(rules.custom).length > 0
-  if (requiresValidation && !validate(rules)) return
-  showConfirm.value = true
-}
-
-const handleActionSubmit = () => {
-  showConfirm.value = false
-  emit('submit', { ...localData })
-}
-
-const confirmOverlayTitle = computed(() => {
-  const titles = { pay: 'Confirm Payment', cancel: 'Confirm Cancellation', delete: 'Confirm Deletion' }
-  return titles[props.type] || 'Confirm Action'
-})
-
-const confirmOverlaySubtitle = computed(() => {
-  if (props.type === 'delete') return 'This action is irreversible. All data will be permanently erased.'
-  if (props.type === 'cancel') return 'This seat will be permanently released from the session schedule.'
-  return 'Please verify the details before completing this action.'
-})
-
-const resolvedSummary = computed(() => {
-  if (props.resolvedSummary) return props.resolvedSummary
-  const e = props.enrollment
-  if (!e) return null
-  return {
-    studentName: e.student?.name,
-    programName: e.program?.name,
-    amount: e.amount || 0,
-    status: e.status || 'Pending',
-    studentAvatar: e.student?.profileURL || null,
-    parentAvatar: e.parent?.profileURL || null,
-    programAvatar: e.program?.profileURL || null,
-    parentName: e.parent?.name || 'Parent',
-    classTitle: e.class?.schedule || 'N/A',
-    branchAbbr: e.class?.branchAbbr || 'N/A',
-    classAvatar: getActionIcon('calendar'),
-  }
-})
-
-const confirmOverlayIcon = computed(() => {
-  if (props.type === 'pay') return getImageUrl('enrollment/total-paid-enrollment')
-  if (props.type === 'cancel') return getImageUrl('enrollment/total-canceled-enrollment')
-  return getActionIcon('delete')
-})
-
-const confirmRows = computed(() => {
-  const summary = resolvedSummary.value
-  const base = [
-    { key: 'Student', value: summary?.studentName },
-    { key: 'Program', value: summary?.programName },
-    { key: 'Amount', value: `$${formatPrice(summary?.amount || 0)}` },
-  ]
-  if (props.type === 'pay') {
-    return [
-      ...base,
-      { key: 'Payment Channel', value: localData.paymentMethod === 'online' ? 'Online / Bank' : 'Cash' },
-      ...(localData.bankName ? [{ key: 'Bank', value: localData.bankName }] : []),
-      { key: 'Reference', value: localData.proof },
-      ...(localData.remark ? [{ key: 'Remark', value: localData.remark, valueClass: 'italic' }] : []),
-    ]
-  }
-  if (props.type === 'cancel') {
-    return [
-      ...base,
-      { key: 'Reason', value: localData.reason, valueClass: 'italic' },
-    ]
-  }
-  if (props.type === 'delete') {
-    return [
-      ...base,
-      { key: 'Status', value: summary?.status },
-      { key: 'Authorization', value: localData.deleteConfirm },
-    ]
-  }
-  return base
-})
-
-// ── Labels / Titles ──
-const modalTitle = computed(() => {
-  const titles = { pay: 'Pay Enrollment', cancel: 'Cancel Enrollment', delete: 'Delete Enrollment', edit: 'Edit Enrollment' }
-  return titles[props.type] || 'Enrollment Administration'
-})
-
-const submitLabel = computed(() => {
-  if (props.type === 'pay') return 'Make Payment'
-  if (props.type === 'cancel') return 'Cancel Enrollment'
-  if (props.type === 'delete') return 'Delete Enrollment'
-  return 'Update Enrollment'
-})
-
-const modalIcon = computed(() => {
-  if (props.type === 'delete') return getActionIcon('delete')
-  if (props.type === 'pay') return getActionIcon('pay')
-  return getActionIcon('edit')
-})
-</script>
 
 <style scoped>
 .enroll-identity-row {
