@@ -15,6 +15,8 @@ function validateEnrollment(enrollmentData) {
     'sponsorName',
     'isCustomPrice',
     'discountAmount',
+    'discountType',
+    'customPrice',
     'enrolledSessions',
     'amount',
     'remark',

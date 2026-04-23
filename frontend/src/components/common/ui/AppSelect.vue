@@ -35,7 +35,6 @@ const triggerRef = ref(null)
 const dropdownMenuRef = ref(null)
 const searchInput = ref(null)
 
-// Dropdown position computed from the trigger element's bounding rect
 const dropdownStyle = ref({})
 
 const computeDropdownPosition = async () => {
@@ -44,15 +43,13 @@ const computeDropdownPosition = async () => {
   const rect = triggerRef.value.getBoundingClientRect()
   const viewportHeight = window.innerHeight
   const spaceBelow = viewportHeight - rect.bottom
-  const dropdownMaxHeight = 260 // search bar ~44px + list 220px
+  const dropdownMaxHeight = 260
 
   let top, transformOrigin
   if (spaceBelow >= dropdownMaxHeight || spaceBelow >= 150) {
-    // Open downward
     top = rect.bottom + window.scrollY + 2
     transformOrigin = 'top center'
   } else {
-    // Open upward
     top = rect.top + window.scrollY - dropdownMaxHeight - 2
     transformOrigin = 'bottom center'
   }
@@ -142,11 +139,10 @@ onUnmounted(() => {
         <div class="flex items-center justify-between w-full px-4 py-2">
           <slot name="selected" :item="selectedItem">
             <div v-if="selectedItem" class="flex items-center gap-2 flex-1 overflow-hidden">
-              <div class="w-7 h-7 rounded-sm border border-outline-std overflow-hidden bg-white shrink-0">
-                <img :src="selectedItem.profileURL || getActionIcon('edit')" class="w-full h-full object-cover" />
+              <div class="w-7 h-7 rounded-full border border-outline-std overflow-hidden bg-white shrink-0">
+                <img :src="selectedItem.profileURL" class="w-full h-full object-cover" />
               </div>
               <span class="text-sm font-semibold text-content-dark truncate flex-1">{{ selectedItem.name }}</span>
-              <!-- Badge slot: parent provides context-specific badge (age, type, branch, etc.) -->
               <slot name="selected-badge" :item="selectedItem"></slot>
             </div>
             <span v-else class="text-content-light text-sm italic opacity-70">{{ placeholder }}</span>
@@ -158,7 +154,6 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Dropdown teleported to body so it floats over modals -->
     <Teleport to="body">
       <transition enter-active-class="transition duration-200 ease-out"
         enter-from-class="opacity-0 scale-95 -translate-y-2" enter-to-class="opacity-100 scale-100 translate-y-0"
@@ -185,7 +180,6 @@ onUnmounted(() => {
                   <span
                     class="text-sm group-hover/item:translate-x-1 transition-transform duration-200 font-semibold text-content-dark flex-1">{{
                       item.name }}</span>
-                  <!-- Badge slot: parent provides context-specific badge per dropdown item -->
                   <slot name="item-badge" :item="item"></slot>
                 </div>
               </slot>
@@ -198,7 +192,6 @@ onUnmounted(() => {
       </transition>
     </Teleport>
 
-    <!-- Error Message -->
     <transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1"
       enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in"
       leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1">

@@ -55,7 +55,7 @@ class ParentService {
   async getAllParents(filters = {}) {
     let query = db.collection(COLLECTIONS.PARENT)
     if (filters.limit) query = query.limit(parseInt(filters.limit))
-    
+
     const snapshot = await query.get()
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
@@ -83,7 +83,9 @@ class ParentService {
       ...(validatedUpdate.name && { name: validatedUpdate.name }),
       ...(validatedUpdate.email && { email: validatedUpdate.email }),
       ...(validatedUpdate.phone && { phone: validatedUpdate.phone }),
-      ...(validatedUpdate.profileURL && { profileURL: validatedUpdate.profileURL }),
+      ...(validatedUpdate.profileURL && {
+        profileURL: validatedUpdate.profileURL,
+      }),
       ...(validatedUpdate.status && { status: validatedUpdate.status }),
     }
 
@@ -91,7 +93,9 @@ class ParentService {
     batch.update(parentRef, cleanUpdate)
 
     const syncFields = ['name', 'email', 'phone', 'profileURL', 'status']
-    const shouldSync = Object.keys(cleanUpdate).some((k) => syncFields.includes(k))
+    const shouldSync = Object.keys(cleanUpdate).some((k) =>
+      syncFields.includes(k),
+    )
 
     if (shouldSync) {
       const snapshot = profileHelper.getParentSnapshot(id, {

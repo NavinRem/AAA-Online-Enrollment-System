@@ -6,9 +6,9 @@ import AppInput from '@/components/common/ui/AppInput.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
-import EnrollConfirmOverlay from '@/components/enrollments/EnrollConfirmOverlay.vue'
+import EnrollmentConfirmOverlay from '@/components/enrollments/EnrollmentConfirmOverlay.vue'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
-import { formatPrice, formatDateOnly, calculateAge } from '@/utils/formatUtils'
+import { formatPrice, formatDateOnly } from '@/utils/formatUtils'
 import { getSessionCounts } from '@/utils/programHelper'
 
 const props = defineProps({
@@ -22,66 +22,58 @@ const props = defineProps({
   enrollment: { type: Object, default: null },
   error: { type: String, default: '' },
   success: { type: String, default: '' },
-  hint: { type: String, default: '' },
 })
 
-const emit = defineEmits(['close', 'submit', 'program-change', 'register-student'])
+const emit = defineEmits(['close', 'submit', 'register-student'])
+
+const REMARK_PRESETS = [
+  'Sibling Discount',
+  'Sponsorship',
+  'Scholarship',
+  'Late Enrollment',
+  'Ocassional Discount'
+]
 
 const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm({
   parentId: '',
   studentId: '',
   programId: '',
   classId: '',
-  isProrated: true,
+  enrollAt: new Date().toISOString(),
+  enrollmentType: '',
+  status: '',
+  paymentStatus: '',
+  isProrated: null,
+  isSponsorship: null,
+  sponsorName: '',
   discountAmount: null,
   discountType: 'dollar',
-  isSponsorship: false,
-  sponsorName: '',
-  isCustomPrice: false,
+  isCustomPrice: null,
   customPrice: null,
+  enrolledSessions: 0,
+  amount: 0,
   remark: '',
 })
 
 const showConfirm = ref(false)
 
+const availablePrograms = computed(() => {
+  if (!form.studentId) return []
+  return props.programs || []
+})
+
 const activeParents = computed(() =>
   (props.parents || []).filter((p) => (p.status || 'Active').toLowerCase() === 'active'),
 )
 
-const availableProgramsForStudent = computed(() => {
-  const activePrograms = (props.programs || []).filter((p) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    if (p.endDate && new Date(p.endDate) < today) return false
-
-    const programClasses = props.classes.filter(c => c.programId === p.id)
-    if (programClasses.length === 0) return !p.endDate || p.id === props.enrollment?.programId
-
-    return programClasses.some(c => {
-      const d = c.term?.endDate
-      if (!d) return true
-      const classEndDate = new Date(d)
-      classEndDate.setHours(23, 59, 59, 999)
-      return classEndDate >= today
-    })
-  })
-  if (!form.studentId) return activePrograms
-  return activePrograms.filter(
-    (program) =>
-      !props.enrollments.some(
-        (e) =>
-          e.id !== props.enrollment?.id &&
-          e.studentId === form.studentId &&
-          e.programId === program.id &&
-          !['cancelled', 'canceled'].includes((e.status || '').toLowerCase()),
-      ),
-  )
-})
-
 const availableStudents = computed(() => {
   if (!form.parentId) return []
   return props.students.filter((s) => s.parentId === form.parentId)
+})
+
+const availableClasses = computed(() => {
+  if (!form.programId) return []
+  return props.classes.filter((cl) => cl.programId === form.programId)
 })
 
 const resolveId = (val) => (val && typeof val === 'object' ? val.id : val)
@@ -96,17 +88,16 @@ const selectedStudent = computed(() =>
   props.students.find((s) => s.id === resolveId(form.studentId)),
 )
 
-const availableClasses = computed(() => {
-  if (!form.programId) return []
-  return props.classes.filter((cl) => cl.programId === form.programId)
-})
-
 const sessionInfo = computed(() => {
-  const prog = selectedProgram.value || selectedClass.value?.program
-  if (!prog || !selectedClass.value) return null
-  return getSessionCounts(prog.startDate, prog.endDate, {
-    [selectedClass.value.day]: selectedClass.value.timeslot,
-  })
+  const cl = selectedClass.value
+  if (!cl || !cl.term) return null
+
+  const scheduleMap = (cl.schedules || []).reduce((acc, s) => {
+    acc[s.day] = s.timeslot || s.time
+    return acc
+  }, {})
+
+  return getSessionCounts(cl.term.startDate, cl.term.endDate, scheduleMap)
 })
 
 const finalAmount = computed(() => {
@@ -138,7 +129,6 @@ const isChanged = computed(
 )
 const isSelectionLocked = computed(() => isEditMode.value)
 
-// Show error summary banner when there are any active errors
 const hasAnyError = computed(() => Object.values(errors).some((e) => !!e))
 
 const handleDisabledClick = (field) => {
@@ -163,7 +153,6 @@ const requiredFields = computed(() => {
   return fields
 })
 
-// Disable submit button proactively when required fields are empty
 const isSubmittable = computed(() =>
   requiredFields.value.every((f) => {
     const val = form[f]
@@ -171,43 +160,111 @@ const isSubmittable = computed(() =>
   }) && (!isEditMode.value || isChanged.value)
 )
 
-// Build the rows for the confirmation overlay dynamically
-const confirmRows = computed(() => [
-  { key: 'Student', value: selectedStudent.value?.name },
-  { key: 'Program', value: selectedClass.value?.program?.name, badge: false },
-  { key: 'Type', value: selectedClass.value?.program?.type, badge: true },
-  { key: 'Schedule', value: selectedClass.value ? `${selectedClass.value.day} (${selectedClass.value.timeslot})` : null },
-  { key: 'Branch', value: selectedClass.value?.branch?.abbr || selectedClass.value?.branch?.name, badge: true },
-  { key: 'Sessions', value: `${sessionInfo.value?.remaining ?? '—'} remaining / ${sessionInfo.value?.total ?? '—'} total` },
-  { key: 'Proration', value: form.isProrated ? 'Applied' : 'Not applied' },
-  ...(form.discountAmount > 0 ? [{ key: 'Discount', value: `${form.discountType === 'dollar' ? '-$' : '-'}${formatPrice(form.discountAmount)}${form.discountType === 'percent' ? '%' : ''}` }] : []),
-  ...(form.sponsorName ? [{ key: 'Sponsor', value: form.sponsorName }] : []),
-  ...(form.remark ? [{ key: 'Remark', value: form.remark, valueClass: 'italic' }] : []),
-])
+const confirmRows = computed(() => {
+  const rows = [
+    { key: 'Student', value: selectedStudent.value?.name },
+    { key: 'Program', value: selectedClass.value?.program?.name },
+    { key: 'Type', value: selectedClass.value?.program?.type, badge: true },
+    {
+      key: 'Schedule',
+      value: selectedClass.value
+        ? (selectedClass.value.schedules || []).map((s) => `${s.day} (${s.timeslot || s.time})`).join(', ')
+        : null,
+    },
+    { key: 'Branch', value: selectedClass.value?.branch?.abbr || selectedClass.value?.branch?.name, badge: true },
+    { key: 'Sessions', value: `${form.enrolledSessions || 0} sessions` },
+    { key: 'Proration', value: form.isProrated ? 'Applied' : 'Not applied' },
+  ]
 
-const validateAndSubmit = () => {
+  if (form.discountAmount > 0) {
+    const symbol = form.discountType === 'dollar' ? '$' : ''
+    const suffix = form.discountType === 'percent' ? '%' : ''
+    rows.push({ key: 'Discount', value: `-${symbol}${formatPrice(form.discountAmount)}${suffix}` })
+  }
+
+  if (form.sponsorName) rows.push({ key: 'Sponsor', value: form.sponsorName })
+  if (form.remark) rows.push({ key: 'Remark', value: form.remark, valueClass: 'italic' })
+
+  return rows
+})
+
+const parentSelectItems = computed(() =>
+  activeParents.value.map((p) => ({
+    id: p.id,
+    name: p.name,
+    profileURL: p.profileURL,
+  }))
+)
+
+const studentSelectItems = computed(() =>
+  availableStudents.value.map((s) => ({
+    id: s.id,
+    name: s.name,
+    profileURL: s.profileURL,
+    age: s.age,
+  }))
+)
+
+const programSelectItems = computed(() =>
+  availablePrograms.value.map((p) => ({
+    id: p.id,
+    name: p.name,
+    profileURL: p.profileURL,
+    type: p.type,
+  }))
+)
+
+const classSelectItems = computed(() =>
+  availableClasses.value.map((cl) => ({
+    id: cl.id,
+    name: `${(cl.schedules || []).map((s) => `${s.day} (${s.timeslot || s.time})`).join(', ')} - ${cl.enrolledCount || 0}/${cl.maxCapacity || 0} enrolled`,
+    branchAbbr: cl.branch?.abbr,
+    maxCapacity: cl.maxCapacity,
+    enrolledCount: cl.enrolledCount,
+    profileURL: cl.program?.profileURL,
+  }))
+)
+
+const handleFinalSubmit = () => {
   const isValid = validate({
     required: requiredFields.value,
   })
 
   if (!isValid || (isEditMode.value && !isChanged.value)) return
 
-  emit('submit', {
-    ...(isEditMode.value ? { id: props.enrollment.id } : {}),
-    ...form,
-    amount: finalAmount.value,
-    sessionTotal: sessionInfo.value?.total ?? 0,
-    sessionRemaining: sessionInfo.value?.remaining ?? 0,
-    sessionPassed: sessionInfo.value?.passed ?? 0,
-    prorateSavings: prorateSavings.value,
-    enrollmentType:
-      (!form.isProrated || sessionInfo.value?.passed === 0) &&
-        !form.isCustomPrice &&
-        (form.discountAmount || 0) === 0
-        ? 'Full'
-        : 'Partial',
-  })
+  // Calculate values for backend
+  const basePrice = selectedProgram.value?.basePrice || 0
+  let calculatedDiscount = parseFloat(form.discountAmount || 0)
+  if (form.discountType === 'percent') {
+    calculatedDiscount = (basePrice * calculatedDiscount) / 100
+  }
 
+  const payload = {
+    parentId: form.parentId,
+    studentId: form.studentId,
+    programId: form.programId,
+    classId: form.classId,
+    enrollAt: form.enrollAt || new Date().toISOString(),
+    enrollmentType: form.enrollmentType,
+    status: form.status,
+    paymentStatus: form.paymentStatus,
+    isProrated: !!form.isProrated,
+    isSponsorship: !!form.isSponsorship,
+    sponsorName: form.sponsorName || '',
+    isCustomPrice: !!form.isCustomPrice,
+    discountAmount: calculatedDiscount,
+    discountType: form.discountType,
+    customPrice: parseFloat(form.customPrice || 0),
+    enrolledSessions: parseInt(sessionInfo.value?.remaining || 0),
+    amount: parseFloat(finalAmount.value || 0),
+    remark: form.remark || '',
+  }
+
+  if (isEditMode.value) {
+    payload.id = props.enrollment.id
+  }
+
+  emit('submit', payload)
   clearError()
 }
 
@@ -216,13 +273,19 @@ const requestConfirm = () => {
     required: requiredFields.value,
   })
 
-  if (!isValid || (isEditMode.value && !isChanged.value)) return
-  showConfirm.value = true
-}
+  if (!isValid) {
+    Object.keys(errors).forEach(key => {
+      if (errors[key]) triggerShake(key)
+    })
+    return
+  }
 
-const confirmAndSubmit = () => {
-  showConfirm.value = false
-  validateAndSubmit()
+  if (isEditMode.value && !isChanged.value) {
+    triggerShake()
+    return
+  }
+
+  showConfirm.value = true
 }
 
 const selectParent = (uid) => {
@@ -241,7 +304,6 @@ const handleProgramChange = (pid) => {
   form.programId = pid
   form.classId = ''
   clearError('programId')
-  emit('program-change', pid)
 }
 
 const toggleRemarkPreset = (p) => {
@@ -285,12 +347,22 @@ watch(
   },
 )
 
-// Logic: Intelligent Defaults for Billing Mode
-watch(sessionInfo, (info) => {
-  if (!info || isEditMode.value) return
-  // Default to Prorated if sessions are partial, else Full Term
-  form.isProrated = info.remaining !== info.total
-}, { immediate: true })
+watch(
+  sessionInfo,
+  (info) => {
+    if (!info) {
+      form.enrolledSessions = 0
+      return
+    }
+
+    form.enrolledSessions = form.isProrated ? info.remaining : info.total
+
+    if (!isEditMode.value) {
+      form.isProrated = info.remaining !== info.total
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -300,33 +372,30 @@ watch(sessionInfo, (info) => {
     <form id="enrollmentForm" novalidate @submit.prevent="validateAndSubmit" class="enroll-form-root">
       <div class="ui-form-grid">
         <!-- Parent Selection -->
-        <AppSelect v-model="form.parentId"
-          :items="activeParents.map((p) => ({ id: p.id, name: p.name, profileURL: p.profileURL }))"
-          label="Parent Name" placeholder="Search Active Parent..." required :disabled="isSelectionLocked"
-          :error="errors.parentId" :shake="shaking.parentId" @change="selectParent" />
+        <AppSelect v-model="form.parentId" :items="parentSelectItems" label="Parent Name"
+          placeholder="Search Active Parent..." required :disabled="isSelectionLocked" :error="errors.parentId"
+          :shake="shaking.parentId" @change="selectParent" />
 
         <!-- Student Selection -->
-        <AppSelect v-model="form.studentId"
-          :items="availableStudents.map((s) => ({ id: s.id, name: s.name, profileURL: s.profileURL, dob: s.dob }))"
-          label="Student Name" placeholder="Search Active Student..." required
-          :disabled="!form.parentId || isSelectionLocked" :error="errors.studentId" :shake="shaking.studentId"
-          @change="handleStudentChange" @click-disabled="handleDisabledClick('studentId')">
+        <AppSelect v-model="form.studentId" :items="studentSelectItems" label="Student Name"
+          placeholder="Search Active Student..." required :disabled="!form.parentId || isSelectionLocked"
+          :error="errors.studentId" :shake="shaking.studentId" @change="handleStudentChange"
+          @click-disabled="handleDisabledClick('studentId')">
           <template #selected-badge="{ item }">
-            <AppBadge v-if="item.dob" status="student" class="mr-4">
-              {{ calculateAge(item.dob) }} years old
+            <AppBadge v-if="item.age" status="student" class="mr-4">
+              {{ item.age }} years old
             </AppBadge>
           </template>
           <template #item-badge="{ item }">
-            <AppBadge v-if="item.dob" status="student">
-              {{ calculateAge(item.dob) }} years old
+            <AppBadge v-if="item.age" status="student">
+              {{ item.age }} years old
             </AppBadge>
           </template>
         </AppSelect>
 
         <!-- Program Selection -->
-        <AppSelect v-model="form.programId"
-          :items="availableProgramsForStudent.map((p) => ({ id: p.id, name: p.name, profileURL: p.profileURL, type: p.type || 'group' }))"
-          label="Program Name" placeholder="Choose Program..." required class="col-span-2 sm:col-span-1"
+        <AppSelect v-model="form.programId" :items="programSelectItems" label="Program Name"
+          :placeholder="`Select Active Program...`" required class="col-span-2 sm:col-span-1"
           :disabled="!form.studentId" :error="errors.programId" :shake="shaking.programId" @change="handleProgramChange"
           @click-disabled="handleDisabledClick('programId')">
           <template #selected-badge="{ item }">
@@ -338,14 +407,9 @@ watch(sessionInfo, (info) => {
         </AppSelect>
 
         <!-- Class Slot Selection -->
-        <AppSelect v-model="form.classId" :items="availableClasses.map((cl) => ({
-          id: cl.id,
-          name: `${cl.day} (${cl.timeslot}) - ${cl.currentCount}/${cl.capacity} enrolled`,
-          branchAbbr: cl.branch?.abbr,
-          capacity: cl.capacity,
-          currentCount: cl.currentCount,
-        }))" label="Schedule And Branch" placeholder="Select Slot..." required class="col-span-2 sm:col-span-1"
-          :disabled="!form.programId" :error="errors.classId" :shake="shaking.classId" @change="clearError('classId')"
+        <AppSelect v-model="form.classId" :items="classSelectItems" label="Schedule And Branch"
+          placeholder="Select Active Class..." required class="col-span-2 sm:col-span-1" :disabled="!form.programId"
+          :error="errors.classId" :shake="shaking.classId" @change="clearError('classId')"
           @click-disabled="handleDisabledClick('classId')">
           <template #selected-badge="{ item }">
             <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" class="mr-4" />
@@ -356,12 +420,9 @@ watch(sessionInfo, (info) => {
         </AppSelect>
       </div>
 
-      <!-- Unified Enrollment Detail Panel — shown when both program and class are selected -->
       <transition enter-active-class="transition duration-500 ease-out" enter-from-class="opacity-0 translate-y-4"
         enter-to-class="opacity-100 translate-y-0">
         <div v-if="form.programId && form.classId" class="enrollment-detail-panel">
-
-          <!-- ── Program Overview (card, twin of Economic Adjustments) ── -->
           <div class="enroll-twin-card">
             <span class="enroll-section-label">Program Overview</span>
             <div class="enroll-info-grid">
@@ -372,6 +433,13 @@ watch(sessionInfo, (info) => {
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Type</span>
                 <AppBadge :status="selectedClass?.program?.type" class="mt-[2px] " />
+              </div>
+              <div class="enroll-info-item col-span-2">
+                <span class="enroll-info-key">Schedule</span>
+                <span class="enroll-info-val text-primary font-bold">
+                  {{(selectedClass?.schedules || []).map((s) => `${s.day} (${s.timeslot || s.time || '—'})`).join(', ')
+                  }}
+                </span>
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Term</span>
@@ -390,7 +458,7 @@ watch(sessionInfo, (info) => {
                 <span class="enroll-info-val">{{ formatDateOnly(selectedClass?.term?.endDate) }}</span>
               </div>
               <div class="enroll-info-item">
-                <span class="enroll-info-key">Total Units</span>
+                <span class="enroll-info-key">Total Sessions</span>
                 <span class="enroll-info-val enroll-info-val--strong">{{
                   (selectedProgram?.totalSessions || '—') }}</span>
               </div>
@@ -403,8 +471,7 @@ watch(sessionInfo, (info) => {
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Base Price</span>
-                <AppBadge class="" :status="'$' + formatPrice(selectedProgram?.basePrice || 0)"
-                  :type="(selectedProgram?.type || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'">
+                <AppBadge class="" :status="'$' + formatPrice(selectedProgram?.basePrice || 0)" type="blue">
                 </AppBadge>
               </div>
             </div>
@@ -419,7 +486,7 @@ watch(sessionInfo, (info) => {
                 <span class="enroll-info-key">Billing Mode</span>
                 <div class="ui-box-toggle" :class="{ 'ui-box-toggle--active': form.isProrated }"
                   @click="form.isProrated = !form.isProrated">
-                  <AppBadge :status="form.isProrated ? 'Partial' : 'Full'" />
+                  <AppBadge :status="form.isProrated ? 'Full' : 'Partial'" />
                 </div>
               </div>
 
@@ -500,8 +567,11 @@ watch(sessionInfo, (info) => {
                     <span class="enroll-tuition-label">{{
                       form.isSponsorship ?
                         'Managed via Sponsoring Agency' : 'Total Price to Pay' }}</span>
-                    <div v-if="prorateSavings > 0 && !form.isSponsorship" class="enroll-tuition-savings">
-                      Savings Detected: ${{ formatPrice(prorateSavings) }}
+                    <div v-if="!form.isSponsorship" class="enroll-tuition-savings">
+                      Billed Sessions: {{ form.enrolledSessions || 0 }}
+                      <span v-if="prorateSavings > 0" class="ml-1 opacity-70">
+                        (Saved ${{ formatPrice(prorateSavings) }})
+                      </span>
                     </div>
                   </div>
                   <span class="enroll-tuition-amount">
@@ -515,15 +585,13 @@ watch(sessionInfo, (info) => {
           <div class="enroll-twin-card enroll-remarks-card" v-if="selectedClass">
             <span class="enroll-section-label">Administrative Remark</span>
             <div class="ui-preset-bar">
-              <button
-                v-for="preset in ['Trial Session', 'Sibling Discount', 'Sponsorship', 'Special Holiday', 'Scholarship']"
-                :key="preset" type="button" class="ui-preset-btn"
-                :class="{ 'ui-preset-btn-active': isRemarkPresetActive(preset) }" @click="toggleRemarkPreset(preset)">
+              <button v-for="preset in REMARK_PRESETS" :key="preset" type="button" class="ui-preset-btn"
+                :class="{ 'ui-preset-btn-hover': isRemarkPresetActive(preset) }" @click="toggleRemarkPreset(preset)">
                 {{ preset }}
               </button>
             </div>
             <textarea v-model="form.remark" placeholder="Input the administrative remark..." rows="3"
-              class="ui-remark-textarea"
+              class="ui-textarea-standard"
               :class="{ 'border-error bg-error-soft ring-error/10': errors.remark }"></textarea>
             <div v-if="errors.remark" class="enroll-remark-error">
               {{ errors.remark }}
@@ -539,24 +607,24 @@ watch(sessionInfo, (info) => {
           Please fill in all required fields before submitting.
         </div>
         <div class="enroll-submit-actions">
-          <button type="button" class="enroll-cancel-btn" @click="$emit('close')">
+          <button type="button" class="ui-btn-cancel" @click="$emit('close')">
             Cancel
           </button>
-          <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium"
-            :disabled="loading || !isSubmittable"
-            :class="{ 'button-disabled-visual': !isSubmittable || (isEditMode && !isChanged) }" @click="requestConfirm">
+          <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium" :disabled="loading"
+            :class="{ 'opacity-50 grayscale-[0.3]': !isSubmittable || (isEditMode && !isChanged) }"
+            @click="requestConfirm">
             {{ isEditMode ? 'Confirm Changes' : 'Create Enrollment' }}
           </AppButton>
         </div>
       </div>
 
       <!-- ── Reusable Confirmation Overlay ── -->
-      <EnrollConfirmOverlay :show="showConfirm"
+      <EnrollmentConfirmOverlay :show="showConfirm"
         :title="isEditMode ? 'Confirm Enrollment Changes' : 'Confirm Enrollment Details'"
         subtitle="Please review carefully before submitting. This action cannot be easily undone."
         :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows" :totalAmount="finalAmount"
         totalLabel="Price to Pay" :confirmLabel="isEditMode ? 'Confirm Changes' : 'Confirm & Submit'" :loading="loading"
-        @back="showConfirm = false" @confirm="confirmAndSubmit" />
+        @back="showConfirm = false" @confirm="handleFinalSubmit" />
     </form>
   </AppModal>
 </template>
@@ -628,7 +696,7 @@ watch(sessionInfo, (info) => {
 }
 
 .ui-box-toggle--active {
-  @apply border-primary bg-white shadow-sm;
+  @apply border-outline-std bg-white;
 }
 
 .ui-box-toggle--danger {
@@ -699,9 +767,5 @@ watch(sessionInfo, (info) => {
 
 .enroll-submit-error-icon {
   @apply text-sm flex-shrink-0;
-}
-
-.enroll-cancel-btn {
-  @apply px-xl py-sm bg-bg-light text-content-muted border-2 border-outline-std rounded-sm text-xs font-bold tracking-wider cursor-pointer transition-all hover:bg-outline-std hover:text-content-dark;
 }
 </style>

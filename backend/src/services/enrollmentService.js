@@ -41,16 +41,15 @@ class EnrollmentService {
 
     const enrollmentId = db.collection(COLLECTIONS.ENROLLMENT).doc().id
     const newEnrollment = {
-      studentId,
-      programId,
-      classId,
+      ...enrollmentData,
       parentId: studentDoc.data().parentId,
       student: studentSnapshot,
       program: programSnapshot,
       class: classSnapshot,
-      status: 'active',
-      enrollmentDate: new Date().toISOString(),
+      status: enrollmentData.status || 'active',
+      enrollmentDate: enrollmentData.enrollAt || new Date().toISOString(),
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     }
 
     await db.runTransaction(async (transaction) => {

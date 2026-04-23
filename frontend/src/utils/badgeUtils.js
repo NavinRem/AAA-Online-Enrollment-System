@@ -10,6 +10,8 @@ const REGISTRIES = {
     cancelled: 'red',
     canceled: 'red',
     refunded: 'orange',
+    'parent paid': 'green',
+    sponsored: 'blue',
   },
   payment: {
     cash: 'green',
@@ -51,7 +53,7 @@ const REGISTRIES = {
     private: 'magenta',
     'registered-today': 'magenta',
     new: 'green',
-    full: 'red',
+    full: 'magenta',
     all: 'blue',
   },
 }
@@ -83,12 +85,20 @@ const THEME_FILTERS = {
 }
 
 export const resolveColor = (value, module = null) => {
+  // 1. If module is a direct color name, use it
+  if (module && THEMES[module.toLowerCase()]) return module.toLowerCase()
+
   if (!value) return 'gray'
   const key = String(value).toLowerCase().trim()
-  if (module) return REGISTRIES[module]?.[key] ?? 'gray'
+
+  // 2. If module is a registry key, look it up
+  if (module && REGISTRIES[module]) return REGISTRIES[module][key] ?? 'gray'
+
+  // 3. Global lookup across all registries
   for (const group of Object.values(REGISTRIES)) {
     if (group[key]) return group[key]
   }
+
   return 'gray'
 }
 

@@ -48,7 +48,7 @@ defineEmits(['confirm', 'back'])
         </div>
 
         <div class="enroll-confirm-actions">
-          <button type="button" class="enroll-cancel-btn" @click="$emit('back')">Go Back</button>
+          <button type="button" class="ui-btn-cancel" @click="$emit('back')">Go Back</button>
           <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium"
             @click="$emit('confirm')">
             {{ confirmLabel || 'Confirm & Submit' }}
@@ -112,7 +112,4 @@ defineEmits(['confirm', 'back'])
   @apply p-xl bg-surface-light border-t-2 border-outline-std flex justify-end gap-md;
 }
 
-.enroll-cancel-btn {
-  @apply px-xl py-sm bg-bg-light text-content-muted border-2 border-outline-std rounded-sm text-xs font-bold tracking-wider cursor-pointer transition-all hover:bg-outline-std hover:text-content-dark;
-}
 </style>

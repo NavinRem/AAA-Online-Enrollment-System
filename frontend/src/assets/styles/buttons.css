@@ -59,4 +59,39 @@
   .ui-btn-premium:disabled {
     @apply opacity-50 cursor-not-allowed grayscale;
   }
+
+  .ui-btn-cancel {
+    @apply px-xl py-2.5 shadow-md transition-all duration-300
+           bg-outline-std text-content-muted font-black text-sm tracking-tight
+           border-none rounded-sm cursor-pointer select-none;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  }
+
+  /* ── Preset Selection Bar ──────────────────────────────────────────────── */
+  /* Use for: quick-select tags/presets for text areas or filters             */
+  .ui-preset-bar {
+    @apply flex flex-wrap gap-xs mb-xs mt-xs;
+  }
+
+  /* ── Preset Toggle Button ──────────────────────────────────────────────── */
+  /* Use for: individual items inside a ui-preset-bar                         */
+  .ui-preset-btn {
+    @apply px-md py-1.5 rounded-full border-2 border-outline-std bg-surface-subtle 
+           text-3xs font-black uppercase tracking-widest text-content-muted
+           transition-all duration-300 cursor-pointer hover:border-content-muted/30
+           hover:bg-white hover:text-content-dark select-none;
+  }
+
+  .ui-preset-btn:hover,
+  .ui-preset-btn-active,
+  .ui-preset-btn-hover {
+    @apply border-primary bg-primary text-white shadow-md scale-105;
+  }
+
+  /* ── Standard Textarea ──────────────────────────────────────────────────── */
+  /* Use for: multi-line administrative notes, remarks, descriptions          */
+  .ui-textarea-standard {
+    @apply w-full px-md py-sm border-2 border-outline-std rounded-sm bg-surface-subtle
+           text-sm font-semibold transition-all focus:border-primary focus:bg-white outline-none;
+  }
 }

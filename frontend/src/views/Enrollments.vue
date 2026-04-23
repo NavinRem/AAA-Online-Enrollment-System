@@ -34,8 +34,6 @@ const showModal = ref(false)
 const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
-const validationHint = ref('')
-const newlyCreatedId = ref(null)
 const selectedEnrollment = ref(null)
 const enrollmentForm = ref(null)
 
@@ -88,27 +86,6 @@ const loadFormData = async () => {
   }
 }
 
-const handleProgramChange = async (programId) => {
-  if (!programId) {
-    classes.value = []
-    return
-  }
-  try {
-    const data = await classService.getAvailableClasses(programId)
-    classes.value = Array.isArray(data) ? data : []
-  } catch (err) {
-    console.error('Failed to load classes', err)
-  }
-}
-
-let hintTimeout = null
-const setValidationHint = (msg) => {
-  validationHint.value = msg
-  if (hintTimeout) clearTimeout(hintTimeout)
-  hintTimeout = setTimeout(() => {
-    validationHint.value = ''
-  }, 4000)
-}
 
 const handleSaveEnrollment = async (formData) => {
   submitting.value = true
@@ -120,8 +97,8 @@ const handleSaveEnrollment = async (formData) => {
     const classInstance = classes.value.find((c) => c.id === formData.classId)
 
     const payload = {
-      parentId: parent.uid || parent.id,
-      studentId: student.id || student.uid,
+      parentId: parent.id,
+      studentId: student.id,
       programId: program.id,
       classId: classInstance.id,
       parent: { id: parent.uid || parent.id, name: parent.name, profileURL: parent.profileURL },
@@ -129,17 +106,17 @@ const handleSaveEnrollment = async (formData) => {
       program: {
         id: program.id,
         name: program.name,
-        type: program.type || 'Group',
+        type: program.type,
         profileURL: program.profileURL,
         basePrice: program.basePrice || 0,
         totalSessions: program.totalSessions || 0,
       },
       class: {
         id: classInstance.id,
-        day: classInstance.day,
-        timeslot: classInstance.timeslot,
         branchAbbr: classInstance.branch?.abbr || 'N/A',
-        schedule: `${classInstance.day} (${classInstance.timeslot})`,
+        schedule: (classInstance.schedules || [])
+          .map((s) => `${s.day} (${s.time})`)
+          .join(', '),
       },
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
@@ -523,10 +500,9 @@ const handleRegisterStudent = async (formData) => {
 
     <EnrollmentFormModal ref="enrollmentForm" :isOpen="showModal" :loading="submitting" :parents="parents"
       :students="students" :programs="programs" :classes="classes" :enrollments="enrollments"
-      :enrollment="selectedEnrollment" :error="errorMessage" :success="successMessage" :hint="validationHint"
-      @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
-      @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint"
-      @register-student="handleOpenRegisterStudent" />
+      :enrollment="selectedEnrollment" :error="errorMessage" :success="successMessage"
+      @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; }"
+      @submit="handleSaveEnrollment" @register-student="handleOpenRegisterStudent" />
 
     <ParentActionModal :isOpen="childRegistrationModal.isOpen" type="plus" :user="childRegistrationModal.parent"
       :selectableParents="parents" :loading="childRegistrationModal.loading" :error="childRegistrationModal.error"

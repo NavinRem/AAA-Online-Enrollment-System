@@ -145,14 +145,10 @@ watch(
 <template>
   <AppModal :show="isOpen" :title="modalTitle" @close="$emit('close')" :icon="modalIcon">
     <!-- Identity Banner -->
-    <div
-      v-if="
-        (student || enrollment) &&
-        (type === 'edit' || type === 'override' || type === 'enrollment-override')
-      "
-      class="ui-identity-banner"
-      :class="studentThemeClasses"
-    >
+    <div v-if="
+      (student || enrollment) &&
+      (type === 'edit' || type === 'override' || type === 'enrollment-override')
+    " class="ui-identity-banner" :class="studentThemeClasses">
       <div class="ui-identity-avatar-round">
         <img :src="getStudentProfileURL(localData.profileURL)" class="w-full h-full object-cover" />
       </div>
@@ -170,123 +166,63 @@ watch(
 
     <form id="studentActionForm" @submit.prevent="handleActionSubmit" novalidate>
       <!-- Edit Profile / Override Form -->
-      <div
-        v-if="type === 'edit' || type === 'override' || type === 'enrollment-override'"
-        class="ui-form-grid-lg"
-      >
-        <AppInput
-          v-model="localData.name"
-          label="Full Name"
-          placeholder="Full Name"
-          required
-          :error="errors.name"
-          :shake="shaking.name"
-          :disabled="type !== 'edit'"
-          @input="clearError('name')"
-        />
+      <div v-if="type === 'edit' || type === 'override' || type === 'enrollment-override'" class="ui-form-grid-lg">
+        <AppInput v-model="localData.name" label="Full Name" placeholder="Full Name" required :error="errors.name"
+          :shake="shaking.name" :disabled="type !== 'edit'" @input="clearError('name')" />
 
-        <AppInput
-          v-model="localData.dob"
-          type="date"
-          label="Date of Birth"
-          required
-          :error="errors.dob"
-          :shake="shaking.dob"
-          :disabled="type !== 'edit'"
-          @input="clearError('dob')"
-        />
+        <AppInput v-model="localData.dob" type="date" label="Date of Birth" required :error="errors.dob"
+          :shake="shaking.dob" :disabled="type !== 'edit'" @input="clearError('dob')" />
 
         <div class="flex flex-col gap-xs mb-md col-span-2">
-          <label class="text-sm font-semibold text-content-dark"
-            >Medical Notes / Allergies
-            <span
-              class="text-2xs font-bold text-content-muted ml-sm uppercase opacity-60"
-              v-if="originalData.medicalNote"
-              >Original: {{ originalData.medicalNote }}</span
-            >
+          <label class="text-sm font-semibold text-content-dark">Medical Notes / Allergies
+            <span class="text-2xs font-bold text-content-muted ml-sm uppercase opacity-60"
+              v-if="originalData.medicalNote">Original: {{ originalData.medicalNote }}</span>
           </label>
-            <textarea
-              v-model="localData.medicalNote"
-              placeholder="e.g. Nut allergy, ADHD..."
-              rows="2"
-              class="ui-remark-textarea"
-              :class="{
-                'border-error bg-error-soft ring-error/10': errors.medicalNote,
-                'animate-shake': shaking.medicalNote,
-              }"
-              :disabled="type !== 'edit'"
-            ></textarea>
-          <div
-            v-if="errors.medicalNote"
-            class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest"
-          >
+          <textarea v-model="localData.medicalNote" placeholder="e.g. Nut allergy, ADHD..." rows="2"
+            class="ui-remark-textarea" :class="{
+              'border-error bg-error-soft ring-error/10': errors.medicalNote,
+              'animate-shake': shaking.medicalNote,
+            }" :disabled="type !== 'edit'"></textarea>
+          <div v-if="errors.medicalNote" class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest">
             {{ errors.medicalNote }}
           </div>
-            <div class="ui-preset-bar" v-if="type === 'edit'">
-              <button
-                v-for="preset in ['None', 'G6PD', 'ADHD', 'Asthma']"
-                :key="preset"
-                type="button"
-                class="ui-preset-btn"
-                :class="{
-                  'ui-preset-btn-active': isPresetActive('medicalNote', preset),
-                }"
-                @click="togglePreset('medicalNote', preset)"
-              >
-                {{ preset }}
-              </button>
+          <div class="ui-preset-bar" v-if="type === 'edit'">
+            <button v-for="preset in ['None', 'G6PD', 'ADHD', 'Asthma']" :key="preset" type="button"
+              class="ui-preset-btn" :class="{
+                'ui-preset-btn-hover': isPresetActive('medicalNote', preset),
+              }" @click="togglePreset('medicalNote', preset)">
+              {{ preset }}
+            </button>
           </div>
         </div>
 
-        <AppSelect
-          v-model="localData.status"
-          label="Account Status"
-          :items="[
-            { id: 'Studying', name: 'Studying' },
-            { id: 'Suspended', name: 'Suspended' },
-            { id: 'Stopped', name: 'Stopped' },
-            { id: 'Graduated', name: 'Graduated' },
-          ]"
-          required
-          :error="errors.status"
-          :shake="shaking.status"
-          :disabled="type === 'edit' && !['Suspended', 'Stopped'].includes(localData.status)"
-          :searchable="false"
-          @change="clearError('status')"
-        />
+        <AppSelect v-model="localData.status" label="Account Status" :items="[
+          { id: 'Studying', name: 'Studying' },
+          { id: 'Suspended', name: 'Suspended' },
+          { id: 'Stopped', name: 'Stopped' },
+          { id: 'Graduated', name: 'Graduated' },
+        ]" required :error="errors.status" :shake="shaking.status"
+          :disabled="type === 'edit' && !['Suspended', 'Stopped'].includes(localData.status)" :searchable="false"
+          @change="clearError('status')" />
 
-        <div
-          class="flex flex-col gap-xs mb-md col-span-2"
-          v-if="['Suspended', 'Stopped'].includes(localData.status)"
-        >
-          <label class="text-sm font-semibold text-content-dark"
-            >Administrative Remarks <span class="text-error">*</span></label
-          >
-          <textarea
-            v-model="localData.overrideRemark"
-            placeholder="Document reason for status change..."
-            rows="3"
-            class="ui-remark-textarea"
-            :class="{
+        <div class="flex flex-col gap-xs mb-md col-span-2" v-if="['Suspended', 'Stopped'].includes(localData.status)">
+          <label class="text-sm font-semibold text-content-dark">Administrative Remarks <span
+              class="text-error">*</span></label>
+          <textarea v-model="localData.overrideRemark" placeholder="Document reason for status change..." rows="3"
+            class="ui-remark-textarea" :class="{
               'border-error bg-error-soft ring-error/10': errors.overrideRemark,
               'animate-shake': shaking.overrideRemark,
-            }"
-          ></textarea>
-          <div v-if="errors.overrideRemark" class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest">
+            }"></textarea>
+          <div v-if="errors.overrideRemark"
+            class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest">
             {{ errors.overrideRemark }}
           </div>
         </div>
 
         <div class="flex flex-col gap-xs mb-md col-span-2" v-if="type === 'edit'">
           <label class="text-sm font-semibold text-content-dark">Student Profile Avatar</label>
-          <AvatarSelector
-            v-model="localData.profileURL"
-            role="student"
-            :uid="student?.id || enrollment?.studentId"
-            :customFileName="`${localData.name}_student`"
-            :error="errors.profileURL"
-            :shake="shaking.profileURL"
-          />
+          <AvatarSelector v-model="localData.profileURL" role="student" :uid="student?.id || enrollment?.studentId"
+            :customFileName="`${localData.name}_student`" :error="errors.profileURL" :shake="shaking.profileURL" />
         </div>
       </div>
 
@@ -303,20 +239,11 @@ watch(
           </div>
         </div>
 
-        <AppInput
-          v-model="localData.deleteConfirm"
-          label="Authorization"
-          placeholder="DELETE"
-          required
-          class="text-center"
-          :error="errors.deleteConfirm"
-          :shake="shaking.deleteConfirm"
-          @input="clearError('deleteConfirm')"
-        >
+        <AppInput v-model="localData.deleteConfirm" label="Authorization" placeholder="DELETE" required
+          class="text-center" :error="errors.deleteConfirm" :shake="shaking.deleteConfirm"
+          @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span
-              class="block text-2xs font-bold text-center w-full text-content-muted/40 mt-1 uppercase"
-            >
+            <span class="block text-2xs font-bold text-center w-full text-content-muted/40 mt-1 uppercase">
               Type <span class="text-error font-extrabold px-1">DELETE</span> to confirm
             </span>
           </template>
@@ -326,27 +253,15 @@ watch(
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-sm">
-        <AppAlert
-          v-if="error"
-          :show="!!error"
-          type="error"
-          closable
-          @close="$emit('update:error', '')"
-        >
+        <AppAlert v-if="error" :show="!!error" type="error" closable @close="$emit('update:error', '')">
           {{ error }}
         </AppAlert>
 
         <div class="flex items-center justify-end w-full gap-sm">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-          <AppButton
-            :variant="type?.includes('delete') ? 'danger' : 'primary'"
-            form="studentActionForm"
-            type="submit"
-            @click="type?.includes('delete') ? handleActionSubmit() : null"
-            :loading="loading"
-            :disabled="loading"
-            :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
-          >
+          <AppButton :variant="type?.includes('delete') ? 'danger' : 'primary'" form="studentActionForm" type="submit"
+            @click="type?.includes('delete') ? handleActionSubmit() : null" :loading="loading" :disabled="loading"
+            :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }">
             {{ submitLabel }}
           </AppButton>
         </div>

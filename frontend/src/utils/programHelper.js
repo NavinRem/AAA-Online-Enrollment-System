@@ -1,43 +1,19 @@
-/**
- * Helper functions for program-related logic, specifically for class tracking
- * and academic status determination in the "Universal Perfect State" architecture.
- */
-
-/**
- * Calculates the count of total, passed, and remaining classes within a date range
- * based on a specific weekly recurring day.
- *
- * @param {string} startDate - ISO or date string for start
- * @param {string} endDate - ISO or date string for end
- * @param {Object} schedule - Schedule object (e.g., { day: 'Monday', timeslot: '09:00 - 10:30' })
- * @returns {Object} { totalClasses, passedClasses, remainingClasses }
- */
-
-/**
- * Calculates the count of total, passed, and remaining classes within a date range
- * based on a specific weekly recurring day.
- *
- * @param {string} startDate - ISO or date string for start
- * @param {string} endDate - ISO or date string for end
- * @param {Object} schedule - Schedule object (e.g., { day: 'Monday', timeslot: '09:00 - 10:30' })
- * @returns {Object} { totalClasses, passedClasses, remainingClasses }
- */
 export const getClassCounts = (startDate, endDate, schedule) => {
-  if (!startDate || !endDate || !schedule || !schedule.day) {
-    return { totalClasses: 0, passedClasses: 0, remainingClasses: 0 }
+  if (!startDate || !endDate || !schedule) {
+    return {
+      total: 0,
+      passed: 0,
+      remaining: 0,
+      totalClasses: 0,
+      passedClasses: 0,
+      remainingClasses: 0,
+    }
   }
 
   const start = new Date(startDate)
   const end = new Date(endDate)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-
-  let dayName = schedule.day
-  if (!dayName) {
-    dayName = Object.keys(schedule)[0]
-  }
-
-  if (!dayName) return { totalClasses: 0, passedClasses: 0, remainingClasses: 0 }
 
   const dayMap = {
     sunday: 0,
@@ -48,9 +24,27 @@ export const getClassCounts = (startDate, endDate, schedule) => {
     friday: 5,
     saturday: 6,
   }
-  const targetDay = dayMap[dayName.toLowerCase().trim()]
 
-  if (targetDay === undefined) return { totalClasses: 0, passedClasses: 0, remainingClasses: 0 }
+  let targetDays = []
+  if (schedule.day) {
+    targetDays.push(dayMap[schedule.day.toLowerCase().trim()])
+  } else {
+    Object.keys(schedule).forEach((day) => {
+      const d = dayMap[day.toLowerCase().trim()]
+      if (d !== undefined) targetDays.push(d)
+    })
+  }
+
+  if (targetDays.length === 0) {
+    return {
+      total: 0,
+      passed: 0,
+      remaining: 0,
+      totalClasses: 0,
+      passedClasses: 0,
+      remainingClasses: 0,
+    }
+  }
 
   let total = 0
   let passed = 0
@@ -58,7 +52,8 @@ export const getClassCounts = (startDate, endDate, schedule) => {
 
   const current = new Date(start)
   while (current <= end) {
-    if (current.getDay() === targetDay) {
+    const dayOfWeek = current.getDay()
+    if (targetDays.includes(dayOfWeek)) {
       total++
       if (current < today) {
         passed++
@@ -79,30 +74,14 @@ export const getClassCounts = (startDate, endDate, schedule) => {
   }
 }
 
-/**
- * Alias for getClassCounts to support legacy calls.
- */
 export const getSessionCounts = getClassCounts
 
-/**
- * Generates academic statistics for a program based on its time range and schedule.
- *
- * @param {Object} program - Standardized program record
- * @returns {Object} Purified class statistics
- */
 export const calculateProgramStats = (program) => {
   if (!program) return { totalClasses: 0, passedClasses: 0, remainingClasses: 0 }
   const { startDate, endDate, schedule } = program
   return getClassCounts(startDate, endDate, schedule)
 }
 
-/**
- * Determines the semantic visual status of a program based on its lifecycle.
- * Maps current time vs. start/end dates.
- *
- * @param {Object} program - Standardized program record
- * @returns {string} Semantic status (Upcoming, Ongoing, Completed, Cancelled)
- */
 export const getProgramDisplayStatus = (program) => {
   if (!program) return 'Unknown'
   const { status, startDate, endDate } = program
@@ -115,13 +94,6 @@ export const getProgramDisplayStatus = (program) => {
   if (now > end) return 'Completed'
   return 'Ongoing'
 }
-
-/**
- * Checks if a specific class is currently active based on real-world time.
- *
- * @param {Object} classInstance - Class/Lesson record
- * @returns {boolean} True if current time is within class window
- */
 export const isClassInProgress = (classInstance) => {
   if (!classInstance) return false
   const now = new Date()
@@ -132,7 +104,4 @@ export const isClassInProgress = (classInstance) => {
   return now >= classDate && now >= classStartTime && now <= classEndTime
 }
 
-/**
- * Alias for isClassInProgress to support legacy calls.
- */
 export const isSessionInProgress = isClassInProgress
