@@ -39,7 +39,7 @@ const navigateToDetail = (item) => {
   <div class="w-full h-full">
     <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
       <template #toolbar>
-        <div class="ui-section-header border-none gap-md">
+        <div class="ui-section-header border-none gap-md mb-4">
           <h3 class="ui-section-title">Recent Enrollment</h3>
           <div class="ui-section-divider"></div>
         </div>

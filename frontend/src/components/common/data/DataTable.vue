@@ -5,7 +5,6 @@ import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import { useTableActions } from '@/composables/useTableActions'
 import AppBadge from '../ui/AppBadge.vue'
 import TablePagination from './TablePagination.vue'
-import { getStatusUI } from '@/utils/badgeUtils'
 
 const props = defineProps({
   headers: { type: Array, required: true },
@@ -45,33 +44,33 @@ const displayEmptyMessage = computed(() => {
 })
 
 const emptyState = computed(() => {
-  if (props.loading) return { prefix: props.loadingMessage, label: '', suffix: '' }
+  if (props.loading) return { prefix: props.loadingMessage, label: '', suffix: '', showBadge: false }
 
-  const entity = props.entityName?.toLowerCase() || 'record'
+  const entity = props.entityName?.toLowerCase()
 
   if (props.searchQuery) {
     return {
-      prefix: `No matching ${entity} found for `,
+      prefix: 'No',
       label: `"${props.searchQuery}"`,
-      suffix: '',
+      suffix: `found in ${entity} records.`,
+      showBadge: false
     }
   }
 
-  if (props.currentFilter !== 'all' && props.filterOptions.length > 0) {
-    const option = props.filterOptions.find((o) => o.value === props.currentFilter)
-    if (option) {
-      return {
-        prefix: 'no',
-        label: option.value,
-        suffix: `${entity} record found`,
-      }
+  if (props.currentFilter && props.currentFilter !== 'all') {
+    return {
+      prefix: 'No',
+      label: props.currentFilter,
+      suffix: `${entity} records found.`,
+      showBadge: true
     }
   }
 
   return {
-    prefix: 'No ',
+    prefix: 'No',
     label: '',
     suffix: `${entity} records found.`,
+    showBadge: false
   }
 })
 
@@ -87,7 +86,6 @@ const handleAction = (type, item) => {
     flexible ? '' : 'flex-1 min-h-0'
   ]">
     <AppTable :headers="headers" :loading="loading" :empty="!items || items.length === 0" :flexible="flexible">
-      <!-- Integrated Toolbar -->
       <template #toolbar>
         <TableToolbar :hasSearch="hasSearch" :searchQuery="searchQuery"
           @update:searchQuery="emit('update:searchQuery', $event)" :searchPlaceholder="searchPlaceholder"
@@ -99,19 +97,17 @@ const handleAction = (type, item) => {
         </TableToolbar>
       </template>
 
-      <!-- Loading State Customization -->
       <template #loading>{{ displayEmptyMessage }}</template>
 
-      <!-- Empty State Customization -->
       <template #empty>
         <div class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic">
           <span v-if="emptyState.prefix">{{ emptyState.prefix }}</span>
-          <AppBadge v-if="emptyState.label" :value="emptyState.label" :type="currentFilter" />
+          <AppBadge v-if="emptyState.showBadge" :status="emptyState.label" size="sm" />
+          <span v-else-if="emptyState.label" class="text-primary">{{ emptyState.label }}</span>
           <span v-if="emptyState.suffix">{{ emptyState.suffix }}</span>
         </div>
       </template>
 
-      <!-- Main Row Content -->
       <tr v-for="(item, index) in items" :key="item.id || index" class="ui-row group" :class="rowClass(item)"
         @click="emit('row-click', item)">
         <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId"
@@ -131,7 +127,6 @@ const handleAction = (type, item) => {
         </slot>
       </tr>
 
-      <!-- Table Footer (Pagination) -->
       <template #footer>
         <TablePagination v-if="hasPagination && items && items.length > 0" :currentPage="currentPage"
           :pageSize="pageSize" :totalItems="totalItems" @update:currentPage="emit('update:currentPage', $event)" />

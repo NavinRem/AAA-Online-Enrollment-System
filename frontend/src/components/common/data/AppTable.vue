@@ -29,8 +29,8 @@ defineProps({
       class="flex-1 flex items-center justify-center p-xl sm:p-3xl text-content-light font-bold text-base animate-pulse">
       <slot name="loading">Loading data...</slot>
     </div>
-    <div v-else :class="['table-container', flexible ? '' : 'flex-1 scrollable-v']">
-      <table class="w-full border-separate border-spacing-0 table-fixed">
+    <div v-else :class="['table-content-area', flexible ? '' : 'flex-1 scrollable-v']">
+      <table class="w-full border-separate border-spacing-0 table-auto">
         <thead class="sticky top-0 z-20 bg-white">
           <tr class="w-full">
             <th v-for="(col, index) in headers" :key="index"
@@ -50,9 +50,10 @@ defineProps({
               <slot name="empty">No records found.</slot>
             </td>
           </tr>
-
         </tbody>
       </table>
+    </div>
+    <div v-if="$slots.footer" class="table-footer-container">
       <slot name="footer"></slot>
     </div>
   </div>
@@ -67,8 +68,12 @@ defineProps({
   @apply w-full flex-shrink-0 border-b border-outline-std/50;
 }
 
-.table-container {
+.table-content-area {
   @apply w-full flex flex-col min-h-0;
+}
+
+.table-footer-container {
+  @apply w-full flex-shrink-0 pt-md border-t border-outline-std/50;
 }
 
 .table-header-cell {

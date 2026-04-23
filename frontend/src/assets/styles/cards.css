@@ -15,10 +15,12 @@
   /* ── Detail Card ─────────────────────────────────────────────────────────── */
   /* Use for: main content cards on detail/view pages                          */
   .ui-detail-card {
-    @apply shadow-sm transition-shadow hover:shadow-md;
+    @apply shadow-sm transition-shadow hover:shadow-md gap-xl;
     background-color: var(--color-surface);
     border: 1px solid var(--color-outline-std);
     border-radius: var(--radius-std);
+    display: flex;
+    flex-direction: column;
     padding: var(--space-xl);
   }
 
@@ -91,7 +93,7 @@
   /* ── Section Header ──────────────────────────────────────────────────────── */
   /* Use for: top of each card section — title + optional action button        */
   .ui-section-header {
-    @apply flex items-center justify-between mb-md;
+    @apply flex items-center justify-between;
   }
   .ui-section-title {
     @apply text-xl font-black tracking-tight;

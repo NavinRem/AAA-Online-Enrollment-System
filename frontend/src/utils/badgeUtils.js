@@ -52,19 +52,20 @@ const REGISTRIES = {
     'registered-today': 'magenta',
     new: 'green',
     full: 'red',
+    all: 'blue',
   },
 }
 
 const THEMES = {
-  green: { backgroundColor: 'var(--success-soft)', color: 'var(--success-color)' },
-  yellow: { backgroundColor: 'var(--warning-soft)', color: 'var(--warning-color)' },
-  orange: { backgroundColor: 'var(--orange-soft)', color: 'var(--orange-color)' },
-  red: { backgroundColor: 'var(--error-soft)', color: 'var(--error-color)' },
-  blue: { backgroundColor: 'var(--primary-soft)', color: 'var(--primary-color)' },
-  purple: { backgroundColor: 'var(--purple-soft)', color: 'var(--purple-color)' },
-  magenta: { backgroundColor: 'var(--magenta-soft)', color: 'var(--magenta-color)' },
-  teal: { backgroundColor: 'var(--teal-soft)', color: 'var(--teal-color)' },
-  gray: { backgroundColor: 'var(--gray-soft)', color: 'var(--gray-color)' },
+  green: { backgroundColor: 'var(--color-success-soft)', color: 'var(--color-success)' },
+  yellow: { backgroundColor: 'var(--color-warning-soft)', color: 'var(--color-warning)' },
+  orange: { backgroundColor: 'var(--color-orange-soft)', color: 'var(--color-orange)' },
+  red: { backgroundColor: 'var(--color-error-soft)', color: 'var(--color-error)' },
+  blue: { backgroundColor: 'var(--color-primary-soft)', color: 'var(--color-primary)' },
+  purple: { backgroundColor: 'var(--color-purple-soft)', color: 'var(--color-purple)' },
+  magenta: { backgroundColor: 'var(--color-magenta-soft)', color: 'var(--color-magenta)' },
+  teal: { backgroundColor: 'var(--color-teal-soft)', color: 'var(--color-teal)' },
+  gray: { backgroundColor: 'var(--color-gray-soft)', color: 'var(--color-gray)' },
 }
 
 const THEME_FILTERS = {
@@ -81,7 +82,7 @@ const THEME_FILTERS = {
   gray: 'invert(38%) sepia(10%) saturate(394%) hue-rotate(170deg) brightness(94%) contrast(89%)',
 }
 
-const resolveColor = (value, module = null) => {
+export const resolveColor = (value, module = null) => {
   if (!value) return 'gray'
   const key = String(value).toLowerCase().trim()
   if (module) return REGISTRIES[module]?.[key] ?? 'gray'
@@ -99,7 +100,6 @@ const getBadgeUI = (value, module = null) => ({
 const getBadgeTheme = (value, module = null) => getBadgeUI(value, module).theme
 const getBadgeFilter = (value, module = null) => getBadgeUI(value, module).filter
 
-// Aliases for compatibility
 export const getStatusUI = getBadgeUI
 export const getStatusTheme = getBadgeTheme
 export const getStatusFilter = getBadgeFilter

@@ -187,41 +187,42 @@ const enrollmentStats = computed(() => {
   const s = calculateTotalEnrollment(enrollments.value)
   return [
     {
-      label: 'Gross Enrollments',
+      label: 'Total Enrollment',
       value: s.total,
       image: getImageUrl('enrollment/total-enrollment'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
-      label: 'Authorized Assets',
+      label: 'Total Paid Enrollment',
       value: s.paidCount,
       image: getImageUrl('enrollment/total-paid-enrollment'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
-      label: 'Pending Accounts',
+      label: 'Total Unpaid Enrollment',
       value: s.unpaidCount,
       image: getImageUrl('enrollment/total-unpaid-enrollment'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
-      label: 'Voided Files',
+      label: 'Total Cancelled Enrollment',
       value: s.cancelledCount,
       image: getImageUrl('enrollment/total-canceled-enrollment'),
-      color: 'var(--danger-light)',
-    },
+      color: 'var(--color-primary-light)',
+    }
   ]
 })
 
 const enrollmentHeaders = [
-  { label: 'No', width: '50px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Participant Registry' },
-  { label: 'Program Model' },
-  { label: 'Logistics', width: '150px', class: 'hidden sm:table-cell' },
-  { label: 'Value', width: '100px', align: 'center' },
-  { label: 'Status', width: '120px', align: 'center' },
-  { label: 'Timeline', width: '150px', align: 'center', class: 'hidden lg:table-cell' },
-  { label: 'Action', width: '80px', align: 'center' },
+  { label: 'NO', width: '50px' },
+  { label: 'PARENT' },
+  { label: 'CHILD' },
+  { label: 'COURSE' },
+  { label: 'SESSION' },
+  { label: 'STATUS', width: '120px' },
+  { label: 'AMOUNT', width: '120px' },
+  { label: 'ENROLLED DATE', width: '200px' },
+  { label: 'ACTION', width: '50px' },
 ]
 
 const currentFilter = ref('all')
@@ -368,116 +369,112 @@ const handleRegisterStudent = async (formData) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Enrollment Registry Portal">
+    <DataPageLayout overviewTitle="Enrollment Overview">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in enrollmentStats" :key="stat.label" v-bind="stat" />
         </div>
       </template>
-
       <template #table>
-        <DataTable 
-          title="Active Enrollments" 
-          :headers="enrollmentHeaders" 
-          :items="paginatedEnrollments"
-          entityName="enrollment" 
-          :loading="loading" 
-          :hasPagination="true" 
-          :flexible="true"
-          :pageSize="pageSize" 
-          :totalItems="totalItems" 
-          v-model:currentPage="currentPage"
-          v-model:searchQuery="searchQuery" 
-          searchPlaceholder="Search by student, parent, or program model..." 
-          :hasFilter="true"
-          v-model:currentFilter="currentFilter" 
+        <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="paginatedEnrollments"
+          entityName="enrollment" :loading="loading" :hasPagination="true" :flexible="true" :pageSize="pageSize"
+          :totalItems="totalItems" v-model:currentPage="currentPage" v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search something..." :hasFilter="true" v-model:currentFilter="currentFilter"
           :filterOptions="[
-            { label: 'All Files', value: 'all' },
-            { label: 'Authorized', value: 'paid' },
-            { label: 'Pending', value: 'unpaid' },
-            { label: 'Voided', value: 'cancelled' },
-          ]" 
-          :rowClass="getRowClass" 
-          @action="handleTableAction" 
-          @row-click="(item) => $router.push(`/enrollments/${item.id}`)"
-        >
+            { label: 'All Enrollments', value: 'all' },
+            { label: 'Paid', value: 'paid' },
+            { label: 'Unpaid', value: 'unpaid' },
+            { label: 'Cancelled', value: 'cancelled' },
+          ]" :rowClass="getRowClass" @action="handleTableAction"
+          @row-click="(item) => $router.push(`/enrollments/${item.id}`)">
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="showModal = true">
+            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
+              @click="showModal = true">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-black tracking-tight">New Enrollment</span>
             </AppButton>
           </template>
 
-          <template #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
-            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell" :style="{ width: headers[0].width }">
+          <template
+            #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell"
+              :style="{ width: headers[0].width }">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
-            <td class="ui-cell min-w-[240px]" :style="{ flex: '1 1 0%' }">
-               <div class="flex flex-col gap-3">
-                  <div class="flex items-center gap-3 group/student cursor-pointer">
-                    <div class="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-primary/5 group-hover/student:ring-primary/20 transition-all duration-500">
-                      <img :src="item.student?.profileURL" class="w-full h-full object-cover" />
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="font-black text-content-dark group-hover/student:text-primary transition-colors tracking-tighter leading-tight">{{ item.student?.name }}</span>
-                      <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">Primary Learner</span>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-2 pl-2 opacity-60">
-                    <div class="w-5 h-5 rounded-lg overflow-hidden ring-1 ring-border">
-                      <img :src="item.parent?.profileURL" class="w-full h-full object-cover" />
-                    </div>
-                    <span class="text-[10px] font-bold text-content-muted leading-none">{{ item.parent?.name }}</span>
-                  </div>
-               </div>
-            </td>
-
-            <td class="ui-cell" :style="{ flex: '1 1 0%' }">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-white ring-1 ring-border p-1.5 shadow-sm overflow-hidden">
-                  <img :src="item.program?.profileURL" class="w-full h-full object-contain" />
+            <!-- Parent Column -->
+            <td class="ui-cell" :style="{ width: headers[1].width }">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar">
+                  <img :src="item.parent?.profileURL" alt="parent" />
                 </div>
-                <div class="flex flex-col overflow-hidden">
-                  <span class="font-black text-content-dark tracking-tighter truncate max-w-[140px] leading-tight">{{ item.class?.program?.name }}</span>
-                  <span class="text-[9px] font-black text-primary uppercase tracking-widest mt-0.5">{{ item.enrollmentType || 'Standard' }} Term</span>
+                <div class="ui-identity-info">
+                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.parent?.name }}</span>
                 </div>
               </div>
             </td>
 
-            <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[3].width }">
+            <!-- Child Column -->
+            <td class="ui-cell" :style="{ width: headers[2].width }">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar">
+                  <img :src="item.student?.profileURL" alt="child" />
+                </div>
+                <div class="ui-identity-info">
+                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.student?.name }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Course Column -->
+            <td class="ui-cell" :style="{ width: headers[3].width }">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar">
+                  <img :src="item.program?.profileURL" :alt="item.program?.name" />
+                </div>
+                <div class="ui-identity-info">
+                  <span class="text-sm font-bold text-content-dark truncate block">{{
+                    item.class?.program?.name }}</span>
+                  <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{
+                    item.enrollmentType || 'Standard' }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Session Column -->
+            <td class="ui-cell" :style="{ width: headers[4].width }">
               <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col">
-                <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{ getSessionDay(item.classSchedule, true) }}</span>
-                <span class="text-[10px] font-black text-content-muted uppercase tracking-widest mt-1">{{ getSessionTime(item.classSchedule) }}</span>
-                <div class="flex items-center gap-1 mt-1.5">
-                   <div class="w-1 h-1 rounded-full bg-blue-400"></div>
-                   <span class="text-[8px] font-black text-blue-500 uppercase tracking-widest">{{ item.branchAbbr || 'HQ' }} Campus</span>
-                </div>
+                <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{
+                  getSessionDay(item.classSchedule, true) }}</span>
+                <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">{{
+                  getSessionTime(item.classSchedule) }}</span>
               </div>
-              <span v-else class="text-[10px] font-black uppercase text-content-muted/30 tracking-widest italic">Pending</span>
+              <span v-else class="text-[10px] font-black uppercase text-content-muted/30 tracking-widest">Pending</span>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[4].width }">
-               <div class="inline-flex flex-col items-center px-3 py-1.5 rounded-xl bg-surface-subtle border border-black/5">
-                  <span class="text-sm font-black text-content-dark tabular-nums tracking-tighter">${{ formatPrice(item.amount || 0) }}</span>
-                  <span class="text-[8px] font-black text-content-muted/60 uppercase tracking-widest">Fee Payload</span>
-               </div>
-            </td>
-
+            <!-- Status Column -->
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <AppBadge :status="item.status || item.paymentStatus || 'Unpaid'" />
             </td>
 
-            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[6].width }">
-              <div class="flex flex-col items-center">
-                 <span class="text-[11px] font-black text-content-dark tabular-nums tracking-tight">{{ formatDate(item.enrollAt) }}</span>
-                 <span class="text-[8px] font-black text-content-muted uppercase tracking-widest mt-1">Registry Stamp</span>
-              </div>
+            <!-- Amount Column -->
+            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+              <AppBadge :status="'$' + formatPrice(item.amount || 0)"
+                :type="(item.paymentMode || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'" />
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+            <!-- Date Column -->
+            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[7].width }">
+              <span class="text-xs font-bold text-content-muted truncate block">{{
+                formatDate(item.enrollAt) }}</span>
+            </td>
+
+            <!-- Action Column -->
+            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
               <div class="ui-action-menu">
-                <button class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark" @click.stop="toggleMenu($event, item.id)">
+                <button
+                  class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
+                  @click.stop="toggleMenu($event, item.id)">
                   <span class="font-black text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
@@ -488,20 +485,29 @@ const handleRegisterStudent = async (formData) => {
                     <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
-                      <button v-if="item.status !== 'confirmed' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-info group" @click="() => { handleAction('edit', item); closeMenu(); }">
+                      <button
+                        v-if="item.status !== 'confirmed' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'"
+                        class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="() => { handleAction('edit', item); closeMenu(); }">
                         <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         <span class="font-bold">Edit Details</span>
                       </button>
-                      <button v-if="item.status !== 'confirmed' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-success group" @click="() => { handleAction('pay', item); closeMenu(); }">
+                      <button
+                        v-if="item.status !== 'confirmed' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'"
+                        class="ui-dropdown-item ui-dropdown-item-success group"
+                        @click="() => { handleAction('pay', item); closeMenu(); }">
                         <img :src="getActionIcon('pay')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         <span class="font-bold">Process Payment</span>
                       </button>
-                      <button v-if="item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-danger group" @click="() => { handleAction('cancel', item); closeMenu(); }">
+                      <button v-if="item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-danger group"
+                        @click="() => { handleAction('cancel', item); closeMenu(); }">
                         <img :src="getActionIcon('cancel')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         <span class="font-bold">Void Enrollment</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black uppercase tracking-tighter" @click="() => { handleAction('delete', item); closeMenu(); }">
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-black uppercase tracking-tighter"
+                        @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Purge Record
                       </button>
@@ -515,45 +521,20 @@ const handleRegisterStudent = async (formData) => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentFormModal 
-      ref="enrollmentForm" 
-      :isOpen="showModal" 
-      :loading="submitting" 
-      :parents="parents"
-      :students="students" 
-      :programs="programs" 
-      :classes="classes" 
-      :enrollments="enrollments"
-      :enrollment="selectedEnrollment" 
-      :error="errorMessage" 
-      :success="successMessage" 
-      :hint="validationHint" 
-      @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }" 
-      @program-change="handleProgramChange" 
-      @submit="handleSaveEnrollment" 
-      @hint="setValidationHint"
-      @register-student="handleOpenRegisterStudent" 
-    />
+    <EnrollmentFormModal ref="enrollmentForm" :isOpen="showModal" :loading="submitting" :parents="parents"
+      :students="students" :programs="programs" :classes="classes" :enrollments="enrollments"
+      :enrollment="selectedEnrollment" :error="errorMessage" :success="successMessage" :hint="validationHint"
+      @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; validationHint = ''; }"
+      @program-change="handleProgramChange" @submit="handleSaveEnrollment" @hint="setValidationHint"
+      @register-student="handleOpenRegisterStudent" />
 
-    <ParentActionModal 
-      :isOpen="childRegistrationModal.isOpen" 
-      type="plus" 
-      :user="childRegistrationModal.parent"
-      :selectableParents="parents" 
-      :loading="childRegistrationModal.loading" 
-      :error="childRegistrationModal.error"
-      :success="childRegistrationModal.success" 
-      @close="() => { childRegistrationModal.isOpen = false; childRegistrationModal.error = ''; childRegistrationModal.success = ''; }" 
-      @submit="handleRegisterStudent" 
-    />
+    <ParentActionModal :isOpen="childRegistrationModal.isOpen" type="plus" :user="childRegistrationModal.parent"
+      :selectableParents="parents" :loading="childRegistrationModal.loading" :error="childRegistrationModal.error"
+      :success="childRegistrationModal.success"
+      @close="() => { childRegistrationModal.isOpen = false; childRegistrationModal.error = ''; childRegistrationModal.success = ''; }"
+      @submit="handleRegisterStudent" />
 
-    <EnrollmentActionModal 
-      v-bind="actionState" 
-      :loading="submitting" 
-      v-model:error="errorMessage"
-      v-model:success="successMessage" 
-      @close="closeActionModal" 
-      @submit="submitActionModal" 
-    />
+    <EnrollmentActionModal v-bind="actionState" :loading="submitting" v-model:error="errorMessage"
+      v-model:success="successMessage" @close="closeActionModal" @submit="submitActionModal" />
   </DashboardLayout>
 </template>

@@ -20,8 +20,7 @@ defineEmits(['update:modelValue'])
 </script>
 
 <template>
-  <div class="relative flex items-center w-full transition-all group"
-    :class="[variant === 'light' ? 'max-w-[300px]' : 'max-w-[400px]']">
+  <div class="relative flex items-center w-full transition-all group">
     <img :src="getActionIcon('search')"
       class="absolute left-md w-4.5 h-4.5 z-10 pointer-events-none transition-opacity duration-200"
       :class="variant === 'light' ? 'opacity-60 invert brightness-0' : 'opacity-40'" />

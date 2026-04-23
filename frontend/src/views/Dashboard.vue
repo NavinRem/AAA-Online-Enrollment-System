@@ -228,7 +228,7 @@ const mappedEnrollments = computed(() => {
     </div>
     <div v-else class="flex flex-col lg:flex-row gap-xl px-xl w-full h-[calc(100vh-100px)] overflow-hidden">
       <div class="flex flex-col flex-1 min-w-0 h-full gap-lg overflow-y-auto pr-md scrollable-v">
-        <section class="ui-detail-card !p-lg">
+        <section class="ui-detail-card">
           <div class="ui-section-header border-none flex items-center gap-md">
             <h2 class="ui-section-title whitespace-nowrap">Today Summary</h2>
             <div class="ui-section-divider"></div>
@@ -236,7 +236,7 @@ const mappedEnrollments = computed(() => {
           <DataMetrics :stats="todayStats" />
         </section>
 
-        <section class="ui-detail-card !p-lg">
+        <section class="ui-detail-card">
           <div class="ui-section-header border-none flex items-center gap-md">
             <h2 class="ui-section-title whitespace-nowrap">This Week</h2>
             <div class="ui-section-divider"></div>
