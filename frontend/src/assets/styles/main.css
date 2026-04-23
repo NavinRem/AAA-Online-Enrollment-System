@@ -1,95 +1,106 @@
-/* ==========================================================================
-   MODULAR COMPONENT IMPORTS (Must be at top)
-   ========================================================================== */
+@tailwind base;
+@tailwind components;
 
+/* ==========================================================================
+   COMPONENT CSS IMPORTS
+   These files define reusable component classes (.btn-*, .card-*, .table-*)
+   These are imported after base/components to enable @apply support.
+   ========================================================================== */
 @import './tables.css';
 @import './cards.css';
 @import './buttons.css';
 
-@tailwind base;
-@tailwind components;
 @tailwind utilities;
 
 /* ==========================================================================
-   DESIGN TOKENS & CSS VARIABLES
+   CSS VARIABLES — DESIGN TOKENS
+   --------------------------------------------------------------------------
+   PURPOSE:
+     These are the raw values behind every design decision.
+     Use these variables ONLY when you need plain CSS (e.g. inside a
+     <style> block in a .vue file, or in a third-party override).
+
+     For Tailwind class usage, use tailwind.config.js tokens instead:
+       bg-primary        instead of  background: var(--color-primary)
+       text-content-dark instead of  color: var(--color-content-dark)
+       p-md              instead of  padding: var(--space-md)
+
+   NAMING CONVENTION:
+     --color-{name}      → all color values
+     --space-{name}      → all spacing values
+     --radius-{name}     → all border radius values
+     --text-{name}       → all font size values
+     --shadow-{name}     → all box shadow values
+     --z-{name}          → all z-index values
+     --font-{name}       → all font family values
    ========================================================================== */
 
 :root {
-  /* Brand Colors */
-  --primary-color: #00aeef;
-  --primary-hover: #0096d1;
-  --secondary-color: #64748b;
+  /* ── BRAND COLORS ──────────────────────────────────────────────────────── */
+  --color-primary: #38bdf8; /* sky-400  — main brand blue            */
+  --color-primary-dark: #0ea5e9; /* sky-500  — hover / darker blue        */
+  --color-primary-soft: #f0f9ff; /* sky-50   — light blue tint background */
+  --color-primary-light: #e0f2fe; /* sky-100  — pale blue tint             */
+  --color-primary-deep: #0284c7; /* sky-600  — strong border / pressed    */
 
-  /* Status Colors */
-  --success-color: #10b981;
-  --error-color: #ef4444;
-  --warning-color: #f59e0b;
-  --info-color: #3b82f6;
-  --orange-color: #e65100;
+  /* ── STATUS COLORS ─────────────────────────────────────────────────────── */
+  --color-success: #10b981; /* emerald-500 — success green           */
+  --color-success-soft: #ecfdf5; /* emerald-50  — success background      */
+  --color-success-deep: #064e3b; /* emerald-900 — strong success text     */
 
-  /* Layout & Surfaces */
-  --bg-light: #f2f4f7;
-  --bg-subtle: #f8fafc;
-  --accent-light: #e1f5fe;
-  --white: #ffffff;
-  --border-color: #e2e8f0;
+  --color-error: #ef4444; /* red-500  — error red                  */
+  --color-error-soft: #fef2f2; /* red-50   — error background           */
+  --color-error-deep: #b91c1c; /* red-700  — strong error text          */
 
-  /* Neutrals */
-  --text-dark: #1e293b;
-  --text-muted: #64748b;
-  --text-deep: #1a1a1a;
-  --text-light: #94a3b8;
+  --color-warning: #fbbf24; /* amber-400 — warning amber             */
+  --color-warning-soft: #fff7ed; /* orange-50 — warning background        */
+  --color-warning-deep: #78350f; /* amber-900 — strong warning text       */
 
-  /* UI Accents (Extended) */
-  --primary-soft: #f0f9ff;
-  --primary-light: #e0f2fe;
-  --success-soft: #f0fdf4;
-  --error-soft: #fef2f2;
-  --warning-soft: #fff7ed;
-  --reset-soft: #f9ebff;
-  --info-soft: #f0f9ff;
-  --orange-soft: #fff3e0;
+  --color-info: #3b82f6; /* blue-500 — info blue                  */
+  --color-info-soft: #eff6ff; /* blue-50  — info background            */
+  --color-info-deep: #0284c7; /* blue-600 — strong info text           */
 
-  --magenta-color: #c2185b;
-  --magenta-soft: #fce4ec;
-  --magenta-deep: #9d174d;
-  --purple-color: #6a1b9a;
-  --purple-soft: #f3e5f5;
-  --purple-deep: #6b21a8;
-  --teal-color: #0f766e;
-  --teal-soft: #ccfbf1;
-  --gray-color: #5f6368;
-  --gray-soft: #f1f3f4;
+  /* ── EXTENDED COLORS ───────────────────────────────────────────────────── */
+  --color-orange: #c2410c; /* orange-700                            */
+  --color-orange-soft: #fff7ed; /* orange-50                             */
+  --color-orange-deep: #7c2d12; /* orange-900                            */
 
-  /* Specific Shades */
-  --primary-deep: #0084bf;
-  --error-deep: #b91c1c;
-  --success-deep: #065f46;
-  --warning-deep: #92400e;
-  --info-deep: #0284c7;
+  --color-magenta: #be185d; /* pink-700                              */
+  --color-magenta-soft: #fce7f3; /* pink-100                              */
+  --color-magenta-deep: #831843; /* pink-900                              */
 
-  /* Shared Defaults */
-  --border-radius: 12px;
-  --border-radius-sm: 8px;
-  --border-radius-md: 16px;
-  --border-radius-lg: 24px;
-  --border-radius-xl: 32px;
-  --border-radius-2xl: 48px;
-  --border-radius-round: 50%;
+  --color-purple: #7e22ce; /* purple-700                            */
+  --color-purple-soft: #faf5ff; /* purple-50                             */
+  --color-purple-deep: #581c87; /* purple-900                            */
 
-  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --color-teal: #0f766e; /* teal-700                              */
+  --color-teal-soft: #ccfbf1; /* teal-100                              */
+  --color-teal-deep: #115e59; /* teal-800                              */
 
-  /* Spacing Scale (Standardized 4px base) */
-  --space-5xs: 0.5px;
-  --space-4xs: 1px;
+  --color-gray: #64748b; /* slate-500                             */
+  --color-gray-soft: #f1f5f9; /* slate-100                             */
+  --color-gray-deep: #475569; /* slate-600                             */
+
+  /* ── SURFACE COLORS (backgrounds) ─────────────────────────────────────── */
+  --color-surface: #ffffff; /* white      — cards, modals, inputs    */
+  --color-surface-subtle: #f8fafc; /* slate-50   — section backgrounds      */
+  --color-surface-light: #f1f5f9; /* slate-100  — page background          */
+
+  /* ── CONTENT COLORS (text) ─────────────────────────────────────────────── */
+  --color-content-deep: #0f172a; /* slate-900 — headings (darkest)        */
+  --color-content-dark: #1e293b; /* slate-800 — body text (default)       */
+  --color-content-muted: #64748b; /* slate-500 — labels, helper text       */
+  --color-content-light: #94a3b8; /* slate-400 — placeholders, disabled    */
+
+  /* ── BORDER COLOR ───────────────────────────────────────────────────────── */
+  --color-outline-std: #e2e8f0; /* slate-200 — default borders           */
+
+  /* ── SPACING ────────────────────────────────────────────────────────────── */
   --space-3xs: 2px;
   --space-2xs: 4px;
   --space-xs: 8px;
   --space-sm: 12px;
-  --space-md: 16px;
+  --space-md: 16px; /* standard — most used                              */
   --space-lg: 20px;
   --space-xl: 24px;
   --space-2xl: 32px;
@@ -97,28 +108,53 @@
   --space-4xl: 48px;
   --space-5xl: 64px;
 
-  /* Typography Scale (Semantic) */
-  --text-3xs: 0.65rem;
-  --text-2xs: 0.7rem;
-  --text-xs: 0.75rem;
-  --text-sm: 0.85rem;
-  --text-base: 0.95rem;
-  --text-lg: 1.1rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.8rem;
-  --text-4xl: 2.2rem;
+  /* ── BORDER RADIUS ──────────────────────────────────────────────────────── */
+  --radius-sm: 8px; /* inputs, small buttons, tags                       */
+  --radius-std: 12px; /* cards, modals (default)                           */
+  --radius-md: 16px; /* large cards                                       */
+  --radius-lg: 24px; /* panels                                            */
+  --radius-xl: 32px; /* hero sections                                     */
+  --radius-2xl: 48px; /* pill shapes                                       */
+  --radius-full: 9999px; /* avatars, circular buttons                         */
 
-  /* Z-index layers */
-  --z-sidebar: 1000;
-  --z-topbar: 500;
-  --z-modal: 2000;
-  --z-dropdown: 3000;
-  --z-sticky-header: 100;
+  /* ── FONT SIZE ──────────────────────────────────────────────────────────── */
+  --text-3xs: 0.65rem; /* tiny badge labels                                 */
+  --text-2xs: 0.7rem; /* micro labels                                      */
+  --text-xs: 0.75rem; /* table headers, tags                               */
+  --text-sm: 0.85rem; /* form labels, captions, helper text                */
+  --text-base: 0.95rem; /* body text (default)                               */
+  --text-lg: 1.1rem; /* card titles, subheadings                          */
+  --text-xl: 1.25rem; /* section titles                                    */
+  --text-2xl: 1.5rem; /* page subtitles                                    */
+  --text-3xl: 1.8rem; /* page titles                                       */
+  --text-4xl: 2.2rem; /* hero headings                                     */
+
+  /* ── SHADOWS ────────────────────────────────────────────────────────────── */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08); /* card lift             */
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1); /* dropdown, tooltip     */
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1); /* modal, floating panel */
+
+  /* ── Z-INDEX ─────────────────────────────────────────────────────────────── */
+  --z-sticky-header: 100; /* sticky table/list headers                      */
+  --z-topbar: 500; /* top navigation bar                             */
+  --z-sidebar: 1000; /* side navigation drawer                         */
+  --z-modal: 2000; /* modals and dialogs                             */
+  --z-dropdown: 3000; /* dropdowns, tooltips (always on top)            */
+
+  /* ── FONT FAMILY ─────────────────────────────────────────────────────────── */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* ── LINE HEIGHT ─────────────────────────────────────────────────────────── */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-loose: 1.75;
 }
 
 /* ==========================================================================
-   RESET & BASE
+   BASE RESET
+   --------------------------------------------------------------------------
+   Global defaults applied to every element.
+   Do not add component-specific styles here.
    ========================================================================== */
 
 * {
@@ -128,14 +164,14 @@
 }
 
 body {
-  font-family: var(--font-family);
-  background-color: var(--bg-light);
-  color: var(--text-dark);
+  font-family: var(--font-sans);
+  line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
-  line-height: 1.5;
+  -moz-osx-font-smoothing: grayscale;
+  @apply bg-surface-light text-content-dark;
 }
 
-/* Ensure all interactive & form elements inherit the project font */
+/* All form and interactive elements inherit the project font */
 button,
 input,
 select,
@@ -150,14 +186,27 @@ td {
   font-size: inherit;
 }
 
-h1,
-h2,
-h3,
+/* Default heading styles */
+h1 {
+  @apply text-4xl font-bold text-content-deep;
+}
+h2 {
+  @apply text-3xl font-bold text-content-deep;
+}
+h3 {
+  @apply text-2xl font-bold text-content-deep;
+}
 h4 {
-  font-weight: 700;
-  color: var(--text-dark);
+  @apply text-xl  font-bold text-content-deep;
+}
+h5 {
+  @apply text-lg  font-semibold text-content-dark;
+}
+h6 {
+  @apply text-base font-semibold text-content-dark;
 }
 
+/* Images never overflow their container */
 img,
 svg {
   max-width: 100%;
@@ -165,72 +214,48 @@ svg {
   vertical-align: middle;
 }
 
-.text-muted {
-  color: var(--text-muted);
-}
-
-.original-value {
-  display: block;
-  font-size: var(--text-3xs);
-  color: var(--text-muted);
-  margin-top: 2px;
-  margin-bottom: 2px;
-  font-weight: 400;
-  font-style: italic;
-  opacity: 0.8;
-}
-
 /* ==========================================================================
-   GLOBAL UTILITIES & OVERRIDES (@layer utilities)
+   GLOBAL UTILITY CLASSES
+   --------------------------------------------------------------------------
+   RULE: Only scrollbar behavior and keyframe animations go here.
+         These cannot be expressed as Tailwind tokens in tailwind.config.js.
+         Everything else (colors, spacing, radius, shadows) belongs in
+         tailwind.config.js and should be used as Tailwind classes directly.
    ========================================================================== */
 
 @layer utilities {
-  /* Scrollable Patterns */
+  /* ── Vertical scrollbar (styled thin) ───────────────────────────────────── */
   .scrollable-v {
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: var(--border-color) transparent;
+    scrollbar-color: var(--color-outline-std) transparent;
   }
-
   .scrollable-v::-webkit-scrollbar {
     width: 6px;
   }
-
   .scrollable-v::-webkit-scrollbar-track {
     background: transparent;
   }
-
   .scrollable-v::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 10px;
+    background-color: var(--color-outline-std);
+    border-radius: var(--radius-full);
   }
-
   .scrollable-v::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background-color: var(--color-content-muted);
   }
 
-  /* Custom UI Utilities */
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
-  }
-
+  /* ── Hidden scrollbar ────────────────────────────────────────────────────── */
   .scrollbar-none {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-
-  /* Validation & Interaction Visuals */
-  .button-disabled-visual {
-    @apply opacity-50 cursor-not-allowed;
-    filter: grayscale(0.2);
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 
-  /* --- Validation Animations --- */
+  /* ── Shake animation (for invalid form fields) ───────────────────────────── */
   .animate-shake {
     animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-    transform: translate3d(0, 0, 0);
-    backface-visibility: hidden;
-    perspective: 1000px;
   }
 
   @keyframes shake {
@@ -253,36 +278,19 @@ svg {
     }
   }
 
-  /* --- Standardized Field Error State --- */
-  .ui-input-invalid {
-    @apply border-error !important;
-    background-color: var(--error-soft) !important;
+  /* ── Fade in animation ───────────────────────────────────────────────────── */
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-in-out both;
   }
 
-  .ui-input-invalid-ring {
-    @apply ring-4 ring-error/10 !important;
-  }
-
-  /* --- Administrative Field Patterns --- */
-  .ui-remark-textarea {
-    @apply w-full px-md py-sm border-2 rounded-sm bg-white text-sm outline-none transition-all focus:border-primary focus:ring-[3px] focus:ring-info-soft disabled:bg-surface-light disabled:cursor-not-allowed disabled:opacity-70;
-  }
-
-  .ui-remark-textarea.border-error {
-    border-color: var(--error-color);
-    background-color: var(--error-soft);
-    box-shadow: 0 0 0 3px rgb(239 68 68 / 0.1);
-  }
-
-  .ui-preset-bar {
-    @apply flex flex-wrap gap-xs mt-sm bg-surface-light p-2 rounded-sm border border-outline-std/20;
-  }
-
-  .ui-preset-btn {
-    @apply px-[14px] py-[6px] bg-white border-[1.5px] border-outline-std/50 rounded-[6px] text-xs cursor-pointer font-semibold transition-all hover:bg-primary-soft hover:text-primary hover:border-primary/20;
-  }
-
-  .ui-preset-btn-active {
-    @apply bg-primary text-white border-primary-dark shadow-md scale-105;
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

@@ -11,7 +11,7 @@ const handleImageError = (e) => {
 </script>
 
 <template>
-  <div class="summary-card-root">
+  <div class="summary-card-root group">
     <div class="flex flex-col items-center justify-between h-full w-full gap-xs">
       <h3 class="summary-title">
         {{ title }}
@@ -27,23 +27,19 @@ const handleImageError = (e) => {
 </template>
 <style scoped>
 .summary-card-root {
-  @apply rounded-std p-md sm:p-lg flex flex-col items-center text-center shadow-sm border border-outline-std bg-[var(--accent-light)];
-}
-
-.summary-card-root:hover {
-  @apply -translate-y-1;
+  @apply rounded-std p-6 flex flex-col items-center text-center shadow-sm border border-primary/5 transition-all hover:shadow-md bg-[var(--accent-light)];
 }
 
 .summary-title {
-  @apply text-2xs sm:text-xs font-black text-content-muted tracking-widest uppercase mb-1;
+  @apply text-[10px] font-bold text-primary tracking-[0.1em] uppercase mb-1 opacity-80;
 }
 
 .summary-image-box {
-  @apply w-full h-[60px] sm:h-[85px] flex items-center justify-center my-1 sm:my-2 overflow-hidden;
+  @apply w-full h-[70px] sm:h-[90px] flex items-center justify-center my-1 overflow-hidden;
 }
 
 .summary-image {
-  @apply w-[80px] h-[80px] object-contain transition-transform duration-500;
+  @apply h-full object-contain transition-transform duration-700;
 }
 
 .group:hover .summary-image {
@@ -51,6 +47,6 @@ const handleImageError = (e) => {
 }
 
 .summary-value {
-  @apply text-2xl sm:text-3xl font-black text-content-dark tracking-tighter;
+  @apply text-3xl sm:text-4xl font-black text-content-dark tracking-tighter tabular-nums leading-none;
 }
 </style>

@@ -61,7 +61,7 @@ const handleSubmit = async () => {
         throw new Error('User profile not found or role missing.')
       }
 
-      message.value = `Welcome back, ${profile.name}! Redirecting...`
+      message.value = `Welcome back! Redirecting...`
 
       setTimeout(() => {
         router.push('/dashboard')
@@ -114,7 +114,7 @@ const handleSubmit = async () => {
             </div>
 
             <AppButton :loading="loading" :disabled="loading" type="submit" variant="primary"
-              class="w-full mt-4 py-4 rounded-xl text-base font-black shadow-xl shadow-primary/20">
+              class="w-full mt-4 py-4 ui-btn-premium">
               {{ isResetMode ? 'Send Recovery Link' : 'Sign In' }}
             </AppButton>
           </form>
@@ -139,19 +139,23 @@ const handleSubmit = async () => {
 
 <style scoped>
 .auth-page {
-  @apply flex min-h-screen w-full bg-surface-subtle overflow-hidden;
+  @apply flex min-h-screen w-full overflow-hidden;
+  background-color: var(--color-surface-light);
 }
 
 .auth-banner {
-  @apply hidden lg:flex flex-[1.4] bg-[url('@/assets/images/backgrounds/blue-bg-school.jpg')] bg-[80%_center] bg-cover bg-no-repeat relative border-r border-black/5;
+  @apply hidden lg:flex flex-[1.4] bg-[url('@/assets/images/backgrounds/blue-bg-school.jpg')] bg-[80%_center] bg-cover bg-no-repeat relative;
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .auth-banner::after {
-  @apply content-[''] absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent;
+  @apply content-[''] absolute inset-0;
+  background: linear-gradient(to bottom right, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.05), transparent);
 }
 
 .auth-overlay {
-  @apply absolute inset-0 bg-black/10;
+  @apply absolute inset-0;
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .auth-content {
@@ -159,7 +163,10 @@ const handleSubmit = async () => {
 }
 
 .auth-card {
-  @apply w-full max-w-md bg-white/80 backdrop-blur-xl p-10 px-8 border border-white/40 rounded-3xl text-center transition-all duration-500;
+  @apply w-full max-w-md backdrop-blur-xl p-10 px-8 rounded-3xl text-center transition-all duration-500;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--color-outline-std);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 .auth-logo-box {
@@ -171,11 +178,13 @@ const handleSubmit = async () => {
 }
 
 .auth-title {
-  @apply text-3xl font-black mb-2 text-content-dark tracking-tight;
+  @apply text-3xl font-black mb-2 tracking-tight;
+  color: var(--color-content-deep);
 }
 
 .auth-subtitle {
-  @apply text-sm font-medium text-content-muted mb-10 block;
+  @apply text-sm font-medium mb-10 block;
+  color: var(--color-content-muted);
 }
 
 .auth-form {
@@ -187,15 +196,24 @@ const handleSubmit = async () => {
 }
 
 .auth-divider-line {
-  @apply h-px flex-grow bg-content-muted opacity-10;
+  @apply h-px flex-grow;
+  background-color: var(--color-outline-std);
 }
 
 .auth-divider-hint {
-  @apply text-[10px] font-black text-content-muted/40 uppercase tracking-[0.2em] whitespace-nowrap;
+  @apply text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap;
+  color: var(--color-content-muted);
+  opacity: 0.5;
 }
 
 .auth-footer-link {
-  @apply text-sm font-bold text-primary hover:text-primary-deep transition-all duration-300 decoration-primary/20 hover:underline underline-offset-4;
+  @apply text-sm font-bold transition-all duration-300 underline-offset-4;
+  color: var(--color-primary);
+}
+
+.auth-footer-link:hover {
+  @apply underline;
+  color: var(--color-primary-dark);
 }
 
 .auth-alert {
@@ -203,11 +221,15 @@ const handleSubmit = async () => {
 }
 
 .auth-alert-error {
-  @apply bg-error-soft/50 text-error border border-error/10;
+  background-color: var(--color-error-soft);
+  color: var(--color-error-deep);
+  border: 1px solid rgba(239, 68, 68, 0.1);
 }
 
 .auth-alert-success {
-  @apply bg-success-soft/50 text-success border border-success/10;
+  background-color: var(--color-success-soft);
+  color: var(--color-success-deep);
+  border: 1px solid rgba(16, 185, 129, 0.1);
 }
 
 /* Animations */

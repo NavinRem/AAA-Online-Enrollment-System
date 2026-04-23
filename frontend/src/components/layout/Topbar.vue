@@ -77,7 +77,7 @@ onMounted(() => {
           <span class="font-extrabold text-xs text-content-dark leading-tight">{{ userName }}</span>
           <span class="text-2xs font-bold text-content-muted uppercase tracking-wider">{{
             userRole
-          }}</span>
+            }}</span>
         </div>
         <div class="topbar-user-avatar">
           <img :src="avatarUrl" alt="Profile" class="w-full h-full object-cover" />

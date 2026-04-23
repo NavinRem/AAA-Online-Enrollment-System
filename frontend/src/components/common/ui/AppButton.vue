@@ -86,18 +86,18 @@ defineEmits(['click'])
 
 <style scoped>
 .rounded-std {
-  border-radius: var(--radius-std, 10px);
+  border-radius: var(--radius-std);
 }
 
 .bg-primary {
-  background-color: var(--primary-color);
+  background-color: var(--color-primary);
 }
 
 .bg-primary-dark {
-  background-color: var(--primary-dark);
+  background-color: var(--color-primary-dark);
 }
 
 .text-primary {
-  color: var(--primary, #0055ff);
+  color: var(--color-primary);
 }
 </style>

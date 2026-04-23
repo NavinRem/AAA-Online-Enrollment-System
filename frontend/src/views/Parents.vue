@@ -279,34 +279,21 @@ const navigateToDetail = (item) => {
       </template>
 
       <template #table>
-        <DataTable 
-          title="Registered Parents" 
-          :headers="parentHeaders" 
-          :items="paginatedParents" 
-          :loading="loading"
-          entityName="parent" 
-          :flexible="true" 
-          v-model:searchQuery="searchQuery" 
-          searchPlaceholder="Search by name, email or phone..."
-          :hasFilter="true" 
-          v-model:currentFilter="currentFilter" 
+        <DataTable title="Registered Parents" :headers="parentHeaders" :items="paginatedParents" :loading="loading"
+          entityName="parent" :flexible="true" v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search by name, email or phone..." :hasFilter="true" v-model:currentFilter="currentFilter"
           :filterOptions="[
             { label: 'All Parents', value: 'all' },
             { label: 'Recently Joined', value: 'registered-today' },
             { label: 'Paid Accounts', value: 'paid-today' },
             { label: 'Active Only', value: 'active' },
             { label: 'Inactive Only', value: 'inactive' },
-          ]" 
-          :rowClass="getRowClass" 
-          :hasPagination="true" 
-          :totalItems="totalItems" 
-          :pageSize="pageSize"
-          v-model:currentPage="currentPage" 
-          @row-click="navigateToDetail"
-          @action="({ type, item }) => openActionModal(type, item)"
-        >
+          ]" :rowClass="getRowClass" :hasPagination="true" :totalItems="totalItems" :pageSize="pageSize"
+          v-model:currentPage="currentPage" @row-click="navigateToDetail"
+          @action="({ type, item }) => openActionModal(type, item)">
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="showNewParentModal = true">
+            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
+              @click="showNewParentModal = true">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-black tracking-tight">Onboard Parent</span>
             </AppButton>
@@ -331,12 +318,16 @@ const navigateToDetail = (item) => {
             <!-- Identity -->
             <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
               <div class="flex items-center gap-4 group cursor-pointer">
-                <div class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm">
+                <div
+                  class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm">
                   <img :src="item.profileURL" alt="avatar" class="w-full h-full object-cover" />
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tight text-base leading-tight">{{ item.name }}</span>
-                  <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.id.slice(-6) }}</span>
+                  <span
+                    class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tight text-base leading-tight">{{
+                    item.name }}</span>
+                  <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.id.slice(-6)
+                    }}</span>
                 </div>
               </div>
             </td>
@@ -345,35 +336,34 @@ const navigateToDetail = (item) => {
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex -space-x-2">
                 <template v-if="item.childrenInfo?.length">
-                  <div 
-                    v-for="(child, i) in item.childrenInfo.slice(0, 3)" 
-                    :key="child.id || i"
-                    class="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm hover:z-10 transition-transform hover:scale-110" 
-                    :title="child.name"
-                  >
+                  <div v-for="(child, i) in item.childrenInfo.slice(0, 3)" :key="child.id || i"
+                    class="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm hover:z-10 transition-transform hover:scale-110"
+                    :title="child.name">
                     <img :src="child.profileURL" alt="child" class="w-full h-full object-cover" />
                   </div>
-                  <div v-if="item.childrenInfo.length > 3" class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-[10px] font-black text-content-muted">
+                  <div v-if="item.childrenInfo.length > 3"
+                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-[10px] font-black text-content-muted">
                     +{{ item.childrenInfo.length - 3 }}
                   </div>
                 </template>
-                <span v-else class="text-[10px] font-bold text-content-muted/30 uppercase italic tracking-widest">No Children</span>
+                <span v-else class="text-[10px] font-bold text-content-muted/30 uppercase italic tracking-widest">No
+                  Children</span>
               </div>
             </td>
 
             <!-- Contact Details -->
             <td class="ui-cell hidden md:table-cell">
-               <div class="flex flex-col">
-                  <span class="text-xs font-black text-content-dark tracking-tighter">{{ item.phone }}</span>
-                  <span class="text-[10px] font-bold text-content-muted/60 uppercase">Phone</span>
-               </div>
+              <div class="flex flex-col">
+                <span class="text-xs font-black text-content-dark tracking-tighter">{{ item.phone }}</span>
+                <span class="text-[10px] font-bold text-content-muted/60 uppercase">Phone</span>
+              </div>
             </td>
-            
+
             <td class="ui-cell hidden lg:table-cell">
-               <div class="flex flex-col max-w-[160px]">
-                  <span class="text-xs font-bold text-content-dark truncate">{{ item.email }}</span>
-                  <span class="text-[10px] font-bold text-content-muted/60 uppercase">Email</span>
-               </div>
+              <div class="flex flex-col max-w-[160px]">
+                <span class="text-xs font-bold text-content-dark truncate">{{ item.email }}</span>
+                <span class="text-[10px] font-bold text-content-muted/60 uppercase">Email</span>
+              </div>
             </td>
 
             <!-- Joined -->
@@ -391,7 +381,8 @@ const navigateToDetail = (item) => {
             <!-- Actions -->
             <td class="ui-cell text-center">
               <div class="relative">
-                <button @click.stop="toggleMenu($event, item.id)" class="p-2 hover:bg-surface-subtle rounded-lg transition-colors group">
+                <button @click.stop="toggleMenu($event, item.id)"
+                  class="p-2 hover:bg-surface-subtle rounded-lg transition-colors group">
                   <span class="font-black text-content-muted group-hover:text-primary">⋮</span>
                 </button>
                 <Teleport to="body">
@@ -404,38 +395,48 @@ const navigateToDetail = (item) => {
                       @click.stop>
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
                         class="ui-dropdown-item group" @click="openAddChildModal(item); closeMenu()">
-                        <img :src="getActionIcon('plus')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        <img :src="getActionIcon('plus')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Register Child</span>
                       </button>
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
                         class="ui-dropdown-item group" @click="openActionModal('edit', item); closeMenu()">
-                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        <img :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Edit Profile</span>
                       </button>
-                      
+
                       <div class="h-px bg-surface-subtle mx-2 my-1"></div>
 
                       <button v-if="(item.status || 'Active').toLowerCase() === 'inactive'"
-                        class="ui-dropdown-item group text-success" @click="handleAction('activate', item); closeMenu()">
-                        <img :src="getActionIcon('reactivate')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        class="ui-dropdown-item group text-success"
+                        @click="handleAction('activate', item); closeMenu()">
+                        <img :src="getActionIcon('reactivate')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Reactivate</span>
                       </button>
-                      <button v-else class="ui-dropdown-item group text-warning" @click="handleAction('deactivate', item); closeMenu()">
-                        <img :src="getActionIcon('cancel')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                      <button v-else class="ui-dropdown-item group text-warning"
+                        @click="handleAction('deactivate', item); closeMenu()">
+                        <img :src="getActionIcon('cancel')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Deactivate</span>
                       </button>
-                      
+
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
                         class="ui-dropdown-item group" @click="openActionModal('reset-password', item); closeMenu()">
-                        <img :src="getActionIcon('reset-password')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        <img :src="getActionIcon('reset-password')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Security Reset</span>
                       </button>
-                      
-                      <div class="h-px bg-surface-subtle mx-2 my-1" v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"></div>
-                      
+
+                      <div class="h-px bg-surface-subtle mx-2 my-1"
+                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'">
+                      </div>
+
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
                         class="ui-dropdown-item group text-error" @click="handleAction('delete', item); closeMenu()">
-                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity invert" />
+                        <img :src="getActionIcon('delete')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity invert" />
                         <span class="font-black text-sm">Delete Account</span>
                       </button>
                     </div>

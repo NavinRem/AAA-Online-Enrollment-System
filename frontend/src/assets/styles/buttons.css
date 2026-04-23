@@ -1,48 +1,60 @@
 /* ==========================================================================
-   BUTTONS — Reusable button patterns
+   BUTTONS — Reusable button component classes
+   --------------------------------------------------------------------------
+   RULE: Only use tokens from tailwind.config.js.
+         No hardcoded values. No var(--*) color references.
+         Use @apply with Tailwind token classes only.
+
+   USAGE IN COMPONENTS:
+     <button class="ui-back-button">Back</button>
+     <button class="ui-btn-dots">...</button>
+     <button class="ui-btn-premium">Save</button>
    ========================================================================== */
 
 @layer components {
-  /* --- Back Button (Reusable) --- */
+  /* ── Back / Navigation Button ──────────────────────────────────────────── */
+  /* Use for: back navigation, cancel actions, secondary nav                  */
   .ui-back-button {
-    @apply flex items-center gap-xs px-md py-sm rounded-sm text-xs font-bold transition-all border border-primary/20 shadow-sm;
-    background-color: var(--primary-soft);
-    color: var(--primary-deep);
+    @apply flex items-center gap-xs px-md py-sm rounded-sm
+           text-xs font-bold transition-all
+           bg-primary-soft text-primary-deep
+           border border-primary/20 shadow-sm;
   }
-
   .ui-back-button:hover {
-    background-color: var(--primary-light);
-    border-color: var(--primary-color);
+    @apply bg-primary-light border-primary;
   }
-
   .ui-back-button img,
   .ui-back-button svg {
-    @apply w-3 h-3 transition-transform duration-200;
-    opacity: 0.8;
+    @apply w-3 h-3 transition-transform duration-200 opacity-80;
     filter: invert(40%) sepia(100%) saturate(400%) hue-rotate(170deg) brightness(90%) contrast(100%);
   }
-
   .ui-back-button:hover img,
   .ui-back-button:hover svg {
-    @apply -translate-x-0.5;
-    opacity: 1;
+    @apply -translate-x-0.5 opacity-100;
   }
 
-  /* --- Dots Menu Button --- */
+  /* ── Dots / More Actions Button ─────────────────────────────────────────── */
+  /* Use for: row action menus, kebab menus, overflow menus                   */
   .ui-btn-dots {
-    @apply bg-surface-light w-8 h-8 rounded-full flex items-center justify-center text-content-muted transition-all hover:bg-outline-std hover:text-content-dark;
+    @apply w-8 h-8 rounded-full flex items-center justify-center
+           bg-surface-light text-content-muted transition-all
+           hover:bg-outline-std hover:text-content-dark;
   }
 
-  /* --- Premium Primary Button (Glow & Gradient) --- */
+  /* ── Premium Primary Button ─────────────────────────────────────────────── */
+  /* Use for: main CTA, save, confirm, submit actions                         */
   .ui-btn-premium {
-    @apply shadow-lg shadow-primary/20 transition-all duration-300 !px-xl bg-gradient-to-tr from-primary border-none font-black tracking-tight;
+    @apply px-xl shadow-md transition-all duration-300
+           bg-gradient-to-tr from-primary to-primary-dark
+           text-white font-black tracking-tight
+           border-none rounded-sm;
+    box-shadow: 0 4px 14px rgb(0 174 239 / 0.25);
   }
-
   .ui-btn-premium:hover:not(:disabled) {
-    @apply shadow-xl shadow-primary/30 -translate-y-px;
+    @apply -translate-y-px;
+    box-shadow: 0 6px 20px rgb(0 174 239 / 0.35);
   }
-
   .ui-btn-premium:disabled {
-    @apply opacity-50 cursor-not-allowed grayscale-[0.2];
+    @apply opacity-50 cursor-not-allowed grayscale;
   }
 }

@@ -1,117 +1,155 @@
 /* ==========================================================================
-   TABLES — Data table patterns
+   TABLES — Data table component classes
+   --------------------------------------------------------------------------
+   RULE: Only use tokens from tailwind.config.js.
+         No hardcoded values. No var(--*) references except z-index
+         which must use @apply z-{name} Tailwind tokens.
+
+   USAGE IN COMPONENTS:
+     <table class="ui-table">
+       <thead><tr><th class="ui-header-cell">Name</th></tr></thead>
+       <tbody>
+         <tr class="ui-row">
+           <td class="ui-cell">...</td>
+         </tr>
+       </tbody>
+     </table>
    ========================================================================== */
 
 @layer components {
-  /* --- Table Core --- */
+  /* ── Table Shell ─────────────────────────────────────────────────────────── */
+  /* Use for: the outermost table element on list/index pages                  */
   .ui-table {
-    @apply w-full border-separate border-spacing-0 text-left flex flex-col flex-1 min-h-0 overflow-hidden;
+    @apply w-full border-separate border-spacing-0 text-left
+           flex flex-col flex-1 min-h-0 overflow-hidden;
   }
 
+  /* ── Table Row ───────────────────────────────────────────────────────────── */
+  /* Use for: every data row in the table body                                 */
   .ui-row {
-    @apply transition-all duration-200 cursor-pointer w-full bg-white min-h-[52px];
+    @apply transition-all duration-200 cursor-pointer w-full
+           bg-surface min-h-[52px];
   }
-
   .ui-row:hover {
-    @apply bg-[var(--accent-light)];
+    @apply bg-primary-soft;
   }
 
+  /* ── New Row Highlight ───────────────────────────────────────────────────── */
+  /* Use for: newly created or recently updated rows                           */
   .ui-row-new {
     @apply ring-2 ring-primary bg-primary-soft;
   }
 
+  /* ── Table Cell ──────────────────────────────────────────────────────────── */
+  /* Use for: every <td> in the table body                                     */
   .ui-cell {
     @apply px-md py-xs text-sm transition-colors;
     display: table-cell;
     vertical-align: middle;
     min-height: inherit;
   }
-
   .ui-cell.text-center {
     text-align: center;
   }
 
+  /* ── Header Cell ─────────────────────────────────────────────────────────── */
+  /* Use for: every <th> in the table header                                   */
   .ui-header-cell {
-    @apply px-md py-sm text-content-muted text-[11px] font-black uppercase tracking-widest border-b border-outline-std bg-surface-subtle/50 sticky top-0 whitespace-nowrap;
-    z-index: var(--z-sticky-header);
+    @apply px-md py-sm text-content-muted text-3xs font-black uppercase
+           tracking-widest border-b border-outline-std
+           bg-surface-subtle sticky top-0 whitespace-nowrap
+           z-sticky-header;
   }
 
+  /* ── Footer Row ──────────────────────────────────────────────────────────── */
+  /* Use for: pagination row, load-more row, table summary row                 */
   .ui-footer-row {
-    @apply block w-full mt-xl shadow-none bg-transparent hover:transform-none;
+    @apply block w-full mt-xl shadow-none bg-transparent;
   }
 
-  /* --- Identity & Avatar Patterns --- */
+  /* ── Identity Cell ───────────────────────────────────────────────────────── */
+  /* Use for: cells that show avatar + name + subtitle together                */
   .ui-identity-cell {
     @apply flex items-center gap-md;
   }
-
   .ui-identity-info {
     @apply flex flex-col leading-tight;
   }
 
+  /* ── Avatar ──────────────────────────────────────────────────────────────── */
+  /* Use for: circular user/student avatar in table rows                       */
   .ui-avatar {
-    @apply w-7 h-7 rounded-full overflow-hidden border-2 border-white shadow-sm bg-surface-light flex-shrink-0;
+    @apply w-7 h-7 rounded-full overflow-hidden border-2 border-white
+           shadow-sm bg-surface-light flex-shrink-0;
   }
-
   .ui-avatar-sm {
-    @apply w-5 h-5 rounded-full overflow-hidden border-white shadow-sm bg-surface-light flex-shrink-0;
-    border-width: 2px;
+    @apply w-5 h-5 rounded-full overflow-hidden border-2 border-white
+           shadow-sm bg-surface-light flex-shrink-0;
   }
-
   .ui-avatar img {
     @apply w-full h-full object-cover;
   }
 
-  /* --- Stack Patterns --- */
+  /* ── Avatar Stack ────────────────────────────────────────────────────────── */
+  /* Use for: showing multiple avatars overlapping (e.g. class members)        */
   .ui-avatar-stack {
     @apply flex items-center;
   }
-
   .ui-stack-item {
-    @apply -ml-2.5 w-7 h-7 rounded-full overflow-hidden border-2 border-white shadow-sm bg-surface-light transition-transform duration-200;
+    @apply -ml-2.5 w-7 h-7 rounded-full overflow-hidden border-2 border-white
+           shadow-sm bg-surface-light transition-transform duration-200;
   }
-
   .ui-stack-item:first-child {
     @apply ml-0;
   }
-
   .ui-stack-item:hover {
     @apply z-50 -translate-y-0.5 scale-110;
   }
 
-  /* --- Action & Dropdown Patterns --- */
+  /* ── Action Menu ─────────────────────────────────────────────────────────── */
+  /* Use for: the three-dots action button container at end of each row        */
   .ui-action-menu {
     @apply relative flex items-center justify-center;
   }
 
+  /* ── Dropdown Menu ───────────────────────────────────────────────────────── */
+  /* Use for: floating action menus that appear on row action click            */
   .ui-dropdown-menu {
-    @apply fixed bg-white rounded-md shadow-2xl border border-outline-std p-xs min-w-[160px] overflow-hidden;
-    z-index: var(--z-dropdown);
+    @apply fixed bg-surface rounded-md shadow-lg border border-outline-std
+           p-xs min-w-[160px] overflow-hidden z-dropdown;
   }
 
+  /* ── Dropdown Item (base) ────────────────────────────────────────────────── */
+  /* Use for: every item inside a dropdown menu                                */
   .ui-dropdown-item {
-    @apply w-full p-md text-sm font-semibold cursor-pointer transition-colors rounded-sm flex items-center gap-sm hover:bg-surface-subtle select-none;
+    @apply w-full p-md text-sm font-semibold cursor-pointer transition-colors
+           rounded-sm flex items-center gap-sm
+           hover:bg-surface-subtle select-none;
   }
 
+  /* ── Dropdown Item Variants ──────────────────────────────────────────────── */
+  /* Add these alongside ui-dropdown-item for colored hover states             */
   .ui-dropdown-item-info {
-    @apply hover:bg-primary-soft hover:text-primary !opacity-100;
+    @apply hover:bg-primary-soft hover:text-primary opacity-100;
   }
   .ui-dropdown-item-info:hover img {
-    filter: invert(42%) sepia(97%) saturate(536%) hue-rotate(166deg) brightness(96%) contrast(101%);
     opacity: 1;
+    filter: invert(42%) sepia(97%) saturate(536%) hue-rotate(166deg) brightness(96%) contrast(101%);
   }
+
   .ui-dropdown-item-success {
-    @apply hover:bg-success-soft hover:text-success !opacity-100;
+    @apply hover:bg-success-soft hover:text-success opacity-100;
   }
   .ui-dropdown-item-success:hover img {
-    filter: invert(55%) sepia(74%) saturate(432%) hue-rotate(105deg) brightness(89%) contrast(90%);
     opacity: 1;
+    filter: invert(55%) sepia(74%) saturate(432%) hue-rotate(105deg) brightness(89%) contrast(90%);
   }
+
   .ui-dropdown-item-danger {
-    @apply hover:bg-error-soft hover:text-error !opacity-100;
+    @apply hover:bg-error-soft hover:text-error opacity-100;
   }
   .ui-dropdown-item-danger:hover img {
-    filter: invert(32%) sepia(93%) saturate(600%) hue-rotate(330deg) brightness(95%) contrast(95%);
     opacity: 1;
+    filter: invert(32%) sepia(93%) saturate(600%) hue-rotate(330deg) brightness(95%) contrast(95%);
   }
 }
