@@ -1,9 +1,21 @@
 <script setup>
 defineProps({
-  title: String,
-  value: [String, Number],
-  subtitle: String,
-  image: String,
+  title: {
+    type: String,
+    required: true,
+  },
+  value: {
+    type: [String, Number],
+    required: true,
+  },
+  image: {
+    type: String,
+    required: true,
+  },
+  color: {
+    type: String,
+    required: true,
+  },
 })
 
 const handleImageError = (e) => {
@@ -12,8 +24,8 @@ const handleImageError = (e) => {
 </script>
 
 <template>
-  <div
-    class="flex items-center gap-md bg-[var(--accent-light)] p-md rounded-sm w-full border border-outline-std transition-all">
+  <div class="flex items-center gap-md p-md rounded-sm w-full border border-outline-std transition-all"
+    :style="{ backgroundColor: color }">
     <div
       class="w-10 h-10 flex items-center justify-center rounded-sm bg-white shadow-sm ring-1 ring-border flex-shrink-0 group-hover:scale-110 transition-transform">
       <img :src="image" :alt="title" @error="handleImageError" class="w-7 h-7 object-contain" />

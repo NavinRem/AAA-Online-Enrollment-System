@@ -7,12 +7,7 @@ import { classService } from '../services/classService'
 import { enrollmentService } from '../services/enrollmentService'
 import { trialService } from '../services/trialService'
 import { ref, onMounted, computed } from 'vue'
-import {
-  getImageUrl,
-  getProgramProfileURL,
-  getParentProfileURL,
-  getStudentProfileURL,
-} from '@/utils/assetHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 import { parseDate, formatPrice } from '@/utils/formatUtils'
 import { calculateDashboardStats } from '@/utils/statsHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
@@ -47,7 +42,7 @@ const stats = ref({
     branches: 0,
     enrollments: 0,
     trials: 0,
-    totalRevenue: 0,
+    revenue: 0,
   },
 })
 
@@ -111,55 +106,100 @@ const profileImageUrl = computed(() => getAvatarUrl(userProfile.value))
 
 const todayStats = computed(() => [
   {
-    label: 'New Registrations Today',
+    label: 'Today Registrations',
     value: stats.value.today.reg,
     image: getImageUrl('dashboard/registration'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
   },
   {
-    label: 'New Enrollments Today',
+    label: 'Today Enrollments',
     value: stats.value.today.enroll,
     image: getImageUrl('dashboard/enrollment'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
   },
   {
-    label: 'Trial Class Today',
+    label: 'Today Trial Class',
     value: stats.value.today.trial,
     image: getImageUrl('dashboard/trial'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
   },
   {
-    label: "Today's Payments",
+    label: "Today Payments",
     value: `$${formatPrice(stats.value.today.pay)}`,
     image: getImageUrl('dashboard/payment'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
   },
 ])
 
 const thisWeekStats = computed(() => [
   {
-    label: 'Total Registrations',
+    label: 'This Week Registrations',
     value: stats.value.week.reg,
     image: getImageUrl('dashboard/registration'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
   },
   {
-    label: 'Total Enrollments',
+    label: 'This Week Enrollments',
     value: stats.value.week.enroll,
     image: getImageUrl('dashboard/enrollment'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
   },
   {
-    label: 'Total Trial Classes',
+    label: 'This Week Trial Classes',
     value: stats.value.week.trial,
     image: getImageUrl('dashboard/trial'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
   },
   {
-    label: 'Total Payments',
+    label: 'This Week Payments',
     value: `$${formatPrice(stats.value.week.pay)}`,
     image: getImageUrl('dashboard/payment'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
+  },
+])
+
+const totalStats = computed(() => [
+  {
+    title: 'Total Enrollments',
+    value: stats.value.totals.enrollments,
+    image: getImageUrl('dashboard/card-top-program'),
+    color: 'var(--color-primary-light)',
+  },
+  {
+    title: 'Total Parents',
+    value: stats.value.totals.parents,
+    image: getImageUrl('parent/total-parent'),
+    color: 'var(--color-primary-light)',
+  },
+  {
+    title: 'Total Students',
+    value: stats.value.totals.students,
+    image: getImageUrl('student/total-student'),
+    color: 'var(--color-primary-light)',
+  },
+  {
+    title: 'Total Branches',
+    value: stats.value.totals.branches,
+    image: getImageUrl('dashboard/card-branch'),
+    color: 'var(--color-primary-light)',
+  },
+  {
+    title: 'Total Programs',
+    value: stats.value.totals.programs,
+    image: getImageUrl('dashboard/card-available-program'),
+    color: 'var(--color-primary-light)',
+  },
+  {
+    title: 'Total Trial',
+    value: stats.value.totals.trials,
+    image: getImageUrl('dashboard/card-trial'),
+    color: 'var(--color-primary-light)',
+  },
+  {
+    title: 'Total Revenue',
+    value: `$${formatPrice(stats.value.totals.revenue)}`,
+    image: getImageUrl('dashboard/card-revenue'),
+    color: 'var(--color-primary-light)',
   },
 ])
 
@@ -186,10 +226,10 @@ const mappedEnrollments = computed(() => {
         Loading Dashboard Data...
       </p>
     </div>
-    <div v-else class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full h-[calc(100vh-100px)] overflow-hidden">
+    <div v-else class="flex flex-col lg:flex-row gap-xl px-xl w-full h-[calc(100vh-100px)] overflow-hidden">
       <div class="flex flex-col flex-1 min-w-0 h-full gap-lg overflow-y-auto pr-md scrollable-v">
         <section class="ui-detail-card !p-lg">
-          <div class="ui-section-header  border-none flex items-center gap-md">
+          <div class="ui-section-header border-none flex items-center gap-md">
             <h2 class="ui-section-title whitespace-nowrap">Today Summary</h2>
             <div class="ui-section-divider"></div>
           </div>
@@ -227,19 +267,7 @@ const mappedEnrollments = computed(() => {
               Basic Information
             </h3>
             <div class="flex flex-1 flex-col min-h-0 gap-3 scrollable-v">
-              <MiniCard title="Total Enrollments" :value="stats.totals.enrollments"
-                :image="getImageUrl('dashboard/card-top-program')" />
-              <MiniCard title="Total Parents" :value="stats.totals.parents"
-                :image="getImageUrl('parent/total-parent')" />
-              <MiniCard title="Total Students" :value="stats.totals.students"
-                :image="getImageUrl('student/total-student')" />
-              <MiniCard title="Total Branches" :value="stats.totals.branches"
-                :image="getImageUrl('dashboard/card-branch')" />
-              <MiniCard title="Total Programs" :value="stats.totals.programs"
-                :image="getImageUrl('dashboard/card-available-program')" />
-              <MiniCard title="Total Trial" :value="stats.totals.trials" :image="getImageUrl('dashboard/card-trial')" />
-              <MiniCard title="Total Revenue" :value="`$${formatPrice(stats.totals.totalRevenue)}`"
-                :image="getImageUrl('dashboard/card-revenue')" />
+              <MiniCard v-for="stat in totalStats" :key="stat.title" v-bind="stat" />
             </div>
           </div>
         </div>

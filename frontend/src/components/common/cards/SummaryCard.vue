@@ -25,13 +25,14 @@ const handleImageError = (e) => {
     </div>
   </div>
 </template>
+
 <style scoped>
 .summary-card-root {
   @apply rounded-std p-6 flex flex-col items-center text-center shadow-sm border border-primary/5 transition-all hover:shadow-md bg-[var(--accent-light)];
 }
 
 .summary-title {
-  @apply text-[10px] font-bold text-primary tracking-[0.1em] uppercase mb-1 opacity-80;
+  @apply text-[10px] font-bold tracking-[0.1em] uppercase mb-1 opacity-80;
 }
 
 .summary-image-box {

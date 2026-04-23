@@ -9,12 +9,6 @@ import {
 } from 'firebase/storage'
 
 export const storageService = {
-  /**
-   * Uploads a file to a specific storage path.
-   * @param {File|Blob} file - The file data to upload.
-   * @param {string} path - The destination path in Storage (e.g. 'enrollments/proofs/id.jpg')
-   * @returns {Promise<string>} - The download URL.
-   */
   async uploadFile(file, path) {
     if (!file) throw new Error('No file provided for upload')
     try {
@@ -23,19 +17,12 @@ export const storageService = {
       const downloadURL = await getDownloadURL(snapshot.ref)
       console.log(`File uploaded successfully to: ${path}`)
       return downloadURL
-    } catch (err) {
-      console.error('Upload failed:', err)
-      throw err
+    } catch (error) {
+      console.error('Upload failed:', error)
+      throw error
     }
   },
 
-  /**
-   * Moves a file from one path to another in Storage.
-   * Useful for finalizing temporary uploads after a UID is obtained.
-   * @param {string} oldURL - The full download URL of the existing file.
-   * @param {string} newPath - The destination path (e.g. 'profiles/uid/name.jpg')
-   * @returns {Promise<string>} - The new download URL.
-   */
   async moveProfileImage(oldURL, newPath) {
     if (!oldURL || !oldURL.includes('/profiles/temp/')) return oldURL
 
@@ -51,8 +38,8 @@ export const storageService = {
       await deleteObject(oldRef)
       console.log(`Successfully moved profile image from temp to ${newPath}`)
       return newURL
-    } catch (err) {
-      console.error('Failed to move profile image:', err)
+    } catch (error) {
+      console.error('Failed to move profile image:', error)
       return oldURL
     }
   },

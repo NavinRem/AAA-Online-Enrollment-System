@@ -9,11 +9,15 @@ export const branchService = {
   },
 
   getAllBranches() {
-    return request('/branches')
+    return request('/branches', {
+      method: 'GET',
+    })
   },
 
   getBranch(id) {
-    return request(`/branches/${id}`)
+    return request(`/branches/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateBranch(id, data) {

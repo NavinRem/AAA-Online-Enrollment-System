@@ -27,8 +27,8 @@
   /* ── Table Row ───────────────────────────────────────────────────────────── */
   /* Use for: every data row in the table body                                 */
   .ui-row {
-    @apply transition-all duration-200 cursor-pointer w-full
-           bg-surface min-h-[52px];
+    @apply transition-all duration-200 cursor-pointer w-full min-h-[52px];
+    background-color: var(--color-surface);
   }
   .ui-row:hover {
     @apply bg-primary-soft;
@@ -115,22 +115,28 @@
   /* ── Dropdown Menu ───────────────────────────────────────────────────────── */
   /* Use for: floating action menus that appear on row action click            */
   .ui-dropdown-menu {
-    @apply fixed bg-surface rounded-md shadow-lg border border-outline-std
-           p-xs min-w-[160px] overflow-hidden z-dropdown;
+    @apply fixed rounded-md shadow-lg p-xs min-w-[160px] overflow-hidden z-dropdown;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-outline-std);
   }
 
   /* ── Dropdown Item (base) ────────────────────────────────────────────────── */
   /* Use for: every item inside a dropdown menu                                */
   .ui-dropdown-item {
-    @apply w-full p-md text-sm font-semibold cursor-pointer transition-colors
-           rounded-sm flex items-center gap-sm
-           hover:bg-surface-subtle select-none;
+    @apply w-full text-sm font-semibold cursor-pointer transition-colors
+           rounded-sm flex items-center select-none;
+    padding: var(--space-md);
+    gap: var(--space-sm);
+  }
+  .ui-dropdown-item:hover {
+    background-color: var(--color-surface-subtle);
   }
 
   /* ── Dropdown Item Variants ──────────────────────────────────────────────── */
   /* Add these alongside ui-dropdown-item for colored hover states             */
-  .ui-dropdown-item-info {
-    @apply hover:bg-primary-soft hover:text-primary opacity-100;
+  .ui-dropdown-item-info:hover {
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
   }
   .ui-dropdown-item-info:hover img {
     opacity: 1;

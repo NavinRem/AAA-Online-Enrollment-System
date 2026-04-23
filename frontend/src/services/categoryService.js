@@ -9,11 +9,15 @@ export const categoryService = {
   },
 
   getAllCategories() {
-    return request('/categories')
+    return request('/categories', {
+      method: 'GET',
+    })
   },
 
   getCategory(id) {
-    return request(`/categories/${id}`)
+    return request(`/categories/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateCategory(id, data) {

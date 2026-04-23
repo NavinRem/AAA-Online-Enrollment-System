@@ -11,11 +11,15 @@ export const classService = {
   getAllClasses(filters = {}) {
     const params = new URLSearchParams(filters).toString()
     const query = params ? `?${params}` : ''
-    return request(`/classes${query}`)
+    return request(`/classes${query}`, {
+      method: 'GET',
+    })
   },
 
   getClass(id) {
-    return request(`/classes/${id}`)
+    return request(`/classes/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateClass(id, data) {
@@ -32,7 +36,7 @@ export const classService = {
   },
 
   // --- Specialized Actions ---
-  
+
   getAvailableClasses(programId, branchId = null) {
     const query = branchId ? `?branchId=${branchId}` : ''
     return request(`/programs/${programId}/classes${query}`)

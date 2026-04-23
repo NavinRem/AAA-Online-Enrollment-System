@@ -9,11 +9,15 @@ export const adminService = {
   },
 
   getAllAdmins() {
-    return request('/admins')
+    return request('/admins', {
+      method: 'GET',
+    })
   },
 
   getAdmin(id) {
-    return request(`/admins/${id}`)
+    return request(`/admins/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateAdmin(id, data) {

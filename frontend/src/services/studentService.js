@@ -1,19 +1,26 @@
 import { request } from './api'
 
 export const studentService = {
-  createStudent(studentData) {
+  createStudent(studentData, userId) {
     return request('/students', {
       method: 'POST',
-      body: JSON.stringify(studentData),
+      body: JSON.stringify({
+        ...studentData,
+        userId,
+      }),
     })
   },
 
   getAllStudents() {
-    return request('/students')
+    return request('/students', {
+      method: 'GET',
+    })
   },
 
   getStudent(id) {
-    return request(`/students/${id}`)
+    return request(`/students/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateStudent(id, data) {
@@ -30,7 +37,9 @@ export const studentService = {
   },
 
   getStudentsByParent(parentId) {
-    return request(`/students/parent/${parentId}`)
+    return request(`/students/parent/${parentId}`, {
+      method: 'GET',
+    })
   },
 }
 

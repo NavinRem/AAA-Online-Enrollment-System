@@ -9,11 +9,15 @@ export const termService = {
   },
 
   getAllTerms() {
-    return request('/terms')
+    return request('/terms', {
+      method: 'GET',
+    })
   },
 
   getTerm(id) {
-    return request(`/terms/${id}`)
+    return request(`/terms/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateTerm(id, data) {

@@ -9,11 +9,15 @@ export const teacherService = {
   },
 
   getAllTeachers() {
-    return request('/teachers')
+    return request('/teachers', {
+      method: 'GET',
+    })
   },
 
   getTeacher(id) {
-    return request(`/teachers/${id}`)
+    return request(`/teachers/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateTeacher(id, data) {

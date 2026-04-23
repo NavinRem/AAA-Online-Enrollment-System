@@ -15,41 +15,61 @@
   /* ── Detail Card ─────────────────────────────────────────────────────────── */
   /* Use for: main content cards on detail/view pages                          */
   .ui-detail-card {
-    @apply bg-surface rounded-std shadow-sm border border-outline-std p-xl
-           transition-shadow hover:shadow-md;
+    @apply shadow-sm transition-shadow hover:shadow-md;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-outline-std);
+    border-radius: var(--radius-std);
+    padding: var(--space-xl);
   }
 
   /* ── Info Block ──────────────────────────────────────────────────────────── */
   /* Use for: highlighted info sections inside detail cards                    */
   .ui-info-block {
-    @apply bg-primary-soft rounded-sm p-xl flex flex-col gap-sm
-           border border-primary/20;
+    @apply flex flex-col;
+    background-color: var(--color-primary-soft);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xl);
+    gap: var(--space-sm);
+    border: 1px solid rgba(56, 189, 248, 0.2);
   }
 
   /* ── Summary Card ────────────────────────────────────────────────────────── */
   /* Use for: right sidebar summary panels, totals, quick stats                */
   .ui-summary-card {
-    @apply bg-surface rounded-std shadow-sm border border-outline-std p-xl;
+    @apply shadow-sm;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-outline-std);
+    border-radius: var(--radius-std);
+    padding: var(--space-xl);
   }
   .ui-summary-card-title {
-    @apply text-xs font-black text-content-muted uppercase tracking-widest
-           border-b border-outline-std pb-sm mb-md opacity-60;
+    @apply uppercase tracking-widest opacity-60;
+    font-size: var(--text-xs);
+    font-weight: 900;
+    color: var(--color-content-muted);
+    border-bottom: 1px solid var(--color-outline-std);
+    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-md);
   }
 
   /* ── Detail Card Typography Defaults ────────────────────────────────────── */
   /* Scoped to ui-detail-card — controls p and strong inside detail cards      */
   .ui-detail-card p {
-    @apply m-0 text-sm text-content-dark leading-relaxed
-           flex flex-row items-baseline gap-1.5 flex-wrap font-medium;
+    @apply m-0 leading-relaxed flex flex-row items-baseline flex-wrap font-medium;
+    font-size: var(--text-sm);
+    color: var(--color-content-dark);
+    gap: 0.375rem;
   }
   .ui-detail-card strong {
-    @apply text-content-dark font-black text-base min-w-[120px] whitespace-nowrap;
+    @apply font-black text-base min-w-[120px] whitespace-nowrap;
+    color: var(--color-content-dark);
   }
 
   /* ── Detail Row ──────────────────────────────────────────────────────────── */
   /* Use for: label + value rows inside detail cards                           */
   .ui-detail-row {
-    @apply flex flex-col mb-lg items-start last:mb-0;
+    @apply flex flex-col items-start last:mb-0;
+    margin-bottom: var(--space-lg);
   }
   .ui-detail-row.align-center {
     @apply flex-row justify-between items-center;
@@ -74,31 +94,38 @@
     @apply flex items-center justify-between mb-md;
   }
   .ui-section-title {
-    @apply text-xl font-black text-content-dark tracking-tight;
+    @apply text-xl font-black tracking-tight;
+    color: var(--color-content-dark);
   }
   .ui-section-divider {
-    @apply h-px bg-content-light flex-1 opacity-50;
+    @apply h-px flex-1 opacity-50;
+    background-color: var(--color-content-light);
   }
 
   /* ── Tabs Navigation ─────────────────────────────────────────────────────── */
   /* Use for: page-level tab switching, module sub-navigation                  */
   .ui-tabs-nav {
-    @apply flex items-center gap-xs p-xs bg-surface rounded-std
-           border border-outline-std shadow-sm mb-xl
+    @apply flex items-center gap-xs p-xs rounded-std shadow-sm mb-xl
            overflow-x-auto whitespace-nowrap;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-outline-std);
   }
   .ui-tab-item {
-    @apply px-xl py-sm rounded-sm text-sm font-bold text-content-muted
-           transition-all select-none cursor-pointer;
+    @apply px-xl py-sm rounded-sm text-sm font-bold transition-all select-none cursor-pointer;
+    color: var(--color-content-muted);
   }
   .ui-tab-item:hover {
-    @apply text-primary bg-primary-soft;
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary);
   }
   .ui-tab-item.active {
-    @apply bg-primary text-white shadow-md;
+    @apply shadow-md;
+    background-color: var(--color-primary);
+    color: white;
   }
   .ui-tab-item.active:hover {
-    @apply text-white bg-primary;
+    background-color: var(--color-primary);
+    color: white;
   }
 
   /* ── Data List ───────────────────────────────────────────────────────────── */
@@ -183,11 +210,13 @@
   }
   .ui-identity-avatar {
     @apply w-20 h-20 rounded-sm border-[4px] border-white shadow-2xl
-           overflow-hidden flex-shrink-0 bg-surface transition-transform duration-300;
+           overflow-hidden flex-shrink-0 transition-transform duration-300;
+    background-color: var(--color-surface);
   }
   .ui-identity-avatar-round {
     @apply w-16 h-16 rounded-full border-[3px] border-white shadow-lg
-           overflow-hidden flex-shrink-0 bg-surface transition-transform duration-300;
+           overflow-hidden flex-shrink-0 transition-transform duration-300;
+    background-color: var(--color-surface);
   }
   .ui-identity-banner:hover .ui-identity-avatar,
   .ui-identity-banner:hover .ui-identity-avatar-round {

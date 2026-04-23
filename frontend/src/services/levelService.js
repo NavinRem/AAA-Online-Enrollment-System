@@ -11,11 +11,15 @@ export const levelService = {
   getAllLevels(filters = {}) {
     const params = new URLSearchParams(filters).toString()
     const query = params ? `?${params}` : ''
-    return request(`/levels${query}`)
+    return request(`/levels${query}`, {
+      method: 'GET',
+    })
   },
 
   getLevel(id) {
-    return request(`/levels/${id}`)
+    return request(`/levels/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateLevel(id, data) {

@@ -9,11 +9,15 @@ export const trialService = {
   },
 
   getAllTrials() {
-    return request('/trials')
+    return request('/trials', {
+      method: 'GET',
+    })
   },
 
   getTrial(id) {
-    return request(`/trials/${id}`)
+    return request(`/trials/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateTrial(id, data) {

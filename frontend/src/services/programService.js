@@ -9,11 +9,15 @@ export const programService = {
   },
 
   getAllPrograms() {
-    return request('/programs')
+    return request('/programs', {
+      method: 'GET',
+    })
   },
 
   getProgram(id) {
-    return request(`/programs/${id}`)
+    return request(`/programs/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateProgram(id, data) {
@@ -30,17 +34,14 @@ export const programService = {
   },
 
   async getProgramSchedules() {
-    // Return empty array locally to avoid out-of-scope backend requests
     return []
   },
 
   async addProgramSchedule(_, data) {
-    // Return mock success and local ID
     return { id: `mock-${Date.now()}`, ...data }
   },
 
   async deleteProgramSchedule() {
-    // Return mock success
     return { message: 'Schedule deleted successfully (mock)' }
   },
 }

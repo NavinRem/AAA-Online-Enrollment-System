@@ -106,7 +106,11 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
-  
+
+  if (!authStore.initialized) {
+    await authStore.init()
+  }
+
   const pageTitle = to.meta.title || 'AAA'
   document.title = `${pageTitle} - AAA Online Enrollment`
 

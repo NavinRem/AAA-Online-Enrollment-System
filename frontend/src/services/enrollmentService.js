@@ -9,11 +9,15 @@ export const enrollmentService = {
   },
 
   getAllEnrollments() {
-    return request('/enrollments')
+    return request('/enrollments', {
+      method: 'GET',
+    })
   },
 
   getEnrollment(id) {
-    return request(`/enrollments/${id}`)
+    return request(`/enrollments/${id}`, {
+      method: 'GET',
+    })
   },
 
   updateEnrollment(enrollmentId, data) {

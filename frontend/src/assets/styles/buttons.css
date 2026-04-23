@@ -17,8 +17,9 @@
   .ui-back-button {
     @apply flex items-center gap-xs px-md py-sm rounded-sm
            text-xs font-bold transition-all
-           bg-primary-soft text-primary-deep
            border border-primary/20 shadow-sm;
+    background-color: var(--color-primary-soft);
+    color: var(--color-primary-deep);
   }
   .ui-back-button:hover {
     @apply bg-primary-light border-primary;
@@ -37,8 +38,9 @@
   /* Use for: row action menus, kebab menus, overflow menus                   */
   .ui-btn-dots {
     @apply w-8 h-8 rounded-full flex items-center justify-center
-           bg-surface-light text-content-muted transition-all
+           text-content-muted transition-all
            hover:bg-outline-std hover:text-content-dark;
+    background-color: var(--color-surface-light);
   }
 
   /* ── Premium Primary Button ─────────────────────────────────────────────── */

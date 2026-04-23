@@ -60,7 +60,7 @@ defineProps({
 
 <style scoped>
 .table-root {
-  @apply w-full relative flex flex-1 flex-col min-h-0 overflow-hidden bg-white rounded-md border border-outline-std shadow-sm;
+  @apply w-full relative flex flex-1 flex-col min-h-0 overflow-hidden bg-white rounded-md border border-outline-std shadow-sm p-6;
 }
 
 .table-toolbar-container {

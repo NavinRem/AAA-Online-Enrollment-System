@@ -1,5 +1,5 @@
-@tailwind base;
-@tailwind components;
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
 
 /* ==========================================================================
    COMPONENT CSS IMPORTS
@@ -10,7 +10,7 @@
 @import './cards.css';
 @import './buttons.css';
 
-@tailwind utilities;
+@import 'tailwindcss/utilities';
 
 /* ==========================================================================
    CSS VARIABLES — DESIGN TOKENS

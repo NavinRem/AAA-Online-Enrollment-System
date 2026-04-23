@@ -9,11 +9,15 @@ export const parentService = {
   },
 
   getAllParents() {
-    return request('/parents')
+    return request('/parents', {
+      method: 'GET',
+    })
   },
 
   getParent(uid) {
-    return request(`/parents/${uid}`)
+    return request(`/parents/${uid}`, {
+      method: 'GET',
+    })
   },
 
   updateParent(uid, data) {
