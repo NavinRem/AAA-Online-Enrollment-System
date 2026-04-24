@@ -56,27 +56,39 @@ class StudentService {
 
   async getAllStudents() {
     const snapshot = await db.collection(COLLECTIONS.STUDENT).get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    return snapshot.docs.map((doc) =>
+      profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }),
+    )
   }
 
   async getStudent(id, requestingUser = null) {
     if (!id) throw new Error('Student ID is required')
     const doc = await db.collection(COLLECTIONS.STUDENT).doc(id).get()
     if (!doc.exists) throw new Error('Student not found')
-    
-    const studentData = doc.data()
+
+    const data = profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() })
 
     // Security: Only Admin or the Parent can view this student
-    if (requestingUser && requestingUser.role !== 'admin' && requestingUser.uid !== studentData.parentId) {
-      throw new Error('Access Denied: You do not have permission to view this student.')
+    if (
+      requestingUser &&
+      requestingUser.role !== 'admin' &&
+      requestingUser.uid !== data.parentId
+    ) {
+      throw new Error(
+        'Access Denied: You do not have permission to view this student.',
+      )
     }
 
-    return { id: doc.id, ...studentData }
+    return data
   }
 
   async getStudentsByParentID(parentId, requestingUser = null) {
     // Security: Only Admin or the Parent themselves can list these students
-    if (requestingUser && requestingUser.role !== 'admin' && requestingUser.uid !== parentId) {
+    if (
+      requestingUser &&
+      requestingUser.role !== 'admin' &&
+      requestingUser.uid !== parentId
+    ) {
       throw new Error('Access Denied: You can only view your own children.')
     }
 
@@ -84,7 +96,9 @@ class StudentService {
       .collection(COLLECTIONS.STUDENT)
       .where('parentId', '==', parentId)
       .get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    return snapshot.docs.map((doc) =>
+      profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }),
+    )
   }
 
   async updateStudent(id, updateData, requestingUser = null) {

@@ -544,7 +544,7 @@ watch(
                     {{ form.isCustomPrice ? 'Override' : 'Locked' }}
                   </span>
                   <span class="text-3xs font-black uppercase opacity-40">{{ form.isCustomPrice ? 'Custom' : 'Standard'
-                  }}</span>
+                    }}</span>
                 </div>
               </div>
 
@@ -561,10 +561,10 @@ watch(
 
               <!-- Tuition Total Card (Price to Pay) -->
               <div class="enroll-info-item col-span-2 mt-2">
-                <div class="enroll-tuition-card" :class="{ 'enroll-tuition-card--sponsored': form.isSponsorship }">
-                  <div class="enroll-tuition-glow"></div>
-                  <div class="enroll-tuition-content">
-                    <span class="enroll-tuition-label">{{
+                <div class="ui-summary-card" :class="{ 'ui-summary-card--success': form.isSponsorship }">
+                  <div class="ui-summary-glow"></div>
+                  <div class="ui-summary-content">
+                    <span class="ui-summary-label">{{
                       form.isSponsorship ?
                         'Managed via Sponsoring Agency' : 'Total Price to Pay' }}</span>
                     <div v-if="!form.isSponsorship" class="enroll-tuition-savings">
@@ -574,7 +574,7 @@ watch(
                       </span>
                     </div>
                   </div>
-                  <span class="enroll-tuition-amount">
+                  <span class="ui-summary-amount">
                     {{ form.isSponsorship ? '$0.00' : '$' + formatPrice(finalAmount) }}
                   </span>
                 </div>
@@ -629,143 +629,4 @@ watch(
   </AppModal>
 </template>
 
-<style scoped>
-/* =========================================
-   Select Badges (inline tags inside selects)
-   ========================================= */
-.enroll-form-root {
-  @apply flex flex-col gap-lg;
-}
-
-/* =========================================
-   Enrollment Detail Panel
-   ========================================= */
-.enrollment-detail-panel {
-  @apply grid grid-cols-1 md:grid-cols-2 gap-xl bg-surface-light/50 p-xl rounded-std border-2 border-dashed border-outline-std mt-sm;
-}
-
-.enroll-remarks-card {
-  @apply col-span-1 md:col-span-2;
-}
-
-/* =========================================
-   Program Overview Info Grid
-   ========================================= */
-/* Twin card — mirrors the Economic Adjustments card */
-.enroll-twin-card {
-  @apply bg-white border-2 border-outline-std shadow-sm p-xl rounded-sm flex flex-col gap-sm;
-}
-
-.enroll-section-label {
-  @apply text-2xs font-black text-content-muted uppercase tracking-widest border-b border-outline-std pb-1 mb-1;
-}
-
-.enroll-info-grid {
-  @apply grid grid-cols-2 gap-x-lg gap-y-sm;
-}
-
-.enroll-info-item {
-  @apply flex flex-col gap-[3px];
-}
-
-.enroll-info-key {
-  @apply text-3xs font-black text-content-muted/60 uppercase tracking-widest;
-}
-
-.enroll-info-val {
-  @apply text-sm font-bold text-content-dark;
-}
-
-.enroll-info-val--primary {
-  @apply text-primary font-black;
-}
-
-.enroll-info-sub {
-  @apply text-3xs text-content-muted ml-1;
-}
-
-.enroll-remark-error {
-  @apply text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest;
-}
-
-/* =========================================
-   Custom Box Toggle UI Rules (Rectangle Style)
-   ========================================= */
-.ui-box-toggle {
-  @apply flex items-center justify-between px-md min-h-[38px] border-2 border-outline-std rounded-sm bg-surface-subtle cursor-pointer transition-all hover:border-text-muted/30 select-none mt-0.5;
-}
-
-.ui-box-toggle--active {
-  @apply border-outline-std bg-white;
-}
-
-.ui-box-toggle--danger {
-  @apply border-error/30 bg-white shadow-sm;
-}
-
-.ui-box-toggle:hover {
-  @apply shadow-md -translate-y-px;
-}
-
-/* Tuition Total Card (Price to Pay) */
-.enroll-tuition-card {
-  @apply relative bg-primary text-white p-xl rounded-std flex items-center justify-between shadow-lg border-2 border-primary-deep overflow-hidden mt-sm transition-all duration-300;
-  box-shadow: 0 10px 30px rgba(0, 174, 239, 0.35);
-}
-
-.enroll-tuition-card--sponsored {
-  @apply bg-emerald-500 border-emerald-600;
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.35);
-}
-
-.enroll-tuition-card:hover {
-  @apply shadow-xl -translate-y-0.5;
-}
-
-.enroll-tuition-glow {
-  @apply absolute -top-4 -right-4 w-24 h-24 bg-white/5 rounded-full blur-[8px] transition-transform duration-1000;
-}
-
-.enroll-tuition-card:hover .enroll-tuition-glow {
-  @apply scale-150;
-}
-
-.enroll-tuition-content {
-  @apply flex flex-col relative z-[1];
-}
-
-.enroll-tuition-label {
-  @apply text-2xs font-black uppercase tracking-widest opacity-70;
-}
-
-.enroll-tuition-savings {
-  @apply px-2 py-1 rounded-sm mt-2 bg-white/20 text-3xs font-black uppercase tracking-widest border border-white/10;
-}
-
-.enroll-tuition-amount {
-  @apply text-3xl font-black tracking-tighter relative z-[1] transition-transform duration-500;
-}
-
-.enroll-tuition-card:hover .enroll-tuition-amount {
-  @apply scale-105;
-}
-
-/* =========================================
-   Submit Row
-   ========================================= */
-.enroll-submit-row {
-  @apply flex flex-col gap-sm mt-sm pt-md border-t-2 border-outline-std;
-}
-
-.enroll-submit-actions {
-  @apply flex items-center justify-end gap-sm;
-}
-
-.enroll-submit-error-summary {
-  @apply flex items-center gap-xs px-md py-sm bg-error-soft border border-error/25 rounded-sm text-xs font-bold text-error;
-}
-
-.enroll-submit-error-icon {
-  @apply text-sm flex-shrink-0;
-}
-</style>
+<style scoped></style>

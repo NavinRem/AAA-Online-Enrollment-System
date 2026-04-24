@@ -11,21 +11,27 @@ import { trialService } from '@/services/trialService'
 import { parentService } from '../services/parentService'
 import { studentService } from '../services/studentService'
 import { programService } from '../services/programService'
-import { classService } from '../services/classService'
+import { branchService } from '../services/branchService'
+import TrialFormModal from '../components/trials/TrialFormModal.vue'
 
-import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
+import { useSearch, trialSearchMapper } from '../composables/useSearch'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { formatDate } from '@/utils/formatUtils'
-import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 
 const trials = ref([])
 const parents = ref([])
 const students = ref([])
 const programs = ref([])
-const classes = ref([])
+const branches = ref([])
 
-const loading = ref(true)
+const loading = ref(false)
+const showModal = ref(false)
+const submitting = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
 const newlyCreatedId = ref(null)
+const selectedTrial = ref(null)
+const currentFilter = ref('all')
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
@@ -34,18 +40,18 @@ const getRowClass = (item) => {
 const fetchData = async () => {
   try {
     loading.value = true
-    const [tData, pData, sData, progData, cData] = await Promise.all([
+    const [tData, pData, sData, progData, bData] = await Promise.all([
       trialService.getAllTrials(),
       parentService.getAllParents(),
       studentService.getAllStudents(),
       programService.getAllPrograms(),
-      classService.getAllClasses(),
+      branchService.getAllBranches(),
     ])
     trials.value = Array.isArray(tData) ? tData : []
     parents.value = Array.isArray(pData) ? pData : []
     students.value = Array.isArray(sData) ? sData : []
     programs.value = Array.isArray(progData) ? progData : []
-    classes.value = Array.isArray(cData) ? cData : []
+    branches.value = Array.isArray(bData) ? bData : []
   } catch (error) {
     console.error('Failed to fetch trials data', error)
   } finally {
@@ -58,56 +64,75 @@ onMounted(() => {
 })
 
 const trialStats = computed(() => {
-  const total = trials.value.length
-  const today = new Date().toISOString().split('T')[0]
-  const todayCount = trials.value.filter(
-    (t) => (t.createdAt || t.trialDate || '').split('T')[0] === today,
-  ).length
-  const attendedCount = trials.value.filter((t) => t.status === 'attended').length
-  const bookedCount = trials.value.filter((t) => t.status === 'booked').length
+  const totalcount = trials.value.length
+
+  // Booked: From trialType field
+  const bookedCount = trials.value.filter(t => t.trialType === 'booked').length
+
+  // Walk-in: From trialType field
+  const walkinCount = trials.value.filter(t => t.trialType === 'walk-in').length
+
+  // Success: From isSuccessful field
+  const successCount = trials.value.filter(t => t.isSuccessful).length
 
   return [
     {
-      label: 'Trial Pipeline',
-      value: total,
+      label: 'Total Trials',
+      value: totalcount,
       image: getImageUrl('enrollment/total-enrollment'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
-      label: 'Today Active',
-      value: todayCount,
-      image: getImageUrl('enrollment/today-enrollment'),
-      color: 'var(--accent-light)',
-    },
-    {
-      label: 'Confirmed Slot',
+      label: 'Booked Trials',
       value: bookedCount,
-      image: getImageUrl('enrollment/total-unpaid-enrollment'),
-      color: 'var(--accent-light)',
+      image: getImageUrl('enrollment/today-enrollment'),
+      color: 'var(--color-primary-light)',
     },
     {
-      label: 'Yielded Assets',
-      value: attendedCount,
+      label: 'Walk-in Trials',
+      value: walkinCount,
+      image: getImageUrl('enrollment/total-unpaid-enrollment'),
+      color: 'var(--color-primary-light)',
+    },
+    {
+      label: 'Successful Trials',
+      value: successCount,
       image: getImageUrl('enrollment/total-paid-enrollment'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
   ]
 })
 
 const trialHeaders = [
   { label: 'No', width: '50px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Learner Identity' },
-  { label: 'Program Model' },
-  { label: 'Scheduling', class: 'hidden sm:table-cell' },
-  { label: 'Campus', width: '80px', align: 'center' },
-  { label: 'Registry Status', width: '120px', align: 'center' },
-  { label: 'Event Date', width: '120px', align: 'center' },
-  { label: 'Action', width: '80px', align: 'center' },
+  { label: 'Parent' },
+  { label: 'Student' },
+  { label: 'Program' },
+  { label: 'Branch', width: '120px', align: 'center' },
+  { label: 'Status', width: '200px', align: 'center' },
+  { label: 'Trial Date', width: '200px', align: 'center' },
+  { label: 'Action', width: '60px', align: 'center' },
 ]
 
+const statusFilteredTrials = computed(() => {
+  let filtered = [...trials.value]
+
+  if (currentFilter.value === 'booked') filtered = filtered.filter(t => t.trialType === 'booked')
+  else if (currentFilter.value === 'walk-in') filtered = filtered.filter(t => t.trialType === 'walk-in')
+  else if (currentFilter.value === 'successful') filtered = filtered.filter(t => t.isSuccessful)
+
+  // Default Sort by Trial Type and then by Date
+  return filtered.sort((a, b) => {
+    const typeA = a.trialType || (a.isGuest ? 'walk-in' : 'booked')
+    const typeB = b.trialType || (b.isGuest ? 'walk-in' : 'booked')
+    if (typeA !== typeB) return typeA.localeCompare(typeB)
+    return new Date(b.trialDate || 0) - new Date(a.trialDate || 0)
+  })
+})
+
 const { searchQuery, searchResults: filteredTrials } = useSearch(
-  trials,
-  enrollmentSearchMapper,
+  statusFilteredTrials,
+  trialSearchMapper,
 )
 
 const currentPage = ref(1)
@@ -120,11 +145,46 @@ const paginatedTrials = computed(() => {
   return filteredTrials.value.slice(start, end)
 })
 
-watch(searchQuery, () => {
+watch([currentFilter, searchQuery], () => {
   currentPage.value = 1
 })
 
+const handleSaveTrial = async (formData) => {
+  submitting.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
+  try {
+    if (selectedTrial.value) {
+      await trialService.updateTrial(selectedTrial.value.id, formData)
+      successMessage.value = 'Trial engagement successfully updated.'
+    } else {
+      const res = await trialService.createTrial(formData)
+      newlyCreatedId.value = res.id
+      successMessage.value = 'New trial session successfully booked.'
+    }
+
+    setTimeout(() => {
+      showModal.value = false
+      selectedTrial.value = null
+      successMessage.value = ''
+      fetchData()
+    }, 1500)
+  } catch (err) {
+    errorMessage.value = err.message || 'Failed to save trial record.'
+    console.error(err)
+  } finally {
+    submitting.value = false
+  }
+}
+
 const handleTableAction = ({ type, item }) => {
+  if (type === 'edit') {
+    selectedTrial.value = item
+    showModal.value = true
+    return
+  }
+
   if (type === 'delete') {
     if (confirm('Are you sure you want to purge this trial record?')) {
       trialService.deleteTrial(item.id).then(() => fetchData())
@@ -135,63 +195,78 @@ const handleTableAction = ({ type, item }) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Trial Engagement Repository">
+    <DataPageLayout overviewTitle="Trial Overview">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in trialStats" :key="stat.label" v-bind="stat" />
         </div>
       </template>
 
       <template #table>
-        <DataTable
-          title="Active Trial Entries"
-          :headers="trialHeaders"
-          :items="paginatedTrials"
-          entityName="trial"
-          :loading="loading"
-          :flexible="true"
-          v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search by student, program, or branch entity..."
-          :rowClass="getRowClass"
-          :hasPagination="true"
-          :totalItems="totalItems"
-          :pageSize="pageSize"
-          v-model:currentPage="currentPage"
-          @action="handleTableAction"
-        >
-          <template #row="{ item, index, headers }">
-            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell" :style="{ width: headers[0].width }">
+        <DataTable title="Trial Lists" :headers="trialHeaders" :items="paginatedTrials" entityName="trial"
+          :loading="loading" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search something..."
+          :rowClass="getRowClass" :hasPagination="true" :totalItems="totalItems" :pageSize="pageSize"
+          v-model:currentPage="currentPage" :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
+            { label: 'All Trials', value: 'all' },
+            { label: 'Booked', value: 'booked' },
+            { label: 'Walk-in', value: 'walk-in' },
+            { label: 'Successful', value: 'successful' },
+          ]" @action="handleTableAction">
+
+          <template #toolbar-actions>
+            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
+              @click="showModal = true">
+              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
+              <span class="font-black tracking-tight">New Trial</span>
+            </AppButton>
+          </template>
+
+          <template
+            #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell"
+              :style="{ width: headers[0].width }">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
-            <td class="ui-cell min-w-[200px]" :style="{ flex: '1 1 0%' }">
-              <div class="flex items-center gap-4 group">
-                <div class="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm">
-                  <img :src="item.student?.profileURL" class="w-full h-full object-cover" />
+            <!-- Parent Column -->
+            <td class="ui-cell">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar">
+                  <img :src="item.parent?.profileURL || getImageUrl('avatar-parent')" alt="parent" />
                 </div>
-                <div class="flex flex-col">
-                  <span class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{ item.student?.name }}</span>
-                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">Primary Prospect</span>
-                </div>
-              </div>
-            </td>
-
-            <td class="ui-cell" :style="{ flex: '1 1 0%' }">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-white ring-1 ring-border p-1.5 shadow-sm overflow-hidden">
-                  <img :src="item.program?.profileURL" class="w-full h-full object-contain" />
-                </div>
-                <div class="flex flex-col overflow-hidden">
-                  <span class="font-black text-content-dark tracking-tighter truncate max-w-[140px] leading-tight">{{ item.program?.name }}</span>
-                  <span class="text-[9px] font-black text-primary uppercase tracking-widest mt-0.5">Trial Unit</span>
+                <div class="ui-identity-info">
+                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.parent?.name ||
+                    item.guestParentName || 'Guest Parent' }}</span>
                 </div>
               </div>
             </td>
 
-            <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%' }">
-              <div class="flex flex-col">
-                <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{ getSessionDay(item.class?.schedule) || getSessionDay(item.classSchedule, true) }}</span>
-                <span class="text-[10px] font-black text-content-muted uppercase tracking-widest mt-1">{{ getSessionTime(item.class?.schedule) || getSessionTime(item.classSchedule) }}</span>
+            <!-- Student Column -->
+            <td class="ui-cell">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar">
+                  <img :src="item.student?.profileURL || getImageUrl('avatar-student')" alt="student" />
+                </div>
+                <div class="ui-identity-info">
+                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.student?.name ||
+                    item.guestStudentName }}</span>
+                  <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{ item.isGuest ?
+                    'Guest Prospect' : 'Registered Student' }}</span>
+                </div>
+              </div>
+            </td>
+
+            <!-- Program Column -->
+            <td class="ui-cell">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar bg-white p-1">
+                  <img :src="item.program?.profileURL || getImageUrl('program-default')" alt="program"
+                    class="object-contain" />
+                </div>
+                <div class="ui-identity-info">
+                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.program?.name }}</span>
+                  <span class="text-[10px] font-black text-primary uppercase tracking-widest">Trial Unit</span>
+                </div>
               </div>
             </td>
 
@@ -200,24 +275,60 @@ const handleTableAction = ({ type, item }) => {
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
-              <AppBadge :status="item.status || 'Booked'" />
+              <div class="flex flex-col items-center gap-1">
+                <AppBadge :status="item.trialType || (item.isGuest ? 'walk-in' : 'booked')"
+                  :type="item.trialType === 'walk-in' ? 'magenta' : 'purple'" />
+                <AppBadge v-if="item.isSuccessful" status="Successful" type="green" />
+              </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex flex-col items-center">
-                 <span class="text-[11px] font-black text-content-dark tabular-nums tracking-tight">{{ formatDate(item.trialDate) }}</span>
-                 <span class="text-[8px] font-black text-content-muted uppercase tracking-widest mt-1">Event Date</span>
+                <span class="text-[11px] font-black text-content-dark tabular-nums tracking-tight">{{
+                  formatDate(item.trialDate) }}</span>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-               <button @click.stop="handleTableAction({ type: 'delete', item })" class="p-2 hover:bg-red-50 rounded-xl transition-all group">
-                 <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-30 group-hover:opacity-100 group-hover:scale-110 transition-all filter-red" />
-               </button>
+              <div class="ui-action-menu">
+                <button
+                  class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
+                  @click.stop="toggleMenu($event, item.id)">
+                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                </button>
+                <Teleport to="body">
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
+                      @click.stop>
+                      <button class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="() => { handleAction('edit', item); closeMenu(); }">
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                        <span class="font-bold">Edit</span>
+                      </button>
+                      <div class="h-px bg-surface-light mx-1 my-1"></div>
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-black uppercase tracking-tighter"
+                        @click="() => { handleAction('delete', item); closeMenu(); }">
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                        Delete
+                      </button>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
             </td>
           </template>
         </DataTable>
       </template>
     </DataPageLayout>
+
+    <TrialFormModal :isOpen="showModal" :loading="submitting" :trial="selectedTrial" :parents="parents"
+      :students="students" :programs="programs" :branches="branches" :error="errorMessage" :success="successMessage"
+      @close="() => { showModal = false; selectedTrial = null; errorMessage = ''; successMessage = ''; }"
+      @submit="handleSaveTrial" />
   </DashboardLayout>
 </template>

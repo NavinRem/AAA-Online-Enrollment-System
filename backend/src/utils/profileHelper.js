@@ -142,6 +142,32 @@ class ProfileHelper {
     }
     return age
   }
+
+  ensureFreshAge(data) {
+    if (!data) return data
+
+    // 1. If it's a student object itself
+    if (data.dob) {
+      data.age = this.calculateAge(data.dob)
+    }
+
+    // 2. If it contains a nested student snapshot
+    if (data.student && data.student.dob) {
+      data.student.age = this.calculateAge(data.student.dob)
+    }
+
+    // 3. If it's a parent with childrenInfo array
+    if (data.childrenInfo && Array.isArray(data.childrenInfo)) {
+      data.childrenInfo = data.childrenInfo.map((child) => {
+        if (child.dob) {
+          child.age = this.calculateAge(child.dob)
+        }
+        return child
+      })
+    }
+
+    return data
+  }
 }
 
 module.exports = new ProfileHelper()

@@ -56,6 +56,11 @@ const REGISTRIES = {
     full: 'magenta',
     all: 'blue',
   },
+  trial: {
+    booked: 'purple',
+    'walk-in': 'magenta',
+    successful: 'green',
+  },
 }
 
 const THEMES = {

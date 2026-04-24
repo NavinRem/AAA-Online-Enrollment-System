@@ -73,7 +73,7 @@ defineProps({
 }
 
 .table-footer-container {
-  @apply w-full flex-shrink-0 pt-md border-t border-outline-std/50;
+  @apply w-full flex-shrink-0 border-t border-outline-std/50;
 }
 
 .table-header-cell {

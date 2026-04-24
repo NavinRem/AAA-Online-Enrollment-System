@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { formatDateOnly } from '@/utils/formatUtils'
+import { formatDateOnly, formatDate } from '@/utils/formatUtils'
 
 /**
  * A reusable composable for handling search filtering across lists.
@@ -50,6 +50,24 @@ export const enrollmentSearchMapper = (r) =>
     r.remark,
     r.amount,
     formatDateOnly(r.createdAt || r.enrollAt),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+export const trialSearchMapper = (t) =>
+  [
+    t.id,
+    t.student?.name,
+    t.student?.parent?.name,
+    t.guestStudentName,
+    t.guestParentName,
+    t.guestPhone,
+    t.program?.name,
+    t.branch?.name,
+    t.branch?.abbr,
+    t.status,
+    formatDate(t.trialDate),
   ]
     .filter(Boolean)
     .join(' ')

@@ -4,14 +4,22 @@ function validateTrial(trialData) {
     'parentId',
     'classId',
     'programId',
+    'branchId',
     'trialDate',
+    'trialTime',
     'status',
     'remark',
     'isGuest',
     'guestParentName',
+    'guestParentEmail',
+    'guestParentPhone',
+    'guestParentAvatar',
     'guestStudentName',
-    'guestPhone',
+    'guestStudentDOB',
     'guestStudentAge',
+    'guestStudentAvatar',
+    'trialType',
+    'isSuccessful',
   ]
 
   Object.keys(trialData).forEach((key) => {
@@ -20,8 +28,12 @@ function validateTrial(trialData) {
     }
   })
 
-  if (!trialData.classId || !trialData.programId) {
-    throw new Error('classId and programId are required')
+  if (!trialData.programId) {
+    throw new Error('programId is required')
+  }
+
+  if (!trialData.classId && !trialData.branchId) {
+    throw new Error('Either classId or branchId is required')
   }
 
   if (!trialData.isGuest && !trialData.studentId) {
@@ -30,10 +42,10 @@ function validateTrial(trialData) {
 
   if (
     trialData.isGuest &&
-    (!trialData.guestParentName || !trialData.guestStudentName)
+    (!trialData.guestParentName || !trialData.guestStudentName || !trialData.guestParentPhone)
   ) {
     throw new Error(
-      'Guest Parent Name and Student Name are required for walk-ins',
+      'Guest Parent Name, Phone, and Student Name are required for walk-ins',
     )
   }
 
@@ -41,16 +53,25 @@ function validateTrial(trialData) {
     isGuest: !!trialData.isGuest,
     studentId: trialData.studentId || null,
     parentId: trialData.parentId || null,
-    classId: trialData.classId,
+    classId: trialData.classId || null,
     programId: trialData.programId,
+    branchId: trialData.branchId || null,
 
     guestParentName: trialData.guestParentName?.trim() || null,
+    guestParentEmail: trialData.guestParentEmail?.trim() || null,
+    guestParentPhone: trialData.guestParentPhone?.trim() || null,
+    guestParentAvatar: trialData.guestParentAvatar?.trim() || null,
+    
     guestStudentName: trialData.guestStudentName?.trim() || null,
-    guestPhone: trialData.guestPhone?.trim() || null,
+    guestStudentDOB: trialData.guestStudentDOB || null,
     guestStudentAge: parseInt(trialData.guestStudentAge || 0),
+    guestStudentAvatar: trialData.guestStudentAvatar?.trim() || null,
 
     trialDate: trialData.trialDate || new Date().toISOString(),
+    trialTime: trialData.trialTime || null,
     status: trialData.status || 'pending',
+    trialType: trialData.trialType || (trialData.isGuest ? 'walk-in' : 'booked'),
+    isSuccessful: !!trialData.isSuccessful,
     remark: trialData.remark || '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -60,17 +81,25 @@ function validateTrial(trialData) {
 function validateUpdateTrial(updateData) {
   const allowedFields = [
     'studentId',
+    'parentId',
     'classId',
     'programId',
+    'branchId',
     'trialDate',
+    'trialTime',
     'status',
     'remark',
-    'parentId',
     'isGuest',
     'guestParentName',
+    'guestParentEmail',
+    'guestParentPhone',
+    'guestParentAvatar',
     'guestStudentName',
-    'guestPhone',
+    'guestStudentDOB',
     'guestStudentAge',
+    'guestStudentAvatar',
+    'trialType',
+    'isSuccessful',
   ]
   const cleanData = {}
 

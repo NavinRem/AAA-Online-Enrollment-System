@@ -1,0 +1,141 @@
+/* ==========================================================================
+   FORM & MODAL SHARED STYLES
+   --------------------------------------------------------------------------
+   PURPOSE:
+     This file centralizes common layout and styling patterns used in 
+     Enrollment and Trial modals to ensure project-wide consistency.
+   ========================================================================== */
+
+@layer components {
+  /* ── Root Layout ───────────────────────────────────────────────────────── */
+  .enroll-form-root {
+    @apply flex flex-col gap-lg;
+  }
+
+  .ui-form-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-6;
+  }
+
+  /* ── Detail Panels & Split Layouts ──────────────────────────────────────── */
+  .enrollment-detail-panel {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-xl bg-surface-light/50 p-xl rounded-std border-2 border-dashed border-outline-std mt-sm;
+  }
+
+  .enroll-twin-card {
+    @apply bg-white border-2 border-outline-std shadow-sm p-xl rounded-sm flex flex-col gap-sm;
+  }
+
+  .enroll-section-label {
+    @apply text-2xs font-black text-content-muted uppercase tracking-widest border-b border-outline-std pb-1 mb-1;
+  }
+
+  .enroll-remarks-card {
+    @apply col-span-1 md:col-span-2;
+  }
+
+  /* ── Information Grids ─────────────────────────────────────────────────── */
+  .enroll-info-grid {
+    @apply grid grid-cols-2 gap-x-lg gap-y-sm;
+  }
+
+  .enroll-info-item {
+    @apply flex flex-col gap-[3px];
+  }
+
+  .enroll-info-key {
+    @apply text-3xs font-black text-content-muted/60 uppercase tracking-widest;
+  }
+
+  .enroll-info-val {
+    @apply text-sm font-bold text-content-dark;
+  }
+
+  .enroll-info-val--strong,
+  .enroll-info-val--primary {
+    @apply text-primary font-black;
+  }
+
+  .enroll-info-sub {
+    @apply text-3xs text-content-muted ml-1;
+  }
+
+  /* ── Specialized Inputs ────────────────────────────────────────────────── */
+  .ui-textarea-standard {
+    @apply w-full px-4 py-3 bg-white border-2 border-outline-std rounded-sm text-sm font-semibold 
+           focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all duration-200 
+           placeholder:text-content-muted/40 min-h-[100px];
+  }
+
+  /* ── Box Toggles (Professional Rectangle Style) ─────────────────────────── */
+  .ui-box-toggle {
+    @apply flex items-center justify-between px-md min-h-[38px] border-2 border-outline-std rounded-sm bg-surface-subtle cursor-pointer transition-all hover:border-text-muted/30 select-none mt-0.5;
+  }
+
+  .ui-box-toggle--active {
+    @apply border-outline-std bg-white;
+  }
+
+  .ui-box-toggle--danger {
+    @apply border-error/30 bg-white shadow-sm;
+  }
+
+  .ui-box-toggle:hover {
+    @apply shadow-md -translate-y-px;
+  }
+
+  /* ── Submit & Action Rows ───────────────────────────────────────────────── */
+  .enroll-submit-row {
+    @apply flex flex-col gap-sm mt-sm pt-md border-t-2 border-outline-std;
+  }
+
+  .enroll-submit-actions {
+    @apply flex items-center justify-end gap-sm;
+  }
+
+  .enroll-submit-error-summary {
+    @apply flex items-center gap-xs px-md py-sm bg-error-soft border border-error/25 rounded-sm text-xs font-bold text-error;
+  }
+
+  .enroll-submit-error-icon {
+    @apply text-sm flex-shrink-0;
+  }
+
+  /* ── Premium Price/Recruitment Cards ────────────────────────────────────── */
+  .ui-summary-card {
+    @apply relative bg-primary text-white p-xl rounded-std flex items-center justify-between shadow-lg border-2 border-primary-deep overflow-hidden mt-sm transition-all duration-300;
+    box-shadow: 0 10px 30px rgba(0, 174, 239, 0.35);
+  }
+
+  .ui-summary-card--success {
+    @apply bg-emerald-500 border-emerald-600;
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.35);
+  }
+
+  .ui-summary-card:hover {
+    @apply shadow-xl -translate-y-0.5;
+  }
+
+  .ui-summary-glow {
+    @apply absolute -top-4 -right-4 w-24 h-24 bg-white/5 rounded-full blur-[8px] transition-transform duration-1000;
+  }
+
+  .ui-summary-card:hover .ui-summary-glow {
+    @apply scale-150;
+  }
+
+  .ui-summary-content {
+    @apply flex flex-col relative z-[1];
+  }
+
+  .ui-summary-label {
+    @apply text-2xs font-black uppercase tracking-widest opacity-70;
+  }
+
+  .ui-summary-amount {
+    @apply text-3xl font-black tracking-tighter relative z-[1] transition-transform duration-500;
+  }
+
+  .ui-summary-card:hover .ui-summary-amount {
+    @apply scale-105;
+  }
+}

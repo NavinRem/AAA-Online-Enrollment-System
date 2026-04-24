@@ -6,6 +6,8 @@ import { getImageUrl, ALL_BUILTIN_AVATARS, isSameProfileAsset } from '@/utils/as
 
 const props = defineProps({
   modelValue: String,
+  label: String,
+  required: Boolean,
   role: {
     type: String,
     default: '',
@@ -160,7 +162,12 @@ const handleFileUpload = async (event) => {
 </script>
 
 <template>
-  <div class="avatar-selector-root" :class="{ 'animate-shake': shake }">
+  <div class="avatar-selector-root flex flex-col gap-xs text-left" :class="{ 'animate-shake': shake }">
+    <label v-if="label" class="text-sm font-semibold text-content-dark flex items-center gap-1">
+      {{ label }}
+      <span v-if="required" class="text-error font-bold leading-none">*</span>
+    </label>
+
     <div
       class="avatar-selector-container"
       :class="error ? 'border-error bg-error-soft' : 'border-outline-std'"

@@ -35,15 +35,31 @@ class EnrollmentService {
       throw new Error('Student already enrolled for this class')
     }
 
-    const studentSnapshot = profileHelper.getStudentSnapshot(studentId, studentDoc.data())
-    const programSnapshot = profileHelper.getProgramSnapshot(programId, programDoc.data())
+    const studentSnapshot = profileHelper.getStudentSnapshot(
+      studentId,
+      studentDoc.data(),
+    )
+    const programSnapshot = profileHelper.getProgramSnapshot(
+      programId,
+      programDoc.data(),
+    )
     const classSnapshot = profileHelper.getClassSnapshot(classId, classData)
+
+    let parentSnapshot = null
+    const parentId = studentDoc.data().parentId
+    if (parentId) {
+      const parentDoc = await db.collection(COLLECTIONS.PARENT).doc(parentId).get()
+      if (parentDoc.exists) {
+        parentSnapshot = profileHelper.getParentSnapshot(parentId, parentDoc.data())
+      }
+    }
 
     const enrollmentId = db.collection(COLLECTIONS.ENROLLMENT).doc().id
     const newEnrollment = {
       ...enrollmentData,
-      parentId: studentDoc.data().parentId,
+      parentId: parentId,
       student: studentSnapshot,
+      parent: parentSnapshot,
       program: programSnapshot,
       class: classSnapshot,
       status: enrollmentData.status || 'active',
@@ -53,29 +69,40 @@ class EnrollmentService {
     }
 
     await db.runTransaction(async (transaction) => {
-      transaction.set(db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId), newEnrollment)
+      transaction.set(
+        db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId),
+        newEnrollment,
+      )
       transaction.update(db.collection(COLLECTIONS.CLASS).doc(classId), {
         currentCount: (classData.currentCount || 0) + 1,
       })
     })
+
+    // Background task: Mark trials as successful
+    this.markMatchingTrialsAsSuccessful(newEnrollment).catch((error) =>
+      console.error('Failed to sync trial success:', error),
+    )
 
     return { id: enrollmentId, ...newEnrollment }
   }
 
   async getAllEnrollments(filters = {}) {
     let query = db.collection(COLLECTIONS.ENROLLMENT)
-    if (filters.studentId) query = query.where('studentId', '==', filters.studentId)
+    if (filters.studentId)
+      query = query.where('studentId', '==', filters.studentId)
     if (filters.classId) query = query.where('classId', '==', filters.classId)
     if (filters.status) query = query.where('status', '==', filters.status)
 
     const snapshot = await query.get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    return snapshot.docs.map((doc) =>
+      profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }),
+    )
   }
 
   async getEnrollment(id) {
     const doc = await db.collection(COLLECTIONS.ENROLLMENT).doc(id).get()
     if (!doc.exists) throw new Error('Enrollment not found')
-    return { id: doc.id, ...doc.data() }
+    return profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() })
   }
 
   async updateEnrollment(id, updateData) {
@@ -101,7 +128,9 @@ class EnrollmentService {
         const classDoc = await transaction.get(classRef)
         if (classDoc.exists) {
           const currentCount = classDoc.data().currentCount || 0
-          transaction.update(classRef, { currentCount: Math.max(0, currentCount - 1) })
+          transaction.update(classRef, {
+            currentCount: Math.max(0, currentCount - 1),
+          })
         }
       }
     })
@@ -117,15 +146,21 @@ class EnrollmentService {
     if (!enrollmentDoc.exists) throw new Error('Enrollment not found')
 
     const { classId, status } = enrollmentDoc.data()
-    if (status !== 'active') throw new Error('Only active enrollments can be cancelled')
+    if (status !== 'active')
+      throw new Error('Only active enrollments can be cancelled')
 
     await db.runTransaction(async (transaction) => {
-      transaction.update(enrollmentRef, { status: 'cancelled', cancelledAt: new Date().toISOString() })
+      transaction.update(enrollmentRef, {
+        status: 'cancelled',
+        cancelledAt: new Date().toISOString(),
+      })
       const classRef = db.collection(COLLECTIONS.CLASS).doc(classId)
       const classDoc = await transaction.get(classRef)
       if (classDoc.exists) {
         const currentCount = classDoc.data().currentCount || 0
-        transaction.update(classRef, { currentCount: Math.max(0, currentCount - 1) })
+        transaction.update(classRef, {
+          currentCount: Math.max(0, currentCount - 1),
+        })
       }
     })
 
@@ -140,7 +175,10 @@ class EnrollmentService {
       .where('status', '==', 'active')
       .get()
 
-    return { isEligible: existing.empty, reason: existing.empty ? null : 'Already enrolled in this program' }
+    return {
+      isEligible: existing.empty,
+      reason: existing.empty ? null : 'Already enrolled in this program',
+    }
   }
 
   async syncEnrollmentsWithClass(classId, classSnapshot) {
@@ -171,6 +209,44 @@ class EnrollmentService {
       batch.update(doc.ref, { program: programSnapshot })
     })
     await batch.commit()
+  }
+
+  async markMatchingTrialsAsSuccessful(enrollment) {
+    const { studentId, student, programId } = enrollment
+    const trialsRef = db.collection(COLLECTIONS.TRIAL)
+
+    // 1. Check by studentId (for booked trials)
+    const bookedQuery = await trialsRef
+      .where('studentId', '==', studentId)
+      .where('programId', '==', programId)
+      .where('isSuccessful', '==', false)
+      .get()
+
+    // 2. Check by name (for walk-in trials that converted)
+    const walkinQuery = await trialsRef
+      .where('isGuest', '==', true)
+      .where('guestStudentName', '==', student.name)
+      .where('programId', '==', programId)
+      .where('isSuccessful', '==', false)
+      .get()
+
+    const batch = db.batch()
+    bookedQuery.docs.forEach((doc) => {
+      batch.update(doc.ref, {
+        isSuccessful: true,
+        updatedAt: new Date().toISOString(),
+      })
+    })
+    walkinQuery.docs.forEach((doc) => {
+      batch.update(doc.ref, {
+        isSuccessful: true,
+        updatedAt: new Date().toISOString(),
+      })
+    })
+
+    if (!bookedQuery.empty || !walkinQuery.empty) {
+      await batch.commit()
+    }
   }
 }
 

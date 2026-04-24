@@ -57,14 +57,16 @@ class ParentService {
     if (filters.limit) query = query.limit(parseInt(filters.limit))
 
     const snapshot = await query.get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    return snapshot.docs.map((doc) =>
+      profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }),
+    )
   }
 
   async getParent(id) {
     if (!id) throw new Error('Parent ID is required')
     const doc = await db.collection(COLLECTIONS.PARENT).doc(id).get()
     if (!doc.exists) throw new Error('Parent not found')
-    return { id: doc.id, ...doc.data() }
+    return profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() })
   }
 
   async updateParent(id, updateData) {
