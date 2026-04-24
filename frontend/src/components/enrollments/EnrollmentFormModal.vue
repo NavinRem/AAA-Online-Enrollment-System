@@ -6,7 +6,7 @@ import AppInput from '@/components/common/ui/AppInput.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
-import EnrollmentConfirmOverlay from '@/components/enrollments/EnrollmentConfirmOverlay.vue'
+import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 import { formatPrice, formatDateOnly } from '@/utils/formatUtils'
 import { getSessionCounts } from '@/utils/programHelper'
@@ -171,7 +171,7 @@ const confirmRows = computed(() => {
         ? (selectedClass.value.schedules || []).map((s) => `${s.day} (${s.timeslot || s.time})`).join(', ')
         : null,
     },
-    { key: 'Branch', value: selectedClass.value?.branch?.abbr || selectedClass.value?.branch?.name, badge: true },
+    { key: 'Branch', value: selectedClass.value?.branch?.abbr || selectedClass.value?.branch?.name, badge: true, type: selectedClass.value?.branch?.color },
     { key: 'Sessions', value: `${form.enrolledSessions || 0} sessions` },
     { key: 'Proration', value: form.isProrated ? 'Applied' : 'Not applied' },
   ]
@@ -619,7 +619,7 @@ watch(
       </div>
 
       <!-- ── Reusable Confirmation Overlay ── -->
-      <EnrollmentConfirmOverlay :show="showConfirm"
+      <AppConfirmOverlay :show="showConfirm"
         :title="isEditMode ? 'Confirm Enrollment Changes' : 'Confirm Enrollment Details'"
         subtitle="Please review carefully before submitting. This action cannot be easily undone."
         :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows" :totalAmount="finalAmount"

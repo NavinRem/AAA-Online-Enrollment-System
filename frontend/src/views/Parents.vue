@@ -273,7 +273,7 @@ const navigateToDetail = (item) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Parent Management Hub">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
         </div>
       </template>
@@ -325,9 +325,9 @@ const navigateToDetail = (item) => {
                 <div class="flex flex-col">
                   <span
                     class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tight text-base leading-tight">{{
-                    item.name }}</span>
+                      item.name }}</span>
                   <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.id.slice(-6)
-                    }}</span>
+                  }}</span>
                 </div>
               </div>
             </td>

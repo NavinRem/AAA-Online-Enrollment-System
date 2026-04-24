@@ -7,7 +7,7 @@ import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import EnrollmentConfirmOverlay from '@/components/enrollments/EnrollmentConfirmOverlay.vue'
+import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { formatDateOnly } from '@/utils/formatUtils'
 
@@ -112,7 +112,7 @@ const confirmRows = computed(() => {
     { key: 'Parent', value: form.isGuest ? form.guestParentName : selectedStudent.value?.parent?.name || 'Registered Parent' },
     { key: 'Student', value: form.isGuest ? form.guestStudentName : selectedStudent.value?.name },
     { key: 'Program', value: selectedProgram.value?.name },
-    { key: 'Branch', value: selectedBranch.value?.abbr || selectedBranch.value?.name, badge: true },
+    { key: 'Branch', value: selectedBranch.value?.abbr || selectedBranch.value?.name, badge: true, type: selectedBranch.value?.color },
     { key: 'Schedule', value: `${formatDateOnly(form.trialDate)} @ ${form.trialTime}` },
     { key: 'Type', value: form.isGuest ? 'Walk-in' : 'Booked', valueClass: form.isGuest ? 'text-magenta' : 'text-purple' }
   ]
@@ -445,7 +445,7 @@ watch(() => form.guestStudentDOB, (dob) => {
       </div>
 
       <!-- Confirmation Overlay -->
-      <EnrollmentConfirmOverlay :show="showConfirm"
+      <AppConfirmOverlay :show="showConfirm"
         :title="isEditMode ? 'Confirm Trial Changes' : 'Confirm Trial Booking'"
         subtitle="Please review trial details carefully before confirming."
         :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows"

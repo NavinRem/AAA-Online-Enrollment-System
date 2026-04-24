@@ -65,6 +65,7 @@ class ProfileHelper {
       abbr: branchData.abbr,
       location: branchData.location,
       phone: branchData.phone,
+      color: branchData.color || 'blue',
     }
   }
 

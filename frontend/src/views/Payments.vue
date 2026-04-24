@@ -64,7 +64,7 @@ const paymentStats = computed(() => {
   const all = paymentsData.value
   const paid = all.filter(p => ['paid', 'confirmed', 'active', 'success'].includes(String(p.status).toLowerCase()))
   const pending = all.filter(p => String(p.status).toLowerCase() === 'unpaid' || String(p.status).toLowerCase() === 'pending')
-  
+
   const totalRevenue = paid.reduce((sum, p) => sum + (p.amount || 0), 0)
   const pendingRevenue = pending.reduce((sum, p) => sum + (p.amount || 0), 0)
 
@@ -110,57 +110,56 @@ const paymentHeaders = [
   <DashboardLayout>
     <DataPageLayout overviewTitle="Treasury & Financial Ledger">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in paymentStats" :key="stat.label" v-bind="stat" />
         </div>
       </template>
 
       <template #table>
-        <DataTable
-          title="Transaction Records"
-          :headers="paymentHeaders"
-          :items="filteredPayments"
-          :loading="loading"
-          searchPlaceholder="Search by parent, student, or program model..."
-          :hasFilter="true"
-          v-model:searchQuery="searchQuery"
-          v-model:currentFilter="currentFilter"
-          :filterOptions="[
+        <DataTable title="Transaction Records" :headers="paymentHeaders" :items="filteredPayments" :loading="loading"
+          searchPlaceholder="Search by parent, student, or program model..." :hasFilter="true"
+          v-model:searchQuery="searchQuery" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Transactions', value: 'all' },
             { label: 'Settled Only', value: 'paid' },
             { label: 'Outstanding Only', value: 'pending' },
-          ]"
-        >
+          ]">
           <template #row="{ item, index, headers }">
-            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell" :style="{ width: headers[0].width }">
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell"
+              :style="{ width: headers[0].width }">
               #{{ String(item.id).slice(-6).toUpperCase() }}
             </td>
 
             <td class="ui-cell min-w-[240px]" :style="{ flex: '1 1 0%' }">
-               <div class="flex flex-col gap-2">
-                  <div class="flex items-center gap-2 group cursor-pointer">
-                    <span class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{ item.parent }}</span>
-                    <div class="w-1 h-1 rounded-full bg-content-muted/30"></div>
-                    <span class="text-[10px] font-bold text-content-muted">{{ item.student }}</span>
-                  </div>
-                  <div class="flex items-center gap-1.5 opacity-60">
-                    <img :src="getActionIcon('enrollment')" class="w-3 h-3 grayscale" />
-                    <span class="text-[9px] font-black text-content-muted uppercase tracking-widest leading-none">{{ item.program }}</span>
-                  </div>
-               </div>
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-2 group cursor-pointer">
+                  <span
+                    class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{
+                    item.parent }}</span>
+                  <div class="w-1 h-1 rounded-full bg-content-muted/30"></div>
+                  <span class="text-[10px] font-bold text-content-muted">{{ item.student }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 opacity-60">
+                  <img :src="getActionIcon('enrollment')" class="w-3 h-3 grayscale" />
+                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest leading-none">{{
+                    item.program }}</span>
+                </div>
+              </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
-               <div class="inline-flex flex-col items-center px-4 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100/50">
-                  <span class="text-sm font-black text-emerald-700 tabular-nums tracking-tighter">${{ formatPrice(item.amount) }}</span>
-                  <span class="text-[8px] font-black text-emerald-600/60 uppercase tracking-widest">Amount</span>
-               </div>
+              <div
+                class="inline-flex flex-col items-center px-4 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100/50">
+                <span class="text-sm font-black text-emerald-700 tabular-nums tracking-tighter">${{
+                  formatPrice(item.amount) }}</span>
+                <span class="text-[8px] font-black text-emerald-600/60 uppercase tracking-widest">Amount</span>
+              </div>
             </td>
 
             <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%' }">
               <div class="flex items-center gap-2">
-                 <div class="w-2 h-2 rounded-full" :class="item.method === 'Cash' ? 'bg-orange-400' : 'bg-blue-400'"></div>
-                 <span class="text-xs font-black text-content-dark uppercase tracking-tight">{{ item.method }}</span>
+                <div class="w-2 h-2 rounded-full" :class="item.method === 'Cash' ? 'bg-orange-400' : 'bg-blue-400'">
+                </div>
+                <span class="text-xs font-black text-content-dark uppercase tracking-tight">{{ item.method }}</span>
               </div>
             </td>
 
@@ -170,8 +169,9 @@ const paymentHeaders = [
 
             <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center">
-                 <span class="text-[11px] font-black text-content-dark tabular-nums tracking-tight">{{ formatDate(item.date) }}</span>
-                 <span class="text-[8px] font-black text-content-muted uppercase tracking-widest mt-1">Settlement</span>
+                <span class="text-[11px] font-black text-content-dark tabular-nums tracking-tight">{{
+                  formatDate(item.date) }}</span>
+                <span class="text-[8px] font-black text-content-muted uppercase tracking-widest mt-1">Settlement</span>
               </div>
             </td>
           </template>

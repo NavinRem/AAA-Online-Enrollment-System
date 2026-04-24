@@ -43,7 +43,7 @@ class BranchService {
     const batch = db.batch()
     batch.update(branchRef, validatedUpdate)
 
-    const criticalFields = ['name', 'abbr', 'location', 'phone']
+    const criticalFields = ['name', 'abbr', 'location', 'phone', 'color']
     const shouldSync = Object.keys(validatedUpdate).some((k) =>
       criticalFields.includes(k),
     )

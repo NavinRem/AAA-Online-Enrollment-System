@@ -1,5 +1,5 @@
 function validateBranch(branchData) {
-  const branchFields = ['name', 'abbr', 'location', 'phone']
+  const branchFields = ['name', 'abbr', 'location', 'phone', 'color']
 
   Object.keys(branchData).forEach((key) => {
     if (!branchFields.includes(key)) {
@@ -9,9 +9,11 @@ function validateBranch(branchData) {
 
   const abbr = branchData.abbr?.toUpperCase().trim()
   const name = branchData.name?.trim()
+  const location = branchData.location?.trim()
+  const phone = branchData.phone?.trim()
 
-  if (!abbr || !name) {
-    throw new Error('Branch Abbreviation and Name are required')
+  if (!abbr || !name || !location || !phone) {
+    throw new Error('Branch Abbreviation, Name, Location, and Phone are all required')
   }
 
   return {
@@ -19,6 +21,7 @@ function validateBranch(branchData) {
     abbr,
     location: branchData.location?.trim() || '',
     phone: branchData.phone?.trim() || '',
+    color: branchData.color || 'blue',
     studentCount: 0,
     classCount: 0,
     programCount: 0,
@@ -31,7 +34,7 @@ function validateBranch(branchData) {
 }
 
 function validateUpdateBranch(updateData) {
-  const allowedFields = ['name', 'abbr', 'location', 'phone']
+  const allowedFields = ['name', 'abbr', 'location', 'phone', 'color']
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
@@ -44,6 +47,7 @@ function validateUpdateBranch(updateData) {
   if (updateData.abbr !== undefined) cleanData.abbr = updateData.abbr.toUpperCase().trim()
   if (updateData.location !== undefined) cleanData.location = updateData.location.trim()
   if (updateData.phone !== undefined) cleanData.phone = updateData.phone.trim()
+  if (updateData.color !== undefined) cleanData.color = updateData.color
 
   if (Object.keys(cleanData).length === 0) {
     throw new Error('No valid fields provided for update')

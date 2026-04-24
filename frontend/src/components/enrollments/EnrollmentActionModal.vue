@@ -7,7 +7,7 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
-import EnrollmentConfirmOverlay from '@/components/enrollments/EnrollmentConfirmOverlay.vue'
+import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { formatPrice } from '@/utils/formatUtils'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 
@@ -388,7 +388,7 @@ const modalIcon = computed(() => {
       </div>
 
       <!-- ── Reusable Confirmation Overlay ── -->
-      <EnrollmentConfirmOverlay :show="showConfirm" :title="confirmOverlayTitle" :subtitle="confirmOverlaySubtitle"
+      <AppConfirmOverlay :show="showConfirm" :title="confirmOverlayTitle" :subtitle="confirmOverlaySubtitle"
         :icon="confirmOverlayIcon" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading"
         @back="showConfirm = false" @confirm="handleActionSubmit" />
     </form>

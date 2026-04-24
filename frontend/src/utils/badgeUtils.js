@@ -72,6 +72,8 @@ const THEMES = {
   purple: { backgroundColor: 'var(--color-purple-soft)', color: 'var(--color-purple)' },
   magenta: { backgroundColor: 'var(--color-magenta-soft)', color: 'var(--color-magenta)' },
   teal: { backgroundColor: 'var(--color-teal-soft)', color: 'var(--color-teal)' },
+  cyan: { backgroundColor: 'var(--color-cyan-soft)', color: 'var(--color-cyan)' },
+  pink: { backgroundColor: 'var(--color-pink-soft)', color: 'var(--color-pink)' },
   gray: { backgroundColor: 'var(--color-gray-soft)', color: 'var(--color-gray)' },
 }
 
@@ -86,6 +88,8 @@ const THEME_FILTERS = {
   magenta:
     'invert(18%) sepia(61%) saturate(6015%) hue-rotate(323deg) brightness(85%) contrast(106%)',
   teal: 'invert(24%) sepia(87%) saturate(638%) hue-rotate(130deg) brightness(96%) contrast(93%)',
+  cyan: 'invert(48%) sepia(96%) saturate(1243%) hue-rotate(156deg) brightness(91%) contrast(98%)',
+  pink: 'invert(26%) sepia(91%) saturate(3474%) hue-rotate(314deg) brightness(96%) contrast(95%)',
   gray: 'invert(38%) sepia(10%) saturate(394%) hue-rotate(170deg) brightness(94%) contrast(89%)',
 }
 

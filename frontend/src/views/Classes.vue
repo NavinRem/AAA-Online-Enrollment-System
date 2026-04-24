@@ -111,20 +111,14 @@ onMounted(fetchClasses)
   <DashboardLayout>
     <DataPageLayout overviewTitle="Academic Class Repository">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
         </div>
       </template>
 
       <template #table>
-        <DataTable 
-          title="Active Schedules" 
-          :headers="classHeaders" 
-          :items="filteredClasses" 
-          :loading="loading"
-          :flexible="true" 
-          searchPlaceholder="Search by program, teacher, or campus entity..."
-        >
+        <DataTable title="Active Schedules" :headers="classHeaders" :items="filteredClasses" :loading="loading"
+          :flexible="true" searchPlaceholder="Search by program, teacher, or campus entity...">
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
@@ -133,26 +127,35 @@ onMounted(fetchClasses)
           </template>
 
           <template #row="{ item, index, headers }">
-            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell" :style="{ width: headers[0].width }">
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell"
+              :style="{ width: headers[0].width }">
               {{ index + 1 }}
             </td>
 
             <td class="ui-cell min-w-[200px]" :style="{ flex: '1 1 0%' }">
               <div class="flex items-center gap-4 group">
-                <div class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm bg-white p-2">
-                  <img :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)" class="w-full h-full object-contain" />
+                <div
+                  class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm bg-white p-2">
+                  <img :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)"
+                    class="w-full h-full object-contain" />
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{ item.program?.name || 'Academic Course' }}</span>
-                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">{{ item.program?.category || 'General' }}</span>
+                  <span
+                    class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{
+                      item.program?.name || 'Academic Course' }}</span>
+                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">{{
+                    item.program?.category || 'General' }}</span>
                 </div>
               </div>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[2].width }">
               <div class="flex flex-col">
-                 <span class="text-xs font-black text-content-dark tracking-tight">{{ item.term?.name || 'Active Term' }}</span>
-                 <span class="text-[8px] font-black text-content-muted uppercase tracking-widest leading-none mt-1">Registry Period</span>
+                <span class="text-xs font-black text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
+                  }}</span>
+                <span
+                  class="text-[8px] font-black text-content-muted uppercase tracking-widest leading-none mt-1">Registry
+                  Period</span>
               </div>
             </td>
 
@@ -163,31 +166,35 @@ onMounted(fetchClasses)
             <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%' }">
               <div v-if="item.teacher" class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-xl overflow-hidden ring-1 ring-border shadow-sm">
-                  <img :src="item.teacher.profileURL || getImageUrl('profiles/avatar-student')" class="w-full h-full object-cover" />
+                  <img :src="item.teacher.profileURL || getImageUrl('profiles/avatar-student')"
+                    class="w-full h-full object-cover" />
                 </div>
                 <span class="font-bold text-xs text-content-dark tracking-tight">{{ item.teacher.name }}</span>
               </div>
-              <span v-else class="text-[10px] font-black uppercase text-content-muted/30 tracking-widest italic">Staff Pending</span>
+              <span v-else class="text-[10px] font-black uppercase text-content-muted/30 tracking-widest italic">Staff
+                Pending</span>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[5].width }">
               <div class="flex flex-col">
-                <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{ item.day }}</span>
-                <span class="text-[9px] font-black text-primary uppercase tracking-widest mt-1">{{ item.timeslot }}</span>
+                <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{ item.day
+                  }}</span>
+                <span class="text-[9px] font-black text-primary uppercase tracking-widest mt-1">{{ item.timeslot
+                  }}</span>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex flex-col items-center gap-2 w-full px-4">
-                <div class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
-                  <div 
-                    class="h-full transition-all duration-700 ease-out rounded-full"
-                    :style="{ width: (item.currentCount / item.capacity) * 100 + '%' }" 
-                    :class="(item.currentCount / item.capacity) >= 1 ? 'bg-error' : (item.currentCount / item.capacity) >= 0.8 ? 'bg-warning' : 'bg-emerald-500'"
-                  >
+                <div
+                  class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
+                  <div class="h-full transition-all duration-700 ease-out rounded-full"
+                    :style="{ width: (item.currentCount / item.capacity) * 100 + '%' }"
+                    :class="(item.currentCount / item.capacity) >= 1 ? 'bg-error' : (item.currentCount / item.capacity) >= 0.8 ? 'bg-warning' : 'bg-emerald-500'">
                   </div>
                 </div>
-                <span class="text-[10px] font-black text-content-muted tabular-nums tracking-widest uppercase">{{ item.currentCount }}/{{ item.capacity }}</span>
+                <span class="text-[10px] font-black text-content-muted tabular-nums tracking-widest uppercase">{{
+                  item.currentCount }}/{{ item.capacity }}</span>
               </div>
             </td>
 
@@ -196,9 +203,11 @@ onMounted(fetchClasses)
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[8].width }">
-               <button @click.stop="openEditModal(item)" class="p-2 hover:bg-surface-subtle rounded-xl transition-all group">
-                 <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all" />
-               </button>
+              <button @click.stop="openEditModal(item)"
+                class="p-2 hover:bg-surface-subtle rounded-xl transition-all group">
+                <img :src="getActionIcon('edit')"
+                  class="w-4 h-4 opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+              </button>
             </td>
           </template>
         </DataTable>
@@ -206,12 +215,6 @@ onMounted(fetchClasses)
     </DataPageLayout>
   </DashboardLayout>
 
-  <ClassActionModal 
-    :isOpen="modal.isOpen" 
-    :type="modal.type" 
-    :classItem="modal.classItem" 
-    :loading="modal.loading"
-    @close="closeModal" 
-    @submit="handleModalSubmit" 
-  />
+  <ClassActionModal :isOpen="modal.isOpen" :type="modal.type" :classItem="modal.classItem" :loading="modal.loading"
+    @close="closeModal" @submit="handleModalSubmit" />
 </template>

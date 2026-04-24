@@ -46,7 +46,7 @@ const { searchQuery, searchResults: filteredTeachers } = useSearch(
 const stats = computed(() => {
   const all = teachers.value
   const active = all.filter(t => (t.status || 'active').toLowerCase() === 'active')
-  
+
   return [
     {
       label: 'Faculty Strength',
@@ -127,29 +127,22 @@ const handleDelete = async (teacher) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Faculty & Personnel Management">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in stats" :key="stat.label" v-bind="stat" />
         </div>
       </template>
 
       <template #table>
-        <DataTable
-          title="Academic Faculty Registry"
-          :headers="headers"
-          :items="filteredTeachers"
-          :loading="loading"
-          searchPlaceholder="Search by name, email or specialization..."
-          :hasFilter="true"
-          v-model:searchQuery="searchQuery"
-          v-model:currentFilter="currentFilter"
-          :filterOptions="[
+        <DataTable title="Academic Faculty Registry" :headers="headers" :items="filteredTeachers" :loading="loading"
+          searchPlaceholder="Search by name, email or specialization..." :hasFilter="true"
+          v-model:searchQuery="searchQuery" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Faculty', value: 'all' },
             { label: 'Active Duty', value: 'active' },
             { label: 'Inactive / Leave', value: 'inactive' },
-          ]"
-        >
+          ]">
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openModal('add')">
+            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
+              @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-black tracking-tight">Onboard Faculty</span>
             </AppButton>
@@ -157,28 +150,34 @@ const handleDelete = async (teacher) => {
 
           <template #row="{ item, headers }">
             <td class="ui-cell">
-               <div class="flex items-center gap-4 group cursor-pointer">
-                  <div class="w-12 h-12 rounded-2xl bg-surface-subtle border border-outline-std overflow-hidden flex items-center justify-center">
-                     <span class="text-lg font-black text-primary opacity-40">{{ item.name.charAt(0) }}</span>
-                  </div>
-                  <div class="flex flex-col">
-                    <span class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tight text-base leading-tight">{{ item.name }}</span>
-                    <span class="text-[10px] font-black text-content-muted uppercase tracking-widest mt-0.5">Faculty Member</span>
-                  </div>
-               </div>
+              <div class="flex items-center gap-4 group cursor-pointer">
+                <div
+                  class="w-12 h-12 rounded-2xl bg-surface-subtle border border-outline-std overflow-hidden flex items-center justify-center">
+                  <span class="text-lg font-black text-primary opacity-40">{{ item.name.charAt(0) }}</span>
+                </div>
+                <div class="flex flex-col">
+                  <span
+                    class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tight text-base leading-tight">{{
+                    item.name }}</span>
+                  <span class="text-[10px] font-black text-content-muted uppercase tracking-widest mt-0.5">Faculty
+                    Member</span>
+                </div>
+              </div>
             </td>
 
             <td class="ui-cell hidden sm:table-cell">
-               <div class="inline-flex px-3 py-1 rounded-lg bg-primary/5 border border-primary/10">
-                  <span class="text-xs font-black text-primary tracking-tight uppercase">{{ item.specialization || 'Generalist' }}</span>
-               </div>
+              <div class="inline-flex px-3 py-1 rounded-lg bg-primary/5 border border-primary/10">
+                <span class="text-xs font-black text-primary tracking-tight uppercase">{{ item.specialization ||
+                  'Generalist' }}</span>
+              </div>
             </td>
 
             <td class="ui-cell hidden md:table-cell">
-               <div class="flex flex-col">
-                  <span class="text-xs font-bold text-content-dark">{{ item.email }}</span>
-                  <span class="text-[9px] font-black text-content-muted uppercase tracking-tighter mt-1">{{ item.phone || 'No Contact' }}</span>
-               </div>
+              <div class="flex flex-col">
+                <span class="text-xs font-bold text-content-dark">{{ item.email }}</span>
+                <span class="text-[9px] font-black text-content-muted uppercase tracking-tighter mt-1">{{ item.phone ||
+                  'No Contact' }}</span>
+              </div>
             </td>
 
             <td class="ui-cell text-center">
@@ -187,11 +186,14 @@ const handleDelete = async (teacher) => {
 
             <td class="ui-cell text-center">
               <div class="flex items-center justify-center gap-2">
-                <button @click="openModal('edit', item)" class="p-2 hover:bg-surface-subtle rounded-xl transition-all group">
-                   <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                <button @click="openModal('edit', item)"
+                  class="p-2 hover:bg-surface-subtle rounded-xl transition-all group">
+                  <img :src="getActionIcon('edit')"
+                    class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                 </button>
                 <button @click="handleDelete(item)" class="p-2 hover:bg-red-50 rounded-xl transition-all group">
-                   <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity filter-red" />
+                  <img :src="getActionIcon('delete')"
+                    class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity filter-red" />
                 </button>
               </div>
             </td>
@@ -200,13 +202,7 @@ const handleDelete = async (teacher) => {
       </template>
     </DataPageLayout>
 
-    <TeacherActionModal
-      :isOpen="isModalOpen"
-      :type="modalType"
-      :teacher="selectedTeacher"
-      :loading="submitting"
-      @close="isModalOpen = false"
-      @submit="handleSubmit"
-    />
+    <TeacherActionModal :isOpen="isModalOpen" :type="modalType" :teacher="selectedTeacher" :loading="submitting"
+      @close="isModalOpen = false" @submit="handleSubmit" />
   </DashboardLayout>
 </template>
