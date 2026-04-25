@@ -1,5 +1,6 @@
 <script setup>
 import { getActionIcon } from '@/utils/assetHelper'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
 
 defineProps({
   show: {
@@ -19,6 +20,14 @@ defineProps({
     default: '',
   },
   maxWidth: {
+    type: String,
+    default: '',
+  },
+  error: {
+    type: String,
+    default: '',
+  },
+  success: {
     type: String,
     default: '',
   },
@@ -66,6 +75,12 @@ defineEmits(['close'])
           <!-- Content Area -->
           <div class="p-md sm:p-xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto bg-white scrollable-v">
             <slot></slot>
+          </div>
+
+          <!-- Sticky Alerts -->
+          <div v-if="error || success" class="px-md sm:px-xl py-4 bg-white border-t border-surface-light shrink-0">
+            <AppAlert v-if="error" type="error" :message="error" class="mb-2 last:mb-0" />
+            <AppAlert v-if="success" type="success" :message="success" class="mb-2 last:mb-0" />
           </div>
 
           <!-- Footer -->

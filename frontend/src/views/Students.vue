@@ -126,7 +126,6 @@ const studentHeaders = [
   { label: 'Fullname' },
   { label: 'Parent', class: 'hidden md:table-cell' },
   { label: 'Program', class: 'hidden lg:table-cell', width: '150px' },
-  { label: 'Medical Note', class: 'hidden lg:table-cell' },
   { label: 'Status', align: 'center', width: '120px' },
   { label: 'Joined Date', class: 'hidden lg:table-cell', width: '150px', align: 'center' },
   { label: 'Action', width: '80px', align: 'center' },
@@ -161,7 +160,7 @@ const handleRegisterStudent = async (formData) => {
   modalSuccess.value = ''
 
   try {
-    const { parentId, name, dob, profileURL, medicalNote } = formData
+    const { parentId, name, dob, profileURL } = formData
     if (!parentId) throw new Error('No parent selected')
 
     const finalProfile = await processStudentProfileImage(profileURL, name)
@@ -170,7 +169,6 @@ const handleRegisterStudent = async (formData) => {
       name,
       dob,
       profileURL: finalProfile,
-      medicalNote,
       status: 'Inactive',
       parentId,
     })
@@ -231,7 +229,7 @@ const openActionModal = async (type, studentItem) => {
 
 const submitActionModal = async (formData) => {
   const { type, student } = actionModal.value
-  const { name, medicalNote, status, parentId, dob, profileURL } = formData
+  const { name, status, parentId, dob, profileURL } = formData
   modalLoading.value = true
   modalError.value = ''
   modalSuccess.value = ''
@@ -243,12 +241,9 @@ const submitActionModal = async (formData) => {
         name,
         dob,
         profileURL: finalProfile,
-        medicalNote,
         status,
         parentId,
       })
-
-      await studentService.updateMedicalInfo(student.id, medicalNote)
       await studentService.updateStudent(student.id, payload)
       newlyCreatedId.value = student.id
       modalSuccess.value = 'Student profile updated successfully!'
@@ -373,7 +368,7 @@ const submitActionModal = async (formData) => {
                     class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tight text-base">{{
                       item.name }}</span>
                   <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.id.slice(-6)
-                  }}</span>
+                    }}</span>
                 </div>
               </div>
             </td>
@@ -409,15 +404,6 @@ const submitActionModal = async (formData) => {
                 <span v-else class="text-[10px] font-bold text-content-muted/40 uppercase italic tracking-widest">— No
                   Programs —</span>
               </div>
-            </td>
-
-            <!-- Medical -->
-            <td class="ui-cell hidden lg:table-cell max-w-[150px]">
-              <span v-if="item.medicalNote && item.medicalNote !== 'None'"
-                class="text-[10px] font-bold text-error bg-error-soft/30 px-2 py-0.5 rounded-md border border-error/5">
-                {{ item.medicalNote }}
-              </span>
-              <span v-else class="text-[10px] font-bold text-content-muted/30 uppercase italic tracking-widest">—</span>
             </td>
 
             <!-- Status -->

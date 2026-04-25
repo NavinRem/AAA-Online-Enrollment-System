@@ -12,7 +12,6 @@ In modern web development, especially when working with Document Databases like 
 In our Enrollment System, many updates are partial by nature:
 
 - Changing only the `status` of a program.
-- Updating a student's `medicalNote` without affecting their enrollment history.
 - Modifying a program `price` without resetting the schedule.
 
 Standardizing on `PATCH` ensures that we don't accidentally wipe out data that wasn't included in a specific edit form.

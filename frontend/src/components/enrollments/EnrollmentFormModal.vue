@@ -226,15 +226,6 @@ const classSelectItems = computed(() =>
 )
 
 const handleFinalSubmit = () => {
-  const isValid = validate({
-    required: requiredFields.value,
-  })
-
-  if (!isValid || (isEditMode.value && !isChanged.value)) return
-
-  // Calculate values for backend
-  const basePrice = selectedProgram.value?.basePrice || 0
-  let calculatedDiscount = parseFloat(form.discountAmount || 0)
   if (form.discountType === 'percent') {
     calculatedDiscount = (basePrice * calculatedDiscount) / 100
   }
@@ -260,10 +251,6 @@ const handleFinalSubmit = () => {
     remark: form.remark || '',
   }
 
-  if (isEditMode.value) {
-    payload.id = props.enrollment.id
-  }
-
   emit('submit', payload)
   clearError()
 }
@@ -281,7 +268,8 @@ const requestConfirm = () => {
   }
 
   if (isEditMode.value && !isChanged.value) {
-    triggerShake()
+    errors.remark = 'No changes detected. Please update at least one field.'
+    triggerShake('remark')
     return
   }
 
@@ -368,7 +356,7 @@ watch(
 <template>
   <AppModal :show="isOpen" @close="$emit('close')"
     :title="isEditMode ? 'Edit Enrollment Record' : 'Create New Enrollment'"
-    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')">
+    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')" :error="error" :success="success">
     <form id="enrollmentForm" novalidate @submit.prevent="validateAndSubmit" class="enroll-form-root">
       <div class="ui-form-grid">
         <!-- Parent Selection -->
@@ -600,13 +588,23 @@ watch(
         </div>
       </transition>
 
-      <!-- Submit Row — Cancel + Create/Confirm -->
-      <div class="enroll-submit-row">
-        <div v-if="hasAnyError" class="enroll-submit-error-summary">
-          <span class="enroll-submit-error-icon">⚠</span>
-          Please fill in all required fields before submitting.
+      <!-- ── Reusable Confirmation Overlay ── -->
+      <AppConfirmOverlay :show="showConfirm"
+        :title="isEditMode ? 'Confirm Enrollment Changes' : 'Confirm Enrollment Details'"
+        subtitle="Please review carefully before submitting. This action cannot be easily undone."
+        :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows" :totalAmount="finalAmount"
+        totalLabel="Price to Pay" :confirmLabel="isEditMode ? 'Confirm Changes' : 'Confirm & Submit'" :loading="loading"
+        @back="showConfirm = false" @confirm="handleFinalSubmit" />
+    </form>
+
+    <template #footer>
+      <div class="flex items-center justify-between w-full">
+        <div>
+          <div v-if="hasAnyError" class="text-error font-bold text-sm flex items-center gap-2">
+            <span>⚠</span> Please resolve highlighted issues.
+          </div>
         </div>
-        <div class="enroll-submit-actions">
+        <div class="flex items-center gap-3">
           <button type="button" class="ui-btn-cancel" @click="$emit('close')">
             Cancel
           </button>
@@ -617,15 +615,7 @@ watch(
           </AppButton>
         </div>
       </div>
-
-      <!-- ── Reusable Confirmation Overlay ── -->
-      <AppConfirmOverlay :show="showConfirm"
-        :title="isEditMode ? 'Confirm Enrollment Changes' : 'Confirm Enrollment Details'"
-        subtitle="Please review carefully before submitting. This action cannot be easily undone."
-        :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows" :totalAmount="finalAmount"
-        totalLabel="Price to Pay" :confirmLabel="isEditMode ? 'Confirm Changes' : 'Confirm & Submit'" :loading="loading"
-        @back="showConfirm = false" @confirm="handleFinalSubmit" />
-    </form>
+    </template>
   </AppModal>
 </template>
 

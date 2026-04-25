@@ -316,7 +316,7 @@ const handleOpenRegisterStudent = (parentId) => {
 const handleRegisterStudent = async (formData) => {
   childRegistrationModal.value.loading = true
   try {
-    const { parentId, name, dob, profile, medicalNote } = formData
+    const { parentId, name, dob, profile } = formData
     let finalProfile = profile
     if (profile && profile.includes('/profiles/temp/')) {
       const extension = profile.split('?')[0].split('.').pop()
@@ -328,7 +328,6 @@ const handleRegisterStudent = async (formData) => {
       name,
       dob,
       profile: finalProfile,
-      medicalNote,
       status: 'Inactive',
     })
     childRegistrationModal.value.success = 'Student registered successfully!'

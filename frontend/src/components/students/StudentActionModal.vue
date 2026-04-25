@@ -25,7 +25,6 @@ const getInitialData = () => ({
   name: '',
   dob: '',
   profileURL: '',
-  medicalNote: 'None',
   status: 'Studying',
   deleteConfirm: '',
   overrideRemark: '',
@@ -37,7 +36,6 @@ const mapSourceToForm = () => {
     name: source.name || '',
     dob: source.dob || '',
     profileURL: source.profileURL || '',
-    medicalNote: source.medicalNote || 'None',
     status: source.status || 'Studying',
     deleteConfirm: '',
     overrideRemark: source.overrideRemark || '',
@@ -172,29 +170,6 @@ watch(
 
         <AppInput v-model="localData.dob" type="date" label="Date of Birth" required :error="errors.dob"
           :shake="shaking.dob" :disabled="type !== 'edit'" @input="clearError('dob')" />
-
-        <div class="flex flex-col gap-xs mb-md col-span-2">
-          <label class="text-sm font-semibold text-content-dark">Medical Notes / Allergies
-            <span class="text-2xs font-bold text-content-muted ml-sm uppercase opacity-60"
-              v-if="originalData.medicalNote">Original: {{ originalData.medicalNote }}</span>
-          </label>
-          <textarea v-model="localData.medicalNote" placeholder="e.g. Nut allergy, ADHD..." rows="2"
-            class="ui-remark-textarea" :class="{
-              'border-error bg-error-soft ring-error/10': errors.medicalNote,
-              'animate-shake': shaking.medicalNote,
-            }" :disabled="type !== 'edit'"></textarea>
-          <div v-if="errors.medicalNote" class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest">
-            {{ errors.medicalNote }}
-          </div>
-          <div class="ui-preset-bar" v-if="type === 'edit'">
-            <button v-for="preset in ['None', 'G6PD', 'ADHD', 'Asthma']" :key="preset" type="button"
-              class="ui-preset-btn" :class="{
-                'ui-preset-btn-hover': isPresetActive('medicalNote', preset),
-              }" @click="togglePreset('medicalNote', preset)">
-              {{ preset }}
-            </button>
-          </div>
-        </div>
 
         <AppSelect v-model="localData.status" label="Account Status" :items="[
           { id: 'Studying', name: 'Studying' },

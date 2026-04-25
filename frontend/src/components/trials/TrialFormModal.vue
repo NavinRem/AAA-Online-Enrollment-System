@@ -171,14 +171,15 @@ const handleSubmit = () => {
   })
 
   if (!isValid) {
-    Object.keys(errors).forEach(key => {
+    Object.keys(errors).forEach((key) => {
       if (errors[key]) triggerShake(key)
     })
     return
   }
 
   if (isEditMode.value && !isChanged.value) {
-    triggerShake()
+    errors.remark = 'No changes detected. Please update at least one field.'
+    triggerShake('remark')
     return
   }
 
@@ -190,11 +191,6 @@ const handleFinalSubmit = () => {
     ...form,
     trialType: form.isGuest ? 'walk-in' : 'booked'
   }
-
-  if (isEditMode.value) {
-    payload.id = props.trial.id
-  }
-
   emit('submit', payload)
   showConfirm.value = false
 }
@@ -262,7 +258,7 @@ watch(() => form.guestStudentDOB, (dob) => {
 <template>
   <AppModal :show="isOpen" @close="$emit('close')"
     :title="isEditMode ? 'Modify Trial Engagement' : 'Book New Trial Session'"
-    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')">
+    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')" :error="error" :success="success">
     <form @submit.prevent="handleSubmit" class="enroll-form-root">
 
       <!-- Engagement Mode Toggle -->
@@ -426,32 +422,33 @@ watch(() => form.guestStudentDOB, (dob) => {
         </div>
       </transition>
 
-      <!-- Submit Row -->
-      <div class="enroll-submit-row">
-        <div v-if="hasAnyError" class="enroll-submit-error-summary">
-          <span class="enroll-submit-error-icon">⚠</span>
-          Please resolve the highlighted issues before proceeding.
+      <!-- Confirmation Overlay -->
+      <AppConfirmOverlay :show="showConfirm" :title="isEditMode ? 'Confirm Trial Changes' : 'Confirm Trial Booking'"
+        subtitle="Please review trial details carefully before confirming."
+        :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows"
+        :confirmLabel="isEditMode ? 'Edit Trial' : 'Create Trial'" :loading="loading" @back="showConfirm = false"
+        @confirm="handleFinalSubmit" />
+    </form>
+
+    <template #footer>
+      <div class="flex items-center justify-between w-full">
+        <div>
+          <div v-if="hasAnyError" class="text-error font-bold text-sm flex items-center gap-2">
+            <span>⚠</span> Please resolve highlighted issues.
+          </div>
         </div>
-        <div class="enroll-submit-actions">
+        <div class="flex items-center gap-3">
           <button type="button" class="ui-btn-cancel" @click="$emit('close')">
             Cancel
           </button>
           <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium" :disabled="loading"
             :class="{ 'opacity-50 grayscale-[0.3]': !isSubmittable || (isEditMode && !isChanged) }"
             @click="handleSubmit">
-            {{ isEditMode ? 'Update Trial Entry' : 'Confirm Trial Booking' }}
+            {{ isEditMode ? 'Edit Trial' : 'Create Trial' }}
           </AppButton>
         </div>
       </div>
-
-      <!-- Confirmation Overlay -->
-      <AppConfirmOverlay :show="showConfirm"
-        :title="isEditMode ? 'Confirm Trial Changes' : 'Confirm Trial Booking'"
-        subtitle="Please review trial details carefully before confirming."
-        :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows"
-        :confirmLabel="isEditMode ? 'Update Trial' : 'Confirm Booking'" :loading="loading" @back="showConfirm = false"
-        @confirm="handleFinalSubmit" />
-    </form>
+    </template>
   </AppModal>
 </template>
 

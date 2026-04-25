@@ -304,7 +304,7 @@ const handleSaveBranch = async (formData) => {
       </template>
 
       <template #table>
-        <DataTable title="Branch lists" :headers="branchHeaders" :items="paginatedBranches" :loading="loading"
+        <DataTable title="Branch Lists" :headers="branchHeaders" :items="paginatedBranches" :loading="loading"
           entityName="branch" :flexible="true" :rowClass="getRowClass" :hasSearch="true"
           v-model:searchQuery="searchQuery" searchPlaceholder="Search something..." :hasPagination="true"
           :totalItems="totalItems" :pageSize="pageSize" v-model:currentPage="currentPage" @action="handleTableAction">
@@ -369,12 +369,12 @@ const handleSaveBranch = async (formData) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[9].width }">
               <span class="text-sm font-black text-emerald-600 tabular-nums">${{ formatPrice(getBranchRevenue(item.id))
-              }}</span>
+                }}</span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[10].width }">
               <span class="text-sm font-black text-amber-600 tabular-nums">${{ formatPrice(getPendingRevenue(item.id))
-              }}</span>
+                }}</span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[11].width }">

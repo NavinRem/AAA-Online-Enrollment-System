@@ -36,9 +36,8 @@ const getInitialData = () => ({
   status: 'Active',
   profileURL: '',
   deleteConfirm: '',
-  parentId: props.user?.uid || '',
+  parentId: props.user?.id,
   dob: '',
-  medicalNote: '',
 })
 
 const mapSourceToForm = () => {
@@ -48,9 +47,8 @@ const mapSourceToForm = () => {
   if (props.type === 'plus') {
     return {
       ...base,
-      parentId: u.uid || '',
+      parentId: u.id,
       profileURL: '',
-      medicalNote: '',
     }
   }
 
@@ -155,23 +153,23 @@ const parentThemeClasses = computed(() => {
 
 const modalTitle = computed(() => {
   const titles = {
-    edit: 'Engineer Parent Profile',
-    deactivate: 'Authorize Account Suspension',
-    activate: 'Authorize Account Restoration',
-    delete: 'Critical: Record Purge',
-    plus: 'Initialize Student Registry',
-    'reset-password': 'Initialize Recovery Protocol',
+    edit: 'Edit the Parent Info',
+    deactivate: 'Deactivate the Parent Account',
+    activate: 'Activate the Parent Account',
+    delete: 'Delete the Parent Info',
+    plus: 'Add New Child',
+    'reset-password': 'Reset the Parent Account Password',
   }
   return titles[props.type] || 'Parental Administration'
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'plus') return 'Authorize Registry'
-  if (props.type === 'deactivate') return 'Execute Suspension'
-  if (props.type === 'activate') return 'Execute Restoration'
-  if (props.type === 'edit') return 'Commit Profile'
-  if (props.type === 'delete') return 'Force Delete Record'
-  if (props.type === 'reset-password') return 'Execute Recovery'
+  if (props.type === 'plus') return 'Add New Child'
+  if (props.type === 'deactivate') return 'Deactivate Account'
+  if (props.type === 'activate') return 'Activate Account'
+  if (props.type === 'edit') return 'Update Profile'
+  if (props.type === 'delete') return 'Delete Profile'
+  if (props.type === 'reset-password') return 'Reset Password'
   return 'Confirm'
 })
 
@@ -186,34 +184,9 @@ const { searchResults: filteredParents } = useSearch(activeParents, parentSearch
 
 const selectedParent = computed(() => {
   if (!localData.parentId) return null
-  if (props.user && props.user.uid === localData.parentId) return props.user
-  return props.selectableParents?.find((p) => p.uid === localData.parentId)
+  if (props.user && (props.user.id === localData.parentId)) return props.user
+  return props.selectableParents?.find((p) => p.id === localData.parentId)
 })
-
-const togglePreset = (field, chipValue) => {
-  const currentText = localData[field] || ''
-  let values = currentText
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)
-  if (values.includes(chipValue)) {
-    values = values.filter((v) => v !== chipValue)
-  } else {
-    if (chipValue === 'None') values = ['None']
-    else {
-      values = values.filter((v) => v !== 'None')
-      values.push(chipValue)
-    }
-  }
-  localData[field] = values.join(', ')
-}
-
-const isPresetActive = (field, chipValue) => {
-  return (localData[field] || '')
-    .split(',')
-    .map((v) => v.trim())
-    .includes(chipValue)
-}
 
 const handleDisabledClick = (field) => {
   if (field === 'childInfo' && !props.user && !localData.parentId) {
@@ -234,7 +207,8 @@ watch(
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="getActionIcon(type)">
+  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="getActionIcon(type)"
+    :error="error" :success="success">
     <!-- Identity Banner -->
     <div v-if="selectedParent && type !== 'edit' && type !== 'delete'" class="ui-identity-banner"
       :class="parentThemeClasses">
@@ -267,7 +241,7 @@ watch(
         <div class="flex flex-col gap-xs col-span-2 sm:col-span-1">
           <label class="text-xs font-black uppercase text-content-muted tracking-widest">Avatar Signature <span
               class="text-error">*</span></label>
-          <AvatarSelector v-model="localData.profileURL" :role="localData.role" :uid="user?.uid"
+          <AvatarSelector v-model="localData.profileURL" :role="localData.role" :uid="user?.id"
             :customFileName="`${localData.name}_${localData.role}`" :error="errors.profileURL"
             :shake="shaking.profileURL" />
         </div>
@@ -276,16 +250,16 @@ watch(
       <!-- Register Child Form -->
       <div v-if="type === 'plus'" class="flex flex-col gap-lg">
         <AppSelect v-if="!user && selectableParents && selectableParents.length > 0" v-model="localData.parentId"
-          :items="filteredParents.map((p) => ({ id: p.uid, name: p.name, profileURL: p.profileURL }))"
-          label="Link to Parent Registry" placeholder="Search parent database..." required :error="errors.parentId"
+          :items="filteredParents.map((p) => ({ id: p.id, name: p.name, profileURL: p.profileURL }))"
+          label="Link to Parent Registry" placeholder="Search Parent" required :error="errors.parentId"
           :shake="shaking.parentId" @change="clearError('parentId')" />
 
         <div class="ui-form-grid">
-          <AppInput v-model="localData.name" label="Student Full Name" placeholder="Full name of student" required
+          <AppInput v-model="localData.name" label="Student Full Name" placeholder="Enter Student Name" required
             :disabled="!user && !localData.parentId" :error="errors.name" :shake="shaking.name"
             @input="clearError('name')" @click-disabled="handleDisabledClick('childInfo')" />
 
-          <AppInput v-model="localData.dob" type="date" label="Birth Registry Date" required
+          <AppInput v-model="localData.dob" type="date" label="Student Birthday" required
             :disabled="!user && !localData.parentId" :error="errors.dob" :shake="shaking.dob" @input="clearError('dob')"
             @click-disabled="handleDisabledClick('childInfo')" />
 
@@ -296,34 +270,6 @@ watch(
               :customFileName="`${localData.name}_student` || ''" :disabled="!user && !localData.parentId"
               :error="errors.profileURL" :shake="shaking.profileURL"
               @click-disabled="handleDisabledClick('childInfo')" />
-          </div>
-
-          <div class="flex flex-col gap-xs col-span-2 mt-sm">
-            <label class="text-xs font-black uppercase text-content-muted tracking-widest">Medical & Behavioral
-              Synopsis</label>
-            <textarea v-model="localData.medicalNote"
-              placeholder="List any allergies, requirements, or pedagogical notes..." rows="3"
-              class="ui-remark-textarea" :class="{
-                'border-error bg-error-soft ring-error/10': errors.medicalNote,
-                'animate-shake': shaking.medicalNote,
-              }" :disabled="!user && !localData.parentId"></textarea>
-            <!-- Wrapper for textarea click detection since it's not an AppInput -->
-            <div v-if="!user && !localData.parentId" class="absolute inset-0 z-10 cursor-not-allowed"
-              @click="handleDisabledClick('childInfo')"></div>
-            <div v-if="errors.medicalNote" class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest">
-              {{ errors.medicalNote }}
-            </div>
-            <div class="ui-preset-bar">
-              <button v-for="preset in ['None', 'G6PD', 'ADHD', 'Dyslexia', 'Asthma', 'Vision']" :key="preset"
-                type="button" class="ui-preset-btn" :class="{
-                  'ui-preset-btn-hover': isPresetActive(
-                    'medicalNote',
-                    preset,
-                  ),
-                }" @click="togglePreset('medicalNote', preset)">
-                {{ preset }}
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -357,22 +303,28 @@ watch(
         v-if="selectedParent">
         <div class="grid grid-cols-2 gap-x-xl gap-y-md">
           <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Legal Entity</span>
+            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Parent Name</span>
             <div class="flex items-center gap-sm">
               <img :src="selectedParent.profileURL" class="w-8 h-8 rounded-full border border-white shadow-sm" />
               <span class="text-sm font-black text-content-dark tracking-tight">{{
                 selectedParent.name
-                }}</span>
+              }}</span>
             </div>
           </div>
           <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Communication Channel</span>
+            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Contact Email</span>
             <span class="text-sm text-content-dark font-bold truncate">{{
               selectedParent.email
               }}</span>
           </div>
           <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Current Status</span>
+            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Contact Phone</span>
+            <span class="text-sm text-content-dark font-bold truncate">{{
+              selectedParent.phone
+              }}</span>
+          </div>
+          <div class="flex flex-col gap-xs">
+            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Account Status</span>
             <div class="w-fit">
               <AppBadge :status="selectedParent.status" />
             </div>
@@ -382,19 +334,19 @@ watch(
 
       <AppAlert type="error">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-sm font-black uppercase tracking-tight">Critical Record Purge</strong>
+          <strong class="text-sm font-black uppercase tracking-tight">Critical Record Delete</strong>
           <span class="text-xs opacity-90 font-medium leading-relaxed">This action is destructive and irreversible. All
             linked historical data, billing
             cycles, and child relations will be severed.</span>
         </div>
       </AppAlert>
 
-      <AppInput v-model="localData.deleteConfirm" label="Authorization Required" placeholder="AUTHORIZE PURGE" required
+      <AppInput v-model="localData.deleteConfirm" label="Enter 'DELETE' to confirm" placeholder="DELETE" required
         class="text-center" :error="errors.deleteConfirm" :shake="shaking.deleteConfirm"
         @input="clearError('deleteConfirm')">
         <template #label-extra>
           <span class="block text-2xs font-black uppercase text-content-muted/40 text-center mt-1">
-            Type <span class="text-error px-1">DELETE</span> to authorize record destruction
+            Type <span class="text-error px-1">DELETE</span> to authorize record deletion
           </span>
         </template>
       </AppInput>
@@ -413,8 +365,8 @@ watch(
 
       <div class="grid grid-cols-2 gap-md">
         <div class="parent-reset-card group" :class="selectedResetMode === 'email'
-            ? 'parent-reset-card--email-active'
-            : 'parent-reset-card--inactive'
+          ? 'parent-reset-card--email-active'
+          : 'parent-reset-card--inactive'
           " @click="selectedResetMode = 'email'">
           <div class="parent-reset-icon parent-reset-icon--email">
             <img :src="getActionIcon('email')" class="w-5 h-5 opacity-80" />
@@ -432,8 +384,8 @@ watch(
         </div>
 
         <div class="parent-reset-card group" :class="selectedResetMode === 'manual'
-            ? 'parent-reset-card--manual-active'
-            : 'parent-reset-card--inactive'
+          ? 'parent-reset-card--manual-active'
+          : 'parent-reset-card--inactive'
           " @click="selectedResetMode = 'manual'">
           <div class="parent-reset-icon parent-reset-icon--manual">
             <img :src="getActionIcon('edit')" class="w-5 h-5 opacity-80" />
@@ -468,15 +420,8 @@ watch(
     <!-- Footer -->
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
-        <AppAlert v-if="error" type="error" closable @close="$emit('update:error', '')" class="w-full">
-          {{ error }}
-        </AppAlert>
-        <AppAlert v-if="success" type="success" closable @close="$emit('update:success', '')" class="w-full">
-          {{ success }}
-        </AppAlert>
-
         <div class="flex items-center justify-end w-full gap-md">
-          <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success">Abort Action</AppButton>
+          <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success">Cancel</AppButton>
           <AppButton :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
             :form="type === 'edit' || type === 'plus' ? 'parentActionForm' : null" type="submit"
             @click="!(type === 'edit' || type === 'plus') ? handleActionSubmit() : null" :loading="loading"
@@ -493,11 +438,11 @@ watch(
 
 <style scoped>
 .parent-identity-email {
-  @apply text-xs font-black uppercase text-content-muted opacity-60 tracking-widest;
+  @apply text-sm font-black text-content-muted opacity-60;
 }
 
 .parent-identity-phone {
-  @apply px-2 py-0.5 bg-white/40 text-3xs font-black uppercase rounded-full shadow-sm;
+  @apply px-2 py-0.5 bg-white/40 text-sm font-bold rounded-full shadow-sm;
 }
 
 .parent-reset-card {

@@ -183,7 +183,7 @@ const modalIcon = computed(() => {
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="modalIcon">
+  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="modalIcon" :error="error" :success="success">
     <form id="enrollmentActionForm" @submit.prevent="requestConfirm" novalidate>
       <!-- Content for Pay Action -->
       <div v-if="type === 'pay'" class="flex flex-col gap-lg">

@@ -19,7 +19,7 @@ class AuthService {
     } = userData
     delete businessData.role
 
-    const validatedData = this.validateByRole(targetRole, businessData)
+    const validatedData = this.validateByRole(targetRole, { email: providedEmail, ...businessData })
 
     let id = providedId
     let email = providedEmail

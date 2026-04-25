@@ -38,7 +38,6 @@ This document provides a detailed breakdown of each file in `src/services/` and 
 
 - **Theory**: Handles the relationship between users.
   - **Parent-Student Link**: Knows how to fetch students belonging to a specific parent.
-  - **Medical Info**: Specifically handles the sensitive updates to student medical notes.
 
 ### 5. `courseService.js` (Academic Catalog)
 

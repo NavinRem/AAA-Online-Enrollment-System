@@ -56,7 +56,22 @@ export const hasPaidToday = (parentId, enrollments = [], todayStart) => {
   }
 }
 
-export const calculateParentStats = (parents = [], enrollments = []) => {
+export const hasTrialToday = (parentId, trials = [], todayStart) => {
+  try {
+    return trials.some((t) => {
+      if (t.parentId !== parentId) return false
+      const trialDate = t.trialDate
+      if (!trialDate) return false
+      const date = new Date(trialDate).getTime()
+      return date >= todayStart && date < todayStart + 86400000
+    })
+  } catch (error) {
+    console.error('Error checking if parent has trial today:', error)
+    return false
+  }
+}
+
+export const calculateParentStats = (parents = [], enrollments = [], trials = []) => {
   const now = new Date()
   const todayStart = new Date(now.setHours(0, 0, 0, 0)).getTime()
 
@@ -64,18 +79,20 @@ export const calculateParentStats = (parents = [], enrollments = []) => {
     parentCount: parents.length,
     todayCount: parents.filter((p) => isRegisteredToday(p, todayStart)).length,
     paidTodayCount: parents.filter((p) => hasPaidToday(p.id, enrollments, todayStart)).length,
-    activeCount: parents.filter((p) => isActiveParent(p)).length,
+    trialTodayCount: parents.filter((p) => hasTrialToday(p.id, trials, todayStart)).length,
   }
 }
 
-export const filterParents = (parents = [], enrollments = [], filterType = 'all') => {
-  const todayStart = new Date().setHours(0, 0, 0, 0)
+export const filterParents = (parents = [], enrollments = [], trials = [], filterType = 'all') => {
+  const now = new Date()
+  const todayStart = new Date(now.setHours(0, 0, 0, 0)).getTime()
 
   const strategies = {
     active: (p) => isActiveParent(p),
     inactive: (p) => !isActiveParent(p),
     'registered-today': (p) => isRegisteredToday(p, todayStart),
     'paid-today': (p) => hasPaidToday(p.id, enrollments, todayStart),
+    'trial-today': (p) => hasTrialToday(p.id, trials, todayStart),
   }
 
   const filterFn = strategies[filterType]
@@ -111,6 +128,6 @@ export const prepareParentPayload = (data) => {
     email: data.email?.trim(),
     phone: data.phone?.trim(),
     profileURL: data.profileURL,
-    status: data.status || 'Active',
+    status: (data.status || 'active').toLowerCase(),
   }
 }

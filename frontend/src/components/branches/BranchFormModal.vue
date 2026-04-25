@@ -68,9 +68,15 @@ const handleSubmit = () => {
   })
 
   if (!isValid) {
-    Object.keys(errors).forEach(key => {
+    Object.keys(errors).forEach((key) => {
       if (errors[key]) triggerShake(key)
     })
+    return
+  }
+
+  if (isEditMode.value && !isChanged.value) {
+    errors.name = 'No changes detected. Please update at least one field.'
+    triggerShake('name')
     return
   }
 
@@ -79,9 +85,6 @@ const handleSubmit = () => {
 
 const handleFinalSubmit = () => {
   const payload = { ...form }
-  if (isEditMode.value) {
-    payload.id = props.branch.id
-  }
   emit('submit', payload)
   showConfirm.value = false
 }
@@ -118,7 +121,7 @@ watch(
 
 <template>
   <AppModal :show="isOpen" @close="$emit('close')" :title="isEditMode ? 'Edit branch' : 'Create New branch'"
-    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')">
+    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')" :error="error" :success="success">
     <form @submit.prevent="handleSubmit" class="enroll-form-root">
 
       <div class="ui-form-grid">
@@ -196,30 +199,32 @@ watch(
         </div>
       </transition>
 
-      <!-- Submit Row -->
-      <div class="enroll-submit-row">
-        <div v-if="hasAnyError" class="enroll-submit-error-summary">
-          <span class="enroll-submit-error-icon">⚠</span>
-          Please resolve the highlighted issues before proceeding.
+      <!-- Confirmation Overlay -->
+      <AppConfirmOverlay :show="showConfirm"
+        :title="isEditMode ? 'Confirm Entity Update' : 'Confirm branch Establishment'"
+        subtitle="Ensure all logistical details are correct before proceeding." :icon="getImageUrl('dashboard/branch')"
+        :rows="confirmRows" :confirmLabel="isEditMode ? 'Update Branch' : 'Create Branch'" :loading="loading"
+        @back="showConfirm = false" @confirm="handleFinalSubmit" />
+    </form>
+
+    <template #footer>
+      <div class="flex items-center justify-between w-full">
+        <div>
+          <div v-if="hasAnyError" class="text-error font-bold text-sm flex items-center gap-2">
+            <span>⚠</span> Please resolve highlighted issues.
+          </div>
         </div>
-        <div class="enroll-submit-actions">
+        <div class="flex items-center gap-3">
           <button type="button" class="ui-btn-cancel" @click="$emit('close')">
             Cancel
           </button>
           <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium" :disabled="loading"
             :class="{ 'opacity-50 grayscale-[0.3]': !isSubmittable }" @click="handleSubmit">
-            {{ isEditMode ? 'Update branch' : 'Create branch' }}
+            {{ isEditMode ? 'Update Branch' : 'Create Branch' }}
           </AppButton>
         </div>
       </div>
-
-      <!-- Confirmation Overlay -->
-      <AppConfirmOverlay :show="showConfirm"
-        :title="isEditMode ? 'Confirm Entity Update' : 'Confirm branch Establishment'"
-        subtitle="Ensure all logistical details are correct before proceeding." :icon="getImageUrl('dashboard/branch')"
-        :rows="confirmRows" :confirmLabel="isEditMode ? 'Update' : 'Create'" :loading="loading"
-        @back="showConfirm = false" @confirm="handleFinalSubmit" />
-    </form>
+    </template>
   </AppModal>
 </template>
 

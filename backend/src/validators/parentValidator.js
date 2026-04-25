@@ -1,6 +1,6 @@
 function validateParent(parentData) {
   const allowedFields = [
-    'studentId',
+    'childrenInfo',
     'name',
     'email',
     'phone',
@@ -14,7 +14,7 @@ function validateParent(parentData) {
     }
   })
 
-  const studentId = parentData.studentId
+  const childrenInfo = parentData.childrenInfo || []
   const name = parentData.name?.trim()
   const email = parentData.email?.trim()
   const phone = parentData.phone?.trim()
@@ -40,7 +40,7 @@ function validateParent(parentData) {
   }
 
   return {
-    studentId,
+    childrenInfo,
     name,
     email,
     phone,
@@ -50,7 +50,7 @@ function validateParent(parentData) {
 }
 
 function validateUpdateParent(updateData) {
-  const allowedFields = ['name', 'email', 'phone', 'profileURL', 'status']
+  const allowedFields = ['name', 'email', 'phone', 'profileURL', 'status', 'childrenInfo']
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
@@ -70,6 +70,12 @@ function validateUpdateParent(updateData) {
       throw new Error('Invalid status')
     }
     cleanData.status = updateData.status
+  }
+  if (updateData.childrenInfo !== undefined) {
+    if (!Array.isArray(updateData.childrenInfo)) {
+      throw new Error('childrenInfo must be an array')
+    }
+    cleanData.childrenInfo = updateData.childrenInfo
   }
 
   if (Object.keys(cleanData).length === 0) {

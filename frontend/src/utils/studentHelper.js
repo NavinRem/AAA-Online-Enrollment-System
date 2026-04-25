@@ -78,12 +78,12 @@ export const processStudentProfileImage = async (profile, name, currentProfile =
  * Prepares a clean payload for student registration/updates.
  */
 export const prepareStudentPayload = (data) => {
-  return {
+  const payload = {
     name: data.name?.trim(),
     dob: data.dob,
     profileURL: data.profileURL,
-    medicalNote: data.medicalNote?.trim() || 'None',
-    branch: data.branch || null,
     status: data.status || 'Studying',
   }
+  if (data.parentId) payload.parentId = data.parentId
+  return payload
 }
