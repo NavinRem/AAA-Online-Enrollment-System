@@ -22,7 +22,7 @@ defineEmits(['update:modelValue'])
 <template>
   <div class="relative flex items-center w-full transition-all group">
     <img :src="getActionIcon('search')"
-      class="absolute left-md w-4.5 h-4.5 z-10 pointer-events-none transition-opacity duration-200"
+      class="absolute left-md w-5 h-5 z-10 pointer-events-none transition-opacity duration-200"
       :class="variant === 'light' ? 'opacity-60 invert brightness-0' : 'opacity-40'" />
     <input :value="modelValue" @input="$emit('update:modelValue', $event.target.value)" type="text"
       class="w-full pl-11 pr-md py-3 border-2 rounded-2xl text-sm font-medium outline-none transition-all" :class="[

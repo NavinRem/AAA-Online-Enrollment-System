@@ -226,44 +226,26 @@ onMounted(async () => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout
-      :loading="loading"
-      :errorMessage="errorMessage"
-      backRoute="/enrollments"
-      title="Enrollment Details"
-    >
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments"
+      title="Enrollment Details">
       <template #header-actions v-if="enrollment">
         <div class="flex items-center gap-md">
-          <AppButton
-            v-if="
-              enrollment.status !== 'confirmed' &&
-              enrollment.paymentStatus !== 'paid' &&
-              enrollment.status !== 'cancelled'
-            "
-            variant="secondary"
-            title="Edit Enrollment"
-            @click="openActionModal('edit')"
-          >
+          <AppButton v-if="
+            enrollment.status !== 'confirmed' &&
+            enrollment.paymentStatus !== 'paid' &&
+            enrollment.status !== 'cancelled'
+          " variant="secondary" title="Edit Enrollment" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" class="w-4 h-4" /> Edit
           </AppButton>
-          <AppButton
-            v-if="
-              enrollment.status !== 'confirmed' &&
-              enrollment.paymentStatus !== 'paid' &&
-              enrollment.status !== 'cancelled'
-            "
-            variant="primary"
-            title="Pay Enrollment"
-            @click="openActionModal('pay')"
-          >
+          <AppButton v-if="
+            enrollment.status !== 'confirmed' &&
+            enrollment.paymentStatus !== 'paid' &&
+            enrollment.status !== 'cancelled'
+          " variant="primary" title="Pay Enrollment" @click="openActionModal('pay')">
             <img :src="getActionIcon('pay')" class="w-4 h-4 brightness-0 invert" /> Pay Now
           </AppButton>
-          <AppButton
-            v-if="enrollment.status !== 'cancelled'"
-            variant="danger"
-            title="Cancel Enrollment"
-            @click="openActionModal('cancel')"
-          >
+          <AppButton v-if="enrollment.status !== 'cancelled'" variant="danger" title="Cancel Enrollment"
+            @click="openActionModal('cancel')">
             <img :src="getActionIcon('cancel')" class="w-4 h-4 invert" /> Cancel
           </AppButton>
           <AppButton variant="danger" title="Delete Enrollment" @click="openActionModal('delete')">
@@ -274,19 +256,13 @@ onMounted(async () => {
 
       <template #left-content v-if="enrollment">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-lg pb-10">
-          <DetailCard
-            title="Parent Profile"
-            :avatarUrl="getParentProfileURL(enrollment.parent?.profileURL)"
-          >
+          <DetailCard title="Parent Profile" :avatarUrl="getParentProfileURL(enrollment.parent?.profileURL)">
             <p><strong>Full Name</strong> {{ enrollment.parent?.name || 'N/A' }}</p>
             <p><strong>Primary Email</strong> {{ enrollment.parent?.email || 'N/A' }}</p>
             <p><strong>Contact Number</strong> {{ enrollment.parent?.phone || 'N/A' }}</p>
           </DetailCard>
 
-          <DetailCard
-            title="Student Profile"
-            :avatarUrl="getStudentProfileURL(enrollment.student?.profileURL)"
-          >
+          <DetailCard title="Student Profile" :avatarUrl="getStudentProfileURL(enrollment.student?.profileURL)">
             <p><strong>Full Name</strong> {{ enrollment.student?.name || 'N/A' }}</p>
             <p><strong>Birth Date</strong> {{ formatDateOnly(enrollment.student?.dob) }}</p>
             <p>
@@ -295,41 +271,31 @@ onMounted(async () => {
             </p>
           </DetailCard>
 
-          <DetailCard
-            title="Program Details"
-            :avatarUrl="
-              getProgramProfileURL(enrollment.class?.program?.profileURL || enrollment.program?.profileURL, enrollment.class?.program?.category || enrollment.program?.category)
-            "
-          >
+          <DetailCard title="Program Details" :avatarUrl="getProgramProfileURL(enrollment.class?.program?.profileURL || enrollment.program?.profileURL, enrollment.class?.program?.category || enrollment.program?.category)
+            ">
             <p><strong>Program</strong> {{ enrollment.class?.program?.name || enrollment.program?.name }}</p>
-            <div class="flex flex-col gap-1 mb-md">
-              <strong class="text-3xs uppercase font-black tracking-widest text-content-light"
-                >Schedule</strong
-              >
+            <div class="flex justify-between gap-1 mb-md">
+              <strong class="text-3xs uppercase font-black tracking-widest text-content-light">Schedule</strong>
               <div class="flex items-center gap-2">
                 <AppBadge :status="'purple:' + getSessionDay(enrollment.class?.schedule || enrollment.classSchedule)" />
                 <span class="text-xs font-bold text-content-muted">{{
                   getSessionTime(enrollment.class?.schedule || enrollment.classSchedule)
-                }}</span>
+                  }}</span>
               </div>
             </div>
-            <div class="flex flex-col gap-1 mb-md">
-              <strong class="text-3xs uppercase font-black tracking-widest text-content-light"
-                >Intensity</strong
-              >
+            <div class="flex justify-between gap-1 mb-md">
+              <strong class="text-3xs uppercase font-black tracking-widest text-content-light">Intensity</strong>
               <template v-if="enrollment.remainingSessions !== undefined">
                 <span class="text-sm font-bold text-content-dark">
                   {{ enrollment.remainingSessions }} Sessions (Prorated)
-                  <AppBadge
-                    v-if="enrollment.totalSessions > 0"
-                    :status="'of ' + enrollment.totalSessions"
-                    type="blue"
-                  />
+                  <AppBadge v-if="enrollment.totalSessions > 0" :status="'of ' + enrollment.totalSessions"
+                    type="blue" />
                 </span>
               </template>
               <template v-else>
                 <span class="text-sm font-bold text-content-dark">
-                  {{ enrollment.totalSessions || enrollment.class?.program?.totalSessions || enrollment.program?.totalSessions || '10' }}
+                  {{ enrollment.totalSessions || enrollment.class?.program?.totalSessions ||
+                    enrollment.program?.totalSessions || '10' }}
                   Sessions
                 </span>
               </template>
@@ -340,43 +306,31 @@ onMounted(async () => {
             </p>
           </DetailCard>
 
-          <DetailCard
-            title="Class Environment"
-            :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)"
-          >
-            <p><strong>Curriculum</strong> {{ enrollment.class?.program?.name || enrollment.program?.name || 'N/A' }}</p>
-            <div class="flex flex-col gap-1 mb-md">
-              <strong class="text-3xs uppercase font-black tracking-widest text-content-light"
-                >Assigned Staff</strong
-              >
-              <div
-                v-if="enrollment.class?.program?.teachers?.length > 0 || enrollment.program?.teachers?.length > 0"
-                class="flex -space-x-2 overflow-hidden ring-1 ring-white rounded-full p-0.5 mt-1"
-              >
-                <img
-                  v-for="t in (enrollment.class?.program?.teachers || enrollment.program?.teachers)"
-                  :key="t.id"
+          <DetailCard title="Class Environment" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)">
+            <p><strong>Curriculum</strong> {{ enrollment.class?.program?.name || enrollment.program?.name || 'N/A' }}
+            </p>
+            <div class="flex justify-between gap-1 mb-md">
+              <strong class="text-3xs uppercase font-black tracking-widest text-content-light">Assigned Staff</strong>
+              <div v-if="enrollment.class?.program?.teachers?.length > 0 || enrollment.program?.teachers?.length > 0"
+                class="flex -space-x-2 overflow-hidden ring-1 ring-white rounded-full p-0.5 mt-1">
+                <img v-for="t in (enrollment.class?.program?.teachers || enrollment.program?.teachers)" :key="t.id"
                   :src="getTeacherProfileURL(t.profileURL)"
-                  class="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover"
-                  :title="t.name"
-                />
+                  class="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" :title="t.name" />
               </div>
               <span v-else class="text-content-muted/40 italic text-xs">Not Assigned</span>
             </div>
             <p>
               <strong>Current Enrollment</strong>
-              <span class="font-black text-content-dark"
-                >{{
-                  enrollment.studentCountAtEnrollment ?? enrollment.class?.currentCount ?? 0
-                }}
-                Students</span
-              >
+              <span class="font-black text-content-dark">{{
+                enrollment.studentCountAtEnrollment ?? enrollment.class?.currentCount ?? 0
+              }}
+                Students</span>
             </p>
             <p>
               <strong>Max Capacity</strong>
-              <span class="font-bold text-content-muted"
-                >{{ enrollment.class?.capacity || enrollment.class?.maxCapacity || 20 }} Slots</span
-              >
+              <span class="font-bold text-content-muted">{{ enrollment.class?.capacity || enrollment.class?.maxCapacity
+                || 20 }}
+                Slots</span>
             </p>
           </DetailCard>
         </div>
@@ -386,15 +340,12 @@ onMounted(async () => {
         <DetailedSummaryCard title="Transaction Summary" subtitle="Enrollment Status">
           <div class="ui-detail-row align-center">
             <span class="ui-summary-label">Registry Status</span>
-            <AppBadge
-              :status="
-                enrollment.status === 'cancelled'
-                  ? 'Canceled'
-                  : enrollment.paymentStatus?.toLowerCase() === 'paid'
-                    ? 'Paid'
-                    : 'Unpaid'
-              "
-            />
+            <AppBadge :status="enrollment.status === 'cancelled'
+                ? 'Canceled'
+                : enrollment.paymentStatus?.toLowerCase() === 'paid'
+                  ? 'Paid'
+                  : 'Unpaid'
+              " />
           </div>
 
           <div class="ui-detail-row align-center">
@@ -402,16 +353,12 @@ onMounted(async () => {
             <AppBadge :status="enrollment.enrollmentType" />
           </div>
 
-          <div
-            v-if="
-              enrollment.status === 'cancelled' && enrollment.cancelReason
-            "
-            class="ui-detail-row"
-          >
+          <div v-if="
+            enrollment.status === 'cancelled' && enrollment.cancelReason
+          " class="ui-detail-row">
             <span class="ui-summary-label text-error">Termination Reason</span>
             <span
-              class="ui-summary-value opacity-100 font-bold text-error bg-error/5 p-2 rounded-sm border border-error/10 w-full text-xs"
-            >
+              class="ui-summary-value opacity-100 font-bold text-error bg-error/5 p-2 rounded-sm border border-error/10 w-full text-xs">
               {{ enrollment.cancelReason }}
             </span>
           </div>
@@ -420,69 +367,56 @@ onMounted(async () => {
             <span class="ui-summary-label">Internal Remark</span>
             <span class="ui-summary-value italic text-xs">{{
               enrollment.remark || 'No administrative notes'
-            }}</span>
+              }}</span>
           </div>
         </DetailedSummaryCard>
 
         <DetailedSummaryCard subtitle="Financial Ledger" class="mt-lg">
           <div class="ui-detail-row align-center">
             <span class="ui-summary-label">Course Price</span>
-            <span class="font-black text-content-dark text-lg tracking-tighter"
-              >${{ formatPrice(enrollment?.basePrice || 0) }}</span
-            >
+            <span class="font-black text-content-dark text-lg tracking-tighter">${{ formatPrice(enrollment?.basePrice ||
+              0) }}</span>
           </div>
 
           <div v-if="enrollment?.prorateSavings" class="ui-detail-row align-center">
             <span class="ui-summary-label text-magenta">Prorate Discount</span>
-            <span class="font-bold text-magenta"
-              >- ${{ formatPrice(enrollment.prorateSavings) }}</span
-            >
+            <span class="font-bold text-magenta">- ${{ formatPrice(enrollment.prorateSavings) }}</span>
           </div>
 
           <div v-if="enrollment?.discountAmount" class="ui-detail-row align-center">
             <span class="ui-summary-label text-magenta">Manual Adjust</span>
-            <span class="font-bold text-magenta"
-              >- ${{ formatPrice(enrollment.discountAmount) }}</span
-            >
+            <span class="font-bold text-magenta">- ${{ formatPrice(enrollment.discountAmount) }}</span>
           </div>
 
           <div class="w-full h-px bg-surface-light my-2"></div>
 
           <div class="ui-detail-row align-center">
             <span class="ui-summary-label">Total Payable</span>
-            <span class="font-black text-primary text-xl tracking-tighter"
-              >${{ formatPrice(enrollment?.amount || 0) }}</span
-            >
+            <span class="font-black text-primary text-xl tracking-tighter">${{ formatPrice(enrollment?.amount || 0)
+              }}</span>
           </div>
 
           <div class="ui-detail-row align-center">
             <span class="ui-summary-label">Payment Status</span>
-            <AppBadge
-              :status="
-                enrollment?.status ||
-                enrollment?.paymentStatus ||
-                'Unpaid'
-              "
-            />
+            <AppBadge :status="enrollment?.status ||
+              enrollment?.paymentStatus ||
+              'Unpaid'
+              " />
           </div>
 
           <div class="ui-detail-row align-center">
             <span class="ui-summary-label">Channel</span>
-            <AppBadge
-              :status="
-                enrollment?.paymentMethod ||
-                (['paid', 'confirmed'].includes(String(enrollment?.status || enrollment?.paymentStatus).toLowerCase()) ? 'Paid' : '—')
-              "
-            />
+            <AppBadge :status="enrollment?.paymentMethod ||
+              (['paid', 'confirmed'].includes(String(enrollment?.status || enrollment?.paymentStatus).toLowerCase()) ? 'Paid' : '—')
+              " />
           </div>
 
           <div v-if="enrollment?.transactionId" class="ui-detail-row">
             <span class="ui-summary-label">{{
               enrollment?.paymentMethod === 'Cash' ? 'Receipt No' : 'Transaction ID'
-            }}</span>
+              }}</span>
             <span
-              class="ui-summary-value font-mono text-[11px] bg-surface-light p-1 px-2 rounded-sm select-all tracking-wider text-content-dark"
-            >
+              class="ui-summary-value font-mono text-[11px] bg-surface-light p-1 px-2 rounded-sm select-all tracking-wider text-content-dark">
               {{ enrollment.transactionId }}
             </span>
           </div>
@@ -491,77 +425,45 @@ onMounted(async () => {
             <span class="ui-summary-label">Value Date</span>
             <span class="ui-summary-value text-xs font-bold">{{
               formatDate(enrollment.paidAt)
-            }}</span>
+              }}</span>
           </div>
 
           <div v-if="enrollment?.paymentProofURL" class="ui-detail-row mt-2">
             <span class="ui-summary-label">Attachment Proof</span>
-            <a
-              :href="enrollment.paymentProofURL"
-              target="_blank"
-              class="group relative block w-full aspect-video rounded-sm overflow-hidden border border-outline-std shadow-sm hover:shadow-md transition-shadow"
-            >
-              <img
-                :src="enrollment.paymentProofURL"
-                alt="Payment Proof"
-                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+            <a :href="enrollment.paymentProofURL" target="_blank"
+              class="group relative block w-full aspect-video rounded-sm overflow-hidden border border-outline-std shadow-sm hover:shadow-md transition-shadow">
+              <img :src="enrollment.paymentProofURL" alt="Payment Proof"
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
               <div
-                class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-              >
-                <span class="text-white text-3xs font-black uppercase tracking-widest"
-                  >Open Full Size</span
-                >
+                class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <span class="text-white text-3xs font-black uppercase tracking-widest">Open Full Size</span>
               </div>
             </a>
           </div>
 
-          <div
-            v-if="enrollment?.isSponsorship"
-            class="mt-4 p-3 bg-primary-soft/20 rounded-sm border border-primary/10"
-          >
-            <span class="text-3xs font-black uppercase text-primary tracking-widest block mb-1"
-              >Corporate Sponsorship</span
-            >
+          <div v-if="enrollment?.isSponsorship" class="mt-4 p-3 bg-primary-soft/20 rounded-sm border border-primary/10">
+            <span class="text-3xs font-black uppercase text-primary tracking-widest block mb-1">Corporate
+              Sponsorship</span>
             <span class="text-xs font-bold text-content-dark">{{
               enrollment?.sponsorName || 'Third-party Entity'
-            }}</span>
+              }}</span>
           </div>
         </DetailedSummaryCard>
       </template>
     </DetailPageLayout>
 
-    <EnrollmentFormModal
-      :isOpen="showFormModal"
-      :loading="submitting"
-      :parents="parents"
-      :students="students"
-      :programs="programs"
-      :classes="classes"
-      :enrollments="enrollments"
-      :enrollment="enrollment"
-      :error="modalError"
-      :success="modalSuccess"
-      :hint="validationHint"
-      @close="
+    <EnrollmentFormModal :isOpen="showFormModal" :loading="submitting" :parents="parents" :students="students"
+      :programs="programs" :classes="classes" :enrollments="enrollments" :enrollment="enrollment" :error="modalError"
+      :success="modalSuccess" :hint="validationHint" @close="
         () => {
           showFormModal = false
           modalError = ''
           modalSuccess = ''
           validationHint = ''
         }
-      "
-      @program-change="handleProgramChange"
-      @submit="handleEditSubmit"
-    />
+      " @program-change="handleProgramChange" @submit="handleEditSubmit" />
 
-    <EnrollmentActionModal
-      v-bind="actionModal"
-      :loading="submitting"
-      v-model:error="modalError"
-      v-model:success="modalSuccess"
-      @close="closeActionModal"
-      @submit="handleActionSubmit"
-    />
+    <EnrollmentActionModal v-bind="actionModal" :loading="submitting" v-model:error="modalError"
+      v-model:success="modalSuccess" @close="closeActionModal" @submit="handleActionSubmit" />
   </DashboardLayout>
 </template>

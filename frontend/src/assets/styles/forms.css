@@ -68,7 +68,7 @@
 
   /* ── Box Toggles (Professional Rectangle Style) ─────────────────────────── */
   .ui-box-toggle {
-    @apply flex items-center justify-between px-md min-h-[38px] border-2 border-outline-std rounded-sm bg-surface-subtle cursor-pointer transition-all hover:border-text-muted/30 select-none mt-0.5;
+    @apply flex items-center justify-between px-md min-h-[38px] border-2 border-outline-std rounded-sm bg-surface-subtle cursor-pointer transition-all select-none mt-0.5;
   }
 
   .ui-box-toggle--active {

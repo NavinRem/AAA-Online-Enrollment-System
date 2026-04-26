@@ -210,7 +210,8 @@ watch(
 
       <div class="col-span-2 flex items-center gap-md py-2 opacity-50">
         <div class="h-px bg-border flex-1"></div>
-        <span class="text-3xs font-black uppercase tracking-widest text-content-muted select-none">Economic & Operational
+        <span class="text-3xs font-black uppercase tracking-widest text-content-muted select-none">Economic &
+          Operational
           Logic</span>
         <div class="h-px bg-border flex-1"></div>
       </div>
@@ -240,8 +241,7 @@ watch(
       <div class="flex flex-col gap-xs col-span-2 mt-sm">
         <label class="text-xs font-black uppercase text-content-muted tracking-widest">Description / Synopsis</label>
         <textarea v-model="localData.description"
-          placeholder="A brief overview for administrative and parent reference..." rows="2"
-          class="ui-remark-textarea"
+          placeholder="A brief overview for administrative and parent reference..." rows="2" class="ui-remark-textarea"
           :class="{
             'border-error bg-error-soft ring-error/10': errors.description,
             'animate-shake': shaking.description,
@@ -273,7 +273,7 @@ watch(
               <div class="flex flex-col">
                 <span class="text-xs font-black text-content-dark uppercase tracking-widest">{{
                   isUploading ? 'Uploading Image...' : 'Select Program Asset'
-                  }}</span>
+                }}</span>
                 <span class="text-3xs font-bold text-content-muted italic">Recommended aspect ratio 16:9</span>
               </div>
             </label>
@@ -296,10 +296,10 @@ watch(
               class="group flex items-center gap-sm bg-white p-1 px-3 rounded-sm border-2 border-outline-std/50 shadow-sm transition-all hover:border-primary/30">
               <span class="text-2xs font-black text-primary uppercase tracking-tighter">{{
                 s.day
-                }}</span>
+              }}</span>
               <span class="text-xs text-content-dark font-black tracking-tight">{{
                 s.timeslot
-                }}</span>
+              }}</span>
               <button type="button"
                 class="w-5 h-5 flex items-center justify-center rounded-full bg-surface-light text-content-muted hover:bg-error hover:text-white transition-colors cursor-pointer"
                 @click="handleRemoveSchedule(s.id)">
@@ -331,7 +331,7 @@ watch(
     <div v-if="type === 'delete'" class="flex flex-col gap-xl mt-lg">
       <div class="flex items-center gap-xl p-xl bg-error-deep/5 border-2 border-dashed border-error/30 rounded-std">
         <div class="text-4xl filter grayscale brightness-125">☢️</div>
-        <div class="flex flex-col gap-1">
+        <div class="flex justify-between gap-1">
           <strong class="text-lg font-black text-error-deep tracking-tight uppercase leading-none">Catalog Model
             Deletion</strong>
           <p class="text-xs text-error-deep/70 font-semibold leading-relaxed">

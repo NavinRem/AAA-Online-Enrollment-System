@@ -1,5 +1,6 @@
 const admin = require('firebase-admin')
 const logger = require('firebase-functions/logger')
+const { db } = require('../config/database') // Ensures Firebase is initialized and emulators configured
 
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization
@@ -18,7 +19,11 @@ const verifyToken = async (req, res, next) => {
     req.user = decodedToken
     next()
   } catch (error) {
-    logger.error('Token verification failed:', error.message)
+    logger.error('Token verification failed:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    })
     return res.status(401).json({
       error: 'Unauthorized',
       message: 'Session expired or invalid token. Please log in again.',

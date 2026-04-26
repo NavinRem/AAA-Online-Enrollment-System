@@ -16,22 +16,15 @@
   /* Use for: back navigation, cancel actions, secondary nav                  */
   .ui-back-button {
     @apply flex items-center gap-xs px-md py-sm rounded-sm
-           text-xs font-bold transition-all
-           border border-primary/20 shadow-sm;
-    background-color: var(--color-primary-soft);
-    color: var(--color-primary-deep);
+           text-xs font-bold transition-all shadow-sm;
+    background-color: var(--color-primary);
+    color: var(--color-surface-light);
   }
-  .ui-back-button:hover {
-    @apply bg-primary-light border-primary;
-  }
+
   .ui-back-button img,
   .ui-back-button svg {
     @apply w-3 h-3 transition-transform duration-200 opacity-80;
-    filter: invert(40%) sepia(100%) saturate(400%) hue-rotate(170deg) brightness(90%) contrast(100%);
-  }
-  .ui-back-button:hover img,
-  .ui-back-button:hover svg {
-    @apply -translate-x-0.5 opacity-100;
+    filter: invert(1);
   }
 
   /* ── Dots / More Actions Button ─────────────────────────────────────────── */

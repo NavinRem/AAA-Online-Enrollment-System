@@ -1,17 +1,17 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
-import AppButton from '@/components/common/ui/AppButton.vue'
 import { parentService } from '@/services/parentService'
 import { studentService } from '@/services/studentService'
 import { authService } from '@/services/authService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { formatDate, formatPrice } from '@/utils/formatUtils'
-import { filterDetailEnrollments, enrichEnrollments } from '@/utils/enrollmentHelper'
+import { enrichEnrollments } from '@/utils/enrollmentHelper'
 import { enrichStudents } from '@/utils/studentHelper'
+import { getStatusTheme, getStatusUI } from '@/utils/badgeUtils'
 import { programService } from '@/services/programService'
 import { classService } from '@/services/classService'
 import {
@@ -19,7 +19,7 @@ import {
   prepareParentPayload,
 } from '../utils/parentHelper'
 import { processStudentProfileImage, prepareStudentPayload } from '../utils/studentHelper'
-import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import { getActionIcon } from '@/utils/assetHelper'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 
 const route = useRoute()
@@ -31,9 +31,70 @@ const enrollments = ref([])
 const selectedChildId = ref('all')
 const activeTab = ref('children')
 const currentFilter = ref('all')
+const isFilterOpen = ref(false)
+const filterToggleRef = ref(null)
+const filterMenuRef = ref(null)
+const filterMenuStyles = ref({})
+const hoveredOption = ref(null)
 
 watch(activeTab, () => {
   currentFilter.value = 'all'
+  isFilterOpen.value = false
+})
+
+const filterOptions = computed(() => {
+  if (activeTab.value === 'children' || activeTab.value === 'history') {
+    return [
+      { label: activeTab.value === 'children' ? 'All Programs' : 'All History', value: 'all' },
+      { label: 'Confirmed', value: 'confirmed' },
+      { label: 'Pending', value: 'pending' },
+      { label: 'Cancelled', value: 'cancelled' },
+    ]
+  }
+  if (activeTab.value === 'payments') {
+    return [
+      { label: 'All Payments', value: 'all' },
+      { label: 'Paid', value: 'paid' },
+      { label: 'Partial', value: 'partial' },
+      { label: 'Unpaid', value: 'unpaid' },
+    ]
+  }
+  return []
+})
+
+const toggleFilter = (event) => {
+  isFilterOpen.value = !isFilterOpen.value
+  if (isFilterOpen.value) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    filterMenuStyles.value = {
+      top: `${rect.bottom + window.scrollY + 8}px`,
+      right: `${window.innerWidth - rect.right - window.scrollX}px`,
+      minWidth: '160px'
+    }
+  }
+}
+
+const selectFilter = (val) => {
+  currentFilter.value = val
+  isFilterOpen.value = false
+}
+
+const handleClickOutside = (event) => {
+  if (!isFilterOpen.value) return
+  const toggleBtn = filterToggleRef.value?.$el || filterToggleRef.value
+  const menuEl = filterMenuRef.value
+
+  if (toggleBtn && !toggleBtn.contains(event.target) && menuEl && !menuEl.contains(event.target)) {
+    isFilterOpen.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('mousedown', handleClickOutside)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('mousedown', handleClickOutside)
 })
 
 const loading = ref(true)
@@ -42,24 +103,32 @@ const submitting = ref(false)
 const globalSuccess = ref('')
 const globalError = ref('')
 
-const studentEnrollments = computed(() => {
-  return filterDetailEnrollments(enrollments.value, {
-    studentId: selectedChildId.value,
-    academicStatus: 'studying',
-  })
+const currentChildEnrollments = computed(() => {
+  let list = enrollments.value
+  if (selectedChildId.value && selectedChildId.value !== 'all') {
+    list = list.filter((e) => String(e.studentId) === String(selectedChildId.value))
+  }
+  if (currentFilter.value !== 'all') {
+    list = list.filter(e => (e.status || '').toLowerCase() === currentFilter.value.toLowerCase())
+  }
+  return list
 })
 
-const filteredPayments = computed(() =>
-  filterDetailEnrollments(enrollments.value, {
-    paymentStatus: currentFilter.value,
-  }),
-)
+const enrollmentHistory = computed(() => {
+  let list = [...enrollments.value]
+  if (currentFilter.value !== 'all') {
+    list = list.filter(e => (e.status || '').toLowerCase() === currentFilter.value.toLowerCase())
+  }
+  return list.sort((a, b) => new Date(b.enrollAt || 0) - new Date(a.enrollAt || 0))
+})
 
-const filteredHistory = computed(() =>
-  filterDetailEnrollments(enrollments.value, {
-    academicStatus: currentFilter.value,
-  }),
-)
+const paymentHistory = computed(() => {
+  let list = [...enrollments.value]
+  if (currentFilter.value !== 'all') {
+    list = list.filter(e => (e.paymentStatus || e.status || '').toLowerCase() === currentFilter.value.toLowerCase())
+  }
+  return list.sort((a, b) => new Date(b.paidAt || b.enrollAt || 0) - new Date(a.paidAt || a.enrollAt || 0))
+})
 
 const isInactive = computed(() => {
   return (parent.value?.status || 'Active').toLowerCase() === 'inactive'
@@ -129,7 +198,7 @@ const openAddChildModal = () => {
   globalSuccess.value = ''
   actionModal.value = {
     isOpen: true,
-    type: 'register-child',
+    type: 'plus',
     user: parent.value,
   }
 }
@@ -160,7 +229,7 @@ const submitActionModal = async (formData) => {
       await parentService.deleteParent(id)
       router.push('/parents')
       return
-    } else if (type === 'register-child') {
+    } else if (type === 'plus') {
       const finalProfile = await processStudentProfileImage(formData.profileURL, formData.name)
       const payload = prepareStudentPayload({ ...formData, profileURL: finalProfile, parentId: id })
       await studentService.createStudent(payload)
@@ -191,183 +260,357 @@ onMounted(() => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" title="Parent Dashboard">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/parents" sidebarWidth="sm">
       <template #header-actions v-if="parent">
         <div class="flex items-center gap-3">
-          <AppButton v-if="!isInactive" variant="secondary" class="rounded-xl border-outline-std" @click="openAddChildModal">
-            <img :src="getActionIcon('plus')" class="w-4 h-4 opacity-70" /> 
-            <span class="font-bold">Register Child</span>
-          </AppButton>
-          <AppButton v-if="!isInactive" variant="secondary" class="rounded-xl border-outline-std" @click="openActionModal('edit')">
-            <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-70" />
-            <span class="font-bold">Edit</span>
-          </AppButton>
+          <button v-if="!isInactive"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-purple hover:border-purple group"
+            title="Register Child" @click="openAddChildModal">
+            <img :src="getActionIcon('plus')" class="w-5 h-5  group-hover:opacity-100" />
+          </button>
+          <button v-if="!isInactive"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-primary hover:border-primary group"
+            title="Edit Profile" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100" />
+          </button>
+          <button v-if="!isInactive"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-warning hover:border-warning group"
+            title="Deactivate Account" @click="openActionModal('deactivate')">
+            <img :src="getActionIcon('cancel')" class="w-5 h-5 group-hover:opacity-100" />
+          </button>
+          <button v-if="isInactive"
+            class="w-11 h-11 flex items-center justify-center rounded-full border bg-success-soft transition-all duration-300 hover:bg-success hover:border-success group"
+            title="Activate Account" @click="openActionModal('activate')">
+            <img :src="getActionIcon('reactivate')" class="w-5 h-5 group-hover:opacity-100" />
+          </button>
           <div class="w-px h-6 bg-outline-std mx-1"></div>
-          <AppButton v-if="!isInactive" variant="danger" class="rounded-xl shadow-lg shadow-error/10" @click="openActionModal('delete')">
-            <img :src="getActionIcon('delete')" class="w-4 h-4 invert" />
-            <span class="font-black">Delete</span>
-          </AppButton>
-          <AppButton v-if="isInactive" variant="primary" class="rounded-xl shadow-lg shadow-primary/20" @click="openActionModal('activate')">
-            <img :src="getActionIcon('reactivate')" class="w-4 h-4 brightness-0 invert" />
-            <span class="font-black">Reactivate</span>
-          </AppButton>
+          <button
+            class="w-11 h-11 flex items-center justify-center rounded-full border bg-error-soft transition-all duration-300 hover:bg-error hover:border-error group"
+            title="Delete Account" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" class="w-5 h-5 icon-danger group-hover:opacity-100" />
+          </button>
         </div>
       </template>
 
       <template #left-content v-if="parent">
-        <!-- Identity Section -->
-        <div class="mb-10 p-8 rounded-[2rem] bg-white border border-outline-std shadow-sm flex flex-col md:flex-row items-center gap-10">
-          <div class="relative group">
-            <div class="w-40 h-40 rounded-[2.5rem] overflow-hidden ring-4 ring-primary/5 shadow-2xl transition-transform duration-500 group-hover:scale-105">
-              <img :src="parent.profileURL" class="w-full h-full object-cover" />
-            </div>
-            <div class="absolute -bottom-2 -right-2">
-              <AppBadge :status="parent.status" :showLabel="false" />
-            </div>
-          </div>
-          
-          <div class="flex flex-col items-center md:items-start text-center md:text-left flex-1">
-            <div class="flex items-center gap-3 mb-2">
-               <h1 class="text-4xl font-black text-content-dark tracking-tighter">{{ parent.name }}</h1>
-               <AppBadge :status="parent.status" />
-            </div>
-            <div class="flex flex-wrap items-center justify-center md:justify-start gap-6 text-content-muted">
-               <div class="flex flex-col">
-                  <span class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Primary Phone</span>
-                  <span class="text-lg font-black text-content-dark tracking-tight">{{ parent.phone }}</span>
-               </div>
-               <div class="w-px h-8 bg-outline-std"></div>
-               <div class="flex flex-col">
-                  <span class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Email Access</span>
-                  <span class="text-sm font-bold text-primary lowercase">{{ parent.email }}</span>
-               </div>
-            </div>
-          </div>
-          
-          <div class="flex flex-col gap-2">
-            <button @click="openActionModal('reset-password')" class="px-6 py-3 rounded-2xl bg-surface-subtle hover:bg-primary/5 text-primary text-xs font-black uppercase tracking-widest transition-all ring-1 ring-black/5">
-               Security Reset
-            </button>
-            <button v-if="!isInactive" @click="openActionModal('deactivate')" class="px-6 py-3 rounded-2xl bg-error-soft/30 hover:bg-error-soft text-error text-xs font-black uppercase tracking-widest transition-all ring-1 ring-error/10">
-               Freeze Account
-            </button>
-          </div>
-        </div>
-
-        <!-- Linked Children Discovery -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          <div 
-            v-for="s in students" :key="s.id" 
-            class="group p-6 rounded-3xl bg-white border border-outline-std hover:border-primary/20 hover:shadow-md transition-all cursor-pointer"
-            @click="router.push(`/students/${s.id}`)"
-          >
-            <div class="flex items-center gap-4">
-              <div class="w-14 h-14 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all">
-                <img :src="s.profileURL" class="w-full h-full object-cover" />
-              </div>
-              <div class="flex flex-col overflow-hidden">
-                <span class="text-base font-black text-content-dark group-hover:text-primary transition-colors truncate">{{ s.name }}</span>
-                <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">Active Student</span>
-              </div>
-            </div>
-          </div>
-          <button @click="openAddChildModal" class="p-6 rounded-3xl border-2 border-dashed border-outline-std hover:border-primary/30 hover:bg-primary/5 transition-all flex items-center justify-center gap-3 group">
-             <div class="w-10 h-10 rounded-full bg-surface-subtle flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                <span class="text-xl font-bold">+</span>
-             </div>
-             <span class="text-sm font-black text-content-muted group-hover:text-primary uppercase tracking-widest">Link New Child</span>
+        <!-- Tab Navigation -->
+        <div class="flex items-center gap-2 p-2 bg-surface-subtle rounded-[1.5rem] border border-outline-std w-fit">
+          <button v-for="tab in [
+            { id: 'children', label: 'Children List' },
+            { id: 'history', label: 'Enrollment History' },
+            { id: 'payments', label: 'Payment History' }
+          ]" :key="tab.id" @click="activeTab = tab.id"
+            class="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300"
+            :class="activeTab === tab.id ? 'bg-primary text-white shadow-md ring-1 ring-black/5 scale-[1.02]' : 'text-content-muted hover:text-content-dark hover:bg-white/50'">
+            {{ tab.label }}
           </button>
         </div>
 
-        <!-- Academic Repository -->
-        <div class="bg-white rounded-[2.5rem] border border-outline-std shadow-sm overflow-hidden min-h-[500px]">
-          <div class="flex items-center gap-2 p-3 bg-surface-subtle/30 border-b border-outline-std">
-            <button
-              v-for="tab in ['children', 'payments', 'history']"
-              :key="tab"
-              class="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300"
-              :class="activeTab === tab ? 'bg-white text-primary shadow-sm ring-1 ring-black/5' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
-              @click="activeTab = tab"
-            >
-              {{ tab === 'children' ? 'Current Programs' : tab === 'payments' ? 'Finance Logs' : 'Archive' }}
+        <!-- Children List Card -->
+        <section v-if="activeTab === 'children'" class="ui-detail-card overflow-hidden animate-fade-in">
+          <div class="flex items-center gap-4">
+            <h3 class="text-lg font-black text-content-dark whitespace-nowrap">Children List</h3>
+            <div class="h-px flex-1 bg-gray-100"></div>
+            <button ref="filterToggleRef"
+              class="px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2"
+              :class="currentFilter !== 'all' ? '' : 'bg-primary-light hover:bg-primary'"
+              :style="currentFilter !== 'all' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color } : {}"
+              @click="toggleFilter">
+              <img :src="getActionIcon('filter')" class="w-3 h-3"
+                :style="{ filter: getStatusUI(currentFilter === 'all' ? 'filter' : currentFilter).filter }" />
+              {{ currentFilter === 'all' ? 'Filter' : currentFilter }}
             </button>
           </div>
 
-          <div class="p-8">
-             <div v-if="activeTab === 'children'">
-                <div v-if="students.length > 0" class="flex flex-wrap gap-2 mb-8">
-                  <button 
-                    v-for="s in students" :key="s.id"
-                    class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2"
-                    :class="selectedChildId === s.id ? 'bg-primary text-white shadow-lg' : 'bg-surface-subtle text-content-muted hover:bg-outline-std'"
-                    @click="selectedChildId = s.id"
-                  >
-                    <div class="w-5 h-5 rounded-full overflow-hidden border border-white/20">
-                      <img :src="s.profileURL" class="w-full h-full object-cover" />
-                    </div>
-                    {{ s.name }}
-                  </button>
-                </div>
-                
-                <div v-if="studentEnrollments.length > 0" class="grid gap-4">
-                  <div v-for="reg in studentEnrollments" :key="reg.id" class="p-6 rounded-3xl border border-outline-std bg-white hover:border-primary/10 transition-all flex items-center group">
-                    <div class="flex-1 flex flex-col">
-                      <span class="text-base font-black text-content-dark group-hover:text-primary transition-colors tracking-tight">{{ reg.program?.name }}</span>
-                      <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ reg.class?.day }} • {{ reg.class?.timeslot }}</span>
-                    </div>
-                    <div class="flex-1 text-center font-black text-xl text-emerald-600">
-                      ${{ formatPrice(reg.amount || 0) }}
-                    </div>
-                    <div class="w-32 flex justify-center">
-                       <AppBadge :status="reg.displayStatus || reg.status || 'Unpaid'" />
-                    </div>
-                  </div>
-                </div>
-                <div v-else class="flex flex-col items-center justify-center py-20 opacity-30">
-                  <img :src="getImageUrl('common/no-data')" class="w-20 mb-4 grayscale" />
-                  <span class="text-sm font-black uppercase tracking-widest">No Active Enrollments</span>
-                </div>
-             </div>
-             
-             <!-- Finance Logs -->
-             <div v-if="activeTab === 'payments'">
-                <div v-if="filteredPayments.length > 0" class="overflow-hidden rounded-3xl border border-outline-std">
-                  <table class="w-full text-left">
-                    <thead class="bg-surface-subtle/50">
-                      <tr>
-                        <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Log No</th>
-                        <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Evidence</th>
-                        <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Amount</th>
-                        <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-outline-std">
-                      <tr v-for="(reg, idx) in filteredPayments" :key="reg.id" class="hover:bg-surface-subtle/20 transition-colors">
-                        <td class="px-6 py-5 text-xs font-black text-content-muted/30 tabular-nums">{{ idx + 1 }}</td>
-                        <td class="px-6 py-5">
-                          <div class="flex flex-col">
-                            <span class="text-xs font-mono text-content-dark">{{ reg.paymentProof || 'Internal Receipt' }}</span>
-                            <span class="text-[10px] font-bold text-content-muted uppercase tabular-nums opacity-60">{{ formatDate(reg.updatedAt || reg.createdAt) }}</span>
-                          </div>
-                        </td>
-                        <td class="px-6 py-5 text-center font-black text-content-dark">
-                          ${{ formatPrice(reg.amount || 0) }}
-                        </td>
-                        <td class="px-6 py-5 text-center">
-                          <AppBadge :status="reg.paymentStatus || 'Pending'" />
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-             </div>
+          <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Left: Child Selector -->
+            <div class="w-full lg:w-48 flex flex-col gap-2">
+              <div
+                class="bg-surface-subtle rounded-xl text-xs p-md font-black uppercase tracking-widest text-content-muted text-center mb-1">
+                Children List
+              </div>
+              <button v-for="s in students" :key="s.id" @click="selectedChildId = s.id"
+                class="p-3 rounded-xl text-sm font-bold transition-all text-center border-2"
+                :class="selectedChildId === s.id ? 'bg-white border-primary text-primary shadow-md scale-[1.02]' : 'bg-white border-transparent hover:bg-gray-50 text-content-muted'">
+                {{ s.name }}
+              </button>
+            </div>
+
+            <!-- Right: Table -->
+            <div class="flex-1 overflow-x-auto rounded-md border border-gray-100 bg-white">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-gray-50/50">
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">No</th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Program</th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Branch</th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Session</th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr v-for="(enroll, idx) in currentChildEnrollments" :key="enroll.id"
+                    class="hover:bg-gray-50/50 transition-colors">
+                    <td class=" p-md text-xs font-bold text-content-muted">{{ idx + 1 }}</td>
+                    <td class=" p-md text-sm font-bold text-content-dark">{{ enroll.programName }}</td>
+                    <td class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">{{ enroll.branchAbbr }} Branch</td>
+                    <td class=" p-md text-xs font-bold text-content-dark leading-tight">{{ enroll.classSchedule }}</td>
+                    <td class=" p-md text-center">
+                      <AppBadge :status="enroll.status" />
+                    </td>
+                  </tr>
+                  <tr v-if="currentChildEnrollments.length === 0">
+                    <td colspan="5" class="p-10 text-center text-content-muted italic text-sm">No active programs found for this child.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
+        </section>
+
+        <!-- enrollment History Card -->
+        <section v-else-if="activeTab === 'history'" class="ui-detail-card overflow-hidden animate-fade-in">
+          <div class="flex items-center gap-4">
+            <h3 class="text-lg font-black text-content-dark whitespace-nowrap">Enrollment History</h3>
+            <div class="h-px flex-1 bg-gray-100"></div>
+            <button ref="filterToggleRef"
+              class="px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2"
+              :class="currentFilter !== 'all' ? '' : 'bg-primary-light hover:bg-primary'"
+              :style="currentFilter !== 'all' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color } : {}"
+              @click="toggleFilter">
+              <img :src="getActionIcon('filter')" class="w-3 h-3"
+                :style="{ filter: getStatusUI(currentFilter === 'all' ? 'filter' : currentFilter).filter }" />
+              {{ currentFilter === 'all' ? 'Filter' : currentFilter }}
+            </button>
+          </div>
+
+          <div class="p-0">
+            <div class="overflow-x-auto rounded-md border border-gray-100 bg-white">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-gray-50/50">
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">No</th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">
+                      Enrollment ID
+                    </th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Program</th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Child</th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Registered
+                      Date
+                    </th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">
+                      Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr v-for="(enroll, idx) in enrollmentHistory" :key="enroll.id"
+                    class="hover:bg-gray-50/50 transition-colors">
+                    <td class=" p-md text-xs font-bold text-content-muted">{{ idx + 1 }}</td>
+                    <td class=" p-md text-xs font-mono text-content-dark">{{ enroll.id.slice(0, 12) }}...</td>
+                    <td class=" p-md text-sm font-bold text-content-dark">{{ enroll.programName }}</td>
+                    <td class=" p-md text-sm font-bold text-primary">{{ enroll.studentName }}</td>
+                    <td class=" p-md text-xs font-bold text-content-muted tabular-nums">{{ formatDate(enroll.enrollAt) }}</td>
+                    <td class=" p-md text-center">
+                      <AppBadge :status="enroll.status" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- Payment History Card -->
+        <section v-else-if="activeTab === 'payments'" class="ui-detail-card overflow-hidden animate-fade-in">
+          <div class="flex items-center gap-4">
+            <h3 class="text-lg font-black text-content-dark whitespace-nowrap">Payment History</h3>
+            <div class="h-px flex-1 bg-gray-100"></div>
+            <button class="px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2"
+              :class="currentFilter !== 'all' ? '' : 'bg-primary-light hover:bg-primary'"
+              :style="currentFilter !== 'all' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color } : {}"
+              @click="toggleFilter">
+              <img :src="getActionIcon('filter')" class="w-3 h-3"
+                :style="{ filter: getStatusUI(currentFilter === 'all' ? 'filter' : currentFilter).filter }" />
+              {{ currentFilter === 'all' ? 'Filter' : currentFilter }}
+            </button>
+          </div>
+
+          <div class="p-0">
+            <div class="overflow-x-auto rounded-md border border-gray-100 bg-white">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-gray-50/50">
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">No</th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Transaction
+                      ID
+                    </th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">
+                      Enrollment ID
+                    </th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">
+                      Amount</th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Paid Date
+                    </th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">
+                      Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                  <tr v-for="(enroll, idx) in paymentHistory" :key="enroll.id" class="hover:bg-gray-50/50 transition-colors">
+                    <td class=" p-md text-xs font-bold text-content-muted">{{ idx + 1 }}</td>
+                    <td class=" p-md text-xs font-mono text-content-dark">{{ enroll.transactionId || enroll.id.slice(0, 12).toUpperCase() }}</td>
+                    <td class=" p-md text-xs font-mono text-content-muted">{{ enroll.id.slice(0, 12) }}...</td>
+                    <td class=" p-md text-sm font-black text-content-dark text-center">${{ formatPrice(enroll.amount) }}</td>
+                    <td class=" p-md text-xs font-bold text-content-muted tabular-nums">{{ formatDate(enroll.paidAt || enroll.enrollAt) }}</td>
+                    <td class=" p-md text-center">
+                      <AppBadge :status="enroll.paymentStatus || enroll.status" />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </template>
+
+      <template #right-content v-if="parent">
+        <div class="flex flex-col gap-8">
+          <!-- Basic Info Card -->
+          <section class="ui-detail-card flex flex-col items-center gap-6">
+            <h2 class="w-full font-black text-content-dark text-center">Basic Information</h2>
+            <div class="relative group">
+              <div
+                class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100">
+                <img :src="parent.profileURL" class="w-full h-full object-cover" />
+              </div>
+            </div>
+          </section>
+
+          <!-- Parent Information Card -->
+          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
+            <h6 class="font-black uppercase tracking-widest text-content-muted">Parent Information</h6>
+
+            <div class="space-y-5">
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Parent Name:</span>
+                <span class="text-md font-bold text-content-muted">{{ parent.name }}</span>
+              </div>
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Phone Number:</span>
+                <span class="text-md font-bold text-content-muted tabular-nums">{{ parent.phone }}</span>
+              </div>
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Email:</span>
+                <span class="text-md font-bold text-content-muted lowercase">{{ parent.email }}</span>
+              </div>
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Status:</span>
+                <div>
+                  <AppBadge :status="parent.status" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Relationships Card -->
+          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
+            <h6 class="font-black uppercase tracking-widest text-content-muted">Children</h6>
+            <div class="space-y-4">
+              <div v-for="s in students" :key="s.id" @click="router.push(`/students/${s.id}`)"
+                class="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-subtle transition-all cursor-pointer group">
+                <div class="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm">
+                  <img :src="s.profileURL" class="w-full h-full object-cover" />
+                </div>
+                <span class="text-md font-bold text-content-dark group-hover:text-primary transition-colors">{{ s.name
+                }}</span>
+                <AppBadge type="blue" class="ml-auto text-xs px-2 py-0.5">
+                  {{ s.age }} years old
+                </AppBadge>
+              </div>
+            </div>
+          </section>
+
+          <!-- Account Timestamps Card -->
+          <section class="ui-detail-card bg-surface-subtle/50">
+            <h6 class="font-black uppercase tracking-widest text-content-muted">Account Timestamp</h6>
+            <div class="space-y-6">
+              <div class="flex items-center gap-3">
+                <AppBadge type="green" class="text-md px-2 py-xs">
+                  Created At
+                </AppBadge>
+                <div class="text-sm font-bold text-content-muted leading-tight tabular-nums">
+                  {{ formatDate(parent.createdAt) }}
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <AppBadge type="blue" class="text-md px-2 py-xs">
+                  Updated At
+                </AppBadge>
+                <div class="text-sm font-bold text-content-muted leading-tight tabular-nums">
+                  {{ formatDate(parent.updatedAt || parent.createdAt) }}
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </template>
     </DetailPageLayout>
+
+    <!-- Shared Filter Menu -->
+    <Teleport to="body">
+      <transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform scale-95 opacity-0"
+        enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0">
+        <div v-if="isFilterOpen" ref="filterMenuRef"
+          class="fixed bg-white rounded-xl shadow-2xl border border-outline-std z-[9999] p-2 min-w-[180px] overflow-hidden"
+          :style="filterMenuStyles">
+          <div v-for="option in filterOptions" :key="option.value"
+            class="px-4 py-2.5 text-sm font-bold cursor-pointer transition-all rounded-lg flex items-center justify-between group"
+            :class="[
+              currentFilter === option.value ? 'shadow-sm' : '',
+              currentFilter === option.value ? '' : 'text-content-muted'
+            ]" :style="currentFilter === option.value || hoveredOption === option.value ? {
+              backgroundColor: getStatusTheme(option.value).backgroundColor,
+              color: getStatusTheme(option.value).color,
+              transform: hoveredOption === option.value ? 'translateX(4px)' : ''
+            } : {}" @click="selectFilter(option.value)" @mouseenter="hoveredOption = option.value"
+            @mouseleave="hoveredOption = null">
+            <span>{{ option.label }}</span>
+            <div v-if="option.value !== 'all'" class="w-2 h-2 rounded-full transition-transform group-hover:scale-125"
+              :style="{ backgroundColor: getStatusTheme(option.value).color }"></div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
 
     <ParentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :user="actionModal.user"
       :loading="submitting" v-model:error="globalError" v-model:success="globalSuccess"
       @close="actionModal.isOpen = false" @submit="submitActionModal" />
   </DashboardLayout>
 </template>
+
+<style scoped>
+.ui-detail-card {
+  @apply bg-white border border-outline-std shadow-sm p-8 rounded-md;
+}
+
+.ui-detail-card-title {
+  @apply text-lg font-black text-content-dark tracking-tight;
+}
+
+.filter-btn {
+  @apply px-4 py-2 bg-primary-soft text-primary text-xs font-black uppercase rounded-lg transition-all hover:bg-primary-light;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.overflow-x-auto {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+</style>

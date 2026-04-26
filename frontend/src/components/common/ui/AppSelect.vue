@@ -147,8 +147,7 @@ onUnmounted(() => {
             </div>
             <span v-else class="text-content-light text-sm italic opacity-70">{{ placeholder }}</span>
           </slot>
-          <span
-            class="w-2.5 h-2.5 border-r-2 border-b-2 border-text-muted transform transition-transform duration-300 mr-0.5"
+          <span class="w-2.5 h-2.5 border-r-2 border-b-2 transform transition-transform duration-300 mr-0.5"
             :class="isOpen ? 'rotate-[-135deg]' : 'rotate-45'"></span>
         </div>
       </div>

@@ -37,9 +37,6 @@ const handleImageError = (e) => {
       <div class="text-base font-black text-content-dark leading-tight tracking-tighter">
         {{ value }}
       </div>
-      <div v-if="subtitle" class="text-3xs text-content-muted font-bold truncate">
-        {{ subtitle }}
-      </div>
     </div>
   </div>
 </template>

@@ -183,7 +183,8 @@ const modalIcon = computed(() => {
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="modalIcon" :error="error" :success="success">
+  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="modalIcon" :error="error"
+    :success="success">
     <form id="enrollmentActionForm" @submit.prevent="requestConfirm" novalidate>
       <!-- Content for Pay Action -->
       <div v-if="type === 'pay'" class="flex flex-col gap-lg">
@@ -192,7 +193,8 @@ const modalIcon = computed(() => {
           <div class="grid grid-cols-2 gap-x-lg gap-y-md">
             <!-- Parent -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Parent Registry</span>
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Parent
+                Registry</span>
               <div class="enroll-identity-row">
                 <img :src="resolvedSummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
                 <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.parentName }}</span>
@@ -200,33 +202,40 @@ const modalIcon = computed(() => {
             </div>
             <!-- Student -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Student Name</span>
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Student
+                Name</span>
               <div class="enroll-identity-row">
                 <img :src="resolvedSummary.studentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.studentName }}</span>
+                <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.studentName
+                  }}</span>
               </div>
             </div>
             <!-- Program -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program Selection</span>
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program
+                Selection</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <img :src="resolvedSummary.programAvatar" class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.programName }}</span>
+                <img :src="resolvedSummary.programAvatar"
+                  class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
+                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.programName
+                  }}</span>
               </div>
             </div>
             <!-- Class & Branch -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Class and Branch</span>
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Class and
+                Branch</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <AppBadge :status="resolvedSummary.branchAbbr" class="shadow-sm" />
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.classTitle }}</span>
+                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.classTitle
+                  }}</span>
               </div>
             </div>
           </div>
 
           <div
             class="flex items-center justify-between bg-primary p-xl rounded-std shadow-lg shadow-primary/10 mt-lg border border-primary-dark">
-            <div class="flex flex-col gap-1">
+            <div class="flex justify-between gap-1">
               <span class="text-2xs font-black text-white/80 uppercase tracking-widest">Calculated Tuition Fee</span>
               <div class="flex gap-xs">
                 <AppBadge :status="resolvedSummary.mode || resolvedSummary.status"
@@ -335,7 +344,8 @@ const modalIcon = computed(() => {
           <div class="grid grid-cols-2 gap-x-lg gap-y-md">
             <!-- Parent -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Parent Registry</span>
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Parent
+                Registry</span>
               <div class="enroll-identity-row">
                 <img :src="resolvedSummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
                 <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.parentName }}</span>
@@ -343,26 +353,33 @@ const modalIcon = computed(() => {
             </div>
             <!-- Student -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Student Name</span>
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Student
+                Name</span>
               <div class="enroll-identity-row">
                 <img :src="resolvedSummary.studentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.studentName }}</span>
+                <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.studentName
+                  }}</span>
               </div>
             </div>
             <!-- Program -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program Selection</span>
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program
+                Selection</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <img :src="resolvedSummary.programAvatar" class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.programName }}</span>
+                <img :src="resolvedSummary.programAvatar"
+                  class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
+                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.programName
+                  }}</span>
               </div>
             </div>
             <!-- Class & Branch -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Class and Branch</span>
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Class and
+                Branch</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <AppBadge :status="resolvedSummary.branchAbbr" class="shadow-sm" />
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.classTitle }}</span>
+                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.classTitle
+                  }}</span>
               </div>
             </div>
           </div>
@@ -420,7 +437,7 @@ const modalIcon = computed(() => {
 }
 
 .enroll-channel-btn--inactive {
-  @apply bg-surface-subtle text-content-muted border-outline-std hover:bg-white hover:border-text-muted hover:text-content-dark;
+  @apply bg-surface-subtle text-content-muted border-outline-std hover:bg-white;
 }
 
 .enroll-channel-btn--online {

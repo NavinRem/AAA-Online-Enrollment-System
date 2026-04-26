@@ -450,7 +450,7 @@ watch(
 }
 
 .parent-reset-card--inactive {
-  @apply border-outline-std bg-white hover:border-text-muted;
+  @apply border-outline-std bg-white;
 }
 
 .parent-reset-card--email-active {
@@ -478,7 +478,7 @@ watch(
 }
 
 .parent-reset-info {
-  @apply flex flex-col gap-1;
+  @apply flex justify-between gap-1;
 }
 
 .parent-reset-title {

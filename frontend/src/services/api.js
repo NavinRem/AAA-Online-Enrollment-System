@@ -49,15 +49,20 @@ export async function request(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       responseData.message ||
         responseData.error ||
         `API Error: ${response.status} ${response.statusText}`,
     )
+    error.status = response.status
+    throw error
   }
 
   if (responseData.error) {
-    throw new Error(responseData.error.message || responseData.error || 'Unknown API Error')
+    const errorMsg = responseData.error.message || responseData.error || 'Unknown API Error'
+    const error = new Error(errorMsg)
+    error.status = response.status
+    throw error
   }
 
   if (method === 'GET') {

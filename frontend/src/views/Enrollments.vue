@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
@@ -23,11 +24,14 @@ import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { formatPrice, formatDate } from '@/utils/formatUtils'
 
+const router = useRouter()
+
 const enrollments = ref([])
 const parents = ref([])
 const students = ref([])
 const programs = ref([])
 const classes = ref([])
+const newlyCreatedId = ref(null)
 
 const loading = ref(true)
 const showModal = ref(false)
@@ -204,6 +208,13 @@ const enrollmentHeaders = [
 
 const currentFilter = ref('all')
 
+const navigateToDetail = (item) => {
+  if (item.id === newlyCreatedId.value) {
+    newlyCreatedId.value = null
+  }
+  router.push(`/enrollments/${item.id}`)
+}
+
 const statusFilteredEnrollments = computed(() => {
   const enriched = enrichEnrollments(
     enrollments.value,
@@ -362,7 +373,7 @@ const handleRegisterStudent = async (formData) => {
             { label: 'Unpaid', value: 'unpaid' },
             { label: 'Cancelled', value: 'cancelled' },
           ]" :rowClass="getRowClass" @action="handleTableAction"
-          @row-click="(item) => $router.push(`/enrollments/${item.id}`)">
+          @row-click="navigateToDetail">
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="showModal = true">

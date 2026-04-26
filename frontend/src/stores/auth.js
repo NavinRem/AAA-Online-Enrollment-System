@@ -24,6 +24,10 @@ export const useAuthStore = defineStore('auth', () => {
       return data
     } catch (error) {
       console.error('Failed to fetch user profile:', error)
+      if (error.status === 401) {
+        console.warn('Session invalid, logging out...')
+        await logout()
+      }
       profile.value = null
       return null
     }
