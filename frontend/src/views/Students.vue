@@ -105,30 +105,42 @@ watch([currentFilter, searchQuery], () => {
 const statsCards = computed(() => {
   const s = calculateTotalStudent(students.value)
   return [
-    { label: 'Total Students', value: s.total, image: getImageUrl('student/total-student') },
+    {
+      label: 'Total Students',
+      value: s.total,
+      image: getImageUrl('student/total-student'),
+      color: 'var(--color-primary-light)'
+    },
     {
       label: 'Currently Studying',
       value: s.studying,
       image: getImageUrl('student/currently-enrolled'),
+      color: 'var(--color-primary-light)'
     },
     {
       label: 'Not Enrolled',
       value: s.inactive,
       image: getImageUrl('student/currently-not-enrolled'),
+      color: 'var(--color-primary-light)'
     },
-    { label: 'Graduated', value: s.graduated, image: getImageUrl('student/graduated') },
+    {
+      label: 'Graduated',
+      value: s.graduated,
+      image: getImageUrl('student/graduated'),
+      color: 'var(--color-primary-light)'
+    },
   ]
 })
 
 const studentHeaders = [
-  { label: 'No', width: '60px', class: 'hidden md:table-cell', align: 'center' },
-  { label: 'Age', class: 'hidden md:table-cell', width: '80px', align: 'center' },
-  { label: 'Fullname' },
-  { label: 'Parent', class: 'hidden md:table-cell' },
-  { label: 'Program', class: 'hidden lg:table-cell', width: '150px' },
-  { label: 'Status', align: 'center', width: '120px' },
-  { label: 'Joined Date', class: 'hidden lg:table-cell', width: '150px', align: 'center' },
-  { label: 'Action', width: '80px', align: 'center' },
+  { label: 'NO', width: '60px', class: 'hidden md:table-cell', align: 'center' },
+  { label: 'AGE', class: 'hidden md:table-cell', width: '80px', align: 'center' },
+  { label: 'STUDENT' },
+  { label: 'PARENT', class: 'hidden md:table-cell' },
+  { label: 'PROGRAMS', class: 'hidden lg:table-cell', width: '150px' },
+  { label: 'STATUS', align: 'center', width: '120px' },
+  { label: 'JOINED DATE', class: 'hidden lg:table-cell', width: '200px', align: 'center' },
+  { label: 'ACTION', width: '80px', align: 'center' },
 ]
 
 const parentActionModal = ref({
@@ -299,7 +311,7 @@ const submitActionModal = async (formData) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Student Repository">
+    <DataPageLayout overviewTitle="Student Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
@@ -307,7 +319,7 @@ const submitActionModal = async (formData) => {
       </template>
 
       <template #table>
-        <DataTable title="Active Students" :headers="studentHeaders" :items="paginatedStudents" :loading="loading"
+        <DataTable title="Student Lists" :headers="studentHeaders" :items="paginatedStudents" :loading="loading"
           entityName="student" :flexible="true" v-model:searchQuery="searchQuery"
           searchPlaceholder="Search by name or ID..." :hasFilter="true" v-model:currentFilter="currentFilter"
           :filterOptions="[
@@ -324,7 +336,7 @@ const submitActionModal = async (formData) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="handleOpenAddStudent">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black">Enroll New Student</span>
+              <span class="font-black">New Student</span>
             </AppButton>
           </template>
 
@@ -336,8 +348,7 @@ const submitActionModal = async (formData) => {
             isMenuAbove,
             menuStyles,
             handleAction,
-            closeMenu,
-            headers,
+            closeMenu
           }">
             <!-- No -->
             <td class="ui-cell text-center font-bold text-content-muted/30 hidden md:table-cell">
@@ -346,43 +357,34 @@ const submitActionModal = async (formData) => {
 
             <!-- Age -->
             <td class="ui-cell text-center hidden md:table-cell">
-              <span
-                class="px-2.5 py-1 rounded-full bg-surface-subtle border border-outline-std text-[10px] font-black text-content-muted uppercase">
-                {{ calculateAge(item.dob) }} YRS
-              </span>
+              <AppBadge type="blue" class="ml-auto text-xs px-2 py-0.5">
+                {{ item.age }}
+              </AppBadge>
             </td>
 
             <!-- Identity -->
-            <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
-              <div class="flex items-center gap-4 group cursor-pointer">
+            <td class=" ui-cell min-w-[200px]" @click="navigateToDetail(item)">
+              <div class="ui-identity-cell">
                 <div class="relative">
                   <div
-                    class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-300 shadow-sm">
+                    class="ui-avatar ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-300 shadow-sm">
                     <img :src="item.profileURL" alt="avatar" class="w-full h-full object-cover" />
                   </div>
-                  <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white"
-                    :class="item.status === 'Studying' ? 'bg-success' : 'bg-content-muted'"></div>
                 </div>
-                <div class="flex flex-col">
-                  <span
-                    class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tight text-base">{{
-                      item.name }}</span>
-                  <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.id.slice(-6)
-                    }}</span>
+                <div class="ui-identity-info">
+                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.name }}</span>
                 </div>
               </div>
             </td>
 
             <!-- Parent -->
             <td class="ui-cell hidden md:table-cell">
-              <div class="flex items-center gap-3 opacity-70 group-hover:opacity-100 transition-opacity">
-                <div class="w-8 h-8 rounded-lg overflow-hidden border border-outline-std">
-                  <img :src="item.parentInfo?.profileURL" alt="parent" class="w-full h-full object-cover" />
+              <div class="ui-identity-cell opacity-70 group-hover:opacity-100 transition-opacity">
+                <div class="ui-avatar !w-8 !h-8">
+                  <img :src="item.parentInfo?.profileURL" alt="parent" />
                 </div>
-                <div class="flex flex-col">
-                  <span class="text-xs font-bold text-content-dark">{{ item.parentInfo?.name || 'Unlinked' }}</span>
-                  <span class="text-[9px] font-black text-content-muted uppercase tracking-tighter">Primary
-                    Contact</span>
+                <div class="ui-identity-info">
+                  <span class="text-xs font-bold text-content-dark">{{ item.parentInfo?.name }}</span>
                 </div>
               </div>
             </td>
@@ -391,7 +393,7 @@ const submitActionModal = async (formData) => {
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex -space-x-2">
                 <template v-if="item.enrollments?.length">
-                  <div v-for="(reg, rIdx) in item.enrollments.slice(0, 3)" :key="rIdx"
+                  <div v-for="(reg, rIdx) in item.enrollments" :key="rIdx"
                     class="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm hover:z-10 transition-transform hover:scale-110"
                     :title="reg.programName">
                     <img :src="getProgramProfileURL(reg.program?.profileURL)" class="w-full h-full object-cover" />
@@ -420,10 +422,11 @@ const submitActionModal = async (formData) => {
 
             <!-- Action -->
             <td class="ui-cell text-center">
-              <div class="relative">
-                <button @click.stop="toggleMenu($event, item.id)"
-                  class="p-2 hover:bg-surface-subtle rounded-lg transition-colors group">
-                  <span class="font-black text-content-muted group-hover:text-primary">⋮</span>
+              <div class="ui-action-menu">
+                <button
+                  class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
+                  @click.stop="toggleMenu($event, item.id)">
+                  <span class="font-black text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -433,22 +436,22 @@ const submitActionModal = async (formData) => {
                     <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
-                      <button class="ui-dropdown-item group" @click="handleAction('edit', item); closeMenu()">
+                      <button class="ui-dropdown-item ui-dropdown-item-info group" @click="() => { handleAction('edit', item); closeMenu(); }">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Edit Student</span>
                       </button>
-                      <button class="ui-dropdown-item group" @click="handleAction('override', item); closeMenu()">
+                      <button class="ui-dropdown-item ui-dropdown-item-info group" @click="() => { handleAction('override', item); closeMenu(); }">
                         <img :src="getActionIcon('view')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Status Override</span>
                       </button>
-                      <div class="h-px bg-surface-subtle mx-2 my-1"></div>
-                      <button class="ui-dropdown-item group text-error"
-                        @click="handleAction('delete', item); closeMenu()">
+                      <div class="h-px bg-surface-light mx-1 my-1"></div>
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                        @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity invert" />
-                        <span class="font-black text-sm">Purge Record</span>
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        Purge Record
                       </button>
                     </div>
                   </transition>

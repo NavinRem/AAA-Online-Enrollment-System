@@ -96,6 +96,12 @@ const router = createRouter({
       meta: { title: 'Payment', requiresAuth: true },
     },
     {
+      path: '/terms',
+      name: 'terms',
+      component: () => import('../views/Terms.vue'),
+      meta: { title: 'Academic Terms', requiresAuth: true, requiresAdmin: true },
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('../views/Settings.vue'),

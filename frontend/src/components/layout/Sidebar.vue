@@ -29,7 +29,8 @@ const menuItems = [
   { name: 'Programs', path: '/programs', icon: 'navigation/program.svg' },
   { name: 'Classes', path: '/classes', icon: 'navigation/class.svg' },
   { name: 'Payments', path: '/payment', icon: 'navigation/dollar.svg' },
-  { name: 'Setting', path: '/settings', icon: 'navigation/setting.svg' },
+  { name: 'Terms', path: '/terms', icon: 'navigation/program.svg' },
+  { name: 'Settings', path: '/settings', icon: 'navigation/setting.svg' },
 ]
 
 const handleLogout = async () => {

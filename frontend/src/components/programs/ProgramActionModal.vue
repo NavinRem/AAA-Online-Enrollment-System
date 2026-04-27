@@ -18,9 +18,10 @@ const props = defineProps({
   program: Object,
   loading: Boolean,
   error: String,
+  success: String,
 })
 
-const emit = defineEmits(['close', 'submit', 'update:error'])
+const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
 
 const getInitialData = () => ({
   name: '',
@@ -190,174 +191,149 @@ watch(
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" :icon="modalIcon" maxWidth="600px" @close="$emit('close')">
-    <form v-if="type === 'add' || type === 'edit'" id="programActionForm" class="ui-form-grid"
-      @submit.prevent="handleActionSubmit" novalidate>
-      <AppInput v-model="localData.name" label="Program Identity / Model" placeholder="e.g. Master Class: Piano"
-        class="col-span-2" required :error="errors.name" :shake="shaking.name" @input="clearError('name')">
-        <template #label-extra v-if="type === 'edit' && originalData.name">
-          <span class="text-3xs font-bold text-primary ml-sm lowercase italic opacity-60">
-            Record: {{ originalData.name }}
-          </span>
-        </template>
-      </AppInput>
-
-      <AppSelect v-model="localData.categoryId" :items="sortedCategories" label="Category" placeholder="Catalog..."
-        required :error="errors.categoryId" :shake="shaking.categoryId" @change="onCategoryChange" />
-
-      <AppSelect v-model="localData.levelId" :items="sortedLevels" label="Skill Level" placeholder="Difficulty..."
-        :disabled="!localData.categoryId" @click-disabled="handleDisabledClick('levelId')" />
-
-      <div class="col-span-2 flex items-center gap-md py-2 opacity-50">
-        <div class="h-px bg-border flex-1"></div>
-        <span class="text-3xs font-black uppercase tracking-widest text-content-muted select-none">Economic &
-          Operational
-          Logic</span>
-        <div class="h-px bg-border flex-1"></div>
+  <AppModal :show="isOpen" :title="modalTitle" :icon="modalIcon" maxWidth="650px" @close="$emit('close')">
+    <!-- Body Content -->
+    <div class="px-xl py-6">
+      <!-- Feedback Alerts -->
+      <div v-if="error || success" class="mb-4">
+        <AppAlert v-if="error" type="error" :title="error" @close="$emit('update:error', '')" />
+        <AppAlert v-if="success" type="success" :title="success" @close="$emit('update:success', '')" />
       </div>
 
-      <AppSelect v-model="localData.type" label="Course Type" :items="[
-        { id: 'group', name: 'Group / Ensemble' },
-        { id: 'private', name: 'Private Session' },
-      ]" :searchable="false" required />
+      <form v-if="type === 'add' || type === 'edit'" id="programActionForm" class="grid grid-cols-2 gap-x-6 gap-y-5"
+        @submit.prevent="handleActionSubmit" novalidate>
+        
+        <AppInput v-model="localData.name" label="Program Identity / Model" placeholder="e.g. Master Class: Piano"
+          class="col-span-2" required :error="errors.name" :shake="shaking.name" @input="clearError('name')">
+          <template #label-extra v-if="type === 'edit' && originalData.name">
+            <span class="text-3xs font-bold text-primary ml-sm lowercase italic opacity-60">
+              Record: {{ originalData.name }}
+            </span>
+          </template>
+        </AppInput>
 
-      <AppInput v-model="localData.basePrice" type="number" label="Catalog Price ($)" placeholder="0.00" step="0.01"
-        required :error="errors.basePrice" :shake="shaking.basePrice" @input="clearError('basePrice')" />
+        <AppSelect v-model="localData.categoryId" :items="sortedCategories" label="Category" placeholder="Catalog..."
+          required :error="errors.categoryId" :shake="shaking.categoryId" @change="onCategoryChange" />
 
-      <AppInput v-model="localData.totalClasses" type="number" label="Total Classes" placeholder="1" required
-        :error="errors.totalClasses" :shake="shaking.totalClasses" @input="clearError('totalClasses')" />
+        <AppSelect v-model="localData.levelId" :items="sortedLevels" label="Skill Level" placeholder="Difficulty..."
+          :disabled="!localData.categoryId" @click-disabled="handleDisabledClick('levelId')" />
 
-      <AppInput v-model="localData.weeksNumber" type="number" label="Term Duration" placeholder="1" required
-        :error="errors.weeksNumber" :shake="shaking.weeksNumber" @input="clearError('weeksNumber')">
-        <template #right-icon>
-          <span class="text-2xs font-black uppercase text-content-muted/40 mr-md">Weeks</span>
-        </template>
-      </AppInput>
+        <AppSelect v-model="localData.type" label="Course Type" :items="[
+          { id: 'group', name: 'Group / Ensemble' },
+          { id: 'private', name: 'Private Session' },
+        ]" :searchable="false" required />
 
-      <AppInput v-model="localData.maxCapacity" type="number" label="Registry Limit (Defaults)" placeholder="10"
-        class="col-span-2" required :error="errors.maxCapacity" :shake="shaking.maxCapacity"
-        @input="clearError('maxCapacity')" />
+        <AppInput v-model="localData.basePrice" type="number" label="Catalog Price ($)" placeholder="0.00" step="0.01"
+          required :error="errors.basePrice" :shake="shaking.basePrice" @input="clearError('basePrice')" />
 
-      <div class="flex flex-col gap-xs col-span-2 mt-sm">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest">Description / Synopsis</label>
-        <textarea v-model="localData.description"
-          placeholder="A brief overview for administrative and parent reference..." rows="2" class="ui-remark-textarea"
-          :class="{
-            'border-error bg-error-soft ring-error/10': errors.description,
-            'animate-shake': shaking.description,
-          }"></textarea>
-        <div v-if="errors.description" class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest">
-          {{ errors.description }}
-        </div>
-      </div>
+        <AppInput v-model="localData.totalClasses" type="number" label="Total Classes" placeholder="1" required
+          :error="errors.totalClasses" :shake="shaking.totalClasses" @input="clearError('totalClasses')" />
 
-      <div class="flex flex-col gap-xs col-span-2">
-        <label class="text-xs font-black uppercase text-content-muted tracking-widest">Program Creative</label>
-        <div class="relative">
-          <div v-if="localData.profileURL"
-            class="flex items-center gap-md bg-surface-light p-2 rounded-sm border border-outline-std/30">
-            <div class="w-12 h-12 rounded-sm border-2 border-white shadow-sm overflow-hidden bg-white">
-              <img :src="localData.profileURL" alt="Preview" class="w-full h-full object-cover" />
-            </div>
-            <button type="button"
-              class="text-2xs text-error font-black uppercase tracking-widest cursor-pointer bg-white border border-error/20 px-3 py-1.5 rounded-sm transition-all hover:bg-error hover:text-white"
-              @click="localData.profileURL = ''">
-              Remove File
-            </button>
-          </div>
-          <div v-else>
-            <input type="file" @change="handleFileUpload" accept="image/*" id="program-file-upload" class="hidden" />
-            <label for="program-file-upload"
-              class="group flex items-center gap-md p-md border-2 border-dashed border-outline-std rounded-sm cursor-pointer transition-all hover:bg-primary-soft hover:border-primary">
-              <span class="text-2xl transition-transform group-hover:scale-110">🖼️</span>
-              <div class="flex flex-col">
-                <span class="text-xs font-black text-content-dark uppercase tracking-widest">{{
-                  isUploading ? 'Uploading Image...' : 'Select Program Asset'
-                }}</span>
-                <span class="text-3xs font-bold text-content-muted italic">Recommended aspect ratio 16:9</span>
+        <AppInput v-model="localData.weeksNumber" type="number" label="Term Duration" placeholder="1" required
+          :error="errors.weeksNumber" :shake="shaking.weeksNumber" @input="clearError('weeksNumber')">
+          <template #right-icon>
+            <span class="text-2xs font-black uppercase text-content-muted/40 mr-md">Weeks</span>
+          </template>
+        </AppInput>
+
+        <AppInput v-model="localData.maxCapacity" type="number" label="Registry Limit" placeholder="10"
+          required :error="errors.maxCapacity" :shake="shaking.maxCapacity"
+          @input="clearError('maxCapacity')" />
+
+        <div class="flex flex-col gap-xs mt-0">
+          <label class="text-xs font-black uppercase text-content-muted tracking-widest">Program Creative</label>
+          <div class="relative">
+            <div v-if="localData.profileURL"
+              class="flex items-center gap-md bg-surface-light p-1.5 rounded-xl border border-outline-std/30">
+              <div class="w-10 h-10 rounded-xl border-2 border-white shadow-sm overflow-hidden bg-white">
+                <img :src="localData.profileURL" alt="Preview" class="w-full h-full object-cover" />
               </div>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Schedule Templates -->
-      <template v-if="type === 'edit'">
-        <div class="col-span-2 flex items-center gap-md py-2 opacity-50 mt-sm">
-          <div class="h-px bg-border flex-1"></div>
-          <span class="text-3xs font-black uppercase tracking-widest text-content-muted">Master Schedule Nodes</span>
-          <div class="h-px bg-border flex-1"></div>
-        </div>
-
-        <div
-          class="col-span-2 bg-surface-subtle border-2 border-outline-std rounded-sm p-md flex flex-col gap-md shadow-inner">
-          <div class="flex flex-wrap gap-sm">
-            <div v-for="s in schedules" :key="s.id"
-              class="group flex items-center gap-sm bg-white p-1 px-3 rounded-sm border-2 border-outline-std/50 shadow-sm transition-all hover:border-primary/30">
-              <span class="text-2xs font-black text-primary uppercase tracking-tighter">{{
-                s.day
-              }}</span>
-              <span class="text-xs text-content-dark font-black tracking-tight">{{
-                s.timeslot
-              }}</span>
               <button type="button"
-                class="w-5 h-5 flex items-center justify-center rounded-full bg-surface-light text-content-muted hover:bg-error hover:text-white transition-colors cursor-pointer"
-                @click="handleRemoveSchedule(s.id)">
-                &times;
+                class="text-2xs text-error font-black uppercase tracking-widest cursor-pointer bg-white border border-error/20 px-3 py-1 rounded-xl transition-all hover:bg-error hover:text-white"
+                @click="localData.profileURL = ''">
+                Remove
               </button>
             </div>
-            <div v-if="schedules.length === 0" class="text-xs text-content-muted/40 font-bold italic py-2">
-              No master schedule nodes initialized for this model.
+            <div v-else>
+              <input type="file" @change="handleFileUpload" accept="image/*" id="program-file-upload" class="hidden" />
+              <label for="program-file-upload"
+                class="group flex items-center gap-md p-2 border-2 border-dashed border-outline-std rounded-xl cursor-pointer transition-all hover:bg-primary-soft hover:border-primary">
+                <span class="text-xl">🖼️</span>
+                <span class="text-xs font-black text-content-dark uppercase tracking-widest">{{
+                    isUploading ? 'Uploading...' : 'Asset'
+                  }}</span>
+              </label>
             </div>
           </div>
+        </div>
 
-          <div class="flex gap-sm items-center pt-md border-t border-outline-std/20">
-            <AppSelect v-model="newSchedule.day" :items="['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(
-              (d) => ({ id: d, name: d }),
-            )
-              " :searchable="false" class="w-36" />
-            <AppSelect v-model="newSchedule.timeslot" :items="['08:30 - 10:00', '10:30 - 12:00', '13:30 - 15:00', '15:30 - 17:00'].map((s) => ({
-              id: s,
-              name: s,
-            }))
-              " :searchable="false" class="flex-1" />
-            <AppButton variant="primary" @click="handleAddSchedule" :disabled="!newSchedule.timeslot" size="md"
-              class="px-6">Register Slot</AppButton>
+        <div class="flex flex-col gap-xs col-span-2 mt-0">
+          <label class="text-xs font-black uppercase text-content-muted tracking-widest">Description / Synopsis</label>
+          <textarea v-model="localData.description"
+            placeholder="A brief overview for administrative reference..." rows="2" class="ui-remark-textarea !text-xs !py-2"
+            :class="{
+              'border-error bg-error-soft ring-error/10': errors.description,
+              'animate-shake': shaking.description,
+            }"></textarea>
+        </div>
+
+        <!-- Schedule Templates -->
+        <template v-if="type === 'edit'">
+          <div class="col-span-2 bg-surface-subtle border border-outline-std rounded-xl p-3 flex flex-col gap-3 shadow-inner">
+            <div class="flex flex-wrap gap-2">
+              <div v-for="s in schedules" :key="s.id"
+                class="group flex items-center gap-2 bg-white p-1 px-3 rounded-lg border border-outline-std/50 shadow-sm transition-all hover:border-primary/30">
+                <span class="text-[10px] font-black text-primary uppercase tracking-tighter">{{ s.day }}</span>
+                <span class="text-xs text-content-dark font-black tracking-tight">{{ s.timeslot }}</span>
+                <button type="button"
+                  class="w-4 h-4 flex items-center justify-center rounded-full bg-surface-light text-content-muted hover:bg-error hover:text-white transition-colors cursor-pointer"
+                  @click="handleRemoveSchedule(s.id)">
+                  &times;
+                </button>
+              </div>
+              <div v-if="schedules.length === 0" class="text-xs text-content-muted/40 font-bold italic py-1">
+                No master schedule nodes initialized.
+              </div>
+            </div>
+
+            <div class="flex gap-2 items-center pt-2 border-t border-outline-std/20">
+              <AppSelect v-model="newSchedule.day" :items="['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((d) => ({ id: d, name: d }))" :searchable="false" class="w-32" />
+              <AppSelect v-model="newSchedule.timeslot" :items="['08:30 - 10:00', '10:30 - 12:00', '13:30 - 15:00', '15:30 - 17:00'].map((s) => ({ id: s, name: s }))" :searchable="false" class="flex-1" />
+              <AppButton variant="primary" @click="handleAddSchedule" :disabled="!newSchedule.timeslot" size="sm" class="px-4 rounded-lg">Register</AppButton>
+            </div>
+          </div>
+        </template>
+      </form>
+
+      <div v-if="type === 'delete'" class="flex flex-col gap-xl">
+        <div class="flex items-center gap-xl p-xl bg-error/5 border-2 border-dashed border-error/20 rounded-2xl">
+          <div class="text-4xl">☢️</div>
+          <div class="flex flex-col">
+            <strong class="text-lg font-black text-error uppercase leading-none mb-2">Catalog Deconstruction</strong>
+            <p class="text-xs text-content-muted font-bold leading-relaxed">
+              This action will purge the program from catalogs. Active classes will persist but model synchronization will be severed.
+            </p>
           </div>
         </div>
-      </template>
-    </form>
-
-    <div v-if="type === 'delete'" class="flex flex-col gap-xl mt-lg">
-      <div class="flex items-center gap-xl p-xl bg-error-deep/5 border-2 border-dashed border-error/30 rounded-std">
-        <div class="text-4xl filter grayscale brightness-125">☢️</div>
-        <div class="flex justify-between gap-1">
-          <strong class="text-lg font-black text-error-deep tracking-tight uppercase leading-none">Catalog Model
-            Deletion</strong>
-          <p class="text-xs text-error-deep/70 font-semibold leading-relaxed">
-            This will remove the program from selection catalogs. Active classes will remain but may
-            lose model synchronization.
-          </p>
-        </div>
+        <AppInput v-model="localData.deleteConfirm" label="Security Confirmation" placeholder="CONFIRM CATALOG DELETE"
+          required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" class="text-center"
+          @input="clearError('deleteConfirm')">
+          <template #label-extra>
+            <span class="block text-3xs font-black uppercase text-content-muted/40 text-center mt-2">
+              Type <span class="text-error px-1">DELETE</span> to authorize purge
+            </span>
+          </template>
+        </AppInput>
       </div>
-      <AppInput v-model="localData.deleteConfirm" label="Master Purge Confirmation" placeholder="CONFIRM CATALOG DELETE"
-        required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" class="text-center"
-        @input="clearError('deleteConfirm')">
-        <template #label-extra>
-          <span class="block text-2xs font-black uppercase text-content-muted/40 text-center mt-1">
-            Type <span class="text-error px-1">DELETE</span> to confirm purge
-          </span>
-        </template>
-      </AppInput>
     </div>
 
     <template #footer>
-      <div class="flex items-center justify-end w-full gap-md">
-        <AppButton variant="cancel" @click="$emit('close')">Cancel Entry</AppButton>
-        <AppButton :variant="type === 'delete' ? 'danger' : 'primary'"
+      <div class="flex items-center justify-end w-full gap-md px-xl py-4 bg-surface-subtle/30 border-t border-outline-std">
+        <AppButton variant="cancel" size="lg" class="px-8" @click="$emit('close')">Abort Action</AppButton>
+        <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" size="lg" class="px-8"
           :form="type === 'add' || type === 'edit' ? 'programActionForm' : null" type="submit"
           @click="type === 'delete' ? handleActionSubmit() : null" :loading="loading" :disabled="loading"
-          :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }">
+          :class="{ 'opacity-50 pointer-events-none': type === 'edit' && !isDirty }">
           {{ submitLabel }}
         </AppButton>
       </div>

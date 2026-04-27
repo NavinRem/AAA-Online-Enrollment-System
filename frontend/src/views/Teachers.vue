@@ -52,35 +52,36 @@ const stats = computed(() => {
       label: 'Faculty Strength',
       value: all.length,
       image: getImageUrl('teacher/total-teacher'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
       label: 'Active Deployment',
       value: active.length,
       image: getImageUrl('dashboard/active-now'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
       label: 'Academic Diversity',
       value: new Set(all.map(t => t.specialization).filter(Boolean)).size,
       image: getImageUrl('dashboard/card-top-program'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
       label: 'Capacity Utilization',
       value: all.length > 0 ? Math.round((active.length / all.length) * 100) + '%' : '0%',
       image: getImageUrl('dashboard/card-available-program'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
   ]
 })
 
 const headers = [
-  { label: 'Faculty Identity' },
-  { label: 'Specialization', class: 'hidden sm:table-cell' },
-  { label: 'Contact Details', class: 'hidden md:table-cell' },
-  { label: 'Status', width: '120px', align: 'center' },
-  { label: 'Action', width: '100px', align: 'center' },
+  { label: 'NO', width: '50px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'TEACHER IDENTITY' },
+  { label: 'SPECIALIZATION', class: 'hidden sm:table-cell' },
+  { label: 'CONTACT DETAILS', class: 'hidden md:table-cell' },
+  { label: 'STATUS', width: '120px', align: 'center' },
+  { label: 'ACTION', width: '80px', align: 'center' },
 ]
 
 // Modal Logic
@@ -125,7 +126,7 @@ const handleDelete = async (teacher) => {
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Faculty & Personnel Management">
+    <DataPageLayout overviewTitle="Teacher Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in stats" :key="stat.label" v-bind="stat" />
@@ -133,7 +134,7 @@ const handleDelete = async (teacher) => {
       </template>
 
       <template #table>
-        <DataTable title="Academic Faculty Registry" :headers="headers" :items="filteredTeachers" :loading="loading"
+        <DataTable title="Teacher Lists" :headers="headers" :items="filteredTeachers" :loading="loading"
           searchPlaceholder="Search by name, email or specialization..." :hasFilter="true"
           v-model:searchQuery="searchQuery" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Faculty', value: 'all' },
@@ -144,35 +145,37 @@ const handleDelete = async (teacher) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">Onboard Faculty</span>
+              <span class="font-black tracking-tight">New Teacher</span>
             </AppButton>
           </template>
 
-          <template #row="{ item, headers }">
-            <td class="ui-cell">
-              <div class="flex items-center gap-4 group cursor-pointer">
-                <div
-                  class="w-12 h-12 rounded-2xl bg-surface-subtle border border-outline-std overflow-hidden flex items-center justify-center">
+          <template #row="{ item, index, headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }">
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell"
+              :style="{ width: headers[0].width }">
+              {{ index + 1 }}
+            </td>
+
+            <td class="ui-cell" :style="{ width: headers[1].width }">
+              <div class="ui-identity-cell">
+                <div class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center">
                   <span class="text-lg font-black text-primary opacity-40">{{ item.name.charAt(0) }}</span>
                 </div>
-                <div class="flex flex-col">
-                  <span
-                    class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tight text-base leading-tight">{{
-                    item.name }}</span>
-                  <span class="text-[10px] font-black text-content-muted uppercase tracking-widest mt-0.5">Faculty
-                    Member</span>
+                <div class="ui-identity-info">
+                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.name }}</span>
+                  <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{
+                    item.id.slice(-6).toUpperCase() }}</span>
                 </div>
               </div>
             </td>
 
-            <td class="ui-cell hidden sm:table-cell">
+            <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[2].width }">
               <div class="inline-flex px-3 py-1 rounded-lg bg-primary/5 border border-primary/10">
                 <span class="text-xs font-black text-primary tracking-tight uppercase">{{ item.specialization ||
                   'Generalist' }}</span>
               </div>
             </td>
 
-            <td class="ui-cell hidden md:table-cell">
+            <td class="ui-cell hidden md:table-cell" :style="{ width: headers[3].width }">
               <div class="flex flex-col">
                 <span class="text-xs font-bold text-content-dark">{{ item.email }}</span>
                 <span class="text-[9px] font-black text-content-muted uppercase tracking-tighter mt-1">{{ item.phone ||
@@ -180,21 +183,43 @@ const handleDelete = async (teacher) => {
               </div>
             </td>
 
-            <td class="ui-cell text-center">
+            <td class="ui-cell text-center" :style="{ width: headers[4].width }">
               <AppBadge :status="item.status || 'active'" />
             </td>
 
-            <td class="ui-cell text-center">
-              <div class="flex items-center justify-center gap-2">
-                <button @click="openModal('edit', item)"
-                  class="p-2 hover:bg-surface-subtle rounded-xl transition-all group">
-                  <img :src="getActionIcon('edit')"
-                    class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+            <td class="ui-cell text-center" :style="{ width: headers[5].width }">
+              <div class="ui-action-menu">
+                <button
+                  class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
+                  @click.stop="toggleMenu($event, item.id)">
+                  <span class="font-black text-lg leading-none mb-1">⋮</span>
                 </button>
-                <button @click="handleDelete(item)" class="p-2 hover:bg-red-50 rounded-xl transition-all group">
-                  <img :src="getActionIcon('delete')"
-                    class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity filter-red" />
-                </button>
+                <Teleport to="body">
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
+                      @click.stop>
+                      <button class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="openModal('edit', item); closeMenu()">
+                        <img :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        <span class="font-bold text-sm">Edit Data</span>
+                      </button>
+
+                      <div class="h-px bg-surface-light mx-1 my-1"></div>
+
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                        @click="handleDelete(item); closeMenu()">
+                        <img :src="getActionIcon('delete')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        Remove Record
+                      </button>
+                    </div>
+                  </transition>
+                </Teleport>
               </div>
             </td>
           </template>

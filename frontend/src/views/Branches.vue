@@ -369,12 +369,12 @@ const handleSaveBranch = async (formData) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[9].width }">
               <span class="text-sm font-black text-emerald-600 tabular-nums">${{ formatPrice(getBranchRevenue(item.id))
-                }}</span>
+              }}</span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[10].width }">
               <span class="text-sm font-black text-amber-600 tabular-nums">${{ formatPrice(getPendingRevenue(item.id))
-                }}</span>
+              }}</span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[11].width }">
@@ -398,8 +398,7 @@ const handleSaveBranch = async (formData) => {
                         <span class="font-bold">Edit</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button
-                        class="ui-dropdown-item ui-dropdown-item-danger group font-black uppercase tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete

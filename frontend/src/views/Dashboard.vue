@@ -12,11 +12,14 @@ import { parseDate, formatPrice } from '@/utils/formatUtils'
 import { calculateDashboardStats } from '@/utils/statsHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
 import { branchService } from '../services/branchService'
+import { termService } from '../services/termService'
 
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import MiniCard from '../components/common/cards/MiniCard.vue'
 import RecentEnrollmentTable from '../components/enrollments/RecentEnrollmentTable.vue'
+
+import { formatDateOnly } from '@/utils/formatUtils'
 
 const userProfile = ref({
   name: 'Loading...',
@@ -31,6 +34,7 @@ const branches = ref([])
 const users = ref([])
 const loading = ref(true)
 const trials = ref([])
+const activeTerm = ref(null)
 
 const stats = ref({
   today: { reg: 0, enroll: 0, pay: 0, trial: 0 },
@@ -62,7 +66,7 @@ onMounted(() => {
       const profile = await authService.getUserProfile(currentUser.uid)
       userProfile.value = profile
 
-      const [pData, rData, prData, sData, clsData, bData, tData] = await Promise.all([
+      const [pData, rData, prData, sData, clsData, bData, tData, termData] = await Promise.all([
         parentService.getAllParents(),
         enrollmentService.getAllEnrollments(),
         programService.getAllPrograms(),
@@ -70,6 +74,7 @@ onMounted(() => {
         classService.getAllClasses(),
         branchService.getAllBranches(),
         trialService.getAllTrials(),
+        termService.getAllTerms()
       ])
 
       users.value = Array.isArray(pData) ? pData : []
@@ -79,6 +84,10 @@ onMounted(() => {
       classes.value = Array.isArray(clsData) ? clsData : []
       branches.value = Array.isArray(bData) ? bData : []
       trials.value = Array.isArray(tData) ? tData : []
+
+      if (Array.isArray(termData) && termData.length > 0) {
+        activeTerm.value = termData.find(t => t.status === 'active') || termData[0]
+      }
 
       stats.value = calculateDashboardStats(
         users.value,
@@ -262,6 +271,21 @@ const mappedEnrollments = computed(() => {
               </h3>
             </div>
           </div>
+
+          <div v-if="activeTerm"
+            class="px-md py-4 rounded-md border border-primary/20 bg-primary/5 flex flex-col items-center mb-2">
+            <span class="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Active Academic Term</span>
+            <h3 class="text-lg font-black text-content-dark tracking-tighter leading-tight mb-2">{{ activeTerm.name }}
+            </h3>
+            <div class="flex items-center gap-3">
+              <span class="text-xs font-bold text-content-muted tabular-nums">{{ formatDateOnly(activeTerm.startDate)
+                }}</span>
+              <span class="w-2 h-px bg-content-muted/30"></span>
+              <span class="text-xs font-bold text-content-muted tabular-nums">{{ formatDateOnly(activeTerm.endDate)
+                }}</span>
+            </div>
+          </div>
+
           <div class="flex flex-1 flex-col min-h-0 gap-md">
             <h3 class="flex-shrink-0 text-xs font-black uppercase tracking-widest text-content-dark text-center">
               Basic Information

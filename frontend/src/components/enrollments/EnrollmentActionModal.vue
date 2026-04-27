@@ -345,7 +345,7 @@ const modalIcon = computed(() => {
             <!-- Parent -->
             <div class="flex flex-col gap-xs">
               <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Parent
-                Registry</span>
+                Name</span>
               <div class="enroll-identity-row">
                 <img :src="resolvedSummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
                 <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.parentName }}</span>
@@ -363,8 +363,7 @@ const modalIcon = computed(() => {
             </div>
             <!-- Program -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program
-                Selection</span>
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <img :src="resolvedSummary.programAvatar"
                   class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />

@@ -31,13 +31,13 @@ const statsCards = computed(() => [
     label: 'Live Inventory',
     value: classes.value.length,
     image: getImageUrl('programs/total-program'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
   },
   {
     label: 'Open Registry',
     value: classes.value.filter((c) => c.status === 'open').length,
     image: getImageUrl('programs/active-program'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
   },
   {
     label: 'Peak Load',
@@ -49,7 +49,7 @@ const statsCards = computed(() => [
     label: 'Total Learners',
     value: classes.value.reduce((sum, c) => sum + (c.currentCount || 0), 0),
     image: getImageUrl('dashboard/card-available-program'),
-    color: 'var(--accent-light)',
+    color: 'var(--color-primary-light)',
   },
 ])
 
@@ -152,7 +152,7 @@ onMounted(fetchClasses)
             <td class="ui-cell" :style="{ width: headers[2].width }">
               <div class="flex flex-col">
                 <span class="text-xs font-black text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
-                  }}</span>
+                }}</span>
                 <span
                   class="text-[8px] font-black text-content-muted uppercase tracking-widest leading-none mt-1">Registry
                   Period</span>
@@ -178,9 +178,9 @@ onMounted(fetchClasses)
             <td class="ui-cell" :style="{ width: headers[5].width }">
               <div class="flex flex-col">
                 <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{ item.day
-                  }}</span>
+                }}</span>
                 <span class="text-[9px] font-black text-primary uppercase tracking-widest mt-1">{{ item.timeslot
-                  }}</span>
+                }}</span>
               </div>
             </td>
 

@@ -331,7 +331,7 @@ onMounted(() => {
               </div>
               <button v-for="s in students" :key="s.id" @click="selectedChildId = s.id"
                 class="p-3 rounded-xl text-sm font-bold transition-all text-center border-2"
-                :class="selectedChildId === s.id ? 'bg-white border-primary text-primary shadow-md scale-[1.02]' : 'bg-white border-transparent hover:bg-gray-50 text-content-muted'">
+                :class="selectedChildId === s.id ? 'bg-primary text-white shadow-md scale-[1.02]' : 'bg-white border-transparent hover:bg-gray-50 text-content-muted'">
                 {{ s.name }}
               </button>
             </div>
@@ -345,7 +345,8 @@ onMounted(() => {
                     <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Program</th>
                     <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Branch</th>
                     <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Session</th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">Status</th>
+                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">Status
+                    </th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
@@ -353,14 +354,16 @@ onMounted(() => {
                     class="hover:bg-gray-50/50 transition-colors">
                     <td class=" p-md text-xs font-bold text-content-muted">{{ idx + 1 }}</td>
                     <td class=" p-md text-sm font-bold text-content-dark">{{ enroll.programName }}</td>
-                    <td class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">{{ enroll.branchAbbr }} Branch</td>
+                    <td class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">{{
+                      enroll.branchAbbr }} Branch</td>
                     <td class=" p-md text-xs font-bold text-content-dark leading-tight">{{ enroll.classSchedule }}</td>
                     <td class=" p-md text-center">
                       <AppBadge :status="enroll.status" />
                     </td>
                   </tr>
                   <tr v-if="currentChildEnrollments.length === 0">
-                    <td colspan="5" class="p-10 text-center text-content-muted italic text-sm">No active programs found for this child.</td>
+                    <td colspan="5" class="p-10 text-center text-content-muted italic text-sm">No active programs found
+                      for this child.</td>
                   </tr>
                 </tbody>
               </table>
@@ -409,7 +412,8 @@ onMounted(() => {
                     <td class=" p-md text-xs font-mono text-content-dark">{{ enroll.id.slice(0, 12) }}...</td>
                     <td class=" p-md text-sm font-bold text-content-dark">{{ enroll.programName }}</td>
                     <td class=" p-md text-sm font-bold text-primary">{{ enroll.studentName }}</td>
-                    <td class=" p-md text-xs font-bold text-content-muted tabular-nums">{{ formatDate(enroll.enrollAt) }}</td>
+                    <td class=" p-md text-xs font-bold text-content-muted tabular-nums">{{ formatDate(enroll.enrollAt)
+                      }}</td>
                     <td class=" p-md text-center">
                       <AppBadge :status="enroll.status" />
                     </td>
@@ -456,12 +460,16 @@ onMounted(() => {
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
-                  <tr v-for="(enroll, idx) in paymentHistory" :key="enroll.id" class="hover:bg-gray-50/50 transition-colors">
+                  <tr v-for="(enroll, idx) in paymentHistory" :key="enroll.id"
+                    class="hover:bg-gray-50/50 transition-colors">
                     <td class=" p-md text-xs font-bold text-content-muted">{{ idx + 1 }}</td>
-                    <td class=" p-md text-xs font-mono text-content-dark">{{ enroll.transactionId || enroll.id.slice(0, 12).toUpperCase() }}</td>
+                    <td class=" p-md text-xs font-mono text-content-dark">{{ enroll.transactionId || enroll.id.slice(0,
+                      12).toUpperCase() }}</td>
                     <td class=" p-md text-xs font-mono text-content-muted">{{ enroll.id.slice(0, 12) }}...</td>
-                    <td class=" p-md text-sm font-black text-content-dark text-center">${{ formatPrice(enroll.amount) }}</td>
-                    <td class=" p-md text-xs font-bold text-content-muted tabular-nums">{{ formatDate(enroll.paidAt || enroll.enrollAt) }}</td>
+                    <td class=" p-md text-sm font-black text-content-dark text-center">${{ formatPrice(enroll.amount) }}
+                    </td>
+                    <td class=" p-md text-xs font-bold text-content-muted tabular-nums">{{ formatDate(enroll.paidAt ||
+                      enroll.enrollAt) }}</td>
                     <td class=" p-md text-center">
                       <AppBadge :status="enroll.paymentStatus || enroll.status" />
                     </td>
@@ -522,7 +530,7 @@ onMounted(() => {
                   <img :src="s.profileURL" class="w-full h-full object-cover" />
                 </div>
                 <span class="text-md font-bold text-content-dark group-hover:text-primary transition-colors">{{ s.name
-                }}</span>
+                  }}</span>
                 <AppBadge type="blue" class="ml-auto text-xs px-2 py-0.5">
                   {{ s.age }} years old
                 </AppBadge>
@@ -610,7 +618,9 @@ onMounted(() => {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .overflow-x-auto {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 </style>

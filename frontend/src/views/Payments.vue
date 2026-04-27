@@ -73,36 +73,36 @@ const paymentStats = computed(() => {
       label: 'Financial Pipeline',
       value: all.length,
       image: getImageUrl('payment/total-transaction'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
       label: 'Net Yield',
       value: '$' + formatPrice(totalRevenue),
       image: getImageUrl('payment/total-revenue'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
       label: 'Accounts Receivable',
       value: '$' + formatPrice(pendingRevenue),
       image: getImageUrl('payment/unpaid-payment'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
       label: 'Settled Ratio',
       value: all.length > 0 ? Math.round((paid.length / all.length) * 100) + '%' : '0%',
       image: getImageUrl('dashboard/card-available-program'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
   ]
 })
 
 const paymentHeaders = [
-  { label: 'Reference', width: '100px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Client / Learner Entity' },
-  { label: 'Fee Payload', align: 'center', width: '120px' },
-  { label: 'Methodology', class: 'hidden sm:table-cell' },
-  { label: 'Authorization', align: 'center', width: '120px' },
-  { label: 'Registry Date', class: 'hidden lg:table-cell', width: '150px' },
+  { label: 'NO', width: '100px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'CLIENT IDENTITY' },
+  { label: 'AMOUNT', align: 'center', width: '120px' },
+  { label: 'METHOD', class: 'hidden sm:table-cell' },
+  { label: 'STATUS', align: 'center', width: '120px' },
+  { label: 'DATE', class: 'hidden lg:table-cell', width: '150px' },
 ]
 </script>
 
@@ -116,7 +116,7 @@ const paymentHeaders = [
       </template>
 
       <template #table>
-        <DataTable title="Transaction Records" :headers="paymentHeaders" :items="filteredPayments" :loading="loading"
+        <DataTable title="Transaction Lists" :headers="paymentHeaders" :items="filteredPayments" :loading="loading"
           searchPlaceholder="Search by parent, student, or program model..." :hasFilter="true"
           v-model:searchQuery="searchQuery" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Transactions', value: 'all' },
@@ -130,18 +130,21 @@ const paymentHeaders = [
             </td>
 
             <td class="ui-cell min-w-[240px]" :style="{ flex: '1 1 0%' }">
-              <div class="flex flex-col gap-2">
-                <div class="flex items-center gap-2 group cursor-pointer">
-                  <span
-                    class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{
-                    item.parent }}</span>
-                  <div class="w-1 h-1 rounded-full bg-content-muted/30"></div>
-                  <span class="text-[10px] font-bold text-content-muted">{{ item.student }}</span>
+              <div class="ui-identity-cell">
+                <div class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center">
+                  <span class="text-lg font-black text-primary opacity-40">{{ item.parent.charAt(0) }}</span>
                 </div>
-                <div class="flex items-center gap-1.5 opacity-60">
-                  <img :src="getActionIcon('enrollment')" class="w-3 h-3 grayscale" />
-                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest leading-none">{{
-                    item.program }}</span>
+                <div class="ui-identity-info">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-bold text-content-dark truncate block">{{ item.parent }}</span>
+                    <div class="w-1 h-1 rounded-full bg-content-muted/30"></div>
+                    <span class="text-[10px] font-bold text-content-muted">{{ item.student }}</span>
+                  </div>
+                  <div class="flex items-center gap-1.5 opacity-60">
+                    <img :src="getActionIcon('enrollment')" class="w-3 h-3 grayscale" />
+                    <span class="text-[9px] font-black text-content-muted uppercase tracking-widest leading-none">{{
+                      item.program }}</span>
+                  </div>
                 </div>
               </div>
             </td>

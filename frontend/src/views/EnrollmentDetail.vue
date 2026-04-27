@@ -23,6 +23,7 @@ import {
   getTeacherProfileURL,
   getActionIcon,
 } from '@/utils/assetHelper'
+import { getAvatarUrl } from '@/utils/profileHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -226,229 +227,204 @@ onMounted(async () => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments"
-      title="Enrollment Details">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments" sidebarWidth="sm">
       <template #header-actions v-if="enrollment">
-        <div class="flex items-center gap-md">
-          <AppButton v-if="
-            enrollment.status !== 'confirmed' &&
-            enrollment.paymentStatus !== 'paid' &&
-            enrollment.status !== 'cancelled'
-          " variant="secondary" title="Edit Enrollment" @click="openActionModal('edit')">
-            <img :src="getActionIcon('edit')" class="w-4 h-4" /> Edit
-          </AppButton>
-          <AppButton v-if="
-            enrollment.status !== 'confirmed' &&
-            enrollment.paymentStatus !== 'paid' &&
-            enrollment.status !== 'cancelled'
-          " variant="primary" title="Pay Enrollment" @click="openActionModal('pay')">
-            <img :src="getActionIcon('pay')" class="w-4 h-4 brightness-0 invert" /> Pay Now
-          </AppButton>
-          <AppButton v-if="enrollment.status !== 'cancelled'" variant="danger" title="Cancel Enrollment"
-            @click="openActionModal('cancel')">
-            <img :src="getActionIcon('cancel')" class="w-4 h-4 invert" /> Cancel
-          </AppButton>
-          <AppButton variant="danger" title="Delete Enrollment" @click="openActionModal('delete')">
-            <img :src="getActionIcon('delete')" class="w-4 h-4 invert" /> Delete
-          </AppButton>
+        <div class="flex items-center gap-3">
+          <button
+            v-if="enrollment.status !== 'confirmed' && enrollment.paymentStatus !== 'paid' && enrollment.status !== 'cancelled'"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-primary hover:border-primary group"
+            title="Edit Enrollment" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100" />
+          </button>
+          <button
+            v-if="enrollment.status !== 'confirmed' && enrollment.paymentStatus !== 'paid' && enrollment.status !== 'cancelled'"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-success hover:border-success group"
+            title="Pay Enrollment" @click="openActionModal('pay')">
+            <img :src="getActionIcon('pay')" class="w-5 h-5 group-hover:opacity-100" />
+          </button>
+          <button v-if="enrollment.status !== 'cancelled'"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-warning hover:border-warning group"
+            title="Cancel Enrollment" @click="openActionModal('cancel')">
+            <img :src="getActionIcon('cancel')" class="w-5 h-5 group-hover:opacity-100" />
+          </button>
+          <div class="w-px h-6 bg-outline-std mx-1"></div>
+          <button
+            class="w-11 h-11 flex items-center justify-center rounded-full border bg-error-soft transition-all duration-300 hover:bg-error hover:border-error group"
+            title="Delete Enrollment" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" class="w-5 h-5 icon-danger group-hover:opacity-100" />
+          </button>
         </div>
       </template>
 
       <template #left-content v-if="enrollment">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-lg pb-10">
-          <DetailCard title="Parent Profile" :avatarUrl="getParentProfileURL(enrollment.parent?.profileURL)">
-            <p><strong>Full Name</strong> {{ enrollment.parent?.name || 'N/A' }}</p>
-            <p><strong>Primary Email</strong> {{ enrollment.parent?.email || 'N/A' }}</p>
-            <p><strong>Contact Number</strong> {{ enrollment.parent?.phone || 'N/A' }}</p>
-          </DetailCard>
-
-          <DetailCard title="Student Profile" :avatarUrl="getStudentProfileURL(enrollment.student?.profileURL)">
-            <p><strong>Full Name</strong> {{ enrollment.student?.name || 'N/A' }}</p>
-            <p><strong>Birth Date</strong> {{ formatDateOnly(enrollment.student?.dob) }}</p>
-            <p>
-              <strong>Current Age</strong>
-              <AppBadge :status="'Age: ' + calculateAge(enrollment.student?.dob)" type="blue" />
-            </p>
-          </DetailCard>
-
-          <DetailCard title="Program Details" :avatarUrl="getProgramProfileURL(enrollment.class?.program?.profileURL || enrollment.program?.profileURL, enrollment.class?.program?.category || enrollment.program?.category)
-            ">
-            <p><strong>Program</strong> {{ enrollment.class?.program?.name || enrollment.program?.name }}</p>
-            <div class="flex justify-between gap-1 mb-md">
-              <strong class="text-3xs uppercase font-black tracking-widest text-content-light">Schedule</strong>
-              <div class="flex items-center gap-2">
-                <AppBadge :status="'purple:' + getSessionDay(enrollment.class?.schedule || enrollment.classSchedule)" />
-                <span class="text-xs font-bold text-content-muted">{{
-                  getSessionTime(enrollment.class?.schedule || enrollment.classSchedule)
-                  }}</span>
+          <section class="ui-detail-card">
+            <h3 class="ui-detail-card-title">Parent Information</h3>
+            <div class="flex justify-center">
+              <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
+                <img :src="getAvatarUrl(enrollment.parent?.profileURL)" class="w-full h-full object-cover" />
               </div>
             </div>
-            <div class="flex justify-between gap-1 mb-md">
-              <strong class="text-3xs uppercase font-black tracking-widest text-content-light">Intensity</strong>
-              <template v-if="enrollment.remainingSessions !== undefined">
-                <span class="text-sm font-bold text-content-dark">
-                  {{ enrollment.remainingSessions }} Sessions (Prorated)
-                  <AppBadge v-if="enrollment.totalSessions > 0" :status="'of ' + enrollment.totalSessions"
-                    type="blue" />
-                </span>
-              </template>
-              <template v-else>
-                <span class="text-sm font-bold text-content-dark">
-                  {{ enrollment.totalSessions || enrollment.class?.program?.totalSessions ||
-                    enrollment.program?.totalSessions || '10' }}
-                  Sessions
-                </span>
-              </template>
+            <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
+              <p class="text-sm"><strong class="font-black text-content-dark">Fullname:</strong> <span
+                  class="font-bold text-content-muted">{{ enrollment.parent?.name || 'N/A' }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Email:</strong> <span
+                  class="font-bold text-content-muted">{{ enrollment.parent?.email || 'N/A' }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Phone Number:</strong> <span
+                  class="font-bold text-content-muted tabular-nums">{{ enrollment.parent?.phone || 'N/A' }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Role:</strong> <span
+                  class="font-bold text-content-muted">Parent</span></p>
             </div>
-            <p>
-              <strong>Registry Date</strong>
-              {{ formatDate(enrollment.enrollAt || enrollment.createdAt) }}
-            </p>
-          </DetailCard>
+          </section>
 
-          <DetailCard title="Class Environment" :avatarUrl="getTeacherProfileURL(enrollment.teacher?.profileURL)">
-            <p><strong>Curriculum</strong> {{ enrollment.class?.program?.name || enrollment.program?.name || 'N/A' }}
-            </p>
-            <div class="flex justify-between gap-1 mb-md">
-              <strong class="text-3xs uppercase font-black tracking-widest text-content-light">Assigned Staff</strong>
-              <div v-if="enrollment.class?.program?.teachers?.length > 0 || enrollment.program?.teachers?.length > 0"
-                class="flex -space-x-2 overflow-hidden ring-1 ring-white rounded-full p-0.5 mt-1">
-                <img v-for="t in (enrollment.class?.program?.teachers || enrollment.program?.teachers)" :key="t.id"
-                  :src="getTeacherProfileURL(t.profileURL)"
-                  class="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" :title="t.name" />
+          <section class="ui-detail-card">
+            <h3 class="ui-detail-card-title">Student Information</h3>
+            <div class="flex justify-center">
+              <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
+                <img :src="getAvatarUrl(enrollment.student?.profileURL)" class="w-full h-full object-cover" />
               </div>
-              <span v-else class="text-content-muted/40 italic text-xs">Not Assigned</span>
             </div>
-            <p>
-              <strong>Current Enrollment</strong>
-              <span class="font-black text-content-dark">{{
-                enrollment.studentCountAtEnrollment ?? enrollment.class?.currentCount ?? 0
-              }}
-                Students</span>
-            </p>
-            <p>
-              <strong>Max Capacity</strong>
-              <span class="font-bold text-content-muted">{{ enrollment.class?.capacity || enrollment.class?.maxCapacity
-                || 20 }}
-                Slots</span>
-            </p>
-          </DetailCard>
+            <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
+              <p class="text-sm"><strong class="font-black text-content-dark">Fullname:</strong> <span
+                  class="font-bold text-content-muted">{{ enrollment.student?.name || 'N/A' }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Date of birth:</strong> <span
+                  class="font-bold text-content-muted">{{ formatDateOnly(enrollment.student?.dob) }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Age:</strong> <span
+                  class="font-bold text-content-muted">{{ calculateAge(enrollment.student?.dob) }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Medical Note:</strong> <span
+                  class="font-bold text-content-muted">{{ enrollment.student?.medicalNote || 'None' }}</span></p>
+            </div>
+          </section>
+
+          <section class="ui-detail-card">
+            <h3 class="ui-detail-card-title">Enrollment Information</h3>
+            <div class="flex justify-center">
+              <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
+                <img :src="enrollment.class?.program?.profileURL" class="w-full h-full object-cover bg-white" />
+              </div>
+            </div>
+            <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
+              <p class="text-sm"><strong class="font-black text-content-dark">Course title:</strong> <span
+                  class="font-bold text-content-muted">{{ enrollment.class?.program?.name || enrollment.program?.name
+                  }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Session:</strong> <span
+                  class="font-bold text-content-muted">{{ getSessionDay(enrollment.class?.schedule ||
+                    enrollment.classSchedule) }}, {{ getSessionTime(enrollment.class?.schedule ||
+                    enrollment.classSchedule) }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Number Session Enrolled:</strong> <span
+                  class="font-bold text-content-muted">{{ enrollment.remainingSessions !== undefined ?
+                    enrollment.remainingSessions : (enrollment.totalSessions || enrollment.class?.program?.totalSessions
+                      || enrollment.program?.totalSessions || '10') }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Date:</strong> <span
+                  class="font-bold text-content-muted tabular-nums">{{ formatDate(enrollment.enrollAt ||
+                    enrollment.createdAt) }}</span></p>
+            </div>
+          </section>
+
+          <section class="ui-detail-card">
+            <h3 class="ui-detail-card-title">Session Information</h3>
+            <div class="flex justify-center">
+              <div class="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
+                <img
+                  :src="getAvatarUrl(enrollment.class?.teacher?.profileURL || enrollment.class?.teachers?.[0]?.profileURL || enrollment.program?.teachers?.[0]?.profileURL)"
+                  class="w-full h-full object-cover bg-white" />
+              </div>
+            </div>
+            <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
+              <p class="text-sm"><strong class="font-black text-content-dark">Course:</strong> <span
+                  class="font-bold text-content-muted">{{ enrollment.class?.program?.name || enrollment.program?.name ||
+                    'N/A' }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Instructor Name:</strong> <span
+                  class="font-bold text-content-muted">{{ enrollment.teacher?.name ||
+                    (enrollment.class?.program?.teachers?.[0] || enrollment.program?.teachers?.[0])?.name || 'N/A'
+                  }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Total Student:</strong> <span
+                  class="font-bold text-content-muted">{{ enrollment.studentCountAtEnrollment ??
+                    enrollment.class?.currentCount ?? 0 }}</span></p>
+              <p class="text-sm"><strong class="font-black text-content-dark">Time Slot:</strong> <span
+                  class="font-bold text-content-muted">{{ getSessionDay(enrollment.class?.schedule ||
+                    enrollment.classSchedule) }}, {{ getSessionTime(enrollment.class?.schedule ||
+                    enrollment.classSchedule) }}</span></p>
+            </div>
+          </section>
         </div>
       </template>
 
       <template #right-content v-if="enrollment">
-        <DetailedSummaryCard title="Transaction Summary" subtitle="Enrollment Status">
-          <div class="ui-detail-row align-center">
-            <span class="ui-summary-label">Registry Status</span>
-            <AppBadge :status="enrollment.status === 'cancelled'
-                ? 'Canceled'
-                : enrollment.paymentStatus?.toLowerCase() === 'paid'
-                  ? 'Paid'
-                  : 'Unpaid'
-              " />
-          </div>
-
-          <div class="ui-detail-row align-center">
-            <span class="ui-summary-label">Admission Mode</span>
-            <AppBadge :status="enrollment.enrollmentType" />
-          </div>
-
-          <div v-if="
-            enrollment.status === 'cancelled' && enrollment.cancelReason
-          " class="ui-detail-row">
-            <span class="ui-summary-label text-error">Termination Reason</span>
-            <span
-              class="ui-summary-value opacity-100 font-bold text-error bg-error/5 p-2 rounded-sm border border-error/10 w-full text-xs">
-              {{ enrollment.cancelReason }}
-            </span>
-          </div>
-
-          <div class="ui-detail-row">
-            <span class="ui-summary-label">Internal Remark</span>
-            <span class="ui-summary-value italic text-xs">{{
-              enrollment.remark || 'No administrative notes'
-              }}</span>
-          </div>
-        </DetailedSummaryCard>
-
-        <DetailedSummaryCard subtitle="Financial Ledger" class="mt-lg">
-          <div class="ui-detail-row align-center">
-            <span class="ui-summary-label">Course Price</span>
-            <span class="font-black text-content-dark text-lg tracking-tighter">${{ formatPrice(enrollment?.basePrice ||
-              0) }}</span>
-          </div>
-
-          <div v-if="enrollment?.prorateSavings" class="ui-detail-row align-center">
-            <span class="ui-summary-label text-magenta">Prorate Discount</span>
-            <span class="font-bold text-magenta">- ${{ formatPrice(enrollment.prorateSavings) }}</span>
-          </div>
-
-          <div v-if="enrollment?.discountAmount" class="ui-detail-row align-center">
-            <span class="ui-summary-label text-magenta">Manual Adjust</span>
-            <span class="font-bold text-magenta">- ${{ formatPrice(enrollment.discountAmount) }}</span>
-          </div>
-
-          <div class="w-full h-px bg-surface-light my-2"></div>
-
-          <div class="ui-detail-row align-center">
-            <span class="ui-summary-label">Total Payable</span>
-            <span class="font-black text-primary text-xl tracking-tighter">${{ formatPrice(enrollment?.amount || 0)
-              }}</span>
-          </div>
-
-          <div class="ui-detail-row align-center">
-            <span class="ui-summary-label">Payment Status</span>
-            <AppBadge :status="enrollment?.status ||
-              enrollment?.paymentStatus ||
-              'Unpaid'
-              " />
-          </div>
-
-          <div class="ui-detail-row align-center">
-            <span class="ui-summary-label">Channel</span>
-            <AppBadge :status="enrollment?.paymentMethod ||
-              (['paid', 'confirmed'].includes(String(enrollment?.status || enrollment?.paymentStatus).toLowerCase()) ? 'Paid' : '—')
-              " />
-          </div>
-
-          <div v-if="enrollment?.transactionId" class="ui-detail-row">
-            <span class="ui-summary-label">{{
-              enrollment?.paymentMethod === 'Cash' ? 'Receipt No' : 'Transaction ID'
-              }}</span>
-            <span
-              class="ui-summary-value font-mono text-[11px] bg-surface-light p-1 px-2 rounded-sm select-all tracking-wider text-content-dark">
-              {{ enrollment.transactionId }}
-            </span>
-          </div>
-
-          <div v-if="enrollment?.paidAt" class="ui-detail-row">
-            <span class="ui-summary-label">Value Date</span>
-            <span class="ui-summary-value text-xs font-bold">{{
-              formatDate(enrollment.paidAt)
-              }}</span>
-          </div>
-
-          <div v-if="enrollment?.paymentProofURL" class="ui-detail-row mt-2">
-            <span class="ui-summary-label">Attachment Proof</span>
-            <a :href="enrollment.paymentProofURL" target="_blank"
-              class="group relative block w-full aspect-video rounded-sm overflow-hidden border border-outline-std shadow-sm hover:shadow-md transition-shadow">
-              <img :src="enrollment.paymentProofURL" alt="Payment Proof"
-                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-              <div
-                class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                <span class="text-white text-3xs font-black uppercase tracking-widest">Open Full Size</span>
+        <div class="flex flex-col gap-8">
+          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
+            <h6 class="font-black uppercase tracking-widest text-content-muted">Basic Information</h6>
+            <div class="space-y-5 mt-2">
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Registration Status</span>
+                <div>
+                  <AppBadge
+                    :status="enrollment.status === 'cancelled' ? 'Canceled' : enrollment.paymentStatus?.toLowerCase() === 'paid' ? 'Paid' : 'Unpaid'" />
+                </div>
               </div>
-            </a>
-          </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-lg font-black text-content-dark">Registration ID</span>
+                <span class="text-md font-bold text-content-muted break-all">{{ enrollment.id }}</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-lg font-black text-content-dark">Registration Date</span>
+                <span class="text-md font-bold text-content-muted">{{ formatDate(enrollment.enrollAt ||
+                  enrollment.createdAt) }}</span>
+              </div>
+            </div>
+          </section>
 
-          <div v-if="enrollment?.isSponsorship" class="mt-4 p-3 bg-primary-soft/20 rounded-sm border border-primary/10">
-            <span class="text-3xs font-black uppercase text-primary tracking-widest block mb-1">Corporate
-              Sponsorship</span>
-            <span class="text-xs font-bold text-content-dark">{{
-              enrollment?.sponsorName || 'Third-party Entity'
-              }}</span>
-          </div>
-        </DetailedSummaryCard>
+          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
+            <h6 class="font-black uppercase tracking-widest text-content-muted">Payment Summary</h6>
+            <div class="space-y-5 mt-2">
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Total Amount</span>
+                <div>
+                  <AppBadge :status="'$' + formatPrice(enrollment?.amount || 0)" type="blue"
+                    class="text-md px-2 py-0.5" />
+                </div>
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-lg font-black text-content-dark">Transaction ID</span>
+                <span class="text-md font-bold text-content-muted break-all">{{ enrollment.transactionId || 'N/A'
+                  }}</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-lg font-black text-content-dark">Payment Date</span>
+                <span class="text-md font-bold text-content-muted">{{ enrollment.paidAt ? formatDate(enrollment.paidAt)
+                  : 'N/A' }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
+            <h6 class="font-black uppercase tracking-widest text-content-muted">Program Summary</h6>
+            <div class="space-y-5 mt-2">
+              <div class="flex flex-col gap-1">
+                <span class="text-lg font-black text-content-dark">Course</span>
+                <span class="text-md font-bold text-content-muted">{{ enrollment.class?.program?.name ||
+                  enrollment.program?.name }}</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-lg font-black text-content-dark">Schedule</span>
+                <span class="text-md font-bold text-content-muted">{{ getSessionDay(enrollment.class?.schedule ||
+                  enrollment.classSchedule) }}, {{ getSessionTime(enrollment.class?.schedule ||
+                    enrollment.classSchedule) }}</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                <AppBadge type="green" class="w-fit text-sm px-2 py-0.5">Start Date</AppBadge>
+                <span class="text-md font-bold text-content-muted">{{ formatDate(enrollment.class?.startDate ||
+                  enrollment.enrollAt) }}</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                <AppBadge type="red" class="w-fit text-sm px-2 py-0.5">End Date</AppBadge>
+                <span class="text-md font-bold text-content-muted">{{ formatDate(enrollment.class?.endDate || new
+                  Date(new Date(enrollment.enrollAt).setMonth(new Date(enrollment.enrollAt).getMonth() +
+                    1)).toISOString()) }}</span>
+              </div>
+            </div>
+          </section>
+        </div>
       </template>
     </DetailPageLayout>
 
@@ -467,3 +443,13 @@ onMounted(async () => {
       v-model:success="modalSuccess" @close="closeActionModal" @submit="handleActionSubmit" />
   </DashboardLayout>
 </template>
+
+<style scoped>
+.ui-detail-card {
+  @apply bg-white border border-outline-std shadow-sm p-8 rounded-xl flex flex-col gap-6;
+}
+
+.ui-detail-card-title {
+  @apply text-lg font-black text-content-dark tracking-tight text-center;
+}
+</style>

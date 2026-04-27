@@ -12,6 +12,7 @@ import { studentService } from '@/services/studentService'
 import { getProgramProfileURL, getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { getProgramDisplayStatus, isSessionInProgress } from '@/utils/programHelper'
 import { enrichEnrollments } from '@/utils/enrollmentHelper'
+import { getStatusTheme, getStatusFilter, getStatusUI } from '@/utils/badgeUtils'
 import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 
@@ -28,6 +29,84 @@ const now = ref(new Date())
 
 const activeTab = ref('overview')
 const searchQuery = ref('')
+
+// Filter State
+const studentFilter = ref('all')
+const sessionFilter = ref('all')
+const infoFilter = ref('all')
+const isFilterOpen = ref(false)
+const filterMenuStyles = ref({})
+const hoveredOption = ref(null)
+
+const currentFilter = computed({
+  get: () => {
+    if (activeTab.value === 'students') return studentFilter.value
+    if (activeTab.value === 'classes') return sessionFilter.value
+    return infoFilter.value
+  },
+  set: (val) => {
+    if (activeTab.value === 'students') studentFilter.value = val
+    else if (activeTab.value === 'classes') sessionFilter.value = val
+    else infoFilter.value = val
+  }
+})
+
+const filterOptions = computed(() => {
+  if (activeTab.value === 'students') {
+    return [
+      { label: 'All Students', value: 'all' },
+      { label: 'Confirmed', value: 'confirmed' },
+      { label: 'Pending', value: 'pending' },
+      { label: 'Cancelled', value: 'cancelled' },
+    ]
+  }
+  if (activeTab.value === 'classes') {
+    return [
+      { label: 'All Sessions', value: 'all' },
+      { label: 'Scheduled', value: 'Scheduled' },
+      { label: 'Past', value: 'Past' },
+      { label: 'In Progress', value: 'In Progress' },
+    ]
+  }
+  return [
+    { label: 'All Details', value: 'all' },
+    { label: 'Syllabus Only', value: 'syllabs' },
+    { label: 'Specs Only', value: 'specs' },
+  ]
+})
+
+const toggleFilter = (event) => {
+  isFilterOpen.value = !isFilterOpen.value
+  if (isFilterOpen.value) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    filterMenuStyles.value = {
+      top: `${rect.bottom + window.scrollY + 8}px`,
+      right: `${window.innerWidth - rect.right - window.scrollX}px`,
+      minWidth: '180px',
+    }
+  }
+}
+
+const selectFilter = (val) => {
+  currentFilter.value = val
+  isFilterOpen.value = false
+}
+
+const isFilterActive = computed(() => currentFilter.value !== 'all')
+
+const filterThemeStyles = computed(() => {
+  if (!isFilterActive.value) return {}
+  const theme = getStatusTheme(currentFilter.value)
+  return {
+    backgroundColor: theme.backgroundColor || 'var(--color-primary-soft)',
+    color: theme.color || 'var(--color-primary)'
+  }
+})
+
+const getFilterLabel = () => {
+  const opt = filterOptions.value.find(o => o.value === currentFilter.value)
+  return opt ? opt.label : 'Filter'
+}
 
 const initData = async () => {
   const id = route.params.id
@@ -57,12 +136,25 @@ const initData = async () => {
   }
 }
 
+const handleClickOutside = (event) => {
+  if (!isFilterOpen.value) return
+  // If we clicked the button itself, toggleFilter handles it
+  const btn = document.querySelector('.filter-trigger-btn')
+  const menu = document.querySelector('.shared-filter-menu')
+  if (btn?.contains(event.target) || menu?.contains(event.target)) return
+  isFilterOpen.value = false
+}
+
 onMounted(() => {
   initData()
+  window.addEventListener('mousedown', handleClickOutside)
   const interval = setInterval(() => {
     now.value = new Date()
   }, 60000)
-  return () => clearInterval(interval)
+  return () => {
+    window.removeEventListener('mousedown', handleClickOutside)
+    clearInterval(interval)
+  }
 })
 
 const statsCards = computed(() => {
@@ -84,25 +176,25 @@ const statsCards = computed(() => {
       label: 'Live Enrollment',
       value: paidEnrollmentsCount,
       image: getImageUrl('data-metric-card/total-enrolled'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
       label: 'Financial Yield',
       value: `$${totalRevenue.toLocaleString()}`,
       image: getImageUrl('data-metric-card/program-revenue'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
       label: 'Open Sessions',
       value: scheduledCount,
       image: getImageUrl('data-metric-card/remaining-sessions'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
     {
       label: 'Available Slots',
       value: remainingCapacity,
       image: getImageUrl('data-metric-card/enrollment-capacity'),
-      color: 'var(--accent-light)',
+      color: 'var(--color-primary-light)',
     },
   ]
 })
@@ -118,9 +210,14 @@ const enrolledStudents = computed(() => {
   )
 
   return enriched.filter((e) => {
+    // Search
     const studentName = e.studentName || 'Unknown Student'
-    if (!searchQuery.value) return true
-    return studentName.toLowerCase().includes(searchQuery.value.toLowerCase())
+    const matchesSearch = !searchQuery.value || studentName.toLowerCase().includes(searchQuery.value.toLowerCase())
+
+    // Filter
+    const matchesFilter = studentFilter.value === 'all' || String(e.status || '').toLowerCase() === studentFilter.value.toLowerCase()
+
+    return matchesSearch && matchesFilter
   })
 })
 
@@ -178,7 +275,11 @@ const classInstances = computed(() => {
     }
   })
 
-  return instances.sort((a, b) => a.date.localeCompare(b.date))
+  const filtered = instances.filter(i => {
+    return sessionFilter.value === 'all' || i.status === sessionFilter.value
+  })
+
+  return filtered.sort((a, b) => a.date.localeCompare(b.date))
 })
 
 const actionModal = ref({
@@ -237,119 +338,127 @@ const handleActionSubmit = async (formData) => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/programs" title="Program Analytics">
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/programs" title="Program Analytics" sidebarWidth="sm">
       <template #header-actions v-if="program">
-        <div class="flex items-center gap-3">
-          <AppButton variant="secondary" class="rounded-xl border-outline-std" @click="openActionModal('edit')">
-            <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-70" /> 
-            <span class="font-bold">Edit Core Data</span>
-          </AppButton>
-          <div class="w-px h-6 bg-outline-std mx-1"></div>
-          <AppButton variant="danger" class="rounded-xl shadow-lg shadow-error/10" @click="openActionModal('delete')">
-            <img :src="getActionIcon('delete')" class="w-4 h-4 invert" />
-            <span class="font-black">Terminate</span>
-          </AppButton>
+        <div class="flex items-center gap-2">
+          <button
+            class="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-outline-std hover:bg-primary-light transition-all shadow-sm group"
+            title="Modify Data" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+          </button>
+
+          <div class="w-px h-4 bg-outline-std/50 mx-1"></div>
+
+          <button
+            class="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-outline-std hover:bg-error-soft transition-all shadow-sm group"
+            title="Terminate Program" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+          </button>
         </div>
       </template>
 
       <template #left-content v-if="program">
-        <!-- Identity Header -->
-        <div class="mb-10 p-8 rounded-[2rem] bg-white border border-outline-std shadow-sm flex flex-col md:flex-row items-center gap-10">
-          <div class="w-40 h-40 rounded-[2.5rem] overflow-hidden ring-4 ring-primary/5 shadow-2xl bg-surface-subtle p-6">
-            <img :src="getProgramProfileURL(program.profileURL, program.category)" class="w-full h-full object-contain" />
-          </div>
-          
-          <div class="flex flex-col items-center md:items-start text-center md:text-left flex-1">
-            <div class="flex items-center gap-3 mb-2">
-               <h1 class="text-4xl font-black text-content-dark tracking-tighter">{{ program.name }}</h1>
-               <AppBadge :status="getProgramDisplayStatus(program)" />
-            </div>
-            <div class="flex flex-wrap items-center justify-center md:justify-start gap-6 text-content-muted">
-               <div class="flex flex-col">
-                  <span class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Course Category</span>
-                  <span class="text-lg font-black text-primary tracking-tight">{{ program.category || 'Standard' }}</span>
-               </div>
-               <div class="w-px h-8 bg-outline-std"></div>
-               <div class="flex flex-col">
-                  <span class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Academic Term</span>
-                  <span class="text-sm font-bold text-content-dark">{{ program.termName || 'Open Enrollment' }}</span>
-               </div>
-               <div class="w-px h-8 bg-outline-std"></div>
-               <div class="flex flex-col">
-                  <span class="text-[10px] font-black uppercase tracking-widest leading-none mb-1 opacity-50">Base Valuation</span>
-                  <span class="text-sm font-black text-emerald-600 tabular-nums">${{ program.basePrice || 0 }}</span>
-               </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Metrics Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <DataMetricCard v-for="card in statsCards" :key="card.label" v-bind="card" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div v-for="stat in statsCards" :key="stat.label"
+            class="bg-white rounded-md p-6 border border-outline-std shadow-sm hover:shadow-md transition-all duration-300 group">
+            <div class="flex items-center gap-4">
+              <div
+                class="rounded-xl flex items-center justify-center bg-surface-subtle group-hover:bg-primary/5 transition-colors">
+                <img :src="stat.image" class="w-10 h-10 opacity-60 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <div class="flex flex-col">
+                <span class="text-[10px] font-black text-content-muted uppercase tracking-widest leading-none mb-1">{{
+                  stat.label }}</span>
+                <span class="text-lg font-black text-content-dark tabular-nums tracking-tight">{{ stat.value }}</span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- Repository Tabs -->
-        <div class="bg-white rounded-[2.5rem] border border-outline-std shadow-sm overflow-hidden min-h-[500px]">
-          <div class="flex items-center gap-2 p-3 bg-surface-subtle/30 border-b border-outline-std">
-            <button
-              v-for="tab in ['overview', 'students', 'classes']"
-              :key="tab"
-              class="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300"
-              :class="activeTab === tab ? 'bg-white text-primary shadow-sm ring-1 ring-black/5' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
-              @click="activeTab = tab"
-            >
-              {{ tab === 'overview' ? 'Syllabus Details' : tab === 'students' ? 'Class Roster' : 'Attendance Log' }}
+        <!-- Tab Navigation -->
+        <div class="flex items-center gap-2 p-2 bg-white rounded-full border border-outline-std w-fit mb-8">
+          <button v-for="tab in ['overview', 'students', 'classes']" :key="tab"
+            class="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300"
+            :class="activeTab === tab ? 'bg-primary text-white shadow-md ring-1 ring-black/5 scale-[1.02]' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
+            @click="activeTab = tab">
+            {{ tab === 'overview' ? 'Syllabus' : tab === 'students' ? 'Roster' : 'Schedule' }}
+          </button>
+        </div>
+
+        <section class="ui-detail-card overflow-hidden animate-fade-in min-h-[500px]">
+          <div class="flex items-center gap-4 mb-6">
+            <h3 class="text-lg font-black text-content-dark whitespace-nowrap capitalize">{{ activeTab }} Repository
+            </h3>
+            <div class="h-px flex-1 bg-gray-100"></div>
+            <button class="px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2"
+              :class="!isFilterActive ? 'bg-primary-light hover:bg-primary' : ''" :style="isFilterActive ? filterThemeStyles : {}"
+              @click="toggleFilter">
+              <img :src="getActionIcon('filter')" class="w-3 h-3"
+                :style="{ filter: getStatusUI(isFilterActive ? currentFilter : 'filter').filter }" />
+              {{ isFilterActive ? getFilterLabel() : 'Filter' }}
             </button>
           </div>
 
           <div class="p-8">
             <!-- Overview -->
             <div v-if="activeTab === 'overview'" class="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <div class="space-y-6">
-                  <div class="p-6 rounded-3xl bg-surface-subtle/50 border border-outline-std/50">
-                     <span class="text-[10px] font-black uppercase tracking-widest text-content-muted block mb-3">Program Synopsis</span>
-                     <p class="text-sm font-medium leading-relaxed text-content-dark italic">
-                        {{ program.description || 'Detailed administrative synopsis pending for this academic program.' }}
-                     </p>
-                  </div>
-                  
-                  <div class="grid grid-cols-2 gap-4">
-                     <div class="p-6 rounded-3xl bg-white border border-outline-std shadow-sm">
-                        <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Difficulty Level</span>
-                        <span class="text-base font-black text-content-dark">{{ program.levelName || 'Standard' }}</span>
-                     </div>
-                     <div class="p-6 rounded-3xl bg-white border border-outline-std shadow-sm">
-                        <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Max Capacity</span>
-                        <span class="text-base font-black text-content-dark uppercase">{{ program.maxCapacity || 'Unlimited' }}</span>
-                     </div>
-                  </div>
-               </div>
+              <div v-if="infoFilter === 'all' || infoFilter === 'syllabs'" class="space-y-6">
+                <div class="p-6 rounded-2xl bg-surface-subtle/50 border border-outline-std/50">
+                  <span class="text-[10px] font-black uppercase tracking-widest text-content-muted block mb-3">Program
+                    Synopsis</span>
+                  <p class="text-sm font-medium leading-relaxed text-content-dark italic">
+                    {{ program.description || 'Detailed administrative synopsis pending for this academic program.' }}
+                  </p>
+                </div>
 
-               <div class="space-y-4">
-                  <div class="p-6 rounded-3xl bg-white border border-outline-std shadow-sm flex items-center justify-between">
-                     <div class="flex flex-col">
-                        <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Active Schedule</span>
-                        <span class="text-lg font-black text-content-dark tracking-tight">{{ program.schedule?.day }}</span>
-                        <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{ program.schedule?.timeslot }}</span>
-                     </div>
-                     <div class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center">
-                        <img :src="getActionIcon('calendar')" class="w-6 h-6 opacity-30" />
-                     </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="p-6 rounded-2xl bg-white border border-outline-std shadow-sm">
+                    <span
+                      class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Difficulty
+                      Level</span>
+                    <span class="text-base font-black text-content-dark">{{ program.levelName || 'Standard' }}</span>
                   </div>
-                  
-                  <div class="p-6 rounded-3xl bg-white border border-outline-std shadow-sm flex items-center justify-between">
-                     <div class="flex flex-col">
-                        <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Total Unit Quota</span>
-                        <span class="text-lg font-black text-content-dark tracking-tight">{{ program.totalSessions }} Sessions</span>
-                        <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
-                           ${{ (Number(program.basePrice || 0) / (Number(program.totalSessions) || 1)).toFixed(2) }} / unit
-                        </span>
-                     </div>
-                     <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
-                        <img :src="getActionIcon('payment')" class="w-6 h-6 opacity-30" />
-                     </div>
+                  <div class="p-6 rounded-2xl bg-white border border-outline-std shadow-sm">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Max
+                      Capacity</span>
+                    <span class="text-base font-black text-content-dark uppercase">{{ program.maxCapacity || 'Unlimited'
+                      }}</span>
                   </div>
-               </div>
+                </div>
+              </div>
+
+              <div v-if="infoFilter === 'all' || infoFilter === 'specs'" class="space-y-4">
+                <div
+                  class="p-6 rounded-2xl bg-white border border-outline-std shadow-sm flex items-center justify-between">
+                  <div class="flex flex-col">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Active
+                      Schedule</span>
+                    <span class="text-lg font-black text-content-dark tracking-tight">{{ program.schedule?.day || 'TBA' }}</span>
+                    <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{
+                      program.schedule?.timeslot || 'No Time' }}</span>
+                  </div>
+                  <div class="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center">
+                    <img :src="getActionIcon('calendar')" class="w-6 h-6 opacity-30" />
+                  </div>
+                </div>
+
+                <div
+                  class="p-6 rounded-2xl bg-white border border-outline-std shadow-sm flex items-center justify-between">
+                  <div class="flex flex-col">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-content-muted block mb-1">Total
+                      Unit Quota</span>
+                    <span class="text-lg font-black text-content-dark tracking-tight">{{ program.totalSessions || 0 }}
+                      Sessions</span>
+                    <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                      ${{ (Number(program.basePrice || 0) / (Number(program.totalSessions) || 1)).toFixed(2) }} / unit
+                    </span>
+                  </div>
+                  <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center">
+                    <img :src="getActionIcon('payment')" class="w-6 h-6 opacity-30" />
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Roster -->
@@ -363,34 +472,31 @@ const handleActionSubmit = async (formData) => {
                 </div>
               </div>
 
-              <div v-if="enrolledStudents.length > 0" class="overflow-hidden rounded-3xl border border-outline-std">
-                <table class="w-full text-left">
-                  <thead class="bg-surface-subtle/50">
-                    <tr>
-                      <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Rank</th>
-                      <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Identity</th>
-                      <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Academic</th>
-                      <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Status</th>
+              <div v-if="enrolledStudents.length > 0" class="overflow-x-auto rounded-md border border-gray-100 bg-white">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-gray-50/50">
+                      <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">No</th>
+                      <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Student</th>
+                      <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">Enrollment Date</th>
+                      <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">Status</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-outline-std">
-                    <tr v-for="(item, idx) in enrolledStudents" :key="item.id" class="group hover:bg-surface-subtle/20 cursor-pointer transition-all" @click="router.push(`/students/${item.studentId}`)">
-                      <td class="px-6 py-5 text-xs font-black text-content-muted/30 tabular-nums">{{ idx + 1 }}</td>
-                      <td class="px-6 py-5">
-                        <div class="flex items-center gap-4">
-                           <div class="w-10 h-10 rounded-xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all shadow-sm">
-                              <img :src="item.student?.profileURL" class="w-full h-full object-cover" />
-                           </div>
-                           <div class="flex flex-col">
-                              <span class="text-sm font-black text-content-dark group-hover:text-primary transition-colors tracking-tight">{{ item.student?.name }}</span>
-                              <span class="text-[9px] font-bold text-content-muted uppercase tracking-widest">Enrolled {{ item.enrollAt }}</span>
-                           </div>
+                  <tbody class="divide-y divide-gray-50">
+                    <tr v-for="(item, idx) in enrolledStudents" :key="item.id"
+                      class="hover:bg-gray-50/50 cursor-pointer transition-all"
+                      @click="router.push(`/students/${item.studentId}`)">
+                      <td class=" p-md text-xs font-bold text-content-muted">{{ idx + 1 }}</td>
+                      <td class=" p-md">
+                        <div class="flex items-center gap-3">
+                          <div class="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm">
+                            <img :src="item.student?.profileURL" class="w-full h-full object-cover" />
+                          </div>
+                          <span class="text-sm font-bold text-content-dark">{{ item.student?.name }}</span>
                         </div>
                       </td>
-                      <td class="px-6 py-5 text-center">
-                        <AppBadge :status="item.academicStatus" />
-                      </td>
-                      <td class="px-6 py-5 text-center">
+                      <td class=" p-md text-xs font-bold text-content-muted text-center tabular-nums">{{ item.enrollAt }}</td>
+                      <td class=" p-md text-center">
                         <AppBadge :status="item.displayStatus" />
                       </td>
                     </tr>
@@ -405,83 +511,167 @@ const handleActionSubmit = async (formData) => {
 
             <!-- Attendance -->
             <div v-if="activeTab === 'classes'">
-               <div v-if="classInstances.length > 0" class="overflow-hidden rounded-3xl border border-outline-std">
-                 <table class="w-full text-left">
-                   <thead class="bg-surface-subtle/50">
-                     <tr>
-                       <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Timeline</th>
-                       <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest">Session Slot</th>
-                       <th class="px-6 py-4 text-[10px] font-black text-content-muted uppercase tracking-widest text-center">Live Status</th>
-                     </tr>
-                   </thead>
-                   <tbody class="divide-y divide-outline-std">
-                     <tr v-for="item in classInstances" :key="item.id" class="hover:bg-surface-subtle/20 transition-colors">
-                       <td class="px-6 py-5">
-                          <div class="flex flex-col">
-                             <span class="text-sm font-black text-content-dark tabular-nums tracking-tight">{{ item.date }}</span>
-                             <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.day }}</span>
-                          </div>
-                       </td>
-                       <td class="px-6 py-5 text-xs font-bold text-content-dark uppercase">
-                          {{ item.timeslot }}
-                       </td>
-                       <td class="px-6 py-5 text-center">
-                          <AppBadge :status="item.status" />
-                       </td>
-                     </tr>
-                   </tbody>
-                 </table>
-               </div>
-               <div v-else class="flex flex-col items-center justify-center py-20 opacity-30">
-                  <img :src="getImageUrl('common/no-data')" class="w-20 mb-4 grayscale" />
-                  <span class="text-sm font-black uppercase tracking-widest">No Class Records Available</span>
-               </div>
+              <div v-if="classInstances.length > 0" class="overflow-x-auto rounded-md border border-gray-100 bg-white">
+                <table class="w-full text-left border-collapse">
+                  <thead>
+                    <tr class="bg-gray-50/50">
+                      <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">No</th>
+                      <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Session Date</th>
+                      <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">Live Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-50">
+                    <tr v-for="(item, idx) in classInstances" :key="item.id"
+                      class="hover:bg-gray-50/50 transition-colors">
+                      <td class=" p-md text-xs font-bold text-content-muted">{{ idx + 1 }}</td>
+                      <td class=" p-md">
+                        <div class="flex flex-col">
+                          <span class="text-sm font-bold text-content-dark tabular-nums tracking-tight">{{ item.date }}</span>
+                          <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.day }} | {{ item.timeslot }}</span>
+                        </div>
+                      </td>
+                      <td class=" p-md text-center">
+                        <AppBadge :status="item.status" />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-else class="flex flex-col items-center justify-center py-20 opacity-30">
+                <img :src="getImageUrl('common/no-data')" class="w-20 mb-4 grayscale" />
+                <span class="text-sm font-black uppercase tracking-widest">No Class Records Available</span>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
       </template>
 
       <template #right-content v-if="program">
-        <!-- Faculty Card -->
-        <div class="bg-white rounded-[2rem] border border-outline-std shadow-sm overflow-hidden">
-           <div class="p-6 border-b border-outline-std bg-surface-subtle/30">
-              <h3 class="text-xs font-black uppercase tracking-widest text-content-muted">Assigned Faculty</h3>
-           </div>
-           <div class="p-6 space-y-4">
+        <div class="flex flex-col gap-8">
+          <!-- Basic Info Card -->
+          <section class="ui-detail-card flex flex-col items-center gap-6">
+            <h2 class="w-full font-black text-content-dark text-center">Basic Information</h2>
+            <div class="relative group">
+              <div
+                class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle p-6">
+                <img :src="getProgramProfileURL(program.profileURL, program.category)" alt="Program Logo"
+                  class="w-full h-full object-contain" />
+              </div>
+            </div>
+            <div class="flex flex-col items-center mt-2">
+              <h2 class="text-2xl font-black text-content-dark tracking-tighter mb-2 text-center">
+                {{ program.name }}
+              </h2>
+              <AppBadge :status="getProgramDisplayStatus(program)" />
+            </div>
+          </section>
+
+          <!-- Program Details Card -->
+          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
+            <h6 class="font-black uppercase tracking-widest text-content-muted">Program Specifications</h6>
+            <div class="space-y-5">
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Category:</span>
+                <span class="text-md font-bold text-content-muted">{{ program.category || 'Standard' }}</span>
+              </div>
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Skill Level:</span>
+                <span class="text-md font-bold text-content-muted">{{ program.levelName || 'Standard' }}</span>
+              </div>
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Academic Term:</span>
+                <span class="text-md font-bold text-content-muted">{{ program.termName || 'Open Enrollment' }}</span>
+              </div>
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Base Rate:</span>
+                <AppBadge :status="'$' + (program.basePrice || 0)" type="blue" class="text-xs px-2 py-0.5" />
+              </div>
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Capacity:</span>
+                <span class="text-md font-bold text-content-muted">{{ program.maxCapacity || 'Unlimited' }} Students</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Assigned Faculty Card -->
+          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
+            <h6 class="font-black uppercase tracking-widest text-content-muted">Assigned Faculty</h6>
+            <div class="space-y-4">
               <template v-if="program.teachers?.length">
-                <div v-for="t in program.teachers" :key="t.id" class="flex items-center gap-4 group">
-                   <div class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all shadow-sm">
-                      <img :src="t.profileURL" class="w-full h-full object-cover" />
-                   </div>
-                   <div class="flex flex-col">
-                      <span class="text-sm font-black text-content-dark group-hover:text-primary transition-colors tracking-tight">{{ t.name }}</span>
-                      <span class="text-[9px] font-black text-content-muted uppercase tracking-widest">{{ t.role || 'Instructor' }}</span>
-                   </div>
+                <div v-for="t in program.teachers" :key="t.id"
+                  class="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-subtle transition-all cursor-pointer group">
+                  <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm">
+                    <img :src="t.profileURL" class="w-full h-full object-cover" />
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-md font-bold text-content-dark group-hover:text-primary transition-colors">{{ t.name
+                      }}</span>
+                    <span class="text-xs text-content-muted uppercase font-bold tracking-widest">{{ t.role || 'Instructor'
+                      }}</span>
+                  </div>
                 </div>
               </template>
-              <div v-else class="flex flex-col items-center py-6 opacity-30 italic">
-                 <span class="text-[10px] font-bold uppercase tracking-widest text-content-muted">Unassigned Staff</span>
-                 <span class="text-xs font-black text-content-dark mt-1">{{ program.teacherName || 'TBA' }}</span>
+              <div v-else class="p-4 text-center border-2 border-dashed border-primary/10 rounded-xl opacity-50 text-xs font-bold italic">
+                {{ program.teacherName || 'TBA' }}
               </div>
-           </div>
-        </div>
-        
-        <!-- Action Summary -->
-        <div class="mt-6 flex flex-col gap-3 opacity-40 px-4">
-           <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
-              <span>Initialized</span>
-              <span class="text-content-dark">{{ program.createdAt ? new Date(program.createdAt).toLocaleDateString() : 'N/A' }}</span>
-           </div>
-           <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
-              <span>Last Sync</span>
-              <span class="text-content-dark">{{ program.updatedAt ? new Date(program.updatedAt).toLocaleDateString() : 'Active' }}</span>
-           </div>
+            </div>
+          </section>
+
+          <!-- Operational Timestamps -->
+          <section class="ui-detail-card bg-surface-subtle/50">
+            <h6 class="font-black uppercase tracking-widest text-content-muted">Operational Lifecycle</h6>
+            <div class="space-y-6">
+              <div class="flex items-center gap-3">
+                <AppBadge type="green" class="text-md px-2 py-xs">
+                  Initialized
+                </AppBadge>
+                <div class="text-sm font-bold text-content-muted leading-tight tabular-nums">
+                  {{ program.createdAt ? new Date(program.createdAt).toLocaleDateString() : 'N/A' }}
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3">
+                <AppBadge type="blue" class="text-md px-2 py-xs">
+                  Last Sync
+                </AppBadge>
+                <div class="text-sm font-bold text-content-muted leading-tight tabular-nums">
+                  {{ program.updatedAt ? new Date(program.updatedAt).toLocaleDateString() : 'Active' }}
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </template>
     </DetailPageLayout>
 
+    <!-- Shared Filter Menu -->
+    <Teleport to="body">
+      <transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform scale-95 opacity-0"
+        enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-150 ease-in"
+        leave-from-class="opacity-100" leave-to-class="opacity-0">
+        <div v-if="isFilterOpen" class="fixed bg-white rounded-xl shadow-2xl border border-outline-std z-[9999] p-2 min-w-[180px] overflow-hidden"
+          :style="filterMenuStyles">
+          <div v-for="option in filterOptions" :key="option.value"
+            class="px-4 py-2.5 text-sm font-bold cursor-pointer transition-all rounded-lg flex items-center justify-between group"
+            :class="[
+              currentFilter === option.value ? 'shadow-sm' : '',
+              currentFilter === option.value ? '' : 'text-content-muted'
+            ]" :style="currentFilter === option.value || hoveredOption === option.value ? {
+              backgroundColor: getStatusTheme(option.value).backgroundColor,
+              color: getStatusTheme(option.value).color,
+              transform: hoveredOption === option.value ? 'translateX(4px)' : ''
+            } : {}" @click="selectFilter(option.value)" @mouseenter="hoveredOption = option.value"
+            @mouseleave="hoveredOption = null">
+            <span>{{ option.label }}</span>
+            <div v-if="option.value !== 'all'" class="w-2 h-2 rounded-full transition-transform group-hover:scale-125"
+              :style="{ backgroundColor: getStatusTheme(option.value).color }"></div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
+
     <ProgramActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :program="actionModal.program"
-      :loading="actionModal.loading" :error="actionModal.error" :success="actionModal.success" @close="closeModal"
-      @submit="handleActionSubmit" />
+      :loading="actionModal.loading" v-model:error="actionModal.error" v-model:success="actionModal.success"
+      @close="closeModal" @submit="handleActionSubmit" />
   </DashboardLayout>
 </template>

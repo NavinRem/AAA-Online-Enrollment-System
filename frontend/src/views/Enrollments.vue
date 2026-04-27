@@ -372,8 +372,7 @@ const handleRegisterStudent = async (formData) => {
             { label: 'Paid', value: 'paid' },
             { label: 'Unpaid', value: 'unpaid' },
             { label: 'Cancelled', value: 'cancelled' },
-          ]" :rowClass="getRowClass" @action="handleTableAction"
-          @row-click="navigateToDetail">
+          ]" :rowClass="getRowClass" @action="handleTableAction" @row-click="navigateToDetail">
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="showModal = true">
@@ -489,14 +488,13 @@ const handleRegisterStudent = async (formData) => {
                       <button v-if="item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-danger group"
                         @click="() => { handleAction('cancel', item); closeMenu(); }">
                         <img :src="getActionIcon('cancel')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
-                        <span class="font-bold">Void Enrollment</span>
+                        <span class="font-bold">Cancel Enrollment</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button
-                        class="ui-dropdown-item ui-dropdown-item-danger group font-black uppercase tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
-                        Purge Record
+                        Delete Enrollment
                       </button>
                     </div>
                   </transition>

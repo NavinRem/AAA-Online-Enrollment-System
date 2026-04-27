@@ -92,7 +92,7 @@ const navigateToDetail = (item) => {
         </td>
         <td class="ui-cell !py-4 text-center text-xs text-content-muted font-bold overflow-hidden"
           :style="{ flex: '1 1 0%', minWidth: 0 }">
-          <span class="truncate block" :title="formatDate(item.date)">{{ formatDate(item.date) }}</span>
+          <span class="truncate block">{{ formatDate(item.enrollAt) }}</span>
         </td>
       </tr>
     </AppTable>

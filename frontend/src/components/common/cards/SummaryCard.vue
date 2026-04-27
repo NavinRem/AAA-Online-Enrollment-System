@@ -28,7 +28,7 @@ const handleImageError = (e) => {
 
 <style scoped>
 .summary-card-root {
-  @apply rounded-std p-6 flex flex-col items-center text-center shadow-sm border border-primary/5 transition-all hover:shadow-md bg-[var(--accent-light)];
+  @apply rounded-std p-6 flex flex-col items-center text-center shadow-sm border border-primary/5 transition-all hover:shadow-md bg-[var(--color-primary-light)];
 }
 
 .summary-title {

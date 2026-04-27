@@ -334,7 +334,7 @@ const navigateToDetail = (item) => {
               <div class="flex -space-x-2">
                 <template v-if="item.childrenInfo?.length">
                   <div v-for="(child, i) in item.childrenInfo" :key="child.id || i"
-                    class="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm hover:z-10 transition-transform hover:scale-110"
+                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle overflow-hidden shadow-sm hover:z-10 transition-transform hover:scale-110"
                     :title="child.name">
                     <img :src="child.profileURL" alt="child" class="w-full h-full object-cover" />
                   </div>
@@ -373,10 +373,11 @@ const navigateToDetail = (item) => {
 
             <!-- Actions -->
             <td class="ui-cell text-center">
-              <div class="relative">
-                <button @click.stop="toggleMenu($event, item.id)"
-                  class="p-2 hover:bg-surface-subtle rounded-lg transition-colors group">
-                  <span class="font-black text-content-muted group-hover:text-primary">⋮</span>
+              <div class="ui-action-menu">
+                <button
+                  class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
+                  @click.stop="toggleMenu($event, item.id)">
+                  <span class="font-black text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -387,27 +388,27 @@ const navigateToDetail = (item) => {
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item group hover:bg-purple-soft hover:text-purple"
+                        class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="openAddChildModal(item); closeMenu()">
                         <img :src="getActionIcon('plus')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Register Child</span>
                       </button>
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item group hover:bg-primary-soft hover:text-primary"
+                        class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="openActionModal('edit', item); closeMenu()">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Edit Profile</span>
                       </button>
                       <button v-if="(item.status || 'Active').toLowerCase() === 'inactive'"
-                        class="ui-dropdown-item group text-success hover:bg-success-soft hover:text-success"
+                        class="ui-dropdown-item ui-dropdown-item-success group"
                         @click="handleAction('activate', item); closeMenu()">
                         <img :src="getActionIcon('reactivate')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Reactivate</span>
                       </button>
-                      <button v-else class="ui-dropdown-item group hover:bg-warning-soft hover:text-warning"
+                      <button v-else class="ui-dropdown-item ui-dropdown-item-danger group"
                         @click="handleAction('deactivate', item); closeMenu()">
                         <img :src="getActionIcon('cancel')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
@@ -415,23 +416,23 @@ const navigateToDetail = (item) => {
                       </button>
 
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item group hover:bg-info-soft hover:text-info"
+                        class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="openActionModal('reset-password', item); closeMenu()">
                         <img :src="getActionIcon('reset-password')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-bold text-sm">Security Reset</span>
                       </button>
 
-                      <div class="h-px bg-surface-subtle mx-2 my-1"
+                      <div class="h-px bg-surface-light mx-1 my-1"
                         v-if="(item.status || 'Active').toLowerCase() !== 'inactive'">
                       </div>
 
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item group text-error hover:bg-error-soft hover:text-error"
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
                         @click="handleAction('delete', item); closeMenu()">
                         <img :src="getActionIcon('delete')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-black text-sm">Delete Account</span>
+                        Delete Account
                       </button>
                     </div>
                   </transition>
