@@ -44,10 +44,13 @@ const filterToggleRef = ref(null)
 
 const isActiveFilter = computed(() => props.currentFilter !== 'all' && props.currentFilter !== '')
 
+const activeOption = computed(() => {
+  if (props.currentFilter === 'all' || !props.currentFilter) return null
+  return props.filterOptions.find((o) => o.value === props.currentFilter)
+})
+
 const activeFilterLabel = computed(() => {
-  if (props.currentFilter === 'all' || !props.currentFilter) return 'Filter'
-  const option = props.filterOptions.find((o) => o.value === props.currentFilter)
-  return option ? option.label : 'Filter'
+  return activeOption.value ? activeOption.value.label : 'Filter'
 })
 
 const toggleFilter = (event) => {
@@ -95,10 +98,14 @@ const selectFilter = (val) => {
       <SearchBox v-if="hasSearch" :modelValue="searchQuery" @update:modelValue="$emit('update:searchQuery', $event)"
         :placeholder="searchPlaceholder" variant="white" class="w-[500px] flex-shrink-0" />
       <div v-if="hasFilter" class="relative">
-        <AppButton ref="filterToggleRef" :variant="isActiveFilter ? currentFilter : 'secondary'" size="md"
-          :class="{ 'shadow-md': isActiveFilter }" @click="toggleFilter"
-          :style="isActiveFilter ? { backgroundColor: getStatusTheme(currentFilter).color, color: 'white' } : {}">
-          <img :src="getActionIcon('filter')" class="w-4 h-4 transition-all"
+        <AppButton ref="filterToggleRef" :variant="isActiveFilter ? 'ghost' : 'secondary'" size="md"
+          :class="{ 'shadow-md': isActiveFilter }" @click="toggleFilter" :style="isActiveFilter ? {
+            backgroundColor: getStatusTheme(currentFilter, activeOption?.color).color !== 'var(--color-gray)' ? getStatusTheme(currentFilter, activeOption?.color).color : 'var(--color-primary)',
+            color: 'white'
+          } : {}">
+          <img v-if="activeOption?.image || activeOption?.profileURL"
+            :src="activeOption.image || activeOption.profileURL" class="w-4 h-4 transition-all brightness-0 invert" />
+          <img v-else :src="getActionIcon('filter')" class="w-4 h-4 transition-all"
             :class="{ 'brightness-0 invert': isActiveFilter }"
             :style="!isActiveFilter ? { filter: getStatusFilter('filter') } : {}" />
           <span>{{ activeFilterLabel }}</span>
@@ -112,20 +119,29 @@ const selectFilter = (val) => {
               <div v-for="option in filterOptions" :key="option.value" class="toolbar-filter-option" :class="{
                 'active-option': currentFilter === option.value,
               }" :style="currentFilter === option.value ? {
-                backgroundColor: getStatusTheme(option.value).color,
+                backgroundColor: getStatusTheme(option.value, option.color).color !== 'var(--color-gray)' ? getStatusTheme(option.value, option.color).color : 'var(--color-primary)',
                 color: 'white'
               } : {}" @click.stop="selectFilter(option.value)" @mouseenter="(e) => {
                 if (currentFilter !== option.value) {
-                  e.target.style.backgroundColor = getStatusTheme(option.value).backgroundColor;
-                  e.target.style.color = getStatusTheme(option.value).color;
+                  const theme = getStatusTheme(option.value, option.color);
+                  if (theme.color !== 'var(--color-gray)') {
+                    e.currentTarget.style.backgroundColor = theme.backgroundColor;
+                    e.currentTarget.style.color = theme.color;
+                  }
                 }
               }" @mouseleave="(e) => {
                 if (currentFilter !== option.value) {
-                  e.target.style.backgroundColor = '';
-                  e.target.style.color = '';
+                  e.currentTarget.style.backgroundColor = '';
+                  e.currentTarget.style.color = '';
                 }
               }">
-                {{ option.label }}
+                <div class="flex items-center gap-3">
+                  <div v-if="option.image || option.profileURL"
+                    class="w-6 h-6 rounded-md border border-outline-std/50 overflow-hidden bg-white shrink-0 shadow-sm">
+                    <img :src="option.image || option.profileURL" class="w-full h-full object-cover" />
+                  </div>
+                  <span class="flex-1 truncate">{{ option.label }}</span>
+                </div>
               </div>
             </div>
           </transition>
@@ -154,10 +170,10 @@ const selectFilter = (val) => {
 }
 
 .toolbar-filter-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[150px] overflow-hidden;
+  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[240px] overflow-hidden;
 }
 
 .toolbar-filter-option {
-  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-colors rounded-sm select-none;
+  @apply px-md py-sm text-sm font-bold cursor-pointer transition-all rounded-sm select-none hover:bg-surface-subtle hover:text-primary;
 }
 </style>

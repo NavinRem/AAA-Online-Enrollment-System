@@ -8,10 +8,11 @@ const {
 
 class TeacherService {
   async createTeacher(teacherData) {
-    const { email, password, ...profileData } = teacherData
-    const validatedProfile = validateTeacher(profileData)
+    const { name, email, status, profileURL, password } = teacherData
+    const validatedProfile = validateTeacher({ name, email, status, profileURL })
+    const finalPassword = password || 'Temporary123'
     return authService.registerAccount(
-      { email, password, ...validatedProfile },
+      { ...validatedProfile, password: finalPassword },
       'teacher',
       COLLECTIONS.TEACHER,
     )
@@ -39,6 +40,7 @@ class TeacherService {
   async updateTeacher(id, updateData) {
     if (!id) throw new Error('Teacher ID is required')
     const validatedData = validateUpdateTeacher(updateData)
+    validatedData.updatedAt = new Date().toISOString()
     const teacherRef = db.collection(COLLECTIONS.TEACHER).doc(id)
 
     await db.runTransaction(async (transaction) => {
@@ -47,7 +49,12 @@ class TeacherService {
 
       transaction.update(teacherRef, validatedData)
 
-      if (validatedData.name || validatedData.profileURL !== undefined) {
+      if (
+        validatedData.name ||
+        validatedData.profileURL !== undefined ||
+        validatedData.email !== undefined ||
+        validatedData.status !== undefined
+      ) {
         const newData = { ...doc.data(), ...validatedData }
         const snapshot = profileHelper.getTeacherSnapshot(id, newData)
         await this.syncClassesWithTeacher(id, snapshot)

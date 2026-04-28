@@ -63,7 +63,7 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, originalData, isDirty, errors, shaking, clearError, triggerShake, submitForm } =
+const { localData, originalData, isDirty, errors, shaking, clearError, triggerShake, validate } =
   useActionModal(props, emit, {
     getInitialData,
     mapSourceToForm,
@@ -101,7 +101,7 @@ const handleActionSubmit = () => {
     if (selectedResetMode.value === 'email') {
       handleSendResetEmail()
     } else {
-      submitForm()
+      emit('submit', { type: 'manual' })
     }
     return
   }
@@ -122,7 +122,18 @@ const handleActionSubmit = () => {
     rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Authorization string invalid'
   }
 
-  submitForm(rules)
+  if (!validate(rules)) return
+
+  const payload = JSON.parse(JSON.stringify(localData))
+
+  // Remove UI-only and system-managed fields from backend payload
+  const forbidden = ['deleteConfirm', 'id', '_id', 'createdAt', 'updatedAt']
+  // parentId is required for "plus" (add child) but not for edit parent
+  if (props.type === 'edit') forbidden.push('parentId')
+
+  forbidden.forEach((key) => delete payload[key])
+
+  emit('submit', payload)
 }
 
 const handleSendResetEmail = async () => {
@@ -164,11 +175,11 @@ const modalTitle = computed(() => {
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'plus') return 'Add New Child'
-  if (props.type === 'deactivate') return 'Deactivate Account'
-  if (props.type === 'activate') return 'Activate Account'
-  if (props.type === 'edit') return 'Update Profile'
-  if (props.type === 'delete') return 'Delete Profile'
+  if (props.type === 'plus') return 'Add'
+  if (props.type === 'deactivate') return 'Deactivate'
+  if (props.type === 'activate') return 'Activate'
+  if (props.type === 'edit') return 'Update'
+  if (props.type === 'delete') return 'Delete'
   if (props.type === 'reset-password') return 'Reset Password'
   return 'Confirm'
 })
@@ -345,7 +356,7 @@ watch(
         class="text-center" :error="errors.deleteConfirm" :shake="shaking.deleteConfirm"
         @input="clearError('deleteConfirm')">
         <template #label-extra>
-          <span class="block text-2xs font-black uppercase text-content-muted/40 text-center mt-1">
+          <span class="block text-2xs font-black text-center mt-1">
             Type <span class="text-error px-1">DELETE</span> to authorize record deletion
           </span>
         </template>

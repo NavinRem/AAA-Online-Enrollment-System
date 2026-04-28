@@ -34,7 +34,13 @@ export const getIcon = (p1, p2) => resolveAsset('icons', p2 ? `${p1}/${p2}` : p1
 export const getImageUrl = getImage
 export const getIconUrl = getIcon
 
-export const getProgramProfileURL = (url) => getImage(url)
+export const getProgramProfileURL = (progUrl, catName, catUrl) => {
+  if (progUrl) return resolveAsset('images', progUrl)
+  if (catUrl) return resolveAsset('images', catUrl)
+  const categoryAsset = resolveAsset('images', `categories/${normalize(catName)}`)
+  if (categoryAsset) return categoryAsset
+  return resolveAsset('images', 'common/logo-main')
+}
 export const getParentProfileURL = (url) => getImage(url)
 export const getStudentProfileURL = (url) => getImage(url)
 export const getTeacherProfileURL = (url) => getImage(url)

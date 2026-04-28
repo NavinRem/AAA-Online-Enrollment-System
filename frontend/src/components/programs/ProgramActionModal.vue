@@ -5,10 +5,12 @@ import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
-import { getActionIcon } from '@/utils/assetHelper'
-import { programService } from '@/services/programService'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
+import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 import { categoryService } from '@/services/categoryService'
 import { levelService } from '@/services/levelService'
+import { programService } from '@/services/programService'
 import { storageService } from '@/services/storageService'
 import { useActionModal } from '@/composables/useActionModal'
 
@@ -21,19 +23,19 @@ const props = defineProps({
   success: String,
 })
 
-const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
+const emit = defineEmits(['close', 'submit', 'update:error', 'update:success', 'lookup-deleted'])
 
 const getInitialData = () => ({
   name: '',
   categoryId: '',
   levelId: '',
-  type: 'group',
+  type: 'Group',
   basePrice: 0.0,
-  totalClasses: 1,
-  weeksNumber: 1,
+  totalSessions: 1,
   maxCapacity: 10,
-  description: '',
-  profileURL: '',
+  minAge: 0,
+  maxAge: 0,
+  profileURL: '', // Note: This will be removed from state if no longer needed, but keeping for compatibility if existing programs have it
   deleteConfirm: '',
 })
 
@@ -43,87 +45,210 @@ const mapSourceToForm = () => {
   }
   return getInitialData()
 }
+const {
+  localData,
+  originalData,
+  isDirty,
+  errors,
+  shaking,
+  validate,
+  clearError,
+  triggerShake,
+  resetForm,
+} = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm,
+  sourceKey: 'program',
+})
 
-const { localData, originalData, isDirty, errors, shaking, clearError, triggerShake, submitForm } =
-  useActionModal(props, emit, {
-    getInitialData,
-    mapSourceToForm,
-  })
+// Lookup Management State
+const lookupType = ref(null) // 'category' | 'level'
+const lookupLoading = ref(false)
+const newLookupName = ref('')
+const newLookupURL = ref('')
+
+const toggleLookupManage = (type) => {
+  if (lookupType.value === type) {
+    lookupType.value = null
+  } else {
+    lookupType.value = type
+    newLookupName.value = ''
+    newLookupURL.value = ''
+  }
+}
+
+const currentLookupItems = computed(() => {
+  if (lookupType.value === 'category') return categories.value
+  if (lookupType.value === 'level') return levels.value
+  if (lookupType.value === 'type') return programTypes.value
+  return []
+})
+
+const addLookup = async () => {
+  if (!newLookupName.value.trim()) return
+  lookupLoading.value = true
+  try {
+    if (lookupType.value === 'category') {
+      await categoryService.createCategory({
+        name: newLookupName.value.trim(),
+        profileURL: newLookupURL.value.trim() || null,
+      })
+      await fetchCategories()
+    } else if (lookupType.value === 'level') {
+      await levelService.createLevel({ name: newLookupName.value.trim() })
+      await fetchLevels()
+    } else if (lookupType.value === 'type') {
+      const name = newLookupName.value.trim()
+      if (!programTypes.value.find((t) => t.name.toLowerCase() === name.toLowerCase())) {
+        programTypes.value.push({ id: name, name })
+      }
+    }
+    newLookupName.value = ''
+    newLookupURL.value = ''
+  } catch (err) {
+    emit('update:error', err.message || 'Failed to add item')
+  } finally {
+    lookupLoading.value = false
+  }
+}
+
+const deleteLookup = async (id) => {
+  lookupLoading.value = true
+  try {
+    if (lookupType.value === 'category') {
+      await categoryService.deleteCategory(id)
+      if (localData.categoryId === id) localData.categoryId = ''
+      await fetchCategories()
+    } else if (lookupType.value === 'level') {
+      await levelService.deleteLevel(id)
+      if (localData.levelId === id) localData.levelId = ''
+      await fetchLevels()
+    }
+    emit('lookup-deleted')
+  } catch (err) {
+    emit('update:error', err.message || 'Failed to delete item')
+  } finally {
+    lookupLoading.value = false
+  }
+}
 
 const categories = ref([])
 const levels = ref([])
-const schedules = ref([])
-const newSchedule = ref({ day: 'Monday', timeslot: '' })
 const isUploading = ref(false)
+const showConfirm = ref(false)
 
 const sortedCategories = computed(() =>
-  [...categories.value].sort((a, b) => a.name.localeCompare(b.name)),
+  [...categories.value].sort((a, b) => (a?.name || '').localeCompare(b?.name || '')),
 )
-const sortedLevels = computed(() => [...levels.value].sort((a, b) => a.name.localeCompare(b.name)))
+
+const sortedLevels = computed(() => {
+  const list = [...levels.value].sort((a, b) => (a?.name || '').localeCompare(b?.name || ''))
+  return list.map((l) => ({
+    ...l,
+    profileURL: selectedCategory.value?.profileURL || getImageUrl('common/logo-main'),
+  }))
+})
 
 const modalTitle = computed(() => {
-  if (props.type === 'edit') return 'Engineer Program Model'
-  if (props.type === 'delete') return 'Deconstruct Program Entry'
-  return 'Initialize Program Entry'
+  if (props.type === 'edit') return 'Edit Program'
+  if (props.type === 'delete') return 'Delete Program'
+  return 'Add Program'
 })
 
 const modalIcon = computed(() => {
   if (props.type === 'delete') return getActionIcon('delete')
-  return getActionIcon('edit')
+  return selectedCategory.value?.profileURL || (props.type === 'add' ? getActionIcon('plus') : getActionIcon('edit'))
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Commit Profile'
-  if (props.type === 'delete') return 'Execute Deconstruction'
-  return 'Initialize Entry'
+  if (props.type === 'edit') return 'Update'
+  if (props.type === 'delete') return 'Delete'
+  return 'Add'
 })
 
 const fetchCategories = async () => {
   try {
-    const rawCategories = await categoryService.getAllCategories()
-    categories.value = rawCategories.map((c) => ({
+    const rawData = await categoryService.getAllCategories()
+    const rawCategories = Array.isArray(rawData) ? rawData : (rawData?.data || [])
+    categories.value = rawCategories.filter(c => c).map((c) => ({
       ...c,
+      id: c.id || c._id,
       profileURL: c.profileURL || '',
     }))
   } catch (err) {
-    console.error(err)
+    console.error('Failed to fetch categories:', err)
   }
 }
 
 const fetchLevels = async () => {
-  if (!localData.categoryId) return
   try {
-    levels.value = await levelService.getAllLevels({ categoryId: localData.categoryId })
+    const rawData = await levelService.getAllLevels()
+    const rawLevels = Array.isArray(rawData) ? rawData : (rawData?.data || [])
+    levels.value = rawLevels.filter(l => l).map((l) => ({
+      ...l,
+      id: l.id || l._id,
+    }))
   } catch (err) {
-    console.error(err)
+    console.error('Failed to fetch levels:', err)
   }
 }
 
-const fetchSchedules = async () => {
-  if (props.type !== 'edit' || !props.program?.id) return
+const programTypes = ref([])
+
+const fetchProgramTypes = async () => {
   try {
-    schedules.value = await programService.getProgramSchedules(props.program.id)
+    const rawPrograms = await programService.getAllPrograms()
+    const allPrograms = Array.isArray(rawPrograms) ? rawPrograms : (rawPrograms?.data || [])
+    const uniqueTypes = [...new Set(allPrograms.map((p) => p.type).filter(Boolean))]
+
+    // Default presets
+    const presets = ['Group', 'Private']
+    const combined = [...new Set([...presets, ...uniqueTypes])]
+
+    programTypes.value = combined.map((t) => ({ id: t, name: t }))
   } catch (err) {
-    console.error(err)
+    console.error('Failed to fetch program types:', err)
   }
 }
+
+const programTypesWithCategoryImage = computed(() =>
+  programTypes.value.map((t) => ({
+    ...t,
+    profileURL: selectedCategory.value?.profileURL || getImageUrl('common/logo-main'),
+  })),
+)
 
 const onCategoryChange = (val) => {
   localData.categoryId = val
-  localData.levelId = ''
   clearError('categoryId')
-  fetchLevels()
 }
 
-const handleFileUpload = async (event) => {
+const selectedCategory = computed(() =>
+  categories.value.find((c) => c.id === localData.categoryId),
+)
+
+const getLookupImage = (item) => {
+  if (lookupType.value === 'category') {
+    return item.profileURL || getImageUrl('common/logo-main')
+  }
+  // For levels and types, we show the image of the currently selected category for context
+  return selectedCategory.value?.profileURL || getImageUrl('common/logo-main')
+}
+
+const onLevelChange = (val) => {
+  localData.levelId = val
+  clearError('levelId')
+}
+
+const handleCategoryFileUpload = async (event) => {
   const file = event.target.files[0]
   if (!file) return
   isUploading.value = true
   try {
     const timestamp = Date.now()
-    const path = `programs/${localData.name}_${timestamp}`
+    const path = `categories/${newLookupName.value || 'temp'}_${timestamp}`
     const url = await storageService.uploadFile(file, path)
-    localData.profileURL = url
+    newLookupURL.value = url
   } catch (err) {
     emit('update:error', 'Upload failed. Try again.')
   } finally {
@@ -131,80 +256,92 @@ const handleFileUpload = async (event) => {
   }
 }
 
-const handleAddSchedule = async () => {
-  if (!newSchedule.value.day || !newSchedule.value.timeslot) return
-  try {
-    const id = await programService.addProgramSchedule(props.program.id, newSchedule.value)
-    schedules.value.unshift({ id, ...newSchedule.value })
-    newSchedule.value.timeslot = ''
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-const handleRemoveSchedule = async (scheduleId) => {
-  try {
-    await programService.deleteProgramSchedule(props.program.id, scheduleId)
-    schedules.value = schedules.value.filter((s) => s.id !== scheduleId)
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-const handleDisabledClick = (field) => {
-  if (field === 'levelId' && !localData.categoryId) {
-    errors.categoryId = 'PLEASE SELECT A CATEGORY FIRST'
-    triggerShake('categoryId')
-  }
-}
-
-const handleActionSubmit = () => {
+const requestConfirm = () => {
   if (props.type === 'edit' && !isDirty.value) return
 
   const rules = {
-    required: props.type === 'delete' ? [] : ['name', 'categoryId'],
+    required: props.type === 'delete' ? [] : ['name', 'categoryId', 'levelId'],
     custom: {},
   }
 
   if (props.type === 'delete') {
-    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Invalid confirmation string'
-  } else {
-    rules.custom.basePrice = (val) => val >= 0 || 'Negative price'
-    rules.custom.totalClasses = (val) => val >= 1 || 'Min 1 unit'
-    rules.custom.weeksNumber = (val) => val >= 1 || 'Min 1 duration'
-    rules.custom.maxCapacity = (val) => val >= 1 || 'Capacity error'
+    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Type DELETE to confirm.'
   }
 
-  submitForm(rules)
+  // Perform validation
+  const isValid = validate(rules)
+
+  if (!isValid) {
+    if (props.type !== 'delete') {
+      emit('update:error', 'Please fill in all required fields accurately.')
+      triggerShake('name') // Generic shake to grab attention
+    }
+    return
+  }
+
+  showConfirm.value = true
 }
+
+const handleActionSubmit = () => {
+  showConfirm.value = false
+
+  const payload = {
+    ...localData,
+    category: categories.value.find((c) => c.id === localData.categoryId)?.name || '',
+    level: levels.value.find((l) => l.id === localData.levelId)?.name || '',
+  }
+
+  emit('submit', payload)
+}
+
+const confirmOverlayTitle = computed(() => {
+  const titles = { edit: 'Confirm Program Update', delete: 'Confirm Program Deletion' }
+  return titles[props.type] || 'Confirm New Program'
+})
+
+const confirmOverlaySubtitle = computed(() => {
+  if (props.type === 'delete') return 'This action is irreversible. All associated data will be removed.'
+  return 'Please verify the program details before finalizing.'
+})
+
+const confirmRows = computed(() => {
+  const rows = [
+    { key: 'Name', value: localData.name },
+    { key: 'Category', value: categories.value.find((c) => (c?.id || c?._id) === localData.categoryId)?.name || 'N/A' },
+    { key: 'Level', value: levels.value.find((l) => (l?.id || l?._id) === localData.levelId)?.name || 'N/A' },
+    { key: 'Type', value: localData.type, badge: true, type: 'blue' },
+    { key: 'Base Price', value: `$${localData.basePrice}`, badge: true, type: 'blue' },
+    { key: 'Total Sessions', value: localData.totalSessions },
+    { key: 'Age Range', value: `${localData.minAge} - ${localData.maxAge} years` },
+    { key: 'Max Capacity', value: localData.maxCapacity },
+  ]
+  if (props.type === 'delete') {
+    rows.push({ key: 'Confirmation', value: localData.deleteConfirm, valueClass: 'text-error font-black' })
+  }
+  return rows
+})
 
 watch(
   () => props.isOpen,
   async (isOpen) => {
     if (isOpen) {
-      await fetchCategories()
-      if (localData.categoryId) fetchLevels()
-      if (props.type === 'edit') fetchSchedules()
+      await Promise.all([fetchCategories(), fetchLevels(), fetchProgramTypes()])
     }
   },
+  { immediate: true },
 )
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" :icon="modalIcon" maxWidth="650px" @close="$emit('close')">
+  <AppModal :show="isOpen" :title="modalTitle" :icon="modalIcon" :error="error" :success="success" maxWidth="650px"
+    @close="$emit('close')">
     <!-- Body Content -->
-    <div class="px-xl py-6">
-      <!-- Feedback Alerts -->
-      <div v-if="error || success" class="mb-4">
-        <AppAlert v-if="error" type="error" :title="error" @close="$emit('update:error', '')" />
-        <AppAlert v-if="success" type="success" :title="success" @close="$emit('update:success', '')" />
-      </div>
-
+    <div>
       <form v-if="type === 'add' || type === 'edit'" id="programActionForm" class="grid grid-cols-2 gap-x-6 gap-y-5"
-        @submit.prevent="handleActionSubmit" novalidate>
-        
-        <AppInput v-model="localData.name" label="Program Identity / Model" placeholder="e.g. Master Class: Piano"
-          class="col-span-2" required :error="errors.name" :shake="shaking.name" @input="clearError('name')">
+        @submit.prevent="requestConfirm" novalidate>
+
+        <AppInput v-model="localData.name" label="Name" placeholder="e.g. Master Class: Piano" class="col-span-2"
+          required :error="errors.name" :shake="shaking.name" @input="clearError('name')">
           <template #label-extra v-if="type === 'edit' && originalData.name">
             <span class="text-3xs font-bold text-primary ml-sm lowercase italic opacity-60">
               Record: {{ originalData.name }}
@@ -212,130 +349,235 @@ watch(
           </template>
         </AppInput>
 
-        <AppSelect v-model="localData.categoryId" :items="sortedCategories" label="Category" placeholder="Catalog..."
-          required :error="errors.categoryId" :shake="shaking.categoryId" @change="onCategoryChange" />
+        <div class="col-span-1">
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-sm font-semibold text-content-dark flex items-center gap-1">
+              Category <span class="text-error font-bold leading-none">*</span>
+            </label>
+            <button type="button" @click="toggleLookupManage('category')"
+              class="text-sm font-black text-primary hover:underline">Manage</button>
+          </div>
+          <AppSelect v-model="localData.categoryId" :items="sortedCategories" placeholder="Select Catalog..." required
+            :error="errors.categoryId" :shake="shaking.categoryId" @change="onCategoryChange" />
+        </div>
 
-        <AppSelect v-model="localData.levelId" :items="sortedLevels" label="Skill Level" placeholder="Difficulty..."
-          :disabled="!localData.categoryId" @click-disabled="handleDisabledClick('levelId')" />
-
-        <AppSelect v-model="localData.type" label="Course Type" :items="[
-          { id: 'group', name: 'Group / Ensemble' },
-          { id: 'private', name: 'Private Session' },
-        ]" :searchable="false" required />
-
-        <AppInput v-model="localData.basePrice" type="number" label="Catalog Price ($)" placeholder="0.00" step="0.01"
-          required :error="errors.basePrice" :shake="shaking.basePrice" @input="clearError('basePrice')" />
-
-        <AppInput v-model="localData.totalClasses" type="number" label="Total Classes" placeholder="1" required
-          :error="errors.totalClasses" :shake="shaking.totalClasses" @input="clearError('totalClasses')" />
-
-        <AppInput v-model="localData.weeksNumber" type="number" label="Term Duration" placeholder="1" required
-          :error="errors.weeksNumber" :shake="shaking.weeksNumber" @input="clearError('weeksNumber')">
-          <template #right-icon>
-            <span class="text-2xs font-black uppercase text-content-muted/40 mr-md">Weeks</span>
-          </template>
-        </AppInput>
-
-        <AppInput v-model="localData.maxCapacity" type="number" label="Registry Limit" placeholder="10"
-          required :error="errors.maxCapacity" :shake="shaking.maxCapacity"
-          @input="clearError('maxCapacity')" />
-
-        <div class="flex flex-col gap-xs mt-0">
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest">Program Creative</label>
-          <div class="relative">
-            <div v-if="localData.profileURL"
-              class="flex items-center gap-md bg-surface-light p-1.5 rounded-xl border border-outline-std/30">
-              <div class="w-10 h-10 rounded-xl border-2 border-white shadow-sm overflow-hidden bg-white">
-                <img :src="localData.profileURL" alt="Preview" class="w-full h-full object-cover" />
+        <div class="col-span-1">
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-sm font-semibold text-content-dark flex items-center gap-1">
+              Level <span class="text-error font-bold leading-none">*</span>
+            </label>
+            <button type="button" @click="toggleLookupManage('level')"
+              class="text-sm font-black text-primary hover:underline">Manage</button>
+          </div>
+          <AppSelect v-model="localData.levelId" :items="sortedLevels" placeholder="Select Level..." required
+            :error="errors.levelId" :shake="shaking.levelId" @change="onLevelChange">
+            <template #selected="{ item }">
+              <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
+                <div class="w-7 h-7 rounded-lg border border-outline-std overflow-hidden bg-white shrink-0">
+                  <img :src="item.profileURL" class="w-full h-full object-cover" />
+                </div>
+                <span class="text-sm font-semibold text-content-dark truncate flex-1">{{ item.name }}</span>
               </div>
-              <button type="button"
-                class="text-2xs text-error font-black uppercase tracking-widest cursor-pointer bg-white border border-error/20 px-3 py-1 rounded-xl transition-all hover:bg-error hover:text-white"
-                @click="localData.profileURL = ''">
-                Remove
+            </template>
+            <template #item="{ item }">
+              <div class="flex items-center gap-3 w-full">
+                <div class="w-8 h-8 rounded-lg border border-outline-std overflow-hidden bg-white shrink-0 shadow-sm">
+                  <img :src="item.profileURL" class="w-full h-full object-cover" />
+                </div>
+                <span class="text-sm font-semibold text-content-dark flex-1">{{ item.name }}</span>
+              </div>
+            </template>
+          </AppSelect>
+        </div>
+
+        <!-- Inline Lookup Manager -->
+        <div v-if="lookupType"
+          class="col-span-2 p-md bg-primary-soft/30 rounded-std border-2 border-dashed border-primary/20 flex flex-col gap-sm animate-in fade-in slide-in-from-top-2 duration-300">
+          <div class="flex justify-between items-center">
+            <span class="text-sm font-black text-primary flex items-center gap-xs">
+              <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+              Manage {{ lookupType }}s
+            </span>
+            <button type="button" @click="lookupType = null"
+              class="text-xs font-black text-content-muted hover:text-error uppercase tracking-widest">Close</button>
+          </div>
+          <div class="flex flex-col gap-sm">
+            <div class="flex gap-sm">
+              <input v-model="newLookupName" :placeholder="'Enter new ' + lookupType + ' name...'"
+                class="flex-1 px-md py-2 text-sm bg-white border border-outline-std rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                @keyup.enter="addLookup" />
+              <AppButton size="sm" type="button" @click="addLookup" :loading="lookupLoading">Add</AppButton>
+            </div>
+
+            <!-- Lookup Identity Helper (Category Only) -->
+            <div v-if="lookupType === 'category'"
+              class="flex items-center gap-sm p-2 bg-white/40 rounded-xl border border-outline-std/50 shadow-inner">
+              <div v-if="lookupType === 'category'" class="relative flex-1">
+                <input v-model="newLookupURL" placeholder="Category Asset URL (optional)..."
+                  class="w-full pl-9 pr-md py-2 text-[10px] bg-white/80 border border-outline-std rounded-lg focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 text-xs">🔗</span>
+              </div>
+
+              <div class="shrink-0 flex items-center gap-sm">
+                <template v-if="lookupType === 'category'">
+                  <input type="file" @change="handleCategoryFileUpload" accept="image/*" id="lookup-file-upload"
+                    class="hidden" />
+                  <label for="lookup-file-upload"
+                    class="w-8 h-8 rounded-lg border border-outline-std flex items-center justify-center bg-white hover:bg-primary-soft hover:border-primary cursor-pointer transition-all shadow-xs">
+                    <span class="text-xs">{{ isUploading ? '⏳' : '🖼️' }}</span>
+                  </label>
+                </template>
+                <div class="w-8 h-8 rounded-lg overflow-hidden border border-white shadow-xs bg-white">
+                  <img
+                    :src="lookupType === 'category' ? (newLookupURL || getImageUrl('common/logo-main')) : (selectedCategory?.profileURL || getImageUrl('common/logo-main'))"
+                    class="w-full h-full object-cover" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-xs max-h-[100px] overflow-y-auto py-sm scrollable-v">
+            <div v-for="item in currentLookupItems" :key="item.id"
+              class="px-3 py-1.5 bg-primary-light border border-primary/10 rounded-xl flex items-center gap-sm group hover:border-primary/30 transition-all shadow-sm cursor-default">
+              <div class="w-5 h-5 rounded-lg overflow-hidden border border-white shadow-xs bg-white shrink-0">
+                <img :src="getLookupImage(item)" class="w-full h-full object-cover opacity-80" />
+              </div>
+              <span class="text-[10px] font-black uppercase tracking-tight">{{ item.name }}</span>
+              <button type="button" @click="deleteLookup(item.id || item._id)"
+                class="w-4 h-4 rounded-full flex items-center justify-center hover:bg-error/10 hover:text-error transition-all ml-xs">
+                ×
               </button>
             </div>
-            <div v-else>
-              <input type="file" @change="handleFileUpload" accept="image/*" id="program-file-upload" class="hidden" />
-              <label for="program-file-upload"
-                class="group flex items-center gap-md p-2 border-2 border-dashed border-outline-std rounded-xl cursor-pointer transition-all hover:bg-primary-soft hover:border-primary">
-                <span class="text-xl">🖼️</span>
-                <span class="text-xs font-black text-content-dark uppercase tracking-widest">{{
-                    isUploading ? 'Uploading...' : 'Asset'
-                  }}</span>
-              </label>
+            <div v-if="!currentLookupItems.length" class="text-[10px] text-content-muted italic py-2">
+              No items found in this catalog.
             </div>
           </div>
         </div>
 
-        <div class="flex flex-col gap-xs col-span-2 mt-0">
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest">Description / Synopsis</label>
-          <textarea v-model="localData.description"
-            placeholder="A brief overview for administrative reference..." rows="2" class="ui-remark-textarea !text-xs !py-2"
-            :class="{
-              'border-error bg-error-soft ring-error/10': errors.description,
-              'animate-shake': shaking.description,
-            }"></textarea>
+        <div class="col-span-1">
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-sm font-semibold text-content-dark flex items-center gap-1">
+              Type <span class="text-error font-bold leading-none">*</span>
+            </label>
+          </div>
+          <AppSelect v-model="localData.type" :items="programTypesWithCategoryImage" placeholder="Select Type..."
+            required class="col-span-1" :searchable="false">
+            <template #selected="{ item }">
+              <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
+                <div class="w-7 h-7 rounded-lg border border-outline-std overflow-hidden bg-white shrink-0">
+                  <img :src="item.profileURL" class="w-full h-full object-cover" />
+                </div>
+                <span class="text-sm font-semibold text-content-dark truncate flex-1">{{ item.name }}</span>
+              </div>
+            </template>
+            <template #item="{ item }">
+              <div class="flex items-center gap-3 w-full">
+                <div class="w-8 h-8 rounded-lg border border-outline-std overflow-hidden bg-white shrink-0 shadow-sm">
+                  <img :src="item.profileURL" class="w-full h-full object-cover" />
+                </div>
+                <span class="text-sm font-semibold text-content-dark flex-1">{{ item.name }}</span>
+              </div>
+            </template>
+          </AppSelect>
         </div>
 
-        <!-- Schedule Templates -->
-        <template v-if="type === 'edit'">
-          <div class="col-span-2 bg-surface-subtle border border-outline-std rounded-xl p-3 flex flex-col gap-3 shadow-inner">
-            <div class="flex flex-wrap gap-2">
-              <div v-for="s in schedules" :key="s.id"
-                class="group flex items-center gap-2 bg-white p-1 px-3 rounded-lg border border-outline-std/50 shadow-sm transition-all hover:border-primary/30">
-                <span class="text-[10px] font-black text-primary uppercase tracking-tighter">{{ s.day }}</span>
-                <span class="text-xs text-content-dark font-black tracking-tight">{{ s.timeslot }}</span>
-                <button type="button"
-                  class="w-4 h-4 flex items-center justify-center rounded-full bg-surface-light text-content-muted hover:bg-error hover:text-white transition-colors cursor-pointer"
-                  @click="handleRemoveSchedule(s.id)">
-                  &times;
-                </button>
-              </div>
-              <div v-if="schedules.length === 0" class="text-xs text-content-muted/40 font-bold italic py-1">
-                No master schedule nodes initialized.
-              </div>
-            </div>
+        <AppInput v-model="localData.basePrice" type="number" label="Base Price ($)" placeholder="0.00" step="0.01"
+          required :error="errors.basePrice" :shake="shaking.basePrice" @input="clearError('basePrice')" />
 
-            <div class="flex gap-2 items-center pt-2 border-t border-outline-std/20">
-              <AppSelect v-model="newSchedule.day" :items="['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((d) => ({ id: d, name: d }))" :searchable="false" class="w-32" />
-              <AppSelect v-model="newSchedule.timeslot" :items="['08:30 - 10:00', '10:30 - 12:00', '13:30 - 15:00', '15:30 - 17:00'].map((s) => ({ id: s, name: s }))" :searchable="false" class="flex-1" />
-              <AppButton variant="primary" @click="handleAddSchedule" :disabled="!newSchedule.timeslot" size="sm" class="px-4 rounded-lg">Register</AppButton>
-            </div>
-          </div>
-        </template>
+        <AppInput v-model="localData.totalSessions" type="number" label="Total Sessions" placeholder="24" required
+          :error="errors.totalSessions" :shake="shaking.totalSessions" @input="clearError('totalSessions')" />
+
+        <AppInput v-model="localData.maxCapacity" type="number" label="Max Capacity" placeholder="10" required
+          :error="errors.maxCapacity" :shake="shaking.maxCapacity" @input="clearError('maxCapacity')" />
+
+        <AppInput v-model="localData.minAge" type="number" label="Minimum Age" placeholder="5" required />
+        <AppInput v-model="localData.maxAge" type="number" label="Maximum Age" placeholder="12" required />
+
+        <!-- Program image section removed per user request (moved to category) -->
+
+        <AppInput v-model="localData.description" type="textarea" label="Description"
+          placeholder="A brief overview for administrative reference..." class="col-span-2" :error="errors.description"
+          :shake="shaking.description" @input="clearError('description')" />
       </form>
 
-      <div v-if="type === 'delete'" class="flex flex-col gap-xl">
-        <div class="flex items-center gap-xl p-xl bg-error/5 border-2 border-dashed border-error/20 rounded-2xl">
-          <div class="text-4xl">☢️</div>
-          <div class="flex flex-col">
-            <strong class="text-lg font-black text-error uppercase leading-none mb-2">Catalog Deconstruction</strong>
-            <p class="text-xs text-content-muted font-bold leading-relaxed">
-              This action will purge the program from catalogs. Active classes will persist but model synchronization will be severed.
-            </p>
+      <!-- Content for Delete Action -->
+      <div v-if="type === 'delete'" class="flex flex-col gap-lg">
+        <!-- Identity Summary -->
+        <div class="bg-white border border-outline-std rounded-std p-lg flex flex-col gap-lg shadow-sm"
+          v-if="props.program">
+          <div class="grid grid-cols-2 gap-x-lg gap-y-md">
+            <div class="flex flex-col gap-xs">
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program
+                Name</span>
+              <div class="flex items-center gap-sm">
+                <span class="text-sm font-bold text-content-dark tracking-tight">{{ props.program.name }}</span>
+              </div>
+            </div>
+            <div class="flex flex-col gap-xs">
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Category</span>
+              <div class="flex items-center gap-sm">
+                <AppBadge :status="categories.find(c => c.id === props.program.categoryId)?.name || 'N/A'"
+                  type="blue" />
+              </div>
+            </div>
+            <div class="flex flex-col gap-xs">
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Level</span>
+              <div class="flex items-center gap-sm">
+                <AppBadge :status="levels.find(l => l.id === props.program.levelId)?.name || 'N/A'"
+                  class="bg-surface-subtle text-content-dark border-outline-std" />
+              </div>
+            </div>
+            <div class="flex flex-col gap-xs">
+              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Price</span>
+              <span class="text-sm font-black text-primary tracking-tighter">${{ props.program.basePrice }}</span>
+            </div>
           </div>
         </div>
-        <AppInput v-model="localData.deleteConfirm" label="Security Confirmation" placeholder="CONFIRM CATALOG DELETE"
-          required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" class="text-center"
-          @input="clearError('deleteConfirm')">
+
+        <AppAlert type="error">
+          <div class="flex flex-col gap-0.5">
+            <strong class="text-sm font-black tracking-tight uppercase">⚠ Permanent Data Purge</strong>
+            <span class="text-xs opacity-90 font-medium">This will erase all linked class records and enrollment history
+              for this program. This action is irreversible.</span>
+          </div>
+        </AppAlert>
+
+        <AppInput v-model="localData.deleteConfirm" label="Security Confirmation" placeholder='Type "DELETE" to confirm'
+          required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-3xs font-black uppercase text-content-muted/40 text-center mt-2">
-              Type <span class="text-error px-1">DELETE</span> to authorize purge
+            <span class="block text-2xs font-black uppercase text-content-muted/40 mt-1">
+              Type <span class="text-error px-1 font-black">DELETE</span> to authorize this permanent action
             </span>
           </template>
         </AppInput>
       </div>
+
+      <!-- ── Confirmation Overlay ── -->
+      <AppConfirmOverlay :show="showConfirm" :title="confirmOverlayTitle" :subtitle="confirmOverlaySubtitle"
+        :icon="modalIcon" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading" @back="showConfirm = false"
+        @confirm="handleActionSubmit" />
     </div>
 
     <template #footer>
-      <div class="flex items-center justify-end w-full gap-md px-xl py-4 bg-surface-subtle/30 border-t border-outline-std">
-        <AppButton variant="cancel" size="lg" class="px-8" @click="$emit('close')">Abort Action</AppButton>
-        <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" size="lg" class="px-8"
-          :form="type === 'add' || type === 'edit' ? 'programActionForm' : null" type="submit"
-          @click="type === 'delete' ? handleActionSubmit() : null" :loading="loading" :disabled="loading"
-          :class="{ 'opacity-50 pointer-events-none': type === 'edit' && !isDirty }">
-          {{ submitLabel }}
-        </AppButton>
+      <div class="flex flex-col justify-end w-full gap-md">
+        <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
+          <div class="flex items-center gap-sm">
+            <span class="text-lg">ℹ️</span>
+            <div class="flex flex-col">
+              <span class="text-xs font-black tracking-tight">No Changes Detected</span>
+              <span class="text-[10px] opacity-80">Please modify at least one field to enable the update button.</span>
+            </div>
+          </div>
+        </AppAlert>
+
+
+        <div class="flex items-center justify-end w-full gap-md">
+          <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
+          <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" type="button" @click="requestConfirm"
+            :loading="loading" :disabled="loading"
+            :class="{ 'opacity-50 pointer-events-none': type === 'edit' && !isDirty }">
+            {{ submitLabel }}
+          </AppButton>
+        </div>
       </div>
     </template>
   </AppModal>

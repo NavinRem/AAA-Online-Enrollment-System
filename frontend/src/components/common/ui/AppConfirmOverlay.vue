@@ -48,7 +48,7 @@ defineEmits(['confirm', 'back'])
         </div>
 
         <div class="app-confirm-actions">
-          <button type="button" class="ui-btn-cancel" @click="$emit('back')">Go Back</button>
+          <button type="button" class="ui-btn-cancel" @click="$emit('back')">Go back</button>
           <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium"
             @click="$emit('confirm')">
             {{ confirmLabel || 'Confirm & Submit' }}

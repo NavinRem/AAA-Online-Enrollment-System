@@ -226,6 +226,14 @@ const classSelectItems = computed(() =>
 )
 
 const handleFinalSubmit = () => {
+  const prog = selectedProgram.value || selectedClass.value?.program
+  let basePrice = prog?.basePrice || 0
+
+  if (form.isProrated && sessionInfo.value && sessionInfo.value.total > 0) {
+    basePrice = (basePrice / sessionInfo.value.total) * sessionInfo.value.remaining
+  }
+
+  let calculatedDiscount = parseFloat(form.discountAmount || 0)
   if (form.discountType === 'percent') {
     calculatedDiscount = (basePrice * calculatedDiscount) / 100
   }
@@ -593,7 +601,7 @@ watch(
         :title="isEditMode ? 'Confirm Enrollment Changes' : 'Confirm Enrollment Details'"
         subtitle="Please review carefully before submitting. This action cannot be easily undone."
         :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows" :totalAmount="finalAmount"
-        totalLabel="Price to Pay" :confirmLabel="isEditMode ? 'Confirm Changes' : 'Confirm & Submit'" :loading="loading"
+        totalLabel="Price to Pay" :confirmLabel="isEditMode ? 'Update' : 'Add'" :loading="loading"
         @back="showConfirm = false" @confirm="handleFinalSubmit" />
     </form>
 
@@ -611,7 +619,7 @@ watch(
           <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium" :disabled="loading"
             :class="{ 'opacity-50 grayscale-[0.3]': !isSubmittable || (isEditMode && !isChanged) }"
             @click="requestConfirm">
-            {{ isEditMode ? 'Confirm Changes' : 'Create Enrollment' }}
+            {{ isEditMode ? 'Update' : 'Add' }}
           </AppButton>
         </div>
       </div>

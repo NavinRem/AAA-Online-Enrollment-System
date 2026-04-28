@@ -37,13 +37,13 @@
   /* ── New Row Highlight ───────────────────────────────────────────────────── */
   /* Use for: newly created or recently updated rows                           */
   .ui-row-new {
-    @apply ring-2 ring-primary bg-primary-soft;
+    @apply bg-primary-soft;
   }
 
   /* ── Table Cell ──────────────────────────────────────────────────────────── */
   /* Use for: every <td> in the table body                                     */
   .ui-cell {
-    @apply px-md py-xs text-sm transition-colors;
+    @apply p-md m-md text-sm transition-colors;
     display: table-cell;
     vertical-align: middle;
     min-height: inherit;

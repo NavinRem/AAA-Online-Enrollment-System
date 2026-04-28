@@ -91,14 +91,14 @@ const handleFinalSubmit = () => {
       <div class="flex items-center justify-end w-full gap-sm">
         <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
         <AppButton variant="primary" form="newParentForm" type="submit" :loading="loading" class="px-8">
-          Create Parent
+          Add
         </AppButton>
       </div>
     </template>
     <AppConfirmOverlay :show="showConfirm" title="Confirm Parent Details"
       subtitle="Please review parent details carefully before confirming."
       :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows"
-      :confirmLabel="isEditMode ? 'Update Parent' : 'Create Parent'" :loading="loading" @back="showConfirm = false"
+      :confirmLabel="isEditMode ? 'Update' : 'Add'" :loading="loading" @back="showConfirm = false"
       @confirm="handleFinalSubmit">
       <template #row-Avatar="{ row }">
         <a v-if="row.value !== 'None Selected'" :href="row.value" target="_blank"

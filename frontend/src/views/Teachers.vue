@@ -206,7 +206,7 @@ const handleDelete = async (teacher) => {
                         @click="openModal('edit', item); closeMenu()">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Edit Data</span>
+                        <span class="font-bold text-sm">Edit</span>
                       </button>
 
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
@@ -215,7 +215,7 @@ const handleDelete = async (teacher) => {
                         @click="handleDelete(item); closeMenu()">
                         <img :src="getActionIcon('delete')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        Remove Record
+                        Delete
                       </button>
                     </div>
                   </transition>

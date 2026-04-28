@@ -169,10 +169,10 @@ const modalTitle = computed(() => {
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'pay') return 'Make Payment'
-  if (props.type === 'cancel') return 'Cancel Enrollment'
-  if (props.type === 'delete') return 'Delete Enrollment'
-  return 'Update Enrollment'
+  if (props.type === 'pay') return 'Pay'
+  if (props.type === 'cancel') return 'Cancel'
+  if (props.type === 'delete') return 'Delete'
+  return 'Update'
 })
 
 const modalIcon = computed(() => {
@@ -330,7 +330,7 @@ const modalIcon = computed(() => {
             'border-error': errors.reason,
             'animate-shake': shaking.reason,
           }" rows="3" placeholder="Provide a detailed cancel reason..." @input="activePreset = ''"></textarea>
-          <div v-if="errors.reason" class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest">
+          <div v-if="errors.reason" class="text-error text-3xs font-black px-1 mt-0.5 tracking-widest">
             {{ errors.reason }}
           </div>
         </div>
@@ -396,7 +396,7 @@ const modalIcon = computed(() => {
           placeholder='Type "DELETE" to confirm' required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm"
           @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-2xs font-black uppercase text-content-muted/40 mt-0.5">
+            <span class="block text-2xs font-black mt-0.5">
               Type <span class="text-error px-1 font-black">DELETE</span> to authorize this permanent action
             </span>
           </template>

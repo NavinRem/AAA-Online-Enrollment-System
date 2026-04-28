@@ -17,7 +17,8 @@ class ProgramService {
   async getAllPrograms(filters = {}) {
     let query = db.collection(COLLECTIONS.PROGRAM)
     if (filters.status) query = query.where('status', '==', filters.status)
-    if (filters.categoryId) query = query.where('categoryId', '==', filters.categoryId)
+    if (filters.categoryId)
+      query = query.where('categoryId', '==', filters.categoryId)
 
     const snapshot = await query.get()
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
@@ -32,23 +33,26 @@ class ProgramService {
   async updateProgram(id, updateData) {
     const validated = validateUpdateProgram(updateData)
     const ref = db.collection(COLLECTIONS.PROGRAM).doc(id)
-
     await db.runTransaction(async (transaction) => {
       const doc = await transaction.get(ref)
+
       if (!doc.exists) throw new Error('Program not found')
-
-      transaction.update(ref, { ...validated, updatedAt: new Date().toISOString() })
-
-      if (validated.name || validated.description || validated.price !== undefined) {
+      transaction.update(ref, {
+        ...validated,
+        updatedAt: new Date().toISOString(),
+      })
+      if (
+        validated.name ||
+        validated.description ||
+        validated.price !== undefined
+      ) {
         const newData = { ...doc.data(), ...validated }
         const snapshot = profileHelper.getProgramSnapshot(id, newData)
-
         const [classService, enrollmentService, trialService] = [
           require('./classService'),
           require('./enrollmentService'),
           require('./trialService'),
         ]
-
         await Promise.all([
           classService.syncClassesWithProgram(id, snapshot),
           enrollmentService.syncEnrollmentsWithProgram(id, snapshot),
@@ -56,7 +60,6 @@ class ProgramService {
         ])
       }
     })
-
     return { id, message: 'Program updated successfully' }
   }
 
@@ -65,18 +68,34 @@ class ProgramService {
     const doc = await ref.get()
     if (!doc.exists) throw new Error('Program not found')
 
-    const classesSnap = await db
-      .collection(COLLECTIONS.CLASS)
-      .where('programId', '==', id)
-      .where('status', '==', 'open')
-      .get()
-
-    if (!classesSnap.empty) {
-      throw new Error('Cannot delete program with active classes')
-    }
+    // Note: We allow hard deletion of the program even if classes exist, 
+    // as per administrative requirement to preserve related data as historical orphans.
 
     await ref.delete()
     return { message: 'Program deleted successfully' }
+  }
+
+  async syncProgramsWithCategory(categoryId, categoryName) {
+    const programsSnap = await db
+      .collection(COLLECTIONS.PROGRAM)
+      .where('categoryId', '==', categoryId)
+      .get()
+
+    if (!programsSnap.empty) {
+      const batch = db.batch()
+      const profileHelper = require('../utils/profileHelper')
+
+      programsSnap.forEach((pDoc) => {
+        const programData = { ...pDoc.data(), category: categoryName }
+        const updatedSnapshot = profileHelper.getProgramSnapshot(pDoc.id, programData)
+        batch.update(pDoc.ref, {
+          category: categoryName,
+          categoryInfo: updatedSnapshot.categoryInfo,
+          updatedAt: new Date().toISOString(),
+        })
+      })
+      await batch.commit()
+    }
   }
 }
 

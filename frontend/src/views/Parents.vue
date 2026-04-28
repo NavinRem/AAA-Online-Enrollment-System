@@ -281,9 +281,8 @@ const navigateToDetail = (item) => {
 
       <template #table>
         <DataTable title="Parent Lists" :headers="parentHeaders" :items="paginatedParents" :loading="loading"
-          entityName="parent" :flexible="true" v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search by name, email or phone..." :hasFilter="true" v-model:currentFilter="currentFilter"
-          :filterOptions="[
+          entityName="parent" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search something..."
+          :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Parents', value: 'all' },
             { label: 'Joined Today', value: 'joined-today' },
             { label: 'Paid Today', value: 'paid-today' },
@@ -318,7 +317,7 @@ const navigateToDetail = (item) => {
             <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
               <div class="flex items-center gap-4 group cursor-pointer">
                 <div
-                  class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm">
+                  class="w-8 h-8 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm">
                   <img :src="item.profileURL" alt="avatar" class="w-full h-full object-cover" />
                 </div>
                 <div class="flex flex-col">
@@ -355,7 +354,7 @@ const navigateToDetail = (item) => {
 
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex flex-col max-w-[160px]">
-                <span class="text-sm font-bold text-content-dark truncate">{{ item.email }}</span>
+                <span class="text-sm font-bold text-content-muted truncate">{{ item.email }}</span>
               </div>
             </td>
 
@@ -399,7 +398,7 @@ const navigateToDetail = (item) => {
                         @click="openActionModal('edit', item); closeMenu()">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Edit Profile</span>
+                        <span class="font-bold text-sm">Edit</span>
                       </button>
                       <button v-if="(item.status || 'Active').toLowerCase() === 'inactive'"
                         class="ui-dropdown-item ui-dropdown-item-success group"
@@ -432,7 +431,7 @@ const navigateToDetail = (item) => {
                         @click="handleAction('delete', item); closeMenu()">
                         <img :src="getActionIcon('delete')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        Delete Account
+                        Delete
                       </button>
                     </div>
                   </transition>

@@ -271,11 +271,11 @@ watch(() => form.guestStudentDOB, (dob) => {
         </div>
         <div class="flex bg-white p-1 rounded-lg border border-outline-std shadow-sm overflow-hidden">
           <button type="button"
-            class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all"
+            class="px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all"
             :class="!form.isGuest ? 'bg-primary text-white shadow-md font-black' : 'text-content-muted hover:bg-surface-light'"
             @click="form.isGuest = false">Registered</button>
           <button type="button"
-            class="px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all"
+            class="px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all"
             :class="form.isGuest ? 'bg-primary text-white shadow-md font-black' : 'text-content-muted hover:bg-surface-light'"
             @click="form.isGuest = true">Guest/Walk-in</button>
         </div>
@@ -426,7 +426,7 @@ watch(() => form.guestStudentDOB, (dob) => {
       <AppConfirmOverlay :show="showConfirm" :title="isEditMode ? 'Confirm Trial Changes' : 'Confirm Trial Booking'"
         subtitle="Please review trial details carefully before confirming."
         :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows"
-        :confirmLabel="isEditMode ? 'Edit Trial' : 'Create Trial'" :loading="loading" @back="showConfirm = false"
+        :confirmLabel="isEditMode ? 'Update' : 'Add'" :loading="loading" @back="showConfirm = false"
         @confirm="handleFinalSubmit" />
     </form>
 
@@ -444,7 +444,7 @@ watch(() => form.guestStudentDOB, (dob) => {
           <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium" :disabled="loading"
             :class="{ 'opacity-50 grayscale-[0.3]': !isSubmittable || (isEditMode && !isChanged) }"
             @click="handleSubmit">
-            {{ isEditMode ? 'Edit Trial' : 'Create Trial' }}
+            {{ isEditMode ? 'Update' : 'Add' }}
           </AppButton>
         </div>
       </div>

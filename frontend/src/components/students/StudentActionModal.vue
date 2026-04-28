@@ -42,7 +42,7 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, originalData, isDirty, errors, shaking, clearError, submitForm } =
+const { localData, originalData, isDirty, errors, shaking, clearError, validate } =
   useActionModal(props, emit, {
     getInitialData,
     mapSourceToForm,
@@ -68,7 +68,15 @@ const handleActionSubmit = () => {
     rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Type DELETE to confirm.'
   }
 
-  submitForm(rules)
+  if (!validate(rules)) return
+
+  const payload = JSON.parse(JSON.stringify(localData))
+
+  // Remove UI-only and system-managed fields from backend payload
+  const forbidden = ['deleteConfirm', 'id', '_id', 'createdAt', 'updatedAt']
+  forbidden.forEach((key) => delete payload[key])
+
+  emit('submit', payload)
 }
 
 const modalTitle = computed(() => {
@@ -83,9 +91,10 @@ const modalTitle = computed(() => {
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Save profile'
-  if (props.type?.includes('delete')) return 'Permanently Delete'
-  return 'Confirm action'
+  if (props.type === 'edit') return 'Update'
+  if (props.type?.includes('delete')) return 'Delete'
+  if (props.type === 'add') return 'Add'
+  return 'Update'
 })
 
 const modalIcon = computed(() => {
@@ -189,7 +198,7 @@ watch(
               'animate-shake': shaking.overrideRemark,
             }"></textarea>
           <div v-if="errors.overrideRemark"
-            class="text-error text-3xs font-black px-1 mt-0.5 uppercase tracking-widest">
+            class="text-error text-3xs font-black px-1 mt-0.5 tracking-widest">
             {{ errors.overrideRemark }}
           </div>
         </div>
@@ -218,7 +227,7 @@ watch(
           class="text-center" :error="errors.deleteConfirm" :shake="shaking.deleteConfirm"
           @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-2xs font-bold text-center w-full text-content-muted/40 mt-1 uppercase">
+            <span class="block text-2xs font-bold text-center w-full text-content-muted/40 mt-1">
               Type <span class="text-error font-extrabold px-1">DELETE</span> to confirm
             </span>
           </template>

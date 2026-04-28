@@ -17,13 +17,13 @@ class ParentService {
       COLLECTIONS.PARENT,
     )
 
-    if (validatedProfile.studentId) {
-      const studentRef = db.collection(COLLECTIONS.STUDENT).doc(validatedProfile.studentId)
+    if (studentId) {
+      const studentRef = db.collection(COLLECTIONS.STUDENT).doc(studentId)
       const studentDoc = await studentRef.get()
 
       if (studentDoc.exists) {
         const sData = studentDoc.data()
-        const studentInfo = profileHelper.getStudentSnapshot(validatedProfile.studentId, sData)
+        const studentInfo = profileHelper.getStudentSnapshot(studentId, sData)
 
         const parentRef = db.collection(COLLECTIONS.PARENT).doc(authResult.id)
         const snapshot = profileHelper.getParentSnapshot(authResult.id, validatedProfile)

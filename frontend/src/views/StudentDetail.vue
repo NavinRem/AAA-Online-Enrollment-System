@@ -799,12 +799,6 @@ watch(
                   class="w-full h-full object-cover" />
               </div>
             </div>
-            <div class="flex flex-col items-center mt-2">
-              <h2 class="text-2xl font-black text-content-dark tracking-tighter mb-2 text-center">
-                {{ student?.name }}
-              </h2>
-              <AppBadge :status="computedStatus" />
-            </div>
           </section>
 
           <!-- Student Information Card -->
@@ -813,6 +807,10 @@ watch(
 
             <div class="space-y-5">
               <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Student Name:</span>
+                <span class="text-md font-bold text-content-muted">{{ student?.name }}</span>
+              </div>
+              <div class="flex justify-between gap-1">
                 <span class="text-lg font-black text-content-dark">Date of Birth:</span>
                 <span class="text-md font-bold text-content-muted">{{ formatDateOnly(student?.dob) || '—' }}</span>
               </div>
@@ -820,6 +818,12 @@ watch(
                 <span class="text-lg font-black text-content-dark">Age:</span>
                 <div>
                   <AppBadge :status="(student?.age || '—') + ' years old'" type="blue" />
+                </div>
+              </div>
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Status:</span>
+                <div>
+                  <AppBadge :status="computedStatus" />
                 </div>
               </div>
 
@@ -835,8 +839,6 @@ watch(
             </div>
           </section>
 
-
-
           <!-- Relationships Card -->
           <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
             <h6 class="font-black uppercase tracking-widest text-content-muted">Primary Relationships</h6>
@@ -850,7 +852,7 @@ watch(
                 <span class="text-md font-bold text-content-dark group-hover:text-primary transition-colors">{{
                   student?.parentInfo?.name || student?.parentName || 'Parent Name' }}</span>
                 <AppBadge type="blue" class="ml-auto text-xs px-2 py-0.5">
-                  Legal Guardian
+                  Parent
                 </AppBadge>
               </div>
               <div v-else class="text-md font-bold text-content-muted/60 italic text-center p-2">

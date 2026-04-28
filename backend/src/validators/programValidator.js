@@ -2,7 +2,9 @@ function validateProgram(programData) {
   const programFields = [
     'name',
     'categoryId',
+    'category',
     'levelId',
+    'level',
     'totalSessions',
     'basePrice',
     'description',
@@ -10,14 +12,7 @@ function validateProgram(programData) {
     'minAge',
     'maxAge',
     'type',
-    'profileURL',
   ]
-
-  Object.keys(programData).forEach((key) => {
-    if (!programFields.includes(key)) {
-      throw new Error(`Invalid field: ${key}`)
-    }
-  })
 
   const name = programData.name?.trim()
   if (!name || !programData.categoryId || !programData.levelId) {
@@ -27,7 +22,9 @@ function validateProgram(programData) {
   return {
     name,
     categoryId: programData.categoryId,
+    category: programData.category,
     levelId: programData.levelId,
+    level: programData.level,
     description: programData.description?.trim() || '',
     totalSessions: parseInt(programData.totalSessions || 0),
     basePrice: parseFloat(programData.basePrice || 0),
@@ -35,7 +32,6 @@ function validateProgram(programData) {
     minAge: parseInt(programData.minAge || 0),
     maxAge: parseInt(programData.maxAge || 0),
     type: programData.type || 'General',
-    profileURL: programData.profileURL || null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -45,7 +41,9 @@ function validateUpdateProgram(updateData) {
   const allowedFields = [
     'name',
     'categoryId',
+    'category',
     'levelId',
+    'level',
     'description',
     'totalSessions',
     'basePrice',
@@ -53,14 +51,13 @@ function validateUpdateProgram(updateData) {
     'minAge',
     'maxAge',
     'type',
-    'profileURL',
   ]
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
     if (allowedFields.includes(key)) {
       cleanData[key] = updateData[key]
-    } else throw new Error(`Invalid field: ${key}`)
+    }
   })
 
   if (cleanData.name !== undefined) cleanData.name = cleanData.name.trim()

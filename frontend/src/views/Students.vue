@@ -439,7 +439,7 @@ const submitActionModal = async (formData) => {
                       <button class="ui-dropdown-item ui-dropdown-item-info group" @click="() => { handleAction('edit', item); closeMenu(); }">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Edit Student</span>
+                        <span class="font-bold text-sm">Edit</span>
                       </button>
                       <button class="ui-dropdown-item ui-dropdown-item-info group" @click="() => { handleAction('override', item); closeMenu(); }">
                         <img :src="getActionIcon('view')"
@@ -451,7 +451,7 @@ const submitActionModal = async (formData) => {
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        Purge Record
+                        Delete
                       </button>
                     </div>
                   </transition>

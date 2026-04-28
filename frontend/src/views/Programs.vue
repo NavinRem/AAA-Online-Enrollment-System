@@ -1,38 +1,32 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
-import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
 import ProgramActionModal from '../components/programs/ProgramActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { programService } from '../services/programService'
 import { categoryService } from '../services/categoryService'
+import { levelService } from '../services/levelService'
 import { classService } from '../services/classService'
 import { enrollmentService } from '../services/enrollmentService'
 import { trialService } from '../services/trialService'
-import { useSearch, programSearchMapper } from '../composables/useSearch'
-import { getProgramProfileURL, getImageUrl, getActionIcon } from '@/utils/assetHelper'
-import { getProgramDisplayStatus } from '@/utils/programHelper'
+import { useSearch } from '../composables/useSearch'
+import { getProgramProfileURL, getImageUrl, getActionIcon, getIconUrl } from '@/utils/assetHelper'
 
 const programs = ref([])
-const loading = ref(true)
-const currentFilter = ref('all')
-const categoryFilter = ref('all')
 const categories = ref([])
-const isCategoryFilterOpen = ref(false)
-const categorySearchQuery = ref('')
-const categoryMenuStyles = ref({})
+const loading = ref(true)
 const newlyCreatedId = ref(null)
 const enrollments = ref([])
 const trials = ref([])
-
-const router = useRouter()
 const currentPage = ref(1)
 const pageSize = 10
+
+const router = useRouter()
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
@@ -57,8 +51,13 @@ const topTrialProgram = computed(() => {
   for (const pid in counts) {
     if (counts[pid] > maxCount) { maxCount = counts[pid]; maxPid = pid }
   }
-  const p = programs.value.find((p) => p.id === maxPid)
-  return { name: p ? p.name : 'Unknown Program', count: maxCount }
+  if (!maxPid) return { name: 'No Trials', count: 0 }
+  const p = programs.value.find((p) => (p.id) === maxPid)
+  const t = trials.value.find((t) => t.programId === maxPid)
+  return {
+    name: p ? p.name : (t?.program?.name || 'Unknown Program'),
+    count: maxCount
+  }
 })
 
 const topEnrolledProgram = computed(() => {
@@ -71,8 +70,13 @@ const topEnrolledProgram = computed(() => {
   for (const pid in counts) {
     if (counts[pid] > maxCount) { maxCount = counts[pid]; maxPid = pid }
   }
-  const p = programs.value.find((p) => p.id === maxPid)
-  return { name: p ? p.name : 'Unknown Program', count: maxCount }
+  if (!maxPid) return { name: 'No Enrollments', count: 0 }
+  const p = programs.value.find((p) => (p.id) === maxPid)
+  const e = enrollments.value.find((e) => e.programId === maxPid)
+  return {
+    name: p ? p.name : (e?.program?.name || 'Unknown Program'),
+    count: maxCount
+  }
 })
 
 const topRevenueProgram = computed(() => {
@@ -80,7 +84,7 @@ const topRevenueProgram = computed(() => {
   const revs = {}
   enrollments.value.forEach((e) => {
     if (e.programId) {
-      const p = programs.value.find((prog) => prog.id === e.programId)
+      const p = programs.value.find((prog) => (prog.id) === e.programId)
       revs[e.programId] = (revs[e.programId] || 0) + (p ? (p.basePrice || 0) : 0)
     }
   })
@@ -88,36 +92,41 @@ const topRevenueProgram = computed(() => {
   for (const pid in revs) {
     if (revs[pid] > maxRev) { maxRev = revs[pid]; maxPid = pid }
   }
-  const p = programs.value.find((p) => p.id === maxPid)
-  return { name: p ? p.name : 'Unknown Program', revenue: maxRev }
+  if (!maxPid) return { name: 'No Revenue', revenue: 0 }
+  const p = programs.value.find((p) => (p.id) === maxPid)
+  const e = enrollments.value.find((e) => e.programId === maxPid)
+  return {
+    name: p ? p.name : (e?.program?.name || 'Unknown Program'),
+    revenue: maxRev
+  }
 })
 
 const statsCards = computed(() => {
   return [
     {
-      label: 'Total Products',
+      label: 'Total Programs',
       value: programs.value.length,
       image: getImageUrl('programs/total-program'),
       color: 'var(--color-primary-light)',
     },
     {
       label: 'Top Trial Program',
-      value: topTrialProgram.value.count,
-      subValue: topTrialProgram.value.name,
+      value: topTrialProgram.value.name,
+      subValue: `${topTrialProgram.value.count} Trials`,
       image: getImageUrl('programs/active-program'),
       color: 'var(--color-primary-light)',
     },
     {
       label: 'Most Popular',
-      value: topEnrolledProgram.value.count,
-      subValue: topEnrolledProgram.value.name,
+      value: topEnrolledProgram.value.name,
+      subValue: `${topEnrolledProgram.value.count} Enrollments`,
       image: getImageUrl('programs/total-program'),
       color: 'var(--color-primary-light)',
     },
     {
       label: 'Top Revenue Program',
-      value: `$${topRevenueProgram.value.revenue.toLocaleString()}`,
-      subValue: topRevenueProgram.value.name,
+      value: topRevenueProgram.value.name,
+      subValue: `$${topRevenueProgram.value.revenue.toLocaleString()} Total`,
       image: getImageUrl('programs/upcoming-program'),
       color: 'var(--color-primary-light)',
     },
@@ -127,42 +136,39 @@ const statsCards = computed(() => {
 const fetchPrograms = async () => {
   loading.value = true
   try {
-    const [programsData, catsData, enrollData, trialsData] = await Promise.all([
-      programService.getAllPrograms().catch((e) => {
-        console.error('Error fetching programs:', e)
-        return []
-      }),
-      categoryService.getAllCategories().catch((e) => {
-        console.error('Error fetching categories:', e)
-        return []
-      }),
-      enrollmentService.getAllEnrollments().catch((e) => {
-        console.error('Error fetching enrollments:', e)
-        return []
-      }),
-      trialService.getAllTrials().catch((e) => {
-        console.error('Error fetching trials:', e)
-        return []
-      }),
+    const [programsData, catsData, levelsData, enrollData, trialsData] = await Promise.all([
+      programService.getAllPrograms().catch(() => []),
+      categoryService.getAllCategories().catch(() => []),
+      levelService.getAllLevels().catch(() => []),
+      enrollmentService.getAllEnrollments().catch(() => []),
+      trialService.getAllTrials().catch(() => []),
     ])
-    programs.value = Array.isArray(programsData) ? programsData : []
-    categories.value = Array.isArray(catsData) ? catsData : []
+
+    const cats = Array.isArray(catsData) ? catsData : (catsData?.data || [])
+    const lvls = Array.isArray(levelsData) ? levelsData : (levelsData?.data || [])
+
+    programs.value = (Array.isArray(programsData) ? programsData : []).map((p) => {
+      const cat = cats.find((c) => (c.id) === p.categoryId || c.name === p.category)
+      const lvl = lvls.find((l) => (l.id) === p.levelId)
+      return {
+        ...p,
+        categoryId: p.categoryId || cat?.id || cat?.id,
+        category: cat?.name || p.category || 'Uncategorized',
+        categoryProfileURL: cat?.profileURL || '',
+        levelId: p.levelId || lvl?.id,
+        level: lvl?.name || 'General',
+      }
+    })
+
+    categories.value = cats
     enrollments.value = Array.isArray(enrollData) ? enrollData : []
     trials.value = Array.isArray(trialsData) ? trialsData : []
   } catch (error) {
-    console.error('Failed to fetch programs or categories', error)
+    console.error('Failed to fetch programs', error)
   } finally {
     loading.value = false
   }
 }
-
-const intervalId = ref(null)
-
-const filteredCategories = computed(() => {
-  if (!categorySearchQuery.value) return categories.value
-  const q = categorySearchQuery.value.toLowerCase()
-  return categories.value.filter((c) => c.name.toLowerCase().includes(q))
-})
 
 onMounted(() => {
   fetchPrograms()
@@ -171,45 +177,87 @@ onMounted(() => {
 const programHeaders = [
   { label: 'NO', width: '50px', class: 'hidden md:table-cell', align: 'center' },
   { label: 'PROGRAM IDENTITY' },
-  { label: 'CLASSES', align: 'center', width: '120px', class: 'hidden sm:table-cell' },
-  { label: 'WEEKS', align: 'center', width: '120px', class: 'hidden sm:table-cell' },
+  { label: 'LEVEL', class: 'hidden lg:table-cell', align: 'center', width: '120px' },
+  { label: 'SESSIONS', align: 'center', width: '100px', class: 'hidden sm:table-cell' },
   { label: 'BASE PRICE', align: 'center', width: '120px' },
   { label: 'MAX CAPACITY', align: 'center', width: '100px', class: 'hidden lg:table-cell' },
   { label: 'TYPE', align: 'center', width: '120px' },
   { label: 'ACTION', width: '60px', align: 'center' },
 ]
 
-const { searchQuery, searchResults } = useSearch(programs, programSearchMapper)
+const currentFilter = ref('all')
 
-const filteredPrograms = computed(() => {
-  const list = searchResults.value || []
-  let result = [...list]
+const filterOptions = computed(() => {
+  const types = [
+    { label: 'All Programs', value: 'all', profileURL: getImageUrl('common/logo-main'), color: 'blue' },
+    { label: 'Group Programs', value: 'type:Group', profileURL: getIconUrl('navigation/parent.svg'), color: 'purple' },
+    { label: 'Private Programs', value: 'type:Private', profileURL: getIconUrl('navigation/class.svg'), color: 'magenta' },
+  ]
 
-  if (categoryFilter.value !== 'all') {
-    result = result.filter((p) => (p.category || 'General') === categoryFilter.value)
+  const COLORS = ['teal', 'orange', 'green', 'blue', 'purple']
+
+  const cats = categories.value.map((c, index) => ({
+    label: c.name,
+    value: `cat:${c.id}`,
+    profileURL: c.profileURL,
+    color: COLORS[index % COLORS.length],
+  }))
+
+  return [...types, ...cats]
+})
+
+const { searchQuery, searchResults } = useSearch(programs, (p) => {
+  return `${p.name} ${p.category} ${p.categoryId} ${p.level} ${p.type}`
+})
+
+const displayPrograms = computed(() => {
+  let result = [...searchResults.value]
+
+  const filter = currentFilter.value
+  if (filter !== 'all') {
+    if (filter.startsWith('type:')) {
+      const type = filter.replace('type:', '')
+      result = result.filter((p) => p.type === type)
+    } else if (filter.startsWith('cat:')) {
+      const catId = filter.replace('cat:', '')
+      result = result.filter((p) => p.categoryId === catId)
+    }
   }
 
-  if (currentFilter.value.startsWith('status:')) {
-    const filterStatus = currentFilter.value.replace('status:', '')
-    result = result.filter((p) => {
-      const displayStatus = getProgramDisplayStatus(p).toLowerCase()
-      return displayStatus === filterStatus.toLowerCase()
-    })
-  }
-
-  if (currentFilter.value === 'sort:category') {
-    result.sort((a, b) => {
-      const catA = (a.category || 'General').toLowerCase()
-      const catB = (b.category || 'General').toLowerCase()
-      if (catA !== catB) return catA.localeCompare(catB)
-      return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())
-    })
-  } else {
-    result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-  }
+  result.sort((a, b) => {
+    if (filter === 'type:Group' || filter === 'type:Private') {
+      return (a.name || '').localeCompare(b.name || '')
+    }
+    if (filter.startsWith('cat:')) {
+      return (a.level || '').localeCompare(b.level || '')
+    }
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+  })
 
   return result
 })
+
+const totalProgramsCount = computed(() => displayPrograms.value.length)
+
+const paginatedPrograms = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return displayPrograms.value.slice(start, end)
+})
+
+// Watch for search/filter changes to reset pagination
+watch([searchQuery, currentFilter], () => {
+  currentPage.value = 1
+})
+
+const navigateToDetail = (item) => {
+  if (item.id === newlyCreatedId.value) {
+    newlyCreatedId.value = null
+  }
+  if (item.id) {
+    router.push(`/programs/${item.id}`)
+  }
+}
 
 const handleAction = (type, program) => {
   openModal(type, program)
@@ -260,48 +308,15 @@ const handleActionSubmit = async (formData) => {
       actionModal.value.success = 'Program deleted successfully!'
     }
 
-    setTimeout(() => {
+    setTimeout(async () => {
+      await fetchPrograms()
       closeModal()
-      fetchPrograms()
     }, 1500)
   } catch (error) {
-    actionModal.value.error = error.message || 'Action failed'
+    actionModal.value.error = error.message || 'Failed to process request'
   } finally {
     actionModal.value.loading = false
   }
-}
-
-const selectCategory = (name) => {
-  categoryFilter.value = name
-  isCategoryFilterOpen.value = false
-}
-
-const toggleCategoryFilter = (event) => {
-  isCategoryFilterOpen.value = !isCategoryFilterOpen.value
-  if (isCategoryFilterOpen.value) {
-    categorySearchQuery.value = ''
-    const rect = event.currentTarget.getBoundingClientRect()
-    categoryMenuStyles.value = {
-      top: `${rect.bottom + 8}px`,
-      left: `${rect.left}px`,
-      minWidth: '200px',
-    }
-  }
-}
-
-const closeCategoryFilter = (event) => {
-  setTimeout(() => {
-    const menu = document.querySelector('.category-filter-menu')
-    if (menu && menu.contains(event.relatedTarget)) return
-    isCategoryFilterOpen.value = false
-  }, 200)
-}
-
-const onRowClick = (item) => {
-  if (item.id === newlyCreatedId.value) {
-    newlyCreatedId.value = null
-  }
-  router.push(`/programs/${item.id}`)
 }
 </script>
 
@@ -315,17 +330,13 @@ const onRowClick = (item) => {
       </template>
 
       <template #table>
-        <DataTable title="Program Lists" :headers="programHeaders" :items="filteredPrograms" :loading="loading"
-          entityName="program" :flexible="true" v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search programs by title or model..." :hasFilter="true"
-          v-model:currentFilter="currentFilter" :filterOptions="[
-            { label: 'All Status', value: 'all' },
-            { label: 'Group Models', value: 'status:group' },
-            { label: 'Private Models', value: 'status:private' },
-            { label: 'Active Programs', value: 'status:active' },
-            { label: 'Upcoming Terms', value: 'status:upcoming' },
-            { label: 'Closed/Archive', value: 'status:closed' },
-          ]" :rowClass="getRowClass" @row-click="onRowClick" @action="({ type, item }) => handleAction(type, item)">
+        <DataTable title="Program Lists" :headers="programHeaders" :items="paginatedPrograms" :loading="loading"
+          entityName="program" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search programs..."
+          :hasFilter="true" :currentFilter="currentFilter" :filterOptions="filterOptions"
+          @update:currentFilter="currentFilter = $event" :hasSort="false" :rowClass="getRowClass" :hasPagination="true"
+          :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalProgramsCount"
+          @update:currentPage="currentPage = $event" @action="({ type, item }) => handleAction(type, item)"
+          @row-click="navigateToDetail">
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="openModal('add')">
@@ -342,19 +353,18 @@ const onRowClick = (item) => {
             isMenuAbove,
             menuStyles,
             handleAction,
+            closeMenu,
             headers,
           }">
-            <!-- No -->
-            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell">
-              {{ (currentPage - 1) * pageSize + index + 1 }}
+            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell" style="width: 50px">
+              {{ index + 1 }}
             </td>
 
-            <!-- Category & Program -->
-            <td class="ui-cell min-w-[200px]" @click="onRowClick(item)">
+            <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
               <div class="ui-identity-cell">
                 <div class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center">
-                  <img :src="getProgramProfileURL(item.profileURL, item.category)" alt="program"
-                    class="w-full h-full object-cover" />
+                  <img :src="getProgramProfileURL(item.profileURL, item.category, item.categoryProfileURL)"
+                    alt="program" class="w-full h-full object-cover" />
                 </div>
                 <div class="ui-identity-info">
                   <span class="text-sm font-bold text-content-dark truncate block">{{ item.name }}</span>
@@ -364,25 +374,21 @@ const onRowClick = (item) => {
               </div>
             </td>
 
-            <!-- Academic Stats -->
-            <td class="ui-cell text-center hidden sm:table-cell">
-              <div class="flex flex-col items-center">
-                <span class="text-sm font-black text-content-dark tabular-nums">{{ item.totalClasses || 0 }}</span>
-              </div>
+            <td class="ui-cell text-center hidden lg:table-cell">
+              <AppBadge :status="item.level || 'General'"
+                class="bg-surface-subtle text-content-dark border-outline-std" />
             </td>
 
             <td class="ui-cell text-center hidden sm:table-cell">
               <div class="flex flex-col items-center">
-                <span class="text-sm font-black text-content-dark tabular-nums">{{ item.weeksNumber || 0 }}</span>
+                <span class="text-sm font-black text-content-dark tabular-nums">{{ item.totalSessions || 0 }}</span>
               </div>
             </td>
 
-            <!-- Financials -->
             <td class="ui-cell text-center">
               <AppBadge :status="'$' + item.basePrice" type="blue" />
             </td>
 
-            <!-- Capacity -->
             <td class="ui-cell text-center hidden lg:table-cell">
               <div class="flex flex-col items-center">
                 <span class="text-xs font-black text-content-dark uppercase tracking-widest tabular-nums">{{
@@ -390,18 +396,16 @@ const onRowClick = (item) => {
               </div>
             </td>
 
-            <!-- Type -->
             <td class="ui-cell text-center">
-              <AppBadge :status="item.type || 'group'" :type="item.type === 'private' ? 'purple' : 'blue'" />
+              <AppBadge :status="item.type || 'Group'" />
             </td>
 
-            <!-- Actions -->
-            <td class="ui-cell text-center">
-              <div class="ui-action-menu flex items-center justify-center">
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+              <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
                   @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-black text-lg">⋮</span>
+                  <span class="font-black text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -412,19 +416,15 @@ const onRowClick = (item) => {
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
                       <button class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="handleAction('edit', item); closeMenu()">
-                        <img :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Modify Data</span>
+                        @click="() => { handleAction('edit', item); closeMenu(); }">
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                        <span class="font-bold">Edit</span>
                       </button>
-
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-
                       <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
-                        @click="handleAction('delete', item); closeMenu()">
-                        <img :src="getActionIcon('delete')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        Remove Program
+                        @click="() => { handleAction('delete', item); closeMenu(); }">
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                        Delete
                       </button>
                     </div>
                   </transition>
@@ -438,6 +438,6 @@ const onRowClick = (item) => {
 
     <ProgramActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :program="actionModal.program"
       :loading="actionModal.loading" :error="actionModal.error" :success="actionModal.success" @close="closeModal"
-      @submit="handleActionSubmit" />
+      @submit="handleActionSubmit" @lookup-deleted="fetchPrograms" />
   </DashboardLayout>
 </template>

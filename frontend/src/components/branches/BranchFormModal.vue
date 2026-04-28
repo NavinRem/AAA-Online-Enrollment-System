@@ -203,7 +203,7 @@ watch(
       <AppConfirmOverlay :show="showConfirm"
         :title="isEditMode ? 'Confirm Entity Update' : 'Confirm branch Establishment'"
         subtitle="Ensure all logistical details are correct before proceeding." :icon="getImageUrl('dashboard/branch')"
-        :rows="confirmRows" :confirmLabel="isEditMode ? 'Update Branch' : 'Create Branch'" :loading="loading"
+        :rows="confirmRows" :confirmLabel="isEditMode ? 'Update' : 'Add'" :loading="loading"
         @back="showConfirm = false" @confirm="handleFinalSubmit" />
     </form>
 
@@ -220,7 +220,7 @@ watch(
           </button>
           <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium" :disabled="loading"
             :class="{ 'opacity-50 grayscale-[0.3]': !isSubmittable }" @click="handleSubmit">
-            {{ isEditMode ? 'Update Branch' : 'Create Branch' }}
+            {{ isEditMode ? 'Update' : 'Add' }}
           </AppButton>
         </div>
       </div>

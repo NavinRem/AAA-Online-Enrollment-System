@@ -41,8 +41,17 @@ const togglePassword = () => {
     </label>
 
     <div class="relative group">
-      <input :value="modelValue" :type="inputType" :placeholder="placeholder" :required="required" :disabled="disabled"
-        @input="$emit('update:modelValue', $event.target.value)"
+      <textarea v-if="type === 'textarea'" :value="modelValue" :placeholder="placeholder" :required="required"
+        :disabled="disabled" @input="$emit('update:modelValue', $event.target.value)"
+        class="w-full px-4 py-3 border-2 border-outline-std rounded-sm bg-white text-base outline-none transition-all placeholder:text-content-light/50 placeholder:italic min-h-[100px] resize-none"
+        :class="[
+          error ? 'ui-input-invalid' : 'focus:border-primary focus:ring-[3px] focus:ring-info-soft',
+          disabled ? 'bg-surface-subtle opacity-60 cursor-not-allowed' : 'hover:border-primary/50',
+          inputClass,
+        ]"></textarea>
+
+      <input v-else :value="modelValue" :type="inputType" :placeholder="placeholder" :required="required"
+        :disabled="disabled" @input="$emit('update:modelValue', $event.target.value)"
         class="w-full px-4 py-3 border-2 border-outline-std rounded-sm bg-white text-base outline-none transition-all placeholder:text-content-light/50 placeholder:italic"
         :class="[
           error ? 'ui-input-invalid' : 'focus:border-primary focus:ring-[3px] focus:ring-info-soft',

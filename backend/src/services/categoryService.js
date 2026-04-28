@@ -44,8 +44,10 @@ class CategoryService {
 
     await ref.update(validatedData)
 
-    const programService = require('./programService')
-    await programService.syncProgramsWithCategory(id, validatedData.name)
+    if (validatedData.name) {
+      const programService = require('./programService')
+      await programService.syncProgramsWithCategory(id, validatedData.name)
+    }
 
     return { id, ...validatedData }
   }

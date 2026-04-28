@@ -311,7 +311,7 @@ const handleTableAction = ({ type, item }) => {
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
                       <button
-                        class="ui-dropdown-item ui-dropdown-item-danger group font-black uppercase tracking-tighter"
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete

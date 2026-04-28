@@ -142,7 +142,7 @@ const handleDelete = async (item) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">Add {{ activeTab.slice(0, -1) }}</span>
+              <span class="font-black tracking-tight">Add</span>
             </AppButton>
           </template>
 
@@ -229,7 +229,7 @@ const handleDelete = async (item) => {
 
     <!-- Generic Modal for Lookups -->
     <AppModal :show="isModalOpen"
-      :title="(modalType === 'add' ? 'Initialize ' : 'Engineer ') + activeTab.slice(0, -1).toUpperCase()"
+      :title="(modalType === 'add' ? 'Add ' : 'Update ') + activeTab.slice(0, -1)"
       @close="isModalOpen = false">
       <form @submit.prevent="handleSubmit" class="flex flex-col gap-6">
         <AppInput v-model="form.name" label="Identity Name" placeholder="Enter display name..." required />
@@ -250,7 +250,7 @@ const handleDelete = async (item) => {
         <div class="flex items-center justify-end gap-3 mt-4">
           <AppButton variant="cancel" @click="isModalOpen = false">Cancel</AppButton>
           <AppButton type="submit" variant="primary" :loading="submitting" class="px-8 font-black">
-            {{ modalType === 'add' ? 'Submit' : 'Update' }}
+            {{ modalType === 'add' ? 'Add' : 'Update' }}
           </AppButton>
         </div>
       </form>

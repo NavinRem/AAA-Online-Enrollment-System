@@ -48,7 +48,7 @@ defineEmits(['close'])
         leave-active-class="transition duration-250 ease-in" leave-from-class="opacity-100 scale-100 translate-y-0"
         leave-to-class="opacity-0 scale-95 translate-y-4" appear>
         <div v-if="show"
-          class="bg-white rounded-std overflow-hidden shadow-2xl flex flex-col relative border border-white/30 w-full"
+          class="bg-white rounded-std overflow-hidden shadow-2xl flex flex-col relative border border-white/30 w-full max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)]"
           :class="[
             variant === 'action' ? 'max-w-[95%] sm:max-w-[600px]' : 'max-w-full lg:max-w-[1000px]',
             variant,
@@ -73,7 +73,7 @@ defineEmits(['close'])
           </div>
 
           <!-- Content Area -->
-          <div class="p-md sm:p-xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto bg-white scrollable-v">
+          <div class="p-md sm:p-xl flex-1 overflow-y-auto bg-white scrollable-v">
             <slot></slot>
           </div>
 

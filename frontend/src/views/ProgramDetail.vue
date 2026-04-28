@@ -340,19 +340,17 @@ const handleActionSubmit = async (formData) => {
   <DashboardLayout>
     <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/programs" title="Program Analytics" sidebarWidth="sm">
       <template #header-actions v-if="program">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-3">
           <button
-            class="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-outline-std hover:bg-primary-light transition-all shadow-sm group"
-            title="Modify Data" @click="openActionModal('edit')">
-            <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-primary-light transition-all duration-300 hover:bg-primary hover:border-primary group"
+            title="Edit Program" @click="openActionModal('edit')">
+            <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100 transition-opacity" />
           </button>
-
-          <div class="w-px h-4 bg-outline-std/50 mx-1"></div>
-
+          <div class="w-px h-6 bg-outline-std/50 mx-1"></div>
           <button
-            class="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-outline-std hover:bg-error-soft transition-all shadow-sm group"
-            title="Terminate Program" @click="openActionModal('delete')">
-            <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-error-soft transition-all duration-300 hover:bg-error hover:border-error group"
+            title="Delete Program" @click="openActionModal('delete')">
+            <img :src="getActionIcon('delete')" class="w-5 h-5 icon-danger group-hover:opacity-100 transition-opacity" />
           </button>
         </div>
       </template>
@@ -370,7 +368,7 @@ const handleActionSubmit = async (formData) => {
               <div class="flex flex-col">
                 <span class="text-[10px] font-black text-content-muted uppercase tracking-widest leading-none mb-1">{{
                   stat.label }}</span>
-                <span class="text-lg font-black text-content-dark tabular-nums tracking-tight">{{ stat.value }}</span>
+                <span class="text-xl font-black text-content-dark tracking-tight">{{ stat.value }}</span>
               </div>
             </div>
           </div>
@@ -558,18 +556,17 @@ const handleActionSubmit = async (formData) => {
                   class="w-full h-full object-contain" />
               </div>
             </div>
-            <div class="flex flex-col items-center mt-2">
-              <h2 class="text-2xl font-black text-content-dark tracking-tighter mb-2 text-center">
-                {{ program.name }}
-              </h2>
-              <AppBadge :status="getProgramDisplayStatus(program)" />
-            </div>
           </section>
 
           <!-- Program Details Card -->
           <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-black uppercase tracking-widest text-content-muted">Program Specifications</h6>
+            <h6 class="font-black uppercase tracking-widest text-content-muted">Program Information</h6>
+
             <div class="space-y-5">
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Program Name:</span>
+                <span class="text-md font-bold text-content-muted">{{ program.name }}</span>
+              </div>
               <div class="flex justify-between gap-1">
                 <span class="text-lg font-black text-content-dark">Category:</span>
                 <span class="text-md font-bold text-content-muted">{{ program.category || 'Standard' }}</span>
@@ -580,63 +577,66 @@ const handleActionSubmit = async (formData) => {
               </div>
               <div class="flex justify-between gap-1">
                 <span class="text-lg font-black text-content-dark">Academic Term:</span>
-                <span class="text-md font-bold text-content-muted">{{ program.termName || 'Open Enrollment' }}</span>
+                <span class="text-sm font-bold text-content-muted">{{ program.termName || 'Open Enrollment' }}</span>
               </div>
               <div class="flex justify-between gap-1">
                 <span class="text-lg font-black text-content-dark">Base Rate:</span>
-                <AppBadge :status="'$' + (program.basePrice || 0)" type="blue" class="text-xs px-2 py-0.5" />
+                <AppBadge :status="'$' + (program.basePrice || 0)" type="blue" />
               </div>
               <div class="flex justify-between gap-1">
                 <span class="text-lg font-black text-content-dark">Capacity:</span>
-                <span class="text-md font-bold text-content-muted">{{ program.maxCapacity || 'Unlimited' }} Students</span>
+                <span class="text-md font-bold text-content-muted">{{ program.maxCapacity || 'Unlimited' }}
+                  Students</span>
+              </div>
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Status:</span>
+                <div>
+                  <AppBadge :status="getProgramDisplayStatus(program)" />
+                </div>
               </div>
             </div>
           </section>
 
           <!-- Assigned Faculty Card -->
-          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-black uppercase tracking-widest text-content-muted">Assigned Faculty</h6>
+          <section class="ui-detail-card bg-primary-soft/30 border-primary/10 mt-6">
+            <h6 class="font-black uppercase tracking-widest text-content-muted mb-6">Assigned Faculty</h6>
             <div class="space-y-4">
               <template v-if="program.teachers?.length">
                 <div v-for="t in program.teachers" :key="t.id"
-                  class="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-subtle transition-all cursor-pointer group">
+                  class="flex items-center gap-3 p-3 rounded-xl bg-white border border-outline-std/50 hover:border-primary/30 transition-all cursor-pointer group shadow-sm">
                   <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm">
                     <img :src="t.profileURL" class="w-full h-full object-cover" />
                   </div>
                   <div class="flex flex-col">
-                    <span class="text-md font-bold text-content-dark group-hover:text-primary transition-colors">{{ t.name
+                    <span class="text-sm font-black text-content-dark group-hover:text-primary transition-colors">{{ t.name
                       }}</span>
-                    <span class="text-xs text-content-muted uppercase font-bold tracking-widest">{{ t.role || 'Instructor'
-                      }}</span>
+                    <span class="text-[10px] text-content-muted uppercase font-black tracking-widest">{{ t.role ||
+                      'Instructor' }}</span>
                   </div>
                 </div>
               </template>
-              <div v-else class="p-4 text-center border-2 border-dashed border-primary/10 rounded-xl opacity-50 text-xs font-bold italic">
-                {{ program.teacherName || 'TBA' }}
+              <div v-else
+                class="p-6 text-center border-2 border-dashed border-outline-std rounded-2xl opacity-50 text-[10px] font-black uppercase tracking-widest text-content-muted">
+                {{ program.teacherName || 'No Faculty Assigned' }}
               </div>
             </div>
           </section>
 
           <!-- Operational Timestamps -->
-          <section class="ui-detail-card bg-surface-subtle/50">
-            <h6 class="font-black uppercase tracking-widest text-content-muted">Operational Lifecycle</h6>
-            <div class="space-y-6">
-              <div class="flex items-center gap-3">
-                <AppBadge type="green" class="text-md px-2 py-xs">
-                  Initialized
-                </AppBadge>
-                <div class="text-sm font-bold text-content-muted leading-tight tabular-nums">
+          <section class="ui-detail-card bg-surface-subtle/50 mt-6">
+            <h6 class="font-black uppercase tracking-widest text-content-muted mb-6">Operational Lifecycle</h6>
+            <div class="space-y-4">
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Initialized:</span>
+                <span class="text-md font-bold text-content-muted tabular-nums">
                   {{ program.createdAt ? new Date(program.createdAt).toLocaleDateString() : 'N/A' }}
-                </div>
+                </span>
               </div>
-
-              <div class="flex items-center gap-3">
-                <AppBadge type="blue" class="text-md px-2 py-xs">
-                  Last Sync
-                </AppBadge>
-                <div class="text-sm font-bold text-content-muted leading-tight tabular-nums">
+              <div class="flex justify-between gap-1">
+                <span class="text-lg font-black text-content-dark">Last Sync:</span>
+                <span class="text-md font-bold text-content-muted tabular-nums">
                   {{ program.updatedAt ? new Date(program.updatedAt).toLocaleDateString() : 'Active' }}
-                </div>
+                </span>
               </div>
             </div>
           </section>

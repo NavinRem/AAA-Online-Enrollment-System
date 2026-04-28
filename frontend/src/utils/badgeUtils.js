@@ -50,13 +50,14 @@ const REGISTRIES = {
   tag: {
     online: 'blue',
     transfer: 'blue',
-    private: 'magenta',
     'joined-today': 'magenta',
     'paid-today': 'green',
     'trial-today': 'purple',
     new: 'green',
     full: 'magenta',
     all: 'blue',
+    group: 'purple',
+    private: 'magenta',
   },
   trial: {
     booked: 'purple',

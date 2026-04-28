@@ -39,12 +39,20 @@ const getInitialData = () => ({
 
 const mapSourceToForm = () => {
   if (props.type === 'edit' && props.classInstance) {
-    return { ...props.classInstance }
+    const data = { ...props.classInstance }
+    // Flatten schedules for the UI form
+    if (data.schedules && data.schedules.length > 0) {
+      data.day = data.schedules[0].day
+      data.timeslot = data.schedules[0].time || data.schedules[0].timeslot
+    }
+    // Map capacity for consistency
+    if (data.maxCapacity !== undefined) data.capacity = data.maxCapacity
+    return data
   }
   return getInitialData()
 }
 
-const { localData, isDirty, errors, shaking, clearError, triggerShake, submitForm } = useActionModal(
+const { localData, isDirty, errors, shaking, clearError, triggerShake, submitForm, validate } = useActionModal(
   props,
   emit,
   {
@@ -74,9 +82,9 @@ const modalIcon = computed(() => {
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Update Session'
-  if (props.type === 'duplicate') return 'Authorize Propagation'
-  return 'Create Session'
+  if (props.type === 'edit') return 'Update'
+  if (props.type === 'duplicate') return 'Duplicate'
+  return 'Add'
 })
 
 const fetchProgramSchedules = async () => {
@@ -146,7 +154,31 @@ const handleActionSubmit = () => {
 
   if (props.type === 'edit' && !isDirty.value) return
 
-  submitForm(validationRules)
+  if (!validate(validationRules)) return
+
+  const payload = JSON.parse(JSON.stringify(localData))
+
+  if (props.type === 'duplicate') {
+    emit('submit', payload)
+    return
+  }
+
+  // Backend expects 'schedules' array
+  payload.schedules = [
+    {
+      day: localData.day,
+      time: localData.timeslot,
+    },
+  ]
+
+  // Rename capacity to maxCapacity as per backend validator
+  payload.maxCapacity = parseInt(localData.capacity || 0)
+
+  // Remove UI-only or populated fields not in backend schema
+  const forbidden = ['day', 'timeslot', 'capacity', 'price', 'program', 'term', 'branch', 'teacher', 'id', 'updatedAt', 'createdAt', 'enrolledCount']
+  forbidden.forEach((key) => delete payload[key])
+
+  emit('submit', payload)
 }
 
 watch(
@@ -371,7 +403,7 @@ watch(
 
     <template #footer>
       <div class="flex items-center justify-end w-full gap-md">
-        <AppButton variant="cancel" @click="$emit('close')">Cancel Entry</AppButton>
+        <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
         <AppButton
           variant="primary"
           :form="type === 'duplicate' ? null : 'classActionForm'"

@@ -198,7 +198,7 @@ const enrollmentHeaders = [
   { label: 'NO', width: '50px' },
   { label: 'PARENT' },
   { label: 'CHILD' },
-  { label: 'COURSE' },
+  { label: 'PROGRAM' },
   { label: 'SESSION' },
   { label: 'STATUS', width: '120px' },
   { label: 'AMOUNT', width: '120px' },
@@ -412,7 +412,7 @@ const handleRegisterStudent = async (formData) => {
               </div>
             </td>
 
-            <!-- Course Column -->
+            <!-- Program Column -->
             <td class="ui-cell" :style="{ width: headers[3].width }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
@@ -422,7 +422,7 @@ const handleRegisterStudent = async (formData) => {
                   <span class="text-sm font-bold text-content-dark truncate block">{{
                     item.class?.program?.name }}</span>
                   <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{
-                    item.enrollmentType || 'Standard' }}</span>
+                    item.class?.program?.type || 'Standard' }}</span>
                 </div>
               </div>
             </td>
@@ -476,7 +476,7 @@ const handleRegisterStudent = async (formData) => {
                         class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="() => { handleAction('edit', item); closeMenu(); }">
                         <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
-                        <span class="font-bold">Edit Details</span>
+                        <span class="font-bold">Edit</span>
                       </button>
                       <button
                         v-if="item.status !== 'confirmed' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'"
@@ -488,13 +488,13 @@ const handleRegisterStudent = async (formData) => {
                       <button v-if="item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-danger group"
                         @click="() => { handleAction('cancel', item); closeMenu(); }">
                         <img :src="getActionIcon('cancel')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
-                        <span class="font-bold">Cancel Enrollment</span>
+                        <span class="font-bold">Cancel</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
                       <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
-                        Delete Enrollment
+                        Delete
                       </button>
                     </div>
                   </transition>

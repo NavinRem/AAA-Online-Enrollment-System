@@ -58,9 +58,11 @@ const emptyState = computed(() => {
   }
 
   if (props.currentFilter && props.currentFilter !== 'all') {
+    const option = props.filterOptions.find((o) => o.value === props.currentFilter)
     return {
       prefix: 'No',
-      label: props.currentFilter,
+      label: option ? option.label : props.currentFilter,
+      color: option?.color || '',
       suffix: `${entity} records found.`,
       showBadge: true
     }
@@ -102,7 +104,7 @@ const handleAction = (type, item) => {
       <template #empty>
         <div class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic">
           <span v-if="emptyState.prefix">{{ emptyState.prefix }}</span>
-          <AppBadge v-if="emptyState.showBadge" :status="emptyState.label" size="sm" />
+          <AppBadge v-if="emptyState.showBadge" :status="emptyState.label" size="sm" :type="emptyState.color" />
           <span v-else-if="emptyState.label" class="text-primary">{{ emptyState.label }}</span>
           <span v-if="emptyState.suffix">{{ emptyState.suffix }}</span>
         </div>

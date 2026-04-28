@@ -313,7 +313,7 @@ const handleSaveBranch = async (formData) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="showModal = true">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">New Branch</span>
+              <span class="font-black tracking-tight">Add Branch</span>
             </AppButton>
           </template>
 
@@ -369,12 +369,12 @@ const handleSaveBranch = async (formData) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[9].width }">
               <span class="text-sm font-black text-emerald-600 tabular-nums">${{ formatPrice(getBranchRevenue(item.id))
-              }}</span>
+                }}</span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[10].width }">
               <span class="text-sm font-black text-amber-600 tabular-nums">${{ formatPrice(getPendingRevenue(item.id))
-              }}</span>
+                }}</span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[11].width }">

@@ -122,7 +122,7 @@ onMounted(fetchClasses)
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight text-sm">Deploy Class</span>
+              <span class="font-black tracking-tight text-sm">Add Class</span>
             </AppButton>
           </template>
 
@@ -152,7 +152,7 @@ onMounted(fetchClasses)
             <td class="ui-cell" :style="{ width: headers[2].width }">
               <div class="flex flex-col">
                 <span class="text-xs font-black text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
-                }}</span>
+                  }}</span>
                 <span
                   class="text-[8px] font-black text-content-muted uppercase tracking-widest leading-none mt-1">Registry
                   Period</span>
@@ -178,9 +178,9 @@ onMounted(fetchClasses)
             <td class="ui-cell" :style="{ width: headers[5].width }">
               <div class="flex flex-col">
                 <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{ item.day
-                }}</span>
+                  }}</span>
                 <span class="text-[9px] font-black text-primary uppercase tracking-widest mt-1">{{ item.timeslot
-                }}</span>
+                  }}</span>
               </div>
             </td>
 

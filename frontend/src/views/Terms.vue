@@ -104,7 +104,7 @@ const handleDelete = async (item) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">New Term</span>
+              <span class="font-black tracking-tight">Add</span>
             </AppButton>
           </template>
 
@@ -167,7 +167,7 @@ const handleDelete = async (item) => {
                         @click="openModal('edit', item); closeMenu()">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Edit Term</span>
+                        <span class="font-bold text-sm">Edit</span>
                       </button>
 
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
@@ -176,7 +176,7 @@ const handleDelete = async (item) => {
                         @click="handleDelete(item); closeMenu()">
                         <img :src="getActionIcon('delete')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        Delete Term
+                        Delete
                       </button>
                     </div>
                   </transition>
@@ -188,7 +188,7 @@ const handleDelete = async (item) => {
       </template>
     </DataPageLayout>
 
-    <AppModal :show="isModalOpen" :title="modalType === 'add' ? 'Add Term' : 'Update Term'"
+    <AppModal :show="isModalOpen" :title="modalType === 'add' ? 'Add' : 'Update'"
       @close="isModalOpen = false">
       <form @submit.prevent="handleSubmit" class="flex flex-col gap-6">
         <AppInput v-model="form.name" label="Term Identity" placeholder="e.g. Fall 2026" required />
@@ -206,7 +206,7 @@ const handleDelete = async (item) => {
         <div class="flex items-center justify-end gap-3 mt-4">
           <AppButton variant="cancel" @click="isModalOpen = false">Cancel</AppButton>
           <AppButton type="submit" variant="primary" :loading="submitting" class="px-8 font-black">
-            {{ modalType === 'add' ? 'Add Term' : 'Update' }}
+            {{ modalType === 'add' ? 'Add' : 'Update' }}
           </AppButton>
         </div>
       </form>
