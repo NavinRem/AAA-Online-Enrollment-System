@@ -1,5 +1,5 @@
 function validateTeacher(teacherData) {
-  const teacherFields = ['name', 'profileURL', 'email', 'status']
+  const teacherFields = ['name', 'profileURL', 'email', 'status', 'category']
   Object.keys(teacherData).forEach((key) => {
     if (!teacherFields.includes(key)) {
       throw new Error(`Invalid field: ${key}`)
@@ -10,6 +10,7 @@ function validateTeacher(teacherData) {
   const profileURL = teacherData.profileURL || null
   const status = teacherData.status || 'active'
   const email = teacherData.email?.trim()
+  const category = teacherData.category || ''
 
   if (!email) {
     throw new Error('Email is required for teacher registration')
@@ -40,11 +41,12 @@ function validateTeacher(teacherData) {
     profileURL,
     email,
     status,
+    category,
   }
 }
 
 function validateUpdateTeacher(updateData) {
-  const allowedFields = ['name', 'profileURL', 'email', 'status', 'updatedAt']
+  const allowedFields = ['name', 'profileURL', 'email', 'status', 'updatedAt', 'category']
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
@@ -59,6 +61,7 @@ function validateUpdateTeacher(updateData) {
   }
   if (updateData.email !== undefined) cleanData.email = updateData.email.trim()
   if (updateData.status !== undefined) cleanData.status = updateData.status
+  if (updateData.category !== undefined) cleanData.category = updateData.category
   if (updateData.updatedAt !== undefined) cleanData.updatedAt = updateData.updatedAt
 
   if (Object.keys(cleanData).length === 0) {

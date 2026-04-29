@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
@@ -13,7 +13,9 @@ const props = defineProps({
     default: 'add' // 'add', 'edit'
   },
   teacher: Object,
-  loading: Boolean
+  loading: Boolean,
+  error: String,
+  success: String,
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -55,10 +57,27 @@ const handleSubmit = () => {
 
   emit('submit', payload)
 }
+
+const modalTitle = computed(() => {
+  if (props.type === 'edit') return 'Edit Teacher'
+  if (props.type === 'delete') return 'Delete Teacher'
+  return 'Add Teacher'
+})
+
+const modalIcon = computed(() => {
+  if (props.type === 'delete') return getActionIcon('delete')
+  return props.type === 'add' ? getActionIcon('plus') : getActionIcon('edit')
+})
+
+const submitLabel = computed(() => {
+  if (props.type === 'edit') return 'Edit'
+  if (props.type === 'delete') return 'Delete'
+  return 'Add'
+})
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="type === 'edit' ? 'Update Teacher' : 'Add Teacher'" maxWidth="500px"
+  <AppModal :show="isOpen" :title="modalTitle" :icon="modalIcon" :error="error" :success="success" maxWidth="500px"
     @close="$emit('close')">
     <form @submit.prevent="handleSubmit" class="flex flex-col gap-6">
       <AppInput v-model="form.name" label="Full Professional Name" placeholder="e.g. Dr. John Doe" required />
@@ -74,8 +93,8 @@ const handleSubmit = () => {
 
       <div class="flex items-center justify-end gap-3 mt-4">
         <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-        <AppButton type="submit" variant="primary" :loading="loading" class="px-8 font-black">
-          {{ type === 'add' ? 'Add' : 'Update' }}
+        <AppButton type="submit" :variant="type === 'delete' ? 'danger' : 'primary'" :loading="loading" class="px-8 font-black">
+          {{ submitLabel }}
         </AppButton>
       </div>
     </form>

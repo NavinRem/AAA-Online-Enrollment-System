@@ -272,8 +272,7 @@ onMounted(async () => {
                   class="font-bold text-content-muted">{{ enrollment.parent?.email || 'N/A' }}</span></p>
               <p class="text-sm"><strong class="font-black text-content-dark">Phone Number:</strong> <span
                   class="font-bold text-content-muted tabular-nums">{{ enrollment.parent?.phone || 'N/A' }}</span></p>
-              <p class="text-sm"><strong class="font-black text-content-dark">Role:</strong> <span
-                  class="font-bold text-content-muted">Parent</span></p>
+              <p class="text-sm flex items-center gap-2"><strong class="font-black text-content-dark">Role:</strong> <AppBadge status="Parent" /></p>
             </div>
           </section>
 
@@ -334,9 +333,9 @@ onMounted(async () => {
               <p class="text-sm"><strong class="font-black text-content-dark">Course:</strong> <span
                   class="font-bold text-content-muted">{{ enrollment.class?.program?.name || enrollment.program?.name ||
                     'N/A' }}</span></p>
-              <p class="text-sm"><strong class="font-black text-content-dark">Instructor Name:</strong> <span
+              <p class="text-sm"><strong class="font-black text-content-dark">Teacher Name:</strong> <span
                   class="font-bold text-content-muted">{{ enrollment.teacher?.name ||
-                    (enrollment.class?.program?.teachers?.[0] || enrollment.program?.teachers?.[0])?.name || 'N/A'
+                    (enrollment.class?.teachers?.map(t => t.name).join(', ') || enrollment.program?.teachers?.[0]?.name || 'N/A')
                   }}</span></p>
               <p class="text-sm"><strong class="font-black text-content-dark">Total Student:</strong> <span
                   class="font-bold text-content-muted">{{ enrollment.studentCountAtEnrollment ??

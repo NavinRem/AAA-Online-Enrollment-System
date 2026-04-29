@@ -109,7 +109,7 @@ const handleSubmit = async () => {
 }
 
 const handleDelete = async (item) => {
-  if (!confirm(`Are you sure you want to purge this ${activeTab.value.slice(0, -1)}?`)) return
+  if (!confirm(`Are you sure you want to delete this ${activeTab.value.slice(0, -1)}?`)) return
   try {
     if (activeTab.value === 'levels') await levelService.deleteLevel(item.id)
     else if (activeTab.value === 'categories') await categoryService.deleteCategory(item.id)

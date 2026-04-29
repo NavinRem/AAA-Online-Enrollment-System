@@ -611,7 +611,7 @@ const handleActionSubmit = async (formData) => {
                     <span class="text-sm font-black text-content-dark group-hover:text-primary transition-colors">{{ t.name
                       }}</span>
                     <span class="text-[10px] text-content-muted uppercase font-black tracking-widest">{{ t.role ||
-                      'Instructor' }}</span>
+                      'Teacher' }}</span>
                   </div>
                 </div>
               </template>

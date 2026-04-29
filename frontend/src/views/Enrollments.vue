@@ -445,8 +445,10 @@ const handleRegisterStudent = async (formData) => {
 
             <!-- Amount Column -->
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
-              <AppBadge :status="'$' + formatPrice(item.amount || 0)"
-                :type="(item.paymentMode || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'" />
+              <div class="flex flex-col items-center gap-1">
+                <AppBadge :status="'$' + formatPrice(item.amount || 0)" type="blue" />
+                <AppBadge :status="item.paymentMode || 'Full'" />
+              </div>
             </td>
 
             <!-- Date Column -->

@@ -3,7 +3,7 @@ function validateClass(classData) {
     'programId',
     'branchId',
     'termId',
-    'teacherId',
+    'teacherIds',
     'schedules',
     'scheduleType',
     'status',
@@ -18,10 +18,10 @@ function validateClass(classData) {
     }
   })
 
-  const { programId, termId, branchId, teacherId } = classData
+  const { programId, termId, branchId, teacherIds } = classData
 
-  if (!programId || !termId || !branchId || !teacherId) {
-    throw new Error('Program, Term, Branch, and Teacher IDs are required')
+  if (!programId || !termId || !branchId || !teacherIds || !teacherIds.length) {
+    throw new Error('Program, Term, Branch, and at least one Teacher are required')
   }
 
   const rawSchedules = Array.isArray(classData.schedules)
@@ -36,7 +36,7 @@ function validateClass(classData) {
     programId,
     termId,
     branchId,
-    teacherId,
+    teacherIds,
     schedules,
     scheduleType: classData.scheduleType || 'group',
     adminNote: classData.adminNote || '',
@@ -53,7 +53,7 @@ function validateUpdateClass(updateData) {
     'programId',
     'termId',
     'branchId',
-    'teacherId',
+    'teacherIds',
     'schedules',
     'scheduleType',
     'status',

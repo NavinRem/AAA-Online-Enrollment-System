@@ -8,8 +8,8 @@ const {
 
 class TeacherService {
   async createTeacher(teacherData) {
-    const { name, email, status, profileURL, password } = teacherData
-    const validatedProfile = validateTeacher({ name, email, status, profileURL })
+    const { name, email, status, profileURL, password, category } = teacherData
+    const validatedProfile = validateTeacher({ name, email, status, profileURL, category })
     const finalPassword = password || 'Temporary123'
     return authService.registerAccount(
       { ...validatedProfile, password: finalPassword },
@@ -53,7 +53,8 @@ class TeacherService {
         validatedData.name ||
         validatedData.profileURL !== undefined ||
         validatedData.email !== undefined ||
-        validatedData.status !== undefined
+        validatedData.status !== undefined ||
+        validatedData.category !== undefined
       ) {
         const newData = { ...doc.data(), ...validatedData }
         const snapshot = profileHelper.getTeacherSnapshot(id, newData)

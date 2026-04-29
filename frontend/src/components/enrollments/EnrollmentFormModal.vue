@@ -8,7 +8,7 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
-import { formatPrice, formatDateOnly } from '@/utils/formatUtils'
+import { formatPrice, formatDateOnly, calculateClassProgress } from '@/utils/formatUtils'
 import { getSessionCounts } from '@/utils/programHelper'
 
 const props = defineProps({
@@ -73,7 +73,11 @@ const availableStudents = computed(() => {
 
 const availableClasses = computed(() => {
   if (!form.programId) return []
-  return props.classes.filter((cl) => cl.programId === form.programId)
+  return props.classes.filter((cl) => {
+    if (cl.programId !== form.programId) return false
+    const progress = calculateClassProgress(cl.term?.startDate, cl.term?.endDate)
+    return !progress.isArchived
+  })
 })
 
 const resolveId = (val) => (val && typeof val === 'object' ? val.id : val)
@@ -222,6 +226,7 @@ const classSelectItems = computed(() =>
     maxCapacity: cl.maxCapacity,
     enrolledCount: cl.enrolledCount,
     profileURL: cl.program?.profileURL,
+    status: calculateClassProgress(cl.term?.startDate, cl.term?.endDate, cl.day, cl.timeslot).status
   }))
 )
 
@@ -408,10 +413,16 @@ watch(
           :error="errors.classId" :shake="shaking.classId" @change="clearError('classId')"
           @click-disabled="handleDisabledClick('classId')">
           <template #selected-badge="{ item }">
-            <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" class="mr-4" />
+            <div class="flex items-center gap-2">
+              <AppBadge v-if="item.status" :status="item.status" :type="item.status === 'Upcoming' ? 'blue' : 'success'" class="mr-2" />
+              <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" class="mr-4" />
+            </div>
           </template>
           <template #item-badge="{ item }">
-            <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" />
+            <div class="flex items-center gap-2">
+              <AppBadge v-if="item.status" :status="item.status" :type="item.status === 'Upcoming' ? 'blue' : 'success'" />
+              <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" />
+            </div>
           </template>
         </AppSelect>
       </div>

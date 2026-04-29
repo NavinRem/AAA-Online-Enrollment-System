@@ -6,7 +6,7 @@ import DataTable from '../components/common/data/DataTable.vue'
 import DataMetricCard from '../components/common/data/DataMetricCard.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
-import BranchFormModal from '../components/branches/BranchFormModal.vue'
+import BranchActionModal from '../components/branches/BranchActionModal.vue'
 
 import { branchService } from '../services/branchService'
 import { programService } from '../services/programService'
@@ -29,9 +29,8 @@ const trials = ref([])
 const loading = ref(true)
 const submitting = ref(false)
 const showModal = ref(false)
+const modalType = ref('add') // 'add', 'edit', 'delete'
 const selectedBranch = ref(null)
-const errorMessage = ref('')
-const successMessage = ref('')
 const newlyCreatedId = ref(null)
 
 const getRowClass = (item) => {
@@ -167,7 +166,7 @@ const branchHeaders = [
   { label: 'No', width: '50px', align: 'center' },
   { label: 'Branch Name' },
   { label: 'Abbr' },
-  { label: 'Location' },
+  { label: 'Location', hideOnMobile: true },
   { label: 'Contact' },
   { label: 'Sessions' },
   { label: 'Programs' },
@@ -250,44 +249,53 @@ const getPendingRevenue = (branchId) => {
   return pendingEnrollments.reduce((sum, e) => sum + (e.amount || 0), 0)
 }
 
-const handleTableAction = ({ type, item }) => {
-  if (type === 'edit') {
-    selectedBranch.value = item
-    showModal.value = true
-    return
-  }
+const error = ref('')
+const success = ref('')
 
-  if (type === 'delete') {
-    if (confirm(`Are you sure you want to decommission the ${item.name} branch? This action is irreversible.`)) {
-      branchService.deleteBranch(item.id).then(() => fetchData())
-    }
-  }
+const handleTableAction = ({ type, item }) => {
+  selectedBranch.value = item
+  modalType.value = type
+  error.value = ''
+  success.value = ''
+  showModal.value = true
 }
 
-const handleSaveBranch = async (formData) => {
-  submitting.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
+const openAddModal = () => {
+  selectedBranch.value = null
+  modalType.value = 'add'
+  error.value = ''
+  success.value = ''
+  showModal.value = true
+}
 
+const handleActionSubmit = async (payload) => {
+  submitting.value = true
+  error.value = ''
+  success.value = ''
   try {
-    if (selectedBranch.value) {
-      await branchService.updateBranch(selectedBranch.value.id, formData)
-      successMessage.value = 'branch details successfully updated.'
+    if (modalType.value === 'delete') {
+      await branchService.deleteBranch(payload.id)
+      success.value = 'Branch deleted successfully'
+    } else if (modalType.value === 'edit') {
+      await branchService.updateBranch(selectedBranch.value.id, payload)
+      success.value = 'Branch updated successfully'
     } else {
-      const res = await branchService.createBranch(formData)
+      const res = await branchService.createBranch(payload)
       newlyCreatedId.value = res.id || res.UID
-      successMessage.value = 'New branch entity successfully established.'
+      success.value = 'Branch established successfully'
     }
 
+    fetchData()
+    // Auto close after 1.5s on success
     setTimeout(() => {
-      showModal.value = false
-      selectedBranch.value = null
-      successMessage.value = ''
-      fetchData()
+      if (showModal.value) {
+        showModal.value = false
+        selectedBranch.value = null
+      }
     }, 1500)
   } catch (err) {
-    errorMessage.value = err.message || 'Failed to save branch record.'
-    console.error(err)
+    error.value = err.message || 'Branch action failed'
+    console.error('Branch action failed:', err)
   } finally {
     submitting.value = false
   }
@@ -310,8 +318,7 @@ const handleSaveBranch = async (formData) => {
           :totalItems="totalItems" :pageSize="pageSize" v-model:currentPage="currentPage" @action="handleTableAction">
 
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
-              @click="showModal = true">
+            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-black tracking-tight">Add Branch</span>
             </AppButton>
@@ -336,43 +343,52 @@ const handleSaveBranch = async (formData) => {
               </div>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[2].width }">
+            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[2].hideOnMobile }"
+              :style="{ width: headers[2].width }">
               <AppBadge :status="item.abbr" :type="item.color || 'blue'" />
             </td>
 
-            <td class="ui-cell" :style="{ width: headers[3].width }">
+            <td class="ui-cell" :class="{ 'hidden-on-mobile': headers[3].hideOnMobile }"
+              :style="{ width: headers[3].width }">
               <span
                 class="text-xs font-bold line-clamp-2 leading-tight min-h-[2.5rem] flex items-center text-content-muted">{{
                   item.location }}</span>
             </td>
 
-            <td class="ui-cell" :style="{ width: headers[4].width }">
+            <td class="ui-cell" :class="{ 'hidden-on-mobile': headers[4].hideOnMobile }"
+              :style="{ width: headers[4].width }">
               <span class="text-sm font-bold tabular-nums whitespace-nowrap">{{ item.phone }}</span>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[5].width }">
+            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[5].hideOnMobile }"
+              :style="{ width: headers[5].width }">
               <span class="text-sm font-bold text-content-dark tabular-nums">{{ getClassCount(item.id) }}</span>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[6].hideOnMobile }"
+              :style="{ width: headers[6].width }">
               <span class="text-sm font-black text-content-dark tabular-nums">{{ getProgramCount(item.id) }}</span>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[7].hideOnMobile }"
+              :style="{ width: headers[7].width }">
               <span class="text-sm font-black text-content-dark tabular-nums">{{ getStudentCount(item.id) }}</span>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[8].hideOnMobile }"
+              :style="{ width: headers[8].width }">
               <AppBadge v-if="getNewTodayCount(item.id) > 0" :status="'+' + getNewTodayCount(item.id)" type="green" />
               <span v-else class="text-xs font-bold text-content-dark">0</span>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[9].width }">
+            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[9].hideOnMobile }"
+              :style="{ width: headers[9].width }">
               <span class="text-sm font-black text-emerald-600 tabular-nums">${{ formatPrice(getBranchRevenue(item.id))
                 }}</span>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[10].width }">
+            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[10].hideOnMobile }"
+              :style="{ width: headers[10].width }">
               <span class="text-sm font-black text-amber-600 tabular-nums">${{ formatPrice(getPendingRevenue(item.id))
                 }}</span>
             </td>
@@ -413,9 +429,8 @@ const handleSaveBranch = async (formData) => {
       </template>
     </DataPageLayout>
 
-    <BranchFormModal :isOpen="showModal" :loading="submitting" :branch="selectedBranch" :branches="branches"
-      :error="errorMessage" :success="successMessage"
-      @close="() => { showModal = false; selectedBranch = null; errorMessage = ''; successMessage = ''; }"
-      @submit="handleSaveBranch" />
+    <BranchActionModal :isOpen="showModal" :type="modalType" :loading="submitting" :branch="selectedBranch"
+      :error="error" :success="success" @close="() => { showModal = false; selectedBranch = null; }"
+      @submit="handleActionSubmit" />
   </DashboardLayout>
 </template>

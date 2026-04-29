@@ -164,23 +164,23 @@ const parentThemeClasses = computed(() => {
 
 const modalTitle = computed(() => {
   const titles = {
-    edit: 'Edit the Parent Info',
-    deactivate: 'Deactivate the Parent Account',
-    activate: 'Activate the Parent Account',
-    delete: 'Delete the Parent Info',
-    plus: 'Add New Child',
-    'reset-password': 'Reset the Parent Account Password',
+    edit: 'Edit Parent',
+    deactivate: 'Deactivate Parent',
+    activate: 'Activate Parent',
+    delete: 'Delete Parent',
+    plus: 'Add Child',
+    'reset-password': 'Reset Password',
   }
-  return titles[props.type] || 'Parental Administration'
+  return titles[props.type] || 'Parent Action'
 })
 
 const submitLabel = computed(() => {
   if (props.type === 'plus') return 'Add'
   if (props.type === 'deactivate') return 'Deactivate'
   if (props.type === 'activate') return 'Activate'
-  if (props.type === 'edit') return 'Update'
+  if (props.type === 'edit') return 'Edit'
   if (props.type === 'delete') return 'Delete'
-  if (props.type === 'reset-password') return 'Reset Password'
+  if (props.type === 'reset-password') return 'Reset'
   return 'Confirm'
 })
 

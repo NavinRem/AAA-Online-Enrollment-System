@@ -165,14 +165,14 @@ const confirmRows = computed(() => {
 // ── Labels / Titles ──
 const modalTitle = computed(() => {
   const titles = { pay: 'Pay Enrollment', cancel: 'Cancel Enrollment', delete: 'Delete Enrollment', edit: 'Edit Enrollment' }
-  return titles[props.type] || 'Enrollment Administration'
+  return titles[props.type] || 'Enrollment Action'
 })
 
 const submitLabel = computed(() => {
   if (props.type === 'pay') return 'Pay'
   if (props.type === 'cancel') return 'Cancel'
   if (props.type === 'delete') return 'Delete'
-  return 'Update'
+  return 'Edit'
 })
 
 const modalIcon = computed(() => {
@@ -386,7 +386,7 @@ const modalIcon = computed(() => {
 
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight uppercase">⚠ Permanent Data Purge</strong>
+            <strong class="text-sm font-black tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
             <span class="text-xs opacity-90 font-medium">This will erase all linked financial logs and attendance
               records. This action is irreversible and cannot be undone.</span>
           </div>

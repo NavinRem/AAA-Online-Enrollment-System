@@ -1,7 +1,7 @@
 const dateHelper = require('../utils/dateHelper')
 
 function validateTerm(termData) {
-  const fields = ['name', 'startDate', 'endDate', 'status']
+  const fields = ['name', 'startDate', 'endDate', 'status', 'totalSessions', 'branchId', 'branchIds']
   Object.keys(termData).forEach((key) => {
     if (!fields.includes(key)) throw new Error(`Invalid field: ${key}`)
   })
@@ -11,9 +11,16 @@ function validateTerm(termData) {
   dateHelper.validateAndParseDate(termData.startDate, 'Start Date', {
     allowFuture: true,
   })
-  dateHelper.validateAndParseDate(termData.endDate, 'End Date', {
-    allowFuture: true,
-  })
+
+  // If totalSessions is provided, we can auto-calculate or validate endDate
+  const totalSessions = parseInt(termData.totalSessions || 11)
+  const expectedEndDate = dateHelper.calculateEndDate(termData.startDate, totalSessions)
+
+  if (termData.endDate && termData.endDate !== expectedEndDate) {
+    throw new Error(`End Date "${termData.endDate}" does not match the calculated end date "${expectedEndDate}" for ${totalSessions} sessions.`)
+  }
+
+  const endDate = termData.endDate || expectedEndDate
 
   const forbiddenKeywords = ['category', 'level', 'program', 'course']
   const lowerName = termData.name.toLowerCase()
@@ -27,7 +34,9 @@ function validateTerm(termData) {
   return {
     name: termData.name.trim(),
     startDate: termData.startDate,
-    endDate: termData.endDate,
+    endDate,
+    totalSessions,
+    branchIds: Array.isArray(termData.branchIds) ? termData.branchIds : (termData.branchId ? [termData.branchId] : []),
     status: termData.status || 'upcoming',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -35,7 +44,7 @@ function validateTerm(termData) {
 }
 
 function validateUpdateTerm(updateData) {
-  const allowedFields = ['name', 'startDate', 'endDate', 'status']
+  const allowedFields = ['name', 'startDate', 'endDate', 'status', 'totalSessions', 'branchIds']
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
@@ -50,12 +59,14 @@ function validateUpdateTerm(updateData) {
 
   if (cleanData.name) cleanData.name = cleanData.name.trim()
 
-  if (cleanData.startDate) {
-    dateHelper.validateAndParseDate(cleanData.startDate, 'Start Date', {
-      allowFuture: true,
-    })
-  }
-  if (cleanData.endDate) {
+  if (cleanData.startDate || cleanData.totalSessions) {
+    const startDate = cleanData.startDate || updateData.startDate // Might need existing data here, but validator usually only has the patch
+    const totalSessions = cleanData.totalSessions || updateData.totalSessions
+    
+    if (startDate && totalSessions) {
+      cleanData.endDate = dateHelper.calculateEndDate(startDate, totalSessions)
+    }
+  } else if (cleanData.endDate) {
     dateHelper.validateAndParseDate(cleanData.endDate, 'End Date', {
       allowFuture: true,
     })

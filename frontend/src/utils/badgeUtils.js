@@ -1,17 +1,26 @@
+const COMMON_STATUSES = {
+  active: 'green',
+  upcoming: 'blue',
+  archived: 'magenta',
+  inactive: 'yellow',
+  failed: 'red',
+  success: 'green',
+}
+
 const REGISTRIES = {
   finance: {
+    ...COMMON_STATUSES,
     paid: 'green',
     confirmed: 'green',
-    success: 'green',
     unpaid: 'yellow',
     pending: 'yellow',
     partial: 'purple',
-    failed: 'red',
     cancelled: 'red',
     canceled: 'red',
     refunded: 'orange',
     'parent paid': 'green',
     sponsored: 'blue',
+    full: 'magenta',
   },
   payment: {
     cash: 'green',
@@ -22,18 +31,24 @@ const REGISTRIES = {
     aeon: 'purple',
   },
   academic: {
+    ...COMMON_STATUSES,
     studying: 'green',
     graduated: 'blue',
     suspended: 'yellow',
     stopped: 'red',
     trial: 'purple',
+    ongoing: 'green',
+    passed: 'green',
+    prospect: 'purple',
     intermediate: 'purple',
     'in progress': 'purple',
   },
   account: {
-    active: 'green',
-    inactive: 'yellow',
-    archived: 'magenta',
+    ...COMMON_STATUSES,
+  },
+  gender: {
+    female: 'pink',
+    male: 'blue',
   },
   attendance: {
     present: 'green',
@@ -58,6 +73,7 @@ const REGISTRIES = {
     all: 'blue',
     group: 'purple',
     private: 'magenta',
+    hidden: 'blue',
   },
   trial: {
     booked: 'purple',
@@ -74,8 +90,6 @@ const THEMES = {
   blue: { backgroundColor: 'var(--color-primary-soft)', color: 'var(--color-primary)' },
   purple: { backgroundColor: 'var(--color-purple-soft)', color: 'var(--color-purple)' },
   magenta: { backgroundColor: 'var(--color-magenta-soft)', color: 'var(--color-magenta)' },
-  teal: { backgroundColor: 'var(--color-teal-soft)', color: 'var(--color-teal)' },
-  cyan: { backgroundColor: 'var(--color-cyan-soft)', color: 'var(--color-cyan)' },
   pink: { backgroundColor: 'var(--color-pink-soft)', color: 'var(--color-pink)' },
   gray: { backgroundColor: 'var(--color-gray-soft)', color: 'var(--color-gray)' },
 }
@@ -86,27 +100,22 @@ const THEME_FILTERS = {
   orange: 'invert(24%) sepia(99%) saturate(3736%) hue-rotate(16deg) brightness(94%) contrast(101%)',
   red: 'invert(39%) sepia(81%) saturate(2314%) hue-rotate(336deg) brightness(95%) contrast(97%)',
   blue: 'invert(51%) sepia(87%) saturate(2371%) hue-rotate(167deg) brightness(101%) contrast(105%)',
-  purple:
-    'invert(16%) sepia(94%) saturate(3848%) hue-rotate(282deg) brightness(79%) contrast(110%)',
-  magenta:
-    'invert(18%) sepia(61%) saturate(6015%) hue-rotate(323deg) brightness(85%) contrast(106%)',
-  teal: 'invert(24%) sepia(87%) saturate(638%) hue-rotate(130deg) brightness(96%) contrast(93%)',
-  cyan: 'invert(48%) sepia(96%) saturate(1243%) hue-rotate(156deg) brightness(91%) contrast(98%)',
+  purple: 'invert(16%) sepia(94%) saturate(3848%) hue-rotate(282deg) brightness(79%) contrast(110%)',
+  magenta: 'invert(18%) sepia(61%) saturate(6015%) hue-rotate(323deg) brightness(85%) contrast(106%)',
   pink: 'invert(26%) sepia(91%) saturate(3474%) hue-rotate(314deg) brightness(96%) contrast(95%)',
   gray: 'invert(38%) sepia(10%) saturate(394%) hue-rotate(170deg) brightness(94%) contrast(89%)',
 }
 
 export const resolveColor = (value, module = null) => {
-  // 1. If module is a direct color name, use it
   if (module && THEMES[module.toLowerCase()]) return module.toLowerCase()
-
   if (!value) return 'gray'
+
   const key = String(value).toLowerCase().trim()
 
-  // 2. If module is a registry key, look it up
+  // Module-specific lookup
   if (module && REGISTRIES[module]) return REGISTRIES[module][key] ?? 'gray'
 
-  // 3. Global lookup across all registries
+  // Global lookup across all registries
   for (const group of Object.values(REGISTRIES)) {
     if (group[key]) return group[key]
   }
@@ -114,14 +123,14 @@ export const resolveColor = (value, module = null) => {
   return 'gray'
 }
 
-const getBadgeUI = (value, module = null) => ({
-  color: resolveColor(value, module),
-  theme: THEMES[resolveColor(value, module)] ?? THEMES.gray,
-  filter: THEME_FILTERS[resolveColor(value, module)] ?? 'none',
-})
-const getBadgeTheme = (value, module = null) => getBadgeUI(value, module).theme
-const getBadgeFilter = (value, module = null) => getBadgeUI(value, module).filter
+export const getStatusUI = (value, module = null) => {
+  const color = resolveColor(value, module)
+  return {
+    color,
+    theme: THEMES[color] || THEMES.gray,
+    filter: THEME_FILTERS[color] || 'none',
+  }
+}
 
-export const getStatusUI = getBadgeUI
-export const getStatusTheme = getBadgeTheme
-export const getStatusFilter = getBadgeFilter
+export const getStatusTheme = (value, module = null) => getStatusUI(value, module).theme
+export const getStatusFilter = (value, module = null) => getStatusUI(value, module).filter

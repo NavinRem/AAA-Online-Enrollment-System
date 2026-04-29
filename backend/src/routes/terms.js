@@ -6,7 +6,9 @@ const { verifyToken, isAdmin } = require('../middleware/authMiddleware')
 router.use(verifyToken)
 
 router.get('/', termController.getAllTerms)
+router.get('/:id', termController.getTerm)
 router.post('/', isAdmin, termController.createTerm)
+router.patch('/:id', isAdmin, termController.updateTerm)
 router.delete('/:id', isAdmin, termController.deleteTerm)
 
 module.exports = router

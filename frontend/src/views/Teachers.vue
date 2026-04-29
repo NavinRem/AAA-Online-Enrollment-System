@@ -90,23 +90,38 @@ const modalType = ref('add')
 const selectedTeacher = ref(null)
 const submitting = ref(false)
 
+const error = ref('')
+const success = ref('')
+
 const openModal = (type, teacher = null) => {
   modalType.value = type
   selectedTeacher.value = teacher
+  error.value = ''
+  success.value = ''
   isModalOpen.value = true
 }
 
 const handleSubmit = async (formData) => {
   submitting.value = true
+  error.value = ''
+  success.value = ''
   try {
     if (modalType.value === 'add') {
       await teacherService.createTeacher(formData)
+      success.value = 'Teacher added successfully'
     } else {
       await teacherService.updateTeacher(selectedTeacher.value.id, formData)
+      success.value = 'Teacher profile updated successfully'
     }
     fetchData()
-    isModalOpen.value = false
+    // Auto close after 1.5s on success
+    setTimeout(() => {
+      if (isModalOpen.value) {
+        isModalOpen.value = false
+      }
+    }, 1500)
   } catch (err) {
+    error.value = err.message || 'Failed to save teacher'
     console.error('Failed to save teacher', err)
   } finally {
     submitting.value = false
@@ -114,7 +129,7 @@ const handleSubmit = async (formData) => {
 }
 
 const handleDelete = async (teacher) => {
-  if (!confirm(`Are you sure you want to purge faculty record for ${teacher.name}?`)) return
+  if (!confirm(`Are you sure you want to delete faculty record for ${teacher.name}?`)) return
   try {
     await teacherService.deleteTeacher(teacher.id)
     fetchData()
@@ -228,6 +243,6 @@ const handleDelete = async (teacher) => {
     </DataPageLayout>
 
     <TeacherActionModal :isOpen="isModalOpen" :type="modalType" :teacher="selectedTeacher" :loading="submitting"
-      @close="isModalOpen = false" @submit="handleSubmit" />
+      :error="error" :success="success" @close="isModalOpen = false" @submit="handleSubmit" />
   </DashboardLayout>
 </template>

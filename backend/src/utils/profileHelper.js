@@ -102,7 +102,7 @@ class ProfileHelper {
       program: data.program,
       term: data.term,
       branch: data.branch,
-      teacher: data.teacher || null,
+      teachers: data.teachers || [],
       level: data.level || null,
       schedule: data.schedule || null,
       status: data.status || 'open',

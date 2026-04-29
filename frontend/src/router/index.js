@@ -84,6 +84,12 @@ const router = createRouter({
       meta: { title: 'Classes', requiresAuth: true, requiresAdmin: true },
     },
     {
+      path: '/classes/:id',
+      name: 'class-detail',
+      component: () => import('../views/ClassDetail.vue'),
+      meta: { title: 'Class Detail', requiresAuth: true, requiresAdmin: true },
+    },
+    {
       path: '/programs/:id',
       name: 'program-detail',
       component: () => import('../views/ProgramDetail.vue'),
@@ -99,7 +105,7 @@ const router = createRouter({
       path: '/terms',
       name: 'terms',
       component: () => import('../views/Terms.vue'),
-      meta: { title: 'Academic Terms', requiresAuth: true, requiresAdmin: true },
+      meta: { title: 'Terms', requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/settings',

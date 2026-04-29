@@ -86,7 +86,10 @@ onMounted(() => {
       trials.value = Array.isArray(tData) ? tData : []
 
       if (Array.isArray(termData) && termData.length > 0) {
-        activeTerm.value = termData.find(t => t.status === 'active') || termData[0]
+        const todayStr = new Date().toISOString().split('T')[0]
+        activeTerm.value = termData.find(t => t.startDate <= todayStr && t.endDate >= todayStr) || 
+                          termData.find(t => t.status === 'active') || 
+                          termData[0]
       }
 
       stats.value = calculateDashboardStats(

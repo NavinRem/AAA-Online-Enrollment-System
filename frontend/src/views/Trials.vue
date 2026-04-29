@@ -186,7 +186,7 @@ const handleTableAction = ({ type, item }) => {
   }
 
   if (type === 'delete') {
-    if (confirm('Are you sure you want to purge this trial record?')) {
+    if (confirm('Are you sure you want to delete this trial record?')) {
       trialService.deleteTrial(item.id).then(() => fetchData())
     }
   }
@@ -276,9 +276,8 @@ const handleTableAction = ({ type, item }) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center gap-1">
-                <AppBadge :status="item.trialType || (item.isGuest ? 'walk-in' : 'booked')"
-                  :type="item.trialType === 'walk-in' ? 'magenta' : 'purple'" />
-                <AppBadge v-if="item.isSuccessful" status="Successful" type="green" />
+                <AppBadge :status="item.trialType || (item.isGuest ? 'walk-in' : 'booked')" />
+                <AppBadge v-if="item.isSuccessful" status="Successful" />
               </div>
             </td>
 
@@ -310,8 +309,7 @@ const handleTableAction = ({ type, item }) => {
                         <span class="font-bold">Edit</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button
-                        class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete

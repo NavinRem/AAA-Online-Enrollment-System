@@ -1,5 +1,6 @@
 const { db, COLLECTIONS } = require('../config/database')
 const profileHelper = require('../utils/profileHelper')
+const dateHelper = require('../utils/dateHelper')
 const {
   validateClass,
   validateUpdateClass,
@@ -8,30 +9,60 @@ const {
 class ClassService {
   async createClass(classData) {
     const validated = validateClass(classData)
+    
+    // Check for duplicate class in the same Term, Branch, and Schedule
+    const scheduleMatch = validated.schedules?.[0]
+    if (scheduleMatch) {
+      const duplicateQuery = db.collection(COLLECTIONS.CLASS)
+        .where('termId', '==', validated.termId)
+        .where('branchId', '==', validated.branchId)
+        .where('programId', '==', validated.programId)
 
-    const [programDoc, teacherDoc, branchDoc, termDoc, levelDoc] = await Promise.all([
+      const dupSnap = await duplicateQuery.get()
+      const isDuplicate = dupSnap.docs.some(doc => {
+        const d = doc.data()
+        return d.schedules?.some(s => s.day === scheduleMatch.day && (s.time === scheduleMatch.time || s.timeslot === scheduleMatch.timeslot))
+      })
+
+      if (isDuplicate) {
+        throw new Error('A class with the same Program, Term, Branch, and Schedule already exists.')
+      }
+    }
+
+    const [programDoc, branchDoc, termDoc] = await Promise.all([
       db.collection(COLLECTIONS.PROGRAM).doc(validated.programId).get(),
-      db.collection(COLLECTIONS.TEACHER).doc(validated.teacherId).get(),
       db.collection(COLLECTIONS.BRANCH).doc(validated.branchId).get(),
       db.collection(COLLECTIONS.TERM).doc(validated.termId).get(),
-      db.collection(COLLECTIONS.LEVEL).doc(validated.levelId).get(),
     ])
 
     if (!programDoc.exists) throw new Error('Program not found')
-    if (!teacherDoc.exists) throw new Error('Teacher not found')
     if (!branchDoc.exists) throw new Error('Branch not found')
     if (!termDoc.exists) throw new Error('Term not found')
-    if (!levelDoc.exists) throw new Error('Level not found')
+
+    const termData = termDoc.data()
+    const programData = programDoc.data()
+
+    // Validate sessions match
+    if (programData.totalSessions !== termData.totalSessions) {
+      console.warn(`Program sessions (${programData.totalSessions}) do not match Term sessions (${termData.totalSessions})`)
+    }
+
+    const calculatedStatus = this.calculateStatus(termData.startDate, termData.endDate)
+
+    const teacherDocs = await Promise.all(
+      validated.teacherIds.map((id) => db.collection(COLLECTIONS.TEACHER).doc(id).get()),
+    )
+    if (teacherDocs.some((d) => !d.exists)) throw new Error('One or more teachers not found')
 
     const id = db.collection(COLLECTIONS.CLASS).doc().id
     const newClass = {
       ...validated,
       currentCount: 0,
       program: profileHelper.getProgramSnapshot(validated.programId, programDoc.data()),
-      teacher: profileHelper.getTeacherSnapshot(validated.teacherId, teacherDoc.data()),
+      teachers: teacherDocs.map((d) => profileHelper.getTeacherSnapshot(d.id, d.data())),
       branch: profileHelper.getBranchSnapshot(validated.branchId, branchDoc.data()),
       term: profileHelper.getTermSnapshot(validated.termId, termDoc.data()),
-      level: profileHelper.getLevelSnapshot(validated.levelId, levelDoc.data()),
+      status: calculatedStatus,
       createdAt: new Date().toISOString(),
     }
 
@@ -65,7 +96,20 @@ class ClassService {
       if (!doc.exists) throw new Error('Class not found')
 
       const currentData = doc.data()
-      transaction.update(ref, { ...validated, updatedAt: new Date().toISOString() })
+      
+      // Archived Check
+      if (currentData.term?.endDate && new Date(currentData.term.endDate) < new Date()) {
+        throw new Error('Cannot modify a class in an archived term.')
+      }
+
+      const termData = validated.term || currentData.term
+      const calculatedStatus = this.calculateStatus(termData.startDate, termData.endDate)
+      
+      transaction.update(ref, { 
+        ...validated, 
+        status: calculatedStatus,
+        updatedAt: new Date().toISOString() 
+      })
 
       const syncNeeded = validated.schedule || validated.capacity !== undefined
       if (syncNeeded) {
@@ -104,11 +148,25 @@ class ClassService {
     if (!targetTermDoc.exists) throw new Error('Target term not found')
 
     const targetTermSnapshot = profileHelper.getTermSnapshot(targetTermId, targetTermDoc.data())
+    
+    // Fetch existing classes in target term to avoid duplicates
+    const existingTargetClassesSnap = await db.collection(COLLECTIONS.CLASS).where('termId', '==', targetTermId).get()
+    const existingKeys = new Set(existingTargetClassesSnap.docs.map(doc => {
+      const d = doc.data()
+      const s = d.schedules?.[0]
+      return `${d.programId}-${d.branchId}-${s?.day}-${s?.time || s?.timeslot}`
+    }))
+
     const batch = db.batch()
     let count = 0
 
     snapshot.docs.forEach((doc) => {
       const data = doc.data()
+      const s = data.schedules?.[0]
+      const key = `${data.programId}-${data.branchId}-${s?.day}-${s?.time || s?.timeslot}`
+      
+      if (existingKeys.has(key)) return // Skip duplicates
+
       const newId = db.collection(COLLECTIONS.CLASS).doc().id
       const duplicatedClass = {
         ...data,
@@ -173,6 +231,21 @@ class ClassService {
       const classSnapshot = profileHelper.getClassSnapshot(doc.id, classData)
       await enrollmentService.syncEnrollmentsWithClass(doc.id, classSnapshot)
     }
+  }
+
+  calculateStatus(startDate, endDate) {
+    if (!startDate || !endDate) return 'active'
+    const today = new Date()
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+    const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+
+    if (todayDate < startDateOnly) return 'upcoming'
+    if (todayDate > endDateOnly) return 'archived'
+    return 'active'
   }
 }
 

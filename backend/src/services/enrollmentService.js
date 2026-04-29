@@ -20,6 +20,12 @@ class EnrollmentService {
     if (!classDoc.exists) throw new Error('Class not found')
 
     const classData = classDoc.data()
+    
+    // Check for archived status or expired term
+    if (classData.term?.endDate && new Date(classData.term.endDate) < new Date()) {
+      throw new Error('Cannot enroll in a class that has already ended (Archived).')
+    }
+
     if (classData.currentCount >= classData.capacity) {
       throw new Error('Class is full')
     }

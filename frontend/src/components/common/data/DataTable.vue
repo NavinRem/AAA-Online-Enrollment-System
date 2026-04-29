@@ -115,8 +115,10 @@ const handleAction = (type, item) => {
         <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId"
           :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction" :closeMenu="closeMenu"
           :headers="headers">
-          <td v-for="(header, hIdx) in headers" :key="hIdx" class="ui-cell"
-            :class="typeof header === 'object' && header.align ? `text-${header.align}` : ''"
+          <td v-for="(header, hIdx) in headers" :key="hIdx" class="ui-cell" :class="[
+            typeof header === 'object' && header.align ? `text-${header.align}` : '',
+            typeof header === 'object' && header.hideOnMobile ? 'hidden-on-mobile' : ''
+          ]"
             :style="typeof header === 'object' && header.width ? { width: header.width, minWidth: header.width } : {}">
             {{
               item[

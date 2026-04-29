@@ -10,7 +10,7 @@
 /**
  * Parses various date formats into a standard JS Date object.
  * Supports ISO strings, timestamps, and Firestore Timestamp objects.
- * 
+ *
  * @param {any} val - Raw date value
  * @returns {Date} Parsed date object
  */
@@ -46,7 +46,7 @@ export const formatDateOnly = (val) => {
 
 /**
  * Calculates current age based on a birth date.
- * 
+ *
  * @param {any} val - Birth date
  * @returns {number|string} Calculated age or "N/A"
  */
@@ -113,4 +113,112 @@ export const formatPrice = (val) => {
   const num = Number(val)
   if (isNaN(num) || val === '' || val === null) return '0'
   return Number(num.toFixed(2)).toString()
+}
+/**
+ * 4. Academic Progress Logic
+ */
+
+/**
+ * Calculates class progress and dynamic status based on term dates and timeslots.
+ *
+ * @param {string} startDate - Term start date
+ * @param {string} endDate - Term end date
+ * @param {string} day - Class day (optional)
+ * @param {string} timeslot - Class timeslot (optional, e.g. "09:00 AM - 10:30 AM")
+ * @returns {object} Progress stats { week, status, percentage, totalWeeks, isOngoing, isArchived }
+ */
+export const calculateClassProgress = (startDate, endDate, day = null, timeslot = null) => {
+  if (!startDate || !endDate) return { status: 'N/A', week: 0, percentage: 0, totalWeeks: 0 }
+
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  const today = new Date()
+
+  // Normalize today for date comparison (start of day)
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+  const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+
+  // Total weeks in term (Day-inclusive calculation)
+  const diffDays = Math.round((endDateOnly - startDateOnly) / (24 * 60 * 60 * 1000)) + 1
+  const totalWeeks = Math.ceil(diffDays / 7)
+
+  if (todayDate < startDateOnly) {
+    return {
+      status: 'Upcoming',
+      week: 0,
+      remainingSessions: totalWeeks,
+      percentage: 0,
+      totalWeeks,
+      isArchived: false,
+      isOngoing: false,
+    }
+  }
+
+  if (todayDate > endDateOnly) {
+    return {
+      status: 'Archived',
+      week: totalWeeks,
+      remainingSessions: 0,
+      percentage: 100,
+      totalWeeks,
+      isArchived: true,
+      isOngoing: false,
+    }
+  }
+
+  // Check for Ongoing status
+  let isOngoing = false
+  if (day && timeslot) {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const todayDayName = dayNames[today.getDay()]
+
+    if (day === todayDayName) {
+      const [startStr, endStr] = timeslot.split(' - ')
+      if (startStr && endStr) {
+        const parseTime = (str) => {
+          const [time, period] = str.split(' ')
+          let [h, m] = time.split(':').map(Number)
+          if (period === 'PM' && h < 12) h += 12
+          if (period === 'AM' && h === 12) h = 0
+          return h * 60 + m
+        }
+        const currentMins = today.getHours() * 60 + today.getMinutes()
+        if (currentMins >= parseTime(startStr) && currentMins <= parseTime(endStr)) {
+          isOngoing = true
+        }
+      }
+    }
+  }
+
+  const elapsedMs = todayDate - startDateOnly
+  const currentWeek = Math.min(
+    totalWeeks,
+    Math.max(1, Math.floor(elapsedMs / (7 * 24 * 60 * 60 * 1000)) + 1),
+  )
+
+  const currentWeekStartDate = new Date(startDateOnly)
+  currentWeekStartDate.setDate(currentWeekStartDate.getDate() + (currentWeek - 1) * 7)
+
+  let sessionPassed = todayDate > currentWeekStartDate
+  if (todayDate.getTime() === currentWeekStartDate.getTime()) {
+    sessionPassed = false
+  }
+
+  const remainingSessions = Math.max(0, totalWeeks - currentWeek + (sessionPassed ? 0 : 1))
+  const percentage = Math.min(100, Math.round((currentWeek / totalWeeks) * 100))
+
+  let status = 'Active'
+  if (isOngoing) status = 'Ongoing'
+
+  return {
+    status,
+    weekInfo: `Week ${currentWeek}/${totalWeeks}`,
+    week: currentWeek,
+    remainingSessions,
+    percentage,
+    totalWeeks,
+    isOngoing,
+    isArchived: false,
+  }
 }

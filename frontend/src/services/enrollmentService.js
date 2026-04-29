@@ -8,8 +8,10 @@ export const enrollmentService = {
     })
   },
 
-  getAllEnrollments() {
-    return request('/enrollments', {
+  getAllEnrollments(params = {}) {
+    const searchParams = new URLSearchParams(params).toString()
+    const url = searchParams ? `/enrollments?${searchParams}` : '/enrollments'
+    return request(url, {
       method: 'GET',
     })
   },

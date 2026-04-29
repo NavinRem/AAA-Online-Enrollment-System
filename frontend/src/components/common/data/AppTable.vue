@@ -38,6 +38,7 @@ defineProps({
               class="table-header-cell" :class="[
                 typeof col === 'object' ? col.class : '',
                 typeof col === 'object' && col.align ? `text-${col.align}` : 'text-left',
+                typeof col === 'object' && col.hideOnMobile ? 'hidden-on-mobile' : '',
               ]">
               {{ typeof col === 'object' ? col.label : col }}
             </th>
@@ -61,7 +62,7 @@ defineProps({
 
 <style scoped>
 .table-root {
-  @apply w-full relative flex flex-1 flex-col min-h-0 overflow-hidden bg-white rounded-md border border-outline-std shadow-sm p-6;
+  @apply w-full relative flex flex-1 flex-col min-h-0 overflow-hidden bg-white rounded-md border border-outline-std shadow-sm p-4 sm:p-6;
 }
 
 .table-toolbar-container {
@@ -69,7 +70,7 @@ defineProps({
 }
 
 .table-content-area {
-  @apply w-full flex flex-col min-h-0;
+  @apply w-full flex flex-col min-h-0 overflow-x-auto;
 }
 
 .table-footer-container {
@@ -86,5 +87,17 @@ defineProps({
 
 .scrollable-v::-webkit-scrollbar {
   width: 6px;
+}
+
+.table-content-area::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-content-area::-webkit-scrollbar-track {
+  @apply bg-surface-subtle/50;
+}
+
+.table-content-area::-webkit-scrollbar-thumb {
+  @apply bg-outline-std/50 rounded-full hover:bg-outline-std;
 }
 </style>

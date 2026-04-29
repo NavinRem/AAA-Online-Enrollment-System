@@ -309,3 +309,10 @@ svg {
     }
   }
 }
+
+/* ── Responsive Hiding (Administrative Tables) ─────────────────────────── */
+@media (max-width: 1500px) {
+  .hidden-on-mobile {
+    display: none !important;
+  }
+}

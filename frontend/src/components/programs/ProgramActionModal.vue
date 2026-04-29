@@ -161,7 +161,7 @@ const modalIcon = computed(() => {
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Update'
+  if (props.type === 'edit') return 'Edit'
   if (props.type === 'delete') return 'Delete'
   return 'Add'
 })
@@ -294,29 +294,24 @@ const handleActionSubmit = () => {
   emit('submit', payload)
 }
 
-const confirmOverlayTitle = computed(() => {
-  const titles = { edit: 'Confirm Program Update', delete: 'Confirm Program Deletion' }
-  return titles[props.type] || 'Confirm New Program'
-})
-
 const confirmOverlaySubtitle = computed(() => {
-  if (props.type === 'delete') return 'This action is irreversible. All associated data will be removed.'
-  return 'Please verify the program details before finalizing.'
+  if (props.type === 'delete') return 'This action will permanently erase this program and its historical data.'
+  return 'Please verify the program details and parameters before proceeding.'
 })
 
 const confirmRows = computed(() => {
   const rows = [
-    { key: 'Name', value: localData.name },
+    { key: 'Program', value: localData.name },
     { key: 'Category', value: categories.value.find((c) => (c?.id || c?._id) === localData.categoryId)?.name || 'N/A' },
     { key: 'Level', value: levels.value.find((l) => (l?.id || l?._id) === localData.levelId)?.name || 'N/A' },
-    { key: 'Type', value: localData.type, badge: true, type: 'blue' },
-    { key: 'Base Price', value: `$${localData.basePrice}`, badge: true, type: 'blue' },
+    { key: 'Type', value: localData.type },
+    { key: 'Base Price', value: `$${localData.basePrice}` },
     { key: 'Total Sessions', value: localData.totalSessions },
     { key: 'Age Range', value: `${localData.minAge} - ${localData.maxAge} years` },
     { key: 'Max Capacity', value: localData.maxCapacity },
   ]
   if (props.type === 'delete') {
-    rows.push({ key: 'Confirmation', value: localData.deleteConfirm, valueClass: 'text-error font-black' })
+    rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-black' })
   }
   return rows
 })
@@ -535,7 +530,7 @@ watch(
 
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight uppercase">⚠ Permanent Data Purge</strong>
+            <strong class="text-sm font-black tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
             <span class="text-xs opacity-90 font-medium">This will erase all linked class records and enrollment history
               for this program. This action is irreversible.</span>
           </div>
@@ -552,7 +547,7 @@ watch(
       </div>
 
       <!-- ── Confirmation Overlay ── -->
-      <AppConfirmOverlay :show="showConfirm" :title="confirmOverlayTitle" :subtitle="confirmOverlaySubtitle"
+      <AppConfirmOverlay :show="showConfirm" :title="modalTitle" :subtitle="confirmOverlaySubtitle"
         :icon="modalIcon" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading" @back="showConfirm = false"
         @confirm="handleActionSubmit" />
     </div>

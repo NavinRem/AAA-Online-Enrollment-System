@@ -44,6 +44,23 @@ class DateHelper {
   getTodayString() {
     return new Date().toISOString().split('T')[0]
   }
+
+  calculateEndDate(startDateStr, sessionCount) {
+    const start = this.validateAndParseDate(startDateStr, 'Start Date', { allowFuture: true })
+    const end = new Date(start)
+    // 11 sessions = 10 weeks after start date
+    end.setDate(start.getDate() + (sessionCount - 1) * 7)
+    return end.toISOString().split('T')[0]
+  }
+
+  calculateSessionCount(startDateStr, endDateStr) {
+    const start = this.validateAndParseDate(startDateStr, 'Start Date', { allowFuture: true })
+    const end = this.validateAndParseDate(endDateStr, 'End Date', { allowFuture: true })
+    const diffMs = end - start
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+    // 70 days = 10 weeks = 11 sessions
+    return Math.floor(diffDays / 7) + 1
+  }
 }
 
 module.exports = new DateHelper()

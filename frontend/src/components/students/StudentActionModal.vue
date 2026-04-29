@@ -81,20 +81,20 @@ const handleActionSubmit = () => {
 
 const modalTitle = computed(() => {
   const titles = {
-    edit: 'Edit Student Profile',
-    delete: 'Delete Student Record',
+    edit: 'Edit Student',
+    delete: 'Delete Student',
     override: 'Manual Status Override',
     'enrollment-override': 'Enrollment Status Override',
-    'enrollment-delete': 'Delete Enrollment Record',
+    'enrollment-delete': 'Delete Enrollment',
   }
   return titles[props.type] || 'Student Action'
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Update'
+  if (props.type === 'edit') return 'Edit'
   if (props.type?.includes('delete')) return 'Delete'
   if (props.type === 'add') return 'Add'
-  return 'Update'
+  return 'Edit'
 })
 
 const modalIcon = computed(() => {
@@ -164,7 +164,7 @@ watch(
           {{ localData.name || 'Student Name' }}
         </h2>
         <div class="ui-identity-meta-compact">
-          <span>{{ studentTheme === 'theme-pink' ? 'Female' : 'Male' }}</span>
+          <AppBadge :status="studentTheme === 'theme-pink' ? 'Female' : 'Male'" />
           <span class="opacity-50">•</span>
           <span>{{ calculateAge(localData.dob) }} yrs old</span>
         </div>

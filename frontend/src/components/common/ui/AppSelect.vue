@@ -3,7 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
-  modelValue: [String, Number],
+  modelValue: [String, Number, Array],
   items: {
     type: Array,
     default: () => [],
@@ -25,6 +25,7 @@ const props = defineProps({
     type: String,
     default: 'Search...',
   },
+  multiple: Boolean,
 })
 
 const emit = defineEmits(['update:modelValue', 'change', 'click-disabled'])
@@ -64,13 +65,22 @@ const computeDropdownPosition = async () => {
 }
 
 const selectedItem = computed(() => {
+  if (props.multiple) return null
   return props.items.find((item) => item.id == props.modelValue)
 })
 
+const selectedItems = computed(() => {
+  if (!props.multiple || !Array.isArray(props.modelValue)) return []
+  return props.items.filter((item) => props.modelValue.includes(item.id))
+})
+
 const filteredItems = computed(() => {
-  if (!searchQuery.value) return props.items
-  const q = searchQuery.value.toLowerCase()
-  return props.items.filter((item) => item.name.toLowerCase().includes(q))
+  let items = props.items
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    items = items.filter((item) => item.name.toLowerCase().includes(q))
+  }
+  return items
 })
 
 const toggleDropdown = () => {
@@ -89,9 +99,21 @@ const toggleDropdown = () => {
 }
 
 const selectItem = (item) => {
-  emit('update:modelValue', item.id)
-  emit('change', item.id)
-  isOpen.value = false
+  if (props.multiple) {
+    const current = Array.isArray(props.modelValue) ? [...props.modelValue] : []
+    const index = current.indexOf(item.id)
+    if (index > -1) {
+      current.splice(index, 1)
+    } else {
+      current.push(item.id)
+    }
+    emit('update:modelValue', current)
+    emit('change', current)
+  } else {
+    emit('update:modelValue', item.id)
+    emit('change', item.id)
+    isOpen.value = false
+  }
 }
 
 const handleClickOutside = (event) => {
@@ -137,10 +159,30 @@ onUnmounted(() => {
           'opacity-60 cursor-not-allowed': disabled,
         }" @click="toggleDropdown">
         <div class="flex items-center justify-between w-full px-4 py-2">
-          <slot name="selected" :item="selectedItem">
-            <div v-if="selectedItem" class="flex items-center gap-2 flex-1 overflow-hidden">
+          <slot name="selected" :item="selectedItem" :items="selectedItems">
+            <!-- Multiple Selection View -->
+            <div v-if="multiple" class="flex flex-wrap gap-2 flex-1 overflow-hidden">
+              <div v-for="item in selectedItems" :key="item.id"
+                class="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-md pl-1.5 pr-2 py-1 group/tag animate-in zoom-in-95 duration-200">
+                <div class="w-5 h-5 rounded-full overflow-hidden border border-primary/30 bg-white shrink-0">
+                  <img :src="item.profileURL || getActionIcon('edit')" class="w-full h-full object-cover" />
+                </div>
+                <span class="text-[11px] font-bold text-primary truncate max-w-[100px]">{{ item.name }}</span>
+                <button type="button" @click.stop="selectItem(item)"
+                  class="ml-1 text-primary/40 hover:text-primary transition-colors">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <span v-if="selectedItems.length === 0" class="text-content-light text-sm italic opacity-70">{{ placeholder
+                }}</span>
+            </div>
+
+            <!-- Single Selection View -->
+            <div v-else-if="selectedItem" class="flex items-center gap-2 flex-1 overflow-hidden">
               <div class="w-7 h-7 rounded-full border border-outline-std overflow-hidden bg-white shrink-0">
-                <img :src="selectedItem.profileURL" class="w-full h-full object-cover" />
+                <img :src="selectedItem.profileURL || getActionIcon('edit')" class="w-full h-full object-cover" />
               </div>
               <span class="text-sm font-semibold text-content-dark truncate flex-1">{{ selectedItem.name }}</span>
               <slot name="selected-badge" :item="selectedItem"></slot>
@@ -169,7 +211,11 @@ onUnmounted(() => {
           <ul class="list-none p-0 m-0 overflow-y-auto scrollable-v" style="max-height: 220px;">
             <li v-for="item in filteredItems" :key="item.id"
               class="px-md py-sm flex items-center gap-sm cursor-pointer transition-colors hover:bg-surface-light group/item"
-              :class="{ 'bg-primary-soft text-primary font-bold': modelValue == item.id }" @click="selectItem(item)">
+              :class="{
+                'bg-primary-soft text-primary font-bold': multiple
+                  ? (Array.isArray(modelValue) && modelValue.includes(item.id))
+                  : modelValue == item.id
+              }" @click="selectItem(item)">
               <slot name="item" :item="item">
                 <div class="flex items-center gap-3 w-full">
                   <div
