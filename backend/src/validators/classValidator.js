@@ -2,9 +2,10 @@ function validateClass(classData) {
   const classFields = [
     'programId',
     'branchId',
+    'branchIds',
     'termId',
     'teacherIds',
-    'schedules',
+    'schedule',
     'scheduleType',
     'status',
     'adminNote',
@@ -18,27 +19,36 @@ function validateClass(classData) {
     }
   })
 
-  const { programId, termId, branchId, teacherIds } = classData
+  const { programId, termId, teacherIds, schedule } = classData
+  const branchIds =
+    classData.branchIds || (classData.branchId ? [classData.branchId] : [])
 
-  if (!programId || !termId || !branchId || !teacherIds || !teacherIds.length) {
-    throw new Error('Program, Term, Branch, and at least one Teacher are required')
+  if (
+    !programId ||
+    !termId ||
+    !branchIds.length ||
+    !teacherIds ||
+    !teacherIds.length
+  ) {
+    throw new Error(
+      'Program, Term, Branch (at least one), and at least one Teacher are required',
+    )
   }
 
-  const rawSchedules = Array.isArray(classData.schedules)
-    ? classData.schedules
-    : []
-  const schedules = rawSchedules.map((s) => ({
-    day: s.day || '',
-    time: s.time || s.timeslot || '',
-  }))
+  if (!schedule || !schedule.day || !schedule.time) {
+    throw new Error('A valid schedule (day and time) is required')
+  }
 
   return {
     programId,
     termId,
-    branchId,
+    branchIds,
     teacherIds,
-    schedules,
-    scheduleType: classData.scheduleType || 'group',
+    schedule: {
+      day: schedule.day,
+      time: schedule.time,
+    },
+    scheduleType: classData.scheduleType || 'fixed',
     adminNote: classData.adminNote || '',
     maxCapacity: parseInt(classData.maxCapacity || 0),
     enrolledCount: parseInt(classData.enrolledCount || 0),
@@ -53,8 +63,9 @@ function validateUpdateClass(updateData) {
     'programId',
     'termId',
     'branchId',
+    'branchIds',
     'teacherIds',
-    'schedules',
+    'schedule',
     'scheduleType',
     'status',
     'adminNote',
@@ -73,14 +84,10 @@ function validateUpdateClass(updateData) {
     throw new Error('No valid fields provided for update')
   }
 
-  if (cleanData.schedules !== undefined) {
-    const rawSchedules = Array.isArray(cleanData.schedules)
-      ? cleanData.schedules
-      : []
-    cleanData.schedules = rawSchedules.map((s) => ({
-      day: s.day || '',
-      time: s.time || s.timeslot || '',
-    }))
+  if (cleanData.schedule) {
+    if (!cleanData.schedule.day || !cleanData.schedule.time) {
+      throw new Error('Schedule must contain both day and time')
+    }
   }
 
   if (cleanData.maxCapacity !== undefined)
