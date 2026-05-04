@@ -156,7 +156,7 @@ const fetchPrograms = async () => {
         category: cat?.name || p.category || 'Uncategorized',
         categoryProfileURL: cat?.profileURL || '',
         levelId: p.levelId || lvl?.id,
-        level: lvl?.name || 'General',
+        level: lvl?.name,
       }
     })
 
@@ -177,6 +177,7 @@ onMounted(() => {
 const programHeaders = [
   { label: 'NO', width: '50px', class: 'hidden md:table-cell', align: 'center' },
   { label: 'PROGRAM IDENTITY' },
+  { label: 'DESCRIPTION', class: 'hidden xl:table-cell', width: '400px' },
   { label: 'LEVEL', class: 'hidden lg:table-cell', align: 'center', width: '120px' },
   { label: 'SESSIONS', align: 'center', width: '100px', class: 'hidden sm:table-cell' },
   { label: 'BASE PRICE', align: 'center', width: '120px' },
@@ -189,7 +190,7 @@ const currentFilter = ref('all')
 
 const filterOptions = computed(() => {
   const types = [
-    { label: 'All Programs', value: 'all', profileURL: getImageUrl('common/logo-main'), color: 'blue' },
+    { label: 'All Programs', value: 'all', profileURL: getActionIcon('filter'), color: 'blue' },
     { label: 'Group Programs', value: 'type:Group', profileURL: getIconUrl('navigation/parent.svg'), color: 'purple' },
     { label: 'Private Programs', value: 'type:Private', profileURL: getIconUrl('navigation/class.svg'), color: 'magenta' },
   ]
@@ -293,8 +294,8 @@ const handleActionSubmit = async (formData) => {
           programId: result.id,
           branchId: 'FM',
           day: formData.schedule.day,
-          timeslot: formData.schedule.timeslot,
-          capacity: 20,
+          time: formData.schedule.time,
+          maxCapacity: 20,
         })
       }
 
@@ -374,9 +375,13 @@ const handleActionSubmit = async (formData) => {
               </div>
             </td>
 
+            <td class="ui-cell hidden xl:table-cell">
+              <span class="text-xs font-medium text-content-muted line-clamp-2" :title="item.description">{{
+                item.description || 'No description provided' }}</span>
+            </td>
+
             <td class="ui-cell text-center hidden lg:table-cell">
-              <AppBadge :status="item.level || 'General'"
-                class="bg-surface-subtle text-content-dark border-outline-std" />
+              <AppBadge :status="item.level" :type="'magenta'" />
             </td>
 
             <td class="ui-cell text-center hidden sm:table-cell">

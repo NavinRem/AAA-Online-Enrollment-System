@@ -96,10 +96,10 @@ const sessionInfo = computed(() => {
   const cl = selectedClass.value
   if (!cl || !cl.term) return null
 
-  const scheduleMap = (cl.schedules || []).reduce((acc, s) => {
-    acc[s.day] = s.timeslot || s.time
-    return acc
-  }, {})
+  const scheduleMap = {}
+  if (cl.schedule) {
+    scheduleMap[cl.schedule.day] = cl.schedule.time
+  }
 
   return getSessionCounts(cl.term.startDate, cl.term.endDate, scheduleMap)
 })
@@ -171,9 +171,9 @@ const confirmRows = computed(() => {
     { key: 'Type', value: selectedClass.value?.program?.type, badge: true },
     {
       key: 'Schedule',
-      value: selectedClass.value
-        ? (selectedClass.value.schedules || []).map((s) => `${s.day} (${s.timeslot || s.time})`).join(', ')
-        : null,
+      value: selectedClass.value?.schedule
+        ? `${selectedClass.value.schedule.day} (${selectedClass.value.schedule.time})`
+        : 'N/A',
     },
     { key: 'Branch', value: selectedClass.value?.branch?.abbr || selectedClass.value?.branch?.name, badge: true, type: selectedClass.value?.branch?.color },
     { key: 'Sessions', value: `${form.enrolledSessions || 0} sessions` },
@@ -221,12 +221,12 @@ const programSelectItems = computed(() =>
 const classSelectItems = computed(() =>
   availableClasses.value.map((cl) => ({
     id: cl.id,
-    name: `${(cl.schedules || []).map((s) => `${s.day} (${s.timeslot || s.time})`).join(', ')} - ${cl.enrolledCount || 0}/${cl.maxCapacity || 0} enrolled`,
+    name: `${cl.schedule ? `${cl.schedule.day} (${cl.schedule.time})` : 'TBA'} - ${cl.enrolledCount || 0}/${cl.maxCapacity || 0} enrolled`,
     branchAbbr: cl.branch?.abbr,
     maxCapacity: cl.maxCapacity,
     enrolledCount: cl.enrolledCount,
     profileURL: cl.program?.profileURL,
-    status: calculateClassProgress(cl.term?.startDate, cl.term?.endDate, cl.day, cl.timeslot).status
+    status: calculateClassProgress(cl.term?.startDate, cl.term?.endDate, cl.schedule?.day, cl.schedule?.time).status
   }))
 )
 
@@ -444,8 +444,7 @@ watch(
               <div class="enroll-info-item col-span-2">
                 <span class="enroll-info-key">Schedule</span>
                 <span class="enroll-info-val text-primary font-bold">
-                  {{(selectedClass?.schedules || []).map((s) => `${s.day} (${s.timeslot || s.time || '—'})`).join(', ')
-                  }}
+                  {{ selectedClass?.schedule ? `${selectedClass.schedule.day} (${selectedClass.schedule.time})` : '—' }}
                 </span>
               </div>
               <div class="enroll-info-item">

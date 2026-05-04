@@ -1,6 +1,5 @@
 const { db, COLLECTIONS } = require('../config/database')
 const profileHelper = require('../utils/profileHelper')
-const dateHelper = require('../utils/dateHelper')
 const {
   validateClass,
   validateUpdateClass,
@@ -9,82 +8,142 @@ const {
 class ClassService {
   async createClass(classData) {
     const validated = validateClass(classData)
-    
-    // Check for duplicate class in the same Term, Branch, and Schedule
-    const scheduleMatch = validated.schedules?.[0]
-    if (scheduleMatch) {
-      const duplicateQuery = db.collection(COLLECTIONS.CLASS)
-        .where('termId', '==', validated.termId)
-        .where('branchId', '==', validated.branchId)
-        .where('programId', '==', validated.programId)
+    const { branchIds, ...baseData } = validated
 
-      const dupSnap = await duplicateQuery.get()
-      const isDuplicate = dupSnap.docs.some(doc => {
-        const d = doc.data()
-        return d.schedules?.some(s => s.day === scheduleMatch.day && (s.time === scheduleMatch.time || s.timeslot === scheduleMatch.timeslot))
-      })
-
-      if (isDuplicate) {
-        throw new Error('A class with the same Program, Term, Branch, and Schedule already exists.')
-      }
-    }
-
-    const [programDoc, branchDoc, termDoc] = await Promise.all([
+    const [programDoc, termDoc] = await Promise.all([
       db.collection(COLLECTIONS.PROGRAM).doc(validated.programId).get(),
-      db.collection(COLLECTIONS.BRANCH).doc(validated.branchId).get(),
       db.collection(COLLECTIONS.TERM).doc(validated.termId).get(),
     ])
 
     if (!programDoc.exists) throw new Error('Program not found')
-    if (!branchDoc.exists) throw new Error('Branch not found')
     if (!termDoc.exists) throw new Error('Term not found')
 
     const termData = termDoc.data()
     const programData = programDoc.data()
 
-    // Validate sessions match
-    if (programData.totalSessions !== termData.totalSessions) {
-      console.warn(`Program sessions (${programData.totalSessions}) do not match Term sessions (${termData.totalSessions})`)
+    // Fetch category info to ensure complete program snapshot
+    if (programData.categoryId) {
+      const catDoc = await db
+        .collection(COLLECTIONS.CATEGORY)
+        .doc(programData.categoryId)
+        .get()
+      if (catDoc.exists) {
+        const catData = catDoc.data()
+        programData.category = catData.name
+        // Use category profile URL as fallback if program doesn't have one
+        if (!programData.profileURL) {
+          programData.profileURL = catData.profileURL
+        }
+      }
     }
 
-    const calculatedStatus = this.calculateStatus(termData.startDate, termData.endDate)
+    const calculatedStatus = this.calculateStatus(
+      termData.startDate,
+      termData.endDate,
+    )
 
     const teacherDocs = await Promise.all(
-      validated.teacherIds.map((id) => db.collection(COLLECTIONS.TEACHER).doc(id).get()),
+      validated.teacherIds.map((id) =>
+        db.collection(COLLECTIONS.TEACHER).doc(id).get(),
+      ),
     )
-    if (teacherDocs.some((d) => !d.exists)) throw new Error('One or more teachers not found')
+    if (teacherDocs.some((d) => !d.exists))
+      throw new Error('One or more teachers not found')
 
-    const id = db.collection(COLLECTIONS.CLASS).doc().id
-    const newClass = {
-      ...validated,
-      currentCount: 0,
-      program: profileHelper.getProgramSnapshot(validated.programId, programDoc.data()),
-      teachers: teacherDocs.map((d) => profileHelper.getTeacherSnapshot(d.id, d.data())),
-      branch: profileHelper.getBranchSnapshot(validated.branchId, branchDoc.data()),
-      term: profileHelper.getTermSnapshot(validated.termId, termDoc.data()),
-      status: calculatedStatus,
-      createdAt: new Date().toISOString(),
+    const createdClasses = []
+    const scheduleMatch = validated.schedules?.[0]
+
+    for (const bId of branchIds) {
+      // Uniqueness check for each branch
+      if (scheduleMatch) {
+        const duplicateQuery = db
+          .collection(COLLECTIONS.CLASS)
+          .where('termId', '==', validated.termId)
+          .where('branchId', '==', bId)
+          .where('programId', '==', validated.programId)
+          .where('isDeleted', '==', false)
+
+        const dupSnap = await duplicateQuery.get()
+        const isDuplicate = dupSnap.docs.some((doc) => {
+          const d = doc.data()
+          return d.schedules?.some(
+            (s) => s.day === scheduleMatch.day && s.time === scheduleMatch.time,
+          )
+        })
+
+        if (isDuplicate) {
+          const branchDoc = await db
+            .collection(COLLECTIONS.BRANCH)
+            .doc(bId)
+            .get()
+          const bName = branchDoc.exists ? branchDoc.data().name : bId
+          throw new Error(
+            `A class with same Program, Term, and Schedule already exists at branch "${bName}".`,
+          )
+        }
+      }
+
+      const branchDoc = await db.collection(COLLECTIONS.BRANCH).doc(bId).get()
+      if (!branchDoc.exists) throw new Error(`Branch ${bId} not found`)
+
+      const id = db.collection(COLLECTIONS.CLASS).doc().id
+      const newClass = {
+        ...baseData,
+        branchId: bId,
+        currentCount: 0,
+        program: profileHelper.getProgramSnapshot(
+          validated.programId,
+          programData,
+        ),
+        teachers: teacherDocs.map((d) =>
+          profileHelper.getTeacherSnapshot(d.id, d.data()),
+        ),
+        branch: profileHelper.getBranchSnapshot(bId, branchDoc.data()),
+        term: profileHelper.getTermSnapshot(validated.termId, termData),
+        status: calculatedStatus,
+        isDeleted: false,
+        createdAt: new Date().toISOString(),
+      }
+
+      await db.collection(COLLECTIONS.CLASS).doc(id).set(newClass)
+      createdClasses.push({ id, ...newClass })
     }
 
-    await db.collection(COLLECTIONS.CLASS).doc(id).set(newClass)
-    return { id, ...newClass }
+    return createdClasses.length === 1
+      ? createdClasses[0]
+      : {
+          message: `Successfully created ${createdClasses.length} classes`,
+          classes: createdClasses,
+        }
   }
 
   async getAllClasses(filters = {}) {
     let query = db.collection(COLLECTIONS.CLASS)
-    if (filters.programId) query = query.where('programId', '==', filters.programId)
-    if (filters.branchId) query = query.where('branchId', '==', filters.branchId)
+    if (filters.programId)
+      query = query.where('programId', '==', filters.programId)
+    if (filters.branchId)
+      query = query.where('branchId', '==', filters.branchId)
     if (filters.termId) query = query.where('termId', '==', filters.termId)
     if (filters.status) query = query.where('status', '==', filters.status)
+    if (filters.includeDeleted !== true)
+      query = query.where('isDeleted', '==', false)
 
     const snapshot = await query.get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    const results = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+
+    // Enrich with category info for frontend rendering (not saved to DB)
+    const enrichedResults = await this._enrichWithCategoryInfo(results)
+
+    // Fallback for legacy records that don't have isDeleted field
+    return enrichedResults.filter((c) => c.isDeleted !== true)
   }
 
   async getClass(id) {
     const doc = await db.collection(COLLECTIONS.CLASS).doc(id).get()
     if (!doc.exists) throw new Error('Class not found')
-    return { id: doc.id, ...doc.data() }
+    const classData = { id: doc.id, ...doc.data() }
+    const enriched = await this._enrichWithCategoryInfo([classData])
+    return enriched[0]
   }
 
   async updateClass(id, updateData) {
@@ -96,26 +155,45 @@ class ClassService {
       if (!doc.exists) throw new Error('Class not found')
 
       const currentData = doc.data()
-      
+
       // Archived Check
-      if (currentData.term?.endDate && new Date(currentData.term.endDate) < new Date()) {
+      if (
+        currentData.term?.endDate &&
+        new Date(currentData.term.endDate) < new Date()
+      ) {
         throw new Error('Cannot modify a class in an archived term.')
       }
 
+      // Hard check for active enrollments if capacity is being reduced below current count
+      if (
+        validated.capacity !== undefined &&
+        validated.capacity < currentData.currentCount
+      ) {
+        throw new Error(
+          `Cannot set capacity to ${validated.capacity} as there are already ${currentData.currentCount} active enrollments.`,
+        )
+      }
+
       const termData = validated.term || currentData.term
-      const calculatedStatus = this.calculateStatus(termData.startDate, termData.endDate)
-      
-      transaction.update(ref, { 
-        ...validated, 
+      const calculatedStatus = this.calculateStatus(
+        termData.startDate,
+        termData.endDate,
+      )
+
+      transaction.update(ref, {
+        ...validated,
         status: calculatedStatus,
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString(),
       })
 
       const syncNeeded = validated.schedule || validated.capacity !== undefined
       if (syncNeeded) {
         const newData = { ...currentData, ...validated }
         const snapshot = profileHelper.getClassSnapshot(id, newData)
-        await require('./enrollmentService').syncEnrollmentsWithClass(id, snapshot)
+        await require('./enrollmentService').syncEnrollmentsWithClass(
+          id,
+          snapshot,
+        )
       }
     })
 
@@ -128,34 +206,66 @@ class ClassService {
     if (!doc.exists) throw new Error('Class not found')
 
     if (doc.data().currentCount > 0) {
-      throw new Error('Cannot delete class with active enrollments')
+      throw new Error(
+        'Cannot delete class with active enrollments (Current Count > 0)',
+      )
     }
 
-    await ref.delete()
-    return { message: 'Class deleted successfully' }
+    // Check for ANY enrollment history (including cancelled or completed)
+    const historySnap = await db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .where('classId', '==', id)
+      .limit(1)
+      .get()
+
+    if (historySnap.empty) {
+      // Truly empty class with no history -> Hard Delete
+      await ref.delete()
+      return { message: 'Class deleted permanently (No history found)' }
+    } else {
+      // Class has historical links -> Soft Delete to preserve data integrity
+      await ref.update({
+        isDeleted: true,
+        updatedAt: new Date().toISOString(),
+      })
+      return { message: 'Class soft-deleted (History preserved)' }
+    }
   }
 
   // --- Operational Utilities ---
 
   async duplicateClassesFromTerm(sourceTermId, targetTermId, branchId = null) {
-    let query = db.collection(COLLECTIONS.CLASS).where('termId', '==', sourceTermId)
+    let query = db
+      .collection(COLLECTIONS.CLASS)
+      .where('termId', '==', sourceTermId)
     if (branchId) query = query.where('branchId', '==', branchId)
 
     const snapshot = await query.get()
     if (snapshot.empty) throw new Error('No classes found in source term')
 
-    const targetTermDoc = await db.collection(COLLECTIONS.TERM).doc(targetTermId).get()
+    const targetTermDoc = await db
+      .collection(COLLECTIONS.TERM)
+      .doc(targetTermId)
+      .get()
     if (!targetTermDoc.exists) throw new Error('Target term not found')
 
-    const targetTermSnapshot = profileHelper.getTermSnapshot(targetTermId, targetTermDoc.data())
-    
+    const targetTermSnapshot = profileHelper.getTermSnapshot(
+      targetTermId,
+      targetTermDoc.data(),
+    )
+
     // Fetch existing classes in target term to avoid duplicates
-    const existingTargetClassesSnap = await db.collection(COLLECTIONS.CLASS).where('termId', '==', targetTermId).get()
-    const existingKeys = new Set(existingTargetClassesSnap.docs.map(doc => {
-      const d = doc.data()
-      const s = d.schedules?.[0]
-      return `${d.programId}-${d.branchId}-${s?.day}-${s?.time || s?.timeslot}`
-    }))
+    const existingTargetClassesSnap = await db
+      .collection(COLLECTIONS.CLASS)
+      .where('termId', '==', targetTermId)
+      .get()
+    const existingKeys = new Set(
+      existingTargetClassesSnap.docs.map((doc) => {
+        const d = doc.data()
+        const s = d.schedules?.[0]
+        return `${d.programId}-${d.branchId}-${s?.day}-${s?.time}`
+      }),
+    )
 
     const batch = db.batch()
     let count = 0
@@ -163,8 +273,8 @@ class ClassService {
     snapshot.docs.forEach((doc) => {
       const data = doc.data()
       const s = data.schedules?.[0]
-      const key = `${data.programId}-${data.branchId}-${s?.day}-${s?.time || s?.timeslot}`
-      
+      const key = `${data.programId}-${data.branchId}-${s?.day}-${s?.time}`
+
       if (existingKeys.has(key)) return // Skip duplicates
 
       const newId = db.collection(COLLECTIONS.CLASS).doc().id
@@ -192,7 +302,10 @@ class ClassService {
       .get()
 
     const count = enrollmentsSnap.size
-    await db.collection(COLLECTIONS.CLASS).doc(classId).update({ currentCount: count })
+    await db
+      .collection(COLLECTIONS.CLASS)
+      .doc(classId)
+      .update({ currentCount: count })
     return { classId, count }
   }
 
@@ -212,16 +325,25 @@ class ClassService {
     if (!classDoc.exists) throw new Error('Class not found')
 
     const { currentCount, capacity } = classDoc.data()
-    return { isAvailable: currentCount < capacity, remaining: Math.max(0, capacity - currentCount) }
+    return {
+      isAvailable: currentCount < capacity,
+      remaining: Math.max(0, capacity - currentCount),
+    }
   }
 
   async syncClassesWithProgram(programId, programSnapshot) {
-    const snapshot = await db.collection(COLLECTIONS.CLASS).where('programId', '==', programId).get()
+    const snapshot = await db
+      .collection(COLLECTIONS.CLASS)
+      .where('programId', '==', programId)
+      .get()
     if (snapshot.empty) return
 
     const batch = db.batch()
     snapshot.docs.forEach((doc) => {
-      batch.update(doc.ref, { program: programSnapshot, updatedAt: new Date().toISOString() })
+      batch.update(doc.ref, {
+        program: programSnapshot,
+        updatedAt: new Date().toISOString(),
+      })
     })
     await batch.commit()
 
@@ -239,13 +361,61 @@ class ClassService {
     const start = new Date(startDate)
     const end = new Date(endDate)
 
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-    const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
-    const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+    const todayDate = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    )
+    const startDateOnly = new Date(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate(),
+    )
+    const endDateOnly = new Date(
+      end.getFullYear(),
+      end.getMonth(),
+      end.getDate(),
+    )
 
     if (todayDate < startDateOnly) return 'upcoming'
     if (todayDate > endDateOnly) return 'archived'
     return 'active'
+  }
+
+  async _enrichWithCategoryInfo(classList) {
+    if (!classList || classList.length === 0) return []
+
+    const categoryIds = [
+      ...new Set(
+        classList.map((c) => c.program?.categoryId).filter((id) => !!id),
+      ),
+    ]
+
+    if (categoryIds.length === 0) return classList
+
+    const categoriesSnap = await db.collection(COLLECTIONS.CATEGORY).get()
+    const categoriesMap = {}
+    categoriesSnap.forEach((doc) => {
+      categoriesMap[doc.id] = doc.data()
+    })
+
+    return classList.map((cls) => {
+      if (cls.program && cls.program.categoryId) {
+        const cat = categoriesMap[cls.program.categoryId]
+        if (cat) {
+          // Add category object for frontend rendering (item.program.category.profileURL)
+          cls.program.category = {
+            name: cat.name,
+            profileURL: cat.profileURL,
+          }
+          // Fallback program profileURL if missing
+          if (!cls.program.profileURL) {
+            cls.program.profileURL = cat.profileURL
+          }
+        }
+      }
+      return cls
+    })
   }
 }
 

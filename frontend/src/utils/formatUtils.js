@@ -127,7 +127,7 @@ export const formatPrice = (val) => {
  * @param {string} timeslot - Class timeslot (optional, e.g. "09:00 AM - 10:30 AM")
  * @returns {object} Progress stats { week, status, percentage, totalWeeks, isOngoing, isArchived }
  */
-export const calculateClassProgress = (startDate, endDate, day = null, timeslot = null) => {
+export const calculateClassProgress = (startDate, endDate, day = null, time = null) => {
   if (!startDate || !endDate) return { status: 'N/A', week: 0, percentage: 0, totalWeeks: 0 }
 
   const start = new Date(startDate)
@@ -169,12 +169,12 @@ export const calculateClassProgress = (startDate, endDate, day = null, timeslot 
 
   // Check for Ongoing status
   let isOngoing = false
-  if (day && timeslot) {
+  if (day && time) {
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     const todayDayName = dayNames[today.getDay()]
 
     if (day === todayDayName) {
-      const [startStr, endStr] = timeslot.split(' - ')
+      const [startStr, endStr] = time.split(' - ')
       if (startStr && endStr) {
         const parseTime = (str) => {
           const [time, period] = str.split(' ')

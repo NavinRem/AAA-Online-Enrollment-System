@@ -54,7 +54,7 @@ export const getSessionDay = (schedule, full = false) => {
 export const getSessionTime = (schedule) => {
   if (!schedule) return ''
   if (typeof schedule === 'object') {
-    return schedule.timeslot || schedule.time || 'TBD'
+    return schedule.time || 'TBD'
   }
 
   const rawStr = String(schedule)

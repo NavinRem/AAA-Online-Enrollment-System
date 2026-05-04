@@ -56,13 +56,15 @@ export const enrichEnrollments = (
       const program =
         r.program || r.class?.program || programs.find((p) => p.id === classInst?.program?.id)
 
-      const scheduleVal = classInst ? `${classInst.day} (${classInst.timeslot})` : 'N/A'
+      const scheduleVal = classInst
+        ? (classInst.schedule ? `${classInst.schedule.day} (${classInst.schedule.time})` : 'N/A')
+        : 'N/A'
 
       return {
         ...r,
         parent: parent
           ? {
-            id: parent.id,
+            ...parent,
             name: parent.name || 'N/A',
             profileURL: getParentProfileURL(parent.profileURL),
             status: (parent.status || 'Active'),
@@ -70,7 +72,7 @@ export const enrichEnrollments = (
           : r.parent,
         student: student
           ? {
-            id: student.id,
+            ...student,
             name: student.name || 'N/A',
             profileURL: getStudentProfileURL(student.profileURL),
           }

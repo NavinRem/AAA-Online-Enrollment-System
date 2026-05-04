@@ -118,9 +118,9 @@ const handleSaveEnrollment = async (formData) => {
       class: {
         id: classInstance.id,
         branchAbbr: classInstance.branch?.abbr || 'N/A',
-        schedule: (classInstance.schedules || [])
-          .map((s) => `${s.day} (${s.time})`)
-          .join(', '),
+        schedule: classInstance.schedule
+          ? `${classInstance.schedule.day} (${classInstance.schedule.time})`
+          : 'TBA',
       },
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,

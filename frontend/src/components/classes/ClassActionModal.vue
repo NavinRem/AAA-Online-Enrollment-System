@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
@@ -13,6 +13,7 @@ import { branchService } from '@/services/branchService'
 import { teacherService } from '@/services/teacherService'
 import { termService } from '@/services/termService'
 import { categoryService } from '@/services/categoryService'
+import { classService } from '@/services/classService'
 import { useActionModal } from '@/composables/useActionModal'
 import { calculateClassProgress } from '@/utils/formatUtils'
 
@@ -30,13 +31,16 @@ const emit = defineEmits(['close', 'submit'])
 const getInitialData = () => ({
   programId: '',
   termId: '',
-  branchId: '',
+  branchIds: [],
   day: '',
   startTime: '',
   endTime: '',
+  durationHour: 1,
+  durationMinute: 30,
   teacherIds: [],
   capacity: 20,
   status: 'active',
+  scheduleType: 'fixed',
   adminNote: '',
   sourceTermId: '',
   targetTermId: '',
@@ -46,21 +50,47 @@ const getInitialData = () => ({
 const mapSourceToForm = () => {
   if ((props.type === 'edit' || props.type === 'delete') && props.classInstance) {
     const data = { ...props.classInstance, deleteConfirm: '' }
-    // Flatten schedules for the UI form
-    if (data.schedules && data.schedules.length > 0) {
-      data.day = data.schedules[0].day
-      const [start, end] = (data.schedules[0].time || data.schedules[0].timeslot || '').split(' - ')
+    // Flatten schedule for the UI form
+    const schedule = data.schedule || (data.schedules && data.schedules.length > 0 ? data.schedules[0] : null)
+    if (schedule) {
+      data.day = schedule.day || ''
+      const [start, end] = (schedule.time).split(' - ')
       data.startTime = start || ''
       data.endTime = end || ''
+
+      // Calculate duration from existing times
+      if (data.startTime && data.endTime) {
+        const parseTime = (timeStr) => {
+          const [time, ampm] = (timeStr || '').split(' ')
+          if (!time || !ampm) return null
+          let [h, m] = time.split(':').map(Number)
+          if (ampm === 'PM' && h !== 12) h += 12
+          if (ampm === 'AM' && h === 12) h = 0
+          return h * 60 + m
+        }
+        const startMin = parseTime(data.startTime)
+        const endMin = parseTime(data.endTime)
+        if (startMin !== null && endMin !== null) {
+          let diff = endMin - startMin
+          if (diff < 0) diff += 1440 // handle midnight
+          data.durationHour = Math.floor(diff / 60)
+          data.durationMinute = diff % 60
+        }
+      }
     }
     // Map capacity for consistency
     if (data.maxCapacity !== undefined) data.capacity = data.maxCapacity
 
+    // Map schedule type
+    data.scheduleType = data.scheduleType || 'fixed'
+
     // Map teachers to teacherIds for multiple select
     if (data.teachers && Array.isArray(data.teachers)) {
       data.teacherIds = data.teachers.map(t => t.id || t.uid)
-    } else if (data.teacherId) {
-      data.teacherIds = [data.teacherId]
+    }
+    // Map branchIds for multiple select
+    if (data.branchId && (!data.branchIds || data.branchIds.length === 0)) {
+      data.branchIds = [data.branchId]
     }
 
     return data
@@ -82,14 +112,41 @@ const programs = ref([])
 const terms = ref([])
 const branches = ref([])
 const teachers = ref([])
+const allClassInstances = ref([])
 const showConfirm = ref(false)
+const isBranchDropdownOpen = ref(false)
+const dropdownContainer = ref(null)
+
+const toggleAllBranches = () => {
+  if (localData.branchIds.length === filteredBranches.value.length) {
+    localData.branchIds = []
+  } else {
+    localData.branchIds = filteredBranches.value.map(b => b.id)
+  }
+  clearError('branchIds')
+}
+
+const handleClickOutside = (event) => {
+  if (dropdownContainer.value && !dropdownContainer.value.contains(event.target)) {
+    isBranchDropdownOpen.value = false
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 const timeOptions = computed(() => {
   const options = []
   for (let h = 8; h <= 17; h++) {
-    for (let m of ['00', '30']) {
+    for (let m of ['00', '15', '30', '45']) {
       const ampm = h >= 12 ? 'PM' : 'AM'
-      const displayH = h > 12 ? h - 12 : (h === 0 ? 12 : h)
+      let displayH = h % 12
+      if (displayH === 0) displayH = 12
       const time = `${displayH}:${m} ${ampm}`
       options.push({ id: time, name: time })
     }
@@ -119,6 +176,17 @@ const submitLabel = computed(() => {
   return 'Add'
 })
 
+const filteredBranches = computed(() => {
+  if (!localData.termId) return branches.value
+  const term = terms.value.find(t => t.id === localData.termId)
+  if (!term) return branches.value
+
+  const termBranchIds = term.branchIds || (term.branchId ? [term.branchId] : [])
+  if (termBranchIds.length === 0) return branches.value
+
+  return branches.value.filter(b => termBranchIds.includes(b.id))
+})
+
 const onProgramChange = (programId) => {
   localData.programId = programId
   clearError('programId')
@@ -129,6 +197,51 @@ const onProgramChange = (programId) => {
     checkSessionMatch()
   }
 }
+
+const onTermChange = (termId) => {
+  localData.termId = termId
+  clearError('termId')
+
+  // Prune branch selection if new term doesn't support them
+  const term = terms.value.find(t => t.id === termId)
+  if (term) {
+    const termBranchIds = term.branchIds || (term.branchId ? [term.branchId] : [])
+    if (termBranchIds.length > 0) {
+      localData.branchIds = (localData.branchIds || []).filter(id => termBranchIds.includes(id))
+    }
+  }
+  checkSessionMatch()
+}
+
+const calculateEndTime = () => {
+  if (!localData.startTime) return
+
+  const [time, ampm] = localData.startTime.split(' ')
+  if (!time || !ampm) return
+  let [hours, minutes] = time.split(':').map(Number)
+
+  if (ampm === 'PM' && hours !== 12) hours += 12
+  if (ampm === 'AM' && hours === 12) hours = 0
+
+  const date = new Date()
+  date.setHours(hours, minutes, 0, 0)
+
+  const h = parseInt(localData.durationHour) || 0
+  const m = parseInt(localData.durationMinute) || 0
+
+  date.setMinutes(date.getMinutes() + (h * 60) + m)
+
+  let endHours = date.getHours()
+  const endMinutes = date.getMinutes().toString().padStart(2, '0')
+  const endAmpm = endHours >= 12 ? 'PM' : 'AM'
+
+  endHours = endHours % 12
+  if (endHours === 0) endHours = 12
+
+  localData.endTime = `${endHours}:${endMinutes} ${endAmpm}`
+}
+
+watch(() => [localData.startTime, localData.durationHour, localData.durationMinute], calculateEndTime)
 
 const sessionWarning = ref('')
 const checkSessionMatch = () => {
@@ -145,9 +258,46 @@ const checkSessionMatch = () => {
 
 watch(() => [localData.programId, localData.termId], checkSessionMatch)
 
+const duplicateWarning = computed(() => {
+  if (props.type === 'delete') return ''
+  if (!localData.programId || !localData.termId || !localData.branchIds.length || !localData.day || !localData.startTime) return ''
+
+  const currentTimeslot = `${localData.startTime} - ${localData.endTime}`
+
+  const duplicates = allClassInstances.value.filter(c => {
+    // Skip self if editing
+    if (props.type === 'edit' && c.id === localData.id) return false
+
+    const matchesProgram = c.programId === localData.programId
+    const matchesTerm = c.termId === localData.termId
+    const matchesDay = c.schedules?.some(s => s.day === localData.day)
+    const matchesTime = c.schedules?.some(s => s.time === currentTimeslot)
+
+    if (!matchesProgram || !matchesTerm || !matchesDay || !matchesTime) return false
+
+    // Check if any selected branch is in the class
+    const classBranchIds = c.branchIds || (c.branchId ? [c.branchId] : [])
+    return localData.branchIds.some(id => classBranchIds.includes(id))
+  })
+
+  if (duplicates.length > 0) {
+    const overlappingBranches = duplicates.flatMap(d => {
+      const db = d.branchIds || (d.branchId ? [d.branchId] : [])
+      return db.filter(id => localData.branchIds.includes(id))
+        .map(id => branches.value.find(b => b.id === id)?.name)
+        .filter(Boolean)
+    })
+    return `Warning: Duplicate class already exists for ${[...new Set(overlappingBranches)].join(', ')} at this day/time.`
+  }
+
+  return ''
+})
+
+// Capacity is now manually entered with no auto-calculation logic based on teacher count.
+
 const fetchData = async () => {
   try {
-    const [p, t, b, teachersData, catsData] = await Promise.all([
+    const [p, t, b, teachersData, catsData, classesData] = await Promise.all([
       programService.getAllPrograms(),
       termService.getAllTerms().then(list => {
         const todayStr = new Date().toISOString().split('T')[0]
@@ -159,6 +309,7 @@ const fetchData = async () => {
       branchService.getAllBranches(),
       teacherService.getAllTeachers(),
       categoryService.getAllCategories(),
+      classService.getAllClasses(),
     ])
 
     const categoriesList = Array.isArray(catsData) ? catsData : (catsData?.data || [])
@@ -180,6 +331,7 @@ const fetchData = async () => {
       profileURL: t.profileURL || '',
       category: t.category || ''
     }))
+    allClassInstances.value = classesData || []
   } catch (err) {
     console.error(err)
   }
@@ -194,7 +346,7 @@ const requestConfirm = () => {
         ? ['sourceTermId', 'targetTermId']
         : props.type === 'delete'
           ? ['deleteConfirm']
-          : ['programId', 'termId', 'branchId', 'day', 'startTime', 'endTime', 'teacherIds'],
+          : ['programId', 'termId', 'branchIds', 'day', 'startTime', 'endTime', 'teacherIds'],
     custom: {}
   }
 
@@ -202,7 +354,16 @@ const requestConfirm = () => {
     validationRules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Type DELETE to confirm.'
   }
 
+  if (props.type === 'add' || props.type === 'edit') {
+    validationRules.required.push('capacity')
+  }
+
   if (!validate(validationRules)) return
+
+  if (duplicateWarning.value) {
+    triggerShake('programId')
+    return
+  }
 
   showConfirm.value = true
 }
@@ -211,7 +372,8 @@ const handleActionSubmit = () => {
   showConfirm.value = false
 
   if (props.type === 'duplicate') {
-    emit('submit', JSON.parse(JSON.stringify(localData)))
+    const { durationHour, durationMinute, ...cleanData } = localData
+    emit('submit', JSON.parse(JSON.stringify(cleanData)))
     return
   }
 
@@ -224,17 +386,15 @@ const handleActionSubmit = () => {
   const payload = {
     programId: localData.programId,
     termId: localData.termId,
-    branchId: localData.branchId,
+    branchIds: localData.branchIds,
     teacherIds: localData.teacherIds,
     maxCapacity: parseInt(localData.capacity || 20),
-    scheduleType: 'group',
+    scheduleType: localData.scheduleType || 'fixed',
     adminNote: localData.adminNote || '',
-    schedules: [
-      {
-        day: localData.day,
-        timeslot: `${localData.startTime} - ${localData.endTime}`,
-      },
-    ],
+    schedule: {
+      day: localData.day,
+      time: `${localData.startTime} - ${localData.endTime}`,
+    },
   }
 
   // Calculate and persist status based on Term dates
@@ -271,14 +431,17 @@ const confirmRows = computed(() => {
   const rows = [
     { key: 'Program', value: selectedProgram.value ? `${selectedProgram.value.name} (${selectedProgram.value.level})` : 'N/A' },
     {
-      key: 'Term', value: (() => {
+      key: 'Term',
+      value: (() => {
         const t = terms.value.find(term => term.id === localData.termId)
-        return t ? `${t.name} (${t.startDate} - ${t.endDate})` : 'N/A'
+        return t ? t.name : 'N/A'
       })()
     },
-    { key: 'Branch', value: branches.value.find(b => b.id === localData.branchId)?.name || 'N/A' },
+    { key: 'Branches', value: localData.branchIds.length + ' selected' },
+    { key: 'Schedule Type', value: localData.scheduleType },
     { key: 'Schedule', value: `${localData.day}, ${localData.startTime} - ${localData.endTime}` },
     { key: 'Teachers', value: teachers.value.filter(t => localData.teacherIds?.includes(t.id)).map(t => t.name).join(', ') || 'Pending' },
+    { key: 'Class Capacity', value: localData.capacity + ' Students' },
     {
       key: 'Status',
       value: (() => {
@@ -289,6 +452,10 @@ const confirmRows = computed(() => {
       badge: true
     }
   ]
+
+  if (localData.adminNote?.trim()) {
+    rows.push({ key: 'Admin Note', value: localData.adminNote })
+  }
 
   if (props.type === 'delete') {
     rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-black' })
@@ -344,6 +511,18 @@ watch(
         class="grid grid-cols-2 gap-x-6 gap-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500"
         @submit.prevent="requestConfirm" novalidate>
 
+        <div v-if="type === 'add'" class="col-span-2">
+          <AppAlert type="info" size="sm">
+            <div class="flex flex-col gap-1">
+              <span class="font-black uppercase tracking-widest text-[10px]">Academic Integrity Check</span>
+              <p class="text-xs leading-relaxed opacity-80 font-medium">
+                Verify the <strong>Program</strong>, <strong>Term</strong>, and <strong>Schedule</strong> carefully.
+                Establishing a class with incorrect parameters may require manual enrollment migration later.
+              </p>
+            </div>
+          </AppAlert>
+        </div>
+
         <AppSelect v-model="localData.programId" :items="programs" label="Select Program"
           placeholder="Select Program..." class="col-span-2" required :error="errors.programId"
           :shake="shaking.programId" @change="onProgramChange">
@@ -357,7 +536,7 @@ watch(
                 <span class="text-sm font-black text-content-dark truncate">{{ item.name }}</span>
                 <div class="flex items-center gap-2">
                   <span class="text-[9px] font-black text-content-muted uppercase tracking-widest">{{ item.category
-                    }}</span>
+                  }}</span>
                   <span class="text-[8px] text-primary/40">•</span>
                   <span class="text-[9px] font-black text-primary uppercase tracking-widest">{{ item.level }}</span>
                 </div>
@@ -384,53 +563,132 @@ watch(
         </AppSelect>
 
         <AppSelect v-model="localData.termId" :items="sortedTerms" label="Academic Term" placeholder="Term..." required
-          :error="errors.termId" :shake="shaking.termId" @change="clearError('termId')">
+          :error="errors.termId" :shake="shaking.termId" @change="onTermChange">
           <template #selected="{ item }">
-            <div v-if="item" class="flex items-center justify-between w-full">
+            <div v-if="item" class="flex items-center justify-between w-full text-black">
               <AppBadge :status="item.name" type="blue" />
-              <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.startDate }} -
-                {{ item.endDate }}</span>
+              <span class="text-[10px] font-black uppercase text-success tracking-widest">{{ item.startDate }} </span> -
+              <span class="text-[10px] font-black uppercase text-error tracking-widest">{{ item.endDate }} </span>
             </div>
           </template>
           <template #item="{ item }">
-            <div class="flex items-center justify-between w-full">
+            <div class="flex items-center justify-between w-full text-black">
               <AppBadge :status="item.name" type="blue" />
-              <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{ item.startDate }} -
-                {{ item.endDate }}</span>
+              <span class="text-[10px] font-black uppercase text-success tracking-widest">{{ item.startDate }} </span> -
+              <span class="text-[10px] font-black uppercase text-error tracking-widest">{{ item.endDate }} </span>
             </div>
           </template>
         </AppSelect>
 
-        <AppSelect v-model="localData.branchId" :items="branches" label="Branch Location" placeholder="Branch..."
-          required :error="errors.branchId" :shake="shaking.branchId" @change="clearError('branchId')">
+        <AppSelect v-model="localData.scheduleType"
+          :items="[{ id: 'fixed', name: 'Fixed' }, { id: 'flexible', name: 'Flexible' }]" label="Schedule Type"
+          placeholder="Select type..." required :error="errors.scheduleType" :shake="shaking.scheduleType"
+          :searchable="false" @change="clearError('scheduleType')">
           <template #selected="{ item }">
             <div v-if="item" class="flex items-center gap-2">
-              <AppBadge :status="item.abbr || item.name" :type="item.color || 'blue'" />
+              <AppBadge :status="item.name" :type="item.id === 'fixed' ? 'blue' : 'green'" size="sm" />
+              <span class="text-xs font-medium text-content-muted">{{ item.id === 'fixed' ? 'Regular sessions' :
+                'Negotiable' }}</span>
             </div>
           </template>
           <template #item="{ item }">
-            <div class="flex items-center justify-between w-full">
-              <span class="text-sm font-bold text-content-dark">{{ item.name }}</span>
-              <AppBadge :status="item.abbr" :type="item.color || 'blue'" />
+            <div class="flex items-center gap-2">
+              <AppBadge :status="item.name" :type="item.id === 'fixed' ? 'blue' : 'green'" size="sm" />
+              <span class="text-[10px] font-medium text-content-muted">{{ item.id === 'fixed' ? 'Regular sessions' :
+                'Negotiable' }}</span>
             </div>
           </template>
         </AppSelect>
 
+        <div class="flex flex-col gap-xs text-left w-full">
+          <label class="text-sm font-semibold text-content-dark flex items-center justify-between gap-1">
+            <div class="flex items-center gap-1">
+              Branch Scope <span class="text-error font-bold leading-none">*</span>
+            </div>
+            <button type="button" @click="toggleAllBranches"
+              class="text-[10px] text-primary hover:underline font-black uppercase tracking-tighter">
+              {{ localData.branchIds.length === filteredBranches.length ? 'Unselect All' : 'Select All' }}
+            </button>
+          </label>
+
+          <div class="relative group" ref="dropdownContainer">
+            <div @click="isBranchDropdownOpen = !isBranchDropdownOpen"
+              class="w-full px-4 py-3 border-2 border-outline-std rounded-sm bg-white text-base outline-none transition-all hover:border-primary/50 cursor-pointer flex items-center justify-between min-h-[50px]"
+              :class="{ 'border-primary ring-[3px] ring-info-soft': isBranchDropdownOpen, 'ui-input-invalid': errors.branchIds }">
+
+              <div class="flex flex-wrap gap-1 max-w-[85%]">
+                <span v-if="localData.branchIds.length === 0" class="text-content-light/50 italic text-base">Select
+                  branches...</span>
+                <template v-else>
+                  <AppBadge v-for="id in localData.branchIds" :key="id" :status="branches.find(b => b.id === id)?.abbr"
+                    :type="branches.find(b => b.id === id)?.color || 'blue'" size="sm" />
+                </template>
+              </div>
+
+              <span class="text-xs transition-transform duration-300"
+                :class="{ 'rotate-180': isBranchDropdownOpen }">▼</span>
+            </div>
+
+            <!-- Dropdown Content -->
+            <transition enter-active-class="transition duration-200 ease-out"
+              enter-from-class="opacity-0 scale-95 translate-y-2" enter-to-class="opacity-100 scale-100 translate-y-0"
+              leave-active-class="transition duration-150 ease-in"
+              leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 translate-y-2">
+              <div v-if="isBranchDropdownOpen"
+                class="absolute z-[100] mt-2 w-full bg-white border-2 border-outline-std rounded-sm shadow-2xl overflow-hidden max-h-[250px] flex flex-col">
+                <div class="flex flex-col overflow-y-auto scrollable-v p-2 gap-1">
+                  <label v-for="branch in filteredBranches" :key="branch.id"
+                    class="flex items-center justify-between gap-3 p-3 rounded-lg cursor-pointer transition-all hover:bg-surface-subtle group"
+                    :class="{ 'bg-primary/5': localData.branchIds.includes(branch.id) }">
+                    <span class="text-sm font-bold text-content-dark truncate uppercase tracking-tight">{{ branch.name
+                      }}</span>
+                    <div class="flex items-center gap-2 min-w-0">
+                      <AppBadge :status="branch.abbr" :type="branch.color || 'blue'" />
+                      <input type="checkbox" v-model="localData.branchIds" :value="branch.id"
+                        class="w-4 h-4 rounded border-outline-std text-primary focus:ring-primary/20 cursor-pointer"
+                        @change="clearError('branchIds')" />
+                    </div>
+                  </label>
+                  <div v-if="filteredBranches.length === 0" class="p-4 text-center text-xs text-content-muted italic">
+                    No branches available for this term
+                  </div>
+                </div>
+              </div>
+            </transition>
+          </div>
+          <span v-if="errors.branchIds"
+            class="text-[10px] font-bold text-error mt-1 animate-in fade-in slide-in-from-top-1">{{
+              errors.branchIds }}</span>
+        </div>
+
         <AppSelect v-model="localData.day"
-          :items="['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => ({ id: d, name: d }))"
+          :items="['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => ({ id: d, name: d }))"
           label="Instruction Day" required :error="errors.day" :shake="shaking.day" :searchable="false"
           @change="clearError('day')">
           <template #selected="{ item }">
-            <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+            <div v-if="item" class="flex items-center gap-2">
+              <span class="text-sm font-semibold"
+                :class="['Saturday', 'Sunday'].includes(item.name) ? 'text-primary font-black' : 'text-content-dark'">{{
+                  item.name }}</span>
+              <span v-if="['Saturday', 'Sunday'].includes(item.name)"
+                class="text-xs font-black uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded-full tracking-tighter">Weekend</span>
+            </div>
           </template>
           <template #item="{ item }">
-            <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+            <div class="flex items-center justify-between w-full">
+              <span class="text-sm font-semibold"
+                :class="['Saturday', 'Sunday'].includes(item.name) ? 'text-primary font-black' : 'text-content-dark'">{{
+                  item.name }}</span>
+              <span v-if="['Saturday', 'Sunday'].includes(item.name)"
+                class="text-xs font-black uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded-full tracking-tighter">Weekend</span>
+            </div>
           </template>
         </AppSelect>
 
         <div class="col-span-1 grid grid-cols-2 gap-3">
-          <AppSelect v-model="localData.startTime" :items="timeOptions" label="Start" placeholder="00:00" required
-            :error="errors.startTime" :shake="shaking.startTime" :searchable="false" @change="clearError('startTime')">
+          <AppSelect v-model="localData.durationHour" :items="[0, 1, 2, 3, 4].map(h => ({ id: h, name: h + ' hr' }))"
+            label="Duration (H)" placeholder="0" required :error="errors.durationHour" :shake="shaking.durationHour"
+            :searchable="false" @change="clearError('durationHour')">
             <template #selected="{ item }">
               <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
             </template>
@@ -438,8 +696,9 @@ watch(
               <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
             </template>
           </AppSelect>
-          <AppSelect v-model="localData.endTime" :items="timeOptions" label="End" placeholder="00:00" required
-            :error="errors.endTime" :shake="shaking.endTime" :searchable="false" @change="clearError('endTime')">
+          <AppSelect v-model="localData.durationMinute" :items="[0, 15, 30, 45].map(m => ({ id: m, name: m + ' min' }))"
+            label="Duration (M)" placeholder="0" required :error="errors.durationMinute" :shake="shaking.durationMinute"
+            :searchable="false" @change="clearError('durationMinute')">
             <template #selected="{ item }">
               <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
             </template>
@@ -449,8 +708,31 @@ watch(
           </AppSelect>
         </div>
 
-        <div v-if="sessionWarning" class="col-span-2">
-          <AppAlert type="warning" size="sm">{{ sessionWarning }}</AppAlert>
+        <div class="col-span-2 grid grid-cols-2 gap-6">
+          <AppSelect v-model="localData.startTime" :items="timeOptions" label="Start Time" placeholder="00:00" required
+            :error="errors.startTime" :shake="shaking.startTime" :searchable="false" @change="clearError('startTime')">
+            <template #selected="{ item }">
+              <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+            </template>
+            <template #item="{ item }">
+              <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+            </template>
+          </AppSelect>
+          <AppSelect v-model="localData.endTime" :items="timeOptions" label="End Time (Auto)" placeholder="00:00"
+            required :error="errors.endTime" :shake="shaking.endTime" :searchable="false" disabled>
+            <template #selected="{ item }">
+              <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+            </template>
+            <template #item="{ item }">
+              <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+            </template>
+          </AppSelect>
+        </div>
+
+        <div v-if="sessionWarning || duplicateWarning" class="col-span-2 space-y-2">
+          <AppAlert v-if="sessionWarning" type="warning" size="sm">{{ sessionWarning }}</AppAlert>
+          <AppAlert v-if="duplicateWarning" type="error" size="sm">{{ duplicateWarning }}
+          </AppAlert>
         </div>
 
         <AppSelect v-model="localData.teacherIds" :items="teachers" label="Assigned Teachers"
@@ -484,6 +766,13 @@ watch(
             </div>
           </template>
         </AppSelect>
+
+        <AppInput v-model="localData.capacity" type="number" label="Class Capacity" placeholder="20"
+          :error="errors.capacity" :shake="shaking.capacity" @input="clearError('capacity')" class="col-span-2">
+          <template #label-extra>
+            <span class="text-[9px] text-content-muted ml-2">(Maximum students allowed)</span>
+          </template>
+        </AppInput>
       </form>
 
       <!-- DELETE MODE -->
@@ -500,9 +789,10 @@ watch(
             </div>
             <div class="flex flex-col">
               <span class="text-sm font-black text-content-dark tracking-tighter">{{ classInstance.program?.name
-              }}</span>
-              <span class="text-xs font-bold text-content-muted">{{ classInstance.day }}, {{ classInstance.timeslot
-              }}</span>
+                }}</span>
+              <span class="text-xs font-bold text-content-muted">{{ classInstance.schedule.day }}, {{
+                classInstance.schedule.time
+                }}</span>
             </div>
           </div>
         </div>
@@ -534,7 +824,40 @@ watch(
         :title="type === 'delete' ? 'Delete Class' : (type === 'edit' ? 'Edit Class' : 'Add Class')"
         :subtitle="type === 'delete' ? 'This action will permanently erase this class and its historical data.' : 'Please verify the class details and parameters before proceeding.'"
         :icon="modalIcon" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading" @back="showConfirm = false"
-        @confirm="handleActionSubmit" />
+        @confirm="handleActionSubmit">
+        <template #row-Branches>
+          <div class="flex flex-wrap justify-end gap-1">
+            <AppBadge v-for="id in localData.branchIds" :key="id" :status="branches.find(b => b.id === id)?.abbr"
+              :type="branches.find(b => b.id === id)?.color || 'blue'" size="sm" />
+          </div>
+        </template>
+        <template #row-Term>
+          <div class="flex flex-col items-end gap-1">
+            <AppBadge :status="terms.find(t => t.id === localData.termId)?.name" type="blue" size="sm" />
+            <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+              <span class="text-success">{{terms.find(t => t.id === localData.termId)?.startDate}}</span>
+              <span class="text-content-muted/30">/</span>
+              <span class="text-error">{{terms.find(t => t.id === localData.termId)?.endDate}}</span>
+            </div>
+          </div>
+        </template>
+        <template #row-Schedule-Type>
+          <AppBadge :status="localData.scheduleType" :type="localData.scheduleType === 'fixed' ? 'blue' : 'green'"
+            size="sm" />
+        </template>
+        <template #row-Schedule>
+          <div class="flex items-center gap-2">
+            <AppBadge :status="localData.day" type="blue" size="sm" />
+            <span class="text-sm font-bold text-content-dark">{{ localData.startTime }} - {{ localData.endTime }}</span>
+          </div>
+        </template>
+        <template #row-Class-Capacity>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-black text-content-dark">{{ localData.capacity }}</span>
+            <span class="text-[10px] font-bold text-content-muted uppercase tracking-widest">Students</span>
+          </div>
+        </template>
+      </AppConfirmOverlay>
     </div>
 
     <template #footer>

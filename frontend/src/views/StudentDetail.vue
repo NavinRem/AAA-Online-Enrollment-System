@@ -582,7 +582,7 @@ watch(
           </button>
         </div>
 
-        <section class="ui-detail-card overflow-hidden animate-fade-in min-h-[500px]">
+        <section class="overflow-hidden animate-fade-in min-h-[500px]">
           <div class="flex items-center gap-4">
             <h3 class="text-lg font-black text-content-dark whitespace-nowrap capitalize">{{ activeTab }} Table
             </h3>
@@ -605,8 +605,7 @@ watch(
                   <div v-if="activeDropdown === activeTab"
                     class="fixed bg-white rounded-xl shadow-2xl border border-outline-std z-[9999] p-2 min-w-[180px] overflow-hidden"
                     :style="programMenuStyles" @mousedown.stop>
-                    <div v-for="option in filterOptions"
-                      :key="option.id || option.value"
+                    <div v-for="option in filterOptions" :key="option.id || option.value"
                       class="px-4 py-2.5 text-sm font-bold cursor-pointer transition-all rounded-lg flex items-center justify-between group"
                       :class="[
                         getActiveFilterValue(activeTab) === (option.id || option.value) ? 'shadow-sm' : '',
@@ -653,8 +652,9 @@ watch(
                         <td class=" p-md">
                           <div class="flex flex-col">
                             <span class="text-sm font-bold text-content-dark">{{ item.program?.name || '-' }}</span>
-                            <span class="text-xs font-bold text-content-muted">{{ item.class?.day || 'N/A' }} | {{
-                              item.class?.timeslot || 'TBD' }}</span>
+                            <span class="text-xs font-bold text-content-muted">{{ item.class?.schedule?.day || 'N/A' }}
+                              | {{
+                                item.class?.schedule?.time || 'TBD' }}</span>
                           </div>
                         </td>
                         <td class=" p-md text-xs font-bold text-content-muted tabular-nums">{{

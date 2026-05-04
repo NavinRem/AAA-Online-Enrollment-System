@@ -9,8 +9,7 @@ import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import { classService } from '@/services/classService'
-import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
-import { getProgramProfileURL } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon, getIconUrl } from '@/utils/assetHelper'
 import { useSearch } from '@/composables/useSearch'
 import { calculateClassProgress } from '@/utils/formatUtils'
 
@@ -24,12 +23,11 @@ const router = useRouter()
 const classHeaders = [
   { label: 'NO', width: '50px', align: 'center' },
   { label: 'CLASS IDENTITY' },
-  { label: 'CAMPUS', width: '100px', align: 'center' },
-  { label: 'TERM', width: '120px' },
-  { label: 'PROGRESS', width: '140px' },
-  { label: 'TEACHERS', width: '180px' },
-  { label: 'SCHEDULE', width: '160px' },
-  { label: 'CAPACITY', width: '120px', align: 'center' },
+  { label: 'BRANCH', width: '100px', align: 'center' },
+  { label: 'TERM', width: '200px' },
+  { label: 'PROGRESS', width: '200px' },
+  { label: 'SCHEDULE', width: '200px' },
+  { label: 'CAPACITY', width: '200px', align: 'center' },
   { label: 'STATUS', width: '100px', align: 'center' },
   { label: 'ACTION', width: '60px', align: 'center' },
 ]
@@ -37,10 +35,11 @@ const classHeaders = [
 const isOngoing = (c) => {
   if (c.status !== 'active') return false
   const now = new Date()
-  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' })
-  if (c.day !== dayName) return false
+  const scheduleDay = c.schedule?.day || c.day
+  if (scheduleDay !== dayName) return false
 
-  const [startStr, endStr] = (c.timeslot || '').split(' - ')
+  const scheduleTime = c.schedule?.time
+  const [startStr, endStr] = (scheduleTime).split(' - ')
   if (!startStr || !endStr) return false
 
   const parseTime = (str) => {
@@ -64,13 +63,13 @@ const statsCards = computed(() => [
   },
   {
     label: 'Available Classes',
-    value: classes.value.filter((c) => (c.currentCount || 0) < (c.capacity || 0)).length,
+    value: classes.value.filter((c) => (c.enrolledCount || 0) < (c.maxCapacity || 20)).length,
     image: getImageUrl('dashboard/card-available-program'),
     color: 'var(--color-primary-light)',
   },
   {
     label: 'Full Classes',
-    value: classes.value.filter((c) => (c.currentCount || 0) >= (c.capacity || 0)).length,
+    value: classes.value.filter((c) => (c.enrolledCount || 0) >= (c.maxCapacity || 20)).length,
     image: getImageUrl('programs/archived-program'),
     color: 'var(--color-primary-light)',
   },
@@ -86,15 +85,26 @@ const fetchClasses = async () => {
   loading.value = true
   try {
     const data = await classService.getAllClasses()
-    const classList = Array.isArray(data) ? data : []
+
+    const classList = (Array.isArray(data) ? data : [])
+      .filter(cls => cls.isDeleted !== true)
+      .map(cls => {
+        // Ensure defaults for critical rendering fields
+        if (!cls.schedule) {
+          cls.schedule = { day: 'TBA', time: 'N/A' }
+        }
+        cls.maxCapacity = cls.maxCapacity || 20
+        cls.enrolledCount = cls.enrolledCount || 0
+        return cls
+      })
 
     // Status Synchronization: Ensure stored status matches term-based logic
     const syncTasks = []
     classList.forEach(cls => {
       if (cls.term) {
-        const prog = calculateClassProgress(cls.term.startDate, cls.term.endDate, cls.day, cls.timeslot)
+        const prog = calculateClassProgress(cls.term.startDate, cls.term.endDate, cls.schedule.day, cls.schedule.time)
         const calculatedStatus = prog.status.toLowerCase()
-        
+
         if (cls.status !== calculatedStatus) {
           syncTasks.push(classService.updateClass(cls.id, { status: calculatedStatus }))
           cls.status = calculatedStatus // Update local state for immediate feedback
@@ -116,17 +126,129 @@ const fetchClasses = async () => {
 }
 
 const { searchQuery, searchResults } = useSearch(classes, (c) => {
-  return `${c.program?.name} ${c.program?.category} ${c.teacher?.name} ${c.branch?.name} ${c.day} ${c.timeslot}`
+  return `${c.program?.name} ${c.program?.category} ${c.teacher?.name} ${c.branch?.name} ${c.schedule?.day} ${c.schedule?.time}`
+})
+
+const currentFilter = ref('all')
+
+const filterOptions = computed(() => {
+  const options = [
+    { label: 'All Classes', value: 'all', profileURL: getActionIcon('filter'), color: 'blue' }
+  ]
+
+  // Statuses
+  options.push(
+    { isDivider: true },
+    { isHeader: true, label: 'Operational Status' },
+    { label: 'Upcoming', value: 'status:upcoming', profileURL: getIconUrl('filter/upcoming.svg'), color: 'purple' },
+    { label: 'Active', value: 'status:active', profileURL: getIconUrl('filter/active.svg'), color: 'green' },
+    { label: 'Archived', value: 'status:archived', profileURL: getIconUrl('filter/archived.svg'), color: 'magenta' },
+  )
+
+  // Availability
+  options.push(
+    { isDivider: true },
+    { isHeader: true, label: 'Availability' },
+    { label: 'Available Slots', value: 'avail:available', profileURL: getIconUrl('filter/available.svg'), color: 'green' },
+    { label: 'Full Capacity', value: 'avail:full', profileURL: getIconUrl('filter/full.svg'), color: 'red' },
+    { label: 'Ongoing Session', value: 'avail:ongoing', profileURL: getIconUrl('filter/ongoing.svg'), color: 'purple' },
+  )
+
+  // Categories
+  const categoriesMap = new Map()
+  classes.value.forEach(c => {
+    const cat = c.program?.category
+    if (cat) {
+      const catName = typeof cat === 'object' ? cat.name : cat
+      const profileURL = typeof cat === 'object' ? cat.profileURL : (c.program?.categorySnapshot?.profileURL)
+
+      if (catName && !categoriesMap.has(catName)) {
+        categoriesMap.set(catName, {
+          label: `${catName}`,
+          value: `cat:${catName}`,
+          profileURL: profileURL || getIconUrl('navigation/class.svg'),
+          color: 'pink'
+        })
+      }
+    }
+  })
+
+  if (categoriesMap.size > 0) {
+    options.push(
+      { isDivider: true },
+      { isHeader: true, label: 'Categories' },
+      ...categoriesMap.values()
+    )
+  }
+
+  // Branches
+  const branchesMap = new Map()
+  classes.value.forEach(c => {
+    const branch = c.branch
+    if (branch && branch.name) {
+      if (!branchesMap.has(branch.name)) {
+        branchesMap.set(branch.name, {
+          label: `${branch.name}`,
+          value: `branch:${branch.name}`,
+          badge: {
+            status: branch.abbr,
+            type: branch.color
+          },
+          color: `${branch.color}`
+        })
+      }
+    }
+  })
+
+  if (branchesMap.size > 0) {
+    options.push(
+      { isDivider: true },
+      { isHeader: true, label: 'Branches' },
+      ...branchesMap.values()
+    )
+  }
+
+  return options
 })
 
 const displayClasses = computed(() => {
   let result = [...searchResults.value]
-  // Default sort by day and then timeslot
+
+  const filter = currentFilter.value
+  if (filter !== 'all') {
+    if (filter.startsWith('status:')) {
+      const status = filter.replace('status:', '')
+      if (status === 'archived') {
+        result = result.filter(c => ['completed', 'archived'].includes(c.status?.toLowerCase()))
+      } else {
+        result = result.filter(c => c.status?.toLowerCase() === status)
+      }
+    } else if (filter.startsWith('avail:')) {
+      const avail = filter.replace('avail:', '')
+      if (avail === 'available') {
+        result = result.filter(c => (c.enrolledCount || 0) < (c.maxCapacity || 20))
+      } else if (avail === 'full') {
+        result = result.filter(c => (c.enrolledCount || 0) >= (c.maxCapacity || 20))
+      } else if (avail === 'ongoing') {
+        result = result.filter(isOngoing)
+      }
+    } else if (filter.startsWith('branch:')) {
+      const branch = filter.replace('branch:', '')
+      result = result.filter(c => c.branch?.name === branch)
+    } else if (filter.startsWith('cat:')) {
+      const catVal = filter.replace('cat:', '')
+      result = result.filter(c => {
+        const catName = typeof c.program?.category === 'object' ? c.program.category.name : c.program?.category
+        return catName === catVal
+      })
+    }
+  }
+
   return result.sort((a, b) => {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    const dayDiff = days.indexOf(a.day) - days.indexOf(b.day)
+    const dayDiff = days.indexOf(a.schedule?.day) - days.indexOf(b.schedule?.day)
     if (dayDiff !== 0) return dayDiff
-    return (a.timeslot || '').localeCompare(b.timeslot || '')
+    return (a.schedule?.time || '').localeCompare(b.schedule?.time || '')
   })
 })
 
@@ -135,7 +257,7 @@ const paginatedClasses = computed(() => {
   return displayClasses.value.slice(start, start + pageSize)
 })
 
-watch([searchQuery], () => {
+watch([searchQuery, currentFilter], () => {
   currentPage.value = 1
 })
 
@@ -239,7 +361,7 @@ onMounted(fetchClasses)
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Academic Class Repository">
+    <DataPageLayout overviewTitle="Class Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
@@ -248,8 +370,10 @@ onMounted(fetchClasses)
 
       <template #table>
         <DataTable title="Class Lists" :headers="classHeaders" :items="paginatedClasses" :loading="loading"
-          entityName="class" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search something..."
-          :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize" :totalItems="displayClasses.length"
+          entityName="class" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search classes..."
+          :hasFilter="true" :currentFilter="currentFilter" :filterOptions="filterOptions"
+          @update:currentFilter="currentFilter = $event" :hasSort="false" :hasPagination="true"
+          :currentPage="currentPage" :pageSize="pageSize" :totalItems="displayClasses.length"
           @update:currentPage="currentPage = $event" @action="({ type, item }) => handleAction(type, item)"
           @row-click="navigateToDetail">
           <template #toolbar-actions>
@@ -266,80 +390,57 @@ onMounted(fetchClasses)
 
             <td class="ui-cell" :style="{ flex: '1.5 1 0%' }">
               <div class="flex items-center gap-4 group">
-                <div
-                  class="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm bg-white p-2">
-                  <img :src="getProgramProfileURL(item.program?.profileURL, item.program?.category)"
-                    class="w-full h-full object-contain" />
+                <div class="flex items-center -space-x-4">
+                  <div
+                    class="w-8 h-8 rounded-full overflow-hidden ring-2 ring-white/80 shadow-sm bg-surface-subtle p-1.5 transition-all duration-500">
+                    <img :src="item.program?.category?.profileURL || getImageUrl('common/logo-main')"
+                      class="w-full h-full object-contain" />
+                  </div>
                 </div>
                 <div class="flex flex-col">
                   <span
                     class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{
                       item.program?.name || 'Academic Course' }}</span>
                   <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">{{
-                    item.program?.category || 'General' }}</span>
+                    item.program?.category?.name || item.program?.category || 'General' }}</span>
                 </div>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
-              <AppBadge :status="item.branch?.abbr || item.branch?.name || 'FM'" type="blue" />
+              <AppBadge :status="item.branch?.abbr || item.branch?.name" :type="item.branch?.color || 'blue'" />
             </td>
 
             <td class="ui-cell" :style="{ width: headers[3].width }">
-              <div class="flex flex-col">
-                <span class="text-xs font-black text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
-                  }}</span>
-                <span class="text-[8px] font-black text-content-muted uppercase tracking-widest mt-0.5 italic">Term
-                  Identity</span>
-              </div>
+              <span class="text-sm font-bold text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
+                }}</span>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[4].width }">
-              <div v-if="item.term" class="flex flex-col gap-1.5 w-full pr-4">
-                <div class="flex items-center justify-between">
-                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest">{{
-                    calculateClassProgress(item.term.startDate, item.term.endDate, item.day, item.timeslot).weekInfo
-                    }}</span>
-                  <span class="text-[9px] font-black text-primary uppercase tracking-widest">{{
-                    calculateClassProgress(item.term.startDate, item.term.endDate, item.day, item.timeslot).percentage
-                    }}%</span>
-                </div>
-                <div class="h-1.5 w-full bg-surface-subtle border border-outline-std/50 rounded-full overflow-hidden">
-                  <div class="h-full bg-primary transition-all duration-1000"
-                    :style="{ width: `${calculateClassProgress(item.term.startDate, item.term.endDate, item.day, item.timeslot).percentage}%` }">
+              <div v-if="item.term" class="flex flex-col items-start gap-2 w-full pr-8">
+                <div
+                  class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
+                  <div class="h-full bg-primary transition-all duration-700 ease-out rounded-full"
+                    :style="{ width: `${calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day, item.schedule.time).percentage}%` }">
                   </div>
                 </div>
+                <span class="text-[10px] font-black text-content-muted tabular-nums tracking-widest uppercase">
+                  {{ calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day,
+                    item.schedule.time).week }}/{{
+                    calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day,
+                      item.schedule.time).totalWeeks }} Sessions
+                </span>
               </div>
               <span v-else
                 class="text-[10px] font-black uppercase text-content-muted/30 tracking-widest italic">TBD</span>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[5].width }">
-              <div v-if="item.teachers && item.teachers.length > 0" class="flex items-center">
-                <div class="flex -space-x-3 hover:space-x-1 transition-all duration-300">
-                  <div v-for="teacher in item.teachers" :key="teacher.id"
-                    class="w-8 h-8 rounded-xl overflow-hidden ring-2 ring-white shadow-sm group/avatar relative"
-                    :title="teacher.name">
-                    <img :src="teacher.profileURL || getImageUrl('profiles/avatar-teacher-woman')"
-                      class="w-full h-full object-cover" />
-                  </div>
-                </div>
-                <div class="flex flex-col ml-3">
-                  <span class="font-bold text-[10px] text-content-dark tracking-tight leading-none">{{
-                    item.teachers.length === 1 ? item.teachers[0].name : `${item.teachers.length} Teachers` }}</span>
-                  <span class="text-[8px] font-black text-content-muted uppercase tracking-widest mt-1">Personnel</span>
-                </div>
-              </div>
-              <span v-else class="text-[10px] font-black uppercase text-content-muted/30 tracking-widest italic">Staff
-                Pending</span>
-            </td>
-
-            <td class="ui-cell" :style="{ width: headers[5].width }">
-              <div class="flex flex-col">
-                <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{ item.day
-                  }}</span>
-                <span class="text-[9px] font-black text-primary uppercase tracking-widest mt-1">{{ item.timeslot
-                  }}</span>
+              <div class="flex flex-col gap-1 items-start">
+                <AppBadge :status="item.schedule.day"
+                  :type="['Saturday', 'Sunday'].includes(item.schedule.day) ? 'blue' : 'gray'" size="sm" />
+                <span class="text-sm font-bold text-content-dark tracking-tight leading-none">{{ item.schedule.time
+                }}</span>
               </div>
             </td>
 
@@ -348,52 +449,56 @@ onMounted(fetchClasses)
                 <div
                   class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
                   <div class="h-full transition-all duration-700 ease-out rounded-full"
-                    :style="{ width: (item.currentCount / item.capacity) * 100 + '%' }"
-                    :class="(item.currentCount / item.capacity) >= 1 ? 'bg-error' : (item.currentCount / item.capacity) >= 0.8 ? 'bg-warning' : 'bg-emerald-500'">
+                    :style="{ width: (item.enrolledCount / item.maxCapacity) * 100 + '%' }"
+                    :class="(item.enrolledCount / item.maxCapacity) >= 1 ? 'bg-error' : (item.enrolledCount / item.maxCapacity) >= 0.8 ? 'bg-warning' : 'bg-emerald-500'">
                   </div>
                 </div>
                 <span class="text-[10px] font-black text-content-muted tabular-nums tracking-widest uppercase">{{
-                  item.currentCount || 0 }}/{{ item.capacity || 20 }}</span>
+                  item.enrolledCount || 0 }}/{{ item.maxCapacity || 20 }}</span>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[7].width }">
               <AppBadge
-                :status="calculateClassProgress(item.term?.startDate, item.term?.endDate, item.day, item.timeslot).status"
+                :status="calculateClassProgress(item.term?.startDate, item.term?.endDate, item.schedule.day, item.schedule.time).status"
                 :type="{
                   'Upcoming': 'blue',
                   'Archived': 'neutral',
                   'Ongoing': 'success',
                   'Active': 'success'
-                }[calculateClassProgress(item.term?.startDate, item.term?.endDate, item.day, item.timeslot).status] || 'success'" />
+                }[calculateClassProgress(item.term?.startDate, item.term?.endDate, item.schedule.day, item.schedule.time).status] || 'success'" />
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[8].width }">
-              <div class="relative flex justify-center">
+              <div class="ui-action-menu">
                 <button @click.stop="toggleMenu($event, item.id)"
-                  class="p-2 hover:bg-surface-subtle rounded-xl transition-all group">
-                  <img :src="getActionIcon('more')"
-                    class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                  class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark group">
+                  <span class="font-black text-lg leading-none mb-1">⋮</span>
                 </button>
 
-                <Teleport to="body" v-if="activeMenuId === item.id">
-                  <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
-                    :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
-                    @click.stop>
-                    <template v-if="!isClassReadOnly(item)">
-                      <button @click.stop="handleAction('edit', item)"
-                        class="w-full flex items-center gap-3 px-4 py-3 hover:bg-surface-subtle transition-colors group">
-                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-50 group-hover:opacity-100" />
-                        <span class="text-sm font-bold text-content-dark">Edit Detail</span>
+                <Teleport to="body">
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
+                      @click.stop>
+                      <template v-if="!isClassReadOnly(item)">
+                        <button class="ui-dropdown-item ui-dropdown-item-info group"
+                          @click.stop="(e) => { handleAction('edit', item); toggleMenu(e, item.id); }">
+                          <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                          <span class="font-bold">Edit Detail</span>
+                        </button>
+                        <div class="h-px bg-surface-light mx-1 my-1"></div>
+                      </template>
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                        @click.stop="(e) => { handleAction('delete', item); toggleMenu(e, item.id); }">
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                        Delete Class
                       </button>
-                      <div class="h-[1px] bg-outline-std/50 mx-2"></div>
-                    </template>
-                    <button @click.stop="handleAction('delete', item)"
-                      class="w-full flex items-center gap-3 px-4 py-3 hover:bg-error-soft transition-colors group">
-                      <img :src="getActionIcon('trash')" class="w-4 h-4 opacity-50 group-hover:opacity-100" />
-                      <span class="text-sm font-bold text-error">Delete Class</span>
-                    </button>
-                  </div>
+                    </div>
+                  </transition>
                 </Teleport>
               </div>
             </td>
