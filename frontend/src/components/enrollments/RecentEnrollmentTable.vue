@@ -55,7 +55,7 @@ const navigateToDetail = (item) => {
               <img :src="getParentProfileURL(item.parent?.profileURL)" alt="parent" />
             </div>
             <div class="ui-identity-info min-w-0">
-              <span class="text-sm font-bold text-content-dark truncate block" :title="item.parent?.name">{{
+              <span class="text-sm font-semibold text-content-dark truncate block" :title="item.parent?.name">{{
                 item.parent?.name }}</span>
             </div>
           </div>
@@ -66,7 +66,7 @@ const navigateToDetail = (item) => {
               <img :src="getStudentProfileURL(item.student?.profileURL)" alt="child" />
             </div>
             <div class="ui-identity-info min-w-0">
-              <span class="text-sm font-bold text-content-dark truncate block" :title="item.student?.name">{{
+              <span class="text-sm font-semibold text-content-dark truncate block" :title="item.student?.name">{{
                 item.student?.name }}</span>
             </div>
           </div>
@@ -76,7 +76,7 @@ const navigateToDetail = (item) => {
             <div class="ui-avatar">
               <img :src="getProgramProfileURL(item.program?.profileURL)" :alt="item.program?.title" />
             </div>
-            <span class="text-sm font-bold text-content-dark truncate block">{{
+            <span class="text-sm font-semibold text-content-dark truncate block">{{
               item.program?.title || item.class?.program?.title || item.programTitle
               }}</span>
           </div>

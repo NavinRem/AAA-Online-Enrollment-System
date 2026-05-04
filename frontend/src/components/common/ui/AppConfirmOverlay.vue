@@ -77,7 +77,7 @@ defineEmits(['confirm', 'back'])
 }
 
 .app-confirm-title {
-  @apply text-lg font-black text-content-dark;
+  @apply text-lg font-bold text-content-dark;
 }
 
 .app-confirm-sub {
@@ -93,11 +93,11 @@ defineEmits(['confirm', 'back'])
 }
 
 .app-confirm-key {
-  @apply text-[10px] font-black text-content-muted/60 uppercase tracking-widest flex-shrink-0;
+  @apply text-[10px] font-semibold text-content-muted/60 uppercase tracking-widest flex-shrink-0;
 }
 
 .app-confirm-val {
-  @apply text-sm font-bold text-content-dark text-right;
+  @apply text-sm font-semibold text-content-dark text-right;
 }
 
 .app-confirm-row--total {
@@ -105,7 +105,7 @@ defineEmits(['confirm', 'back'])
 }
 
 .app-confirm-total {
-  @apply text-xl font-black text-primary-deep;
+  @apply text-xl font-bold text-primary-deep;
 }
 
 .app-confirm-actions {

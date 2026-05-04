@@ -79,9 +79,12 @@ class EnrollmentService {
         db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId),
         newEnrollment,
       )
-      transaction.update(db.collection(COLLECTIONS.CLASS).doc(classId), {
-        currentCount: (classData.currentCount || 0) + 1,
-      })
+      const isSeatTaking = (s) => ['active', 'confirmed', 'paid', 'unpaid'].includes(s)
+      if (isSeatTaking(newEnrollment.status)) {
+        transaction.update(db.collection(COLLECTIONS.CLASS).doc(classId), {
+          currentCount: (classData.currentCount || 0) + 1,
+        })
+      }
     })
 
     // Background task: Mark trials as successful
@@ -113,11 +116,38 @@ class EnrollmentService {
 
   async updateEnrollment(id, updateData) {
     const ref = db.collection(COLLECTIONS.ENROLLMENT).doc(id)
-    const doc = await ref.get()
-    if (!doc.exists) throw new Error('Enrollment not found')
+    
+    return await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(ref)
+      if (!doc.exists) throw new Error('Enrollment not found')
+      
+      const currentData = doc.data()
+      transaction.update(ref, updateData)
 
-    await ref.update(updateData)
-    return { id, ...updateData }
+      // Capacity logic
+      if (updateData.status && currentData.status !== updateData.status) {
+        const classRef = db.collection(COLLECTIONS.CLASS).doc(currentData.classId)
+        const classDoc = await transaction.get(classRef)
+        if (classDoc.exists) {
+          const classData = classDoc.data()
+          let newCount = classData.currentCount || 0
+          
+          const isSeatTaking = (s) => ['active', 'confirmed', 'paid', 'unpaid'].includes(s)
+          
+          if (isSeatTaking(updateData.status) && !isSeatTaking(currentData.status)) {
+            newCount = newCount + 1
+          } else if (!isSeatTaking(updateData.status) && isSeatTaking(currentData.status)) {
+            newCount = Math.max(0, newCount - 1)
+          }
+          
+          if (newCount !== classData.currentCount) {
+             transaction.update(classRef, { currentCount: newCount })
+          }
+        }
+      }
+
+      return { id, ...updateData }
+    })
   }
 
   async deleteEnrollment(id) {
@@ -129,7 +159,8 @@ class EnrollmentService {
 
     await db.runTransaction(async (transaction) => {
       transaction.delete(enrollmentRef)
-      if (status === 'active') {
+      const isSeatTaking = (s) => ['active', 'confirmed', 'paid', 'unpaid'].includes(s)
+      if (isSeatTaking(status)) {
         const classRef = db.collection(COLLECTIONS.CLASS).doc(classId)
         const classDoc = await transaction.get(classRef)
         if (classDoc.exists) {
@@ -152,21 +183,27 @@ class EnrollmentService {
     if (!enrollmentDoc.exists) throw new Error('Enrollment not found')
 
     const { classId, status } = enrollmentDoc.data()
-    if (status !== 'active')
-      throw new Error('Only active enrollments can be cancelled')
+    const isSeatTaking = (s) => ['active', 'confirmed', 'paid', 'unpaid'].includes(s)
+    
+    if (!isSeatTaking(status))
+      throw new Error('Only active, confirmed, paid, or unpaid enrollments can be cancelled')
 
     await db.runTransaction(async (transaction) => {
       transaction.update(enrollmentRef, {
         status: 'cancelled',
+        paymentStatus: 'cancelled',
         cancelledAt: new Date().toISOString(),
       })
-      const classRef = db.collection(COLLECTIONS.CLASS).doc(classId)
-      const classDoc = await transaction.get(classRef)
-      if (classDoc.exists) {
-        const currentCount = classDoc.data().currentCount || 0
-        transaction.update(classRef, {
-          currentCount: Math.max(0, currentCount - 1),
-        })
+      const isSeatTaking = (s) => ['active', 'confirmed', 'paid', 'unpaid'].includes(s)
+      if (isSeatTaking(status)) {
+        const classRef = db.collection(COLLECTIONS.CLASS).doc(classId)
+        const classDoc = await transaction.get(classRef)
+        if (classDoc.exists) {
+          const currentCount = classDoc.data().currentCount || 0
+          transaction.update(classRef, {
+            currentCount: Math.max(0, currentCount - 1),
+          })
+        }
       }
     })
 

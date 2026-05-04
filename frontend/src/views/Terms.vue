@@ -251,7 +251,7 @@ const isTermReadOnly = (item) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">Add Term</span>
+              <span class="font-bold tracking-tight">Add Term</span>
             </AppButton>
           </template>
 
@@ -268,7 +268,7 @@ const isTermReadOnly = (item) => {
                   <img :src="getImageUrl('dashboard/card-top-program')" class="w-6 h-6" />
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-black text-content-dark tracking-tighter text-sm leading-tight">{{ item.name
+                  <span class="font-semibold text-content-dark tracking-tighter text-sm leading-tight">{{ item.name
                   }}</span>
                 </div>
               </div>
@@ -295,20 +295,20 @@ const isTermReadOnly = (item) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex items-center gap-xs justify-center">
-                <span class="text-sm font-black text-primary">
+                <span class="text-sm font-semibold text-primary">
                   {{ calculateClassProgress(item.startDate, item.endDate).remainingSessions }}
                 </span>
-                <span class="text-xs font-black text-content-muted uppercase">Remaining</span>
+                <span class="text-xs font-semibold text-content-muted uppercase">Remaining</span>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex items-center gap-xs justify-center">
-                <span class="text-xs font-black text-content-dark"
+                <span class="text-xs font-semibold text-content-dark"
                   :class="{ 'text-error': item.totalSessions !== calculateClassProgress(item.startDate, item.endDate).totalWeeks }">
                   {{ calculateClassProgress(item.startDate, item.endDate).totalWeeks }}
                 </span>
-                <span class="text-xs font-black text-content-muted uppercase tracking-widest"
+                <span class="text-xs font-semibold text-content-muted uppercase tracking-widest"
                   :class="{ 'text-error/60': item.totalSessions !== calculateClassProgress(item.startDate, item.endDate).totalWeeks }">
                   {{ item.totalSessions === calculateClassProgress(item.startDate, item.endDate).totalWeeks ?
                     'Weeks' : '⚠️ Misaligned' }}
@@ -325,7 +325,7 @@ const isTermReadOnly = (item) => {
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
                   @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                  <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
 
                 <Teleport to="body">
@@ -344,7 +344,7 @@ const isTermReadOnly = (item) => {
                         </button>
                         <div class="h-px bg-surface-light mx-1 my-1"></div>
                       </template>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="() => { handleTableAction({ type: 'delete', item }); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete

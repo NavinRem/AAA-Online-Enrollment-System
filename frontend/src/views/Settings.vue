@@ -126,7 +126,7 @@ const handleDelete = async (item) => {
       <template #overview>
         <div class="flex items-center gap-4 mb-8 bg-surface-subtle p-1.5 rounded-2xl border border-black/5 w-fit">
           <button v-for="tab in tabs" :key="tab.id" @click="handleTabChange(tab.id)"
-            class="px-6 py-2.5 rounded-xl text-sm font-black transition-all duration-300 flex items-center gap-2"
+            class="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center gap-2"
             :class="activeTab === tab.id
               ? 'bg-white text-primary shadow-sm shadow-primary/10 border border-primary/10'
               : 'text-content-muted hover:text-content-dark'">
@@ -142,7 +142,7 @@ const handleDelete = async (item) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">Add</span>
+              <span class="font-bold tracking-tight">Add</span>
             </AppButton>
           </template>
 
@@ -151,15 +151,15 @@ const handleDelete = async (item) => {
             <template v-if="activeTab === 'levels'">
               <td class="ui-cell">
                 <div class="flex flex-col">
-                  <span class="font-black text-content-dark tracking-tighter text-base leading-tight">{{ item.name
+                  <span class="font-bold text-content-dark tracking-tighter text-base leading-tight">{{ item.name
                     }}</span>
-                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-1">Curriculum
+                  <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest mt-1">Curriculum
                     Grade</span>
                 </div>
               </td>
               <td class="ui-cell text-center">
                 <span
-                  class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-primary/5 text-primary font-black text-xs border border-primary/10">
+                  class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-primary/5 text-primary font-semibold text-xs border border-primary/10">
                   {{ item.order || 0 }}
                 </span>
               </td>
@@ -169,15 +169,15 @@ const handleDelete = async (item) => {
             <template v-else-if="activeTab === 'categories'">
               <td class="ui-cell">
                 <div class="flex flex-col">
-                  <span class="font-black text-content-dark tracking-tighter text-base leading-tight">{{ item.name
+                  <span class="font-bold text-content-dark tracking-tighter text-base leading-tight">{{ item.name
                     }}</span>
-                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-1">Subject
+                  <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest mt-1">Subject
                     Domain</span>
                 </div>
               </td>
               <td class="ui-cell">
                 <span
-                  class="px-2 py-1 rounded-md bg-surface-subtle border border-black/5 text-[10px] font-black text-content-muted uppercase tracking-widest">
+                  class="px-2 py-1 rounded-md bg-surface-subtle border border-black/5 text-[10px] font-semibold text-content-muted uppercase tracking-widest">
                   {{ item.code || 'N/A' }}
                 </span>
               </td>
@@ -192,7 +192,7 @@ const handleDelete = async (item) => {
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
                   @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                  <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -206,12 +206,12 @@ const handleDelete = async (item) => {
                         @click="openModal('edit', item); closeMenu()">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Edit</span>
+                        <span class="font-semibold text-sm">Edit</span>
                       </button>
 
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
 
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="handleDelete(item); closeMenu()">
                         <img :src="getActionIcon('delete')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
@@ -249,7 +249,7 @@ const handleDelete = async (item) => {
 
         <div class="flex items-center justify-end gap-3 mt-4">
           <AppButton variant="cancel" @click="isModalOpen = false">Cancel</AppButton>
-          <AppButton type="submit" variant="primary" :loading="submitting" class="px-8 font-black">
+          <AppButton type="submit" variant="primary" :loading="submitting" class="px-8 font-bold">
             {{ modalType === 'add' ? 'Add' : 'Update' }}
           </AppButton>
         </div>

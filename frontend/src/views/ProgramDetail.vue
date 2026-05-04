@@ -348,7 +348,7 @@ const handleActionSubmit = async (formData) => {
         <!-- Tab Navigation -->
         <div class="flex items-center gap-2 p-xs bg-white rounded-full border border-outline-std w-fit">
           <button v-for="tab in ['schedule', 'teachers', 'students', 'trials']" :key="tab"
-            class="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300"
+            class="px-8 py-3 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all duration-300"
             :class="activeTab === tab ? 'bg-primary text-white shadow-md ring-1 ring-black/5 scale-[1.02]' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
             @click="activeTab = tab">
             {{ tab === 'schedule' ? 'Schedule' : tab === 'teachers' ? 'Teachers' : tab === 'students' ? 'Students' :
@@ -370,7 +370,7 @@ const handleActionSubmit = async (formData) => {
                   <div class="flex flex-col gap-1 items-start">
                     <AppBadge :status="item.schedule.day" :type="['Saturday', 'Sunday'].includes(item.schedule.day) ? 'blue' : 'gray'"
                       size="sm" />
-                    <span class="text-sm font-bold text-content-dark tracking-tight leading-none">{{ item.schedule.time
+                    <span class="text-sm font-semibold text-content-dark tracking-tight leading-none">{{ item.schedule.time
                     }}</span>
                   </div>
                 </td>
@@ -378,7 +378,7 @@ const handleActionSubmit = async (formData) => {
                   <AppBadge :status="item.branch?.abbr || 'TBA'" :type="item.branch?.color || 'blue'" />
                 </td>
                 <td class="ui-cell">
-                  <span class="text-sm font-bold text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
+                  <span class="text-sm font-semibold text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
                   }}</span>
                 </td>
                 <td class="ui-cell" :style="{ width: headers[4].width }">
@@ -390,7 +390,7 @@ const handleActionSubmit = async (formData) => {
                         :class="(item.enrolledCount / item.maxCapacity) >= 1 ? 'bg-error' : (item.enrolledCount / item.maxCapacity) >= 0.8 ? 'bg-warning' : 'bg-emerald-500'">
                       </div>
                     </div>
-                    <span class="text-[10px] font-black text-content-muted tabular-nums tracking-widest uppercase">{{
+                    <span class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">{{
                       item.enrolledCount || 0 }}/{{ item.maxCapacity || 20 }}</span>
                   </div>
                 </td>
@@ -418,8 +418,8 @@ const handleActionSubmit = async (formData) => {
                         class="w-full h-full object-cover" />
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-sm font-bold text-content-dark">{{ item.name }}</span>
-                      <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">{{
+                      <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+                      <span class="text-[10px] font-semibold text-content-muted uppercase tracking-widest">{{
                         item.role || 'Instructor' }}</span>
                     </div>
                   </div>
@@ -427,7 +427,7 @@ const handleActionSubmit = async (formData) => {
                 <td class="ui-cell text-center" :style="{ width: headers[2].width }">
                   <AppBadge :status="item.branch || 'Multiple'" type="blue" />
                 </td>
-                <td class="ui-cell text-xs font-bold text-content-muted">
+                <td class="ui-cell text-xs font-semibold text-content-muted">
                   {{ item.email || 'N/A' }}
                 </td>
               </template>
@@ -444,17 +444,17 @@ const handleActionSubmit = async (formData) => {
                         class="w-full h-full object-cover" />
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-sm font-bold text-content-dark">{{ item.student?.name || 'Unknown Student'
+                      <span class="text-sm font-semibold text-content-dark">{{ item.student?.name || 'Unknown Student'
                         }}</span>
-                      <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{ item.programName ||
+                      <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{ item.programName ||
                         'Program' }}</span>
                     </div>
                   </div>
                 </td>
                 <td class="ui-cell">
-                  <span class="text-xs font-bold text-content-muted">{{ item.student?.parentName || 'N/A' }}</span>
+                  <span class="text-xs font-semibold text-content-muted">{{ item.student?.parentName || 'N/A' }}</span>
                 </td>
-                <td class="ui-cell text-center text-xs font-bold text-content-muted tabular-nums">
+                <td class="ui-cell text-center text-xs font-semibold text-content-muted tabular-nums">
                   {{ item.student?.age || 'N/A' }}
                 </td>
                 <td class="ui-cell text-center">
@@ -475,15 +475,15 @@ const handleActionSubmit = async (formData) => {
                         class="w-full h-full object-cover" />
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-sm font-bold text-content-dark">{{ item.student?.name || item.guestStudentName
+                      <span class="text-sm font-semibold text-content-dark">{{ item.student?.name || item.guestStudentName
                       }}</span>
-                      <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{ item.isGuest ?
+                      <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{ item.isGuest ?
                         'Guest Prospect' : 'Registered Student' }}</span>
                     </div>
                   </div>
                 </td>
                 <td class="ui-cell">
-                  <span class="text-xs font-bold text-content-muted">{{ item.parent?.name || item.guestParentName ||
+                  <span class="text-xs font-semibold text-content-muted">{{ item.parent?.name || item.guestParentName ||
                     'Guest Parent' }}</span>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[3].width }">
@@ -491,9 +491,9 @@ const handleActionSubmit = async (formData) => {
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[4].width }">
                   <div class="flex flex-col items-center">
-                    <span class="text-[11px] font-black text-content-dark tabular-nums tracking-tight">{{
+                    <span class="text-[11px] font-semibold text-content-dark tabular-nums tracking-tight">{{
                       item.trialDate ? new Date(item.trialDate).toLocaleDateString() : 'N/A' }}</span>
-                    <span class="text-[10px] font-bold text-content-muted">{{ item.trialTime || '' }}</span>
+                    <span class="text-[10px] font-semibold text-content-muted">{{ item.trialTime || '' }}</span>
                   </div>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[5].width }">
@@ -514,7 +514,7 @@ const handleActionSubmit = async (formData) => {
         <div class="flex flex-col gap-md">
           <!-- Basic Info Card -->
           <section class="ui-detail-card flex flex-col items-center gap-6">
-            <h2 class="w-full font-black text-content-dark text-center">Basic Information</h2>
+            <h2 class="w-full font-bold text-content-dark text-center">Basic Information</h2>
             <div class="relative group">
               <div
                 class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl 
@@ -530,51 +530,51 @@ const handleActionSubmit = async (formData) => {
           <section class="ui-detail-card">
             <div class="space-y-5">
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Program Name:</span>
+                <span class="text-lg font-bold text-content-dark">Program Name:</span>
                 <span class="text-md font-bold text-content-muted">{{ program.name }}</span>
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Category:</span>
+                <span class="text-lg font-bold text-content-dark">Category:</span>
                 <span class="text-md font-bold text-content-muted">{{ program.category || 'Standard' }}</span>
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Level:</span>
+                <span class="text-lg font-bold text-content-dark">Level:</span>
                 <span class="text-md font-bold text-content-muted">{{ program.level || 'Standard' }}</span>
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Type:</span>
+                <span class="text-lg font-bold text-content-dark">Type:</span>
                 <AppBadge :status="program.type || 'Group'" type="tag" />
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Base Price:</span>
+                <span class="text-lg font-bold text-content-dark">Base Price:</span>
                 <AppBadge :status="'$' + (program.basePrice || 0)" type="blue" />
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Sessions:</span>
-                <span class="text-md font-black text-content-muted tabular-nums">{{ program.totalSessions || 0 }}</span>
+                <span class="text-lg font-bold text-content-dark">Sessions:</span>
+                <span class="text-md font-bold text-content-muted tabular-nums">{{ program.totalSessions || 0 }}</span>
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Age Range:</span>
+                <span class="text-lg font-bold text-content-dark">Age Range:</span>
                 <span class="text-md font-bold text-content-muted">{{ program.minAge }} - {{ program.maxAge }}
                   years</span>
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Capacity:</span>
+                <span class="text-lg font-bold text-content-dark">Capacity:</span>
                 <div class="flex items-center gap-2">
                   <span class="text-md font-bold text-content-muted">{{ program.maxCapacity || 'Unlimited' }}</span>
                   <span v-if="!program.maxCapacity"
-                    class="text-[10px] font-black text-primary uppercase tracking-widest">(Active: {{ totalClassCapacity
+                    class="text-[10px] font-semibold text-primary uppercase tracking-widest">(Active: {{ totalClassCapacity
                     }})</span>
                 </div>
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Status:</span>
+                <span class="text-lg font-bold text-content-dark">Status:</span>
                 <div>
                   <AppBadge :status="getProgramDisplayStatus(program)" />
                 </div>
               </div>
               <div v-if="program.description">
-                <span class="text-lg font-black text-content-dark">Description:</span>
+                <span class="text-lg font-bold text-content-dark">Description:</span>
                 <p class="text-xs font-medium text-content-muted leading-relaxed italic">{{ program.description }}</p>
               </div>
             </div>

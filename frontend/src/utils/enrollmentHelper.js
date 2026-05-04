@@ -53,8 +53,8 @@ export const enrichEnrollments = (
       const parent = r.parent || parents.find((p) => p.id === r.parentId)
       const student = r.student || students.find((s) => s.id === r.studentId)
       const classInst = r.class || classes.find((c) => c.id === r.classId)
-      const program =
-        r.program || r.class?.program || programs.find((p) => p.id === classInst?.program?.id)
+      const programId = r.programId || r.class?.program?.id || classInst?.program?.id
+      const program = programs.find((p) => p.id === programId) || r.program || r.class?.program
 
       const scheduleVal = classInst
         ? (classInst.schedule ? `${classInst.schedule.day} (${classInst.schedule.time})` : 'N/A')
@@ -81,10 +81,11 @@ export const enrichEnrollments = (
           ? {
             id: program.id,
             name: program.name || 'N/A',
-            profileURL: getProgramProfileURL(program.profileURL),
+            profileURL: getProgramProfileURL(program.profileURL, program.category, program.categoryProfileURL),
             type: program.type || 'Group',
           }
           : r.program,
+        paymentModeType: r.isProrated ? 'partial' : 'full',
         branchAbbr: classInst?.branch?.abbr || 'N/A',
         classSchedule: scheduleVal,
 

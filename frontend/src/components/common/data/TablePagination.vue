@@ -116,7 +116,7 @@ const changePage = (page) => {
 }
 
 .pagination-range-box {
-  @apply font-black text-content-dark bg-white px-2 py-0.5 rounded-sm shadow-sm ring-1 ring-black/5;
+  @apply font-bold text-content-dark bg-white px-2 py-0.5 rounded-sm shadow-sm ring-1 ring-black/5;
 }
 
 .pagination-separator {
@@ -124,7 +124,7 @@ const changePage = (page) => {
 }
 
 .pagination-total {
-  @apply font-black text-content-dark;
+  @apply font-bold text-content-dark;
 }
 
 .pagination-actions {
@@ -144,7 +144,7 @@ const changePage = (page) => {
 }
 
 .pagination-number-btn {
-  @apply min-w-[32px] h-8 px-2 rounded-lg text-sm font-black transition-all duration-200 shadow-sm border;
+  @apply min-w-[32px] h-8 px-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm border;
 }
 
 .pagination-number-btn--active {
@@ -156,6 +156,6 @@ const changePage = (page) => {
 }
 
 .pagination-ellipsis {
-  @apply w-8 text-center text-content-muted/40 font-black tracking-widest select-none pt-1;
+  @apply w-8 text-center text-content-muted/40 font-bold tracking-widest select-none pt-1;
 }
 </style>

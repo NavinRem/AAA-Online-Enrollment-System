@@ -93,8 +93,8 @@ const fetchClasses = async () => {
         if (!cls.schedule) {
           cls.schedule = { day: 'TBA', time: 'N/A' }
         }
-        cls.maxCapacity = cls.maxCapacity || 20
-        cls.enrolledCount = cls.enrolledCount || 0
+        cls.maxCapacity = cls.capacity || cls.maxCapacity || 20
+        cls.enrolledCount = cls.currentCount || cls.enrolledCount || 0
         return cls
       })
 
@@ -379,7 +379,7 @@ onMounted(fetchClasses)
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight text-sm">Add Class</span>
+              <span class="font-semibold tracking-tight text-sm">Add Class</span>
             </AppButton>
           </template>
 
@@ -399,9 +399,9 @@ onMounted(fetchClasses)
                 </div>
                 <div class="flex flex-col">
                   <span
-                    class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{
+                    class="font-bold text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{
                       item.program?.name || 'Academic Course' }}</span>
-                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">{{
+                  <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest mt-0.5">{{
                     item.program?.category?.name || item.program?.category || 'General' }}</span>
                 </div>
               </div>
@@ -412,7 +412,7 @@ onMounted(fetchClasses)
             </td>
 
             <td class="ui-cell" :style="{ width: headers[3].width }">
-              <span class="text-sm font-bold text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
+              <span class="text-sm font-semibold text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
                 }}</span>
             </td>
 
@@ -424,7 +424,7 @@ onMounted(fetchClasses)
                     :style="{ width: `${calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day, item.schedule.time).percentage}%` }">
                   </div>
                 </div>
-                <span class="text-[10px] font-black text-content-muted tabular-nums tracking-widest uppercase">
+                <span class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">
                   {{ calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day,
                     item.schedule.time).week }}/{{
                     calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day,
@@ -432,14 +432,14 @@ onMounted(fetchClasses)
                 </span>
               </div>
               <span v-else
-                class="text-[10px] font-black uppercase text-content-muted/30 tracking-widest italic">TBD</span>
+                class="text-[10px] font-semibold uppercase text-content-muted/30 tracking-widest italic">TBD</span>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[5].width }">
               <div class="flex flex-col gap-1 items-start">
                 <AppBadge :status="item.schedule.day"
                   :type="['Saturday', 'Sunday'].includes(item.schedule.day) ? 'blue' : 'gray'" size="sm" />
-                <span class="text-sm font-bold text-content-dark tracking-tight leading-none">{{ item.schedule.time
+                <span class="text-sm font-semibold text-content-dark tracking-tight leading-none">{{ item.schedule.time
                 }}</span>
               </div>
             </td>
@@ -453,7 +453,7 @@ onMounted(fetchClasses)
                     :class="(item.enrolledCount / item.maxCapacity) >= 1 ? 'bg-error' : (item.enrolledCount / item.maxCapacity) >= 0.8 ? 'bg-warning' : 'bg-emerald-500'">
                   </div>
                 </div>
-                <span class="text-[10px] font-black text-content-muted tabular-nums tracking-widest uppercase">{{
+                <span class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">{{
                   item.enrolledCount || 0 }}/{{ item.maxCapacity || 20 }}</span>
               </div>
             </td>
@@ -473,7 +473,7 @@ onMounted(fetchClasses)
               <div class="ui-action-menu">
                 <button @click.stop="toggleMenu($event, item.id)"
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark group">
-                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                  <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
 
                 <Teleport to="body">
@@ -492,7 +492,7 @@ onMounted(fetchClasses)
                         </button>
                         <div class="h-px bg-surface-light mx-1 my-1"></div>
                       </template>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click.stop="(e) => { handleAction('delete', item); toggleMenu(e, item.id); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete Class

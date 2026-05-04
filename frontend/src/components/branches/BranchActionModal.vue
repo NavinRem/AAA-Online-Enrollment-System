@@ -117,7 +117,7 @@ const confirmRows = computed(() => {
   ]
 
   if (props.type === 'delete') {
-    rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-black' })
+    rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-bold' })
   }
 
   return rows
@@ -160,7 +160,7 @@ watch(
         </div>
 
         <div class="flex flex-col gap-md p-lg bg-surface-subtle border border-outline-std/50 rounded-md">
-          <span class="text-3xs font-black uppercase tracking-widest text-content-muted">Visual Identity</span>
+          <span class="text-3xs font-semibold uppercase tracking-widest text-content-muted">Visual Identity</span>
           <div class="flex flex-wrap gap-2.5">
             <button v-for="color in colorOptions" :key="color" type="button"
               class="w-8 h-8 rounded-full border-2 transition-all transform hover:scale-110 active:scale-95 flex items-center justify-center overflow-hidden"
@@ -182,15 +182,15 @@ watch(
               <AppBadge :status="branch.abbr" :type="branch.color" class="px-4 py-1.5 text-lg" />
             </div>
             <div class="flex flex-col">
-              <span class="text-sm font-black text-content-dark tracking-tighter">{{ branch.name }}</span>
-              <span class="text-xs font-bold text-content-muted">{{ branch.location }}</span>
+              <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ branch.name }}</span>
+              <span class="text-xs font-semibold text-content-muted">{{ branch.location }}</span>
             </div>
           </div>
         </div>
 
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight uppercase">Permanent Decommissioning</strong>
+            <strong class="text-sm font-semibold tracking-tight uppercase">Permanent Decommissioning</strong>
             <p class="text-xs opacity-90 font-medium leading-relaxed">
               Decommissioning this branch will restrict all future enrollments and class scheduling for this location.
               Historical data will be preserved but the entity will be removed from active operations.
@@ -201,8 +201,8 @@ watch(
         <AppInput v-model="localData.deleteConfirm" label="Security Confirmation" placeholder='Type "DELETE" to confirm'
           required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-2xs font-black uppercase text-error/60 mt-1">
-              Type <span class="px-1 font-black text-error">DELETE</span> to authorize
+            <span class="block text-2xs font-bold uppercase text-error/60 mt-1">
+              Type <span class="px-1 font-bold text-error">DELETE</span> to authorize
             </span>
           </template>
         </AppInput>
@@ -219,7 +219,7 @@ watch(
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
         <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
-          <span class="text-xs font-black tracking-tight uppercase">No modifications detected</span>
+          <span class="text-xs font-semibold tracking-tight uppercase">No modifications detected</span>
         </AppAlert>
 
         <div class="flex items-center justify-end w-full gap-md">

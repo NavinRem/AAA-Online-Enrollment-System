@@ -178,7 +178,7 @@ const handleSubmit = async () => {
 }
 
 .auth-title {
-  @apply text-3xl font-black mb-2 tracking-tight;
+  @apply text-3xl font-bold mb-2 tracking-tight;
   color: var(--color-content-deep);
 }
 
@@ -201,13 +201,13 @@ const handleSubmit = async () => {
 }
 
 .auth-divider-hint {
-  @apply text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap;
+  @apply text-[10px] font-semibold uppercase tracking-[0.2em] whitespace-nowrap;
   color: var(--color-content-muted);
   opacity: 0.5;
 }
 
 .auth-footer-link {
-  @apply text-sm font-bold transition-all duration-300 underline-offset-4;
+  @apply text-sm font-semibold transition-all duration-300 underline-offset-4;
   color: var(--color-primary);
 }
 
@@ -217,7 +217,7 @@ const handleSubmit = async () => {
 }
 
 .auth-alert {
-  @apply mt-6 p-4 rounded-xl text-sm font-bold;
+  @apply mt-6 p-4 rounded-xl text-sm font-semibold;
 }
 
 .auth-alert-error {

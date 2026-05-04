@@ -304,17 +304,17 @@ const confirmOverlaySubtitle = computed(() => {
 
 const confirmRows = computed(() => {
   const rows = [
-    { key: 'Program', value: localData.name, valueClass: 'font-black text-content-dark' },
+    { key: 'Program', value: localData.name, valueClass: 'font-bold text-content-dark' },
     { key: 'Category', value: categories.value.find((c) => c.id === localData.categoryId)?.name, badge: true, type: 'blue' },
     { key: 'Level', value: levels.value.find((l) => l.id === localData.levelId)?.name, badge: true, type: 'magenta' },
     { key: 'Type', value: localData.type, badge: true, type: 'tag' },
-    { key: 'Base Price', value: `$${localData.basePrice}`, valueClass: 'font-black text-primary text-base', badge: true, type: 'blue' },
-    { key: 'Total Sessions', value: localData.totalSessions, valueClass: 'font-black tabular-nums' },
+    { key: 'Base Price', value: `$${localData.basePrice}`, valueClass: 'font-bold text-primary text-base', badge: true, type: 'blue' },
+    { key: 'Total Sessions', value: localData.totalSessions, valueClass: 'font-bold tabular-nums' },
     { key: 'Age Range', value: `${localData.minAge} - ${localData.maxAge} years`, valueClass: 'font-bold text-content-dark' },
-    { key: 'Max Capacity', value: localData.maxCapacity, valueClass: 'font-black tabular-nums' },
+    { key: 'Max Capacity', value: localData.maxCapacity, valueClass: 'font-bold tabular-nums' },
   ]
   if (props.type === 'delete') {
-    rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-black' })
+    rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-bold' })
   }
   return rows
 })
@@ -341,7 +341,7 @@ watch(
         <AppInput v-model="localData.name" label="Name" placeholder="e.g. Master Class: Piano" class="col-span-2"
           required :error="errors.name" :shake="shaking.name" @input="clearError('name')">
           <template #label-extra v-if="type === 'edit' && originalData.name">
-            <span class="text-3xs font-bold text-primary ml-sm lowercase italic opacity-60">
+            <span class="text-3xs font-semibold text-primary ml-sm lowercase italic opacity-60">
               Record: {{ originalData.name }}
             </span>
           </template>
@@ -353,7 +353,7 @@ watch(
               Category <span class="text-error font-bold leading-none">*</span>
             </label>
             <button type="button" @click="toggleLookupManage('category')"
-              class="text-sm font-black text-primary hover:underline">Manage</button>
+              class="text-sm font-semibold text-primary hover:underline">Manage</button>
           </div>
           <AppSelect v-model="localData.categoryId" :items="sortedCategories" placeholder="Select Catalog..." required
             :error="errors.categoryId" :shake="shaking.categoryId" @change="onCategoryChange" />
@@ -365,7 +365,7 @@ watch(
               Level <span class="text-error font-bold leading-none">*</span>
             </label>
             <button type="button" @click="toggleLookupManage('level')"
-              class="text-sm font-black text-primary hover:underline">Manage</button>
+              class="text-sm font-semibold text-primary hover:underline">Manage</button>
           </div>
           <AppSelect v-model="localData.levelId" :items="sortedLevels" placeholder="Select Level..." required
             :error="errors.levelId" :shake="shaking.levelId" @change="onLevelChange">
@@ -392,12 +392,12 @@ watch(
         <div v-if="lookupType"
           class="col-span-2 p-md bg-primary-soft/30 rounded-std border-2 border-dashed border-primary/20 flex flex-col gap-sm animate-in fade-in slide-in-from-top-2 duration-300">
           <div class="flex justify-between items-center">
-            <span class="text-sm font-black text-primary flex items-center gap-xs">
+            <span class="text-sm font-semibold text-primary flex items-center gap-xs">
               <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
               Manage {{ lookupType }}s
             </span>
             <button type="button" @click="lookupType = null"
-              class="text-xs font-black text-content-muted hover:text-error uppercase tracking-widest">Close</button>
+              class="text-xs font-semibold text-content-muted hover:text-error uppercase tracking-widest">Close</button>
           </div>
           <div class="flex flex-col gap-sm">
             <div class="flex gap-sm">
@@ -439,7 +439,7 @@ watch(
               <div class="w-5 h-5 rounded-lg overflow-hidden border border-white shadow-xs bg-white shrink-0">
                 <img :src="getLookupImage(item)" class="w-full h-full object-cover opacity-80" />
               </div>
-              <span class="text-[10px] font-black uppercase tracking-tight">{{ item.name }}</span>
+              <span class="text-[10px] font-semibold uppercase tracking-tight">{{ item.name }}</span>
               <button type="button" @click="deleteLookup(item.id)"
                 class="w-4 h-4 rounded-full flex items-center justify-center hover:bg-error/10 hover:text-error transition-all ml-xs">
                 ×
@@ -508,35 +508,35 @@ watch(
           v-if="props.program">
           <div class="grid grid-cols-2 gap-x-lg gap-y-md">
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program
+              <span class="text-2xs font-bold text-content-muted uppercase tracking-wider opacity-60">Program
                 Name</span>
               <div class="flex items-center gap-sm">
-                <span class="text-sm font-bold text-content-dark tracking-tight">{{ props.program.name }}</span>
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ props.program.name }}</span>
               </div>
             </div>
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Category</span>
+              <span class="text-2xs font-bold text-content-muted uppercase tracking-wider opacity-60">Category</span>
               <div class="flex items-center gap-sm">
                 <AppBadge :status="categories.find(c => c.id === props.program.categoryId)?.name" type="blue" />
               </div>
             </div>
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Level</span>
+              <span class="text-2xs font-bold text-content-muted uppercase tracking-wider opacity-60">Level</span>
               <div class="flex items-center gap-sm">
                 <AppBadge :status="levels.find(l => l.id === props.program.levelId)?.name"
                   class="bg-surface-subtle text-content-dark border-outline-std" />
               </div>
             </div>
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Price</span>
-              <span class="text-sm font-black text-primary tracking-tighter">${{ props.program.basePrice }}</span>
+              <span class="text-2xs font-bold text-content-muted uppercase tracking-wider opacity-60">Price</span>
+              <span class="text-sm font-semibold text-primary tracking-tighter">${{ props.program.basePrice }}</span>
             </div>
           </div>
         </div>
 
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
+            <strong class="text-sm font-semibold tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
             <span class="text-xs opacity-90 font-medium">This will erase all linked class records and enrollment history
               for this program. This action is irreversible.</span>
           </div>
@@ -545,8 +545,8 @@ watch(
         <AppInput v-model="localData.deleteConfirm" label="Security Confirmation" placeholder='Type "DELETE" to confirm'
           required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-2xs font-black uppercase text-content-muted/40 mt-1">
-              Type <span class="text-error px-1 font-black">DELETE</span> to authorize this permanent action
+            <span class="block text-2xs font-bold uppercase text-content-muted/40 mt-1">
+              Type <span class="text-error px-1 font-bold">DELETE</span> to authorize this permanent action
             </span>
           </template>
         </AppInput>
@@ -564,7 +564,7 @@ watch(
           <div class="flex items-center gap-sm">
             <span class="text-lg">ℹ️</span>
             <div class="flex flex-col">
-              <span class="text-xs font-black tracking-tight">No Changes Detected</span>
+              <span class="text-xs font-semibold tracking-tight">No Changes Detected</span>
               <span class="text-[10px] opacity-80">Please modify at least one field to enable the update button.</span>
             </div>
           </div>

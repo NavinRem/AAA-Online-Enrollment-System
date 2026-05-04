@@ -67,7 +67,7 @@ const handleNavClick = () => {
     :class="isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'">
     <div class="p-3 px-5 flex items-center justify-center gap-sm relative border-b border-surface-light/50 mb-2">
       <img :src="getImageUrl('common/logo-main')" alt="Logo" class="w-20 h-auto" />
-      <span class="text-sm font-extrabold text-content-dark leading-tight tracking-tight">Authentic Advanced
+      <span class="text-sm font-semibold text-content-dark leading-tight tracking-tight">Authentic Advanced
         Academy</span>
       <button
         class="lg:hidden absolute right-3 top-1/2 -translate-y-1/2 bg-none border-none text-3xl text-content-light cursor-pointer p-1 leading-none hover:text-content-dark transition-colors"
@@ -78,7 +78,7 @@ const handleNavClick = () => {
 
     <nav class="flex-1 p-2 px-md flex flex-col gap-1 overflow-y-auto">
       <router-link v-for="item in menuItems" :key="item.name" :to="item.path"
-        class="flex items-center gap-sm p-3 px-md text-content-muted rounded-sm transition-all font-semibold text-sm hover:bg-surface-subtle group"
+        class="flex items-center gap-sm p-3 px-md text-content-muted rounded-sm transition-all font-semibold text-sm hover:bg-surface-subtle hover:text-black group"
         :class="{
           'bg-primary-soft text-primary font-bold shadow-sm shadow-primary/5':
             route.path === item.path,

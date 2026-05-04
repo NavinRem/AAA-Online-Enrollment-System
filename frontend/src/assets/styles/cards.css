@@ -47,7 +47,7 @@
   .ui-summary-card-title {
     @apply uppercase tracking-widest opacity-60;
     font-size: var(--text-xs);
-    font-weight: 900;
+    font-weight: 700;
     color: var(--color-content-muted);
     border-bottom: 1px solid var(--color-outline-std);
     padding-bottom: var(--space-sm);
@@ -63,7 +63,7 @@
     gap: 0.375rem;
   }
   .ui-detail-card strong {
-    @apply font-black text-base min-w-[120px] whitespace-nowrap;
+    @apply font-bold text-base min-w-[120px] whitespace-nowrap;
     color: var(--color-content-dark);
   }
 
@@ -80,11 +80,11 @@
   /* ── Summary Label & Value ───────────────────────────────────────────────── */
   /* Use for: field labels and values in summary/sidebar cards                 */
   .ui-summary-label {
-    @apply text-base font-black text-content-dark mb-2xs
+    @apply text-base font-bold text-content-dark mb-2xs
            leading-none tracking-tight opacity-80;
   }
   .ui-summary-value {
-    @apply text-sm text-content-muted font-bold leading-relaxed;
+    @apply text-sm text-content-muted font-semibold leading-relaxed;
   }
   .ui-summary-value.inline {
     @apply inline-block ml-xs;
@@ -96,7 +96,7 @@
     @apply flex items-center justify-between;
   }
   .ui-section-title {
-    @apply text-xl font-black tracking-tight;
+    @apply text-xl font-bold tracking-tight;
     color: var(--color-content-dark);
   }
   .ui-section-divider {
@@ -113,7 +113,7 @@
     border: 1px solid var(--color-outline-std);
   }
   .ui-tab-item {
-    @apply px-xl py-sm rounded-sm text-sm font-bold transition-all select-none cursor-pointer;
+    @apply px-xl py-sm rounded-sm text-sm font-semibold transition-all select-none cursor-pointer;
     color: var(--color-content-muted);
   }
   .ui-tab-item:hover {
@@ -139,10 +139,10 @@
     @apply flex flex-col gap-2xs;
   }
   .ui-data-label {
-    @apply text-3xs uppercase font-black tracking-widest text-content-light;
+    @apply text-3xs uppercase font-bold tracking-widest text-content-light;
   }
   .ui-data-value {
-    @apply text-sm font-bold text-content-dark;
+    @apply text-sm font-semibold text-content-dark;
   }
 
   /* ── Premium Table ───────────────────────────────────────────────────────── */
@@ -151,7 +151,7 @@
     @apply w-full text-left border-separate border-spacing-0;
   }
   .ui-premium-table th {
-    @apply px-md py-sm text-3xs font-black uppercase tracking-widest
+    @apply px-md py-sm text-3xs font-semibold uppercase tracking-widest
            text-content-muted bg-surface-subtle;
   }
   .ui-premium-table th:first-child {
@@ -179,14 +179,14 @@
     @apply h-full transition-all duration-500 rounded-full;
   }
   .ui-capacity-text {
-    @apply text-3xs font-black uppercase tracking-widest
+    @apply text-3xs font-semibold uppercase tracking-widest
            flex items-center justify-between;
   }
 
   /* ── Tags ────────────────────────────────────────────────────────────────── */
   /* Use for: status labels, category chips, role badges                       */
   .ui-tag {
-    @apply px-xs py-3xs rounded-sm text-3xs font-black uppercase
+    @apply px-xs py-3xs rounded-sm text-3xs font-semibold uppercase
            tracking-widest inline-flex items-center justify-center;
   }
   .ui-tag-blue {
@@ -228,10 +228,10 @@
     @apply flex flex-col gap-2xs;
   }
   .ui-identity-name {
-    @apply text-3xl font-black text-content-dark tracking-tighter leading-none;
+    @apply text-3xl font-bold text-content-dark tracking-tighter leading-none;
   }
   .ui-identity-name-compact {
-    @apply text-2xl font-black text-content-dark tracking-tighter leading-tight;
+    @apply text-2xl font-bold text-content-dark tracking-tighter leading-tight;
   }
   .ui-identity-meta {
     @apply flex items-center gap-md mt-2xs;

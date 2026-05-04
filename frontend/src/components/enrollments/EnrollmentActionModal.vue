@@ -193,41 +193,41 @@ const modalIcon = computed(() => {
           <div class="grid grid-cols-2 gap-x-lg gap-y-md">
             <!-- Parent -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Parent
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Parent
                 Registry</span>
               <div class="enroll-identity-row">
                 <img :src="resolvedSummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.parentName }}</span>
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ resolvedSummary.parentName }}</span>
               </div>
             </div>
             <!-- Student -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Student
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Student
                 Name</span>
               <div class="enroll-identity-row">
                 <img :src="resolvedSummary.studentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.studentName
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ resolvedSummary.studentName
                   }}</span>
               </div>
             </div>
             <!-- Program -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Program
                 Selection</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <img :src="resolvedSummary.programAvatar"
                   class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.programName
+                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ resolvedSummary.programName
                   }}</span>
               </div>
             </div>
             <!-- Class & Branch -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Class and
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Class and
                 Branch</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <AppBadge :status="resolvedSummary.branchAbbr" class="shadow-sm" />
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.classTitle
+                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ resolvedSummary.classTitle
                   }}</span>
               </div>
             </div>
@@ -236,7 +236,7 @@ const modalIcon = computed(() => {
           <div
             class="flex items-center justify-between bg-primary p-xl rounded-std shadow-lg shadow-primary/10 mt-lg border border-primary-dark">
             <div class="flex justify-between gap-1">
-              <span class="text-2xs font-black text-white/80 uppercase tracking-widest">Calculated Tuition Fee</span>
+              <span class="text-2xs font-semibold text-white/80 uppercase tracking-widest">Calculated Tuition Fee</span>
               <div class="flex gap-xs">
                 <AppBadge :status="resolvedSummary.mode || resolvedSummary.status"
                   class="bg-white/20 text-white border-transparent" />
@@ -244,14 +244,14 @@ const modalIcon = computed(() => {
               </div>
             </div>
             <div class="text-white">
-              <span class="text-3xl font-black tracking-tighter">${{ formatPrice(resolvedSummary.amount) }}</span>
+              <span class="text-3xl font-bold tracking-tighter">${{ formatPrice(resolvedSummary.amount) }}</span>
             </div>
           </div>
         </div>
 
         <AppAlert type="warning" class="mt-md">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight">Final Verification Required</strong>
+            <strong class="text-sm font-semibold tracking-tight">Final Verification Required</strong>
             <span class="text-xs opacity-90 font-medium">By confirming, you verify that the payment proof matches the
               tuition amount. This
               action is irreversible.</span>
@@ -259,7 +259,7 @@ const modalIcon = computed(() => {
         </AppAlert>
 
         <div class="flex flex-col gap-xs mt-lg">
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest">Payment Channel
+          <label class="text-xs font-semibold uppercase text-content-muted tracking-widest">Payment Channel
             Selection</label>
           <div class="grid grid-cols-2 gap-sm mt-1">
             <button type="button" class="enroll-channel-btn" :class="localData.paymentMethod === 'online'
@@ -295,7 +295,7 @@ const modalIcon = computed(() => {
         </div>
 
         <div class="flex flex-col gap-xs mt-md">
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest">Internal Processing
+          <label class="text-xs font-semibold uppercase text-content-muted tracking-widest">Internal Processing
             Remarks</label>
           <textarea v-model="localData.remark" placeholder="Add any specific notes for audit trailing..." rows="2"
             class="ui-remark-textarea"></textarea>
@@ -306,7 +306,7 @@ const modalIcon = computed(() => {
       <div v-if="type === 'cancel'" class="flex flex-col gap-lg">
         <AppAlert type="warning">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight uppercase">Program Termination Warning</strong>
+            <strong class="text-sm font-semibold tracking-tight uppercase">Program Termination Warning</strong>
             <span class="text-xs opacity-90 font-medium">Marking this enrollment as cancelled will permanently release
               the reserved seat in
               the session schedule.</span>
@@ -314,11 +314,11 @@ const modalIcon = computed(() => {
         </AppAlert>
 
         <div class="flex flex-col gap-xs">
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest">Cancellation Logic / Reason
+          <label class="text-xs font-semibold uppercase text-content-muted tracking-widest">Cancellation Logic / Reason
             <span class="text-error">*</span></label>
           <div class="flex flex-wrap gap-xs mb-sm mt-1">
             <button v-for="preset in cancelPresets" :key="preset" type="button"
-              class="px-md py-1.5 border-2 rounded-sm text-2xs cursor-pointer font-black tracking-widest transition-all"
+              class="px-md py-1.5 border-2 rounded-sm text-2xs cursor-pointer font-semibold tracking-widest transition-all"
               :class="activePreset === preset
                 ? 'bg-primary text-white border-primary shadow-md scale-105'
                 : 'bg-surface-light border-outline-std/50 hover:bg-primary-soft hover:text-primary hover:border-primary/20'
@@ -330,7 +330,7 @@ const modalIcon = computed(() => {
             'border-error': errors.reason,
             'animate-shake': shaking.reason,
           }" rows="3" placeholder="Provide a detailed cancel reason..." @input="activePreset = ''"></textarea>
-          <div v-if="errors.reason" class="text-error text-3xs font-black px-1 mt-0.5 tracking-widest">
+          <div v-if="errors.reason" class="text-error text-3xs font-semibold px-1 mt-0.5 tracking-widest">
             {{ errors.reason }}
           </div>
         </div>
@@ -344,40 +344,40 @@ const modalIcon = computed(() => {
           <div class="grid grid-cols-2 gap-x-lg gap-y-md">
             <!-- Parent -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Parent
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Parent
                 Name</span>
               <div class="enroll-identity-row">
                 <img :src="resolvedSummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.parentName }}</span>
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ resolvedSummary.parentName }}</span>
               </div>
             </div>
             <!-- Student -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Student
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Student
                 Name</span>
               <div class="enroll-identity-row">
                 <img :src="resolvedSummary.studentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-bold text-content-dark tracking-tight">{{ resolvedSummary.studentName
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ resolvedSummary.studentName
                   }}</span>
               </div>
             </div>
             <!-- Program -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Program</span>
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Program</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <img :src="resolvedSummary.programAvatar"
                   class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.programName
+                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ resolvedSummary.programName
                   }}</span>
               </div>
             </div>
             <!-- Class & Branch -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Class and
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Class and
                 Branch</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <AppBadge :status="resolvedSummary.branchAbbr" class="shadow-sm" />
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ resolvedSummary.classTitle
+                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ resolvedSummary.classTitle
                   }}</span>
               </div>
             </div>
@@ -386,7 +386,7 @@ const modalIcon = computed(() => {
 
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
+            <strong class="text-sm font-semibold tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
             <span class="text-xs opacity-90 font-medium">This will erase all linked financial logs and attendance
               records. This action is irreversible and cannot be undone.</span>
           </div>
@@ -396,8 +396,8 @@ const modalIcon = computed(() => {
           placeholder='Type "DELETE" to confirm' required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm"
           @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-2xs font-black mt-0.5">
-              Type <span class="text-error px-1 font-black">DELETE</span> to authorize this permanent action
+            <span class="block text-2xs font-semibold mt-0.5">
+              Type <span class="text-error px-1 font-semibold">DELETE</span> to authorize this permanent action
             </span>
           </template>
         </AppInput>
@@ -432,7 +432,7 @@ const modalIcon = computed(() => {
 }
 
 .enroll-channel-btn {
-  @apply flex items-center justify-center gap-md p-xl rounded-sm border-2 font-black text-xs uppercase tracking-widest transition-all;
+  @apply flex items-center justify-center gap-md p-xl rounded-sm border-2 font-semibold text-xs uppercase tracking-widest transition-all;
 }
 
 .enroll-channel-btn--inactive {

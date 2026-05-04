@@ -102,7 +102,7 @@ const handleFinalSubmit = () => {
       @confirm="handleFinalSubmit">
       <template #row-Avatar="{ row }">
         <a v-if="row.value !== 'None Selected'" :href="row.value" target="_blank"
-          class="text-primary text-sm font-bold hover:underline line-clamp-2 leading-tight max-w-[200px]"
+          class="text-primary text-sm font-semibold hover:underline line-clamp-2 leading-tight max-w-[200px]"
           title="View Avatar URL">
           {{ row.value }}
         </a>

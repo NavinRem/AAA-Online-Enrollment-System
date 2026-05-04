@@ -27,11 +27,11 @@ defineProps({
 
       <!-- Content -->
       <div class="flex flex-col min-w-0">
-        <span class="text-[10px] font-black text-content-muted uppercase tracking-widest leading-none mb-1 truncate">
+        <span class="text-[10px] font-semibold text-content-muted uppercase tracking-widest leading-none mb-1 truncate">
           {{ label }}
         </span>
         <div class="flex items-baseline gap-2">
-          <span class="text-xl font-black text-content-dark tracking-tight" v-html="value"></span>
+          <span class="text-xl font-bold text-content-dark tracking-tight" v-html="value"></span>
         </div>
       </div>
     </div>

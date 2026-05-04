@@ -1,6 +1,11 @@
 import { initializeApp } from 'firebase/app'
 import { getStorage, connectStorageEmulator } from 'firebase/storage'
-import { initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore'
+import { 
+  initializeFirestore, 
+  connectFirestoreEmulator, 
+  persistentLocalCache, 
+  persistentMultipleTabManager 
+} from 'firebase/firestore'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
 
 import { config } from './config'
@@ -9,7 +14,15 @@ const firebaseConfig = config.firebase
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
-const firestore = initializeFirestore(app, {})
+
+// Initialize Firestore with modern persistence config (replaces deprecated enableMultiTabIndexedDbPersistence)
+const firestore = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager()
+  }),
+  experimentalForceLongPolling: true,
+})
+
 const storage = getStorage(app)
 const auth = getAuth(app)
 

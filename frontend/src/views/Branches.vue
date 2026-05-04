@@ -320,14 +320,14 @@ const handleActionSubmit = async (payload) => {
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">Add Branch</span>
+              <span class="font-bold tracking-tight">Add Branch</span>
             </AppButton>
           </template>
 
           <template #empty>
             <div class="py-20 text-center flex flex-col items-center gap-4 opacity-30 grayscale">
               <img :src="getImageUrl('common/no-data')" class="w-24" />
-              <span class="text-sm font-black uppercase tracking-widest">No Branch Found</span>
+              <span class="text-sm font-semibold uppercase tracking-widest">No Branch Found</span>
             </div>
           </template>
 
@@ -339,7 +339,7 @@ const handleActionSubmit = async (payload) => {
 
             <td class="ui-cell" :style="{ width: headers[1].width }">
               <div class="flex flex-col">
-                <span class="text-sm font-bold text-content-dark truncate block">{{ item.name }}</span>
+                <span class="text-sm font-semibold text-content-dark truncate block">{{ item.name }}</span>
               </div>
             </td>
 
@@ -351,45 +351,45 @@ const handleActionSubmit = async (payload) => {
             <td class="ui-cell" :class="{ 'hidden-on-mobile': headers[3].hideOnMobile }"
               :style="{ width: headers[3].width }">
               <span
-                class="text-xs font-bold line-clamp-2 leading-tight min-h-[2.5rem] flex items-center text-content-muted">{{
+                class="text-xs font-semibold line-clamp-2 leading-tight min-h-[2.5rem] flex items-center text-content-muted">{{
                   item.location }}</span>
             </td>
 
             <td class="ui-cell" :class="{ 'hidden-on-mobile': headers[4].hideOnMobile }"
               :style="{ width: headers[4].width }">
-              <span class="text-sm font-bold tabular-nums whitespace-nowrap">{{ item.phone }}</span>
+              <span class="text-sm font-semibold tabular-nums whitespace-nowrap">{{ item.phone }}</span>
             </td>
 
             <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[5].hideOnMobile }"
               :style="{ width: headers[5].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getClassCount(item.id) }}</span>
+              <span class="text-sm font-semibold text-content-dark tabular-nums">{{ getClassCount(item.id) }}</span>
             </td>
 
             <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[6].hideOnMobile }"
               :style="{ width: headers[6].width }">
-              <span class="text-sm font-black text-content-dark tabular-nums">{{ getProgramCount(item.id) }}</span>
+              <span class="text-sm font-semibold text-content-dark tabular-nums">{{ getProgramCount(item.id) }}</span>
             </td>
 
             <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[7].hideOnMobile }"
               :style="{ width: headers[7].width }">
-              <span class="text-sm font-black text-content-dark tabular-nums">{{ getStudentCount(item.id) }}</span>
+              <span class="text-sm font-semibold text-content-dark tabular-nums">{{ getStudentCount(item.id) }}</span>
             </td>
 
             <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[8].hideOnMobile }"
               :style="{ width: headers[8].width }">
               <AppBadge v-if="getNewTodayCount(item.id) > 0" :status="'+' + getNewTodayCount(item.id)" type="green" />
-              <span v-else class="text-xs font-bold text-content-dark">0</span>
+              <span v-else class="text-xs font-semibold text-content-dark">0</span>
             </td>
 
             <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[9].hideOnMobile }"
               :style="{ width: headers[9].width }">
-              <span class="text-sm font-black text-emerald-600 tabular-nums">${{ formatPrice(getBranchRevenue(item.id))
+              <span class="text-sm font-semibold text-emerald-600 tabular-nums">${{ formatPrice(getBranchRevenue(item.id))
                 }}</span>
             </td>
 
             <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[10].hideOnMobile }"
               :style="{ width: headers[10].width }">
-              <span class="text-sm font-black text-amber-600 tabular-nums">${{ formatPrice(getPendingRevenue(item.id))
+              <span class="text-sm font-semibold text-amber-600 tabular-nums">${{ formatPrice(getPendingRevenue(item.id))
                 }}</span>
             </td>
 
@@ -398,7 +398,7 @@ const handleActionSubmit = async (payload) => {
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
                   @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                  <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -414,7 +414,7 @@ const handleActionSubmit = async (payload) => {
                         <span class="font-bold">Edit</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete

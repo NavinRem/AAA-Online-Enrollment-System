@@ -342,7 +342,7 @@ const handleActionSubmit = async (formData) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">New Program</span>
+              <span class="font-bold tracking-tight">New Program</span>
             </AppButton>
           </template>
 
@@ -368,8 +368,8 @@ const handleActionSubmit = async (formData) => {
                     alt="program" class="w-full h-full object-cover" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.name }}</span>
-                  <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{ item.category ||
+                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.name }}</span>
+                  <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{ item.category ||
                     'Standard' }}</span>
                 </div>
               </div>
@@ -386,7 +386,7 @@ const handleActionSubmit = async (formData) => {
 
             <td class="ui-cell text-center hidden sm:table-cell">
               <div class="flex flex-col items-center">
-                <span class="text-sm font-black text-content-dark tabular-nums">{{ item.totalSessions || 0 }}</span>
+                <span class="text-sm font-semibold text-content-dark tabular-nums">{{ item.totalSessions || 0 }}</span>
               </div>
             </td>
 
@@ -396,7 +396,7 @@ const handleActionSubmit = async (formData) => {
 
             <td class="ui-cell text-center hidden lg:table-cell">
               <div class="flex flex-col items-center">
-                <span class="text-xs font-black text-content-dark uppercase tracking-widest tabular-nums">{{
+                <span class="text-xs font-semibold text-content-dark uppercase tracking-widest tabular-nums">{{
                   item.maxCapacity || '∞' }}</span>
               </div>
             </td>
@@ -410,7 +410,7 @@ const handleActionSubmit = async (formData) => {
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
                   @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                  <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -426,7 +426,7 @@ const handleActionSubmit = async (formData) => {
                         <span class="font-bold">Edit</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete

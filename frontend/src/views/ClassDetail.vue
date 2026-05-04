@@ -242,19 +242,19 @@ watch(() => route.params.id, (newId) => {
               <td class="ui-cell">
                 <div class="flex items-center gap-3">
                   <div class="flex flex-col">
-                    <span class="text-sm font-bold text-content-dark leading-tight">{{ item.student?.name || 'Unknown'
+                    <span class="text-sm font-semibold text-content-dark leading-tight">{{ item.student?.name || 'Unknown'
                     }}</span>
-                    <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{
+                    <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{
                       item.student?.nickname || 'No Nick' }}</span>
                   </div>
                 </div>
               </td>
-              <td class="ui-cell text-center text-xs font-bold text-content-muted">
+              <td class="ui-cell text-center text-xs font-semibold text-content-muted">
                 {{ classData.program?.level || 'L1' }}
               </td>
               <td class="ui-cell text-center">
                 <div class="flex flex-col items-center">
-                  <span class="text-[10px] font-black text-content-dark tabular-nums tracking-tight">{{
+                  <span class="text-[10px] font-semibold text-content-dark tabular-nums tracking-tight">{{
                     classData.schedule.time }}</span>
                 </div>
               </td>
@@ -263,7 +263,7 @@ watch(() => route.params.id, (newId) => {
               <td v-for="session in sessions" :key="session.id" class="ui-cell text-center p-1">
                 <div class="flex flex-col items-center gap-1">
                   <div
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black cursor-pointer transition-all hover:scale-110 shadow-sm border border-outline-std"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold cursor-pointer transition-all hover:scale-110 shadow-sm border border-outline-std"
                     :class="[
                       index % 2 === 0 ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary',
                       session.date < new Date() ? '' : 'opacity-30 bg-gray-100 text-gray-400'
@@ -283,7 +283,7 @@ watch(() => route.params.id, (newId) => {
                 <div class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"></div>
               </td>
               <td class="ui-cell">
-                <span class="text-[10px] font-bold text-content-muted italic">New Student</span>
+                <span class="text-[10px] font-semibold text-content-muted italic">New Student</span>
               </td>
             </template>
           </DataTable>
@@ -294,7 +294,7 @@ watch(() => route.params.id, (newId) => {
         <div class="flex flex-col gap-md">
           <!-- Class Identity Card -->
           <section class="ui-detail-card flex flex-col items-center gap-6">
-            <h2 class="w-full font-black text-content-dark text-center">Basic Information</h2>
+            <h2 class="w-full font-bold text-content-dark text-center">Basic Information</h2>
             <div class="relative group">
               <div
                 class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle p-6">
@@ -307,47 +307,47 @@ watch(() => route.params.id, (newId) => {
           <section class="ui-detail-card">
             <div class="space-y-5">
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Class Name:</span>
+                <span class="text-lg font-bold text-content-dark">Class Name:</span>
                 <span class="text-md font-bold text-content-muted">{{ programData?.name ||
                   classData.program?.name || 'N/A'
                   }}</span>
               </div>
               <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-black text-content-dark">Category:</span>
+                <span class="text-lg font-bold text-content-dark">Category:</span>
                 <span class="text-md font-bold text-content-muted">{{
                   programData?.category || classData.program?.category || 'Standard' }}</span>
               </div>
               <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-black text-content-dark">Level:</span>
+                <span class="text-lg font-bold text-content-dark">Level:</span>
                 <span class="text-md font-bold text-content-muted">{{
                   programData?.level || classData.program?.level || 'L1' }}</span>
               </div>
               <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-black text-content-dark">Branch:</span>
+                <span class="text-lg font-bold text-content-dark">Branch:</span>
                 <div class="flex items-end">
                   <AppBadge :status="classData.branch?.abbr || 'TBA'" :type="classData.branch?.color || 'blue'" />
                   <span class="text-md font-bold text-content-muted mt-1">{{ classData.branch?.name || 'TBA' }}</span>
                 </div>
               </div>
               <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-black text-content-dark">Term:</span>
+                <span class="text-lg font-bold text-content-dark">Term:</span>
                 <AppBadge :status="classData.term?.name || 'Active Term'" type="blue" />
               </div>
               <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-black text-content-dark">Day:</span>
+                <span class="text-lg font-bold text-content-dark">Day:</span>
                 <AppBadge :status="classData.schedule.day" type="blue" size="sm" />
               </div>
               <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-black text-content-dark">Time:</span>
-                <span class="text-md font-black text-content-muted tabular-nums">{{ classData.schedule.time }}</span>
+                <span class="text-lg font-bold text-content-dark">Time:</span>
+                <span class="text-md font-bold text-content-muted tabular-nums">{{ classData.schedule.time }}</span>
               </div>
               <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-black text-content-dark">Class Capacity:</span>
-                <span class="text-md font-black text-content-muted tabular-nums">{{ classData.maxCapacity }}
+                <span class="text-lg font-bold text-content-dark">Class Capacity:</span>
+                <span class="text-md font-bold text-content-muted tabular-nums">{{ classData.maxCapacity }}
                   Students</span>
               </div>
               <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-black text-content-dark">Status:</span>
+                <span class="text-lg font-bold text-content-dark">Status:</span>
                 <AppBadge
                   :status="calculateClassProgress(classData.term?.startDate, classData.term?.endDate, classData.schedule.day, classData.schedule.time).status" />
               </div>

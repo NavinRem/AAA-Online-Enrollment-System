@@ -82,7 +82,7 @@ defineProps({
 }
 
 .table-header-cell {
-  @apply px-md py-sm text-content-muted text-[11px] font-black uppercase tracking-widest border-b border-outline-std bg-surface-subtle/50 backdrop-blur-sm sticky top-0 whitespace-nowrap;
+  @apply px-md py-sm text-content-muted text-[11px] font-semibold uppercase tracking-widest border-b border-outline-std bg-surface-subtle/50 backdrop-blur-sm sticky top-0 whitespace-nowrap;
 }
 
 .table-empty-state {

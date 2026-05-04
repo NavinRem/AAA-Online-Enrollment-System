@@ -59,7 +59,7 @@ defineEmits(['close'])
             <slot name="header">
               <div class="flex items-center gap-sm">
                 <img v-if="icon" :src="icon" class="w-6 h-6 object-contain opacity-80" />
-                <h3 class="m-0 text-lg sm:text-xl font-extrabold text-content-dark tracking-tight">
+                <h3 class="m-0 text-lg sm:text-xl font-bold text-content-dark tracking-tight">
                   {{ title }}
                 </h3>
               </div>

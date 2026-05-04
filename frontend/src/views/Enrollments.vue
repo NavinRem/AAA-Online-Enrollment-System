@@ -16,6 +16,7 @@ import { parentService } from '../services/parentService'
 import { studentService } from '../services/studentService'
 import { programService } from '../services/programService'
 import { classService } from '../services/classService'
+import { categoryService } from '../services/categoryService'
 import { storageService } from '@/services/storageService'
 
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
@@ -75,14 +76,24 @@ const fetchEnrollments = async () => {
 
 const loadFormData = async () => {
   try {
-    const [parentsRes, programsRes, studentsRes, classesRes] = await Promise.all([
-      parentService.getAllParents(),
-      programService.getAllPrograms(),
-      studentService.getAllStudents(),
-      classService.getAllClasses(),
+    const [parentsRes, programsRes, studentsRes, classesRes, catsRes] = await Promise.all([
+      parentService.getAllParents().catch(() => []),
+      programService.getAllPrograms().catch(() => []),
+      studentService.getAllStudents().catch(() => []),
+      classService.getAllClasses().catch(() => []),
+      categoryService.getAllCategories().catch(() => []),
     ])
     parents.value = Array.isArray(parentsRes) ? parentsRes : []
-    programs.value = Array.isArray(programsRes) ? programsRes : []
+    
+    const cats = Array.isArray(catsRes) ? catsRes : (catsRes?.data || [])
+    programs.value = (Array.isArray(programsRes) ? programsRes : []).map(p => {
+      const cat = cats.find(c => c.id === p.categoryId || c.name === p.category)
+      return {
+        ...p,
+        categoryProfileURL: cat?.profileURL || ''
+      }
+    })
+    
     students.value = Array.isArray(studentsRes) ? studentsRes : []
     classes.value = Array.isArray(classesRes) ? classesRes : []
   } catch (err) {
@@ -229,10 +240,15 @@ const statusFilteredEnrollments = computed(() => {
     filtered = enriched.filter((r) => {
       const s = String(r.status || '').toLowerCase()
       const p = String(r.paymentStatus || '').toLowerCase()
+      const termStatus = String(r.class?.term?.status || '').toLowerCase()
 
-      if (currentFilter.value === 'paid') return (p === 'paid' || p === 'confirmed') && s !== 'cancelled'
+      if (currentFilter.value === 'paid') return (p === 'paid') && s !== 'cancelled'
       if (currentFilter.value === 'unpaid') return p === 'unpaid' && s !== 'cancelled'
       if (currentFilter.value === 'cancelled') return s === 'cancelled'
+
+      if (currentFilter.value === 'term:current') return termStatus !== 'archived'
+      if (currentFilter.value === 'term:history') return termStatus === 'archived'
+
       return true
     })
   }
@@ -265,6 +281,13 @@ const actionState = ref({
   enrollment: null,
 })
 
+const handleOpenNewEnrollment = () => {
+  errorMessage.value = ''
+  successMessage.value = ''
+  selectedEnrollment.value = null
+  showModal.value = true
+}
+
 const handleTableAction = ({ type, item }) => {
   errorMessage.value = ''
   successMessage.value = ''
@@ -286,7 +309,7 @@ const submitActionModal = async (payload) => {
       const { bankName, paymentMethod: methodType, proof, proofURL, remark } = payload
       const updateData = {
         paymentStatus: 'paid',
-        status: 'confirmed',
+        status: 'paid',
         paymentMethod: methodType === 'cash' ? 'Cash' : bankName || 'Online',
         transactionId: proof,
         paymentProofURL: proofURL || '',
@@ -368,22 +391,25 @@ const handleRegisterStudent = async (formData) => {
           :totalItems="totalItems" v-model:currentPage="currentPage" v-model:searchQuery="searchQuery"
           searchPlaceholder="Search something..." :hasFilter="true" v-model:currentFilter="currentFilter"
           :filterOptions="[
-            { label: 'All Enrollments', value: 'all' },
+            { label: 'All Statuses', value: 'all' },
             { label: 'Paid', value: 'paid' },
             { label: 'Unpaid', value: 'unpaid' },
             { label: 'Cancelled', value: 'cancelled' },
+            { isDivider: true },
+            { label: 'Current Term', value: 'term:current' },
+            { label: 'Archived Term', value: 'term:history' },
           ]" :rowClass="getRowClass" @action="handleTableAction" @row-click="navigateToDetail">
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
-              @click="showModal = true">
+              @click="handleOpenNewEnrollment">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">New Enrollment</span>
+              <span class="font-bold tracking-tight">New Enrollment</span>
             </AppButton>
           </template>
 
           <template
             #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
-            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell"
+            <td class="ui-cell text-center font-semibold text-content-muted/20 hidden md:table-cell"
               :style="{ width: headers[0].width }">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
@@ -395,7 +421,7 @@ const handleRegisterStudent = async (formData) => {
                   <img :src="item.parent?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.parent?.name }}</span>
+                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.parent?.name }}</span>
                 </div>
               </div>
             </td>
@@ -407,7 +433,7 @@ const handleRegisterStudent = async (formData) => {
                   <img :src="item.student?.profileURL" alt="child" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.student?.name }}</span>
+                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.student?.name }}</span>
                 </div>
               </div>
             </td>
@@ -416,13 +442,13 @@ const handleRegisterStudent = async (formData) => {
             <td class="ui-cell" :style="{ width: headers[3].width }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
-                  <img :src="item.program?.profileURL" :alt="item.program?.name" />
+                  <img :src="item.program?.profileURL" :alt="item.programName" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-bold text-content-dark truncate block">{{
-                    item.class?.program?.name }}</span>
-                  <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{
-                    item.class?.program?.type || 'Standard' }}</span>
+                  <span class="text-sm font-semibold text-content-dark truncate block">{{
+                    item.program?.name }}</span>
+                  <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{
+                    item.program?.type || 'Standard' }}</span>
                 </div>
               </div>
             </td>
@@ -430,12 +456,12 @@ const handleRegisterStudent = async (formData) => {
             <!-- Session Column -->
             <td class="ui-cell" :style="{ width: headers[4].width }">
               <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col">
-                <span class="text-xs font-black text-content-dark uppercase tracking-tighter leading-none">{{
+                <span class="text-xs font-semibold text-content-dark uppercase tracking-tighter leading-none">{{
                   getSessionDay(item.classSchedule, true) }}</span>
-                <span class="text-[9px] font-black text-content-muted uppercase tracking-widest mt-0.5">{{
+                <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest mt-0.5">{{
                   getSessionTime(item.classSchedule) }}</span>
               </div>
-              <span v-else class="text-[10px] font-black uppercase text-content-muted/30 tracking-widest">Pending</span>
+              <span v-else class="text-[10px] font-semibold uppercase text-content-muted/30 tracking-widest">Pending</span>
             </td>
 
             <!-- Status Column -->
@@ -446,14 +472,14 @@ const handleRegisterStudent = async (formData) => {
             <!-- Amount Column -->
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex flex-col items-center gap-1">
-                <AppBadge :status="'$' + formatPrice(item.amount || 0)" type="blue" />
-                <AppBadge :status="item.paymentMode || 'Full'" />
+                <AppBadge :status="'$' + formatPrice(item.amount || 0)" :colorValue="item.paymentModeType"
+                  type="finance" />
               </div>
             </td>
 
             <!-- Date Column -->
             <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[7].width }">
-              <span class="text-xs font-bold text-content-muted truncate block">{{
+              <span class="text-xs font-semibold text-content-muted truncate block">{{
                 formatDate(item.enrollAt) }}</span>
             </td>
 
@@ -463,7 +489,7 @@ const handleRegisterStudent = async (formData) => {
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
                   @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                  <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -474,26 +500,26 @@ const handleRegisterStudent = async (formData) => {
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
                       <button
-                        v-if="item.status !== 'confirmed' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'"
+                        v-if="item.status !== 'paid' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'"
                         class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="() => { handleAction('edit', item); closeMenu(); }">
                         <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
-                        <span class="font-bold">Edit</span>
+                        <span class="font-semibold">Edit</span>
                       </button>
                       <button
-                        v-if="item.status !== 'confirmed' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'"
+                        v-if="item.status !== 'paid' && item.paymentStatus !== 'paid' && item.status !== 'cancelled'"
                         class="ui-dropdown-item ui-dropdown-item-success group"
                         @click="() => { handleAction('pay', item); closeMenu(); }">
                         <img :src="getActionIcon('pay')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
-                        <span class="font-bold">Process Payment</span>
+                        <span class="font-semibold">Process Payment</span>
                       </button>
                       <button v-if="item.status !== 'cancelled'" class="ui-dropdown-item ui-dropdown-item-danger group"
                         @click="() => { handleAction('cancel', item); closeMenu(); }">
                         <img :src="getActionIcon('cancel')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
-                        <span class="font-bold">Cancel</span>
+                        <span class="font-semibold">Cancel</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete

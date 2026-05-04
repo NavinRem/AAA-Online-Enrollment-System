@@ -55,7 +55,7 @@
   /* ── Header Cell ─────────────────────────────────────────────────────────── */
   /* Use for: every <th> in the table header                                   */
   .ui-header-cell {
-    @apply px-md py-sm text-content-muted text-3xs font-black uppercase
+    @apply px-md py-sm text-content-muted text-3xs font-semibold uppercase
            tracking-widest border-b border-outline-std
            bg-surface-subtle sticky top-0 whitespace-nowrap
            z-sticky-header;
@@ -123,7 +123,7 @@
   /* ── Dropdown Item (base) ────────────────────────────────────────────────── */
   /* Use for: every item inside a dropdown menu                                */
   .ui-dropdown-item {
-    @apply w-full text-sm font-semibold cursor-pointer transition-colors
+    @apply w-full text-sm font-medium cursor-pointer transition-colors
            rounded-sm flex items-center select-none;
     padding: var(--space-md);
     gap: var(--space-sm);

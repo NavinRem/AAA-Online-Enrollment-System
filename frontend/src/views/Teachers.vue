@@ -160,7 +160,7 @@ const handleDelete = async (teacher) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">New Teacher</span>
+              <span class="font-bold tracking-tight">New Teacher</span>
             </AppButton>
           </template>
 
@@ -173,11 +173,11 @@ const handleDelete = async (teacher) => {
             <td class="ui-cell" :style="{ width: headers[1].width }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center">
-                  <span class="text-lg font-black text-primary opacity-40">{{ item.name.charAt(0) }}</span>
+                  <span class="text-lg font-bold text-primary opacity-40">{{ item.name.charAt(0) }}</span>
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.name }}</span>
-                  <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{
+                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.name }}</span>
+                  <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{
                     item.id.slice(-6).toUpperCase() }}</span>
                 </div>
               </div>
@@ -185,15 +185,15 @@ const handleDelete = async (teacher) => {
 
             <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[2].width }">
               <div class="inline-flex px-3 py-1 rounded-lg bg-primary/5 border border-primary/10">
-                <span class="text-xs font-black text-primary tracking-tight uppercase">{{ item.specialization ||
+                <span class="text-xs font-semibold text-primary tracking-tight uppercase">{{ item.specialization ||
                   'Generalist' }}</span>
               </div>
             </td>
 
             <td class="ui-cell hidden md:table-cell" :style="{ width: headers[3].width }">
               <div class="flex flex-col">
-                <span class="text-xs font-bold text-content-dark">{{ item.email }}</span>
-                <span class="text-[9px] font-black text-content-muted uppercase tracking-tighter mt-1">{{ item.phone ||
+                <span class="text-xs font-semibold text-content-dark">{{ item.email }}</span>
+                <span class="text-[9px] font-semibold text-content-muted uppercase tracking-tighter mt-1">{{ item.phone ||
                   'No Contact' }}</span>
               </div>
             </td>
@@ -207,7 +207,7 @@ const handleDelete = async (teacher) => {
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
                   @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                  <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -221,12 +221,12 @@ const handleDelete = async (teacher) => {
                         @click="openModal('edit', item); closeMenu()">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Edit</span>
+                        <span class="font-semibold text-sm">Edit</span>
                       </button>
 
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
 
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="handleDelete(item); closeMenu()">
                         <img :src="getActionIcon('delete')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />

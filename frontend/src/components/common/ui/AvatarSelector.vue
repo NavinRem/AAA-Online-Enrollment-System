@@ -208,7 +208,7 @@ const handleFileUpload = async (event) => {
           </div>
           <template v-else>
             <i class="fas fa-plus text-sm mb-0.5"></i>
-            <span class="text-[10px] font-black uppercase tracking-tighter">Upload</span>
+            <span class="text-[10px] font-semibold uppercase tracking-tighter">Upload</span>
           </template>
         </div>
       </div>
@@ -262,10 +262,10 @@ const handleFileUpload = async (event) => {
 }
 
 .avatar-feedback-err {
-  @apply text-3xs font-black text-error uppercase tracking-widest pl-1;
+  @apply text-3xs font-semibold text-error uppercase tracking-widest pl-1;
 }
 
 .avatar-feedback-success {
-  @apply text-3xs font-black text-success uppercase tracking-widest pl-1 flex items-center gap-1;
+  @apply text-3xs font-semibold text-success uppercase tracking-widest pl-1 flex items-center gap-1;
 }
 </style>

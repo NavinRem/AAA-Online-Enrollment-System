@@ -212,7 +212,7 @@ const submitActionModal = async (formData) => {
     setTimeout(closeActionModal, delay)
   } catch (error) {
     console.error(`Failed ${type}:`, error)
-    errorMessage.value = `Action failed. Please try again.`
+    errorMessage.value = error.response?.data?.message || error.message || `Action failed. Please try again.`
   } finally {
     submitting.value = false
   }
@@ -294,7 +294,7 @@ const navigateToDetail = (item) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="showNewParentModal = true">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">New Parent</span>
+              <span class="font-bold tracking-tight">New Parent</span>
             </AppButton>
           </template>
 
@@ -322,7 +322,7 @@ const navigateToDetail = (item) => {
                 </div>
                 <div class="flex flex-col">
                   <span
-                    class="font-black text-content-dark group-hover:text-primary transition-colors tracking-tight text-base leading-tight">{{
+                    class="font-bold text-content-dark group-hover:text-primary transition-colors tracking-tight text-base leading-tight">{{
                       item.name }}</span>
                 </div>
               </div>
@@ -338,7 +338,7 @@ const navigateToDetail = (item) => {
                     <img :src="child.profileURL" alt="child" class="w-full h-full object-cover" />
                   </div>
                   <div v-if="item.childrenInfo.length > 3"
-                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-[10px] font-black text-content-muted">
+                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-[10px] font-semibold text-content-muted">
                     +{{ item.childrenInfo.length - 3 }}
                   </div>
                 </template>
@@ -348,19 +348,19 @@ const navigateToDetail = (item) => {
             <!-- Contact Details -->
             <td class="ui-cell hidden md:table-cell">
               <div class="flex flex-col">
-                <span class="text-sm font-black text-content-dark tracking-tighter">{{ item.phone }}</span>
+                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ item.phone }}</span>
               </div>
             </td>
 
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex flex-col max-w-[160px]">
-                <span class="text-sm font-bold text-content-muted truncate">{{ item.email }}</span>
+                <span class="text-sm font-semibold text-content-muted truncate">{{ item.email }}</span>
               </div>
             </td>
 
             <!-- Joined -->
             <td class="ui-cell hidden lg:table-cell text-center">
-              <span class="text-sm font-bold tabular-nums">
+              <span class="text-sm font-semibold tabular-nums">
                 {{ formatDate(item.createdAt) }}
               </span>
             </td>
@@ -376,7 +376,7 @@ const navigateToDetail = (item) => {
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
                   @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                  <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -391,27 +391,27 @@ const navigateToDetail = (item) => {
                         @click="openAddChildModal(item); closeMenu()">
                         <img :src="getActionIcon('plus')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Register Child</span>
+                        <span class="font-semibold text-sm">Register Child</span>
                       </button>
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
                         class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="openActionModal('edit', item); closeMenu()">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Edit</span>
+                        <span class="font-semibold text-sm">Edit</span>
                       </button>
                       <button v-if="(item.status || 'Active').toLowerCase() === 'inactive'"
                         class="ui-dropdown-item ui-dropdown-item-success group"
                         @click="handleAction('activate', item); closeMenu()">
                         <img :src="getActionIcon('reactivate')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Reactivate</span>
+                        <span class="font-semibold text-sm">Reactivate</span>
                       </button>
                       <button v-else class="ui-dropdown-item ui-dropdown-item-danger group"
                         @click="handleAction('deactivate', item); closeMenu()">
                         <img :src="getActionIcon('cancel')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Deactivate</span>
+                        <span class="font-semibold text-sm">Deactivate</span>
                       </button>
 
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
@@ -419,7 +419,7 @@ const navigateToDetail = (item) => {
                         @click="openActionModal('reset-password', item); closeMenu()">
                         <img :src="getActionIcon('reset-password')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Security Reset</span>
+                        <span class="font-semibold text-sm">Security Reset</span>
                       </button>
 
                       <div class="h-px bg-surface-light mx-1 my-1"
@@ -427,7 +427,7 @@ const navigateToDetail = (item) => {
                       </div>
 
                       <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
-                        class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="handleAction('delete', item); closeMenu()">
                         <img :src="getActionIcon('delete')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />

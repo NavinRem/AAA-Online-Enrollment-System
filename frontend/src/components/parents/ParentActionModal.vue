@@ -250,7 +250,7 @@ watch(
           :error="errors.phone" :shake="shaking.phone" @input="clearError('phone')" />
 
         <div class="flex flex-col gap-xs col-span-2 sm:col-span-1">
-          <label class="text-xs font-black uppercase text-content-muted tracking-widest">Avatar Signature <span
+          <label class="text-xs font-semibold uppercase text-content-muted tracking-widest">Avatar Signature <span
               class="text-error">*</span></label>
           <AvatarSelector v-model="localData.profileURL" :role="localData.role" :uid="user?.id"
             :customFileName="`${localData.name}_${localData.role}`" :error="errors.profileURL"
@@ -275,7 +275,7 @@ watch(
             @click-disabled="handleDisabledClick('childInfo')" />
 
           <div class="flex flex-col gap-xs col-span-2">
-            <label class="text-xs font-black uppercase text-content-muted tracking-widest">Student Avatar <span
+            <label class="text-xs font-semibold uppercase text-content-muted tracking-widest">Student Avatar <span
                 class="text-error">*</span></label>
             <AvatarSelector v-model="localData.profileURL" role="student"
               :customFileName="`${localData.name}_student` || ''" :disabled="!user && !localData.parentId"
@@ -290,7 +290,7 @@ watch(
     <div v-if="type === 'deactivate'" class="flex flex-col gap-lg">
       <AppAlert type="warning">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-sm font-black uppercase tracking-tight">Suspension Protocol</strong>
+          <strong class="text-sm font-semibold uppercase tracking-tight">Suspension Protocol</strong>
           <span class="text-xs opacity-90 font-medium">Deactivating this account will revoke system access for the
             parent immediately. All
             linked student data remained archived for future reactivation.</span>
@@ -301,7 +301,7 @@ watch(
     <div v-if="type === 'activate'" class="flex flex-col gap-lg">
       <AppAlert type="success">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-sm font-black uppercase tracking-tight">Reactivation Clearance</strong>
+          <strong class="text-sm font-semibold uppercase tracking-tight">Reactivation Clearance</strong>
           <span class="text-xs opacity-90 font-medium">System access will be restored across all devices immediately.
             The parent will be able
             to manage active enrollments and billing.</span>
@@ -314,28 +314,28 @@ watch(
         v-if="selectedParent">
         <div class="grid grid-cols-2 gap-x-xl gap-y-md">
           <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Parent Name</span>
+            <span class="text-3xs font-semibold uppercase text-content-muted tracking-widest">Parent Name</span>
             <div class="flex items-center gap-sm">
               <img :src="selectedParent.profileURL" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-              <span class="text-sm font-black text-content-dark tracking-tight">{{
+              <span class="text-sm font-semibold text-content-dark tracking-tight">{{
                 selectedParent.name
               }}</span>
             </div>
           </div>
           <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Contact Email</span>
+            <span class="text-3xs font-semibold uppercase text-content-muted tracking-widest">Contact Email</span>
             <span class="text-sm text-content-dark font-bold truncate">{{
               selectedParent.email
               }}</span>
           </div>
           <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Contact Phone</span>
+            <span class="text-3xs font-semibold uppercase text-content-muted tracking-widest">Contact Phone</span>
             <span class="text-sm text-content-dark font-bold truncate">{{
               selectedParent.phone
               }}</span>
           </div>
           <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-black uppercase text-content-muted tracking-widest">Account Status</span>
+            <span class="text-3xs font-semibold uppercase text-content-muted tracking-widest">Account Status</span>
             <div class="w-fit">
               <AppBadge :status="selectedParent.status" />
             </div>
@@ -345,7 +345,7 @@ watch(
 
       <AppAlert type="error">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-sm font-black uppercase tracking-tight">Critical Record Delete</strong>
+          <strong class="text-sm font-semibold uppercase tracking-tight">Critical Record Delete</strong>
           <span class="text-xs opacity-90 font-medium leading-relaxed">This action is destructive and irreversible. All
             linked historical data, billing
             cycles, and child relations will be severed.</span>
@@ -356,7 +356,7 @@ watch(
         class="text-center" :error="errors.deleteConfirm" :shake="shaking.deleteConfirm"
         @input="clearError('deleteConfirm')">
         <template #label-extra>
-          <span class="block text-2xs font-black text-center mt-1">
+          <span class="block text-2xs font-bold text-center mt-1">
             Type <span class="text-error px-1">DELETE</span> to authorize record deletion
           </span>
         </template>
@@ -366,7 +366,7 @@ watch(
     <!-- Password Management View -->
     <div v-if="type === 'reset-password'" class="flex flex-col gap-lg">
       <div class="bg-surface-subtle/50 p-md rounded-sm border border-outline-std/30">
-        <h3 class="text-xs font-black uppercase tracking-widest mb-1 text-content-dark">
+        <h3 class="text-xs font-semibold uppercase tracking-widest mb-1 text-content-dark">
           Recovery Logic Selection
         </h3>
         <p class="text-3xs text-content-muted uppercase font-bold tracking-widest opacity-60 italic">
@@ -389,7 +389,7 @@ watch(
             </p>
           </div>
           <div v-if="selectedResetMode === 'email'"
-            class="absolute -top-1 -right-1 w-6 h-6 bg-primary text-white flex items-center justify-center text-xs font-black border-2 border-white rounded-full">
+            class="absolute -top-1 -right-1 w-6 h-6 bg-primary text-white flex items-center justify-center text-xs font-semibold border-2 border-white rounded-full">
             ✓
           </div>
         </div>
@@ -408,7 +408,7 @@ watch(
             </p>
           </div>
           <div v-if="selectedResetMode === 'manual'"
-            class="absolute -top-1 -right-1 w-6 h-6 bg-warning text-white flex items-center justify-center text-xs font-black border-2 border-white rounded-full">
+            class="absolute -top-1 -right-1 w-6 h-6 bg-warning text-white flex items-center justify-center text-xs font-semibold border-2 border-white rounded-full">
             ✓
           </div>
         </div>
@@ -416,14 +416,14 @@ watch(
 
       <AppAlert type="info">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-xs font-black uppercase tracking-widest">Compliance Protocol</strong>
+          <strong class="text-xs font-semibold uppercase tracking-widest">Compliance Protocol</strong>
           <p class="text-2xs opacity-90 font-bold uppercase tracking-tighter opacity-70">
             User will be required to update credentials upon first session authorization.
           </p>
         </div>
       </AppAlert>
       <div v-if="errors.resetMode"
-        class="text-error text-3xs font-black text-center uppercase tracking-widest animate-shake mt-2">
+        class="text-error text-3xs font-semibold text-center uppercase tracking-widest animate-shake mt-2">
         {{ errors.resetMode }}
       </div>
     </div>
@@ -449,11 +449,11 @@ watch(
 
 <style scoped>
 .parent-identity-email {
-  @apply text-sm font-black text-content-muted opacity-60;
+  @apply text-sm font-semibold text-content-muted opacity-60;
 }
 
 .parent-identity-phone {
-  @apply px-2 py-0.5 bg-white/40 text-sm font-bold rounded-full shadow-sm;
+  @apply px-2 py-0.5 bg-white/40 text-sm font-semibold rounded-full shadow-sm;
 }
 
 .parent-reset-card {
@@ -493,7 +493,7 @@ watch(
 }
 
 .parent-reset-title {
-  @apply text-xs font-black uppercase tracking-tighter;
+  @apply text-xs font-semibold uppercase tracking-tighter;
 }
 
 .parent-reset-sub {

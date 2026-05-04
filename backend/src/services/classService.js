@@ -298,7 +298,7 @@ class ClassService {
     const enrollmentsSnap = await db
       .collection(COLLECTIONS.ENROLLMENT)
       .where('classId', '==', classId)
-      .where('status', '==', 'active')
+      .where('status', 'in', ['active', 'confirmed', 'paid', 'unpaid'])
       .get()
 
     const count = enrollmentsSnap.size

@@ -26,7 +26,7 @@
   }
 
   .enroll-section-label {
-    @apply text-2xs font-black text-content-muted uppercase tracking-widest border-b border-outline-std pb-1 mb-1;
+    @apply text-2xs font-bold text-content-muted uppercase tracking-widest border-b border-outline-std pb-1 mb-1;
   }
 
   .enroll-remarks-card {
@@ -43,16 +43,16 @@
   }
 
   .enroll-info-key {
-    @apply text-3xs font-black text-content-muted/60 uppercase tracking-widest;
+    @apply text-3xs font-semibold text-content-muted/60 uppercase tracking-widest;
   }
 
   .enroll-info-val {
-    @apply text-sm font-bold text-content-dark;
+    @apply text-sm font-semibold text-content-dark;
   }
 
   .enroll-info-val--strong,
   .enroll-info-val--primary {
-    @apply text-primary font-black;
+    @apply text-primary font-bold;
   }
 
   .enroll-info-sub {
@@ -93,7 +93,7 @@
   }
 
   .enroll-submit-error-summary {
-    @apply flex items-center gap-xs px-md py-sm bg-error-soft border border-error/25 rounded-sm text-xs font-bold text-error;
+    @apply flex items-center gap-xs px-md py-sm bg-error-soft border border-error/25 rounded-sm text-xs font-semibold text-error;
   }
 
   .enroll-submit-error-icon {
@@ -128,11 +128,11 @@
   }
 
   .ui-summary-label {
-    @apply text-2xs font-black uppercase tracking-widest opacity-70;
+    @apply text-2xs font-bold uppercase tracking-widest opacity-70;
   }
 
   .ui-summary-amount {
-    @apply text-3xl font-black tracking-tighter relative z-[1] transition-transform duration-500;
+    @apply text-3xl font-bold tracking-tighter relative z-[1] transition-transform duration-500;
   }
 
   .ui-summary-card:hover .ui-summary-amount {

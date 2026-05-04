@@ -300,7 +300,7 @@ onMounted(() => {
             { id: 'history', label: 'Enrollment History' },
             { id: 'payments', label: 'Payment History' }
           ]" :key="tab.id" @click="activeTab = tab.id"
-            class="px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300"
+            class="px-8 py-3 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all duration-300"
             :class="activeTab === tab.id ? 'bg-primary text-white shadow-md ring-1 ring-black/5 scale-[1.02]' : 'text-content-muted hover:text-content-dark hover:bg-white/50'">
             {{ tab.label }}
           </button>
@@ -309,10 +309,10 @@ onMounted(() => {
         <!-- Children List Card -->
         <section v-if="activeTab === 'children'" class="ui-detail-card overflow-hidden animate-fade-in">
           <div class="flex items-center gap-4">
-            <h3 class="text-lg font-black text-content-dark whitespace-nowrap">Children List</h3>
+            <h3 class="text-lg font-bold text-content-dark whitespace-nowrap">Children List</h3>
             <div class="h-px flex-1 bg-gray-100"></div>
             <button ref="filterToggleRef"
-              class="px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2"
+              class="px-4 py-2 text-xs font-semibold uppercase rounded-lg transition-all flex items-center gap-2"
               :class="currentFilter !== 'all' ? '' : 'bg-primary-light hover:bg-primary'"
               :style="currentFilter !== 'all' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color } : {}"
               @click="toggleFilter">
@@ -326,11 +326,11 @@ onMounted(() => {
             <!-- Left: Child Selector -->
             <div class="w-full lg:w-48 flex flex-col gap-2">
               <div
-                class="bg-surface-subtle rounded-xl text-xs p-md font-black uppercase tracking-widest text-content-muted text-center mb-1">
+                class="bg-surface-subtle rounded-xl text-xs p-md font-bold uppercase tracking-widest text-content-muted text-center mb-1">
                 Children List
               </div>
               <button v-for="s in students" :key="s.id" @click="selectedChildId = s.id"
-                class="p-3 rounded-xl text-sm font-bold transition-all text-center border-2"
+                class="p-3 rounded-xl text-sm font-semibold transition-all text-center border-2"
                 :class="selectedChildId === s.id ? 'bg-primary text-white shadow-md scale-[1.02]' : 'bg-white border-transparent hover:bg-gray-50 text-content-muted'">
                 {{ s.name }}
               </button>
@@ -341,22 +341,22 @@ onMounted(() => {
               <table class="w-full text-left border-collapse">
                 <thead>
                   <tr class="bg-gray-50/50">
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">No</th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Program</th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Branch</th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Session</th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">Status
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Program</th>
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Branch</th>
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Session</th>
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">Status
                     </th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                   <tr v-for="(enroll, idx) in currentChildEnrollments" :key="enroll.id"
                     class="hover:bg-gray-50/50 transition-colors">
-                    <td class=" p-md text-xs font-bold text-content-muted">{{ idx + 1 }}</td>
-                    <td class=" p-md text-sm font-bold text-content-dark">{{ enroll.programName }}</td>
-                    <td class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">{{
+                    <td class=" p-md text-xs font-semibold text-content-muted">{{ idx + 1 }}</td>
+                    <td class=" p-md text-sm font-semibold text-content-dark">{{ enroll.programName }}</td>
+                    <td class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">{{
                       enroll.branchAbbr }} Branch</td>
-                    <td class=" p-md text-xs font-bold text-content-dark leading-tight">{{ enroll.classSchedule }}</td>
+                    <td class=" p-md text-xs font-semibold text-content-dark leading-tight">{{ enroll.classSchedule }}</td>
                     <td class=" p-md text-center">
                       <AppBadge :status="enroll.status" />
                     </td>
@@ -374,10 +374,10 @@ onMounted(() => {
         <!-- enrollment History Card -->
         <section v-else-if="activeTab === 'history'" class="ui-detail-card overflow-hidden animate-fade-in">
           <div class="flex items-center gap-4">
-            <h3 class="text-lg font-black text-content-dark whitespace-nowrap">Enrollment History</h3>
+            <h3 class="text-lg font-bold text-content-dark whitespace-nowrap">Enrollment History</h3>
             <div class="h-px flex-1 bg-gray-100"></div>
             <button ref="filterToggleRef"
-              class="px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2"
+              class="px-4 py-2 text-xs font-semibold uppercase rounded-lg transition-all flex items-center gap-2"
               :class="currentFilter !== 'all' ? '' : 'bg-primary-light hover:bg-primary'"
               :style="currentFilter !== 'all' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color } : {}"
               @click="toggleFilter">
@@ -392,27 +392,27 @@ onMounted(() => {
               <table class="w-full text-left border-collapse">
                 <thead>
                   <tr class="bg-gray-50/50">
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">No</th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">
                       Enrollment ID
                     </th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Program</th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Child</th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Registered
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Program</th>
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Child</th>
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Registered
                       Date
                     </th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
                       Status</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                   <tr v-for="(enroll, idx) in enrollmentHistory" :key="enroll.id"
                     class="hover:bg-gray-50/50 transition-colors">
-                    <td class=" p-md text-xs font-bold text-content-muted">{{ idx + 1 }}</td>
+                    <td class=" p-md text-xs font-semibold text-content-muted">{{ idx + 1 }}</td>
                     <td class=" p-md text-xs font-mono text-content-dark">{{ enroll.id.slice(0, 12) }}...</td>
-                    <td class=" p-md text-sm font-bold text-content-dark">{{ enroll.programName }}</td>
-                    <td class=" p-md text-sm font-bold text-primary">{{ enroll.studentName }}</td>
-                    <td class=" p-md text-xs font-bold text-content-muted tabular-nums">{{ formatDate(enroll.enrollAt)
+                    <td class=" p-md text-sm font-semibold text-content-dark">{{ enroll.programName }}</td>
+                    <td class=" p-md text-sm font-semibold text-primary">{{ enroll.studentName }}</td>
+                    <td class=" p-md text-xs font-semibold text-content-muted tabular-nums">{{ formatDate(enroll.enrollAt)
                     }}</td>
                     <td class=" p-md text-center">
                       <AppBadge :status="enroll.status" />
@@ -427,9 +427,9 @@ onMounted(() => {
         <!-- Payment History Card -->
         <section v-else-if="activeTab === 'payments'" class="ui-detail-card overflow-hidden animate-fade-in">
           <div class="flex items-center gap-4">
-            <h3 class="text-lg font-black text-content-dark whitespace-nowrap">Payment History</h3>
+            <h3 class="text-lg font-bold text-content-dark whitespace-nowrap">Payment History</h3>
             <div class="h-px flex-1 bg-gray-100"></div>
-            <button class="px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2"
+            <button class="px-4 py-2 text-xs font-semibold uppercase rounded-lg transition-all flex items-center gap-2"
               :class="currentFilter !== 'all' ? '' : 'bg-primary-light hover:bg-primary'"
               :style="currentFilter !== 'all' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color } : {}"
               @click="toggleFilter">
@@ -444,31 +444,31 @@ onMounted(() => {
               <table class="w-full text-left border-collapse">
                 <thead>
                   <tr class="bg-gray-50/50">
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">No</th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Transaction
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Transaction
                       ID
                     </th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">
                       Enrollment ID
                     </th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
                       Amount</th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest">Paid Date
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Paid Date
                     </th>
-                    <th class=" p-md text-xs font-black text-content-muted uppercase tracking-widest text-center">
+                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
                       Status</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-50">
                   <tr v-for="(enroll, idx) in paymentHistory" :key="enroll.id"
                     class="hover:bg-gray-50/50 transition-colors">
-                    <td class=" p-md text-xs font-bold text-content-muted">{{ idx + 1 }}</td>
+                    <td class=" p-md text-xs font-semibold text-content-muted">{{ idx + 1 }}</td>
                     <td class=" p-md text-xs font-mono text-content-dark">{{ enroll.transactionId || enroll.id.slice(0,
                       12).toUpperCase() }}</td>
                     <td class=" p-md text-xs font-mono text-content-muted">{{ enroll.id.slice(0, 12) }}...</td>
-                    <td class=" p-md text-sm font-black text-content-dark text-center">${{ formatPrice(enroll.amount) }}
+                    <td class=" p-md text-sm font-semibold text-content-dark text-center">${{ formatPrice(enroll.amount) }}
                     </td>
-                    <td class=" p-md text-xs font-bold text-content-muted tabular-nums">{{ formatDate(enroll.paidAt ||
+                    <td class=" p-md text-xs font-semibold text-content-muted tabular-nums">{{ formatDate(enroll.paidAt ||
                       enroll.enrollAt) }}</td>
                     <td class=" p-md text-center">
                       <AppBadge :status="enroll.paymentStatus || enroll.status" />
@@ -485,7 +485,7 @@ onMounted(() => {
         <div class="flex flex-col gap-8">
           <!-- Basic Info Card -->
           <section class="ui-detail-card flex flex-col items-center gap-6">
-            <h2 class="w-full font-black text-content-dark text-center">Basic Information</h2>
+            <h2 class="w-full font-bold text-content-dark text-center">Basic Information</h2>
             <div class="relative group">
               <div
                 class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100">
@@ -496,23 +496,23 @@ onMounted(() => {
 
           <!-- Parent Information Card -->
           <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-black uppercase tracking-widest text-content-muted">Parent Information</h6>
+            <h6 class="font-bold uppercase tracking-widest text-content-muted">Parent Information</h6>
 
             <div class="space-y-5">
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Parent Name:</span>
+                <span class="text-lg font-bold text-content-dark">Parent Name:</span>
                 <span class="text-md font-bold text-content-muted">{{ parent.name }}</span>
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Phone Number:</span>
+                <span class="text-lg font-bold text-content-dark">Phone Number:</span>
                 <span class="text-md font-bold text-content-muted tabular-nums">{{ parent.phone }}</span>
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Email:</span>
+                <span class="text-lg font-bold text-content-dark">Email:</span>
                 <span class="text-md font-bold text-content-muted lowercase">{{ parent.email }}</span>
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-black text-content-dark">Status:</span>
+                <span class="text-lg font-bold text-content-dark">Status:</span>
                 <div>
                   <AppBadge :status="parent.status" />
                 </div>
@@ -522,7 +522,7 @@ onMounted(() => {
 
           <!-- Relationships Card -->
           <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-black uppercase tracking-widest text-content-muted">Children</h6>
+            <h6 class="font-bold uppercase tracking-widest text-content-muted">Children</h6>
             <div class="space-y-4">
               <div v-for="s in students" :key="s.id" @click="router.push(`/students/${s.id}`)"
                 class="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-subtle transition-all cursor-pointer group">
@@ -540,13 +540,13 @@ onMounted(() => {
 
           <!-- Account Timestamps Card -->
           <section class="ui-detail-card bg-surface-subtle/50">
-            <h6 class="font-black uppercase tracking-widest text-content-muted">Account Timestamp</h6>
+            <h6 class="font-bold uppercase tracking-widest text-content-muted">Account Timestamp</h6>
             <div class="space-y-6">
               <div class="flex items-center gap-3">
                 <AppBadge type="green" class="text-md px-2 py-xs">
                   Created At
                 </AppBadge>
-                <div class="text-sm font-bold text-content-muted leading-tight tabular-nums">
+                <div class="text-sm font-semibold text-content-muted leading-tight tabular-nums">
                   {{ formatDate(parent.createdAt) }}
                 </div>
               </div>
@@ -555,7 +555,7 @@ onMounted(() => {
                 <AppBadge type="blue" class="text-md px-2 py-xs">
                   Updated At
                 </AppBadge>
-                <div class="text-sm font-bold text-content-muted leading-tight tabular-nums">
+                <div class="text-sm font-semibold text-content-muted leading-tight tabular-nums">
                   {{ formatDate(parent.updatedAt || parent.createdAt) }}
                 </div>
               </div>
@@ -574,7 +574,7 @@ onMounted(() => {
           class="fixed bg-white rounded-xl shadow-2xl border border-outline-std z-[9999] p-2 min-w-[180px] overflow-hidden"
           :style="filterMenuStyles">
           <div v-for="option in filterOptions" :key="option.value"
-            class="px-4 py-2.5 text-sm font-bold cursor-pointer transition-all rounded-lg flex items-center justify-between group"
+            class="px-4 py-2.5 text-sm font-semibold cursor-pointer transition-all rounded-lg flex items-center justify-between group"
             :class="[
               currentFilter === option.value ? 'shadow-sm' : '',
               currentFilter === option.value ? '' : 'text-content-muted'
@@ -604,11 +604,11 @@ onMounted(() => {
 }
 
 .ui-detail-card-title {
-  @apply text-lg font-black text-content-dark tracking-tight;
+  @apply text-lg font-bold text-content-dark tracking-tight;
 }
 
 .filter-btn {
-  @apply px-4 py-2 bg-primary-soft text-primary text-xs font-black uppercase rounded-lg transition-all hover:bg-primary-light;
+  @apply px-4 py-2 bg-primary-soft text-primary text-xs font-semibold uppercase rounded-lg transition-all hover:bg-primary-light;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

@@ -265,18 +265,18 @@ watch(() => form.guestStudentDOB, (dob) => {
       <div
         class="bg-surface-light/50 p-4 rounded-std border-2 border-dashed border-outline-std flex items-center justify-between">
         <div class="flex flex-col">
-          <span class="text-xs font-black text-content-dark uppercase tracking-tighter">Engagement Strategy</span>
-          <span class="text-[10px] font-bold text-content-muted mt-0.5">Choose between registered accounts or guest
+          <span class="text-xs font-semibold text-content-dark uppercase tracking-tighter">Engagement Strategy</span>
+          <span class="text-[10px] font-semibold text-content-muted mt-0.5">Choose between registered accounts or guest
             walk-ins</span>
         </div>
         <div class="flex bg-white p-1 rounded-lg border border-outline-std shadow-sm overflow-hidden">
           <button type="button"
-            class="px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all"
-            :class="!form.isGuest ? 'bg-primary text-white shadow-md font-black' : 'text-content-muted hover:bg-surface-light'"
+            class="px-4 py-1.5 rounded-md text-[10px] font-semibold tracking-widest transition-all"
+            :class="!form.isGuest ? 'bg-primary text-white shadow-md font-bold' : 'text-content-muted hover:bg-surface-light'"
             @click="form.isGuest = false">Registered</button>
           <button type="button"
-            class="px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all"
-            :class="form.isGuest ? 'bg-primary text-white shadow-md font-black' : 'text-content-muted hover:bg-surface-light'"
+            class="px-4 py-1.5 rounded-md text-[10px] font-semibold tracking-widest transition-all"
+            :class="form.isGuest ? 'bg-primary text-white shadow-md font-bold' : 'text-content-muted hover:bg-surface-light'"
             @click="form.isGuest = true">Guest/Walk-in</button>
         </div>
       </div>
@@ -311,7 +311,7 @@ watch(() => form.guestStudentDOB, (dob) => {
             <!-- Parent Profile Section -->
             <div class="col-span-2 flex items-center gap-2 border-b border-outline-std pb-2">
               <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">Guest Parent
+              <span class="text-[10px] font-semibold text-content-muted uppercase tracking-widest">Guest Parent
                 Profile</span>
             </div>
 
@@ -332,7 +332,7 @@ watch(() => form.guestStudentDOB, (dob) => {
             <!-- Student Profile Section -->
             <div class="col-span-2 flex items-center gap-2 border-b border-outline-std pb-2 mt-4">
               <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">Guest Student
+              <span class="text-[10px] font-semibold text-content-muted uppercase tracking-widest">Guest Student
                 Profile</span>
             </div>
 
@@ -401,7 +401,7 @@ watch(() => form.guestStudentDOB, (dob) => {
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Trial Schedule</span>
-                <span class="enroll-info-val text-primary font-black">
+                <span class="enroll-info-val text-primary font-bold">
                   {{ formatDateOnly(form.trialDate) }} @ {{ form.trialTime || '--:--' }}
                 </span>
               </div>
@@ -433,7 +433,7 @@ watch(() => form.guestStudentDOB, (dob) => {
     <template #footer>
       <div class="flex items-center justify-between w-full">
         <div>
-          <div v-if="hasAnyError" class="text-error font-bold text-sm flex items-center gap-2">
+          <div v-if="hasAnyError" class="text-error font-semibold text-sm flex items-center gap-2">
             <span>⚠</span> Please resolve highlighted issues.
           </div>
         </div>

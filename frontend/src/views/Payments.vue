@@ -132,17 +132,17 @@ const paymentHeaders = [
             <td class="ui-cell min-w-[240px]" :style="{ flex: '1 1 0%' }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center">
-                  <span class="text-lg font-black text-primary opacity-40">{{ item.parent.charAt(0) }}</span>
+                  <span class="text-lg font-bold text-primary opacity-40">{{ item.parent.charAt(0) }}</span>
                 </div>
                 <div class="ui-identity-info">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm font-bold text-content-dark truncate block">{{ item.parent }}</span>
+                    <span class="text-sm font-semibold text-content-dark truncate block">{{ item.parent }}</span>
                     <div class="w-1 h-1 rounded-full bg-content-muted/30"></div>
-                    <span class="text-[10px] font-bold text-content-muted">{{ item.student }}</span>
+                    <span class="text-[10px] font-semibold text-content-muted">{{ item.student }}</span>
                   </div>
                   <div class="flex items-center gap-1.5 opacity-60">
                     <img :src="getActionIcon('enrollment')" class="w-3 h-3 grayscale" />
-                    <span class="text-[9px] font-black text-content-muted uppercase tracking-widest leading-none">{{
+                    <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest leading-none">{{
                       item.program }}</span>
                   </div>
                 </div>
@@ -152,9 +152,9 @@ const paymentHeaders = [
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
               <div
                 class="inline-flex flex-col items-center px-4 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100/50">
-                <span class="text-sm font-black text-emerald-700 tabular-nums tracking-tighter">${{
+                <span class="text-sm font-semibold text-emerald-700 tabular-nums tracking-tighter">${{
                   formatPrice(item.amount) }}</span>
-                <span class="text-[8px] font-black text-emerald-600/60 uppercase tracking-widest">Amount</span>
+                <span class="text-[8px] font-bold text-emerald-600/60 uppercase tracking-widest">Amount</span>
               </div>
             </td>
 
@@ -162,7 +162,7 @@ const paymentHeaders = [
               <div class="flex items-center gap-2">
                 <div class="w-2 h-2 rounded-full" :class="item.method === 'Cash' ? 'bg-orange-400' : 'bg-blue-400'">
                 </div>
-                <span class="text-xs font-black text-content-dark uppercase tracking-tight">{{ item.method }}</span>
+                <span class="text-xs font-semibold text-content-dark uppercase tracking-tight">{{ item.method }}</span>
               </div>
             </td>
 
@@ -172,9 +172,9 @@ const paymentHeaders = [
 
             <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center">
-                <span class="text-[11px] font-black text-content-dark tabular-nums tracking-tight">{{
+                <span class="text-[11px] font-semibold text-content-dark tabular-nums tracking-tight">{{
                   formatDate(item.date) }}</span>
-                <span class="text-[8px] font-black text-content-muted uppercase tracking-widest mt-1">Settlement</span>
+                <span class="text-[8px] font-bold text-content-muted uppercase tracking-widest mt-1">Settlement</span>
               </div>
             </td>
           </template>

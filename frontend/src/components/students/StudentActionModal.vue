@@ -199,7 +199,7 @@ watch(
               'animate-shake': shaking.overrideRemark,
             }"></textarea>
           <div v-if="errors.overrideRemark"
-            class="text-error text-3xs font-black px-1 mt-0.5 tracking-widest">
+            class="text-error text-3xs font-semibold px-1 mt-0.5 tracking-widest">
             {{ errors.overrideRemark }}
           </div>
         </div>
@@ -229,7 +229,7 @@ watch(
           @input="clearError('deleteConfirm')">
           <template #label-extra>
             <span class="block text-2xs font-bold text-center w-full text-content-muted/40 mt-1">
-              Type <span class="text-error font-extrabold px-1">DELETE</span> to confirm
+              Type <span class="text-error font-bold px-1">DELETE</span> to confirm
             </span>
           </template>
         </AppInput>

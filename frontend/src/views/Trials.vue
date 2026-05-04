@@ -217,7 +217,7 @@ const handleTableAction = ({ type, item }) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="showModal = true">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black tracking-tight">New Trial</span>
+              <span class="font-bold tracking-tight">New Trial</span>
             </AppButton>
           </template>
 
@@ -235,7 +235,7 @@ const handleTableAction = ({ type, item }) => {
                   <img :src="item.parent?.profileURL || getImageUrl('avatar-parent')" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.parent?.name ||
+                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.parent?.name ||
                     item.guestParentName || 'Guest Parent' }}</span>
                 </div>
               </div>
@@ -248,9 +248,9 @@ const handleTableAction = ({ type, item }) => {
                   <img :src="item.student?.profileURL || getImageUrl('avatar-student')" alt="student" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.student?.name ||
+                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.student?.name ||
                     item.guestStudentName }}</span>
-                  <span class="text-[10px] font-black text-primary uppercase tracking-widest">{{ item.isGuest ?
+                  <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{ item.isGuest ?
                     'Guest Prospect' : 'Registered Student' }}</span>
                 </div>
               </div>
@@ -264,8 +264,8 @@ const handleTableAction = ({ type, item }) => {
                     class="object-contain" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.program?.name }}</span>
-                  <span class="text-[10px] font-black text-primary uppercase tracking-widest">Trial Unit</span>
+                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.program?.name }}</span>
+                  <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">Trial Unit</span>
                 </div>
               </div>
             </td>
@@ -283,7 +283,7 @@ const handleTableAction = ({ type, item }) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex flex-col items-center">
-                <span class="text-[11px] font-black text-content-dark tabular-nums tracking-tight">{{
+                <span class="text-[11px] font-semibold text-content-dark tabular-nums tracking-tight">{{
                   formatDate(item.trialDate) }}</span>
               </div>
             </td>
@@ -293,7 +293,7 @@ const handleTableAction = ({ type, item }) => {
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
                   @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                  <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -309,7 +309,7 @@ const handleTableAction = ({ type, item }) => {
                         <span class="font-bold">Edit</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete

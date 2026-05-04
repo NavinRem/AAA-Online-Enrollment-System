@@ -458,7 +458,7 @@ const confirmRows = computed(() => {
   }
 
   if (props.type === 'delete') {
-    rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-black' })
+    rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-bold' })
   }
 
   return rows
@@ -497,7 +497,7 @@ watch(
 
         <AppAlert type="info">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight uppercase">Batch Propagation Logic</strong>
+            <strong class="text-sm font-semibold tracking-tight uppercase">Batch Propagation Logic</strong>
             <p class="text-xs opacity-90 font-medium leading-relaxed">
               Clones all class instances from the source into the destination term. Enrollments and attendance records
               will be initialized to zero.
@@ -514,7 +514,7 @@ watch(
         <div v-if="type === 'add'" class="col-span-2">
           <AppAlert type="info" size="sm">
             <div class="flex flex-col gap-1">
-              <span class="font-black uppercase tracking-widest text-[10px]">Academic Integrity Check</span>
+              <span class="font-bold uppercase tracking-widest text-[10px]">Academic Integrity Check</span>
               <p class="text-xs leading-relaxed opacity-80 font-medium">
                 Verify the <strong>Program</strong>, <strong>Term</strong>, and <strong>Schedule</strong> carefully.
                 Establishing a class with incorrect parameters may require manual enrollment migration later.
@@ -533,12 +533,12 @@ watch(
                   class="w-full h-full object-contain" />
               </div>
               <div class="flex flex-col flex-1 overflow-hidden">
-                <span class="text-sm font-black text-content-dark truncate">{{ item.name }}</span>
+                <span class="text-sm font-semibold text-content-dark truncate">{{ item.name }}</span>
                 <div class="flex items-center gap-2">
-                  <span class="text-[9px] font-black text-content-muted uppercase tracking-widest">{{ item.category
+                  <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest">{{ item.category
                   }}</span>
                   <span class="text-[8px] text-primary/40">•</span>
-                  <span class="text-[9px] font-black text-primary uppercase tracking-widest">{{ item.level }}</span>
+                  <span class="text-[9px] font-semibold text-primary uppercase tracking-widest">{{ item.level }}</span>
                 </div>
               </div>
             </div>
@@ -551,11 +551,11 @@ watch(
                   class="w-full h-full object-contain" />
               </div>
               <div class="flex flex-col flex-1 overflow-hidden">
-                <span class="text-sm font-black text-content-dark truncate">{{ item.name }}</span>
+                <span class="text-sm font-semibold text-content-dark truncate">{{ item.name }}</span>
                 <div class="flex items-center gap-2 mt-0.5">
-                  <span class="text-[10px] font-bold text-content-muted">{{ item.category }}</span>
+                  <span class="text-[10px] font-semibold text-content-muted">{{ item.category }}</span>
                   <span class="text-[8px] text-primary/40">•</span>
-                  <span class="text-[10px] font-black text-primary uppercase tracking-tight">{{ item.level }}</span>
+                  <span class="text-[10px] font-semibold text-primary uppercase tracking-tight">{{ item.level }}</span>
                 </div>
               </div>
             </div>
@@ -567,15 +567,15 @@ watch(
           <template #selected="{ item }">
             <div v-if="item" class="flex items-center justify-between w-full text-black">
               <AppBadge :status="item.name" type="blue" />
-              <span class="text-[10px] font-black uppercase text-success tracking-widest">{{ item.startDate }} </span> -
-              <span class="text-[10px] font-black uppercase text-error tracking-widest">{{ item.endDate }} </span>
+              <span class="text-[10px] font-semibold uppercase text-success tracking-widest">{{ item.startDate }} </span> -
+              <span class="text-[10px] font-semibold uppercase text-error tracking-widest">{{ item.endDate }} </span>
             </div>
           </template>
           <template #item="{ item }">
             <div class="flex items-center justify-between w-full text-black">
               <AppBadge :status="item.name" type="blue" />
-              <span class="text-[10px] font-black uppercase text-success tracking-widest">{{ item.startDate }} </span> -
-              <span class="text-[10px] font-black uppercase text-error tracking-widest">{{ item.endDate }} </span>
+              <span class="text-[10px] font-semibold uppercase text-success tracking-widest">{{ item.startDate }} </span> -
+              <span class="text-[10px] font-semibold uppercase text-error tracking-widest">{{ item.endDate }} </span>
             </div>
           </template>
         </AppSelect>
@@ -606,7 +606,7 @@ watch(
               Branch Scope <span class="text-error font-bold leading-none">*</span>
             </div>
             <button type="button" @click="toggleAllBranches"
-              class="text-[10px] text-primary hover:underline font-black uppercase tracking-tighter">
+              class="text-[10px] text-primary hover:underline font-bold uppercase tracking-tighter">
               {{ localData.branchIds.length === filteredBranches.length ? 'Unselect All' : 'Select All' }}
             </button>
           </label>
@@ -640,7 +640,7 @@ watch(
                   <label v-for="branch in filteredBranches" :key="branch.id"
                     class="flex items-center justify-between gap-3 p-3 rounded-lg cursor-pointer transition-all hover:bg-surface-subtle group"
                     :class="{ 'bg-primary/5': localData.branchIds.includes(branch.id) }">
-                    <span class="text-sm font-bold text-content-dark truncate uppercase tracking-tight">{{ branch.name
+                    <span class="text-sm font-semibold text-content-dark truncate uppercase tracking-tight">{{ branch.name
                       }}</span>
                     <div class="flex items-center gap-2 min-w-0">
                       <AppBadge :status="branch.abbr" :type="branch.color || 'blue'" />
@@ -657,7 +657,7 @@ watch(
             </transition>
           </div>
           <span v-if="errors.branchIds"
-            class="text-[10px] font-bold text-error mt-1 animate-in fade-in slide-in-from-top-1">{{
+            class="text-[10px] font-semibold text-error mt-1 animate-in fade-in slide-in-from-top-1">{{
               errors.branchIds }}</span>
         </div>
 
@@ -668,19 +668,19 @@ watch(
           <template #selected="{ item }">
             <div v-if="item" class="flex items-center gap-2">
               <span class="text-sm font-semibold"
-                :class="['Saturday', 'Sunday'].includes(item.name) ? 'text-primary font-black' : 'text-content-dark'">{{
+                :class="['Saturday', 'Sunday'].includes(item.name) ? 'text-primary font-bold' : 'text-content-dark'">{{
                   item.name }}</span>
               <span v-if="['Saturday', 'Sunday'].includes(item.name)"
-                class="text-xs font-black uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded-full tracking-tighter">Weekend</span>
+                class="text-xs font-semibold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded-full tracking-tighter">Weekend</span>
             </div>
           </template>
           <template #item="{ item }">
             <div class="flex items-center justify-between w-full">
               <span class="text-sm font-semibold"
-                :class="['Saturday', 'Sunday'].includes(item.name) ? 'text-primary font-black' : 'text-content-dark'">{{
+                :class="['Saturday', 'Sunday'].includes(item.name) ? 'text-primary font-bold' : 'text-content-dark'">{{
                   item.name }}</span>
               <span v-if="['Saturday', 'Sunday'].includes(item.name)"
-                class="text-xs font-black uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded-full tracking-tighter">Weekend</span>
+                class="text-xs font-semibold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded-full tracking-tighter">Weekend</span>
             </div>
           </template>
         </AppSelect>
@@ -746,7 +746,7 @@ watch(
               </div>
               <div class="flex flex-col">
                 <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-                <span v-if="item.category" class="text-[8px] font-black text-primary uppercase tracking-widest">{{
+                <span v-if="item.category" class="text-[8px] font-bold text-primary uppercase tracking-widest">{{
                   item.category }}</span>
               </div>
             </div>
@@ -758,8 +758,8 @@ watch(
                   class="w-full h-full object-cover" />
               </div>
               <div class="flex flex-col flex-1">
-                <span class="text-sm font-bold text-content-dark">{{ item.name }}</span>
-                <span v-if="item.category" class="text-[8px] font-black text-content-muted uppercase tracking-widest">{{
+                <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+                <span v-if="item.category" class="text-[8px] font-bold text-content-muted uppercase tracking-widest">{{
                   item.category }}</span>
               </div>
               <AppBadge v-if="item.category" :status="item.category" />
@@ -788,9 +788,9 @@ watch(
                 class="w-full h-full object-contain" />
             </div>
             <div class="flex flex-col">
-              <span class="text-sm font-black text-content-dark tracking-tighter">{{ classInstance.program?.name
+              <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ classInstance.program?.name
                 }}</span>
-              <span class="text-xs font-bold text-content-muted">{{ classInstance.schedule.day }}, {{
+              <span class="text-xs font-semibold text-content-muted">{{ classInstance.schedule.day }}, {{
                 classInstance.schedule.time
                 }}</span>
             </div>
@@ -799,7 +799,7 @@ watch(
 
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight uppercase">Permanent Termination</strong>
+            <strong class="text-sm font-semibold tracking-tight uppercase">Permanent Termination</strong>
             <p class="text-xs opacity-90 font-medium leading-relaxed">
               This will erase all linked enrollment history and attendance records for this specific class. This
               action
@@ -812,8 +812,8 @@ watch(
         <AppInput v-model="localData.deleteConfirm" label="Security Confirmation" placeholder='Type "DELETE" to confirm'
           required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-2xs font-black uppercase text-error/60 mt-1">
-              Type <span class="px-1 font-black">DELETE</span> to authorize
+            <span class="block text-2xs font-bold uppercase text-error/60 mt-1">
+              Type <span class="px-1 font-bold">DELETE</span> to authorize
             </span>
           </template>
         </AppInput>
@@ -834,7 +834,7 @@ watch(
         <template #row-Term>
           <div class="flex flex-col items-end gap-1">
             <AppBadge :status="terms.find(t => t.id === localData.termId)?.name" type="blue" size="sm" />
-            <div class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+            <div class="text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1">
               <span class="text-success">{{terms.find(t => t.id === localData.termId)?.startDate}}</span>
               <span class="text-content-muted/30">/</span>
               <span class="text-error">{{terms.find(t => t.id === localData.termId)?.endDate}}</span>
@@ -848,13 +848,13 @@ watch(
         <template #row-Schedule>
           <div class="flex items-center gap-2">
             <AppBadge :status="localData.day" type="blue" size="sm" />
-            <span class="text-sm font-bold text-content-dark">{{ localData.startTime }} - {{ localData.endTime }}</span>
+            <span class="text-sm font-semibold text-content-dark">{{ localData.startTime }} - {{ localData.endTime }}</span>
           </div>
         </template>
         <template #row-Class-Capacity>
           <div class="flex items-center gap-2">
-            <span class="text-sm font-black text-content-dark">{{ localData.capacity }}</span>
-            <span class="text-[10px] font-bold text-content-muted uppercase tracking-widest">Students</span>
+            <span class="text-sm font-semibold text-content-dark">{{ localData.capacity }}</span>
+            <span class="text-[10px] font-semibold text-content-muted uppercase tracking-widest">Students</span>
           </div>
         </template>
       </AppConfirmOverlay>
@@ -863,7 +863,7 @@ watch(
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
         <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
-          <span class="text-xs font-black tracking-tight uppercase">No modifications detected</span>
+          <span class="text-xs font-semibold tracking-tight uppercase">No modifications detected</span>
         </AppAlert>
 
         <div class="flex items-center justify-end w-full gap-md">

@@ -32,7 +32,7 @@ const handleImageError = (e) => {
 }
 
 .summary-title {
-  @apply text-[10px] font-bold tracking-[0.1em] uppercase mb-1 opacity-80;
+  @apply text-[10px] font-semibold tracking-[0.1em] uppercase mb-1 opacity-80;
 }
 
 .summary-image-box {
@@ -48,6 +48,6 @@ const handleImageError = (e) => {
 }
 
 .summary-value {
-  @apply text-3xl sm:text-4xl font-black text-content-dark tracking-tighter tabular-nums leading-none;
+  @apply text-3xl sm:text-4xl font-bold text-content-dark tracking-tighter tabular-nums leading-none;
 }
 </style>

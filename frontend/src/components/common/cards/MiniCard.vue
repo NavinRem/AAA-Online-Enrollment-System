@@ -31,10 +31,10 @@ const handleImageError = (e) => {
       <img :src="image" :alt="title" @error="handleImageError" class="w-7 h-7 object-contain" />
     </div>
     <div class="flex flex-col gap-0.5 overflow-hidden">
-      <h4 class="text-3xs font-black uppercase tracking-widest text-content-muted truncate">
+      <h4 class="text-3xs font-semibold uppercase tracking-widest text-content-muted truncate">
         {{ title }}
       </h4>
-      <div class="text-base font-black text-content-dark leading-tight tracking-tighter">
+      <div class="text-base font-bold text-content-dark leading-tight tracking-tighter">
         {{ value }}
       </div>
     </div>

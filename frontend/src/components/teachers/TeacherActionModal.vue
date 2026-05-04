@@ -93,7 +93,7 @@ const submitLabel = computed(() => {
 
       <div class="flex items-center justify-end gap-3 mt-4">
         <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-        <AppButton type="submit" :variant="type === 'delete' ? 'danger' : 'primary'" :loading="loading" class="px-8 font-black">
+        <AppButton type="submit" :variant="type === 'delete' ? 'danger' : 'primary'" :loading="loading" class="px-8 font-bold">
           {{ submitLabel }}
         </AppButton>
       </div>

@@ -50,7 +50,7 @@ class PaymentService {
         .doc(payment.enrollmentId)
       await enrollmentRef.update({
         paymentStatus: 'paid',
-        status: 'confirmed',
+        status: 'paid',
       })
 
       const enrollmentDoc = await enrollmentRef.get()

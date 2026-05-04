@@ -10,6 +10,7 @@ import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 import { formatPrice, formatDateOnly, calculateClassProgress } from '@/utils/formatUtils'
 import { getSessionCounts } from '@/utils/programHelper'
+import { getProgramProfileURL } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -213,7 +214,7 @@ const programSelectItems = computed(() =>
   availablePrograms.value.map((p) => ({
     id: p.id,
     name: p.name,
-    profileURL: p.profileURL,
+    profileURL: getProgramProfileURL(p.profileURL, p.category, p.categoryProfileURL),
     type: p.type,
   }))
 )
@@ -223,9 +224,10 @@ const classSelectItems = computed(() =>
     id: cl.id,
     name: `${cl.schedule ? `${cl.schedule.day} (${cl.schedule.time})` : 'TBA'} - ${cl.enrolledCount || 0}/${cl.maxCapacity || 0} enrolled`,
     branchAbbr: cl.branch?.abbr,
+    branchColor: cl.branch?.color,
     maxCapacity: cl.maxCapacity,
     enrolledCount: cl.enrolledCount,
-    profileURL: cl.program?.profileURL,
+    profileURL: getProgramProfileURL(cl.program?.profileURL, cl.program?.category, cl.program?.categoryProfileURL),
     status: calculateClassProgress(cl.term?.startDate, cl.term?.endDate, cl.schedule?.day, cl.schedule?.time).status
   }))
 )
@@ -265,6 +267,7 @@ const handleFinalSubmit = () => {
   }
 
   emit('submit', payload)
+  showConfirm.value = false
   clearError()
 }
 
@@ -283,6 +286,47 @@ const requestConfirm = () => {
   if (isEditMode.value && !isChanged.value) {
     errors.remark = 'No changes detected. Please update at least one field.'
     triggerShake('remark')
+    return
+  }
+
+  // Duplicate Enrollment & Schedule Conflict Check
+  const cid = form.classId
+  const selectedCls = props.classes.find(c => c.id === cid)
+  const newScheduleStr = selectedCls?.schedule 
+    ? `${selectedCls.schedule.day} (${selectedCls.schedule.time})` 
+    : 'N/A'
+
+  const isDuplicateClass = props.enrollments.some(e => 
+    e.studentId === form.studentId && 
+    e.classId === cid && 
+    e.id !== props.enrollment?.id && 
+    String(e.status).toLowerCase() !== 'cancelled'
+  )
+
+  const hasScheduleConflict = newScheduleStr !== 'N/A' && props.enrollments.some(e => {
+    if (e.studentId !== form.studentId) return false
+    if (e.classId === cid) return false
+    if (e.id === props.enrollment?.id) return false
+    if (String(e.status).toLowerCase() === 'cancelled') return false
+    
+    let existingSched = 'N/A'
+    if (typeof e.class?.schedule === 'string') existingSched = e.class.schedule
+    else if (e.classSchedule) existingSched = e.classSchedule
+    else {
+      const cl = props.classes.find(c => c.id === e.classId)
+      if (cl?.schedule) existingSched = `${cl.schedule.day} (${cl.schedule.time})`
+    }
+    
+    return existingSched !== 'N/A' && existingSched === newScheduleStr
+  })
+
+  if (isDuplicateClass) {
+    errors.classId = 'This student is already enrolled in this class.'
+    triggerShake('classId')
+    return
+  } else if (hasScheduleConflict) {
+    errors.classId = `Schedule conflict: Already enrolled in another class at ${newScheduleStr}.`
+    triggerShake('classId')
     return
   }
 
@@ -305,6 +349,49 @@ const handleProgramChange = (pid) => {
   form.programId = pid
   form.classId = ''
   clearError('programId')
+}
+
+const handleClassChange = (cid) => {
+  clearError('classId')
+  
+  if (!cid || !form.studentId) return
+
+  const selectedCls = props.classes.find(c => c.id === cid)
+  const newScheduleStr = selectedCls?.schedule 
+    ? `${selectedCls.schedule.day} (${selectedCls.schedule.time})` 
+    : 'N/A'
+  
+  const isDuplicateClass = props.enrollments.some(e => 
+    e.studentId === form.studentId && 
+    e.classId === cid && 
+    e.id !== props.enrollment?.id && 
+    String(e.status).toLowerCase() !== 'cancelled'
+  )
+
+  const hasScheduleConflict = newScheduleStr !== 'N/A' && props.enrollments.some(e => {
+    if (e.studentId !== form.studentId) return false
+    if (e.classId === cid) return false
+    if (e.id === props.enrollment?.id) return false
+    if (String(e.status).toLowerCase() === 'cancelled') return false
+    
+    let existingSched = 'N/A'
+    if (typeof e.class?.schedule === 'string') existingSched = e.class.schedule
+    else if (e.classSchedule) existingSched = e.classSchedule
+    else {
+      const cl = props.classes.find(c => c.id === e.classId)
+      if (cl?.schedule) existingSched = `${cl.schedule.day} (${cl.schedule.time})`
+    }
+    
+    return existingSched !== 'N/A' && existingSched === newScheduleStr
+  })
+
+  if (isDuplicateClass) {
+    errors.classId = 'This student is already enrolled in this class.'
+    triggerShake('classId')
+  } else if (hasScheduleConflict) {
+    errors.classId = `Schedule conflict: Already enrolled in another class at ${newScheduleStr}.`
+    triggerShake('classId')
+  }
 }
 
 const toggleRemarkPreset = (p) => {
@@ -335,7 +422,7 @@ watch(
           studentId: '',
           programId: '',
           classId: '',
-          isProrated: true,
+          isProrated: false,
           discountAmount: 0,
           isCustomPrice: false,
           customPrice: 0,
@@ -357,10 +444,6 @@ watch(
     }
 
     form.enrolledSessions = form.isProrated ? info.remaining : info.total
-
-    if (!isEditMode.value) {
-      form.isProrated = info.remaining !== info.total
-    }
   },
   { immediate: true },
 )
@@ -410,18 +493,21 @@ watch(
         <!-- Class Slot Selection -->
         <AppSelect v-model="form.classId" :items="classSelectItems" label="Schedule And Branch"
           placeholder="Select Active Class..." required class="col-span-2 sm:col-span-1" :disabled="!form.programId"
-          :error="errors.classId" :shake="shaking.classId" @change="clearError('classId')"
+          :error="errors.classId" :shake="shaking.classId" @change="handleClassChange"
           @click-disabled="handleDisabledClick('classId')">
           <template #selected-badge="{ item }">
             <div class="flex items-center gap-2">
-              <AppBadge v-if="item.status" :status="item.status" :type="item.status === 'Upcoming' ? 'blue' : 'success'" class="mr-2" />
-              <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" class="mr-4" />
+              <AppBadge v-if="item.status" :status="item.status" :type="item.status === 'Upcoming' ? 'blue' : 'success'"
+                class="mr-2" />
+              <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" :type="item.branchColor || 'blue'"
+                class="mr-4" />
             </div>
           </template>
           <template #item-badge="{ item }">
             <div class="flex items-center gap-2">
-              <AppBadge v-if="item.status" :status="item.status" :type="item.status === 'Upcoming' ? 'blue' : 'success'" />
-              <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" />
+              <AppBadge v-if="item.status" :status="item.status"
+                :type="item.status === 'Upcoming' ? 'blue' : 'success'" />
+              <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" :type="item.branchColor || 'blue'" />
             </div>
           </template>
         </AppSelect>
@@ -453,7 +539,7 @@ watch(
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Branch</span>
-                <AppBadge :status="selectedClass?.branch?.abbr" class="mt-[2px] " />
+                <AppBadge :status="selectedClass?.branch?.abbr" class="mt-[2px]" :type="selectedClass?.branch?.color" />
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Start Date</span>
@@ -492,7 +578,7 @@ watch(
                 <span class="enroll-info-key">Billing Mode</span>
                 <div class="ui-box-toggle" :class="{ 'ui-box-toggle--active': form.isProrated }"
                   @click="form.isProrated = !form.isProrated">
-                  <AppBadge :status="form.isProrated ? 'Full' : 'Partial'" />
+                  <AppBadge :status="form.isProrated ? 'Partial' : 'Full'" />
                 </div>
               </div>
 
@@ -520,24 +606,24 @@ watch(
                 <span class="enroll-info-key">Discount Logic</span>
                 <div class="flex items-center gap-2 mt-0.5">
                   <AppInput v-model.number="form.discountAmount" type="number" placeholder="0"
-                    inputClass="!py-1.5 text-sm font-bold w-24" @input="clearError('discountAmount')">
+                    inputClass="!py-1.5 text-sm font-semibold w-24" @input="clearError('discountAmount')">
                   </AppInput>
 
                   <!-- Type Switcher (Simple Professional style) -->
                   <div class="flex bg-surface-subtle border border-outline-std rounded-sm p-0.5">
                     <button type="button" @click="form.discountType = 'dollar'"
-                      class="px-2 py-1 rounded-xs text-[10px] font-black uppercase tracking-widest transition-all"
+                      class="px-2 py-1 rounded-xs text-[10px] font-semibold uppercase tracking-widest transition-all"
                       :class="form.discountType === 'dollar' ? 'bg-primary text-white shadow-sm rounded-sm' : 'text-content-muted hover:text-content-dark'">
                       $
                     </button>
                     <button type="button" @click="form.discountType = 'percent'"
-                      class="px-1.5 py-1 rounded-xs text-[10px] font-black uppercase tracking-widest transition-all"
+                      class="px-1.5 py-1 rounded-xs text-[10px] font-semibold uppercase tracking-widest transition-all"
                       :class="form.discountType === 'percent' ? 'bg-primary text-white shadow-sm rounded-sm' : 'text-content-muted hover:text-content-dark'">
                       %
                     </button>
                   </div>
                   <span v-if="form.discountAmount > 0"
-                    class="text-3xs font-black text-error uppercase ml-auto">Applied</span>
+                    class="text-3xs font-semibold text-error uppercase ml-auto">Applied</span>
                 </div>
               </div>
 
@@ -546,10 +632,11 @@ watch(
                 <span class="enroll-info-key">Price Control</span>
                 <div class="ui-box-toggle" :class="{ 'ui-box-toggle--danger': form.isCustomPrice }"
                   @click="form.isCustomPrice = !form.isCustomPrice">
-                  <span class="text-sm font-bold" :class="{ 'text-error': form.isCustomPrice }">
+                  <span class="text-sm font-semibold" :class="{ 'text-error': form.isCustomPrice }">
                     {{ form.isCustomPrice ? 'Override' : 'Locked' }}
                   </span>
-                  <span class="text-3xs font-black uppercase opacity-40">{{ form.isCustomPrice ? 'Custom' : 'Standard'
+                  <span class="text-3xs font-semibold uppercase opacity-40">{{ form.isCustomPrice ? 'Custom' :
+                    'Standard'
                     }}</span>
                 </div>
               </div>
@@ -618,7 +705,7 @@ watch(
     <template #footer>
       <div class="flex items-center justify-between w-full">
         <div>
-          <div v-if="hasAnyError" class="text-error font-bold text-sm flex items-center gap-2">
+          <div v-if="hasAnyError" class="text-error font-semibold text-sm flex items-center gap-2">
             <span>⚠</span> Please resolve highlighted issues.
           </div>
         </div>

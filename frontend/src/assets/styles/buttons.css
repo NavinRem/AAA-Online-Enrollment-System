@@ -16,7 +16,7 @@
   /* Use for: back navigation, cancel actions, secondary nav                  */
   .ui-back-button {
     @apply flex items-center gap-xs px-md py-sm rounded-sm
-           text-xs font-bold transition-all shadow-sm;
+           text-xs font-semibold transition-all shadow-sm;
     background-color: var(--color-primary);
     color: var(--color-surface-light);
   }
@@ -41,7 +41,7 @@
   .ui-btn-premium {
     @apply px-xl shadow-md transition-all duration-300
            bg-gradient-to-tr from-primary to-primary-dark
-           text-white font-black tracking-tight
+           text-white font-bold tracking-tight
            border-none rounded-sm;
     box-shadow: 0 4px 14px rgb(0 174 239 / 0.25);
   }
@@ -55,7 +55,7 @@
 
   .ui-btn-cancel {
     @apply px-xl py-2.5 shadow-md transition-all duration-300
-           bg-outline-std text-content-muted font-black text-sm tracking-tight
+           bg-outline-std text-content-muted font-semibold text-sm tracking-tight
            border-none rounded-sm cursor-pointer select-none;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   }
@@ -70,7 +70,7 @@
   /* Use for: individual items inside a ui-preset-bar                         */
   .ui-preset-btn {
     @apply px-md py-1.5 rounded-full border-2 border-outline-std bg-surface-subtle 
-           text-3xs font-black uppercase tracking-widest text-content-muted
+           text-3xs font-semibold uppercase tracking-widest text-content-muted
            transition-all duration-300 cursor-pointer hover:border-content-muted/30
            hover:bg-white hover:text-content-dark select-none;
   }

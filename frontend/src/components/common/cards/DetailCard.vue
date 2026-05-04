@@ -16,7 +16,7 @@ defineProps({
   >
     <h3
       v-if="title"
-      class="text-xl font-black text-content-dark tracking-tighter mb-6 text-center lg:text-left"
+      class="text-xl font-bold text-content-dark tracking-tighter mb-6 text-center lg:text-left"
     >
       {{ title }}
     </h3>

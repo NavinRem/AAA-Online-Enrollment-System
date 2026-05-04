@@ -119,7 +119,7 @@ const selectFilter = (val) => {
             <div v-if="isFilterOpen" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
               <template v-for="(option, idx) in filterOptions" :key="option.value || `item-${idx}`">
                 <div v-if="option.isHeader"
-                  class="px-md pt-md pb-xs text-[10px] font-black text-content-muted uppercase tracking-widest sticky top-0 bg-white/95 backdrop-blur-sm z-10 select-none flex items-center justify-between">
+                  class="px-md pt-md pb-xs text-[10px] font-semibold text-content-muted uppercase tracking-widest sticky top-0 bg-white/95 backdrop-blur-sm z-10 select-none flex items-center justify-between">
                   <span>{{ option.label }}</span>
                 </div>
                 <div v-else-if="option.isDivider" class="h-px w-full bg-outline-std/50 my-1"></div>
@@ -178,7 +178,7 @@ const selectFilter = (val) => {
 }
 
 .toolbar-title {
-  @apply text-base font-extrabold text-content-dark tracking-tight;
+  @apply text-base font-bold text-content-dark tracking-tight;
 }
 
 .toolbar-actions {
@@ -190,6 +190,6 @@ const selectFilter = (val) => {
 }
 
 .toolbar-filter-option {
-  @apply px-md py-sm text-sm font-bold cursor-pointer transition-all rounded-sm select-none hover:bg-surface-subtle hover:text-primary;
+  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-all rounded-sm select-none hover:bg-surface-subtle hover:text-primary;
 }
 </style>

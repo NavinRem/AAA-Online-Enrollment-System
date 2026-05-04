@@ -234,7 +234,7 @@ const mappedEnrollments = computed(() => {
   <DashboardLayout>
     <div v-if="loading" class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted">
       <div class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"></div>
-      <p class="font-bold text-sm tracking-widest uppercase opacity-70">
+      <p class="font-semibold text-sm tracking-widest uppercase opacity-70">
         Loading Dashboard Data...
       </p>
     </div>
@@ -266,10 +266,10 @@ const mappedEnrollments = computed(() => {
               <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
             </div>
             <div class="flex flex-col items-center">
-              <p class="text-xs font-black text-content-muted uppercase tracking-[0.14em] mb-1 opacity-70">
+              <p class="text-xs font-semibold text-content-muted uppercase tracking-[0.14em] mb-1 opacity-70">
                 {{ userProfile?.role }}
               </p>
-              <h3 class="text-xl font-black text-content-dark tracking-tighter leading-tight">
+              <h3 class="text-xl font-bold text-content-dark tracking-tighter leading-tight">
                 {{ userProfile?.name }}
               </h3>
             </div>
@@ -277,20 +277,20 @@ const mappedEnrollments = computed(() => {
 
           <div v-if="activeTerm"
             class="px-md py-4 rounded-md border border-primary/20 bg-primary/5 flex flex-col items-center mb-2">
-            <span class="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Active Academic Term</span>
-            <h3 class="text-lg font-black text-content-dark tracking-tighter leading-tight mb-2">{{ activeTerm.name }}
+            <span class="text-[10px] font-semibold uppercase tracking-widest text-primary mb-1">Active Academic Term</span>
+            <h3 class="text-lg font-bold text-content-dark tracking-tighter leading-tight mb-2">{{ activeTerm.name }}
             </h3>
             <div class="flex items-center gap-3">
-              <span class="text-xs font-bold text-content-muted tabular-nums">{{ formatDateOnly(activeTerm.startDate)
+              <span class="text-xs font-semibold text-content-muted tabular-nums">{{ formatDateOnly(activeTerm.startDate)
                 }}</span>
               <span class="w-2 h-px bg-content-muted/30"></span>
-              <span class="text-xs font-bold text-content-muted tabular-nums">{{ formatDateOnly(activeTerm.endDate)
+              <span class="text-xs font-semibold text-content-muted tabular-nums">{{ formatDateOnly(activeTerm.endDate)
                 }}</span>
             </div>
           </div>
 
           <div class="flex flex-1 flex-col min-h-0 gap-md">
-            <h3 class="flex-shrink-0 text-xs font-black uppercase tracking-widest text-content-dark text-center">
+            <h3 class="flex-shrink-0 text-xs font-semibold uppercase tracking-widest text-content-dark text-center">
               Basic Information
             </h3>
             <div class="flex flex-1 flex-col min-h-0 gap-3 scrollable-v">

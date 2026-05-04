@@ -50,7 +50,7 @@ defineEmits(['click'])
 
 <template>
   <button
-    class="flex items-center justify-center gap-xs font-extrabold px-6 py-2.5 text-sm cursor-pointer whitespace-nowrap transition-all duration-200 active:scale-[0.98] select-none"
+    class="flex items-center justify-center gap-xs font-semibold px-6 py-2.5 text-sm cursor-pointer whitespace-nowrap transition-all duration-200 active:scale-[0.98] select-none"
     :class="[
       !isSemantic ? (variantClasses[variant] || variantClasses.primary) : 'border border-transparent hover:brightness-95',
       {

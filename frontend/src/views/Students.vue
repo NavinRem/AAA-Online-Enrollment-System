@@ -336,7 +336,7 @@ const submitActionModal = async (formData) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="handleOpenAddStudent">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-black">New Student</span>
+              <span class="font-bold">New Student</span>
             </AppButton>
           </template>
 
@@ -372,7 +372,7 @@ const submitActionModal = async (formData) => {
                   </div>
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-bold text-content-dark truncate block">{{ item.name }}</span>
+                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.name }}</span>
                 </div>
               </div>
             </td>
@@ -384,7 +384,7 @@ const submitActionModal = async (formData) => {
                   <img :src="item.parentInfo?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-xs font-bold text-content-dark">{{ item.parentInfo?.name }}</span>
+                  <span class="text-xs font-semibold text-content-dark">{{ item.parentInfo?.name }}</span>
                 </div>
               </div>
             </td>
@@ -399,11 +399,11 @@ const submitActionModal = async (formData) => {
                     <img :src="getProgramProfileURL(reg.program?.profileURL)" class="w-full h-full object-cover" />
                   </div>
                   <div v-if="item.enrollments.length > 3"
-                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-[10px] font-black text-content-muted">
+                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-[10px] font-semibold text-content-muted">
                     +{{ item.enrollments.length - 3 }}
                   </div>
                 </template>
-                <span v-else class="text-[10px] font-bold text-content-muted/40 uppercase italic tracking-widest">— No
+                <span v-else class="text-[10px] font-semibold text-content-muted/40 uppercase italic tracking-widest">— No
                   Programs —</span>
               </div>
             </td>
@@ -415,7 +415,7 @@ const submitActionModal = async (formData) => {
 
             <!-- Joined -->
             <td class="ui-cell text-center hidden lg:table-cell">
-              <span class="text-[11px] font-bold text-content-muted/60 tabular-nums">
+              <span class="text-[11px] font-semibold text-content-muted/60 tabular-nums">
                 {{ formatDate(item.createdAt || new Date().toISOString()) }}
               </span>
             </td>
@@ -426,7 +426,7 @@ const submitActionModal = async (formData) => {
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
                   @click.stop="toggleMenu($event, item.id)">
-                  <span class="font-black text-lg leading-none mb-1">⋮</span>
+                  <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -439,15 +439,15 @@ const submitActionModal = async (formData) => {
                       <button class="ui-dropdown-item ui-dropdown-item-info group" @click="() => { handleAction('edit', item); closeMenu(); }">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Edit</span>
+                        <span class="font-semibold text-sm">Edit</span>
                       </button>
                       <button class="ui-dropdown-item ui-dropdown-item-info group" @click="() => { handleAction('override', item); closeMenu(); }">
                         <img :src="getActionIcon('view')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
-                        <span class="font-bold text-sm">Status Override</span>
+                        <span class="font-semibold text-sm">Status Override</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-black tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />

@@ -156,7 +156,7 @@ const confirmRows = computed(() => {
   ]
 
   if (props.type === 'delete') {
-    rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-black' })
+    rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-bold' })
   }
 
   return rows
@@ -210,7 +210,7 @@ watch(
                 Branch Scope <span class="text-error font-bold leading-none">*</span>
               </div>
               <button type="button" @click="toggleAllBranches"
-                class="text-[10px] text-primary hover:underline font-black uppercase tracking-tighter">
+                class="text-[10px] text-primary hover:underline font-bold uppercase tracking-tighter">
                 {{ localData.branchIds.length === branches.length ? 'Unselect All' : 'Select All' }}
               </button>
             </label>
@@ -246,7 +246,7 @@ watch(
                     <label v-for="branch in branches" :key="branch.id"
                       class="flex items-center justify-between gap-3 p-3 rounded-lg cursor-pointer transition-all hover:bg-surface-subtle group"
                       :class="{ 'bg-primary/5': localData.branchIds.includes(branch.id) }">
-                      <span class="text-sm font-bold text-content-dark truncate uppercase tracking-tight">{{
+                      <span class="text-sm font-semibold text-content-dark truncate uppercase tracking-tight">{{
                         branch.name }}</span>
                       <div class="flex items-center gap-2 min-w-0">
                         <AppBadge :status="branch.abbr" :type="branch.color || 'blue'" />
@@ -259,7 +259,7 @@ watch(
                 </div>
               </transition>
             </div>
-            <p v-if="errors.branchIds" class="text-3xs font-black text-error uppercase tracking-widest pl-1 mt-0.5">{{
+            <p v-if="errors.branchIds" class="text-3xs font-semibold text-error uppercase tracking-widest pl-1 mt-0.5">{{
               errors.branchIds }}</p>
           </div>
         </div>
@@ -267,7 +267,7 @@ watch(
         <div v-if="localData.startDate && localData.branchIds.length > 0"
           class="p-4 rounded-md bg-primary/5 border border-primary/10 flex flex-col gap-1 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
           <div class="flex items-center gap-2">
-            <span class="text-[10px] font-black text-primary uppercase tracking-widest">Scheduling Insight</span>
+            <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">Scheduling Insight</span>
             <div class="h-px flex-1 bg-primary/10"></div>
           </div>
           <p class="text-sm text-content-dark leading-tight">
@@ -293,8 +293,8 @@ watch(
               <span class="text-2xl">📅</span>
             </div>
             <div class="flex flex-col">
-              <span class="text-sm font-black text-content-dark tracking-tighter">{{ term.name }}</span>
-              <span class="text-xs font-bold text-content-muted">{{ formatDateOnly(term.startDate) }} — {{
+              <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ term.name }}</span>
+              <span class="text-xs font-semibold text-content-muted">{{ formatDateOnly(term.startDate) }} — {{
                 formatDateOnly(term.endDate) }}</span>
             </div>
           </div>
@@ -302,7 +302,7 @@ watch(
 
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-black tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
+            <strong class="text-sm font-semibold tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
             <p class="text-xs opacity-90 font-medium leading-relaxed">
               Purging this term will permanently remove its scheduling data. This action is irreversible and should only
               be performed if no active classes are linked to this term.
@@ -313,8 +313,8 @@ watch(
         <AppInput v-model="localData.deleteConfirm" label="Security Confirmation" placeholder='Type "DELETE" to confirm'
           required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-2xs font-black uppercase text-error/60 mt-1">
-              Type <span class="px-1 font-black text-error">DELETE</span> to authorize
+            <span class="block text-2xs font-bold uppercase text-error/60 mt-1">
+              Type <span class="px-1 font-bold text-error">DELETE</span> to authorize
             </span>
           </template>
         </AppInput>
@@ -341,7 +341,7 @@ watch(
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
         <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
-          <span class="text-xs font-black tracking-tight uppercase">No modifications detected</span>
+          <span class="text-xs font-semibold tracking-tight uppercase">No modifications detected</span>
         </AppAlert>
 
         <div class="flex items-center justify-end w-full gap-md">
