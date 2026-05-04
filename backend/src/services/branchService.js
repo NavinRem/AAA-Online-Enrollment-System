@@ -15,13 +15,22 @@ class BranchService {
     if (doc.exists)
       throw new Error(`Branch with abbreviation "${id}" already exists`)
 
+    // Name Uniqueness Check
+    const nameSnap = await db
+      .collection(COLLECTIONS.BRANCH)
+      .where('name', '==', validatedData.name)
+      .limit(1)
+      .get()
+    if (!nameSnap.empty) {
+      throw new Error(`A branch named "${validatedData.name}" already exists.`)
+    }
+
     await ref.set(validatedData)
     return { id, ...validatedData }
   }
 
-  async getAllBranches(filters = {}) {
-    let query = db.collection(COLLECTIONS.BRANCH)
-    const snapshot = await query.get()
+  async getAllBranches() {
+    const snapshot = await db.collection(COLLECTIONS.BRANCH).get()
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 

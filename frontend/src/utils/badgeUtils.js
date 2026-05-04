@@ -72,7 +72,7 @@ const REGISTRIES = {
     full: 'magenta',
     all: 'blue',
     group: 'purple',
-    private: 'magenta',
+    private: 'pink',
     hidden: 'blue',
   },
   trial: {
@@ -100,8 +100,10 @@ const THEME_FILTERS = {
   orange: 'invert(24%) sepia(99%) saturate(3736%) hue-rotate(16deg) brightness(94%) contrast(101%)',
   red: 'invert(39%) sepia(81%) saturate(2314%) hue-rotate(336deg) brightness(95%) contrast(97%)',
   blue: 'invert(51%) sepia(87%) saturate(2371%) hue-rotate(167deg) brightness(101%) contrast(105%)',
-  purple: 'invert(16%) sepia(94%) saturate(3848%) hue-rotate(282deg) brightness(79%) contrast(110%)',
-  magenta: 'invert(18%) sepia(61%) saturate(6015%) hue-rotate(323deg) brightness(85%) contrast(106%)',
+  purple:
+    'invert(16%) sepia(94%) saturate(3848%) hue-rotate(282deg) brightness(79%) contrast(110%)',
+  magenta:
+    'invert(18%) sepia(61%) saturate(6015%) hue-rotate(323deg) brightness(85%) contrast(106%)',
   pink: 'invert(26%) sepia(91%) saturate(3474%) hue-rotate(314deg) brightness(96%) contrast(95%)',
   gray: 'invert(38%) sepia(10%) saturate(394%) hue-rotate(170deg) brightness(94%) contrast(89%)',
 }

@@ -40,8 +40,8 @@ export function useSearch(listRef, customMapper = null) {
 export const enrollmentSearchMapper = (r) =>
   [
     r.id,
-    r.parentName || r.parent?.name,
-    r.studentName || r.student?.name,
+    r.parent?.name,
+    r.student?.name,
     r.program?.name,
     r.class?.schedule,
     r.status,
@@ -59,10 +59,9 @@ export const trialSearchMapper = (t) =>
   [
     t.id,
     t.student?.name,
-    t.student?.parent?.name,
     t.guestStudentName,
     t.guestParentName,
-    t.guestPhone,
+    t.guestParentPhone,
     t.program?.name,
     t.branch?.name,
     t.branch?.abbr,
@@ -76,11 +75,8 @@ export const trialSearchMapper = (t) =>
 export const studentSearchMapper = (s) =>
   [
     s.name,
-    s.fullName,
-    s.parentName || s.parentInfo?.name,
-    s.studentId,
-    s.gender,
-    s.status || 'Studying',
+    s.parentInfo?.name,
+    s.status,
     formatDateOnly(s.createdAt),
   ]
     .filter(Boolean)
@@ -88,25 +84,25 @@ export const studentSearchMapper = (s) =>
     .toLowerCase()
 
 export const parentSearchMapper = (p) =>
-  [p.name, p.email, p.phone, p.address, p.status, formatDateOnly(p.createdAt)]
+  [p.name, p.email, p.phone, p.location, p.status, formatDateOnly(p.createdAt)]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
 
 export const programSearchMapper = (p) =>
   [
-    p.title,
+    p.name,
     p.category,
+    p.level,
     p.description,
-    p.schedule ? `${p.schedule.day} ${p.schedule.timeslot}` : '',
-    p.termName || p.term,
+    p.type,
   ]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
 
 export const teacherSearchMapper = (t) =>
-  [t.name, t.email, t.phone, t.id, t.uid].filter(Boolean).join(' ').toLowerCase()
+  [t.name, t.email, t.phone, t.id].filter(Boolean).join(' ').toLowerCase()
 
 export const branchSearchMapper = (b) =>
   [b.name, b.abbr, b.location].filter(Boolean).join(' ').toLowerCase()

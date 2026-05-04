@@ -8,6 +8,16 @@ const {
 class ProgramService {
   async createProgram(programData) {
     const validated = validateProgram(programData)
+
+    // Name Uniqueness Check
+    const nameSnap = await db.collection(COLLECTIONS.PROGRAM)
+      .where('name', '==', validated.name)
+      .limit(1)
+      .get()
+    if (!nameSnap.empty) {
+      throw new Error(`A program named "${validated.name}" already exists.`)
+    }
+
     const id = db.collection(COLLECTIONS.PROGRAM).doc().id
     const program = { ...validated, createdAt: new Date().toISOString() }
     await db.collection(COLLECTIONS.PROGRAM).doc(id).set(program)

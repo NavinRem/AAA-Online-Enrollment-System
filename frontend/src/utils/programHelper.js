@@ -85,11 +85,16 @@ export const calculateProgramStats = (program) => {
 export const getProgramDisplayStatus = (program) => {
   if (!program) return 'Unknown'
   const { status, startDate, endDate } = program
+
+  if (status === 'cancelled') return 'Cancelled'
+  if (status === 'archived') return 'Archived'
+
+  if (!startDate || !endDate) return status || 'Active'
+
   const now = new Date()
   const start = new Date(startDate)
   const end = new Date(endDate)
 
-  if (status === 'cancelled') return 'Cancelled'
   if (now < start) return 'Upcoming'
   if (now > end) return 'Completed'
   return 'Ongoing'

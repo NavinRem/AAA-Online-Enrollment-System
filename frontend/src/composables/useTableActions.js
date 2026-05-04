@@ -18,6 +18,11 @@ export function useTableActions() {
       return
     }
 
+    if (!event || !event.currentTarget) {
+      activeMenuId.value = id
+      return
+    }
+
     const rect = event.currentTarget.getBoundingClientRect()
     const spaceBelow = window.innerHeight - rect.bottom
 

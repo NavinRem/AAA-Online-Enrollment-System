@@ -10,6 +10,18 @@ class TeacherService {
   async createTeacher(teacherData) {
     const { name, email, status, profileURL, password, category } = teacherData
     const validatedProfile = validateTeacher({ name, email, status, profileURL, category })
+    
+    // Contact Uniqueness Check (Phone)
+    if (teacherData.phone) {
+      const phoneSnap = await db.collection(COLLECTIONS.TEACHER)
+        .where('phone', '==', teacherData.phone)
+        .limit(1)
+        .get()
+      if (!phoneSnap.empty) {
+        throw new Error(`A teacher with phone number "${teacherData.phone}" already exists.`)
+      }
+      validatedProfile.phone = teacherData.phone
+    }
     const finalPassword = password || 'Temporary123'
     return authService.registerAccount(
       { ...validatedProfile, password: finalPassword },

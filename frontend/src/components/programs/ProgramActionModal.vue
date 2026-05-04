@@ -30,17 +30,17 @@ const getInitialData = () => ({
   categoryId: '',
   levelId: '',
   type: 'Group',
-  basePrice: 0.0,
-  totalSessions: 1,
+  basePrice: 180,
+  totalSessions: 11,
   maxCapacity: 10,
-  minAge: 0,
-  maxAge: 0,
-  profileURL: '', // Note: This will be removed from state if no longer needed, but keeping for compatibility if existing programs have it
+  minAge: 5,
+  maxAge: 15,
+  profileURL: '',
   deleteConfirm: '',
 })
 
 const mapSourceToForm = () => {
-  if (props.type === 'edit' && props.program) {
+  if ((props.type === 'edit' || props.type === 'delete') && props.program) {
     return { ...props.program, deleteConfirm: '' }
   }
   return getInitialData()
@@ -54,7 +54,6 @@ const {
   validate,
   clearError,
   triggerShake,
-  resetForm,
 } = useActionModal(props, emit, {
   getInitialData,
   mapSourceToForm,
@@ -172,7 +171,7 @@ const fetchCategories = async () => {
     const rawCategories = Array.isArray(rawData) ? rawData : (rawData?.data || [])
     categories.value = rawCategories.filter(c => c).map((c) => ({
       ...c,
-      id: c.id || c._id,
+      id: c.id,
       profileURL: c.profileURL || '',
     }))
   } catch (err) {
@@ -186,7 +185,7 @@ const fetchLevels = async () => {
     const rawLevels = Array.isArray(rawData) ? rawData : (rawData?.data || [])
     levels.value = rawLevels.filter(l => l).map((l) => ({
       ...l,
-      id: l.id || l._id,
+      id: l.id,
     }))
   } catch (err) {
     console.error('Failed to fetch levels:', err)
@@ -285,10 +284,14 @@ const requestConfirm = () => {
 const handleActionSubmit = () => {
   showConfirm.value = false
 
+  const selectedCategory = categories.value.find((c) => c.id === localData.categoryId)
+  const selectedLevel = levels.value.find((l) => l.id === localData.levelId)
+
   const payload = {
     ...localData,
-    category: categories.value.find((c) => c.id === localData.categoryId)?.name || '',
-    level: levels.value.find((l) => l.id === localData.levelId)?.name || '',
+    category: selectedCategory?.name || '',
+    categorySnapshot: selectedCategory || null,
+    level: selectedLevel?.name || '',
   }
 
   emit('submit', payload)
@@ -301,14 +304,14 @@ const confirmOverlaySubtitle = computed(() => {
 
 const confirmRows = computed(() => {
   const rows = [
-    { key: 'Program', value: localData.name },
-    { key: 'Category', value: categories.value.find((c) => (c?.id || c?._id) === localData.categoryId)?.name || 'N/A' },
-    { key: 'Level', value: levels.value.find((l) => (l?.id || l?._id) === localData.levelId)?.name || 'N/A' },
-    { key: 'Type', value: localData.type },
-    { key: 'Base Price', value: `$${localData.basePrice}` },
-    { key: 'Total Sessions', value: localData.totalSessions },
-    { key: 'Age Range', value: `${localData.minAge} - ${localData.maxAge} years` },
-    { key: 'Max Capacity', value: localData.maxCapacity },
+    { key: 'Program', value: localData.name, valueClass: 'font-black text-content-dark' },
+    { key: 'Category', value: categories.value.find((c) => c.id === localData.categoryId)?.name, badge: true, type: 'blue' },
+    { key: 'Level', value: levels.value.find((l) => l.id === localData.levelId)?.name, badge: true, type: 'magenta' },
+    { key: 'Type', value: localData.type, badge: true, type: 'tag' },
+    { key: 'Base Price', value: `$${localData.basePrice}`, valueClass: 'font-black text-primary text-base', badge: true, type: 'blue' },
+    { key: 'Total Sessions', value: localData.totalSessions, valueClass: 'font-black tabular-nums' },
+    { key: 'Age Range', value: `${localData.minAge} - ${localData.maxAge} years`, valueClass: 'font-bold text-content-dark' },
+    { key: 'Max Capacity', value: localData.maxCapacity, valueClass: 'font-black tabular-nums' },
   ]
   if (props.type === 'delete') {
     rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-black' })
@@ -437,7 +440,7 @@ watch(
                 <img :src="getLookupImage(item)" class="w-full h-full object-cover opacity-80" />
               </div>
               <span class="text-[10px] font-black uppercase tracking-tight">{{ item.name }}</span>
-              <button type="button" @click="deleteLookup(item.id || item._id)"
+              <button type="button" @click="deleteLookup(item.id)"
                 class="w-4 h-4 rounded-full flex items-center justify-center hover:bg-error/10 hover:text-error transition-all ml-xs">
                 ×
               </button>
@@ -481,8 +484,12 @@ watch(
         <AppInput v-model="localData.totalSessions" type="number" label="Total Sessions" placeholder="24" required
           :error="errors.totalSessions" :shake="shaking.totalSessions" @input="clearError('totalSessions')" />
 
-        <AppInput v-model="localData.maxCapacity" type="number" label="Max Capacity" placeholder="10" required
-          :error="errors.maxCapacity" :shake="shaking.maxCapacity" @input="clearError('maxCapacity')" />
+        <AppInput v-model="localData.maxCapacity" type="number" label="Global Max Capacity" placeholder="0 for Unlimited"
+          :error="errors.maxCapacity" :shake="shaking.maxCapacity" @input="clearError('maxCapacity')">
+          <template #label-extra>
+            <span class="text-[9px] text-content-muted ml-2">(0 = Unlimited)</span>
+          </template>
+        </AppInput>
 
         <AppInput v-model="localData.minAge" type="number" label="Minimum Age" placeholder="5" required />
         <AppInput v-model="localData.maxAge" type="number" label="Maximum Age" placeholder="12" required />
@@ -510,14 +517,13 @@ watch(
             <div class="flex flex-col gap-xs">
               <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Category</span>
               <div class="flex items-center gap-sm">
-                <AppBadge :status="categories.find(c => c.id === props.program.categoryId)?.name || 'N/A'"
-                  type="blue" />
+                <AppBadge :status="categories.find(c => c.id === props.program.categoryId)?.name" type="blue" />
               </div>
             </div>
             <div class="flex flex-col gap-xs">
               <span class="text-2xs font-black text-content-muted uppercase tracking-wider opacity-60">Level</span>
               <div class="flex items-center gap-sm">
-                <AppBadge :status="levels.find(l => l.id === props.program.levelId)?.name || 'N/A'"
+                <AppBadge :status="levels.find(l => l.id === props.program.levelId)?.name"
                   class="bg-surface-subtle text-content-dark border-outline-std" />
               </div>
             </div>
@@ -547,8 +553,8 @@ watch(
       </div>
 
       <!-- ── Confirmation Overlay ── -->
-      <AppConfirmOverlay :show="showConfirm" :title="modalTitle" :subtitle="confirmOverlaySubtitle"
-        :icon="modalIcon" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading" @back="showConfirm = false"
+      <AppConfirmOverlay :show="showConfirm" :title="modalTitle" :subtitle="confirmOverlaySubtitle" :icon="modalIcon"
+        :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading" @back="showConfirm = false"
         @confirm="handleActionSubmit" />
     </div>
 

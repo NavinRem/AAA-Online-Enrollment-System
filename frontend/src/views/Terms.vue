@@ -57,7 +57,11 @@ const fetchData = async () => {
       await Promise.all(syncTasks)
     }
 
-    items.value = terms
+    items.value = terms.map(t => ({
+      ...t,
+      branchIds: t.branchIds || (t.branchId ? [t.branchId] : []),
+      totalSessions: t.totalSessions || 11
+    }))
   } catch (err) {
     console.error('Failed to fetch terms', err)
   } finally {
@@ -272,7 +276,7 @@ const isTermReadOnly = (item) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
               <div class="flex flex-wrap justify-center gap-1 max-w-[150px] mx-auto">
-                <AppBadge v-for="b in getTermBranches(item.branchIds || (item.branchId ? [item.branchId] : []))"
+                <AppBadge v-for="b in getTermBranches(item.branchIds)"
                   :key="b.id || b.abbr" :status="b.abbr" :type="b.color || 'blue'" />
               </div>
             </td>
@@ -301,12 +305,12 @@ const isTermReadOnly = (item) => {
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex items-center gap-xs justify-center">
                 <span class="text-xs font-black text-content-dark"
-                  :class="{ 'text-error': (item.totalSessions || 11) !== calculateClassProgress(item.startDate, item.endDate).totalWeeks }">
+                  :class="{ 'text-error': item.totalSessions !== calculateClassProgress(item.startDate, item.endDate).totalWeeks }">
                   {{ calculateClassProgress(item.startDate, item.endDate).totalWeeks }}
                 </span>
                 <span class="text-xs font-black text-content-muted uppercase tracking-widest"
-                  :class="{ 'text-error/60': (item.totalSessions || 11) !== calculateClassProgress(item.startDate, item.endDate).totalWeeks }">
-                  {{ (item.totalSessions || 11) === calculateClassProgress(item.startDate, item.endDate).totalWeeks ?
+                  :class="{ 'text-error/60': item.totalSessions !== calculateClassProgress(item.startDate, item.endDate).totalWeeks }">
+                  {{ item.totalSessions === calculateClassProgress(item.startDate, item.endDate).totalWeeks ?
                     'Weeks' : '⚠️ Misaligned' }}
                 </span>
               </div>

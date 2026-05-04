@@ -108,7 +108,7 @@ const paymentHeaders = [
 
 <template>
   <DashboardLayout>
-    <DataPageLayout overviewTitle="Treasury & Financial Ledger">
+    <DataPageLayout overviewTitle="Payment Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in paymentStats" :key="stat.label" v-bind="stat" />
@@ -116,7 +116,7 @@ const paymentHeaders = [
       </template>
 
       <template #table>
-        <DataTable title="Transaction Lists" :headers="paymentHeaders" :items="filteredPayments" :loading="loading"
+        <DataTable title="Payment Lists" :headers="paymentHeaders" :items="filteredPayments" :loading="loading"
           searchPlaceholder="Search by parent, student, or program model..." :hasFilter="true"
           v-model:searchQuery="searchQuery" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Transactions', value: 'all' },

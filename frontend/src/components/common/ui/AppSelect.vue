@@ -46,18 +46,21 @@ const computeDropdownPosition = async () => {
   const spaceBelow = viewportHeight - rect.bottom
   const dropdownMaxHeight = 260
 
-  let top, transformOrigin
+  let top, bottom, transformOrigin
   if (spaceBelow >= dropdownMaxHeight || spaceBelow >= 150) {
-    top = rect.bottom + window.scrollY + 2
+    top = `${rect.bottom + 2}px`
+    bottom = 'auto'
     transformOrigin = 'top center'
   } else {
-    top = rect.top + window.scrollY - dropdownMaxHeight - 2
+    top = 'auto'
+    bottom = `${viewportHeight - rect.top + 2}px`
     transformOrigin = 'bottom center'
   }
 
   dropdownStyle.value = {
-    top: `${top}px`,
-    left: `${rect.left + window.scrollX}px`,
+    top,
+    bottom,
+    left: `${rect.left}px`,
     width: `${rect.width}px`,
     zIndex: 9999,
     transformOrigin,
@@ -109,6 +112,8 @@ const selectItem = (item) => {
     }
     emit('update:modelValue', current)
     emit('change', current)
+    // Re-calculate position as the height might have changed due to new tags
+    computeDropdownPosition()
   } else {
     emit('update:modelValue', item.id)
     emit('change', item.id)

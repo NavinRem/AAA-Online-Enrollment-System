@@ -54,6 +54,8 @@ class ProfileHelper {
       maxCapacity: programData.maxCapacity || 0,
       minAge: programData.minAge || 0,
       maxAge: programData.maxAge || 0,
+      category: programData.category || '',
+      categoryId: programData.categoryId || '',
     }
   }
 

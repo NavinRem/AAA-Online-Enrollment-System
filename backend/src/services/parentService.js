@@ -11,6 +11,17 @@ class ParentService {
     const { email, password, studentId, ...profileData } = parentData
     const validatedProfile = validateParent({ email, studentId, ...profileData })
 
+    // Contact Uniqueness Check (Phone)
+    if (validatedProfile.phone) {
+      const phoneSnap = await db.collection(COLLECTIONS.PARENT)
+        .where('phone', '==', validatedProfile.phone)
+        .limit(1)
+        .get()
+      if (!phoneSnap.empty) {
+        throw new Error(`A parent with phone number "${validatedProfile.phone}" is already registered.`)
+      }
+    }
+
     const authResult = await authService.registerAccount(
       { email, password, ...validatedProfile },
       'parent',

@@ -248,7 +248,7 @@ const submitNewParent = async (data) => {
     }, 2000)
   } catch (error) {
     console.error('Failed creation:', error)
-    errorMessage.value = 'Failed to create parent account.'
+    errorMessage.value = error.response?.data?.message || error.message || 'Failed to create parent account.'
   } finally {
     submitting.value = false
   }

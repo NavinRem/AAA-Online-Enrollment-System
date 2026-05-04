@@ -40,7 +40,11 @@ defineProps({
                 typeof col === 'object' && col.align ? `text-${col.align}` : 'text-left',
                 typeof col === 'object' && col.hideOnMobile ? 'hidden-on-mobile' : '',
               ]">
-              {{ typeof col === 'object' ? col.label : col }}
+              <div class="flex flex-col gap-0.5">
+                <span class="block">{{ typeof col === 'object' ? col.label : col }}</span>
+                <span v-if="typeof col === 'object' && col.subLabel"
+                  class="block text-[9px] opacity-60 font-bold normal-case tracking-tight">{{ col.subLabel }}</span>
+              </div>
             </th>
           </tr>
         </thead>
