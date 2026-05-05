@@ -7,6 +7,7 @@ import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { getActionIcon, isSameProfileAsset } from '@/utils/assetHelper'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
@@ -69,6 +70,43 @@ const { localData, originalData, isDirty, errors, shaking, clearError, triggerSh
     mapSourceToForm,
   })
 
+const showConfirm = ref(false)
+
+const requestConfirm = () => {
+  if (props.type === 'reset-password') {
+    if (!selectedResetMode.value) {
+      errors.value.resetMode = 'Selection required'
+      shaking.value.resetMode = true
+      setTimeout(() => {
+        delete errors.value.resetMode
+        shaking.value.resetMode = false
+      }, 2000)
+      return
+    }
+    showConfirm.value = true
+    return
+  }
+
+  const rules = {
+    required: [],
+    custom: {},
+  }
+
+  if (props.type === 'edit') {
+    if (!isDirty.value) return
+    rules.required = ['name', 'phone', 'profileURL']
+    rules.custom.email = (val) => (!!val?.trim() && val.includes('@')) || 'Valid email required'
+  } else if (props.type === 'plus') {
+    rules.required = ['name', 'dob', 'profileURL']
+    if (!props.user) rules.required.push('parentId')
+  } else if (props.type === 'delete') {
+    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Authorization string invalid'
+  }
+
+  if (!validate(rules)) return
+  showConfirm.value = true
+}
+
 const isChanged = computed(() => {
   if (props.type !== 'edit') return true
 
@@ -87,17 +125,8 @@ const isChanged = computed(() => {
 })
 
 const handleActionSubmit = () => {
+  showConfirm.value = false
   if (props.type === 'reset-password') {
-    if (!selectedResetMode.value) {
-      // Manual error set for resetMode since it's not a form field
-      errors.value.resetMode = 'Selection required'
-      shaking.value.resetMode = true
-      setTimeout(() => {
-        delete errors.value.resetMode
-        shaking.value.resetMode = false
-      }, 2000)
-      return
-    }
     if (selectedResetMode.value === 'email') {
       handleSendResetEmail()
     } else {
@@ -106,35 +135,39 @@ const handleActionSubmit = () => {
     return
   }
 
-  const rules = {
-    required: [],
-    custom: {},
-  }
-
-  if (props.type === 'edit') {
-    if (!isChanged.value) return
-    rules.required = ['name', 'phone', 'profileURL']
-    rules.custom.email = (val) => (!!val?.trim() && val.includes('@')) || 'Valid email required'
-  } else if (props.type === 'plus') {
-    rules.required = ['name', 'dob', 'profileURL']
-    if (!props.user) rules.required.push('parentId')
-  } else if (props.type === 'delete') {
-    rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Authorization string invalid'
-  }
-
-  if (!validate(rules)) return
-
   const payload = JSON.parse(JSON.stringify(localData))
 
   // Remove UI-only and system-managed fields from backend payload
   const forbidden = ['deleteConfirm', 'id', '_id', 'createdAt', 'updatedAt']
-  // parentId is required for "plus" (add child) but not for edit parent
   if (props.type === 'edit') forbidden.push('parentId')
 
   forbidden.forEach((key) => delete payload[key])
 
   emit('submit', payload)
 }
+
+const confirmRows = computed(() => {
+  const p = selectedParent.value
+  const rows = [
+    { key: 'Parent Name', value: localData.name },
+  ]
+
+  if (props.type === 'edit') {
+    rows.push({ key: 'Email', value: localData.email })
+    rows.push({ key: 'Phone', value: localData.phone })
+    rows.push({ key: 'Status', value: localData.status, badge: true })
+  } else if (props.type === 'plus') {
+    rows.push({ key: 'Student Name', value: localData.name })
+    rows.push({ key: 'Birthday', value: localData.dob })
+  } else if (props.type === 'delete') {
+    rows.push({ key: 'Email', value: localData.email })
+    rows.push({ key: 'Authorization', value: localData.deleteConfirm, valueClass: 'text-error font-bold' })
+  } else if (props.type === 'reset-password') {
+    rows.push({ key: 'Reset Method', value: selectedResetMode.value === 'email' ? 'Email Link' : 'Manual Override', valueClass: 'font-bold text-primary' })
+  }
+
+  return rows
+})
 
 const handleSendResetEmail = async () => {
   if (!selectedParent.value?.email) return
@@ -220,24 +253,26 @@ watch(
 <template>
   <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="getActionIcon(type)"
     :error="error" :success="success">
-    <!-- Identity Banner -->
-    <div v-if="selectedParent && type !== 'edit' && type !== 'delete'" class="ui-identity-banner"
-      :class="parentThemeClasses">
-      <div class="ui-identity-avatar">
+    <!-- Identity Banner (Standardized for Edit/Delete/Plus) -->
+    <div v-if="selectedParent" class="ui-identity-banner mb-lg" :class="parentThemeClasses">
+      <div class="ui-identity-avatar-round">
         <img :src="selectedParent.profileURL" class="w-full h-full object-cover" />
       </div>
       <div class="ui-identity-info">
-        <h2 class="ui-identity-name">
+        <h2 class="ui-identity-name-compact">
           {{ selectedParent.name }}
         </h2>
-        <div class="ui-identity-meta">
-          <span class="parent-identity-email" v-if="selectedParent.email">{{ selectedParent.email }}</span>
-          <span class="parent-identity-phone" v-if="selectedParent.phone">{{ selectedParent.phone }}</span>
+        <div class="ui-identity-meta-compact">
+          <span class="text-[10px] font-semibold text-content-muted opacity-60 uppercase tracking-widest"
+            v-if="selectedParent.email">{{ selectedParent.email }}</span>
+          <span class="opacity-30" v-if="selectedParent.email && selectedParent.phone">•</span>
+          <span class="text-[10px] font-semibold text-content-dark uppercase tracking-widest"
+            v-if="selectedParent.phone">{{ selectedParent.phone }}</span>
         </div>
       </div>
     </div>
 
-    <form id="parentActionForm" @submit.prevent="handleActionSubmit" novalidate>
+    <form id="parentActionForm" @submit.prevent="requestConfirm" novalidate>
       <!-- Edit Parent Form -->
       <div v-if="type === 'edit'" class="ui-form-grid">
         <AppInput v-model="localData.name" label="Legal Full Name" placeholder="Registry name" required
@@ -309,55 +344,20 @@ watch(
       </AppAlert>
     </div>
 
-    <div v-if="type === 'delete'" class="flex flex-col gap-xl">
-      <div class="flex flex-col bg-white border border-outline-std rounded-std p-xl shadow-inner mb-md"
-        v-if="selectedParent">
-        <div class="grid grid-cols-2 gap-x-xl gap-y-md">
-          <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-semibold uppercase text-content-muted tracking-widest">Parent Name</span>
-            <div class="flex items-center gap-sm">
-              <img :src="selectedParent.profileURL" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-              <span class="text-sm font-semibold text-content-dark tracking-tight">{{
-                selectedParent.name
-              }}</span>
-            </div>
-          </div>
-          <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-semibold uppercase text-content-muted tracking-widest">Contact Email</span>
-            <span class="text-sm text-content-dark font-bold truncate">{{
-              selectedParent.email
-              }}</span>
-          </div>
-          <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-semibold uppercase text-content-muted tracking-widest">Contact Phone</span>
-            <span class="text-sm text-content-dark font-bold truncate">{{
-              selectedParent.phone
-              }}</span>
-          </div>
-          <div class="flex flex-col gap-xs">
-            <span class="text-3xs font-semibold uppercase text-content-muted tracking-widest">Account Status</span>
-            <div class="w-fit">
-              <AppBadge :status="selectedParent.status" />
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div v-if="type === 'delete'" class="flex flex-col gap-lg">
       <AppAlert type="error">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-sm font-semibold uppercase tracking-tight">Critical Record Delete</strong>
-          <span class="text-xs opacity-90 font-medium leading-relaxed">This action is destructive and irreversible. All
-            linked historical data, billing
-            cycles, and child relations will be severed.</span>
+          <strong class="text-sm font-semibold uppercase tracking-tight">Permanent Registry Deletion</strong>
+          <span class="text-xs opacity-90 font-medium leading-relaxed">This action will permanently erase the parent
+            profile and all linked student relations. Historical billing data will be severed.</span>
         </div>
       </AppAlert>
 
-      <AppInput v-model="localData.deleteConfirm" label="Enter 'DELETE' to confirm" placeholder="DELETE" required
-        class="text-center" :error="errors.deleteConfirm" :shake="shaking.deleteConfirm"
-        @input="clearError('deleteConfirm')">
+      <AppInput v-model="localData.deleteConfirm" label="Authorization Confirmation" placeholder="DELETE" required
+        :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
         <template #label-extra>
-          <span class="block text-2xs font-bold text-center mt-1">
-            Type <span class="text-error px-1">DELETE</span> to authorize record deletion
+          <span class="block text-2xs font-semibold mt-0.5">
+            Type <span class="text-error px-1 font-semibold">DELETE</span> to authorize record deletion
           </span>
         </template>
       </AppInput>
@@ -426,6 +426,12 @@ watch(
         class="text-error text-3xs font-semibold text-center uppercase tracking-widest animate-shake mt-2">
         {{ errors.resetMode }}
       </div>
+
+      <!-- Confirmation Overlay -->
+      <AppConfirmOverlay :show="showConfirm" :title="modalTitle"
+        :subtitle="type === 'delete' ? 'This action is irreversible. All data will be permanently erased.' : 'Please verify the details before completing this action.'"
+        :icon="getActionIcon(type)" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading"
+        @back="showConfirm = false" @confirm="handleActionSubmit" />
     </div>
 
     <!-- Footer -->
@@ -433,10 +439,8 @@ watch(
       <div class="flex flex-col justify-end w-full gap-md">
         <div class="flex items-center justify-end w-full gap-md">
           <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success">Cancel</AppButton>
-          <AppButton :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
-            :form="type === 'edit' || type === 'plus' ? 'parentActionForm' : null" type="submit"
-            @click="!(type === 'edit' || type === 'plus') ? handleActionSubmit() : null" :loading="loading"
-            :disabled="loading || !!success" :class="{
+          <AppButton :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'" type="button"
+            @click="requestConfirm" :loading="loading" :disabled="loading || !!success" :class="{
               'button-disabled-visual': (type === 'edit' && !isDirty) || !!success,
             }">
             {{ submitLabel }}

@@ -124,11 +124,14 @@ export const formatPrice = (val) => {
  * @param {string} startDate - Term start date
  * @param {string} endDate - Term end date
  * @param {string} day - Class day (optional)
- * @param {string} timeslot - Class timeslot (optional, e.g. "09:00 AM - 10:30 AM")
+ * @param {string} time - Class timeslot (optional, e.g. "09:00 AM - 10:30 AM")
+ * @param {number} currentCount - Current student count
+ * @param {number} capacity - Max capacity
  * @returns {object} Progress stats { week, status, percentage, totalWeeks, isOngoing, isArchived }
  */
-export const calculateClassProgress = (startDate, endDate, day = null, time = null) => {
-  if (!startDate || !endDate) return { status: 'N/A', week: 0, percentage: 0, totalWeeks: 0 }
+export const calculateClassProgress = (startDate, endDate, day = null, time = null, currentCount = 0, capacity = 0) => {
+  if (!startDate || !endDate)
+    return { status: 'N/A', week: 0, percentage: 0, totalWeeks: 0, isArchived: false, isOngoing: false }
 
   const start = new Date(startDate)
   const end = new Date(endDate)
@@ -143,33 +146,28 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
   const diffDays = Math.round((endDateOnly - startDateOnly) / (24 * 60 * 60 * 1000)) + 1
   const totalWeeks = Math.ceil(diffDays / 7)
 
-  if (todayDate < startDateOnly) {
-    return {
-      status: 'Upcoming',
-      week: 0,
-      remainingSessions: totalWeeks,
-      percentage: 0,
-      totalWeeks,
-      isArchived: false,
-      isOngoing: false,
-    }
+  const elapsedMs = todayDate - startDateOnly
+  const currentWeek = Math.min(
+    totalWeeks,
+    Math.max(1, Math.floor(elapsedMs / (7 * 24 * 60 * 60 * 1000)) + 1),
+  )
+
+  const currentWeekStartDate = new Date(startDateOnly)
+  currentWeekStartDate.setDate(currentWeekStartDate.getDate() + (currentWeek - 1) * 7)
+
+  let sessionPassed = todayDate > currentWeekStartDate
+  if (todayDate.getTime() === currentWeekStartDate.getTime()) {
+    sessionPassed = false
   }
 
-  if (todayDate > endDateOnly) {
-    return {
-      status: 'Archived',
-      week: totalWeeks,
-      remainingSessions: 0,
-      percentage: 100,
-      totalWeeks,
-      isArchived: true,
-      isOngoing: false,
-    }
-  }
+  const remainingSessions = Math.max(0, totalWeeks - currentWeek + (sessionPassed ? 0 : 1))
+  const percentage = Math.min(100, Math.round((currentWeek / totalWeeks) * 100))
 
-  // Check for Ongoing status
+  // ── Status Priority Logic ──
+  
+  // 1. Check for Ongoing status (Dynamic temporary override)
   let isOngoing = false
-  if (day && time) {
+  if (todayDate >= startDateOnly && todayDate <= endDateOnly && day && time) {
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     const todayDayName = dayNames[today.getDay()]
 
@@ -191,25 +189,16 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
     }
   }
 
-  const elapsedMs = todayDate - startDateOnly
-  const currentWeek = Math.min(
-    totalWeeks,
-    Math.max(1, Math.floor(elapsedMs / (7 * 24 * 60 * 60 * 1000)) + 1),
-  )
-
-  const currentWeekStartDate = new Date(startDateOnly)
-  currentWeekStartDate.setDate(currentWeekStartDate.getDate() + (currentWeek - 1) * 7)
-
-  let sessionPassed = todayDate > currentWeekStartDate
-  if (todayDate.getTime() === currentWeekStartDate.getTime()) {
-    sessionPassed = false
+  let status = 'active'
+  if (todayDate > endDateOnly) {
+    status = 'archived'
+  } else if (isOngoing) {
+    status = 'ongoing'
+  } else if (capacity > 0 && currentCount >= capacity) {
+    status = 'full'
+  } else if (todayDate < startDateOnly) {
+    status = 'upcoming'
   }
-
-  const remainingSessions = Math.max(0, totalWeeks - currentWeek + (sessionPassed ? 0 : 1))
-  const percentage = Math.min(100, Math.round((currentWeek / totalWeeks) * 100))
-
-  let status = 'Active'
-  if (isOngoing) status = 'Ongoing'
 
   return {
     status,
@@ -219,6 +208,52 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
     percentage,
     totalWeeks,
     isOngoing,
-    isArchived: false,
+    isArchived: status === 'archived',
   }
+}
+
+/**
+ * Generates a list of all scheduled session dates for a class based on term and schedule.
+ * 
+ * @param {string} startDate 
+ * @param {string} dayOfWeek - e.g. "Monday"
+ * @param {number} totalSessions - Total number of sessions to generate
+ * @param {Array} excludeDates - Optional list of ISO date strings to skip (holidays, etc.)
+ * @returns {Array} List of { id, label, date } objects
+ */
+export const generateClassSessions = (startDate, dayOfWeek, totalSessions = 12, excludeDates = []) => {
+  if (!startDate || !dayOfWeek) return []
+  const start = new Date(startDate)
+  const total = parseInt(totalSessions) || 12
+  const skippedSet = new Set(
+    (excludeDates || []).map(d => new Date(d).toISOString().split('T')[0])
+  )
+
+  const dates = []
+  const dayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 }
+  const targetDay = dayMap[dayOfWeek]
+  if (targetDay === undefined) return []
+
+  let current = new Date(start)
+  // Find first occurrence of the target day
+  while (current.getDay() !== targetDay) {
+    current.setDate(current.getDate() + 1)
+  }
+
+  let sessionsFound = 0
+  let safetyCounter = 0
+  while (sessionsFound < total && safetyCounter < 365) {
+    const dateStr = current.toISOString().split('T')[0]
+    if (!skippedSet.has(dateStr)) {
+      dates.push({
+        id: sessionsFound + 1,
+        label: `Session ${sessionsFound + 1}`,
+        date: new Date(current),
+      })
+      sessionsFound++
+    }
+    current.setDate(current.getDate() + 7)
+    safetyCounter++
+  }
+  return dates
 }

@@ -37,8 +37,9 @@ class TermService {
       // Fetch all terms and filter manually for array inclusion
       const snapshot = await query.get()
       const results = []
-      snapshot.forEach(doc => {
+      snapshot.forEach((doc) => {
         const data = doc.data()
+        if (data.isDeleted === true) return
         const branchIds = data.branchIds || (data.branchId ? [data.branchId] : [])
         // Include if global OR if it matches the requested branch
         if (branchIds.length === 0 || branchIds.includes(filters.branchId)) {
@@ -47,12 +48,11 @@ class TermService {
       })
       return results
     }
-    
+
     const snapshot = await query.get()
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((t) => t.isDeleted !== true)
   }
 
   async getTerm(id) {
@@ -101,24 +101,13 @@ class TermService {
     const termDoc = await termRef.get()
     if (!termDoc.exists) throw new Error('Term not found')
 
-    const batch = db.batch()
-    batch.delete(termRef)
-
-    const classesSnap = await db
-      .collection(COLLECTIONS.CLASS)
-      .where('termId', '==', id)
-      .get()
-
-    classesSnap.forEach((doc) => {
-      batch.update(doc.ref, {
-        termId: null,
-        term: null,
-        updatedAt: new Date().toISOString(),
-      })
+    await termRef.update({
+      isDeleted: true,
+      status: 'deleted',
+      updatedAt: new Date().toISOString(),
     })
 
-    await batch.commit()
-    return { message: 'Term deleted successfully' }
+    return { message: 'Term deleted successfully (Soft delete)' }
   }
 }
 

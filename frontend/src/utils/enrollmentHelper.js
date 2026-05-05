@@ -1,14 +1,14 @@
 import { parseDate } from './formatUtils'
 import { getProgramProfileURL, getParentProfileURL, getStudentProfileURL } from './assetHelper'
 
-const PAID_STATUSES = ['paid', 'confirmed', 'success']
-const CANCELLED_STATUSES = ['cancelled', 'canceled', 'stopped']
-const UNPAID_STATUSES = ['unpaid', 'pending']
+import { isPaid, isPending } from '@/constants/status'
+
+const CANCELLED_STATUSES = ['cancelled', 'canceled', 'stopped', 'deleted']
 
 /**
  * Calculates high-level enrollment statistics for dashboards and overview cards.
  * Provides counts for total, paid, and recently added registrations.
- * 
+ *
  * @param {Array} enroll - List of standardized enrollment records
  * @returns {Object} Metric summary
  */
@@ -20,13 +20,11 @@ export const calculateTotalEnrollment = (enroll = []) => {
     total: enroll.length,
     paidCount: enroll.filter(
       (r) =>
-        PAID_STATUSES.includes(String(r.paymentStatus).toLowerCase()) &&
-        !CANCELLED_STATUSES.includes(String(r.status).toLowerCase()),
+        isPaid(r.paymentStatus) && !CANCELLED_STATUSES.includes(String(r.status).toLowerCase()),
     ).length,
     unpaidCount: enroll.filter(
       (r) =>
-        UNPAID_STATUSES.includes(String(r.paymentStatus).toLowerCase()) &&
-        !CANCELLED_STATUSES.includes(String(r.status).toLowerCase()),
+        isPending(r.paymentStatus) && !CANCELLED_STATUSES.includes(String(r.status).toLowerCase()),
     ).length,
     cancelledCount: enroll.filter((r) =>
       CANCELLED_STATUSES.includes(String(r.status).toLowerCase()),
@@ -37,7 +35,7 @@ export const calculateTotalEnrollment = (enroll = []) => {
 }
 
 /**
- * Enriches raw enrollment records by stitching together related entities 
+ * Enriches raw enrollment records by stitching together related entities
  * (Parents, Students, Programs, Classes) using their unique identifiers.
  * This pattern ensures the UI receives a high-integrity, flat object for easy rendering.
  */
@@ -57,64 +55,81 @@ export const enrichEnrollments = (
       const program = programs.find((p) => p.id === programId) || r.program || r.class?.program
 
       const scheduleVal = classInst
-        ? (classInst.schedule ? `${classInst.schedule.day} (${classInst.schedule.time})` : 'N/A')
+        ? classInst.schedule
+          ? `${classInst.schedule.day} (${classInst.schedule.time})`
+          : 'N/A'
         : 'N/A'
 
       return {
         ...r,
         parent: parent
           ? {
-            ...parent,
-            name: parent.name || 'N/A',
-            profileURL: getParentProfileURL(parent.profileURL),
-            status: (parent.status || 'Active'),
-          }
+              ...parent,
+              name: parent.name || 'N/A',
+              profileURL: getParentProfileURL(parent.profileURL),
+              status: parent.status || 'Active',
+            }
           : r.parent,
         student: student
           ? {
-            ...student,
-            name: student.name || 'N/A',
-            profileURL: getStudentProfileURL(student.profileURL),
-          }
+              ...student,
+              name: student.name || 'N/A',
+              profileURL: getStudentProfileURL(student.profileURL),
+            }
           : r.student,
         program: program
           ? {
-            id: program.id,
-            name: program.name || 'N/A',
-            profileURL: getProgramProfileURL(program.profileURL, program.category, program.categoryProfileURL),
-            type: program.type || 'Group',
-          }
+              id: program.id,
+              name: program.name || 'N/A',
+              profileURL: getProgramProfileURL(
+                program.profileURL,
+                program.category,
+                program.categoryProfileURL,
+              ),
+              type: program.type || 'Group',
+            }
           : r.program,
         paymentModeType: r.isProrated ? 'partial' : 'full',
         branchAbbr: classInst?.branch?.abbr || 'N/A',
+        branchColor: classInst?.branch?.color || 'blue',
         classSchedule: scheduleVal,
+        currentCount: classInst?.currentCount || r.class?.currentCount || 0,
+        capacity: classInst?.capacity || r.class?.capacity || 0,
 
         // Direct access properties for table rendering
         parentName: parent?.name || r.parentName || 'N/A',
         studentName: student?.name || r.studentName || 'N/A',
         programName: program?.name || r.programName || 'N/A',
-        status: r.status || r.paymentStatus || 'Unpaid',
+        termName: classInst?.term?.name || r.class?.term?.name || 'N/A',
+        teacherNames:
+          classInst?.teachers?.map((t) => t.name).join(', ') || classInst?.teacher?.name || 'N/A',
+        totalPrice: r.amount || 0,
+        academicStatus: r.status || 'studying',
+        enrollmentStatus: r.status || 'active',
+        paymentStatus: r.paymentStatus || 'unpaid',
+        status: String(r.status || r.paymentStatus || 'unpaid').toLowerCase(),
+        class: classInst,
       }
     })
     .sort((a, b) => parseDate(b.enrollAt).getTime() - parseDate(a.enrollAt).getTime())
 }
 
 /**
- * Determines the logical academic status of an enrollment, defaulting to 'Studying'
+ * Determines the logical academic status of an enrollment, defaulting to 'studying'
  * unless an explicit status is provided by the backend.
- * 
+ *
  * @param {Object} r - Enriched enrollment record
  * @returns {string} Semantic academic status
  */
 export const getAcademicStatus = (r) => {
-  if (!r) return 'Stopped'
-  return r.academicStatus || r.status || 'Studying'
+  if (!r) return 'stopped'
+  return String(r.academicStatus || r.status || 'studying').toLowerCase()
 }
 
 /**
  * Performs complex filtering on the enrollment list for entity-specific detail pages.
  * Supports filtering by student, academic status, and financial state.
- * 
+ *
  * @param {Array} enrollments - Enriched enrollment list
  * @param {Object} filters - Filter criteria { studentId, academicStatus, paymentStatus }
  * @returns {Array} Purified and filtered list
@@ -139,12 +154,13 @@ export const filterDetailEnrollments = (enrollments, filters = {}) => {
     if (filters.paymentStatus && filters.paymentStatus !== 'all') {
       const pStatus = e.paymentStatus.toLowerCase()
       if (filters.paymentStatus === 'paid') {
-        if (!PAID_STATUSES.includes(pStatus)) return false
+        if (!isPaid(pStatus)) return false
       } else if (filters.paymentStatus === 'pending') {
-        if (!UNPAID_STATUSES.includes(pStatus)) return false
+        if (!isPending(pStatus)) return false
       } else if (filters.paymentStatus === 'cancelled') {
         const sStatus = String(e.status || '').toLowerCase()
-        if (!CANCELLED_STATUSES.includes(sStatus) && !CANCELLED_STATUSES.includes(pStatus)) return false
+        if (!CANCELLED_STATUSES.includes(sStatus) && !CANCELLED_STATUSES.includes(pStatus))
+          return false
       } else {
         if (pStatus !== filters.paymentStatus.toLowerCase()) return false
       }

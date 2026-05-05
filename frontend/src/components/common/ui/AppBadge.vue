@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { getStatusUI, getStatusTheme } from '@/utils/badgeUtils'
+import { getStatusTheme } from '@/utils/badgeUtils'
 
 const props = defineProps({
   value: { type: [String, Number], default: '' },
@@ -10,10 +10,18 @@ const props = defineProps({
 })
 
 const badgeValue = computed(() => props.value || props.status)
-const ui = computed(() => getStatusUI(props.colorValue || badgeValue.value, props.type))
-
-const displayLabel = computed(() => ui.value.label || badgeValue.value)
 const badgeStyle = computed(() => getStatusTheme(props.colorValue || badgeValue.value, props.type))
+
+const displayLabel = computed(() => {
+  const val = String(badgeValue.value || '')
+  if (!val) return ''
+  
+  // Don't capitalize if it's a price or already has multiple caps
+  if (val.startsWith('$') || /^[A-Z]{2,}/.test(val)) return val
+  
+  // Capitalize first letter of each word
+  return val.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')
+})
 </script>
 
 <template>

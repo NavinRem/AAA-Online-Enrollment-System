@@ -44,10 +44,10 @@ const navigateToDetail = (item) => {
           <div class="ui-section-divider"></div>
         </div>
       </template>
-      <tr v-for="item in enrollments" :key="item.id || item.no" class="ui-row" @click="navigateToDetail(item)">
+      <tr v-for="(item, index) in enrollments.slice(0, 5)" :key="item.id || index" class="ui-row" @click="navigateToDetail(item)">
         <td class="ui-cell !py-4 text-center"
           :style="{ width: enrollmentHeaders[0].width, flex: '0 0 auto', minWidth: enrollmentHeaders[0].width }">
-          {{ item.no }}
+          {{ index + 1 }}
         </td>
         <td class="ui-cell !py-4 overflow-hidden" :style="{ flex: '1 1 0%', minWidth: 0 }">
           <div class="ui-identity-cell min-w-0 w-full">
@@ -74,10 +74,10 @@ const navigateToDetail = (item) => {
         <td class="ui-cell !py-4 overflow-hidden" :style="{ flex: '1 1 0%', minWidth: 0 }">
           <div class="ui-identity-cell min-w-0 w-full">
             <div class="ui-avatar">
-              <img :src="getProgramProfileURL(item.program?.profileURL)" :alt="item.program?.title" />
+              <img :src="item.program?.profileURL" :alt="item.programName" />
             </div>
             <span class="text-sm font-semibold text-content-dark truncate block">{{
-              item.program?.title || item.class?.program?.title || item.programTitle
+              item.programName
               }}</span>
           </div>
         </td>
@@ -87,8 +87,7 @@ const navigateToDetail = (item) => {
         </td>
         <td class="ui-cell !py-4 text-center"
           :style="{ width: enrollmentHeaders[5].width, flex: '0 0 auto', minWidth: enrollmentHeaders[5].width }">
-          <AppBadge :status="'$' + formatPrice(item.amount)"
-            :type="(item.mode || 'Full').toLowerCase() === 'partial' ? 'purple' : 'magenta'" />
+          <AppBadge :status="'$' + formatPrice(item.amount || 0)" :colorValue="item.paymentModeType" type="finance" />
         </td>
         <td class="ui-cell !py-4 text-center text-xs text-content-muted font-bold overflow-hidden"
           :style="{ flex: '1 1 0%', minWidth: 0 }">

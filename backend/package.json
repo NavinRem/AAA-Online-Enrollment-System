@@ -10,7 +10,7 @@
     "logs": "firebase functions:log",
     "test": "mocha --timeout 5000 test/*.test.js",
     "seed:admin": "node src/scripts/initAdmin.js",
-    "seed:branch": "node src/scripts/seedBranch.js"
+    "seed:full": "node src/scripts/seedData.js"
   },
   "engines": {
     "node": "22"

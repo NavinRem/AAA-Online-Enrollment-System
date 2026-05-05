@@ -12,6 +12,7 @@ class ProgramService {
     // Name Uniqueness Check
     const nameSnap = await db.collection(COLLECTIONS.PROGRAM)
       .where('name', '==', validated.name)
+      .where('isDeleted', '==', false)
       .limit(1)
       .get()
     if (!nameSnap.empty) {
@@ -19,7 +20,12 @@ class ProgramService {
     }
 
     const id = db.collection(COLLECTIONS.PROGRAM).doc().id
-    const program = { ...validated, createdAt: new Date().toISOString() }
+    const program = {
+      ...validated,
+      totalEnrolledCount: 0,
+      isDeleted: false,
+      createdAt: new Date().toISOString(),
+    }
     await db.collection(COLLECTIONS.PROGRAM).doc(id).set(program)
     return { id, ...program }
   }
@@ -31,7 +37,9 @@ class ProgramService {
       query = query.where('categoryId', '==', filters.categoryId)
 
     const snapshot = await query.get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((p) => p.isDeleted !== true)
   }
 
   async getProgram(id) {
@@ -78,11 +86,12 @@ class ProgramService {
     const doc = await ref.get()
     if (!doc.exists) throw new Error('Program not found')
 
-    // Note: We allow hard deletion of the program even if classes exist, 
-    // as per administrative requirement to preserve related data as historical orphans.
-
-    await ref.delete()
-    return { message: 'Program deleted successfully' }
+    await ref.update({
+      isDeleted: true,
+      status: 'deleted',
+      updatedAt: new Date().toISOString(),
+    })
+    return { message: 'Program deleted successfully (Soft delete)' }
   }
 
   async syncProgramsWithCategory(categoryId, categoryName) {
@@ -92,19 +101,22 @@ class ProgramService {
       .get()
 
     if (!programsSnap.empty) {
-      const batch = db.batch()
+      const firestoreHelper = require('../utils/firestoreHelper')
       const profileHelper = require('../utils/profileHelper')
 
-      programsSnap.forEach((pDoc) => {
+      const writes = programsSnap.docs.map((pDoc) => {
         const programData = { ...pDoc.data(), category: categoryName }
         const updatedSnapshot = profileHelper.getProgramSnapshot(pDoc.id, programData)
-        batch.update(pDoc.ref, {
-          category: categoryName,
-          categoryInfo: updatedSnapshot.categoryInfo,
-          updatedAt: new Date().toISOString(),
-        })
+        return {
+          ref: pDoc.ref,
+          data: {
+            category: categoryName,
+            categoryInfo: updatedSnapshot.categoryInfo,
+            updatedAt: new Date().toISOString(),
+          },
+        }
       })
-      await batch.commit()
+      await firestoreHelper.chunkedUpdate(writes)
     }
   }
 }

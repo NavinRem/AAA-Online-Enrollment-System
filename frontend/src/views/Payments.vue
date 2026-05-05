@@ -6,19 +6,25 @@ import DataPageLayout from '@/components/layout/DataPageLayout.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
-import { enrollmentService } from '@/services/enrollmentService'
+import { paymentService } from '@/services/paymentService'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
+import { isPaid, isPending } from '@/constants/status'
 
 const enrollments = ref([])
+const stats = ref(null)
 const loading = ref(true)
 const currentFilter = ref('all')
 
 const fetchData = async () => {
   try {
     loading.value = true
-    const data = await enrollmentService.getAllEnrollments()
-    enrollments.value = Array.isArray(data) ? data : []
+    const [paymentsData, financialStats] = await Promise.all([
+      paymentService.getAllPayments(),
+      paymentService.getFinancialStats()
+    ])
+    enrollments.value = Array.isArray(paymentsData) ? paymentsData : []
+    stats.value = financialStats
   } catch (error) {
     console.error('Failed to fetch payments data', error)
   } finally {
@@ -28,7 +34,7 @@ const fetchData = async () => {
 
 onMounted(fetchData)
 
-const paymentsData = computed(() => {
+const formattedPayments = computed(() => {
   return enrollments.value.map(e => ({
     id: e.id,
     parent: e.parent?.name || 'Unknown Parent',
@@ -42,54 +48,43 @@ const paymentsData = computed(() => {
 })
 
 const statusFilteredPayments = computed(() => {
-  if (currentFilter.value === 'all') return paymentsData.value
-  return paymentsData.value.filter(p => {
-    const s = String(p.status).toLowerCase()
-    if (currentFilter.value === 'paid') return ['paid', 'confirmed', 'active', 'success'].includes(s)
-    if (currentFilter.value === 'pending') return s === 'unpaid' || s === 'pending'
+  if (currentFilter.value === 'all') return formattedPayments.value
+  return formattedPayments.value.filter(p => {
+    if (currentFilter.value === 'paid') return isPaid(p.status)
+    if (currentFilter.value === 'pending') return isPending(p.status)
     return true
   })
 })
 
 const { searchQuery, searchResults: filteredPayments } = useSearch(
   statusFilteredPayments,
-  (item) => ({
-    ...item,
-    // Custom mapper for payment search
-    searchString: `${item.parent} ${item.student} ${item.program} ${item.method}`.toLowerCase()
-  })
+  enrollmentSearchMapper
 )
 
 const paymentStats = computed(() => {
-  const all = paymentsData.value
-  const paid = all.filter(p => ['paid', 'confirmed', 'active', 'success'].includes(String(p.status).toLowerCase()))
-  const pending = all.filter(p => String(p.status).toLowerCase() === 'unpaid' || String(p.status).toLowerCase() === 'pending')
-
-  const totalRevenue = paid.reduce((sum, p) => sum + (p.amount || 0), 0)
-  const pendingRevenue = pending.reduce((sum, p) => sum + (p.amount || 0), 0)
-
+  const s = stats.value
   return [
     {
       label: 'Financial Pipeline',
-      value: all.length,
+      value: s?.totalCount || 0,
       image: getImageUrl('payment/total-transaction'),
       color: 'var(--color-primary-light)',
     },
     {
       label: 'Net Yield',
-      value: '$' + formatPrice(totalRevenue),
+      value: '$' + formatPrice(s?.totalRevenue || 0),
       image: getImageUrl('payment/total-revenue'),
       color: 'var(--color-primary-light)',
     },
     {
       label: 'Accounts Receivable',
-      value: '$' + formatPrice(pendingRevenue),
+      value: '$' + formatPrice(s?.pendingRevenue || 0),
       image: getImageUrl('payment/unpaid-payment'),
       color: 'var(--color-primary-light)',
     },
     {
       label: 'Settled Ratio',
-      value: all.length > 0 ? Math.round((paid.length / all.length) * 100) + '%' : '0%',
+      value: (s?.settledRatio || 0) + '%',
       image: getImageUrl('dashboard/card-available-program'),
       color: 'var(--color-primary-light)',
     },
@@ -151,10 +146,19 @@ const paymentHeaders = [
 
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
               <div
-                class="inline-flex flex-col items-center px-4 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100/50">
-                <span class="text-sm font-semibold text-emerald-700 tabular-nums tracking-tighter">${{
+                class="inline-flex flex-col items-center px-4 py-1.5 rounded-xl border"
+                :class="item.status === 'paid' || item.status === 'confirmed'
+                  ? 'bg-emerald-50 border-emerald-100/50'
+                  : 'bg-amber-50 border-amber-100/50'">
+                <span class="text-sm font-semibold tabular-nums tracking-tighter"
+                  :class="item.status === 'paid' || item.status === 'confirmed'
+                    ? 'text-emerald-700'
+                    : 'text-amber-700'">${{
                   formatPrice(item.amount) }}</span>
-                <span class="text-[8px] font-bold text-emerald-600/60 uppercase tracking-widest">Amount</span>
+                <span class="text-[8px] font-bold uppercase tracking-widest"
+                  :class="item.status === 'paid' || item.status === 'confirmed'
+                    ? 'text-emerald-600/60'
+                    : 'text-amber-600/60'">Amount</span>
               </div>
             </td>
 

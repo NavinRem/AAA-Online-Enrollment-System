@@ -1,6 +1,5 @@
 import { parseDate } from './formatUtils'
-
-const PAID_STATUSES = ['paid', 'confirmed', 'success']
+import { isPaid } from '@/constants/status'
 
 /**
  * Utility for aggregating system-wide statistics for the administrative dashboard.
@@ -10,7 +9,7 @@ const PAID_STATUSES = ['paid', 'confirmed', 'success']
 
 /**
  * Calculates a comprehensive set of dashboard statistics across multiple entities.
- * 
+ *
  * @param {Array} allUsers - List of all user records (Parents, Admins, Teachers)
  * @param {Array} regs - List of enriched enrollment records
  * @param {Array} progs - List of program records
@@ -38,8 +37,9 @@ export const calculateDashboardStats = (
    * Prioritizes actual enrollment amount over program base price snapshots.
    */
   const getAmt = (r) => {
-    const a = r.amount ?? r.program?.basePrice ?? 0
-    return parseFloat(String(a).replace(/[^0-9.]/g, '')) || 0
+    // Prioritize the actual recorded amount over program snapshots for precise financial auditing
+    const a = r.amount ?? 0
+    return typeof a === 'number' ? a : parseFloat(String(a).replace(/[^0-9.]/g, '')) || 0
   }
 
   /**
@@ -65,11 +65,7 @@ export const calculateDashboardStats = (
       pay:
         Math.round(
           regs
-            .filter(
-              (r) =>
-                PAID_STATUSES.includes(String(r.paymentStatus).toLowerCase()) &&
-                inWindow(r, today, now.getTime()),
-            )
+            .filter((r) => isPaid(r.paymentStatus) && inWindow(r, today, now.getTime()))
             .reduce((sum, r) => sum + getAmt(r), 0) * 100,
         ) / 100,
       trial: trials.filter((t) => parseDate(t.createdAt || t.trialDate).getTime() >= today).length,
@@ -80,11 +76,7 @@ export const calculateDashboardStats = (
       pay:
         Math.round(
           regs
-            .filter(
-              (r) =>
-                PAID_STATUSES.includes(String(r.paymentStatus).toLowerCase()) &&
-                inWindow(r, weekly, now.getTime()),
-            )
+            .filter((r) => isPaid(r.paymentStatus) && inWindow(r, weekly, now.getTime()))
             .reduce((sum, r) => sum + getAmt(r), 0) * 100,
         ) / 100,
       trial: trials.filter((t) => parseDate(t.createdAt || t.trialDate).getTime() >= weekly).length,
@@ -100,7 +92,7 @@ export const calculateDashboardStats = (
       totalRevenue:
         Math.round(
           (regs || [])
-            .filter((r) => PAID_STATUSES.includes(String(r.paymentStatus).toLowerCase()))
+            .filter((r) => isPaid(r.paymentStatus))
             .reduce((sum, r) => sum + getAmt(r), 0) * 100,
         ) / 100,
     },

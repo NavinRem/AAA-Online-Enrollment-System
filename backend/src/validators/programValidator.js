@@ -8,7 +8,6 @@ function validateProgram(programData) {
     'totalSessions',
     'basePrice',
     'description',
-    'maxCapacity',
     'minAge',
     'maxAge',
     'type',
@@ -28,7 +27,6 @@ function validateProgram(programData) {
     description: programData.description?.trim() || '',
     totalSessions: parseInt(programData.totalSessions || 0),
     basePrice: parseFloat(programData.basePrice || 0),
-    maxCapacity: parseInt(programData.maxCapacity || 0),
     minAge: parseInt(programData.minAge || 0),
     maxAge: parseInt(programData.maxAge || 0),
     type: programData.type || 'General',
@@ -47,7 +45,6 @@ function validateUpdateProgram(updateData) {
     'description',
     'totalSessions',
     'basePrice',
-    'maxCapacity',
     'minAge',
     'maxAge',
     'type',
@@ -67,8 +64,6 @@ function validateUpdateProgram(updateData) {
     cleanData.totalSessions = parseInt(cleanData.totalSessions || 0)
   if (cleanData.basePrice !== undefined)
     cleanData.basePrice = parseFloat(cleanData.basePrice || 0)
-  if (cleanData.maxCapacity !== undefined)
-    cleanData.maxCapacity = parseInt(cleanData.maxCapacity || 0)
   if (cleanData.minAge !== undefined)
     cleanData.minAge = parseInt(cleanData.minAge || 0)
   if (cleanData.maxAge !== undefined)

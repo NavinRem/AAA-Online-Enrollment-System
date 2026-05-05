@@ -220,16 +220,25 @@ const programSelectItems = computed(() =>
 )
 
 const classSelectItems = computed(() =>
-  availableClasses.value.map((cl) => ({
-    id: cl.id,
-    name: `${cl.schedule ? `${cl.schedule.day} (${cl.schedule.time})` : 'TBA'} - ${cl.enrolledCount || 0}/${cl.maxCapacity || 0} enrolled`,
-    branchAbbr: cl.branch?.abbr,
-    branchColor: cl.branch?.color,
-    maxCapacity: cl.maxCapacity,
-    enrolledCount: cl.enrolledCount,
-    profileURL: getProgramProfileURL(cl.program?.profileURL, cl.program?.category, cl.program?.categoryProfileURL),
-    status: calculateClassProgress(cl.term?.startDate, cl.term?.endDate, cl.schedule?.day, cl.schedule?.time).status
-  }))
+  availableClasses.value.map((cl) => {
+    const cap = cl.capacity || cl.maxCapacity || 0
+    const count = cl.currentCount || cl.enrolledCount || 0
+    const progress = calculateClassProgress(cl.term?.startDate, cl.term?.endDate, cl.schedule?.day, cl.schedule?.time, count, cap)
+    const isFull = progress.status === 'full'
+    
+    return {
+      id: cl.id,
+      name: cl.schedule ? `${cl.schedule.day} (${cl.schedule.time})` : 'TBA',
+      occupancy: cap > 0 ? `${count}/${cap}` : `${count}/∞`,
+      branchAbbr: cl.branch?.abbr,
+      branchColor: cl.branch?.color,
+      isFull,
+      profileURL: getProgramProfileURL(cl.program?.profileURL, cl.program?.category, cl.program?.categoryProfileURL),
+      status: progress.status,
+      count,
+      cap
+    }
+  })
 )
 
 const handleFinalSubmit = () => {
@@ -326,6 +335,10 @@ const requestConfirm = () => {
     return
   } else if (hasScheduleConflict) {
     errors.classId = `Schedule conflict: Already enrolled in another class at ${newScheduleStr}.`
+    triggerShake('classId')
+    return
+  } else if (selectedCls && (selectedCls.capacity > 0 && (selectedCls.currentCount || 0) >= selectedCls.capacity) && !isEditMode.value) {
+    errors.classId = 'This class has reached maximum capacity.'
     triggerShake('classId')
     return
   }
@@ -453,7 +466,7 @@ watch(
   <AppModal :show="isOpen" @close="$emit('close')"
     :title="isEditMode ? 'Edit Enrollment Record' : 'Create New Enrollment'"
     :icon="getActionIcon(isEditMode ? 'edit' : 'plus')" :error="error" :success="success">
-    <form id="enrollmentForm" novalidate @submit.prevent="validateAndSubmit" class="enroll-form-root">
+    <form id="enrollmentForm" novalidate @submit.prevent="requestConfirm" class="enroll-form-root">
       <div class="ui-form-grid">
         <!-- Parent Selection -->
         <AppSelect v-model="form.parentId" :items="parentSelectItems" label="Parent Name"
@@ -497,8 +510,9 @@ watch(
           @click-disabled="handleDisabledClick('classId')">
           <template #selected-badge="{ item }">
             <div class="flex items-center gap-2">
-              <AppBadge v-if="item.status" :status="item.status" :type="item.status === 'Upcoming' ? 'blue' : 'success'"
+              <AppBadge v-if="item.status" :status="item.status" :type="item.isFull ? 'danger' : (item.status === 'Upcoming' ? 'blue' : 'success')"
                 class="mr-2" />
+              <AppBadge v-if="item.occupancy" :status="'Seats: ' + item.occupancy" :type="item.isFull ? 'danger' : 'gray'" class="mr-2" />
               <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" :type="item.branchColor || 'blue'"
                 class="mr-4" />
             </div>
@@ -506,7 +520,8 @@ watch(
           <template #item-badge="{ item }">
             <div class="flex items-center gap-2">
               <AppBadge v-if="item.status" :status="item.status"
-                :type="item.status === 'Upcoming' ? 'blue' : 'success'" />
+                :type="item.isFull ? 'danger' : (item.status === 'Upcoming' ? 'blue' : 'success')" />
+              <AppBadge v-if="item.occupancy" :status="item.occupancy" :type="item.isFull ? 'danger' : 'gray'" />
               <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" :type="item.branchColor || 'blue'" />
             </div>
           </template>
@@ -565,6 +580,20 @@ watch(
                 <span class="enroll-info-key">Base Price</span>
                 <AppBadge class="" :status="'$' + formatPrice(selectedProgram?.basePrice || 0)" type="blue">
                 </AppBadge>
+              </div>
+              <div class="enroll-info-item col-span-2">
+                <span class="enroll-info-key">Current Occupancy</span>
+                <div class="flex items-center gap-2 mt-1">
+                  <div class="flex-1 h-2 bg-surface-subtle rounded-full overflow-hidden">
+                    <div class="h-full bg-primary transition-all duration-500" 
+                      :style="{ width: `${Math.min(100, ((selectedClass?.currentCount || 0) / (selectedClass?.capacity || 1)) * 100)}%` }"
+                      :class="{ '!bg-error': (selectedClass?.currentCount || 0) >= (selectedClass?.capacity || 0) }">
+                    </div>
+                  </div>
+                  <span class="text-xs font-bold" :class="(selectedClass?.currentCount || 0) >= (selectedClass?.capacity || 0) ? 'text-error' : 'text-content-dark'">
+                    {{ selectedClass?.currentCount || 0 }} / {{ selectedClass?.capacity || 0 }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

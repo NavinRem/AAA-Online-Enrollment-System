@@ -31,7 +31,9 @@ class BranchService {
 
   async getAllBranches() {
     const snapshot = await db.collection(COLLECTIONS.BRANCH).get()
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    return snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((b) => b.isDeleted !== true)
   }
 
   async getBranch(id) {
@@ -84,24 +86,13 @@ class BranchService {
     const branchDoc = await branchRef.get()
     if (!branchDoc.exists) throw new Error('Branch not found')
 
-    const batch = db.batch()
-    batch.delete(branchRef)
-
-    const classesSnap = await db
-      .collection(COLLECTIONS.CLASS)
-      .where('branchId', '==', id)
-      .get()
-
-    classesSnap.forEach((doc) => {
-      batch.update(doc.ref, {
-        branchId: null,
-        branch: null,
-        updatedAt: new Date().toISOString(),
-      })
+    await branchRef.update({
+      isDeleted: true,
+      status: 'deleted',
+      updatedAt: new Date().toISOString(),
     })
 
-    await batch.commit()
-    return { id, message: 'Branch deleted successfully' }
+    return { id, message: 'Branch deleted successfully (Soft delete)' }
   }
 
   async calculateAndSyncStats(branchId) {
@@ -116,22 +107,25 @@ class BranchService {
     ])
 
     const enrollments = enrollmentsSnap.docs
+      .map((d) => d.data())
+      .filter((e) => e.isDeleted !== true)
     const classes = classesSnap.docs
+      .map((d) => d.data())
+      .filter((c) => c.isDeleted !== true)
 
     const enrolledStudentIds = new Set(
-      enrollments.map((d) => d.data().studentId).filter(Boolean),
+      enrollments.map((e) => e.studentId).filter(Boolean),
     )
 
     const programIds = new Set(
-      classes.map((d) => d.data().programId).filter(Boolean),
+      classes.map((c) => c.programId).filter(Boolean),
     )
 
     let newTodayCount = 0
     let totalRevenue = 0
     let pendingRevenue = 0
 
-    enrollments.forEach((doc) => {
-      const data = doc.data()
+    enrollments.forEach((data) => {
       const status = data.paymentStatus?.toLowerCase()
       const amount = data.amount
 

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import { useDataStore } from '../stores/dataStore'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import DataTable from '../components/common/data/DataTable.vue'
@@ -7,25 +8,13 @@ import DataMetricCard from '../components/common/data/DataMetricCard.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
 import BranchActionModal from '../components/branches/BranchActionModal.vue'
-
 import { branchService } from '../services/branchService'
-import { programService } from '../services/programService'
-import { classService } from '../services/classService'
-import { authService } from '../services/authService'
-import { studentService } from '../services/studentService'
-import { enrollmentService } from '../services/enrollmentService'
-import { trialService } from '../services/trialService'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { formatPrice } from '@/utils/formatUtils'
 import { useSearch, branchSearchMapper } from '../composables/useSearch'
+import { isPaid, isPending } from '@/constants/status'
 
-const branches = ref([])
-const students = ref([])
-const enrollments = ref([])
-const programs = ref([])
-const classes = ref([])
-const trials = ref([])
-
+const dataStore = useDataStore()
 const loading = ref(true)
 const submitting = ref(false)
 const showModal = ref(false)
@@ -39,27 +28,8 @@ const getRowClass = (item) => {
 
 const fetchData = async () => {
   loading.value = true
-  const currentUser = authService.getCurrentUser()
-  if (!currentUser) {
-    loading.value = false
-    return
-  }
-
   try {
-    const [bData, sData, eData, pData, cData, tData] = await Promise.all([
-      branchService.getAllBranches(),
-      studentService.getAllStudents(),
-      enrollmentService.getAllEnrollments(),
-      programService.getAllPrograms(),
-      classService.getAllClasses(),
-      trialService.getAllTrials(),
-    ])
-    branches.value = Array.isArray(bData) ? bData : []
-    students.value = Array.isArray(sData) ? sData : []
-    enrollments.value = Array.isArray(eData) ? eData : []
-    programs.value = Array.isArray(pData) ? pData : []
-    classes.value = Array.isArray(cData) ? cData : []
-    trials.value = Array.isArray(tData) ? tData : []
+    await dataStore.fetchAllCommonData(true)
   } catch (error) {
     console.error('Failed to fetch branches data', error)
   } finally {
@@ -74,110 +44,113 @@ onMounted(() => {
 const statsCards = computed(() => {
   if (loading.value) return []
 
-  let topBranchName = 'No Branches'
+  const branches = dataStore.branches
+  const enrollments = dataStore.enrollments
+
+  // 1. Top Enrolled Branch (All-time)
+  let topBranchNames = []
   let maxStudents = 0
-  if (branches.value.length > 0) {
-    branches.value.forEach((branch) => {
-      const count = getStudentCount(branch.id)
-      if (count > maxStudents) {
-        maxStudents = count
-        topBranchName = branch.name
-      }
-    })
-  }
+  branches.forEach((branch) => {
+    const stats = getBranchStats(branch.id)
+    const count = stats.lifetime.studying
+    if (count > maxStudents) {
+      maxStudents = count
+      topBranchNames = [branch.name]
+    } else if (count === maxStudents && count > 0) {
+      topBranchNames.push(branch.name)
+    }
+  })
 
-  let mostTrialBranchName = 'None'
-  let maxTrials = 0
-  if (branches.value.length > 0) {
-    branches.value.forEach((branch) => {
-      const count = trials.value.filter((t) => t.branchId === branch.id).length
-      if (count > maxTrials) {
-        maxTrials = count
-        mostTrialBranchName = branch.name
-      }
-    })
-  }
-
+  // 2. Highest Earner Today
   const today = new Date().toISOString().split('T')[0]
-  const todayEnrollments = (enrollments.value || []).filter((e) => {
-    const eDate = e.createdAt?.toDate
-      ? e.createdAt.toDate().toISOString().split('T')[0]
-      : (e.createdAt || '').split('T')[0]
+  const todayEnrollments = enrollments.filter((e) => {
+    const eDate = (e.enrollAt || e.createdAt || '').split('T')[0]
     return eDate === today
   })
 
-  let bestEarnerName = 'None'
+  let bestEarnerNames = []
   let maxRevenue = 0
   const revByBranch = {}
+  
   todayEnrollments
-    .filter((e) => ['paid', 'confirmed'].includes(String(e.paymentStatus || '').toLowerCase()))
+    .filter((e) => isPaid(e.paymentStatus))
     .forEach((e) => {
-      revByBranch[e.branchId] = (revByBranch[e.branchId] || 0) + (e.amount || 0)
+      const bid = e.branchId || e.class?.branch?.id || e.class?.branchId
+      if (bid) revByBranch[bid] = (revByBranch[bid] || 0) + (e.amount || 0)
     })
 
   Object.entries(revByBranch).forEach(([bid, rev]) => {
     if (rev > maxRevenue) {
       maxRevenue = rev
-      const b = branches.value.find((x) => x.id === bid)
-      if (b) bestEarnerName = b.name
+      const b = branches.find((x) => x.id === bid)
+      if (b) bestEarnerNames = [b.name]
+    } else if (rev === maxRevenue && rev > 0) {
+      const b = branches.find((x) => x.id === bid)
+      if (b) bestEarnerNames.push(b.name)
     }
   })
 
-  const activeBranchIds = new Set(todayEnrollments.map((e) => e.branchId))
+  // 3. Activity metrics
+  const activeBranchIds = new Set(todayEnrollments.map((e) => e.branchId || e.class?.branch?.id || e.class?.branchId).filter(Boolean))
   const enrolledValue = activeBranchIds.size
   const enrolledSubtitle = `${enrolledValue} Active Campus${enrolledValue !== 1 ? 'es' : ''}`
 
-  const idleValue = branches.value.length - enrolledValue
+  const idleValue = branches.length - enrolledValue
   const idleSubtitle = idleValue > 0 ? `${idleValue} Branches inactive` : 'All Branches active'
 
   return [
     {
       label: 'Top Enrolled Branch',
-      value: topBranchName,
-      subtitle: `${maxStudents} Total Students`,
+      value: topBranchNames.length > 0 ? topBranchNames.join(', ') : '—',
+      subtitle: maxStudents > 0 ? `${maxStudents} Studying Students` : 'No students enrolled',
       image: getImageUrl('dashboard/branch'),
-      color: 'var(--color-primary-light)'
+      color: 'var(--color-info-soft)'
     },
     {
       label: 'Highest Earner Today',
-      value: bestEarnerName,
-      subtitle: maxRevenue > 0 ? `Revenue: $${formatPrice(maxRevenue)}` : 'No payments yet',
+      value: bestEarnerNames.length > 0 ? bestEarnerNames.join(', ') : '—',
+      subtitle: maxRevenue > 0 ? `Revenue: $${formatPrice(maxRevenue)}` : 'No revenue today',
       image: getImageUrl('dashboard/high-payment'),
-      color: 'var(--color-primary-light)'
+      color: 'var(--color-success-soft)'
     },
     {
       label: 'Enrolled Today',
       value: enrolledValue,
       subtitle: enrolledSubtitle,
       image: getImageUrl('dashboard/card-available-program'),
-      color: 'var(--color-primary-light)'
+      color: 'var(--color-success-soft)'
     },
     {
       label: 'No Enrollment Today',
       value: idleValue,
       subtitle: idleSubtitle,
       image: getImageUrl('dashboard/card-nearlyfull-program'),
-      color: 'var(--color-primary-light)'
+      color: 'var(--color-error-soft)'
     }
   ]
 })
 
 const branchHeaders = [
-  { label: 'No', width: '50px', align: 'center' },
-  { label: 'Branch Name' },
-  { label: 'Abbr' },
-  { label: 'Location', hideOnMobile: true },
-  { label: 'Contact' },
-  { label: 'Sessions' },
-  { label: 'Programs' },
-  { label: 'Students' },
-  { label: 'New Today' },
-  { label: 'Revenue' },
-  { label: 'Pending' },
+  { label: 'No', width: '45px', align: 'center' },
+  { label: 'Branch Name', width: '150px' },
+  { label: 'Abbr', width: '70px', align: 'center' },
+  { label: 'Location', width: '200px' },
+  { label: 'Contact', width: '120px' },
+  { label: 'New (T)', width: '70px', align: 'center' },
+  { label: 'Trial (T)', width: '70px', align: 'center' },
+  { label: 'Rev (T)', width: '90px', align: 'center' },
+  { label: 'New (W)', width: '70px', align: 'center' },
+  { label: 'Trial (W)', width: '70px', align: 'center' },
+  { label: 'Rev (W)', width: '90px', align: 'center' },
+  { label: 'Class', width: '60px', align: 'center' },
+  { label: 'Progs', width: '60px', align: 'center' },
+  { label: 'Studying', width: '80px', align: 'center' },
+  { label: 'Total Rev', width: '100px', align: 'center' },
+  { label: 'Pending', width: '100px', align: 'center' },
   { label: 'Action', width: '60px', align: 'center' }
 ]
 
-const { searchQuery, searchResults } = useSearch(branches, branchSearchMapper)
+const { searchQuery, searchResults } = useSearch(computed(() => dataStore.branches), branchSearchMapper)
 
 const filteredBranches = computed(() => {
   return searchResults.value
@@ -197,56 +170,50 @@ watch(searchQuery, () => {
   currentPage.value = 1
 })
 
-const getClassCount = (branchId) => {
-  const branch = branches.value.find((b) => b.id === branchId)
-  if (branch && branch.classCount !== undefined) return branch.classCount
-  return classes.value.filter((s) => s.branchId === branchId).length
-}
+const getBranchStats = (branchId) => {
+  const now = new Date()
+  const localTodayStr = now.toLocaleDateString('en-CA') // YYYY-MM-DD local
+  const weekAgoTimestamp = now.getTime() - 7 * 86400000
 
-const getStudentCount = (branchId) => {
-  const branch = branches.value.find((b) => b.id === branchId)
-  if (branch && branch.studentCount !== undefined) return branch.studentCount
-  return students.value.filter((s) => s.branch?.id === branchId || s.branchId === branchId).length
-}
-
-const getBranchRevenue = (branchId) => {
-  const branch = branches.value.find((b) => b.id === branchId)
-  if (branch && branch.totalRevenue !== undefined) return branch.totalRevenue
-  const paidEnrollments = enrollments.value.filter(
-    (e) =>
-      e.branchId === branchId &&
-      ['paid', 'confirmed', 'active', 'success'].includes(
-        String(e.paymentStatus || '').toLowerCase(),
-      ),
+  const enrollments = dataStore.enrollments.filter(e => 
+    e.branchId === branchId || e.class?.branch?.id === branchId || e.class?.branchId === branchId
   )
-  return paidEnrollments.reduce((sum, e) => sum + (e.amount || 0), 0)
-}
+  const trials = dataStore.trials.filter(t => t.branchId === branchId)
 
-const getProgramCount = (branchId) => {
-  const branchClasses = classes.value.filter((s) => s.branchId === branchId)
-  const uniqueProgramIds = new Set(branchClasses.map((s) => s.programId))
-  return uniqueProgramIds.size
-}
+  // TODAY
+  const todayEnroll = enrollments.filter(e => {
+    const enrollDate = e.enrollAt || e.createdAt || ''
+    return enrollDate.split('T')[0] === localTodayStr
+  })
+  const todayTrials = trials.filter(t => {
+    const trialDate = t.trialDate || t.createdAt || ''
+    return trialDate.split('T')[0] === localTodayStr
+  })
+  const todayRev = todayEnroll.filter(e => isPaid(e.paymentStatus)).reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
 
-const getNewTodayCount = (branchId) => {
-  const today = new Date().toISOString().split('T')[0]
-  return enrollments.value.filter((e) => {
-    const eDate = e.createdAt?.toDate
-      ? e.createdAt.toDate().toISOString().split('T')[0]
-      : (e.createdAt || '').split('T')[0]
-    return e.branchId === branchId && eDate === today
-  }).length
-}
+  // WEEK
+  const weekEnroll = enrollments.filter(e => {
+    const timestamp = new Date(e.enrollAt || e.createdAt || 0).getTime()
+    return timestamp >= weekAgoTimestamp
+  })
+  const weekTrials = trials.filter(tr => {
+    const timestamp = new Date(tr.trialDate || tr.createdAt || 0).getTime()
+    return timestamp >= weekAgoTimestamp
+  })
+  const weekRev = weekEnroll.filter(e => isPaid(e.paymentStatus)).reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
 
-const getPendingRevenue = (branchId) => {
-  const pendingEnrollments = enrollments.value.filter(
-    (e) =>
-      e.branchId === branchId &&
-      !['paid', 'confirmed', 'active', 'success'].includes(
-        String(e.paymentStatus || '').toLowerCase(),
-      ),
-  )
-  return pendingEnrollments.reduce((sum, e) => sum + (e.amount || 0), 0)
+  // LIFETIME
+  const classes = dataStore.classes.filter(c => c.branchId === branchId || c.branch?.id === branchId)
+  const programs = new Set(classes.map(c => c.programId || c.program?.id)).size
+  const studying = new Set(enrollments.filter(e => isPaid(e.paymentStatus) && !['cancelled', 'deleted'].includes(e.status)).map(e => e.studentId)).size
+  const totalRev = enrollments.filter(e => isPaid(e.paymentStatus)).reduce((sum, e) => sum + (e.amount || 0), 0)
+  const totalPending = enrollments.filter(e => isPending(e.paymentStatus)).reduce((sum, e) => sum + (e.amount || 0), 0)
+
+  return {
+    today: { enroll: todayEnroll.length, trial: todayTrials.length, rev: todayRev },
+    week: { enroll: weekEnroll.length, trial: weekTrials.length, rev: weekRev },
+    lifetime: { classes: classes.length, programs, studying, totalRev, totalPending }
+  }
 }
 
 const error = ref('')
@@ -314,7 +281,7 @@ const handleActionSubmit = async (payload) => {
       <template #table>
         <DataTable title="Branch Lists" :headers="branchHeaders" :items="paginatedBranches" :loading="loading"
           entityName="branch" :flexible="true" :rowClass="getRowClass" :hasSearch="true"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search something..." :hasPagination="true"
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search branches..." :hasPagination="true"
           :totalItems="totalItems" :pageSize="pageSize" v-model:currentPage="currentPage" @action="handleTableAction">
 
           <template #toolbar-actions>
@@ -327,73 +294,82 @@ const handleActionSubmit = async (payload) => {
           <template #empty>
             <div class="py-20 text-center flex flex-col items-center gap-4 opacity-30 grayscale">
               <img :src="getImageUrl('common/no-data')" class="w-24" />
-              <span class="text-sm font-semibold uppercase tracking-widest">No Branch Found</span>
+              <span class="text-sm font-bold text-black uppercase tracking-widest">No Branch Found</span>
             </div>
           </template>
 
           <template
             #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
-            <td class="ui-cell text-center font-bold text-content-muted/20" :style="{ width: headers[0].width }">
+            <td class="ui-cell text-center font-bold text-content-dark/30" :style="{ width: headers[0].width }">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
             <td class="ui-cell" :style="{ width: headers[1].width }">
-              <div class="flex flex-col">
-                <span class="text-sm font-semibold text-content-dark truncate block">{{ item.name }}</span>
-              </div>
+              <span class="text-sm font-bold text-content-dark truncate block">{{ item.name }}</span>
             </td>
 
-            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[2].hideOnMobile }"
-              :style="{ width: headers[2].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[2].width }">
               <AppBadge :status="item.abbr" :type="item.color || 'blue'" />
             </td>
 
-            <td class="ui-cell" :class="{ 'hidden-on-mobile': headers[3].hideOnMobile }"
-              :style="{ width: headers[3].width }">
-              <span
-                class="text-xs font-semibold line-clamp-2 leading-tight min-h-[2.5rem] flex items-center text-content-muted">{{
-                  item.location }}</span>
+            <td class="ui-cell" :style="{ width: headers[3].width }">
+              <span class="text-xs font-semibold text-content-muted line-clamp-2 leading-tight" :title="item.location">
+                {{ item.location || 'N/A' }}
+              </span>
             </td>
 
-            <td class="ui-cell" :class="{ 'hidden-on-mobile': headers[4].hideOnMobile }"
-              :style="{ width: headers[4].width }">
-              <span class="text-sm font-semibold tabular-nums whitespace-nowrap">{{ item.phone }}</span>
+            <td class="ui-cell" :style="{ width: headers[4].width }">
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ item.phone || 'N/A' }}</span>
             </td>
 
-            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[5].hideOnMobile }"
-              :style="{ width: headers[5].width }">
-              <span class="text-sm font-semibold text-content-dark tabular-nums">{{ getClassCount(item.id) }}</span>
+            <!-- Today Section -->
+            <td class="ui-cell text-center" :style="{ width: headers[5].width }">
+              <AppBadge v-if="getBranchStats(item.id).today.enroll > 0" :status="'+' + getBranchStats(item.id).today.enroll" type="green" />
+              <span v-else class="text-xs font-bold text-content-dark/40">0</span>
+            </td>
+            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+              <AppBadge v-if="getBranchStats(item.id).today.trial > 0" :status="'+' + getBranchStats(item.id).today.trial" type="blue" />
+              <span v-else class="text-xs font-bold text-content-dark/40">0</span>
+            </td>
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+              <span class="text-xs font-bold text-emerald-700 tabular-nums" v-if="getBranchStats(item.id).today.rev > 0">
+                ${{ formatPrice(getBranchStats(item.id).today.rev) }}
+              </span>
+              <span v-else class="text-xs font-bold text-content-dark/40">$0</span>
             </td>
 
-            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[6].hideOnMobile }"
-              :style="{ width: headers[6].width }">
-              <span class="text-sm font-semibold text-content-dark tabular-nums">{{ getProgramCount(item.id) }}</span>
+            <!-- Week Section -->
+            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getBranchStats(item.id).week.enroll }}</span>
+            </td>
+            <td class="ui-cell text-center" :style="{ width: headers[9].width }">
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getBranchStats(item.id).week.trial }}</span>
+            </td>
+            <td class="ui-cell text-center" :style="{ width: headers[10].width }">
+              <span class="text-xs font-bold text-primary tabular-nums" v-if="getBranchStats(item.id).week.rev > 0">
+                ${{ formatPrice(getBranchStats(item.id).week.rev) }}
+              </span>
+              <span v-else class="text-xs font-bold text-content-dark/40">$0</span>
             </td>
 
-            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[7].hideOnMobile }"
-              :style="{ width: headers[7].width }">
-              <span class="text-sm font-semibold text-content-dark tabular-nums">{{ getStudentCount(item.id) }}</span>
-            </td>
-
-            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[8].hideOnMobile }"
-              :style="{ width: headers[8].width }">
-              <AppBadge v-if="getNewTodayCount(item.id) > 0" :status="'+' + getNewTodayCount(item.id)" type="green" />
-              <span v-else class="text-xs font-semibold text-content-dark">0</span>
-            </td>
-
-            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[9].hideOnMobile }"
-              :style="{ width: headers[9].width }">
-              <span class="text-sm font-semibold text-emerald-600 tabular-nums">${{ formatPrice(getBranchRevenue(item.id))
-                }}</span>
-            </td>
-
-            <td class="ui-cell text-center" :class="{ 'hidden-on-mobile': headers[10].hideOnMobile }"
-              :style="{ width: headers[10].width }">
-              <span class="text-sm font-semibold text-amber-600 tabular-nums">${{ formatPrice(getPendingRevenue(item.id))
-                }}</span>
-            </td>
-
+            <!-- Lifetime Section -->
             <td class="ui-cell text-center" :style="{ width: headers[11].width }">
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getBranchStats(item.id).lifetime.classes }}</span>
+            </td>
+            <td class="ui-cell text-center" :style="{ width: headers[12].width }">
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getBranchStats(item.id).lifetime.programs }}</span>
+            </td>
+            <td class="ui-cell text-center" :style="{ width: headers[13].width }">
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getBranchStats(item.id).lifetime.studying }}</span>
+            </td>
+            <td class="ui-cell text-center" :style="{ width: headers[14].width }">
+              <span class="text-sm font-bold text-emerald-700 tabular-nums">${{ formatPrice(getBranchStats(item.id).lifetime.totalRev) }}</span>
+            </td>
+            <td class="ui-cell text-center" :style="{ width: headers[15].width }">
+              <span class="text-sm font-bold text-amber-700 tabular-nums">${{ formatPrice(getBranchStats(item.id).lifetime.totalPending) }}</span>
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[16].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

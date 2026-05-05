@@ -8,8 +8,10 @@ export const trialService = {
     })
   },
 
-  getAllTrials() {
-    return request('/trials', {
+  getAllTrials(params = {}) {
+    const searchParams = new URLSearchParams(params).toString()
+    const url = searchParams ? `/trials?${searchParams}` : '/trials'
+    return request(url, {
       method: 'GET',
     })
   },

@@ -12,11 +12,7 @@ import EnrollmentActionModal from '../components/enrollments/EnrollmentActionMod
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 
 import { enrollmentService } from '@/services/enrollmentService'
-import { parentService } from '../services/parentService'
 import { studentService } from '../services/studentService'
-import { programService } from '../services/programService'
-import { classService } from '../services/classService'
-import { categoryService } from '../services/categoryService'
 import { storageService } from '@/services/storageService'
 
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
@@ -24,16 +20,14 @@ import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollment
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { formatPrice, formatDate } from '@/utils/formatUtils'
+import { useDataStore } from '../stores/dataStore'
 
+const dataStore = useDataStore()
 const router = useRouter()
 
 const enrollments = ref([])
-const parents = ref([])
-const students = ref([])
-const programs = ref([])
-const classes = ref([])
+const totalItems = ref(0)
 const newlyCreatedId = ref(null)
-
 const loading = ref(true)
 const showModal = ref(false)
 const submitting = ref(false)
@@ -41,6 +35,14 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const selectedEnrollment = ref(null)
 const enrollmentForm = ref(null)
+const currentFilter = ref('all')
+const currentPage = ref(1)
+const pageSize = 10
+
+const parents = computed(() => dataStore.parents)
+const students = computed(() => dataStore.students)
+const programs = computed(() => dataStore.getProgramWithCategory)
+const classes = computed(() => dataStore.classes)
 
 const childRegistrationModal = ref({
   isOpen: false,
@@ -67,8 +69,20 @@ onMounted(async () => {
 
 const fetchEnrollments = async () => {
   try {
-    const data = await enrollmentService.getAllEnrollments()
-    enrollments.value = Array.isArray(data) ? data : []
+    const params = {
+      page: currentPage.value,
+      limit: pageSize,
+      status: currentFilter.value === 'all' ? undefined : (['paid', 'unpaid', 'cancelled', 'confirmed', 'success', 'active', 'pending'].includes(currentFilter.value) ? currentFilter.value : undefined)
+    }
+    const response = await enrollmentService.getAllEnrollments(params, { skipCache: true })
+
+    if (response && response.data) {
+      enrollments.value = response.data
+      totalItems.value = response.total
+    } else {
+      enrollments.value = Array.isArray(response) ? response : []
+      totalItems.value = enrollments.value.length
+    }
   } catch (error) {
     console.error('Failed to fetch enrollments', error)
   }
@@ -76,63 +90,21 @@ const fetchEnrollments = async () => {
 
 const loadFormData = async () => {
   try {
-    const [parentsRes, programsRes, studentsRes, classesRes, catsRes] = await Promise.all([
-      parentService.getAllParents().catch(() => []),
-      programService.getAllPrograms().catch(() => []),
-      studentService.getAllStudents().catch(() => []),
-      classService.getAllClasses().catch(() => []),
-      categoryService.getAllCategories().catch(() => []),
-    ])
-    parents.value = Array.isArray(parentsRes) ? parentsRes : []
-    
-    const cats = Array.isArray(catsRes) ? catsRes : (catsRes?.data || [])
-    programs.value = (Array.isArray(programsRes) ? programsRes : []).map(p => {
-      const cat = cats.find(c => c.id === p.categoryId || c.name === p.category)
-      return {
-        ...p,
-        categoryProfileURL: cat?.profileURL || ''
-      }
-    })
-    
-    students.value = Array.isArray(studentsRes) ? studentsRes : []
-    classes.value = Array.isArray(classesRes) ? classesRes : []
+    await dataStore.fetchAllCommonData()
   } catch (err) {
     console.error('Failed to load form data', err)
   }
 }
 
-
 const handleSaveEnrollment = async (formData) => {
   submitting.value = true
   errorMessage.value = ''
   try {
-    const parent = parents.value.find((p) => (p.uid || p.id) === formData.parentId)
-    const student = students.value.find((s) => s.id === formData.studentId)
-    const program = programs.value.find((c) => c.id === formData.programId)
-    const classInstance = classes.value.find((c) => c.id === formData.classId)
-
     const payload = {
-      parentId: parent.id,
-      studentId: student.id,
-      programId: program.id,
-      classId: classInstance.id,
-      parent: { id: parent.uid || parent.id, name: parent.name, profileURL: parent.profileURL },
-      student: { id: student.id || student.uid, name: student.name, profileURL: student.profileURL },
-      program: {
-        id: program.id,
-        name: program.name,
-        type: program.type,
-        profileURL: program.profileURL,
-        basePrice: program.basePrice || 0,
-        totalSessions: program.totalSessions || 0,
-      },
-      class: {
-        id: classInstance.id,
-        branchAbbr: classInstance.branch?.abbr || 'N/A',
-        schedule: classInstance.schedule
-          ? `${classInstance.schedule.day} (${classInstance.schedule.time})`
-          : 'TBA',
-      },
+      parentId: formData.parentId,
+      studentId: formData.studentId,
+      programId: formData.programId,
+      classId: formData.classId,
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
       isSponsorship: formData.isSponsorship || false,
@@ -140,15 +112,12 @@ const handleSaveEnrollment = async (formData) => {
       isProrated: formData.isProrated,
       enrollmentType: formData.enrollmentType || '',
       remark: formData.remark || '',
-      totalSessions: formData.totalSessions || 0,
-      remainingSessions: formData.remainingSessions || 0,
-      passedSessions: formData.passedSessions || 0,
-      prorateSavings: formData.prorateSavings || 0,
+      enrolledSessions: formData.enrolledSessions || 0,
       ...(!formData.id
         ? {
           status: 'unpaid',
           paymentStatus: 'unpaid',
-          enrollAt: new Date().toISOString(),
+          enrollAt: formData.enrollAt || new Date().toISOString(),
         }
         : {}),
     }
@@ -163,6 +132,9 @@ const handleSaveEnrollment = async (formData) => {
     }
 
     await fetchEnrollments()
+    // Refresh global store to sync class counts and student records
+    await dataStore.fetchAllCommonData(true)
+
     setTimeout(() => {
       showModal.value = false
       selectedEnrollment.value = null
@@ -182,25 +154,25 @@ const enrollmentStats = computed(() => {
       label: 'Total Enrollment',
       value: s.total,
       image: getImageUrl('enrollment/total-enrollment'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-primary-soft)',
     },
     {
       label: 'Total Paid Enrollment',
       value: s.paidCount,
       image: getImageUrl('enrollment/total-paid-enrollment'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-success-soft)',
     },
     {
       label: 'Total Unpaid Enrollment',
       value: s.unpaidCount,
       image: getImageUrl('enrollment/total-unpaid-enrollment'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-warning-soft)',
     },
     {
       label: 'Total Cancelled Enrollment',
       value: s.cancelledCount,
       image: getImageUrl('enrollment/total-canceled-enrollment'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-error-soft)',
     }
   ]
 })
@@ -209,15 +181,14 @@ const enrollmentHeaders = [
   { label: 'NO', width: '50px' },
   { label: 'PARENT' },
   { label: 'CHILD' },
+  { label: 'TERM', width: '150px' },
   { label: 'PROGRAM' },
   { label: 'SESSION' },
-  { label: 'STATUS', width: '120px' },
-  { label: 'AMOUNT', width: '120px' },
-  { label: 'ENROLLED DATE', width: '200px' },
+  { label: 'STATUS', width: '100px' },
+  { label: 'AMOUNT', width: '100px' },
+  { label: 'DATE', width: '120px' },
   { label: 'ACTION', width: '50px' },
 ]
-
-const currentFilter = ref('all')
 
 const navigateToDetail = (item) => {
   if (item.id === newlyCreatedId.value) {
@@ -226,53 +197,23 @@ const navigateToDetail = (item) => {
   router.push(`/enrollments/${item.id}`)
 }
 
-const statusFilteredEnrollments = computed(() => {
-  const enriched = enrichEnrollments(
+const enrichedEnrollments = computed(() => {
+  return enrichEnrollments(
     enrollments.value,
     parents.value,
     students.value,
     programs.value,
     classes.value,
   )
-
-  let filtered = enriched
-  if (currentFilter.value !== 'all') {
-    filtered = enriched.filter((r) => {
-      const s = String(r.status || '').toLowerCase()
-      const p = String(r.paymentStatus || '').toLowerCase()
-      const termStatus = String(r.class?.term?.status || '').toLowerCase()
-
-      if (currentFilter.value === 'paid') return (p === 'paid') && s !== 'cancelled'
-      if (currentFilter.value === 'unpaid') return p === 'unpaid' && s !== 'cancelled'
-      if (currentFilter.value === 'cancelled') return s === 'cancelled'
-
-      if (currentFilter.value === 'term:current') return termStatus !== 'archived'
-      if (currentFilter.value === 'term:history') return termStatus === 'archived'
-
-      return true
-    })
-  }
-
-  return filtered.sort((a, b) => new Date(b.enrollAt || 0) - new Date(a.enrollAt || 0))
 })
 
-const { searchQuery, searchResults: filteredEnrollments } = useSearch(
-  statusFilteredEnrollments,
+const { searchQuery, searchResults: paginatedEnrollments } = useSearch(
+  enrichedEnrollments,
   enrollmentSearchMapper,
 )
 
-const currentPage = ref(1)
-const pageSize = 10
-const totalItems = computed(() => filteredEnrollments.value.length)
-
-const paginatedEnrollments = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  const end = start + pageSize
-  return filteredEnrollments.value.slice(start, end)
-})
-
-watch([currentFilter, searchQuery], () => {
-  currentPage.value = 1
+watch([currentFilter, currentPage], () => {
+  fetchEnrollments()
 })
 
 const actionState = ref({
@@ -306,17 +247,16 @@ const submitActionModal = async (payload) => {
   submitting.value = true
   try {
     if (type === 'pay') {
-      const { bankName, paymentMethod: methodType, proof, proofURL, remark } = payload
-      const updateData = {
-        paymentStatus: 'paid',
-        status: 'paid',
-        paymentMethod: methodType === 'cash' ? 'Cash' : bankName || 'Online',
+      const { bankName, paymentMethod: methodType, proof, remark, paymentStatus } = payload
+      const paymentData = {
+        paymentStatus: paymentStatus || 'paid',
+        paymentMethod: methodType,
+        bankName: methodType === 'online' ? bankName : null,
         transactionId: proof,
-        paymentProofURL: proofURL || '',
-        paidAt: new Date().toISOString(),
         remark: remark?.trim() || '',
+        amount: enrollment.amount,
       }
-      await enrollmentService.updateEnrollment(enrollment.id, updateData)
+      await enrollmentService.processPayment(enrollment.id, paymentData)
     } else if (type === 'cancel') {
       await enrollmentService.updateEnrollment(enrollment.id, {
         status: 'cancelled',
@@ -327,6 +267,8 @@ const submitActionModal = async (payload) => {
     }
     successMessage.value = 'Action completed successfully.'
     await fetchEnrollments()
+    // Refresh global store for class count synchronization
+    await dataStore.fetchAllCommonData(true)
     setTimeout(() => closeActionModal(), 2000)
   } catch (err) {
     errorMessage.value = err.message
@@ -366,7 +308,7 @@ const handleRegisterStudent = async (formData) => {
     })
     childRegistrationModal.value.success = 'Student registered successfully!'
     const studentsRes = await studentService.getAllStudents()
-    students.value = Array.isArray(studentsRes) ? studentsRes : []
+    dataStore.students = Array.isArray(studentsRes) ? studentsRes : []
     if (result && result.id && enrollmentForm.value) enrollmentForm.value.setStudent(result.id)
     setTimeout(() => { childRegistrationModal.value.isOpen = false }, 1500)
   } catch (err) {
@@ -389,15 +331,12 @@ const handleRegisterStudent = async (formData) => {
         <DataTable title="Enrollment Lists" :headers="enrollmentHeaders" :items="paginatedEnrollments"
           entityName="enrollment" :loading="loading" :hasPagination="true" :flexible="true" :pageSize="pageSize"
           :totalItems="totalItems" v-model:currentPage="currentPage" v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search something..." :hasFilter="true" v-model:currentFilter="currentFilter"
+          searchPlaceholder="Search by name, program or ID..." :hasFilter="true" v-model:currentFilter="currentFilter"
           :filterOptions="[
             { label: 'All Statuses', value: 'all' },
             { label: 'Paid', value: 'paid' },
             { label: 'Unpaid', value: 'unpaid' },
-            { label: 'Cancelled', value: 'cancelled' },
-            { isDivider: true },
-            { label: 'Current Term', value: 'term:current' },
-            { label: 'Archived Term', value: 'term:history' },
+            { label: 'Cancelled', value: 'cancelled' }
           ]" :rowClass="getRowClass" @action="handleTableAction" @row-click="navigateToDetail">
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
@@ -438,8 +377,17 @@ const handleRegisterStudent = async (formData) => {
               </div>
             </td>
 
-            <!-- Program Column -->
+            <!-- Term Column -->
             <td class="ui-cell" :style="{ width: headers[3].width }">
+              <div class="flex flex-col">
+                <span class="text-xs font-bold text-content-dark tracking-tighter">{{ item.termName }}</span>
+                <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" class="text-xs mt-1"
+                  :type="item.branchColor" />
+              </div>
+            </td>
+
+            <!-- Program Column -->
+            <td class="ui-cell" :style="{ width: headers[4].width }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
                   <img :src="item.program?.profileURL" :alt="item.programName" />
@@ -454,23 +402,24 @@ const handleRegisterStudent = async (formData) => {
             </td>
 
             <!-- Session Column -->
-            <td class="ui-cell" :style="{ width: headers[4].width }">
+            <td class="ui-cell" :style="{ width: headers[5].width }">
               <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col">
                 <span class="text-xs font-semibold text-content-dark uppercase tracking-tighter leading-none">{{
                   getSessionDay(item.classSchedule, true) }}</span>
                 <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest mt-0.5">{{
                   getSessionTime(item.classSchedule) }}</span>
               </div>
-              <span v-else class="text-[10px] font-semibold uppercase text-content-muted/30 tracking-widest">Pending</span>
+              <span v-else
+                class="text-[10px] font-semibold uppercase text-content-muted/30 tracking-widest">Pending</span>
             </td>
 
             <!-- Status Column -->
-            <td class="ui-cell text-center" :style="{ width: headers[5].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <AppBadge :status="item.status || item.paymentStatus || 'Unpaid'" />
             </td>
 
             <!-- Amount Column -->
-            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
               <div class="flex flex-col items-center gap-1">
                 <AppBadge :status="'$' + formatPrice(item.amount || 0)" :colorValue="item.paymentModeType"
                   type="finance" />
@@ -478,7 +427,7 @@ const handleRegisterStudent = async (formData) => {
             </td>
 
             <!-- Date Column -->
-            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[7].width }">
+            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[8].width }">
               <span class="text-xs font-semibold text-content-muted truncate block">{{
                 formatDate(item.enrollAt) }}</span>
             </td>

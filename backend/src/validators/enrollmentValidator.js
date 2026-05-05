@@ -52,8 +52,8 @@ function validateEnrollment(enrollmentData) {
     classId: enrollmentData.classId,
     enrollAt: enrollmentData.enrollAt || new Date().toISOString(),
     enrollmentType: enrollmentData.enrollmentType || '',
-    status: enrollmentData.status || 'pending',
-    paymentStatus: enrollmentData.paymentStatus || 'unpaid',
+    status: String(enrollmentData.status || 'unpaid').toLowerCase(),
+    paymentStatus: String(enrollmentData.paymentStatus || 'unpaid').toLowerCase(),
     isProrated: !!enrollmentData.isProrated,
     isSponsorship: !!enrollmentData.isSponsorship,
     sponsorName: enrollmentData.sponsorName || '',
@@ -116,6 +116,11 @@ function validateUpdateEnrollment(updateData) {
     cleanData.isSponsorship = !!cleanData.isSponsorship
   if (cleanData.isCustomPrice !== undefined)
     cleanData.isCustomPrice = !!cleanData.isCustomPrice
+
+  if (cleanData.status !== undefined)
+    cleanData.status = String(cleanData.status).toLowerCase()
+  if (cleanData.paymentStatus !== undefined)
+    cleanData.paymentStatus = String(cleanData.paymentStatus).toLowerCase()
 
   cleanData.updatedAt = new Date().toISOString()
   return cleanData

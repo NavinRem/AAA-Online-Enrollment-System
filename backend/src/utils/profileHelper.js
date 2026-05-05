@@ -22,10 +22,7 @@ class ProfileHelper {
   getStudentSnapshot(studentId, studentData) {
     if (!studentId || !studentData) return null
 
-    const dob =
-      studentData.dob instanceof Date
-        ? studentData.dob.toISOString()
-        : new Date(studentData.dob).toISOString()
+    const dob = studentData.dob
 
     return {
       id: studentId,
@@ -99,6 +96,8 @@ class ProfileHelper {
 
   getClassSnapshot(classId, data) {
     if (!classId || !data) return null
+    const capacity = data.capacity || data.maxCapacity || 0
+    const currentCount = data.currentCount || data.enrolledCount || 0
     return {
       id: classId,
       program: data.program,
@@ -108,9 +107,9 @@ class ProfileHelper {
       level: data.level || null,
       schedule: data.schedule || null,
       status: data.status || 'open',
-      capacity: data.capacity || 0,
-      currentCount: data.currentCount || 0,
-      isFull: (data.currentCount || 0) >= (data.capacity || 0),
+      capacity,
+      currentCount,
+      isFull: capacity > 0 && currentCount >= capacity,
     }
   }
 
@@ -135,12 +134,20 @@ class ProfileHelper {
 
   calculateAge(dob) {
     if (!dob) return 0
-    const birthDate = new Date(dob)
+    // Handle both YYYY-MM-DD and ISO strings
+    const dobStr = typeof dob === 'string' ? dob.split('T')[0] : dob
+    const birthDate = new Date(dobStr)
     if (isNaN(birthDate)) return 0
+    
     const today = new Date()
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const m = today.getMonth() - birthDate.getMonth()
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    // Compare in UTC to avoid local timezone issues during the calculation
+    const todayDate = today.toISOString().split('T')[0]
+    
+    const [bYear, bMonth, bDay] = dobStr.split('-').map(Number)
+    const [tYear, tMonth, tDay] = todayDate.split('-').map(Number)
+    
+    let age = tYear - bYear
+    if (tMonth < bMonth || (tMonth === bMonth && tDay < bDay)) {
       age--
     }
     return age

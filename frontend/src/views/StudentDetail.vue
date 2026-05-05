@@ -21,6 +21,11 @@ import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { branchService } from '@/services/branchService'
+import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
+import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
+import RelationshipsCard from '@/components/common/detail/RelationshipsCard.vue'
+import TimestampCard from '@/components/common/detail/TimestampCard.vue'
+import EnrollmentTable from '@/components/common/detail/EnrollmentTable.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -54,6 +59,22 @@ const isParentInactive = computed(() => {
 const isArchived = computed(() => {
   return student.value?.archived || student.value?.status === 'Stopped'
 })
+
+const studentDetailsFields = computed(() => [
+  { label: 'Gender', value: student.value?.gender || 'N/A' },
+  { label: 'Age', value: (student.value?.birthDate ? calculateAge(student.value.birthDate) : 'N/A') + ' years old' },
+  { label: 'Student ID', value: student.value?.studentId || student.value?.id || 'N/A' },
+  { label: 'Branch', value: student.value?.branchAbbr || 'N/A' },
+  { label: 'Status', value: student.value?.status, isBadge: true }
+])
+
+const parentItems = computed(() => parent.value ? [{
+  id: parent.value.id,
+  name: parent.value.name,
+  profileURL: parent.value.profileURL,
+  badgeText: parent.value.phone,
+  route: `/parents/${parent.value.id}`
+}] : [])
 
 const activeDropdown = ref(null)
 const programMenuStyles = ref({})
@@ -487,7 +508,8 @@ const fetchData = async (id) => {
     ])
 
     const sid = String(id)
-    const rawEnrollments = (allEnrollments || []).filter((r) => String(r.studentId || '') === sid)
+    const enrollmentData = allEnrollments?.data || (Array.isArray(allEnrollments) ? allEnrollments : [])
+    const rawEnrollments = enrollmentData.filter((r) => String(r.studentId || '') === sid)
 
     enrollments.value = enrichEnrollments(
       rawEnrollments,
@@ -632,44 +654,11 @@ watch(
             <div :key="activeTab">
               <!-- Academic View -->
               <div v-if="activeTab === 'academic'">
-                <div v-if="filteredAcademic.length > 0"
-                  class="overflow-x-auto rounded-md border border-gray-100 bg-white">
-                  <table class="w-full text-left border-collapse">
-                    <thead>
-                      <tr class="bg-gray-50/50">
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Program</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Enrolled Date
-                        </th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
-                          Status</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                      <tr v-for="(item, idx) in filteredAcademic" :key="item.id || idx"
-                        class="hover:bg-gray-50/50 transition-colors">
-                        <td class=" p-md text-xs font-semibold text-content-muted">{{ idx + 1 }}</td>
-                        <td class=" p-md">
-                          <div class="flex flex-col">
-                            <span class="text-sm font-semibold text-content-dark">{{ item.program?.name || '-' }}</span>
-                            <span class="text-xs font-semibold text-content-muted">{{ item.class?.schedule?.day || 'N/A' }}
-                              | {{
-                                item.class?.schedule?.time || 'TBD' }}</span>
-                          </div>
-                        </td>
-                        <td class=" p-md text-xs font-semibold text-content-muted tabular-nums">{{
-                          formatDateOnly(item.enrollAt || item.createdAt) }}</td>
-                        <td class=" p-md text-center">
-                          <AppBadge :status="getAcademicStatus(item)" />
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div v-else class="flex flex-col items-center justify-center py-24 opacity-30">
-                  <img :src="getImageUrl('common/no-data')" class="w-24 mb-4 grayscale" />
-                  <span class="text-sm font-semibold uppercase tracking-widest">No Academic History Found</span>
-                </div>
+                <EnrollmentTable
+                  :items="filteredAcademic"
+                  showDate
+                  emptyMessage="No academic history found for this student."
+                />
               </div>
 
               <!-- Attendance View -->
@@ -836,54 +825,10 @@ watch(
                 <p class="text-sm font-semibold text-content-dark mb-1">Reason: {{ student?.overrideReason }}</p>
                 <p class="text-xs text-content-muted leading-relaxed italic">{{ student?.overrideRemark }}</p>
               </div>
-            </div>
-          </section>
-
-          <!-- Relationships Card -->
-          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-bold uppercase tracking-widest text-content-muted">Primary Relationships</h6>
-            <div class="space-y-4">
-              <div v-if="student?.parentInfo || student?.parentId" @click="router.push(`/parents/${student?.parentId}`)"
-                class="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-subtle transition-all cursor-pointer group">
-                <div class="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm">
-                  <img :src="student?.parentInfo?.profileURL || getImageUrl('profiles/avatar-parent')"
-                    class="w-full h-full object-cover" />
-                </div>
-                <span class="text-md font-bold text-content-dark group-hover:text-primary transition-colors">{{
-                  student?.parentInfo?.name || student?.parentName || 'Parent Name' }}</span>
-                <AppBadge class="ml-auto text-xs px-2 py-0.5">
-                  Parent
-                </AppBadge>
-              </div>
-              <div v-else class="text-md font-bold text-content-muted/60 italic text-center p-2">
-                No relationships linked.
-              </div>
-            </div>
-          </section>
-
-          <!-- Account Timestamp Card -->
-          <section class="ui-detail-card bg-surface-subtle/50">
-            <h6 class="font-bold uppercase tracking-widest text-content-muted">Account Timestamp</h6>
-            <div class="space-y-6">
-              <div class="flex items-center gap-3">
-                <AppBadge type="green" class="text-md px-2 py-xs">
-                  Created At
-                </AppBadge>
-                <div class="text-sm font-semibold text-content-muted leading-tight tabular-nums">
-                  {{ formatDate(student?.createdAt) }}
-                </div>
-              </div>
-
-              <div class="flex items-center gap-3">
-                <AppBadge type="blue" class="text-md px-2 py-xs">
-                  Updated At
-                </AppBadge>
-                <div class="text-sm font-semibold text-content-muted leading-tight tabular-nums">
-                  {{ formatDate(student?.updatedAt || student?.createdAt) }}
-                </div>
-              </div>
-            </div>
-          </section>
+          <EntityProfileCard :profileURL="student.profileURL" title="Basic Information" fallbackImage="profiles/avatar-student" />
+          <RelationshipsCard title="Family Context" :items="parentItems" />
+          <EntityInfoCard title="Student Details" :fields="studentDetailsFields" />
+          <TimestampCard :createdAt="student.createdAt" :updatedAt="student.updatedAt" />
         </div>
       </template>
     </DetailPageLayout>

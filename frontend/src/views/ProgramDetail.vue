@@ -398,10 +398,10 @@ const handleActionSubmit = async (formData) => {
                   <AppBadge
                     :status="calculateClassProgress(item.term?.startDate, item.term?.endDate, item.schedule.day, item.schedule.time).status"
                     :type="{
-                      'Upcoming': 'blue',
-                      'Archived': 'neutral',
-                      'Ongoing': 'success',
-                      'Active': 'success'
+                      'upcoming': 'blue',
+                      'archived': 'neutral',
+                      'ongoing': 'success',
+                      'active': 'success'
                     }[calculateClassProgress(item.term?.startDate, item.term?.endDate, item.schedule.day, item.schedule.time).status] || 'success'" />
                 </td>
               </template>

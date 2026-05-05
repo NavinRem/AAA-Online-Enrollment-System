@@ -55,7 +55,7 @@
   /* ── Header Cell ─────────────────────────────────────────────────────────── */
   /* Use for: every <th> in the table header                                   */
   .ui-header-cell {
-    @apply px-md py-sm text-content-muted text-3xs font-semibold uppercase
+    @apply px-md py-sm text-content-dark text-3xs font-bold uppercase
            tracking-widest border-b border-outline-std
            bg-surface-subtle sticky top-0 whitespace-nowrap
            z-sticky-header;
@@ -157,5 +157,15 @@
   .ui-dropdown-item-danger:hover img {
     opacity: 1;
     filter: invert(32%) sepia(93%) saturate(600%) hue-rotate(330deg) brightness(95%) contrast(95%);
+  }
+
+  /* ── Scrollable Wrapper ────────────────────────────────────────────────── */
+  /* Use for: high-density tables that require horizontal scrolling          */
+  .ui-table-scroll-wrapper {
+    @apply w-full overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ui-table-scroll-wrapper.scrollable-h {
+    @apply border border-outline-std rounded-xl;
   }
 }

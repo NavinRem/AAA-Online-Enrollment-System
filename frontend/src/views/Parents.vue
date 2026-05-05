@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDataStore } from '../stores/dataStore'
 
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
@@ -14,8 +15,6 @@ import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { parentService } from '../services/parentService'
 import { studentService } from '../services/studentService'
-import { enrollmentService } from '../services/enrollmentService'
-import { trialService } from '../services/trialService'
 import {
   enrichParents,
   calculateParentStats,
@@ -28,11 +27,18 @@ import { formatDate } from '@/utils/formatUtils'
 import { authService } from '@/services/authService'
 
 const router = useRouter()
-const parents = ref([])
-const enrollments = ref([])
-const loading = ref(true)
+const dataStore = useDataStore()
 const newlyCreatedId = ref(null)
-const trials = ref([])
+
+const parents = computed(() => {
+  const allParents = dataStore.parents
+  const allStudents = dataStore.students
+  return enrichParents(allParents, allStudents)
+})
+
+const enrollments = computed(() => dataStore.enrollments)
+const trials = computed(() => dataStore.trials)
+const loading = computed(() => dataStore.loading.parents)
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
@@ -51,19 +57,19 @@ const statsCards = computed(() => {
       label: 'Registered Today',
       value: s.todayCount,
       image: getImageUrl('parent/recently-register'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-info-soft)',
     },
     {
       label: 'Paid Today',
       value: s.paidTodayCount,
       image: getImageUrl('parent/paid-today'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-success-soft)',
     },
     {
       label: 'Trial Today',
       value: s.trialTodayCount,
       image: getImageUrl('parent/active-now'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-warning-soft)',
     },
   ]
 })
@@ -81,26 +87,9 @@ const parentHeaders = [
 
 onMounted(async () => {
   try {
-    const [allParents, allStudents, allEnrollments, allTrials] = await Promise.all([
-      parentService.getAllParents(),
-      studentService.getAllStudents(),
-      enrollmentService.getAllEnrollments(),
-      trialService.getAllTrials(),
-    ])
-
-    enrollments.value = allEnrollments || []
-    trials.value = allTrials || []
-
-    if (Array.isArray(allParents)) {
-      const enriched = enrichParents(allParents, allStudents || [])
-      parents.value = enriched.sort(
-        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
-      )
-    }
+    await dataStore.fetchAllCommonData()
   } catch (error) {
     console.error('Failed to fetch initial data', error)
-  } finally {
-    loading.value = false
   }
 })
 

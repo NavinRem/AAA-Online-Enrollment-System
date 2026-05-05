@@ -8,10 +8,10 @@ import { parentService } from '@/services/parentService'
 import { studentService } from '@/services/studentService'
 import { authService } from '@/services/authService'
 import { enrollmentService } from '@/services/enrollmentService'
-import { formatDate, formatPrice } from '@/utils/formatUtils'
+import { formatDate, formatPrice, calculateClassProgress } from '@/utils/formatUtils'
 import { enrichEnrollments } from '@/utils/enrollmentHelper'
 import { enrichStudents } from '@/utils/studentHelper'
-import { getStatusTheme, getStatusUI } from '@/utils/badgeUtils'
+import { getStatusTheme } from '@/utils/badgeUtils'
 import { programService } from '@/services/programService'
 import { classService } from '@/services/classService'
 import {
@@ -21,6 +21,12 @@ import {
 import { processStudentProfileImage, prepareStudentPayload } from '../utils/studentHelper'
 import { getActionIcon } from '@/utils/assetHelper'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
+import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
+import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
+import RelationshipsCard from '@/components/common/detail/RelationshipsCard.vue'
+import TimestampCard from '@/components/common/detail/TimestampCard.vue'
+import EnrollmentTable from '@/components/common/detail/EnrollmentTable.vue'
+import PaymentTable from '@/components/common/detail/PaymentTable.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -30,72 +36,8 @@ const students = ref([])
 const enrollments = ref([])
 const selectedChildId = ref('all')
 const activeTab = ref('children')
-const currentFilter = ref('all')
-const isFilterOpen = ref(false)
-const filterToggleRef = ref(null)
-const filterMenuRef = ref(null)
-const filterMenuStyles = ref({})
-const hoveredOption = ref(null)
 
-watch(activeTab, () => {
-  currentFilter.value = 'all'
-  isFilterOpen.value = false
-})
-
-const filterOptions = computed(() => {
-  if (activeTab.value === 'children' || activeTab.value === 'history') {
-    return [
-      { label: activeTab.value === 'children' ? 'All Programs' : 'All History', value: 'all' },
-      { label: 'Confirmed', value: 'confirmed' },
-      { label: 'Pending', value: 'pending' },
-      { label: 'Cancelled', value: 'cancelled' },
-    ]
-  }
-  if (activeTab.value === 'payments') {
-    return [
-      { label: 'All Payments', value: 'all' },
-      { label: 'Paid', value: 'paid' },
-      { label: 'Partial', value: 'partial' },
-      { label: 'Unpaid', value: 'unpaid' },
-    ]
-  }
-  return []
-})
-
-const toggleFilter = (event) => {
-  isFilterOpen.value = !isFilterOpen.value
-  if (isFilterOpen.value) {
-    const rect = event.currentTarget.getBoundingClientRect()
-    filterMenuStyles.value = {
-      top: `${rect.bottom + window.scrollY + 8}px`,
-      right: `${window.innerWidth - rect.right - window.scrollX}px`,
-      minWidth: '160px'
-    }
-  }
-}
-
-const selectFilter = (val) => {
-  currentFilter.value = val
-  isFilterOpen.value = false
-}
-
-const handleClickOutside = (event) => {
-  if (!isFilterOpen.value) return
-  const toggleBtn = filterToggleRef.value?.$el || filterToggleRef.value
-  const menuEl = filterMenuRef.value
-
-  if (toggleBtn && !toggleBtn.contains(event.target) && menuEl && !menuEl.contains(event.target)) {
-    isFilterOpen.value = false
-  }
-}
-
-onMounted(() => {
-  window.addEventListener('mousedown', handleClickOutside)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('mousedown', handleClickOutside)
-})
+// No local filters needed as per request
 
 const loading = ref(true)
 const errorMessage = ref('')
@@ -108,31 +50,35 @@ const currentChildEnrollments = computed(() => {
   if (selectedChildId.value && selectedChildId.value !== 'all') {
     list = list.filter((e) => String(e.studentId) === String(selectedChildId.value))
   }
-  if (currentFilter.value !== 'all') {
-    list = list.filter(e => (e.status || '').toLowerCase() === currentFilter.value.toLowerCase())
-  }
   return list
 })
 
 const enrollmentHistory = computed(() => {
-  let list = [...enrollments.value]
-  if (currentFilter.value !== 'all') {
-    list = list.filter(e => (e.status || '').toLowerCase() === currentFilter.value.toLowerCase())
-  }
-  return list.sort((a, b) => new Date(b.enrollAt || 0) - new Date(a.enrollAt || 0))
+  return [...enrollments.value].sort((a, b) => new Date(b.enrollAt || 0) - new Date(a.enrollAt || 0))
 })
 
 const paymentHistory = computed(() => {
-  let list = [...enrollments.value]
-  if (currentFilter.value !== 'all') {
-    list = list.filter(e => (e.paymentStatus || e.status || '').toLowerCase() === currentFilter.value.toLowerCase())
-  }
-  return list.sort((a, b) => new Date(b.paidAt || b.enrollAt || 0) - new Date(a.paidAt || a.enrollAt || 0))
+  return [...enrollments.value].sort((a, b) => new Date(b.paidAt || b.enrollAt || 0) - new Date(a.paidAt || a.enrollAt || 0))
 })
 
 const isInactive = computed(() => {
   return (parent.value?.status || 'Active').toLowerCase() === 'inactive'
 })
+
+const parentInfoFields = computed(() => [
+  { label: 'Parent Name', value: parent.value?.name },
+  { label: 'Phone Number', value: parent.value?.phone },
+  { label: 'Email', value: parent.value?.email },
+  { label: 'Status', value: parent.value?.status, isBadge: true }
+])
+
+const childrenItems = computed(() => students.value.map(s => ({
+  id: s.id,
+  name: s.name,
+  profileURL: s.profileURL,
+  badgeText: `${s.age} years old`,
+  route: `/students/${s.id}`
+})))
 
 const fetchData = async (id) => {
   try {
@@ -160,7 +106,8 @@ const fetchData = async (id) => {
     }
 
     const pId = parent.value.id
-    const rawEnrollments = (allEnrollments || []).filter((r) => String(r.parentId) === String(pId))
+    const enrollmentData = allEnrollments?.data || (Array.isArray(allEnrollments) ? allEnrollments : [])
+    const rawEnrollments = enrollmentData.filter((r) => String(r.parentId) === String(pId))
 
     enrollments.value = enrichEnrollments(
       rawEnrollments,
@@ -309,17 +256,8 @@ onMounted(() => {
         <!-- Children List Card -->
         <section v-if="activeTab === 'children'" class="ui-detail-card overflow-hidden animate-fade-in">
           <div class="flex items-center gap-4">
-            <h3 class="text-lg font-bold text-content-dark whitespace-nowrap">Children List</h3>
+            <h3 class="text-lg font-bold text-content-dark whitespace-nowrap">Active Programs</h3>
             <div class="h-px flex-1 bg-gray-100"></div>
-            <button ref="filterToggleRef"
-              class="px-4 py-2 text-xs font-semibold uppercase rounded-lg transition-all flex items-center gap-2"
-              :class="currentFilter !== 'all' ? '' : 'bg-primary-light hover:bg-primary'"
-              :style="currentFilter !== 'all' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color } : {}"
-              @click="toggleFilter">
-              <img :src="getActionIcon('filter')" class="w-3 h-3"
-                :style="{ filter: getStatusUI(currentFilter === 'all' ? 'filter' : currentFilter).filter }" />
-              {{ currentFilter === 'all' ? 'Filter' : currentFilter }}
-            </button>
           </div>
 
           <div class="flex flex-col lg:flex-row gap-8">
@@ -337,36 +275,13 @@ onMounted(() => {
             </div>
 
             <!-- Right: Table -->
-            <div class="flex-1 overflow-x-auto rounded-md border border-gray-100 bg-white">
-              <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr class="bg-gray-50/50">
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Program</th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Branch</th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Session</th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                  <tr v-for="(enroll, idx) in currentChildEnrollments" :key="enroll.id"
-                    class="hover:bg-gray-50/50 transition-colors">
-                    <td class=" p-md text-xs font-semibold text-content-muted">{{ idx + 1 }}</td>
-                    <td class=" p-md text-sm font-semibold text-content-dark">{{ enroll.programName }}</td>
-                    <td class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">{{
-                      enroll.branchAbbr }} Branch</td>
-                    <td class=" p-md text-xs font-semibold text-content-dark leading-tight">{{ enroll.classSchedule }}</td>
-                    <td class=" p-md text-center">
-                      <AppBadge :status="enroll.status" />
-                    </td>
-                  </tr>
-                  <tr v-if="currentChildEnrollments.length === 0">
-                    <td colspan="5" class="p-10 text-center text-content-muted italic text-sm">No active programs found
-                      for this child.</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="flex-1">
+              <EnrollmentTable
+                :items="currentChildEnrollments"
+                showSchedule
+                statusMode="class"
+                emptyMessage="No active programs found for this child."
+              />
             </div>
           </div>
         </section>
@@ -376,51 +291,15 @@ onMounted(() => {
           <div class="flex items-center gap-4">
             <h3 class="text-lg font-bold text-content-dark whitespace-nowrap">Enrollment History</h3>
             <div class="h-px flex-1 bg-gray-100"></div>
-            <button ref="filterToggleRef"
-              class="px-4 py-2 text-xs font-semibold uppercase rounded-lg transition-all flex items-center gap-2"
-              :class="currentFilter !== 'all' ? '' : 'bg-primary-light hover:bg-primary'"
-              :style="currentFilter !== 'all' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color } : {}"
-              @click="toggleFilter">
-              <img :src="getActionIcon('filter')" class="w-3 h-3"
-                :style="{ filter: getStatusUI(currentFilter === 'all' ? 'filter' : currentFilter).filter }" />
-              {{ currentFilter === 'all' ? 'Filter' : currentFilter }}
-            </button>
           </div>
 
           <div class="p-0">
-            <div class="overflow-x-auto rounded-md border border-gray-100 bg-white">
-              <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr class="bg-gray-50/50">
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">
-                      Enrollment ID
-                    </th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Program</th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Child</th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Registered
-                      Date
-                    </th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
-                      Status</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                  <tr v-for="(enroll, idx) in enrollmentHistory" :key="enroll.id"
-                    class="hover:bg-gray-50/50 transition-colors">
-                    <td class=" p-md text-xs font-semibold text-content-muted">{{ idx + 1 }}</td>
-                    <td class=" p-md text-xs font-mono text-content-dark">{{ enroll.id.slice(0, 12) }}...</td>
-                    <td class=" p-md text-sm font-semibold text-content-dark">{{ enroll.programName }}</td>
-                    <td class=" p-md text-sm font-semibold text-primary">{{ enroll.studentName }}</td>
-                    <td class=" p-md text-xs font-semibold text-content-muted tabular-nums">{{ formatDate(enroll.enrollAt)
-                    }}</td>
-                    <td class=" p-md text-center">
-                      <AppBadge :status="enroll.status" />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <EnrollmentTable
+              :items="enrollmentHistory"
+              showChild
+              showDate
+              emptyMessage="No enrollment history found for this family."
+            />
           </div>
         </section>
 
@@ -429,168 +308,29 @@ onMounted(() => {
           <div class="flex items-center gap-4">
             <h3 class="text-lg font-bold text-content-dark whitespace-nowrap">Payment History</h3>
             <div class="h-px flex-1 bg-gray-100"></div>
-            <button class="px-4 py-2 text-xs font-semibold uppercase rounded-lg transition-all flex items-center gap-2"
-              :class="currentFilter !== 'all' ? '' : 'bg-primary-light hover:bg-primary'"
-              :style="currentFilter !== 'all' ? { backgroundColor: getStatusTheme(currentFilter).backgroundColor, color: getStatusTheme(currentFilter).color } : {}"
-              @click="toggleFilter">
-              <img :src="getActionIcon('filter')" class="w-3 h-3"
-                :style="{ filter: getStatusUI(currentFilter === 'all' ? 'filter' : currentFilter).filter }" />
-              {{ currentFilter === 'all' ? 'Filter' : currentFilter }}
-            </button>
           </div>
 
           <div class="p-0">
-            <div class="overflow-x-auto rounded-md border border-gray-100 bg-white">
-              <table class="w-full text-left border-collapse">
-                <thead>
-                  <tr class="bg-gray-50/50">
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Transaction
-                      ID
-                    </th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">
-                      Enrollment ID
-                    </th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
-                      Amount</th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Paid Date
-                    </th>
-                    <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
-                      Status</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-50">
-                  <tr v-for="(enroll, idx) in paymentHistory" :key="enroll.id"
-                    class="hover:bg-gray-50/50 transition-colors">
-                    <td class=" p-md text-xs font-semibold text-content-muted">{{ idx + 1 }}</td>
-                    <td class=" p-md text-xs font-mono text-content-dark">{{ enroll.transactionId || enroll.id.slice(0,
-                      12).toUpperCase() }}</td>
-                    <td class=" p-md text-xs font-mono text-content-muted">{{ enroll.id.slice(0, 12) }}...</td>
-                    <td class=" p-md text-sm font-semibold text-content-dark text-center">${{ formatPrice(enroll.amount) }}
-                    </td>
-                    <td class=" p-md text-xs font-semibold text-content-muted tabular-nums">{{ formatDate(enroll.paidAt ||
-                      enroll.enrollAt) }}</td>
-                    <td class=" p-md text-center">
-                      <AppBadge :status="enroll.paymentStatus || enroll.status" />
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <PaymentTable
+              :items="paymentHistory"
+              emptyMessage="No payment history found for this family."
+            />
           </div>
         </section>
       </template>
 
       <template #right-content v-if="parent">
         <div class="flex flex-col gap-8">
-          <!-- Basic Info Card -->
-          <section class="ui-detail-card flex flex-col items-center gap-6">
-            <h2 class="w-full font-bold text-content-dark text-center">Basic Information</h2>
-            <div class="relative group">
-              <div
-                class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100">
-                <img :src="parent.profileURL" class="w-full h-full object-cover" />
-              </div>
-            </div>
-          </section>
-
-          <!-- Parent Information Card -->
-          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-bold uppercase tracking-widest text-content-muted">Parent Information</h6>
-
-            <div class="space-y-5">
-              <div class="flex justify-between gap-1">
-                <span class="text-lg font-bold text-content-dark">Parent Name:</span>
-                <span class="text-md font-bold text-content-muted">{{ parent.name }}</span>
-              </div>
-              <div class="flex justify-between gap-1">
-                <span class="text-lg font-bold text-content-dark">Phone Number:</span>
-                <span class="text-md font-bold text-content-muted tabular-nums">{{ parent.phone }}</span>
-              </div>
-              <div class="flex justify-between gap-1">
-                <span class="text-lg font-bold text-content-dark">Email:</span>
-                <span class="text-md font-bold text-content-muted lowercase">{{ parent.email }}</span>
-              </div>
-              <div class="flex justify-between gap-1">
-                <span class="text-lg font-bold text-content-dark">Status:</span>
-                <div>
-                  <AppBadge :status="parent.status" />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <!-- Relationships Card -->
-          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-bold uppercase tracking-widest text-content-muted">Children</h6>
-            <div class="space-y-4">
-              <div v-for="s in students" :key="s.id" @click="router.push(`/students/${s.id}`)"
-                class="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-subtle transition-all cursor-pointer group">
-                <div class="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm">
-                  <img :src="s.profileURL" class="w-full h-full object-cover" />
-                </div>
-                <span class="text-md font-bold text-content-dark group-hover:text-primary transition-colors">{{ s.name
-                }}</span>
-                <AppBadge type="blue" class="ml-auto text-xs px-2 py-0.5">
-                  {{ s.age }} years old
-                </AppBadge>
-              </div>
-            </div>
-          </section>
-
-          <!-- Account Timestamps Card -->
-          <section class="ui-detail-card bg-surface-subtle/50">
-            <h6 class="font-bold uppercase tracking-widest text-content-muted">Account Timestamp</h6>
-            <div class="space-y-6">
-              <div class="flex items-center gap-3">
-                <AppBadge type="green" class="text-md px-2 py-xs">
-                  Created At
-                </AppBadge>
-                <div class="text-sm font-semibold text-content-muted leading-tight tabular-nums">
-                  {{ formatDate(parent.createdAt) }}
-                </div>
-              </div>
-
-              <div class="flex items-center gap-3">
-                <AppBadge type="blue" class="text-md px-2 py-xs">
-                  Updated At
-                </AppBadge>
-                <div class="text-sm font-semibold text-content-muted leading-tight tabular-nums">
-                  {{ formatDate(parent.updatedAt || parent.createdAt) }}
-                </div>
-              </div>
-            </div>
-          </section>
+          <EntityProfileCard :profileURL="parent.profileURL" title="Basic Information" fallbackImage="profiles/avatar-parent" />
+          <EntityInfoCard title="Parent Information" :fields="parentInfoFields" />
+          <RelationshipsCard title="Children" :items="childrenItems" />
+          <TimestampCard :createdAt="parent.createdAt" :updatedAt="parent.updatedAt" />
         </div>
       </template>
     </DetailPageLayout>
 
     <!-- Shared Filter Menu -->
-    <Teleport to="body">
-      <transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform scale-95 opacity-0"
-        enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="isFilterOpen" ref="filterMenuRef"
-          class="fixed bg-white rounded-xl shadow-2xl border border-outline-std z-[9999] p-2 min-w-[180px] overflow-hidden"
-          :style="filterMenuStyles">
-          <div v-for="option in filterOptions" :key="option.value"
-            class="px-4 py-2.5 text-sm font-semibold cursor-pointer transition-all rounded-lg flex items-center justify-between group"
-            :class="[
-              currentFilter === option.value ? 'shadow-sm' : '',
-              currentFilter === option.value ? '' : 'text-content-muted'
-            ]" :style="currentFilter === option.value || hoveredOption === option.value ? {
-              backgroundColor: getStatusTheme(option.value).backgroundColor,
-              color: getStatusTheme(option.value).color,
-              transform: hoveredOption === option.value ? 'translateX(4px)' : ''
-            } : {}" @click="selectFilter(option.value)" @mouseenter="hoveredOption = option.value"
-            @mouseleave="hoveredOption = null">
-            <span>{{ option.label }}</span>
-            <div v-if="option.value !== 'all'" class="w-2 h-2 rounded-full transition-transform group-hover:scale-125"
-              :style="{ backgroundColor: getStatusTheme(option.value).color }"></div>
-          </div>
-        </div>
-      </transition>
-    </Teleport>
+<!-- Removed Filter Teleport as per request -->
 
     <ParentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :user="actionModal.user"
       :loading="submitting" v-model:error="globalError" v-model:success="globalSuccess"

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { authService } from '@/services/authService'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -40,20 +40,44 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  let authListenerAttached = false
+  let initPromise = null
+
   async function init() {
-    if (initialized.value) return
+    if (initialized.value) return user.value
+    if (initPromise) return initPromise
     
-    return new Promise((resolve) => {
+    initPromise = new Promise((resolve) => {
+      if (authListenerAttached) {
+        // If listener is already attached but not initialized yet, 
+        // we just wait for the initialized flag to change.
+        // This shouldn't happen with the current logic but for safety:
+        const unwatch = watch(initialized, (val) => {
+          if (val) {
+            unwatch()
+            resolve(user.value)
+          }
+        })
+        return
+      }
+
+      authListenerAttached = true
       authService.onAuthStateChanged(async (firebaseUser) => {
         setUser(firebaseUser)
         if (firebaseUser) {
           await fetchProfile()
         }
         loading.value = false
-        initialized.value = true
-        resolve(firebaseUser)
+        
+        if (!initialized.value) {
+          initialized.value = true
+          initPromise = null
+          resolve(firebaseUser)
+        }
       })
     })
+
+    return initPromise
   }
 
   async function logout() {

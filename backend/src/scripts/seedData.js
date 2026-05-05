@@ -1,10 +1,8 @@
 const { db, COLLECTIONS } = require('../config/database')
 const { validateBranch } = require('../validators/branchValidator')
-const {
-  validateCategory,
-  validateLevel,
-  validateTerm,
-} = require('../validators/academicValidator')
+const { validateCategory } = require('../validators/categoryValidator')
+const { validateLevel } = require('../validators/levelValidator')
+const { validateTerm } = require('../validators/termValidator')
 const { validateProgram } = require('../validators/programValidator')
 const { validateTeacher } = require('../validators/teacherValidator')
 const { validateParent } = require('../validators/parentValidator')

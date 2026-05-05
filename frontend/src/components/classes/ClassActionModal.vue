@@ -38,7 +38,7 @@ const getInitialData = () => ({
   durationHour: 1,
   durationMinute: 30,
   teacherIds: [],
-  capacity: 20,
+  capacity: 0,
   status: 'active',
   scheduleType: 'fixed',
   adminNote: '',
@@ -193,7 +193,6 @@ const onProgramChange = (programId) => {
 
   const prog = programs.value.find(p => p.id === programId)
   if (prog) {
-    localData.capacity = prog.maxCapacity || 20
     checkSessionMatch()
   }
 }
@@ -388,7 +387,7 @@ const handleActionSubmit = () => {
     termId: localData.termId,
     branchIds: localData.branchIds,
     teacherIds: localData.teacherIds,
-    maxCapacity: parseInt(localData.capacity || 20),
+    capacity: parseInt(localData.capacity || 0),
     scheduleType: localData.scheduleType || 'fixed',
     adminNote: localData.adminNote || '',
     schedule: {
@@ -767,10 +766,10 @@ watch(
           </template>
         </AppSelect>
 
-        <AppInput v-model="localData.capacity" type="number" label="Class Capacity" placeholder="20"
+        <AppInput v-model="localData.capacity" type="number" label="Class Capacity" placeholder="e.g. 25"
           :error="errors.capacity" :shake="shaking.capacity" @input="clearError('capacity')" class="col-span-2">
           <template #label-extra>
-            <span class="text-[9px] text-content-muted ml-2">(Maximum students allowed)</span>
+            <span class="text-[9px] text-content-muted ml-2">(Maximum students allowed, 0 = Unlimited)</span>
           </template>
         </AppInput>
       </form>

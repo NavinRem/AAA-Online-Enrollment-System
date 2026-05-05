@@ -43,6 +43,8 @@ export const enrollmentSearchMapper = (r) =>
     r.parent?.name,
     r.student?.name,
     r.program?.name,
+    r.program?.category,
+    r.class?.branch?.abbr || r.branchAbbr,
     r.class?.schedule,
     r.status,
     r.paymentStatus,

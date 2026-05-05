@@ -1,28 +1,21 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import { useDataStore } from '../stores/dataStore'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetricCard from '../components/common/data/DataMetricCard.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
-
-import { trialService } from '@/services/trialService'
-import { parentService } from '../services/parentService'
-import { studentService } from '../services/studentService'
-import { programService } from '../services/programService'
-import { branchService } from '../services/branchService'
+import AppConfirmOverlay from '../components/common/ui/AppConfirmOverlay.vue'
 import TrialFormModal from '../components/trials/TrialFormModal.vue'
 
+import { trialService } from '@/services/trialService'
 import { useSearch, trialSearchMapper } from '../composables/useSearch'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { formatDate } from '@/utils/formatUtils'
 
-const trials = ref([])
-const parents = ref([])
-const students = ref([])
-const programs = ref([])
-const branches = ref([])
+const dataStore = useDataStore()
 
 const loading = ref(false)
 const showModal = ref(false)
@@ -38,20 +31,9 @@ const getRowClass = (item) => {
 }
 
 const fetchData = async () => {
+  loading.value = true
   try {
-    loading.value = true
-    const [tData, pData, sData, progData, bData] = await Promise.all([
-      trialService.getAllTrials(),
-      parentService.getAllParents(),
-      studentService.getAllStudents(),
-      programService.getAllPrograms(),
-      branchService.getAllBranches(),
-    ])
-    trials.value = Array.isArray(tData) ? tData : []
-    parents.value = Array.isArray(pData) ? pData : []
-    students.value = Array.isArray(sData) ? sData : []
-    programs.value = Array.isArray(progData) ? progData : []
-    branches.value = Array.isArray(bData) ? bData : []
+    await dataStore.fetchAllCommonData(true)
   } catch (error) {
     console.error('Failed to fetch trials data', error)
   } finally {
@@ -64,16 +46,16 @@ onMounted(() => {
 })
 
 const trialStats = computed(() => {
-  const totalcount = trials.value.length
+  const totalcount = dataStore.trials.length
 
   // Booked: From trialType field
-  const bookedCount = trials.value.filter(t => t.trialType === 'booked').length
+  const bookedCount = dataStore.trials.filter(t => t.trialType === 'booked').length
 
   // Walk-in: From trialType field
-  const walkinCount = trials.value.filter(t => t.trialType === 'walk-in').length
+  const walkinCount = dataStore.trials.filter(t => t.trialType === 'walk-in').length
 
   // Success: From isSuccessful field
-  const successCount = trials.value.filter(t => t.isSuccessful).length
+  const successCount = dataStore.trials.filter(t => t.isSuccessful).length
 
   return [
     {
@@ -86,19 +68,19 @@ const trialStats = computed(() => {
       label: 'Booked Trials',
       value: bookedCount,
       image: getImageUrl('enrollment/today-enrollment'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-purple-soft)',
     },
     {
       label: 'Walk-in Trials',
       value: walkinCount,
       image: getImageUrl('enrollment/total-unpaid-enrollment'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-magenta-soft)',
     },
     {
       label: 'Successful Trials',
       value: successCount,
       image: getImageUrl('enrollment/total-paid-enrollment'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-success-soft)',
     },
   ]
 })
@@ -115,7 +97,7 @@ const trialHeaders = [
 ]
 
 const statusFilteredTrials = computed(() => {
-  let filtered = [...trials.value]
+  let filtered = [...dataStore.trials]
 
   if (currentFilter.value === 'booked') filtered = filtered.filter(t => t.trialType === 'booked')
   else if (currentFilter.value === 'walk-in') filtered = filtered.filter(t => t.trialType === 'walk-in')
@@ -178,6 +160,12 @@ const handleSaveTrial = async (formData) => {
   }
 }
 
+const actionState = ref({
+  isOpen: false,
+  type: '',
+  trial: null,
+})
+
 const handleTableAction = ({ type, item }) => {
   if (type === 'edit') {
     selectedTrial.value = item
@@ -186,11 +174,35 @@ const handleTableAction = ({ type, item }) => {
   }
 
   if (type === 'delete') {
-    if (confirm('Are you sure you want to delete this trial record?')) {
-      trialService.deleteTrial(item.id).then(() => fetchData())
-    }
+    actionState.value = { isOpen: true, type: 'delete', trial: item }
   }
 }
+
+const confirmDeleteTrial = async () => {
+  const trial = actionState.value.trial
+  if (!trial) return
+  submitting.value = true
+  try {
+    await trialService.deleteTrial(trial.id)
+    actionState.value.isOpen = false
+    await fetchData()
+  } catch (err) {
+    console.error('Failed to delete trial:', err)
+  } finally {
+    submitting.value = false
+  }
+}
+
+const confirmRows = computed(() => {
+  const item = actionState.value.trial
+  if (!item) return []
+  return [
+    { key: 'Student', value: item.student?.name || item.guestStudentName },
+    { key: 'Parent', value: item.parent?.name || item.guestParentName || 'Guest' },
+    { key: 'Program', value: item.program?.name },
+    { key: 'Date', value: formatDate(item.trialDate) },
+  ]
+})
 </script>
 
 <template>
@@ -324,9 +336,19 @@ const handleTableAction = ({ type, item }) => {
       </template>
     </DataPageLayout>
 
-    <TrialFormModal :isOpen="showModal" :loading="submitting" :trial="selectedTrial" :parents="parents"
-      :students="students" :programs="programs" :branches="branches" :error="errorMessage" :success="successMessage"
+    <TrialFormModal :isOpen="showModal" :loading="submitting" :trial="selectedTrial" :parents="dataStore.parents"
+      :students="dataStore.students" :programs="dataStore.programs" :branches="dataStore.branches" :error="errorMessage" :success="successMessage"
       @close="() => { showModal = false; selectedTrial = null; errorMessage = ''; successMessage = ''; }"
       @submit="handleSaveTrial" />
+
+    <AppConfirmOverlay :show="actionState.isOpen && actionState.type === 'delete'"
+      title="Delete Trial Record"
+      subtitle="Are you sure you want to permanently delete this trial engagement? This action will remove the record from all dashboard metrics."
+      :icon="getImageUrl('enrollment/total-enrollment')"
+      :rows="confirmRows"
+      confirmLabel="Delete Record"
+      :loading="submitting"
+      @back="actionState.isOpen = false"
+      @confirm="confirmDeleteTrial" />
   </DashboardLayout>
 </template>

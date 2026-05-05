@@ -1,11 +1,12 @@
 <script setup>
-import { computed, watch } from 'vue'
+import { computed, watch, ref } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { getStudentProfileURL, isSameProfileAsset, getActionIcon } from '@/utils/assetHelper'
 import { calculateAge } from '@/utils/formatUtils'
@@ -26,7 +27,7 @@ const getInitialData = () => ({
   name: '',
   dob: '',
   profileURL: '',
-  status: 'Studying',
+  status: 'studying',
   deleteConfirm: '',
   overrideRemark: '',
 })
@@ -37,7 +38,7 @@ const mapSourceToForm = () => {
     name: source.name || '',
     dob: source.dob || '',
     profileURL: source.profileURL || '',
-    status: source.status || 'Studying',
+    status: source.status || 'studying',
     deleteConfirm: '',
     overrideRemark: source.overrideRemark || '',
   }
@@ -49,18 +50,19 @@ const { localData, originalData, isDirty, errors, shaking, clearError, validate 
     mapSourceToForm,
   })
 
-const handleActionSubmit = () => {
-  if (props.type === 'edit' && !isDirty.value) return
+const showConfirm = ref(false)
 
+const requestConfirm = () => {
   const rules = {
     required: [],
     custom: {},
   }
 
   if (props.type === 'edit' || props.type?.includes('override')) {
+    if (props.type === 'edit' && !isDirty.value) return
     rules.required = ['name', 'dob']
     rules.custom.overrideRemark = (val) => {
-      if (['Suspended', 'Stopped'].includes(localData.status)) {
+      if (['suspended', 'stopped'].includes(localData.status.toLowerCase())) {
         return !!val?.trim() || 'Detailed remark is required for this status change.'
       }
       return true
@@ -70,7 +72,11 @@ const handleActionSubmit = () => {
   }
 
   if (!validate(rules)) return
+  showConfirm.value = true
+}
 
+const handleActionSubmit = () => {
+  showConfirm.value = false
   const payload = JSON.parse(JSON.stringify(localData))
 
   // Remove UI-only and system-managed fields from backend payload
@@ -79,6 +85,27 @@ const handleActionSubmit = () => {
 
   emit('submit', payload)
 }
+
+const confirmRows = computed(() => {
+  const source = props.student || props.enrollment || {}
+  const rows = [
+    { key: 'Student Name', value: localData.name },
+    { key: 'Date of Birth', value: localData.dob },
+    { key: 'Age', value: `${calculateAge(localData.dob)} yrs` },
+  ]
+
+  if (props.type?.includes('delete')) {
+    rows.push({ key: 'Status', value: localData.status, badge: true })
+    rows.push({ key: 'Authorization', value: localData.deleteConfirm, valueClass: 'text-error font-bold' })
+  } else if (props.type?.includes('override')) {
+    rows.push({ key: 'New Status', value: localData.status, badge: true })
+    if (localData.overrideRemark) {
+      rows.push({ key: 'Remark', value: localData.overrideRemark, valueClass: 'italic text-xs' })
+    }
+  }
+
+  return rows
+})
 
 const modalTitle = computed(() => {
   const titles = {
@@ -152,11 +179,8 @@ watch(
 
 <template>
   <AppModal :show="isOpen" :title="modalTitle" @close="$emit('close')" :icon="modalIcon">
-    <!-- Identity Banner -->
-    <div v-if="
-      (student || enrollment) &&
-      (type === 'edit' || type === 'override' || type === 'enrollment-override')
-    " class="ui-identity-banner" :class="studentThemeClasses">
+    <!-- Identity Banner (Show for all types now for consistency) -->
+    <div v-if="student || enrollment" class="ui-identity-banner mb-lg" :class="studentThemeClasses">
       <div class="ui-identity-avatar-round">
         <img :src="getStudentProfileURL(localData.profileURL)" class="w-full h-full object-cover" />
       </div>
@@ -172,7 +196,7 @@ watch(
       </div>
     </div>
 
-    <form id="studentActionForm" @submit.prevent="handleActionSubmit" novalidate>
+    <form id="studentActionForm" @submit.prevent="requestConfirm" novalidate>
       <!-- Edit Profile / Override Form -->
       <div v-if="type === 'edit' || type === 'override' || type === 'enrollment-override'" class="ui-form-grid-lg">
         <AppInput v-model="localData.name" label="Full Name" placeholder="Full Name" required :error="errors.name"
@@ -182,15 +206,15 @@ watch(
           :shake="shaking.dob" :disabled="type !== 'edit'" @input="clearError('dob')" />
 
         <AppSelect v-model="localData.status" label="Account Status" :items="[
-          { id: 'Studying', name: 'Studying' },
-          { id: 'Suspended', name: 'Suspended' },
-          { id: 'Stopped', name: 'Stopped' },
-          { id: 'Graduated', name: 'Graduated' },
+          { id: 'studying', name: 'Studying' },
+          { id: 'suspended', name: 'Suspended' },
+          { id: 'stopped', name: 'Stopped' },
+          { id: 'graduated', name: 'Graduated' },
         ]" required :error="errors.status" :shake="shaking.status"
-          :disabled="type === 'edit' && !['Suspended', 'Stopped'].includes(localData.status)" :searchable="false"
+          :disabled="type === 'edit' && !['suspended', 'stopped'].includes(localData.status.toLowerCase())" :searchable="false"
           @change="clearError('status')" />
 
-        <div class="flex flex-col gap-xs mb-md col-span-2" v-if="['Suspended', 'Stopped'].includes(localData.status)">
+        <div class="flex flex-col gap-xs mb-md col-span-2" v-if="['suspended', 'stopped'].includes(localData.status.toLowerCase())">
           <label class="text-sm font-semibold text-content-dark">Administrative Remarks <span
               class="text-error">*</span></label>
           <textarea v-model="localData.overrideRemark" placeholder="Document reason for status change..." rows="3"
@@ -198,8 +222,7 @@ watch(
               'border-error bg-error-soft ring-error/10': errors.overrideRemark,
               'animate-shake': shaking.overrideRemark,
             }"></textarea>
-          <div v-if="errors.overrideRemark"
-            class="text-error text-3xs font-semibold px-1 mt-0.5 tracking-widest">
+          <div v-if="errors.overrideRemark" class="text-error text-3xs font-semibold px-1 mt-0.5 tracking-widest">
             {{ errors.overrideRemark }}
           </div>
         </div>
@@ -212,28 +235,31 @@ watch(
       </div>
 
       <!-- Delete Panel -->
-      <div v-if="type === 'delete' || type === 'enrollment-delete'" class="mt-lg">
-        <div class="student-delete-alert">
-          <div class="text-3xl">🚨</div>
+      <div v-if="type === 'delete' || type === 'enrollment-delete'" class="flex flex-col gap-lg">
+        <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-lg text-error-deep">Critical Record Deletion</strong>
-            <p class="text-sm text-error-deep opacity-90 leading-relaxed">
-              This will permanently remove the record and all associated history. This action cannot
-              be undone.
-            </p>
+            <strong class="text-sm font-semibold tracking-tight uppercase">Permanent Record Erasure</strong>
+            <span class="text-xs opacity-90 font-medium">This action will permanently remove the student profile and
+              all historical data. Linked enrollments and academic logs will be severed.</span>
           </div>
-        </div>
+        </AppAlert>
 
-        <AppInput v-model="localData.deleteConfirm" label="Authorization" placeholder="DELETE" required
-          class="text-center" :error="errors.deleteConfirm" :shake="shaking.deleteConfirm"
+        <AppInput v-model="localData.deleteConfirm" label="Authorization Confirmation"
+          placeholder='Type "DELETE" to confirm' required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm"
           @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-2xs font-bold text-center w-full text-content-muted/40 mt-1">
-              Type <span class="text-error font-bold px-1">DELETE</span> to confirm
+            <span class="block text-2xs font-semibold mt-0.5">
+              Type <span class="text-error px-1 font-semibold">DELETE</span> to authorize this permanent action
             </span>
           </template>
         </AppInput>
       </div>
+
+      <!-- Confirmation Overlay -->
+      <AppConfirmOverlay :show="showConfirm" :title="modalTitle"
+        :subtitle="type?.includes('delete') ? 'This action is irreversible. All data will be permanently erased.' : 'Please verify the details before completing this action.'"
+        :icon="modalIcon" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading" @back="showConfirm = false"
+        @confirm="handleActionSubmit" />
     </form>
 
     <template #footer>
@@ -244,9 +270,8 @@ watch(
 
         <div class="flex items-center justify-end w-full gap-sm">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-          <AppButton :variant="type?.includes('delete') ? 'danger' : 'primary'" form="studentActionForm" type="submit"
-            @click="type?.includes('delete') ? handleActionSubmit() : null" :loading="loading" :disabled="loading"
-            :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }">
+          <AppButton :variant="type?.includes('delete') ? 'danger' : 'primary'" type="button" @click="requestConfirm"
+            :loading="loading" :disabled="loading" :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }">
             {{ submitLabel }}
           </AppButton>
         </div>

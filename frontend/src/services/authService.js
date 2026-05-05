@@ -26,7 +26,12 @@ export const authService = {
   },
 
   getCurrentUser() {
-    return auth.currentUser
+    return new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        unsubscribe()
+        resolve(user)
+      })
+    })
   },
 
   sendPasswordReset(email) {

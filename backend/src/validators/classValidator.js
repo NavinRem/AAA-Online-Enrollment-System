@@ -9,8 +9,8 @@ function validateClass(classData) {
     'scheduleType',
     'status',
     'adminNote',
-    'maxCapacity',
-    'enrolledCount',
+    'capacity',
+    'currentCount',
   ]
 
   Object.keys(classData).forEach((key) => {
@@ -50,9 +50,9 @@ function validateClass(classData) {
     },
     scheduleType: classData.scheduleType || 'fixed',
     adminNote: classData.adminNote || '',
-    maxCapacity: parseInt(classData.maxCapacity || 0),
-    enrolledCount: parseInt(classData.enrolledCount || 0),
-    status: classData.status || 'open',
+    capacity: parseInt(classData.capacity || classData.maxCapacity || 0),
+    currentCount: parseInt(classData.currentCount || classData.enrolledCount || 0),
+    status: String(classData.status || 'active').toLowerCase(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -69,8 +69,8 @@ function validateUpdateClass(updateData) {
     'scheduleType',
     'status',
     'adminNote',
-    'maxCapacity',
-    'enrolledCount',
+    'capacity',
+    'currentCount',
   ]
   const cleanData = {}
 
@@ -90,10 +90,13 @@ function validateUpdateClass(updateData) {
     }
   }
 
-  if (cleanData.maxCapacity !== undefined)
-    cleanData.maxCapacity = parseInt(cleanData.maxCapacity || 0)
-  if (cleanData.enrolledCount !== undefined)
-    cleanData.enrolledCount = parseInt(cleanData.enrolledCount || 0)
+  if (cleanData.capacity !== undefined)
+    cleanData.capacity = parseInt(cleanData.capacity || 0)
+  if (cleanData.currentCount !== undefined)
+    cleanData.currentCount = parseInt(cleanData.currentCount || 0)
+
+  if (cleanData.status !== undefined)
+    cleanData.status = String(cleanData.status).toLowerCase()
 
   cleanData.updatedAt = new Date().toISOString()
   return cleanData

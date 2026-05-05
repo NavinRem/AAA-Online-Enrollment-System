@@ -1,4 +1,5 @@
 const { onRequest } = require('firebase-functions/v2/https')
+const { onDocumentWritten } = require('firebase-functions/v2/firestore')
 const logger = require('firebase-functions/logger')
 const express = require('express')
 const cors = require('cors')
@@ -24,6 +25,7 @@ const termRoutes = require('./src/routes/terms')
 const branchRoutes = require('./src/routes/branches')
 const classRoutes = require('./src/routes/classes')
 const trialRoutes = require('./src/routes/trials')
+const attendanceRoutes = require('./src/routes/attendance')
 
 app.use(helmet())
 app.use(cors({ origin: true }))
@@ -49,6 +51,7 @@ apiRouter.use('/terms', termRoutes)
 apiRouter.use('/branches', branchRoutes)
 apiRouter.use('/classes', classRoutes)
 apiRouter.use('/trials', trialRoutes)
+apiRouter.use('/attendance', attendanceRoutes)
 
 app.use('/api', apiRouter)
 app.use('/', apiRouter)
@@ -86,3 +89,21 @@ app.use((err, req, res) => {
 })
 
 exports.api = onRequest(app)
+
+// Automated Capacity Sync Trigger
+// This ensures that whenever an enrollment is created, updated, or deleted,
+// the corresponding class's currentCount is recalculated to maintain data integrity.
+exports.onEnrollmentWrite = onDocumentWritten('enrollments/{enrollmentId}', async (event) => {
+  const classIdBefore = event.data.before.data()?.classId
+  const classIdAfter = event.data.after.data()?.classId
+  
+  const classService = require('./src/services/classService')
+  
+  const syncTasks = []
+  if (classIdBefore) syncTasks.push(classService.syncStudentCount(classIdBefore))
+  if (classIdAfter && classIdAfter !== classIdBefore) syncTasks.push(classService.syncStudentCount(classIdAfter))
+  
+  if (syncTasks.length > 0) {
+    await Promise.all(syncTasks)
+  }
+})

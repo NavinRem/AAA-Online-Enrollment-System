@@ -1,53 +1,68 @@
 <script setup>
-import { authService } from '../services/authService'
-import { parentService } from '../services/parentService'
-import { studentService } from '../services/studentService'
-import { programService } from '../services/programService'
-import { classService } from '../services/classService'
-import { enrollmentService } from '../services/enrollmentService'
-import { trialService } from '../services/trialService'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { useDataStore } from '../stores/dataStore'
 import { getImageUrl } from '@/utils/assetHelper'
-import { parseDate, formatPrice } from '@/utils/formatUtils'
+import { parseDate, formatPrice, formatDateOnly } from '@/utils/formatUtils'
 import { calculateDashboardStats } from '@/utils/statsHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
-import { branchService } from '../services/branchService'
-import { termService } from '../services/termService'
+import { authService } from '@/services/authService'
 
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
 import MiniCard from '../components/common/cards/MiniCard.vue'
+import AppBadge from '../components/common/ui/AppBadge.vue'
 import RecentEnrollmentTable from '../components/enrollments/RecentEnrollmentTable.vue'
+import { enrichEnrollments } from '@/utils/enrollmentHelper'
 
-import { formatDateOnly } from '@/utils/formatUtils'
+const dataStore = useDataStore()
 
 const userProfile = ref({
   name: 'Loading...',
   role: '...',
   profileURL: null,
 })
-const students = ref([])
-const programs = ref([])
-const enrollments = ref([])
-const classes = ref([])
-const branches = ref([])
-const users = ref([])
-const loading = ref(true)
-const trials = ref([])
-const activeTerm = ref(null)
 
-const stats = ref({
-  today: { reg: 0, enroll: 0, pay: 0, trial: 0 },
-  week: { reg: 0, enroll: 0, pay: 0, trial: 0 },
-  totals: {
-    parents: 0,
-    students: 0,
-    programs: 0,
-    branches: 0,
-    enrollments: 0,
-    trials: 0,
-    revenue: 0,
-  },
+const loading = ref(true)
+const currentTermIndex = ref(0)
+let termInterval = null
+
+const activeTerms = computed(() => {
+  const termData = dataStore.terms
+  if (!Array.isArray(termData) || termData.length === 0) return []
+
+  const todayStr = new Date().toISOString().split('T')[0]
+  const branches = dataStore.branches
+
+  const filtered = termData.filter(t =>
+    t.status === 'active' || (t.startDate <= todayStr && t.endDate >= todayStr)
+  )
+
+  return filtered.map(t => {
+    const branchIds = t.branchIds || (t.branchId ? [t.branchId] : [])
+    const enrichedBranches = branchIds.map(bId => {
+      const branch = branches.find(b => b.id === bId)
+      return branch ? { abbr: branch.abbr, color: branch.color } : null
+    }).filter(Boolean)
+
+    return {
+      ...t,
+      branches: enrichedBranches
+    }
+  })
+})
+
+const currentTerm = computed(() => activeTerms.value[currentTermIndex.value] || null)
+
+const stats = computed(() => {
+  return calculateDashboardStats(
+    dataStore.parents,
+    dataStore.enrollments,
+    dataStore.programs,
+    dataStore.students,
+    dataStore.classes,
+    dataStore.branches,
+    dataStore.trials
+  )
 })
 
 onMounted(() => {
@@ -65,42 +80,9 @@ onMounted(() => {
     try {
       const profile = await authService.getUserProfile(currentUser.uid)
       userProfile.value = profile
+      await dataStore.fetchAllCommonData(true)
 
-      const [pData, rData, prData, sData, clsData, bData, tData, termData] = await Promise.all([
-        parentService.getAllParents(),
-        enrollmentService.getAllEnrollments(),
-        programService.getAllPrograms(),
-        studentService.getAllStudents(),
-        classService.getAllClasses(),
-        branchService.getAllBranches(),
-        trialService.getAllTrials(),
-        termService.getAllTerms()
-      ])
-
-      users.value = Array.isArray(pData) ? pData : []
-      enrollments.value = Array.isArray(rData) ? rData : []
-      programs.value = Array.isArray(prData) ? prData : []
-      students.value = Array.isArray(sData) ? sData : []
-      classes.value = Array.isArray(clsData) ? clsData : []
-      branches.value = Array.isArray(bData) ? bData : []
-      trials.value = Array.isArray(tData) ? tData : []
-
-      if (Array.isArray(termData) && termData.length > 0) {
-        const todayStr = new Date().toISOString().split('T')[0]
-        activeTerm.value = termData.find(t => t.startDate <= todayStr && t.endDate >= todayStr) || 
-                          termData.find(t => t.status === 'active') || 
-                          termData[0]
-      }
-
-      stats.value = calculateDashboardStats(
-        users.value,
-        enrollments.value,
-        programs.value,
-        students.value,
-        classes.value,
-        branches.value,
-        trials.value,
-      )
+      startTermCycling()
     } catch (err) {
       console.error('Dashboard error:', err)
       userProfile.value = {
@@ -114,59 +96,72 @@ onMounted(() => {
   })
 })
 
+const startTermCycling = () => {
+  if (termInterval) clearInterval(termInterval)
+  termInterval = setInterval(() => {
+    if (activeTerms.value.length > 1) {
+      currentTermIndex.value = (currentTermIndex.value + 1) % activeTerms.value.length
+    }
+  }, 5000)
+}
+
+onUnmounted(() => {
+  if (termInterval) clearInterval(termInterval)
+})
+
 const profileImageUrl = computed(() => getAvatarUrl(userProfile.value))
 
 const todayStats = computed(() => [
   {
-    label: 'Today Registrations',
+    label: 'New Accounts',
     value: stats.value.today.reg,
     image: getImageUrl('dashboard/registration'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-info-soft)',
   },
   {
     label: 'Today Enrollments',
     value: stats.value.today.enroll,
     image: getImageUrl('dashboard/enrollment'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-success-soft)',
   },
   {
     label: 'Today Trial Class',
     value: stats.value.today.trial,
     image: getImageUrl('dashboard/trial'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-warning-soft)',
   },
   {
     label: "Today Payments",
     value: `$${formatPrice(stats.value.today.pay)}`,
     image: getImageUrl('dashboard/payment'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-success-soft)',
   },
 ])
 
 const thisWeekStats = computed(() => [
   {
-    label: 'This Week Registrations',
+    label: 'New Accounts',
     value: stats.value.week.reg,
     image: getImageUrl('dashboard/registration'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-info-soft)',
   },
   {
     label: 'This Week Enrollments',
     value: stats.value.week.enroll,
     image: getImageUrl('dashboard/enrollment'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-success-soft)',
   },
   {
     label: 'This Week Trial Classes',
     value: stats.value.week.trial,
     image: getImageUrl('dashboard/trial'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-warning-soft)',
   },
   {
     label: 'This Week Payments',
     value: `$${formatPrice(stats.value.week.pay)}`,
     image: getImageUrl('dashboard/payment'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-success-soft)',
   },
 ])
 
@@ -175,50 +170,49 @@ const totalStats = computed(() => [
     title: 'Total Enrollments',
     value: stats.value.totals.enrollments,
     image: getImageUrl('dashboard/card-top-program'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-primary-soft)',
   },
   {
     title: 'Total Parents',
     value: stats.value.totals.parents,
     image: getImageUrl('parent/total-parent'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-info-soft)',
   },
   {
     title: 'Total Students',
     value: stats.value.totals.students,
     image: getImageUrl('student/total-student'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-info-soft)',
   },
   {
     title: 'Total Branches',
     value: stats.value.totals.branches,
     image: getImageUrl('dashboard/card-branch'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-success-soft)',
   },
   {
     title: 'Total Programs',
     value: stats.value.totals.programs,
     image: getImageUrl('dashboard/card-available-program'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-success-soft)',
   },
   {
     title: 'Total Trial',
     value: stats.value.totals.trials,
     image: getImageUrl('dashboard/card-trial'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-warning-soft)',
   },
   {
     title: 'Total Revenue',
-    value: `$${formatPrice(stats.value.totals.revenue)}`,
+    value: `$${formatPrice(stats.value.totals.totalRevenue)}`,
     image: getImageUrl('dashboard/card-revenue'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-success-soft)',
   },
 ])
 
-import { enrichEnrollments } from '@/utils/enrollmentHelper'
 
 const mappedEnrollments = computed(() => {
-  const raw = [...enrollments.value]
+  const raw = [...dataStore.enrollments]
     .sort((a, b) => {
       const timeB = parseDate(b.enrollAt || b.createdAt).getTime()
       const timeA = parseDate(a.enrollAt || a.createdAt).getTime()
@@ -226,7 +220,13 @@ const mappedEnrollments = computed(() => {
     })
     .slice(0, 5)
 
-  return enrichEnrollments(raw, users.value, students.value, programs.value, classes.value)
+  return enrichEnrollments(
+    raw,
+    dataStore.parents,
+    dataStore.students,
+    dataStore.getProgramWithCategory,
+    dataStore.classes
+  )
 })
 </script>
 
@@ -238,7 +238,7 @@ const mappedEnrollments = computed(() => {
         Loading Dashboard Data...
       </p>
     </div>
-    <div v-else class="flex flex-col lg:flex-row gap-xl px-xl w-full h-[calc(100vh-100px)] overflow-hidden">
+    <div v-else class="flex flex-col lg:flex-row gap-xl px-xl w-full h-[calc(100vh - 100px)] overflow-hidden">
       <div class="flex flex-col flex-1 min-w-0 h-full gap-lg overflow-y-auto pr-md scrollable-v">
         <section class="ui-detail-card">
           <div class="ui-section-header border-none flex items-center gap-md">
@@ -275,17 +275,46 @@ const mappedEnrollments = computed(() => {
             </div>
           </div>
 
-          <div v-if="activeTerm"
-            class="px-md py-4 rounded-md border border-primary/20 bg-primary/5 flex flex-col items-center mb-2">
-            <span class="text-[10px] font-semibold uppercase tracking-widest text-primary mb-1">Active Academic Term</span>
-            <h3 class="text-lg font-bold text-content-dark tracking-tighter leading-tight mb-2">{{ activeTerm.name }}
-            </h3>
-            <div class="flex items-center gap-3">
-              <span class="text-xs font-semibold text-content-muted tabular-nums">{{ formatDateOnly(activeTerm.startDate)
-                }}</span>
-              <span class="w-2 h-px bg-content-muted/30"></span>
-              <span class="text-xs font-semibold text-content-muted tabular-nums">{{ formatDateOnly(activeTerm.endDate)
-                }}</span>
+          <div class="relative overflow-hidden min-h-[140px] flex flex-col">
+            <Transition name="fade" mode="out-in">
+              <div v-if="currentTerm" :key="currentTerm.id"
+                class="px-md py-4 rounded-md border border-primary/20 bg-primary/5 flex flex-col items-center flex-1">
+                <span class="text-sm font-semibold uppercase tracking-widest text-primary mb-1">Active Academic
+                  Term</span>
+
+                <span class="text-md font-bold text-content-dark tracking-tighter leading-tight mb-2 text-center">
+                  {{ currentTerm.name }}
+                </span>
+
+                <div class="w-full flex flex-col gap-2.5 mt-2">
+                  <!-- Branch Column Row -->
+                  <div class="flex justify-center items-center border-b border-primary/10 pb-2.5 px-1">
+                    <div class="flex flex-wrap justify-end gap-1">
+                      <AppBadge v-for="b in currentTerm.branches" :key="b.abbr" :status="b.abbr" :type="b.color"
+                        class="!px-1.5 !py-0.5 !text-xs" />
+                    </div>
+                  </div>
+
+                  <!-- Date Column Row -->
+                  <div class="flex justify-center items-center px-1">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs font-semibold text-content-dark tabular-nums">
+                        {{ formatDateOnly(currentTerm.startDate) }}
+                      </span>
+                      <span class="w-2 h-px bg-content-muted/30"></span>
+                      <span class="text-xs font-semibold text-content-dark tabular-nums">
+                        {{ formatDateOnly(currentTerm.endDate) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Transition>
+
+            <div v-if="activeTerms.length > 1" class="flex justify-center gap-1 mt-2">
+              <div v-for="(_, idx) in activeTerms" :key="idx" class="w-1 h-1 rounded-full transition-all duration-300"
+                :class="idx === currentTermIndex ? 'bg-primary w-3' : 'bg-surface-light'">
+              </div>
             </div>
           </div>
 
@@ -302,3 +331,20 @@ const mappedEnrollments = computed(() => {
     </div>
   </DashboardLayout>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.5s ease;
+}
+
+.fade-enter-from {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.fade-leave-to {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+</style>

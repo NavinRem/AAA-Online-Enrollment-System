@@ -9,7 +9,7 @@ import { classService } from '@/services/classService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { programService } from '@/services/programService'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
-import { calculateClassProgress, formatDateOnly } from '@/utils/formatUtils'
+import { calculateClassProgress, formatDateOnly, generateClassSessions } from '@/utils/formatUtils'
 import { getStatusTheme } from '@/utils/badgeUtils'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
@@ -17,11 +17,44 @@ import DataTable from '@/components/common/data/DataTable.vue'
 const route = useRoute()
 const router = useRouter()
 
+import { attendanceService } from '@/services/attendanceService'
+
 const classData = ref(null)
 const enrollments = ref([])
+const attendanceData = ref({}) // sessionId -> { studentId -> status }
 const programData = ref(null)
 const loading = ref(true)
 const errorMessage = ref('')
+
+const ATTENDANCE_STATUS = {
+  P: { label: 'P', color: 'green', theme: 'bg-success/10 text-success' },
+  A: { label: 'A', color: 'red', theme: 'bg-error-soft text-error' },
+  L: { label: 'L', color: 'yellow', theme: 'bg-warning-soft text-warning' },
+  N: { label: 'N', color: 'gray', theme: 'bg-surface-subtle text-content-muted/40' }
+}
+
+const getAttendanceStatus = (sessionId, studentId) => {
+  return attendanceData.value[sessionId]?.[studentId] || 'N'
+}
+
+const toggleAttendance = async (sessionId, studentId) => {
+  const current = getAttendanceStatus(sessionId, studentId)
+  const sequence = ['N', 'P', 'A', 'L']
+  const next = sequence[(sequence.indexOf(current) + 1) % sequence.length]
+
+  // Optimistic update
+  if (!attendanceData.value[sessionId]) {
+    attendanceData.value[sessionId] = {}
+  }
+  attendanceData.value[sessionId][studentId] = next
+
+  try {
+    await attendanceService.recordAttendance(classData.value.id, sessionId, attendanceData.value[sessionId])
+  } catch (error) {
+    console.error('Failed to save attendance', error)
+    // Revert on error
+  }
+}
 
 const classStats = computed(() => {
   if (!classData.value) return []
@@ -58,28 +91,8 @@ const classStats = computed(() => {
 
 const sessions = computed(() => {
   const dayOfWeek = classData.value?.day || classData.value?.schedule?.day
-  if (!classData.value?.term?.startDate || !dayOfWeek) return []
-  const startDate = new Date(classData.value.term.startDate)
-  const total = classData.value.term.totalSessions || classData.value.totalSessions || 12
-
-  const dates = []
-  const dayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 }
-  const targetDay = dayMap[dayOfWeek]
-
-  let current = new Date(startDate)
-  while (current.getDay() !== targetDay) {
-    current.setDate(current.getDate() + 1)
-  }
-
-  for (let i = 0; i < total; i++) {
-    dates.push({
-      id: i + 1,
-      label: `Session ${i + 1}`,
-      date: new Date(current),
-    })
-    current.setDate(current.getDate() + 7)
-  }
-  return dates
+  const total = classData.value?.term?.totalSessions || classData.value?.totalSessions || 12
+  return generateClassSessions(classData.value?.term?.startDate, dayOfWeek, total)
 })
 
 const attendanceHeaders = computed(() => {
@@ -112,8 +125,6 @@ const currentHeaders = attendanceHeaders
 const currentItems = enrollments
 const currentEntityName = computed(() => 'student')
 const currentTableTitle = computed(() => 'Student Attendance')
-
-
 
 const actionModal = ref({
   isOpen: false,
@@ -164,9 +175,10 @@ const fetchData = async (id) => {
   loading.value = true
   errorMessage.value = ''
   try {
-    const [data, enrollmentData] = await Promise.all([
+    const [data, enrollmentData, attendanceMap] = await Promise.all([
       classService.getClass(id),
-      enrollmentService.getAllEnrollments({ classId: id })
+      enrollmentService.getAllEnrollments({ classId: id }),
+      attendanceService.getClassAttendance(id)
     ])
     // Ensure defaults for critical rendering fields
     if (!data.schedule) {
@@ -176,7 +188,12 @@ const fetchData = async (id) => {
     data.enrolledCount = data.enrolledCount || 0
 
     classData.value = data
-    enrollments.value = enrollmentData || []
+    // Ensure naming parity with backend (currentCount/capacity vs enrolledCount/maxCapacity)
+    classData.value.enrolledCount = data.currentCount || 0
+    classData.value.maxCapacity = data.capacity || 20
+    
+    enrollments.value = enrollmentData?.data || enrollmentData || []
+    attendanceData.value = attendanceMap || {}
 
     if (data?.programId) {
       const pData = await programService.getProgram(data.programId)
@@ -189,8 +206,6 @@ const fetchData = async (id) => {
     loading.value = false
   }
 }
-
-
 
 onMounted(() => {
   if (route.params.id) fetchData(route.params.id)
@@ -263,13 +278,15 @@ watch(() => route.params.id, (newId) => {
               <td v-for="session in sessions" :key="session.id" class="ui-cell text-center p-1">
                 <div class="flex flex-col items-center gap-1">
                   <div
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold cursor-pointer transition-all hover:scale-110 shadow-sm border border-outline-std"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold cursor-pointer transition-all hover:scale-110 shadow-sm border border-outline-std select-none"
                     :class="[
-                      index % 2 === 0 ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary',
-                      session.date < new Date() ? '' : 'opacity-30 bg-gray-100 text-gray-400'
-                    ]">
-                    {{ session.date < new Date() ? (index % 3 === 0 ? 'A' : 'P') : 'N' }} </div>
+                      ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)].theme,
+                      session.date > new Date() ? 'opacity-30' : ''
+                    ]"
+                    @click="toggleAttendance(session.id, item.studentId)">
+                    {{ ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)].label }}
                   </div>
+                </div>
               </td>
 
               <!-- Special Columns -->

@@ -1,6 +1,7 @@
 const { db, COLLECTIONS } = require('../config/database')
 const authService = require('./authService')
 const profileHelper = require('../utils/profileHelper')
+const firestoreHelper = require('../utils/firestoreHelper')
 const {
   validateParent,
   validateUpdateParent,
@@ -51,20 +52,22 @@ class ParentService {
   }
 
   async getAllParents(filters = {}) {
-    let query = db.collection(COLLECTIONS.PARENT)
-    if (filters.limit) query = query.limit(parseInt(filters.limit))
+    const snapshot = await db.collection(COLLECTIONS.PARENT).get()
+    const data = snapshot.docs
+      .map((doc) => profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }))
+      .filter((p) => p.isDeleted !== true)
 
-    const snapshot = await query.get()
-    return snapshot.docs.map((doc) =>
-      profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }),
-    )
+    if (filters.limit) return data.slice(0, parseInt(filters.limit))
+    return data
   }
 
   async getParent(id) {
     if (!id) throw new Error('Parent ID is required')
     const doc = await db.collection(COLLECTIONS.PARENT).doc(id).get()
     if (!doc.exists) throw new Error('Parent not found')
-    return profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() })
+    const data = profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() })
+    if (data.isDeleted) throw new Error('Parent has been deleted')
+    return data
   }
 
   async updateParent(id, updateData) {
@@ -90,8 +93,8 @@ class ParentService {
       ...(validatedUpdate.childrenInfo && { childrenInfo: validatedUpdate.childrenInfo }),
     }
 
-    const batch = db.batch()
-    batch.update(parentRef, cleanUpdate)
+    const writes = []
+    writes.push({ ref: parentRef, data: cleanUpdate })
 
     const syncFields = ['name', 'email', 'phone', 'profileURL', 'status']
     const shouldSync = Object.keys(cleanUpdate).some((k) =>
@@ -103,10 +106,11 @@ class ParentService {
         ...currentParentData,
         ...cleanUpdate,
       })
-      await this.syncParentMirrors(id, snapshot, childrenInfo, batch)
+      const mirrorWrites = await this.getParentMirrorOperations(id, snapshot, childrenInfo)
+      writes.push(...mirrorWrites)
     }
 
-    await batch.commit()
+    await firestoreHelper.chunkedUpdate(writes)
     return { message: 'Updated successfully' }
   }
 
@@ -120,20 +124,18 @@ class ParentService {
     const currentParentData = parentDoc.data()
     const childrenInfo = currentParentData.childrenInfo || []
 
-    const batch = db.batch()
-    batch.delete(parentRef)
+    const writes = []
+    writes.push({
+      ref: parentRef,
+      data: { isDeleted: true, status: 'deleted', updatedAt: new Date().toISOString() }
+    })
 
     if (childrenInfo && childrenInfo.length > 0) {
       for (const child of childrenInfo) {
         if (!child.id) continue
-        const studentRef = db.collection(COLLECTIONS.STUDENT).doc(child.id)
-        const studentDoc = await studentRef.get()
-
-        if (studentDoc.exists) {
-          let parentInfo = [...(studentDoc.data().parentInfo || [])]
-          parentInfo = parentInfo.filter((p) => p.id !== id)
-          batch.update(studentRef, { parentInfo })
-        }
+        const studentService = require('./studentService')
+        // We reuse the student soft delete logic
+        await studentService.deleteStudent(child.id)
       }
     }
 
@@ -141,16 +143,25 @@ class ParentService {
       .collection(COLLECTIONS.ENROLLMENT)
       .where('parentId', '==', id)
       .get()
-    enrollmentsSnap.forEach((eDoc) => batch.delete(eDoc.ref))
+    
+    enrollmentsSnap.forEach((eDoc) => {
+      writes.push({
+        ref: eDoc.ref,
+        data: { isDeleted: true, status: 'cancelled', updatedAt: new Date().toISOString() }
+      })
+    })
 
-    await batch.commit()
-    await authService.deleteAccount(id)
-    return { id, message: 'Parent deleted successfully from system' }
+    await firestoreHelper.chunkedUpdate(writes)
+    // Note: We keep the auth account but mark it as deleted in DB. 
+    // In a real production app, you might want to disable the account in Firebase Auth.
+    
+    return { id, message: 'Parent and related data soft-deleted successfully' }
   }
 
   // --- Utility & Mirroring Methods ---
 
-  async syncParentMirrors(pid, snapshot, childrenInfo, batch) {
+  async getParentMirrorOperations(pid, snapshot, childrenInfo) {
+    const writes = []
     if (childrenInfo && childrenInfo.length > 0) {
       for (const child of childrenInfo) {
         if (!child.id) continue
@@ -165,7 +176,7 @@ class ParentService {
           } else {
             parentInfo.push(snapshot)
           }
-          batch.update(studentRef, { parentInfo })
+          writes.push({ ref: studentRef, data: { parentInfo } })
         }
       }
     }
@@ -174,9 +185,22 @@ class ParentService {
       .collection(COLLECTIONS.ENROLLMENT)
       .where('parentId', '==', pid)
       .get()
+      
     enrollmentsSnap.forEach((eDoc) =>
-      batch.update(eDoc.ref, { parentInfo: snapshot }),
+      writes.push({ ref: eDoc.ref, data: { parent: snapshot } })
     )
+
+    // 3. Sync with Trial records
+    const trialsSnap = await db
+      .collection(COLLECTIONS.TRIAL)
+      .where('parentId', '==', pid)
+      .get()
+    
+    trialsSnap.forEach((tDoc) =>
+      writes.push({ ref: tDoc.ref, data: { parent: snapshot } })
+    )
+    
+    return writes
   }
 
   async clearParentMirrors(id) {

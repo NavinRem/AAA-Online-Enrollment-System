@@ -32,7 +32,6 @@ const getInitialData = () => ({
   type: 'Group',
   basePrice: 180,
   totalSessions: 11,
-  maxCapacity: 10,
   minAge: 5,
   maxAge: 15,
   profileURL: '',
@@ -311,7 +310,6 @@ const confirmRows = computed(() => {
     { key: 'Base Price', value: `$${localData.basePrice}`, valueClass: 'font-bold text-primary text-base', badge: true, type: 'blue' },
     { key: 'Total Sessions', value: localData.totalSessions, valueClass: 'font-bold tabular-nums' },
     { key: 'Age Range', value: `${localData.minAge} - ${localData.maxAge} years`, valueClass: 'font-bold text-content-dark' },
-    { key: 'Max Capacity', value: localData.maxCapacity, valueClass: 'font-bold tabular-nums' },
   ]
   if (props.type === 'delete') {
     rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-bold' })
@@ -483,13 +481,6 @@ watch(
 
         <AppInput v-model="localData.totalSessions" type="number" label="Total Sessions" placeholder="24" required
           :error="errors.totalSessions" :shake="shaking.totalSessions" @input="clearError('totalSessions')" />
-
-        <AppInput v-model="localData.maxCapacity" type="number" label="Global Max Capacity" placeholder="0 for Unlimited"
-          :error="errors.maxCapacity" :shake="shaking.maxCapacity" @input="clearError('maxCapacity')">
-          <template #label-extra>
-            <span class="text-[9px] text-content-muted ml-2">(0 = Unlimited)</span>
-          </template>
-        </AppInput>
 
         <AppInput v-model="localData.minAge" type="number" label="Minimum Age" placeholder="5" required />
         <AppInput v-model="localData.maxAge" type="number" label="Maximum Age" placeholder="12" required />

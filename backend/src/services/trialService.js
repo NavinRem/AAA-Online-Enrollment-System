@@ -1,5 +1,6 @@
 const { db, COLLECTIONS } = require('../config/database')
 const profileHelper = require('../utils/profileHelper')
+const firestoreHelper = require('../utils/firestoreHelper')
 const {
   validateTrial,
   validateUpdateTrial,
@@ -104,8 +105,8 @@ class TrialService {
       program: programSnapshot,
       class: classSnapshot,
       branch: branchSnapshot,
-      // After accounts are created, it's technically no longer a "pure" guest in the system
-      isGuest: false,
+      // Keep isGuest: true for records created via guest flow to allow tracking
+      isGuest: !!validated.isGuest,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
@@ -121,16 +122,26 @@ class TrialService {
     if (filters.classId) query = query.where('classId', '==', filters.classId)
     if (filters.status) query = query.where('status', '==', filters.status)
 
+    // Date-range filtering for "Trial Today" optimization
+    if (filters.trialDateFrom) {
+      query = query.where('trialDate', '>=', filters.trialDateFrom)
+    }
+    if (filters.trialDateTo) {
+      query = query.where('trialDate', '<', filters.trialDateTo)
+    }
+
     const snapshot = await query.get()
-    return snapshot.docs.map((doc) =>
-      profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }),
-    )
+    return snapshot.docs
+      .map((doc) => profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }))
+      .filter((t) => t.isDeleted !== true)
   }
 
   async getTrial(id) {
     const doc = await db.collection(COLLECTIONS.TRIAL).doc(id).get()
     if (!doc.exists) throw new Error('Trial not found')
-    return profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() })
+    const data = profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() })
+    if (data.isDeleted) throw new Error('Trial has been deleted')
+    return data
   }
 
   async updateTrial(id, updateData) {
@@ -188,8 +199,12 @@ class TrialService {
     const doc = await trialRef.get()
     if (!doc.exists) throw new Error('Trial not found')
 
-    await trialRef.delete()
-    return { message: 'Trial deleted successfully' }
+    await trialRef.update({
+      isDeleted: true,
+      status: 'deleted',
+      updatedAt: new Date().toISOString(),
+    })
+    return { message: 'Trial deleted successfully (Soft delete)' }
   }
 
   /**
@@ -230,7 +245,7 @@ class TrialService {
     if (!parentSnapshot.empty) {
       parentId = parentSnapshot.docs[0].id
     } else {
-      // Create new parent
+      // Create new parent with all standard fields
       const parentRef = db.collection(COLLECTIONS.PARENT).doc()
       parentId = parentRef.id
       await parentRef.set({
@@ -239,6 +254,8 @@ class TrialService {
         phone: guestParentPhone,
         profileURL: guestParentAvatar || '',
         status: 'active',
+        isDeleted: false,
+        childrenInfo: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })
@@ -255,16 +272,38 @@ class TrialService {
     if (!studentQuery.empty) {
       studentId = studentQuery.docs[0].id
     } else {
-      // Create new student
+      // Create new student with all standard fields
       const studentRef = db.collection(COLLECTIONS.STUDENT).doc()
       studentId = studentRef.id
+
+      const parentDoc = await db.collection(COLLECTIONS.PARENT).doc(parentId).get()
+      const parentInfo = parentDoc.exists
+        ? [profileHelper.getParentSnapshot(parentId, parentDoc.data())]
+        : []
+
       await studentRef.set({
         parentId,
         name: guestStudentName,
         dob: guestStudentDOB || null,
+        age: guestStudentDOB ? profileHelper.calculateAge(guestStudentDOB) : 0,
         profileURL: guestStudentAvatar || '',
+        status: 'inactive',
+        isDeleted: false,
+        parentInfo,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+      })
+
+      // Update parent's childrenInfo
+      const studentSnapshot = profileHelper.getStudentSnapshot(studentId, {
+        name: guestStudentName,
+        dob: guestStudentDOB || null,
+        profileURL: guestStudentAvatar || '',
+        status: 'inactive',
+      })
+      const existingChildren = parentDoc.exists ? (parentDoc.data().childrenInfo || []) : []
+      await db.collection(COLLECTIONS.PARENT).doc(parentId).update({
+        childrenInfo: [...existingChildren, studentSnapshot],
       })
     }
 
@@ -278,11 +317,11 @@ class TrialService {
       .where('classId', '==', classId)
       .get()
     if (snapshot.empty) return
-    const batch = db.batch()
-    snapshot.docs.forEach((doc) => {
-      batch.update(doc.ref, { class: classSnapshot })
-    })
-    await batch.commit()
+    const writes = snapshot.docs.map((doc) => ({
+      ref: doc.ref,
+      data: { class: classSnapshot },
+    }))
+    await firestoreHelper.chunkedUpdate(writes)
   }
 
   async syncTrialsWithProgram(programId, programSnapshot) {
@@ -291,11 +330,37 @@ class TrialService {
       .where('programId', '==', programId)
       .get()
     if (snapshot.empty) return
-    const batch = db.batch()
-    snapshot.docs.forEach((doc) => {
-      batch.update(doc.ref, { program: programSnapshot })
-    })
-    await batch.commit()
+    const writes = snapshot.docs.map((doc) => ({
+      ref: doc.ref,
+      data: { program: programSnapshot },
+    }))
+    await firestoreHelper.chunkedUpdate(writes)
+  }
+
+  async syncTrialsWithStudent(studentId, studentSnapshot) {
+    const snapshot = await db
+      .collection(COLLECTIONS.TRIAL)
+      .where('studentId', '==', studentId)
+      .get()
+    if (snapshot.empty) return
+    const writes = snapshot.docs.map((doc) => ({
+      ref: doc.ref,
+      data: { student: studentSnapshot },
+    }))
+    await firestoreHelper.chunkedUpdate(writes)
+  }
+
+  async syncTrialsWithParent(parentId, parentSnapshot) {
+    const snapshot = await db
+      .collection(COLLECTIONS.TRIAL)
+      .where('parentId', '==', parentId)
+      .get()
+    if (snapshot.empty) return
+    const writes = snapshot.docs.map((doc) => ({
+      ref: doc.ref,
+      data: { parent: parentSnapshot },
+    }))
+    await firestoreHelper.chunkedUpdate(writes)
   }
 }
 

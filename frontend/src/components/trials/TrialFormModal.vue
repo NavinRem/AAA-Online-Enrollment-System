@@ -409,6 +409,20 @@ watch(() => form.guestStudentDOB, (dob) => {
                 <span class="enroll-info-key">Registry</span>
                 <AppBadge :status="form.isGuest ? 'Walk-in' : 'Booked'" :type="form.isGuest ? 'magenta' : 'purple'" />
               </div>
+              <div v-if="isEditMode" class="enroll-info-item col-span-2 mt-2 pt-2 border-t border-outline-std/50">
+                <span class="enroll-info-key">Conversion Success</span>
+                <div class="flex items-center gap-4 mt-1">
+                   <div class="ui-box-toggle" :class="{ 'ui-box-toggle--active': form.isSuccessful }"
+                    @click="form.isSuccessful = !form.isSuccessful">
+                    <span class="text-xs font-bold uppercase tracking-widest" :class="form.isSuccessful ? 'text-success' : 'text-content-muted'">
+                      {{ form.isSuccessful ? 'Converted / Successful' : 'Pending / No Enrollment' }}
+                    </span>
+                  </div>
+                  <span class="text-[10px] text-content-muted leading-tight italic">
+                    Marking this as successful indicates the student has decided to enroll.
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
           <!-- Administrative Remarks -->

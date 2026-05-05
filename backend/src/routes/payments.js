@@ -5,6 +5,8 @@ const { verifyToken, isOwnerOrAdmin } = require('../middleware/authMiddleware')
 
 router.use(verifyToken)
 
+router.get('/', paymentController.getAllPayments)
+router.get('/stats', paymentController.getFinancialStats)
 router.get('/history/:uid', isOwnerOrAdmin, paymentController.getPaymentHistory)
 router.post('/initiate', paymentController.initiatePayment)
 router.post('/verify', paymentController.verifyPayment)

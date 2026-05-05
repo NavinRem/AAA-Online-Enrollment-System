@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDataStore } from '@/stores/dataStore'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DataPageLayout from '@/components/layout/DataPageLayout.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
@@ -13,8 +14,8 @@ import { getImageUrl, getActionIcon, getIconUrl } from '@/utils/assetHelper'
 import { useSearch } from '@/composables/useSearch'
 import { calculateClassProgress } from '@/utils/formatUtils'
 
+const dataStore = useDataStore()
 const loading = ref(false)
-const classes = ref([])
 const currentPage = ref(1)
 const pageSize = 10
 
@@ -32,82 +33,73 @@ const classHeaders = [
   { label: 'ACTION', width: '60px', align: 'center' },
 ]
 
-const isOngoing = (c) => {
-  if (c.status !== 'active') return false
-  const now = new Date()
-  const scheduleDay = c.schedule?.day || c.day
-  if (scheduleDay !== dayName) return false
+const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
-  const scheduleTime = c.schedule?.time
-  const [startStr, endStr] = (scheduleTime).split(' - ')
-  if (!startStr || !endStr) return false
-
-  const parseTime = (str) => {
-    const [time, period] = str.split(' ')
-    let [h, m] = time.split(':').map(Number)
-    if (period === 'PM' && h < 12) h += 12
-    if (period === 'AM' && h === 12) h = 0
-    return h * 60 + m
-  }
-
-  const currentMins = now.getHours() * 60 + now.getMinutes()
-  return currentMins >= parseTime(startStr) && currentMins <= parseTime(endStr)
+const getExtendedStatus = (cls) => {
+  return calculateClassProgress(
+    cls.term?.startDate,
+    cls.term?.endDate,
+    cls.schedule?.day,
+    cls.schedule?.time,
+    cls.currentCount || cls.enrolledCount || 0,
+    cls.capacity || cls.maxCapacity || 0
+  )
 }
+
+const isOngoing = (cls) => getExtendedStatus(cls).status === 'ongoing'
+const isFull = (cls) => {
+  const cap = cls.capacity || cls.maxCapacity || 0
+  const count = cls.currentCount || cls.enrolledCount || 0
+  return cap > 0 && count >= cap
+}
+const isAvailable = (cls) => !isFull(cls) && cls.status !== 'archived'
 
 const statsCards = computed(() => [
   {
     label: 'Total Classes',
-    value: classes.value.length,
+    value: dataStore.classes.length,
     image: getImageUrl('programs/total-program'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-primary-soft)',
   },
   {
     label: 'Available Classes',
-    value: classes.value.filter((c) => (c.enrolledCount || 0) < (c.maxCapacity || 20)).length,
+    value: dataStore.classes.filter(isAvailable).length,
     image: getImageUrl('dashboard/card-available-program'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-success-soft)',
   },
   {
     label: 'Full Classes',
-    value: classes.value.filter((c) => (c.enrolledCount || 0) >= (c.maxCapacity || 20)).length,
+    value: dataStore.classes.filter(isFull).length,
     image: getImageUrl('programs/archived-program'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-error-soft)',
   },
   {
     label: 'Ongoing Classes',
-    value: classes.value.filter(isOngoing).length,
+    value: dataStore.classes.filter(isOngoing).length,
     image: getImageUrl('programs/active-program'),
-    color: 'var(--color-primary-light)',
+    color: 'var(--color-warning-soft)',
   },
 ])
 
 const fetchClasses = async () => {
   loading.value = true
   try {
-    const data = await classService.getAllClasses()
-
-    const classList = (Array.isArray(data) ? data : [])
-      .filter(cls => cls.isDeleted !== true)
-      .map(cls => {
-        // Ensure defaults for critical rendering fields
-        if (!cls.schedule) {
-          cls.schedule = { day: 'TBA', time: 'N/A' }
-        }
-        cls.maxCapacity = cls.capacity || cls.maxCapacity || 20
-        cls.enrolledCount = cls.currentCount || cls.enrolledCount || 0
-        return cls
-      })
-
-    // Status Synchronization: Ensure stored status matches term-based logic
+    await dataStore.fetchAllCommonData(true)
+    
+    // Status Synchronization: Ensure stored status matches term and capacity logic
     const syncTasks = []
-    classList.forEach(cls => {
+    dataStore.classes.forEach(cls => {
       if (cls.term) {
-        const prog = calculateClassProgress(cls.term.startDate, cls.term.endDate, cls.schedule.day, cls.schedule.time)
+        const cap = cls.capacity || cls.maxCapacity || 0
+        const count = cls.currentCount || cls.enrolledCount || 0
+        
+        // Calculate status without Ongoing (for persistence)
+        const prog = calculateClassProgress(cls.term.startDate, cls.term.endDate, null, null, count, cap)
         const calculatedStatus = prog.status.toLowerCase()
 
         if (cls.status !== calculatedStatus) {
           syncTasks.push(classService.updateClass(cls.id, { status: calculatedStatus }))
-          cls.status = calculatedStatus // Update local state for immediate feedback
+          cls.status = calculatedStatus 
         }
       }
     })
@@ -116,8 +108,6 @@ const fetchClasses = async () => {
       console.log(`[ClassSync] Updating ${syncTasks.length} class statuses to maintain data integrity.`)
       await Promise.all(syncTasks)
     }
-
-    classes.value = classList
   } catch (err) {
     console.error('Failed to fetch classes:', err)
   } finally {
@@ -125,7 +115,7 @@ const fetchClasses = async () => {
   }
 }
 
-const { searchQuery, searchResults } = useSearch(classes, (c) => {
+const { searchQuery, searchResults } = useSearch(computed(() => dataStore.classes), (c) => {
   return `${c.program?.name} ${c.program?.category} ${c.teacher?.name} ${c.branch?.name} ${c.schedule?.day} ${c.schedule?.time}`
 })
 
@@ -156,7 +146,7 @@ const filterOptions = computed(() => {
 
   // Categories
   const categoriesMap = new Map()
-  classes.value.forEach(c => {
+  dataStore.classes.forEach(c => {
     const cat = c.program?.category
     if (cat) {
       const catName = typeof cat === 'object' ? cat.name : cat
@@ -183,7 +173,7 @@ const filterOptions = computed(() => {
 
   // Branches
   const branchesMap = new Map()
-  classes.value.forEach(c => {
+  dataStore.classes.forEach(c => {
     const branch = c.branch
     if (branch && branch.name) {
       if (!branchesMap.has(branch.name)) {
@@ -226,9 +216,15 @@ const displayClasses = computed(() => {
     } else if (filter.startsWith('avail:')) {
       const avail = filter.replace('avail:', '')
       if (avail === 'available') {
-        result = result.filter(c => (c.enrolledCount || 0) < (c.maxCapacity || 20))
+        result = result.filter(c => {
+          const cap = c.capacity || c.maxCapacity || 0
+          return cap === 0 || (c.currentCount || 0) < cap
+        })
       } else if (avail === 'full') {
-        result = result.filter(c => (c.enrolledCount || 0) >= (c.maxCapacity || 20))
+        result = result.filter(c => {
+          const cap = c.capacity || c.maxCapacity || 0
+          return cap > 0 && (c.currentCount || 0) >= cap
+        })
       } else if (avail === 'ongoing') {
         result = result.filter(isOngoing)
       }
@@ -299,10 +295,7 @@ const closeModal = () => {
   modal.value.success = ''
 }
 
-const getRowClass = (item) => {
-  // Add logic for highlighting newly created or active classes if needed
-  return ''
-}
+const getRowClass = () => ''
 
 const handleAction = (type, item) => {
   modal.value = {
@@ -417,22 +410,13 @@ onMounted(fetchClasses)
             </td>
 
             <td class="ui-cell" :style="{ width: headers[4].width }">
-              <div v-if="item.term" class="flex flex-col items-start gap-2 w-full pr-8">
-                <div
-                  class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
-                  <div class="h-full bg-primary transition-all duration-700 ease-out rounded-full"
-                    :style="{ width: `${calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day, item.schedule.time).percentage}%` }">
-                  </div>
-                </div>
-                <span class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">
-                  {{ calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day,
-                    item.schedule.time).week }}/{{
-                    calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day,
-                      item.schedule.time).totalWeeks }} Sessions
-                </span>
-              </div>
-              <span v-else
-                class="text-[10px] font-semibold uppercase text-content-muted/30 tracking-widest italic">TBD</span>
+              <span v-if="item.term && item.schedule"
+                class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">
+                {{ calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day,
+                  item.schedule.time).week }}/{{ calculateClassProgress(item.term.startDate, item.term.endDate,
+                    item.schedule.day, item.schedule.time).totalWeeks }} Sessions
+              </span>
+              <span v-else class="text-[10px] font-semibold uppercase text-content-muted/30 tracking-widest italic">TBD</span>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[5].width }">
@@ -449,24 +433,26 @@ onMounted(fetchClasses)
                 <div
                   class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
                   <div class="h-full transition-all duration-700 ease-out rounded-full"
-                    :style="{ width: (item.enrolledCount / item.maxCapacity) * 100 + '%' }"
-                    :class="(item.enrolledCount / item.maxCapacity) >= 1 ? 'bg-error' : (item.enrolledCount / item.maxCapacity) >= 0.8 ? 'bg-warning' : 'bg-emerald-500'">
+                    :style="{ width: ((item.capacity || item.maxCapacity) ? (item.currentCount / (item.capacity || item.maxCapacity)) * 100 : 0) + '%' }"
+                    :class="((item.capacity || item.maxCapacity) && (item.currentCount / (item.capacity || item.maxCapacity)) >= 1) ? 'bg-error' : ((item.capacity || item.maxCapacity) && (item.currentCount / (item.capacity || item.maxCapacity)) >= 0.8) ? 'bg-warning' : 'bg-emerald-500'">
                   </div>
                 </div>
-                <span class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">{{
-                  item.enrolledCount || 0 }}/{{ item.maxCapacity || 20 }}</span>
+                <span class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">
+                  {{ item.currentCount || 0 }}/{{ (item.capacity || item.maxCapacity) || '∞' }}
+                </span>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[7].width }">
               <AppBadge
-                :status="calculateClassProgress(item.term?.startDate, item.term?.endDate, item.schedule.day, item.schedule.time).status"
+                :status="getExtendedStatus(item).status"
                 :type="{
-                  'Upcoming': 'blue',
-                  'Archived': 'neutral',
-                  'Ongoing': 'success',
-                  'Active': 'success'
-                }[calculateClassProgress(item.term?.startDate, item.term?.endDate, item.schedule.day, item.schedule.time).status] || 'success'" />
+                  'upcoming': 'blue',
+                  'archived': 'neutral',
+                  'ongoing': 'purple',
+                  'full': 'red',
+                  'active': 'success'
+                }[getExtendedStatus(item).status] || 'success'" />
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[8].width }">

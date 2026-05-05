@@ -1,10 +1,10 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useDataStore } from '../stores/dataStore'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
-import DataMetrics from '../components/common/data/DataMetrics.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
@@ -13,13 +13,9 @@ import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { useAuthStore } from '@/stores/auth'
 import { studentService } from '../services/studentService'
 import { parentService } from '../services/parentService'
-import { enrollmentService } from '../services/enrollmentService'
-import { storageService } from '../services/storageService'
 import { useSearch, studentSearchMapper } from '@/composables/useSearch'
-import { formatDate, calculateAge } from '@/utils/formatUtils'
+import { formatDate } from '@/utils/formatUtils'
 import { getProgramProfileURL } from '@/utils/assetHelper'
-import { programService } from '../services/programService'
-import { termService } from '../services/termService'
 import {
   calculateTotalStudent,
   enrichStudents,
@@ -30,45 +26,30 @@ import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const students = ref([])
-const loading = ref(true)
+const dataStore = useDataStore()
 const newlyCreatedId = ref(null)
+
+const students = computed(() => dataStore.students)
+const parentsList = computed(() => dataStore.parents)
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
 }
 
 const fetchStudents = async () => {
-  loading.value = true
+  dataStore.loading.students = true
 
   if (!authStore.isAuthenticated) {
-    loading.value = false
+    dataStore.loading.students = false
     return
   }
 
   try {
-    const allTerms = await termService.getAllTerms().catch(() => [])
-
-    const activeTerm =
-      allTerms.find((t) => t.status === 'active') ||
-      [...allTerms].sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0]
-    const activeTermId = activeTerm?.id || null
-
-    if (authStore.isAdmin) {
-      const [sData, rData, pData] = await Promise.all([
-        studentService.getAllStudents(),
-        enrollmentService.getAllEnrollments(),
-        parentService.getAllParents(),
-      ])
-      students.value = enrichStudents(sData, rData || [], pData || [], activeTermId)
-    } else {
-      const sData = await studentService.getStudentsByParent(authStore.user.uid)
-      students.value = enrichStudents(sData, [], [], activeTermId)
-    }
+    await dataStore.fetchAllCommonData(true)
   } catch (error) {
     console.error('Failed to fetch students', error)
   } finally {
-    loading.value = false
+    dataStore.loading.students = false
   }
 }
 
@@ -76,7 +57,21 @@ onMounted(() => {
   fetchStudents()
 })
 
-const { searchQuery, searchResults } = useSearch(students, studentSearchMapper)
+const studentsEnriched = computed(() => {
+  const sData = dataStore.students
+  const rData = dataStore.enrollments
+  const pData = dataStore.parents
+  const allTerms = dataStore.terms
+
+  const activeTerm =
+    allTerms.find((t) => t.status === 'active') ||
+    [...allTerms].sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0]
+  const activeTermId = activeTerm?.id || null
+
+  return enrichStudents(sData, rData, pData, activeTermId)
+})
+
+const { searchQuery, searchResults } = useSearch(studentsEnriched, studentSearchMapper)
 
 const currentFilter = ref('all')
 
@@ -103,31 +98,31 @@ watch([currentFilter, searchQuery], () => {
 })
 
 const statsCards = computed(() => {
-  const s = calculateTotalStudent(students.value)
+  const s = calculateTotalStudent(studentsEnriched.value)
   return [
     {
       label: 'Total Students',
       value: s.total,
       image: getImageUrl('student/total-student'),
-      color: 'var(--color-primary-light)'
+      color: 'var(--color-primary-soft)'
     },
     {
       label: 'Currently Studying',
       value: s.studying,
       image: getImageUrl('student/currently-enrolled'),
-      color: 'var(--color-primary-light)'
+      color: 'var(--color-info-soft)'
     },
     {
       label: 'Not Enrolled',
       value: s.inactive,
       image: getImageUrl('student/currently-not-enrolled'),
-      color: 'var(--color-primary-light)'
+      color: 'var(--color-warning-soft)'
     },
     {
       label: 'Graduated',
       value: s.graduated,
       image: getImageUrl('student/graduated'),
-      color: 'var(--color-primary-light)'
+      color: 'var(--color-success-soft)'
     },
   ]
 })
@@ -150,20 +145,12 @@ const parentActionModal = ref({
 const modalLoading = ref(false)
 const modalError = ref('')
 const modalSuccess = ref('')
-const parentsList = ref([])
 
 const handleOpenAddStudent = async () => {
   modalError.value = ''
   modalSuccess.value = ''
   parentActionModal.value.isOpen = true
   parentActionModal.value.type = 'plus'
-
-  try {
-    parentsList.value = await parentService.getAllParents()
-  } catch (err) {
-    console.error('Failed to load parents list', err)
-    modalError.value = 'Could not load parent options.'
-  }
 }
 
 const handleRegisterStudent = async (formData) => {
@@ -229,14 +216,6 @@ const openActionModal = async (type, studentItem) => {
     type,
     student: studentItem,
   }
-
-  if (parentsList.value.length === 0) {
-    try {
-      parentsList.value = await parentService.getAllParents()
-    } catch (err) {
-      console.warn('Could not load parent options for edit form', err)
-    }
-  }
 }
 
 const submitActionModal = async (formData) => {
@@ -260,11 +239,7 @@ const submitActionModal = async (formData) => {
       newlyCreatedId.value = student.id
       modalSuccess.value = 'Student profile updated successfully!'
     } else if (type === 'delete') {
-      const studentId = student.id
-      const parentId = student.parentId
-
-      await studentService.deleteStudent(studentId)
-      students.value = students.value.filter((s) => s.id !== studentId)
+      await studentService.deleteStudent(student.id)
       modalSuccess.value = 'Student record permanently deleted.'
     } else if (type === 'override') {
       const { overrideReason, overrideRemark } = formData
@@ -286,19 +261,15 @@ const submitActionModal = async (formData) => {
         }
       }
 
-      const idx = students.value.findIndex((s) => s.id === student.id)
-      if (idx !== -1) {
-        students.value[idx].status = status
-        students.value[idx].overrideReason = overrideReason
-        students.value[idx].overrideRemark = overrideRemark
-        if (isStopping) students.value[idx].archived = true
-      }
+      // Removed manual mutation of computed property. 
+      // Relying on dataStore.fetchAllCommonData(true) below to sync the entire dashboard.
       modalSuccess.value = `Student manually set to ${status} status.${isStopping ? ' Parent account deactivated.' : ''}`
     }
 
+    await fetchStudents()
+    
     setTimeout(() => {
       actionModal.value.isOpen = false
-      fetchStudents()
     }, 1500)
   } catch (err) {
     console.error('Failed Action', err)
@@ -319,8 +290,8 @@ const submitActionModal = async (formData) => {
       </template>
 
       <template #table>
-        <DataTable title="Student Lists" :headers="studentHeaders" :items="paginatedStudents" :loading="loading"
-          entityName="student" :flexible="true" v-model:searchQuery="searchQuery"
+        <DataTable title="Student Lists" :headers="studentHeaders" :items="paginatedStudents"
+          :loading="dataStore.loading.students" entityName="student" :flexible="true" v-model:searchQuery="searchQuery"
           searchPlaceholder="Search by name or ID..." :hasFilter="true" v-model:currentFilter="currentFilter"
           :filterOptions="[
             { label: 'All Students', value: 'all' },
@@ -403,7 +374,8 @@ const submitActionModal = async (formData) => {
                     +{{ item.enrollments.length - 3 }}
                   </div>
                 </template>
-                <span v-else class="text-[10px] font-semibold text-content-muted/40 uppercase italic tracking-widest">— No
+                <span v-else class="text-[10px] font-semibold text-content-muted/40 uppercase italic tracking-widest">—
+                  No
                   Programs —</span>
               </div>
             </td>
@@ -436,12 +408,14 @@ const submitActionModal = async (formData) => {
                     <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
-                      <button class="ui-dropdown-item ui-dropdown-item-info group" @click="() => { handleAction('edit', item); closeMenu(); }">
+                      <button class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="() => { handleAction('edit', item); closeMenu(); }">
                         <img :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-semibold text-sm">Edit</span>
                       </button>
-                      <button class="ui-dropdown-item ui-dropdown-item-info group" @click="() => { handleAction('override', item); closeMenu(); }">
+                      <button class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="() => { handleAction('override', item); closeMenu(); }">
                         <img :src="getActionIcon('view')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
                         <span class="font-semibold text-sm">Status Override</span>

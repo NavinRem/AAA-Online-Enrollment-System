@@ -21,10 +21,12 @@ class CategoryService {
 
   async getAllCategories() {
     const snapshot = await db.collection(COLLECTIONS.CATEGORY).get()
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
+    return snapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      .filter((c) => c.isDeleted !== true)
   }
 
   async getCategory(id) {
@@ -58,25 +60,13 @@ class CategoryService {
     const categoryDoc = await categoryRef.get()
     if (!categoryDoc.exists) throw new Error('Category not found')
 
-    const batch = db.batch()
-    batch.delete(categoryRef)
-
-    const programsSnap = await db
-      .collection(COLLECTIONS.PROGRAM)
-      .where('categoryId', '==', id)
-      .get()
-
-    programsSnap.forEach((doc) => {
-      batch.update(doc.ref, {
-        categoryId: null,
-        category: 'Uncategorized',
-        categoryInfo: null,
-        updatedAt: new Date().toISOString(),
-      })
+    await categoryRef.update({
+      isDeleted: true,
+      status: 'deleted',
+      updatedAt: new Date().toISOString(),
     })
 
-    await batch.commit()
-    return { message: 'Category deleted successfully' }
+    return { message: 'Category deleted successfully (Soft delete)' }
   }
 }
 

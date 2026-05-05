@@ -33,7 +33,7 @@ function validateStudent(studentData) {
 }
 
 function validateUpdateStudent(updateData) {
-  const allowedFields = ['name', 'dob', 'age', 'profileURL', 'status']
+  const allowedFields = ['name', 'dob', 'age', 'profileURL', 'status', 'parentId', 'overrideReason', 'overrideRemark', 'manualStatus', 'archived']
 
   const cleanData = {}
 
@@ -61,6 +61,26 @@ function validateUpdateStudent(updateData) {
 
   if (updateData.status !== undefined) {
     cleanData.status = updateData.status
+  }
+
+  if (updateData.parentId !== undefined) {
+    cleanData.parentId = updateData.parentId
+  }
+
+  if (updateData.overrideReason !== undefined) {
+    cleanData.overrideReason = updateData.overrideReason
+  }
+
+  if (updateData.overrideRemark !== undefined) {
+    cleanData.overrideRemark = updateData.overrideRemark
+  }
+
+  if (updateData.manualStatus !== undefined) {
+    cleanData.manualStatus = updateData.manualStatus
+  }
+
+  if (updateData.archived !== undefined) {
+    cleanData.archived = updateData.archived
   }
 
   if (Object.keys(cleanData).length === 0) {

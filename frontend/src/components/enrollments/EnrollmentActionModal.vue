@@ -33,6 +33,7 @@ const getInitialData = () => ({
   reason: '',
   deleteConfirm: '',
   paymentMethod: 'online',
+  paymentStatus: 'paid',
 })
 
 const { localData, isDirty, errors, shaking, clearError, validate, submitForm } = useActionModal(
@@ -105,7 +106,7 @@ const confirmOverlaySubtitle = computed(() => {
   return 'Please verify the details before completing this action.'
 })
 
-const resolvedSummary = computed(() => {
+const displaySummary = computed(() => {
   if (props.resolvedSummary) return props.resolvedSummary
   const e = props.enrollment
   if (!e) return null
@@ -131,7 +132,7 @@ const confirmOverlayIcon = computed(() => {
 })
 
 const confirmRows = computed(() => {
-  const summary = resolvedSummary.value
+  const summary = displaySummary.value
   const base = [
     { key: 'Student', value: summary?.studentName },
     { key: 'Program', value: summary?.programName },
@@ -189,15 +190,15 @@ const modalIcon = computed(() => {
       <!-- Content for Pay Action -->
       <div v-if="type === 'pay'" class="flex flex-col gap-lg">
         <div class="bg-white border border-outline-std rounded-std p-lg flex flex-col gap-lg shadow-sm"
-          v-if="resolvedSummary">
+          v-if="displaySummary">
           <div class="grid grid-cols-2 gap-x-lg gap-y-md">
             <!-- Parent -->
             <div class="flex flex-col gap-xs">
               <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Parent
                 Registry</span>
               <div class="enroll-identity-row">
-                <img :src="resolvedSummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ resolvedSummary.parentName }}</span>
+                <img :src="displaySummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ displaySummary.parentName }}</span>
               </div>
             </div>
             <!-- Student -->
@@ -205,8 +206,8 @@ const modalIcon = computed(() => {
               <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Student
                 Name</span>
               <div class="enroll-identity-row">
-                <img :src="resolvedSummary.studentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ resolvedSummary.studentName
+                <img :src="displaySummary.studentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ displaySummary.studentName
                   }}</span>
               </div>
             </div>
@@ -215,9 +216,9 @@ const modalIcon = computed(() => {
               <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Program
                 Selection</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <img :src="resolvedSummary.programAvatar"
+                <img :src="displaySummary.programAvatar"
                   class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ resolvedSummary.programName
+                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ displaySummary.programName
                   }}</span>
               </div>
             </div>
@@ -226,8 +227,8 @@ const modalIcon = computed(() => {
               <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Class and
                 Branch</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <AppBadge :status="resolvedSummary.branchAbbr" class="shadow-sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ resolvedSummary.classTitle
+                <AppBadge :status="displaySummary.branchAbbr" class="shadow-sm" />
+                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ displaySummary.classTitle
                   }}</span>
               </div>
             </div>
@@ -238,13 +239,13 @@ const modalIcon = computed(() => {
             <div class="flex justify-between gap-1">
               <span class="text-2xs font-semibold text-white/80 uppercase tracking-widest">Calculated Tuition Fee</span>
               <div class="flex gap-xs">
-                <AppBadge :status="resolvedSummary.mode || resolvedSummary.status"
+                <AppBadge :status="displaySummary.mode || displaySummary.status"
                   class="bg-white/20 text-white border-transparent" />
-                <AppBadge :status="resolvedSummary.status" class="bg-white/20 text-white border-transparent" />
+                <AppBadge :status="displaySummary.status" class="bg-white/20 text-white border-transparent" />
               </div>
             </div>
             <div class="text-white">
-              <span class="text-3xl font-bold tracking-tighter">${{ formatPrice(resolvedSummary.amount) }}</span>
+              <span class="text-3xl font-bold tracking-tighter">${{ formatPrice(displaySummary.amount) }}</span>
             </div>
           </div>
         </div>
@@ -287,11 +288,16 @@ const modalIcon = computed(() => {
             " label="Issuing Bank" placeholder="Select Bank..." required :error="errors.bankName"
             :shake="shaking.bankName" :searchable="false" @change="clearError('bankName')" />
 
+          <AppSelect v-model="localData.paymentStatus" :items="[
+            { id: 'paid', name: 'Paid' },
+            { id: 'pending', name: 'Pending' },
+            { id: 'failed', name: 'Failed' },
+          ]" label="Record As Status" required />
+
           <AppInput v-model="localData.proof"
             :label="localData.paymentMethod === 'online' ? 'Transaction Code' : 'Receipt ID'"
             :placeholder="localData.paymentMethod === 'online' ? 'e.g. 123456' : 'e.g. REC-001'" required
-            :error="errors.proof" :shake="shaking.proof" :class="localData.paymentMethod === 'cash' ? 'col-span-2' : ''"
-            @input="clearError('proof')" />
+            :error="errors.proof" :shake="shaking.proof" class="col-span-2" @input="clearError('proof')" />
         </div>
 
         <div class="flex flex-col gap-xs mt-md">
@@ -340,15 +346,15 @@ const modalIcon = computed(() => {
       <div v-if="type === 'delete'" class="flex flex-col gap-lg">
         <!-- Identity Summary (consistent with pay modal) -->
         <div class="bg-white border border-outline-std rounded-std p-lg flex flex-col gap-lg shadow-sm"
-          v-if="resolvedSummary">
+          v-if="displaySummary">
           <div class="grid grid-cols-2 gap-x-lg gap-y-md">
             <!-- Parent -->
             <div class="flex flex-col gap-xs">
               <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Parent
                 Name</span>
               <div class="enroll-identity-row">
-                <img :src="resolvedSummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ resolvedSummary.parentName }}</span>
+                <img :src="displaySummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ displaySummary.parentName }}</span>
               </div>
             </div>
             <!-- Student -->
@@ -356,8 +362,8 @@ const modalIcon = computed(() => {
               <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Student
                 Name</span>
               <div class="enroll-identity-row">
-                <img :src="resolvedSummary.studentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ resolvedSummary.studentName
+                <img :src="displaySummary.studentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ displaySummary.studentName
                   }}</span>
               </div>
             </div>
@@ -365,9 +371,9 @@ const modalIcon = computed(() => {
             <div class="flex flex-col gap-xs">
               <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Program</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <img :src="resolvedSummary.programAvatar"
+                <img :src="displaySummary.programAvatar"
                   class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ resolvedSummary.programName
+                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ displaySummary.programName
                   }}</span>
               </div>
             </div>
@@ -376,8 +382,8 @@ const modalIcon = computed(() => {
               <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Class and
                 Branch</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <AppBadge :status="resolvedSummary.branchAbbr" class="shadow-sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ resolvedSummary.classTitle
+                <AppBadge :status="displaySummary.branchAbbr" class="shadow-sm" />
+                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ displaySummary.classTitle
                   }}</span>
               </div>
             </div>

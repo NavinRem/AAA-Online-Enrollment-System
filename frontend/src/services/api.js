@@ -5,10 +5,26 @@ import { config } from '../config'
 const API_URL = config.api.baseUrl
 
 export async function request(endpoint, options = {}) {
-  const url = `${API_URL}${endpoint}`
+  let url = `${API_URL}${endpoint}`
   const method = (options.method || 'GET').toUpperCase()
 
-  const cacheKey = endpoint
+  // Global Parameter Sanitization for GET requests
+  if (method === 'GET' && endpoint.includes('?')) {
+    const [path, query] = endpoint.split('?')
+    const params = new URLSearchParams(query)
+    const cleanParams = new URLSearchParams()
+    
+    for (const [key, value] of params.entries()) {
+      if (value !== 'undefined' && value !== 'null' && value !== '' && value !== null && value !== undefined) {
+        cleanParams.append(key, value)
+      }
+    }
+    
+    const newQuery = cleanParams.toString()
+    url = newQuery ? `${API_URL}${path}?${newQuery}` : `${API_URL}${path}`
+  }
+
+  const cacheKey = url
   if (method === 'GET' && !options.skipCache) {
     const cached = getCachedData(cacheKey)
     if (cached) return cached
@@ -19,9 +35,20 @@ export async function request(endpoint, options = {}) {
     ...options.headers,
   }
 
-  if (auth.currentUser) {
+  // Ensure auth is ready before checking currentUser
+  let currentUser = auth.currentUser
+  if (!currentUser) {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      currentUser = user
+    })
+    // Small delay to allow Firebase to initialize if it hasn't yet
+    await new Promise(resolve => setTimeout(resolve, 50))
+    unsubscribe()
+  }
+
+  if (currentUser) {
     try {
-      const token = await auth.currentUser.getIdToken()
+      const token = await currentUser.getIdToken()
       headers['Authorization'] = `Bearer ${token}`
     } catch (err) {
       console.warn('Failed to get auth token:', err)

@@ -16,6 +16,7 @@ import { enrollmentService } from '../services/enrollmentService'
 import { trialService } from '../services/trialService'
 import { useSearch } from '../composables/useSearch'
 import { getProgramProfileURL, getImageUrl, getActionIcon, getIconUrl } from '@/utils/assetHelper'
+import { formatPrice } from '@/utils/formatUtils'
 
 const programs = ref([])
 const categories = ref([])
@@ -52,10 +53,9 @@ const topTrialProgram = computed(() => {
     if (counts[pid] > maxCount) { maxCount = counts[pid]; maxPid = pid }
   }
   if (!maxPid) return { name: 'No Trials', count: 0 }
-  const p = programs.value.find((p) => (p.id) === maxPid)
-  const t = trials.value.find((t) => t.programId === maxPid)
+  const p = programs.value.find((p) => String(p.id) === String(maxPid))
   return {
-    name: p ? p.name : (t?.program?.name || 'Unknown Program'),
+    name: p ? p.name : 'Unknown',
     count: maxCount
   }
 })
@@ -71,10 +71,9 @@ const topEnrolledProgram = computed(() => {
     if (counts[pid] > maxCount) { maxCount = counts[pid]; maxPid = pid }
   }
   if (!maxPid) return { name: 'No Enrollments', count: 0 }
-  const p = programs.value.find((p) => (p.id) === maxPid)
-  const e = enrollments.value.find((e) => e.programId === maxPid)
+  const p = programs.value.find((p) => String(p.id) === String(maxPid))
   return {
-    name: p ? p.name : (e?.program?.name || 'Unknown Program'),
+    name: p ? p.name : 'Unknown',
     count: maxCount
   }
 })
@@ -84,8 +83,8 @@ const topRevenueProgram = computed(() => {
   const revs = {}
   enrollments.value.forEach((e) => {
     if (e.programId) {
-      const p = programs.value.find((prog) => (prog.id) === e.programId)
-      revs[e.programId] = (revs[e.programId] || 0) + (p ? (p.basePrice || 0) : 0)
+      // Use actual enrollment amount (revenue), not program base price
+      revs[e.programId] = (revs[e.programId] || 0) + (Number(e.amount) || 0)
     }
   })
   let maxRev = 0, maxPid = null
@@ -93,13 +92,61 @@ const topRevenueProgram = computed(() => {
     if (revs[pid] > maxRev) { maxRev = revs[pid]; maxPid = pid }
   }
   if (!maxPid) return { name: 'No Revenue', revenue: 0 }
-  const p = programs.value.find((p) => (p.id) === maxPid)
-  const e = enrollments.value.find((e) => e.programId === maxPid)
+  const p = programs.value.find((p) => String(p.id) === String(maxPid))
   return {
-    name: p ? p.name : (e?.program?.name || 'Unknown Program'),
+    name: p ? p.name : 'Unknown',
     revenue: maxRev
   }
 })
+
+const getProgramMetrics = (programId, allEnrollments, allTrials) => {
+  const pEnrollments = allEnrollments.filter(e => String(e.programId) === String(programId))
+  const pTrials = allTrials.filter(t => String(t.programId) === String(programId))
+  
+  // Unique Students: Count distinct studentIds associated with this program
+  const uniqueStudentIds = new Set(pEnrollments.map(e => e.studentId).filter(id => id))
+  const uniqueStudentCount = uniqueStudentIds.size
+
+  const now = new Date()
+  const localTodayStr = now.toLocaleDateString('en-CA') // YYYY-MM-DD local
+  const weekAgoTimestamp = now.getTime() - 7 * 86400000
+  
+  const stats = {
+    uniqueStudents: uniqueStudentCount,
+    enrollmentToday: 0,
+    enrollmentWeek: 0,
+    trialToday: 0,
+    trialWeek: 0,
+    revenueToday: 0,
+    revenueWeek: 0
+  }
+  
+  pEnrollments.forEach(e => {
+    const enrollDate = e.enrollAt || e.createdAt || ''
+    const enrollDateStr = enrollDate.split('T')[0]
+    const enrollTimestamp = new Date(enrollDate).getTime()
+
+    if (enrollDateStr === localTodayStr) {
+      stats.enrollmentToday++
+      stats.revenueToday += (Number(e.amount) || 0)
+    }
+    if (enrollTimestamp >= weekAgoTimestamp) {
+      stats.enrollmentWeek++
+      stats.revenueWeek += (Number(e.amount) || 0)
+    }
+  })
+  
+  pTrials.forEach(t => {
+    const trialDate = t.date || t.trialDate || t.createdAt || ''
+    const trialDateStr = trialDate.split('T')[0]
+    const trialTimestamp = new Date(trialDate).getTime()
+
+    if (trialDateStr === localTodayStr) stats.trialToday++
+    if (trialTimestamp >= weekAgoTimestamp) stats.trialWeek++
+  })
+  
+  return stats
+}
 
 const statsCards = computed(() => {
   return [
@@ -112,23 +159,23 @@ const statsCards = computed(() => {
     {
       label: 'Top Trial Program',
       value: topTrialProgram.value.name,
-      subValue: `${topTrialProgram.value.count} Trials`,
+      subtitle: `${topTrialProgram.value.count} Trials`,
       image: getImageUrl('programs/active-program'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-info-soft)',
     },
     {
       label: 'Most Popular',
       value: topEnrolledProgram.value.name,
-      subValue: `${topEnrolledProgram.value.count} Enrollments`,
+      subtitle: `${topEnrolledProgram.value.count} Enrollments`,
       image: getImageUrl('programs/total-program'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-success-soft)',
     },
     {
       label: 'Top Revenue Program',
       value: topRevenueProgram.value.name,
-      subValue: `$${topRevenueProgram.value.revenue.toLocaleString()} Total`,
+      subtitle: `$${topRevenueProgram.value.revenue.toLocaleString()} Total`,
       image: getImageUrl('programs/upcoming-program'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-warning-soft)',
     },
   ]
 })
@@ -147,11 +194,17 @@ const fetchPrograms = async () => {
     const cats = Array.isArray(catsData) ? catsData : (catsData?.data || [])
     const lvls = Array.isArray(levelsData) ? levelsData : (levelsData?.data || [])
 
+    const enrollDataList = enrollData?.data || (Array.isArray(enrollData) ? enrollData : [])
+    const trialsDataList = Array.isArray(trialsData) ? trialsData : []
+
     programs.value = (Array.isArray(programsData) ? programsData : []).map((p) => {
       const cat = cats.find((c) => (c.id) === p.categoryId || c.name === p.category)
       const lvl = lvls.find((l) => (l.id) === p.levelId)
+      const metrics = getProgramMetrics(p.id, enrollDataList, trialsDataList)
+      
       return {
         ...p,
+        ...metrics,
         categoryId: p.categoryId || cat?.id || cat?.id,
         category: cat?.name || p.category || 'Uncategorized',
         categoryProfileURL: cat?.profileURL || '',
@@ -161,8 +214,8 @@ const fetchPrograms = async () => {
     })
 
     categories.value = cats
-    enrollments.value = Array.isArray(enrollData) ? enrollData : []
-    trials.value = Array.isArray(trialsData) ? trialsData : []
+    enrollments.value = enrollDataList
+    trials.value = trialsDataList
   } catch (error) {
     console.error('Failed to fetch programs', error)
   } finally {
@@ -176,13 +229,16 @@ onMounted(() => {
 
 const programHeaders = [
   { label: 'NO', width: '50px', class: 'hidden md:table-cell', align: 'center' },
-  { label: 'PROGRAM IDENTITY' },
-  { label: 'DESCRIPTION', class: 'hidden xl:table-cell', width: '400px' },
-  { label: 'LEVEL', class: 'hidden lg:table-cell', align: 'center', width: '120px' },
-  { label: 'SESSIONS', align: 'center', width: '100px', class: 'hidden sm:table-cell' },
-  { label: 'BASE PRICE', align: 'center', width: '120px' },
-  { label: 'MAX CAPACITY', align: 'center', width: '100px', class: 'hidden lg:table-cell' },
-  { label: 'TYPE', align: 'center', width: '120px' },
+  { label: 'PROGRAM IDENTITY', width: '220px' },
+  { label: 'LEVEL', class: 'hidden lg:table-cell', align: 'center', width: '100px' },
+  { label: 'STUDENTS', align: 'center', width: '90px' },
+  { label: 'New (T)', align: 'center', width: '80px' },
+  { label: 'Trial (T)', align: 'center', width: '80px' },
+  { label: 'Rev (T)', align: 'center', width: '95px' },
+  { label: 'New (W)', align: 'center', width: '85px' },
+  { label: 'Trial (W)', align: 'center', width: '85px' },
+  { label: 'Rev (W)', align: 'center', width: '95px' },
+  { label: 'TYPE', align: 'center', width: '100px' },
   { label: 'ACTION', width: '60px', align: 'center' },
 ]
 
@@ -375,37 +431,43 @@ const handleActionSubmit = async (formData) => {
               </div>
             </td>
 
-            <td class="ui-cell hidden xl:table-cell">
-              <span class="text-xs font-medium text-content-muted line-clamp-2" :title="item.description">{{
-                item.description || 'No description provided' }}</span>
-            </td>
-
             <td class="ui-cell text-center hidden lg:table-cell">
               <AppBadge :status="item.level" :type="'magenta'" />
             </td>
-
-            <td class="ui-cell text-center hidden sm:table-cell">
-              <div class="flex flex-col items-center">
-                <span class="text-sm font-semibold text-content-dark tabular-nums">{{ item.totalSessions || 0 }}</span>
-              </div>
-            </td>
-
+ 
             <td class="ui-cell text-center">
-              <AppBadge :status="'$' + item.basePrice" type="blue" />
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ item.uniqueStudents || 0 }}</span>
             </td>
-
-            <td class="ui-cell text-center hidden lg:table-cell">
-              <div class="flex flex-col items-center">
-                <span class="text-xs font-semibold text-content-dark uppercase tracking-widest tabular-nums">{{
-                  item.maxCapacity || '∞' }}</span>
-              </div>
+ 
+            <td class="ui-cell text-center">
+              <span class="text-sm font-bold text-content-dark">{{ item.enrollmentToday }}</span>
             </td>
-
+ 
+            <td class="ui-cell text-center">
+              <span class="text-sm font-bold text-content-dark">{{ item.trialToday }}</span>
+            </td>
+ 
+            <td class="ui-cell text-center">
+              <AppBadge :status="'$' + formatPrice(item.revenueToday)" type="green" />
+            </td>
+ 
+            <td class="ui-cell text-center">
+              <span class="text-sm font-bold text-content-dark">{{ item.enrollmentWeek }}</span>
+            </td>
+ 
+            <td class="ui-cell text-center">
+              <span class="text-sm font-bold text-content-dark">{{ item.trialWeek }}</span>
+            </td>
+ 
+            <td class="ui-cell text-center">
+              <AppBadge :status="'$' + formatPrice(item.revenueWeek)" type="blue" />
+            </td>
+ 
             <td class="ui-cell text-center">
               <AppBadge :status="item.type || 'Group'" />
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[10].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

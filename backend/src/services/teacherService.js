@@ -1,6 +1,7 @@
 const { db, COLLECTIONS } = require('../config/database')
 const authService = require('./authService')
 const profileHelper = require('../utils/profileHelper')
+const firestoreHelper = require('../utils/firestoreHelper')
 const {
   validateTeacher,
   validateUpdateTeacher,
@@ -15,9 +16,9 @@ class TeacherService {
     if (teacherData.phone) {
       const phoneSnap = await db.collection(COLLECTIONS.TEACHER)
         .where('phone', '==', teacherData.phone)
-        .limit(1)
         .get()
-      if (!phoneSnap.empty) {
+      const exists = phoneSnap.docs.some(d => d.data().isDeleted !== true)
+      if (exists) {
         throw new Error(`A teacher with phone number "${teacherData.phone}" already exists.`)
       }
       validatedProfile.phone = teacherData.phone
@@ -36,10 +37,12 @@ class TeacherService {
     if (filters.status) query = query.where('status', '==', filters.status)
 
     const snapshot = await query.get()
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
+    return snapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      .filter((t) => t.isDeleted !== true)
   }
 
   async getTeacher(id) {
@@ -80,39 +83,42 @@ class TeacherService {
   async deleteTeacher(id) {
     if (!id) throw new Error('Teacher ID is required')
 
-    const classesSnap = await db
-      .collection(COLLECTIONS.CLASS)
-      .where('teacherId', '==', id)
-      .where('status', '==', 'open')
-      .get()
+    const teacherRef = db.collection(COLLECTIONS.TEACHER).doc(id)
+    const teacherDoc = await teacherRef.get()
+    if (!teacherDoc.exists) throw new Error('Teacher not found')
 
-    if (!classesSnap.empty) {
-      throw new Error(
-        'Cannot delete teacher assigned to active classes. Please reassign classes first.',
-      )
-    }
+    await teacherRef.update({
+      isDeleted: true,
+      status: 'deleted',
+      updatedAt: new Date().toISOString(),
+    })
 
-    await db.collection(COLLECTIONS.TEACHER).doc(id).delete()
-    await authService.deleteAccount(id)
-    return { message: 'Teacher deleted successfully' }
+    return { message: 'Teacher deleted successfully (Soft delete)' }
   }
 
   async syncClassesWithTeacher(teacherId, teacherSnapshot) {
     const snapshot = await db
       .collection(COLLECTIONS.CLASS)
-      .where('teacherId', '==', teacherId)
+      .where('teacherIds', 'array-contains', teacherId)
       .get()
 
     if (snapshot.empty) return
 
-    const batch = db.batch()
-    snapshot.docs.forEach((doc) => {
-      batch.update(doc.ref, {
-        teacher: teacherSnapshot,
-        updatedAt: new Date().toISOString(),
-      })
+    const writes = snapshot.docs.map((doc) => {
+      const data = doc.data()
+      const teachers = (data.teachers || []).map((t) =>
+        t.id === teacherId ? teacherSnapshot : t,
+      )
+      return {
+        ref: doc.ref,
+        data: {
+          teachers,
+          updatedAt: new Date().toISOString(),
+        },
+      }
     })
-    await batch.commit()
+
+    await firestoreHelper.chunkedUpdate(writes)
   }
 }
 

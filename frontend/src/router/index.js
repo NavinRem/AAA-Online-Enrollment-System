@@ -108,6 +108,12 @@ const router = createRouter({
       meta: { title: 'Terms', requiresAuth: true, requiresAdmin: true },
     },
     {
+      path: '/levels',
+      name: 'levels',
+      component: () => import('../views/Levels.vue'),
+      meta: { title: 'Levels', requiresAuth: true, requiresAdmin: true },
+    },
+    {
       path: '/settings',
       name: 'settings',
       component: () => import('../views/Settings.vue'),

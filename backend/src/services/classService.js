@@ -61,11 +61,11 @@ class ClassService {
           .where('termId', '==', validated.termId)
           .where('branchId', '==', bId)
           .where('programId', '==', validated.programId)
-          .where('isDeleted', '==', false)
 
         const dupSnap = await duplicateQuery.get()
         const isDuplicate = dupSnap.docs.some((doc) => {
           const d = doc.data()
+          if (d.isDeleted === true) return false // Skip deleted classes
           return d.schedules?.some(
             (s) => s.day === scheduleMatch.day && s.time === scheduleMatch.time,
           )
@@ -100,7 +100,12 @@ class ClassService {
         ),
         branch: profileHelper.getBranchSnapshot(bId, branchDoc.data()),
         term: profileHelper.getTermSnapshot(validated.termId, termData),
-        status: calculatedStatus,
+        status: this.calculateStatus(
+          termData.startDate,
+          termData.endDate,
+          0,
+          validated.capacity || 0,
+        ),
         isDeleted: false,
         createdAt: new Date().toISOString(),
       }
@@ -125,8 +130,6 @@ class ClassService {
       query = query.where('branchId', '==', filters.branchId)
     if (filters.termId) query = query.where('termId', '==', filters.termId)
     if (filters.status) query = query.where('status', '==', filters.status)
-    if (filters.includeDeleted !== true)
-      query = query.where('isDeleted', '==', false)
 
     const snapshot = await query.get()
     const results = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
@@ -167,6 +170,7 @@ class ClassService {
       // Hard check for active enrollments if capacity is being reduced below current count
       if (
         validated.capacity !== undefined &&
+        validated.capacity > 0 &&
         validated.capacity < currentData.currentCount
       ) {
         throw new Error(
@@ -178,13 +182,39 @@ class ClassService {
       const calculatedStatus = this.calculateStatus(
         termData.startDate,
         termData.endDate,
+        currentData.currentCount || 0,
+        validated.capacity !== undefined ? validated.capacity : (currentData.capacity || 0),
       )
 
-      transaction.update(ref, {
+      const updates = {
         ...validated,
         status: calculatedStatus,
         updatedAt: new Date().toISOString(),
-      })
+      }
+
+      // Re-fetch snapshots if IDs changed to ensure "real valid names"
+      if (validated.programId && validated.programId !== currentData.programId) {
+        const pDoc = await transaction.get(db.collection(COLLECTIONS.PROGRAM).doc(validated.programId))
+        if (pDoc.exists) {
+          updates.program = profileHelper.getProgramSnapshot(validated.programId, pDoc.data())
+        }
+      }
+
+      if (validated.termId && validated.termId !== currentData.termId) {
+        const tDoc = await transaction.get(db.collection(COLLECTIONS.TERM).doc(validated.termId))
+        if (tDoc.exists) {
+          updates.term = profileHelper.getTermSnapshot(validated.termId, tDoc.data())
+        }
+      }
+
+      if (validated.branchId && validated.branchId !== currentData.branchId) {
+        const bDoc = await transaction.get(db.collection(COLLECTIONS.BRANCH).doc(validated.branchId))
+        if (bDoc.exists) {
+          updates.branch = profileHelper.getBranchSnapshot(validated.branchId, bDoc.data())
+        }
+      }
+
+      transaction.update(ref, updates)
 
       const syncNeeded = validated.schedule || validated.capacity !== undefined
       if (syncNeeded) {
@@ -338,14 +368,15 @@ class ClassService {
       .get()
     if (snapshot.empty) return
 
-    const batch = db.batch()
-    snapshot.docs.forEach((doc) => {
-      batch.update(doc.ref, {
+    const firestoreHelper = require('../utils/firestoreHelper')
+    const writes = snapshot.docs.map((doc) => ({
+      ref: doc.ref,
+      data: {
         program: programSnapshot,
         updatedAt: new Date().toISOString(),
-      })
-    })
-    await batch.commit()
+      },
+    }))
+    await firestoreHelper.chunkedUpdate(writes)
 
     const enrollmentService = require('./enrollmentService')
     for (const doc of snapshot.docs) {
@@ -355,30 +386,22 @@ class ClassService {
     }
   }
 
-  calculateStatus(startDate, endDate) {
+  calculateStatus(startDate, endDate, currentCount = 0, capacity = 0) {
     if (!startDate || !endDate) return 'active'
-    const today = new Date()
-    const start = new Date(startDate)
-    const end = new Date(endDate)
 
-    const todayDate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate(),
-    )
-    const startDateOnly = new Date(
-      start.getFullYear(),
-      start.getMonth(),
-      start.getDate(),
-    )
-    const endDateOnly = new Date(
-      end.getFullYear(),
-      end.getMonth(),
-      end.getDate(),
-    )
+    const dateHelper = require('../utils/dateHelper')
+    const todayStr = dateHelper.getTodayString()
 
-    if (todayDate < startDateOnly) return 'upcoming'
-    if (todayDate > endDateOnly) return 'archived'
+    // 1. Archived (Term over)
+    if (todayStr > endDate) return 'archived'
+
+    // 2. Full (Capacity reached, not archived)
+    if (capacity > 0 && currentCount >= capacity) return 'full'
+
+    // 3. Upcoming (Term not started)
+    if (todayStr < startDate) return 'upcoming'
+
+    // 4. Active (Current term, has space)
     return 'active'
   }
 

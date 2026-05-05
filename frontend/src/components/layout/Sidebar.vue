@@ -65,12 +65,16 @@ const handleNavClick = () => {
   <aside
     class="w-[260px] h-screen bg-white flex flex-col border-r border-surface-light fixed left-0 top-0 z-[100] transition-transform duration-300 lg:translate-x-0"
     :class="isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'">
-    <div class="p-3 px-5 flex items-center justify-center gap-sm relative border-b border-surface-light/50 mb-2">
-      <img :src="getImageUrl('common/logo-main')" alt="Logo" class="w-20 h-auto" />
-      <span class="text-sm font-semibold text-content-dark leading-tight tracking-tight">Authentic Advanced
-        Academy</span>
+    <div class="p-md mb-md flex flex-col items-center justify-center relative border-b border-surface-light/50">
+      <div class="w-20 h-20 flex items-center justify-center">
+        <img :src="getImageUrl('common/logo-main')" alt="Logo" class="w-full h-full object-contain" />
+      </div>
+      <div class="flex flex-col items-center text-center">
+        <span class="text-sm font-bold text-content-dark leading-tight tracking-tighter">Authentic Advanced
+          Academy</span>
+      </div>
       <button
-        class="lg:hidden absolute right-3 top-1/2 -translate-y-1/2 bg-none border-none text-3xl text-content-light cursor-pointer p-1 leading-none hover:text-content-dark transition-colors"
+        class="lg:hidden absolute right-4 top-4 bg-none border-none text-2xl text-content-light cursor-pointer p-1 leading-none hover:text-content-dark transition-all hover:rotate-90"
         @click="emit('close')">
         ×
       </button>

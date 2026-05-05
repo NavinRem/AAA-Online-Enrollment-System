@@ -21,10 +21,12 @@ class LevelService {
 
   async getAllLevels() {
     const snapshot = await db.collection(COLLECTIONS.LEVEL).get()
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
+    return snapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      .filter((l) => l.isDeleted !== true)
   }
 
   async getLevel(id) {
@@ -74,25 +76,13 @@ class LevelService {
     const levelDoc = await levelRef.get()
     if (!levelDoc.exists) throw new Error('Level not found')
 
-    const batch = db.batch()
-    batch.delete(levelRef)
-
-    const programsSnap = await db
-      .collection(COLLECTIONS.PROGRAM)
-      .where('levelId', '==', id)
-      .get()
-
-    programsSnap.forEach((doc) => {
-      batch.update(doc.ref, {
-        levelId: null,
-        level: 'General',
-        levelInfo: null,
-        updatedAt: new Date().toISOString(),
-      })
+    await levelRef.update({
+      isDeleted: true,
+      status: 'deleted',
+      updatedAt: new Date().toISOString(),
     })
 
-    await batch.commit()
-    return { message: 'Level deleted successfully' }
+    return { message: 'Level deleted successfully (Soft delete)' }
   }
 }
 

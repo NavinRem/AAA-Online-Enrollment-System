@@ -26,3 +26,20 @@ exports.verifyPayment = async (req, res) => {
     res.status(400).json({ error: error.message })
   }
 }
+exports.getAllPayments = async (req, res) => {
+  try {
+    const result = await paymentService.getAllPayments()
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+exports.getFinancialStats = async (req, res) => {
+  try {
+    const result = await paymentService.getFinancialStats()
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}

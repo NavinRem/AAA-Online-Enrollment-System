@@ -145,7 +145,7 @@ const fetchDependencyData = async () => {
     parents.value = Array.isArray(parentsRes) ? parentsRes : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
-    enrollments.value = Array.isArray(enrollmentsRes) ? enrollmentsRes : []
+    enrollments.value = enrollmentsRes?.data || (Array.isArray(enrollmentsRes) ? enrollmentsRes : [])
   } catch (err) {
     console.error('Failed to load dependency data for form', err)
   } finally {
