@@ -74,6 +74,19 @@ exports.duplicateClasses = async (req, res) => {
   }
 }
 
+exports.duplicateSpecificClasses = async (req, res) => {
+  try {
+    const { classIds, targetTermId } = req.body
+    if (!classIds || !targetTermId) {
+      return res.status(400).json({ error: 'Class IDs and Target Term are required' })
+    }
+    const result = await classService.duplicateSpecificClasses(classIds, targetTermId)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+}
+
 exports.syncCount = async (req, res) => {
   try {
     const result = await classService.syncStudentCount(req.params.id)

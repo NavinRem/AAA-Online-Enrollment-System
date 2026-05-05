@@ -29,11 +29,6 @@ const route = useRoute()
 const router = useRouter()
 
 const enrollment = ref(null)
-const parent = ref(null)
-const student = ref(null)
-const program = ref(null)
-const classSlot = ref(null)
-const teacher = ref(null)
 
 // For EnrollmentFormModal
 const parents = ref([])
@@ -184,11 +179,6 @@ const handleEditSubmit = async (formData) => {
 
     const updated = await enrollmentService.getEnrollment(enrollment.value.id)
     enrollment.value = updated
-    parent.value = updated.parent
-    student.value = updated.student
-    program.value = updated.program
-    classSlot.value = updated.class
-    teacher.value = updated.teacher
 
     setTimeout(() => {
       showFormModal.value = false
@@ -212,11 +202,6 @@ onMounted(async () => {
     if (!data) throw new Error('Enrollment not found')
 
     enrollment.value = data
-    parent.value = data.parent
-    student.value = data.student
-    program.value = data.program
-    classSlot.value = data.class
-    teacher.value = data.teacher
   } catch (error) {
     errorMessage.value = error.message || 'Failed to load details'
   } finally {

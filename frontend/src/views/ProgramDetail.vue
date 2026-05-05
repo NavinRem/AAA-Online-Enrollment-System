@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { branchService } from '@/services/branchService'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
@@ -29,6 +30,9 @@ const enrollments = ref([])
 const students = ref([])
 const trials = ref([])
 const categories = ref([])
+const branches = ref([])
+const terms = ref([])
+const selectedTermId = ref('active') // Default to active terms
 const loading = ref(true)
 const errorMessage = ref('')
 const now = ref(new Date())
@@ -39,13 +43,15 @@ const initData = async () => {
   errorMessage.value = ''
 
   try {
-    const [pData, cData, eData, stdData, tData, catData] = await Promise.all([
+    const [pData, cData, eData, stdData, tData, catData, bData, termData] = await Promise.all([
       programService.getProgram(id),
       classService.getAllClasses({ programId: id }),
-      enrollmentService.getAllEnrollments(),
+      enrollmentService.getAllEnrollments({ limit: 2000 }),
       studentService.getAllStudents(),
       trialService.getAllTrials(),
       categoryService.getAllCategories(),
+      branchService.getAllBranches(),
+      import('@/services/termService').then(m => m.termService.getAllTerms())
     ])
 
     program.value = pData?.data || pData
@@ -60,6 +66,8 @@ const initData = async () => {
     trials.value = allTrials.filter(t => String(t.programId || '') === String(id))
 
     categories.value = Array.isArray(catData) ? catData : (catData?.data || [])
+    branches.value = Array.isArray(bData) ? bData : (bData?.data || [])
+    terms.value = Array.isArray(termData) ? termData : []
   } catch (err) {
     console.error('Error fetching program details:', err)
     errorMessage.value = 'Failed to load program details'
@@ -68,23 +76,13 @@ const initData = async () => {
   }
 }
 
-const handleClickOutside = (event) => {
-  if (!isFilterOpen.value) return
-  // If we clicked the button itself, toggleFilter handles it
-  const btn = document.querySelector('.filter-trigger-btn')
-  const menu = document.querySelector('.shared-filter-menu')
-  if (btn?.contains(event.target) || menu?.contains(event.target)) return
-  isFilterOpen.value = false
-}
 
 onMounted(() => {
   initData()
-  window.addEventListener('mousedown', handleClickOutside)
   const interval = setInterval(() => {
     now.value = new Date()
   }, 60000)
   return () => {
-    window.removeEventListener('mousedown', handleClickOutside)
     clearInterval(interval)
   }
 })
@@ -171,6 +169,53 @@ const statsCards = computed(() => {
   ]
 })
 
+const branchDistribution = computed(() => {
+  if (!branches.value.length || !terms.value.length) return []
+  
+  const distribution = []
+
+  branches.value.forEach(branch => {
+    terms.value.forEach(term => {
+      // Filter enrollments for THIS program, THIS branch, and THIS term
+      const branchTermEnrollments = enrollments.value.filter(e => {
+        const eBranchId = e.branchId || e.class?.branchId || e.class?.branch?.id
+        const eTermId = e.termId || e.class?.termId || e.class?.term?.id
+        return String(eBranchId) === String(branch.id) && String(eTermId) === String(term.id)
+      })
+
+      // Filter classes for THIS program in THIS branch and THIS term
+      const branchTermClasses = classes.value.filter(c => {
+        const cBranchId = c.branchId || c.branch?.id
+        const cTermId = c.termId || c.term?.id
+        return String(cBranchId) === String(branch.id) && String(cTermId) === String(term.id)
+      })
+
+      if (branchTermEnrollments.length > 0 || branchTermClasses.length > 0) {
+        const studentCount = new Set(branchTermEnrollments.map(e => e.studentId)).size
+        const revenue = branchTermEnrollments
+          .filter(e => ['paid', 'confirmed', 'active'].includes(String(e.paymentStatus || e.status).toLowerCase()))
+          .reduce((sum, e) => sum + Number(e.amount || 0), 0)
+
+        distribution.push({
+          branch,
+          term,
+          studentCount,
+          classCount: branchTermClasses.length,
+          revenue
+        })
+      }
+    })
+  })
+
+  // Sort by term end date (newest first), then by branch name
+  return distribution.sort((a, b) => {
+    const dateA = new Date(a.term.endDate).getTime()
+    const dateB = new Date(b.term.endDate).getTime()
+    if (dateB !== dateA) return dateB - dateA
+    return a.branch.name.localeCompare(b.branch.name)
+  })
+})
+
 const enrolledStudents = computed(() => {
   if (!enrollments.value.length) return []
 
@@ -192,42 +237,52 @@ const enrolledStudents = computed(() => {
 })
 
 const studentHeaders = [
-  { label: 'No', width: '50px', align: 'center' },
-  { label: 'Name' },
-  { label: 'Parent' },
-  { label: 'Age', align: 'center', width: '80px' },
-  { label: 'Status', align: 'center', width: '120px' },
+  { label: 'NO', width: '50px', align: 'center' },
+  { label: 'STUDENT IDENTITY' },
+  { label: 'PARENT NAME' },
+  { label: 'AGE', align: 'center', width: '80px' },
+  { label: 'STATUS', align: 'center', width: '120px' },
 ]
 
 const teacherHeaders = [
-  { label: 'No', width: '50px', align: 'center' },
-  { label: 'Name' },
-  { label: 'Branch Teaching', align: 'center', width: '150px' },
-  { label: 'Contact', width: '200px' },
+  { label: 'NO', width: '50px', align: 'center' },
+  { label: 'TEACHER NAME' },
+  { label: 'BRANCH TEACHING', align: 'center', width: '150px' },
+  { label: 'CONTACT', width: '200px' },
 ]
 
 const scheduleHeaders = [
-  { label: 'No', width: '50px', align: 'center' },
-  { label: 'Day & Time' },
-  { label: 'Branch', align: 'center', width: '100px' },
-  { label: 'Term' },
-  { label: 'Capacity', align: 'center', width: '150px' },
-  { label: 'Status', align: 'center', width: '120px' },
+  { label: 'NO', width: '50px', align: 'center' },
+  { label: 'SCHEDULE IDENTITY' },
+  { label: 'BRANCH', align: 'center', width: '100px' },
+  { label: 'TERM' },
+  { label: 'CAPACITY', align: 'center', width: '200px' },
+  { label: 'STATUS', align: 'center', width: '120px' },
 ]
 
 const trialHeaders = [
+  { label: 'NO', width: '50px', align: 'center' },
+  { label: 'STUDENT IDENTITY' },
+  { label: 'PARENT NAME' },
+  { label: 'BRANCH', align: 'center', width: '100px' },
+  { label: 'TIME OF TRIAL', align: 'center', width: '180px' },
+  { label: 'STATUS', align: 'center', width: '150px' },
+]
+
+const distributionHeaders = [
   { label: 'No', width: '50px', align: 'center' },
-  { label: 'Student' },
-  { label: 'Parent' },
-  { label: 'Branch', align: 'center', width: '100px' },
-  { label: 'Time of Trial', align: 'center', width: '180px' },
-  { label: 'Status', align: 'center', width: '150px' },
+  { label: 'BRANCH', width: '180px' },
+  { label: 'TERM', width: '180px' },
+  { label: 'STUDENTS', align: 'center', width: '100px' },
+  { label: 'CLASSES', align: 'center', width: '100px' },
+  { label: 'REVENUE', align: 'center', width: '120px' },
 ]
 
 const currentHeaders = computed(() => {
   if (activeTab.value === 'schedule') return scheduleHeaders
   if (activeTab.value === 'teachers') return teacherHeaders
   if (activeTab.value === 'trials') return trialHeaders
+  if (activeTab.value === 'distribution') return distributionHeaders
   return studentHeaders
 })
 
@@ -241,6 +296,7 @@ const currentItems = computed(() => {
   }))
   if (activeTab.value === 'teachers') return programTeachers.value
   if (activeTab.value === 'trials') return trials.value.sort((a, b) => new Date(b.trialDate) - new Date(a.trialDate))
+  if (activeTab.value === 'distribution') return branchDistribution.value
   return enrolledStudents.value
 })
 
@@ -250,6 +306,7 @@ const currentEntityName = computed(() => {
   if (activeTab.value === 'schedule') return 'schedule'
   if (activeTab.value === 'teachers') return 'teacher'
   if (activeTab.value === 'trials') return 'trial'
+  if (activeTab.value === 'distribution') return 'branch distribution'
   return 'student'
 })
 
@@ -257,6 +314,7 @@ const currentTableTitle = computed(() => {
   if (activeTab.value === 'schedule') return 'Program Schedule'
   if (activeTab.value === 'teachers') return 'Faculty Registry'
   if (activeTab.value === 'trials') return 'Trial Records'
+  if (activeTab.value === 'distribution') return 'Branch-Wise Performance'
   return 'Student Roster'
 })
 
@@ -347,12 +405,12 @@ const handleActionSubmit = async (formData) => {
 
         <!-- Tab Navigation -->
         <div class="flex items-center gap-2 p-xs bg-white rounded-full border border-outline-std w-fit">
-          <button v-for="tab in ['schedule', 'teachers', 'students', 'trials']" :key="tab"
+          <button v-for="tab in ['schedule', 'teachers', 'students', 'trials', 'distribution']" :key="tab"
             class="px-8 py-3 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all duration-300"
             :class="activeTab === tab ? 'bg-primary text-white shadow-md ring-1 ring-black/5 scale-[1.02]' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
             @click="activeTab = tab">
             {{ tab === 'schedule' ? 'Schedule' : tab === 'teachers' ? 'Teachers' : tab === 'students' ? 'Students' :
-              'Trials' }}
+              tab === 'trials' ? 'Trials' : 'Distribution' }}
           </button>
         </div>
 
@@ -381,17 +439,17 @@ const handleActionSubmit = async (formData) => {
                   <span class="text-sm font-semibold text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
                   }}</span>
                 </td>
-                <td class="ui-cell" :style="{ width: headers[4].width }">
+                <td class="ui-cell text-center" :style="{ width: headers[4].width }">
                   <div class="flex flex-col items-center gap-2 w-full px-4">
-                    <div
-                      class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
+                    <div class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
                       <div class="h-full transition-all duration-700 ease-out rounded-full"
-                        :style="{ width: (item.enrolledCount / item.maxCapacity) * 100 + '%' }"
-                        :class="(item.enrolledCount / item.maxCapacity) >= 1 ? 'bg-error' : (item.enrolledCount / item.maxCapacity) >= 0.8 ? 'bg-warning' : 'bg-emerald-500'">
+                        :style="{ width: ((item.capacity || item.maxCapacity) ? ((item.currentCount || item.enrolledCount) / (item.capacity || item.maxCapacity)) * 100 : 0) + '%' }"
+                        :class="((item.capacity || item.maxCapacity) && ((item.currentCount || item.enrolledCount) / (item.capacity || item.maxCapacity)) >= 1) ? 'bg-error' : ((item.capacity || item.maxCapacity) && ((item.currentCount || item.enrolledCount) / (item.capacity || item.maxCapacity)) >= 0.8) ? 'bg-warning' : 'bg-emerald-500'">
                       </div>
                     </div>
-                    <span class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">{{
-                      item.enrolledCount || 0 }}/{{ item.maxCapacity || 20 }}</span>
+                    <span class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">
+                      {{ item.currentCount || item.enrolledCount || 0 }}/{{ (item.capacity || item.maxCapacity) || '∞' }}
+                    </span>
                   </div>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[5].width }">
@@ -501,6 +559,32 @@ const handleActionSubmit = async (formData) => {
                     <AppBadge :status="item.trialType || (item.isGuest ? 'walk-in' : 'booked')" />
                     <AppBadge v-if="item.isSuccessful" status="Successful" type="success" />
                   </div>
+                </td>
+              </template>
+
+              <!-- Distribution Row -->
+              <template v-else-if="activeTab === 'distribution'">
+                <td class="ui-cell text-center font-bold text-content-muted/20" :style="{ width: headers[0].width }">
+                  {{ index + 1 }}
+                </td>
+                <td class="ui-cell">
+                  <div class="flex items-center gap-2">
+                    <span class="font-bold text-content-dark tracking-tighter text-sm uppercase">{{
+                      item.branch?.name }}</span>
+                    <AppBadge :status="item.branch?.abbr" :type="item.branch?.color || 'blue'" size="sm" />
+                  </div>
+                </td>
+                <td class="ui-cell">
+                  <span class="text-sm font-bold text-content-muted tracking-tight">{{ item.term?.name }}</span>
+                </td>
+                <td class="ui-cell text-center">
+                  <span class="text-sm font-bold text-content-dark tabular-nums">{{ item.studentCount }}</span>
+                </td>
+                <td class="ui-cell text-center">
+                  <span class="text-sm font-bold text-content-dark tabular-nums">{{ item.classCount }}</span>
+                </td>
+                <td class="ui-cell text-center">
+                  <AppBadge :status="'$' + item.revenue.toLocaleString()" type="green" />
                 </td>
               </template>
             </template>

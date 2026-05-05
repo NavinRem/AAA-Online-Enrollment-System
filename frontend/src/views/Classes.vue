@@ -10,8 +10,8 @@ import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import { classService } from '@/services/classService'
-import { getImageUrl, getActionIcon, getIconUrl } from '@/utils/assetHelper'
-import { useSearch } from '@/composables/useSearch'
+import { getImageUrl, getActionIcon, getIconUrl, getProgramProfileURL } from '@/utils/assetHelper'
+import { useSearch, classSearchMapper } from '@/composables/useSearch'
 import { calculateClassProgress } from '@/utils/formatUtils'
 
 const dataStore = useDataStore()
@@ -22,7 +22,7 @@ const pageSize = 10
 const router = useRouter()
 
 const classHeaders = [
-  { label: 'NO', width: '50px', align: 'center' },
+  { label: 'NO', width: '60px', align: 'center' },
   { label: 'CLASS IDENTITY' },
   { label: 'BRANCH', width: '100px', align: 'center' },
   { label: 'TERM', width: '200px' },
@@ -32,8 +32,6 @@ const classHeaders = [
   { label: 'STATUS', width: '100px', align: 'center' },
   { label: 'ACTION', width: '60px', align: 'center' },
 ]
-
-const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 const getExtendedStatus = (cls) => {
   return calculateClassProgress(
@@ -85,27 +83,24 @@ const fetchClasses = async () => {
   loading.value = true
   try {
     await dataStore.fetchAllCommonData(true)
-    
-    // Status Synchronization: Ensure stored status matches term and capacity logic
+
+    // Status Synchronization
     const syncTasks = []
     dataStore.classes.forEach(cls => {
       if (cls.term) {
         const cap = cls.capacity || cls.maxCapacity || 0
         const count = cls.currentCount || cls.enrolledCount || 0
-        
-        // Calculate status without Ongoing (for persistence)
         const prog = calculateClassProgress(cls.term.startDate, cls.term.endDate, null, null, count, cap)
         const calculatedStatus = prog.status.toLowerCase()
 
         if (cls.status !== calculatedStatus) {
           syncTasks.push(classService.updateClass(cls.id, { status: calculatedStatus }))
-          cls.status = calculatedStatus 
+          cls.status = calculatedStatus
         }
       }
     })
 
     if (syncTasks.length > 0) {
-      console.log(`[ClassSync] Updating ${syncTasks.length} class statuses to maintain data integrity.`)
       await Promise.all(syncTasks)
     }
   } catch (err) {
@@ -115,9 +110,7 @@ const fetchClasses = async () => {
   }
 }
 
-const { searchQuery, searchResults } = useSearch(computed(() => dataStore.classes), (c) => {
-  return `${c.program?.name} ${c.program?.category} ${c.teacher?.name} ${c.branch?.name} ${c.schedule?.day} ${c.schedule?.time}`
-})
+const { searchQuery, searchResults } = useSearch(computed(() => dataStore.classes), classSearchMapper)
 
 const currentFilter = ref('all')
 
@@ -126,7 +119,6 @@ const filterOptions = computed(() => {
     { label: 'All Classes', value: 'all', profileURL: getActionIcon('filter'), color: 'blue' }
   ]
 
-  // Statuses
   options.push(
     { isDivider: true },
     { isHeader: true, label: 'Operational Status' },
@@ -135,7 +127,6 @@ const filterOptions = computed(() => {
     { label: 'Archived', value: 'status:archived', profileURL: getIconUrl('filter/archived.svg'), color: 'magenta' },
   )
 
-  // Availability
   options.push(
     { isDivider: true },
     { isHeader: true, label: 'Availability' },
@@ -144,58 +135,41 @@ const filterOptions = computed(() => {
     { label: 'Ongoing Session', value: 'avail:ongoing', profileURL: getIconUrl('filter/ongoing.svg'), color: 'purple' },
   )
 
-  // Categories
   const categoriesMap = new Map()
   dataStore.classes.forEach(c => {
     const cat = c.program?.category
-    if (cat) {
-      const catName = typeof cat === 'object' ? cat.name : cat
-      const profileURL = typeof cat === 'object' ? cat.profileURL : (c.program?.categorySnapshot?.profileURL)
+    const catName = typeof cat === 'object' ? cat.name : cat
+    const profileURL = typeof cat === 'object' ? cat.profileURL : (c.program?.categorySnapshot?.profileURL)
 
-      if (catName && !categoriesMap.has(catName)) {
-        categoriesMap.set(catName, {
-          label: `${catName}`,
-          value: `cat:${catName}`,
-          profileURL: profileURL || getIconUrl('navigation/class.svg'),
-          color: 'pink'
-        })
-      }
+    if (catName && !categoriesMap.has(catName)) {
+      categoriesMap.set(catName, {
+        label: `${catName}`,
+        value: `cat:${catName}`,
+        profileURL: profileURL || getIconUrl('navigation/class.svg'),
+        color: 'pink'
+      })
     }
   })
 
   if (categoriesMap.size > 0) {
-    options.push(
-      { isDivider: true },
-      { isHeader: true, label: 'Categories' },
-      ...categoriesMap.values()
-    )
+    options.push({ isDivider: true }, { isHeader: true, label: 'Categories' }, ...categoriesMap.values())
   }
 
-  // Branches
   const branchesMap = new Map()
   dataStore.classes.forEach(c => {
     const branch = c.branch
-    if (branch && branch.name) {
-      if (!branchesMap.has(branch.name)) {
-        branchesMap.set(branch.name, {
-          label: `${branch.name}`,
-          value: `branch:${branch.name}`,
-          badge: {
-            status: branch.abbr,
-            type: branch.color
-          },
-          color: `${branch.color}`
-        })
-      }
+    if (branch && branch.name && !branchesMap.has(branch.name)) {
+      branchesMap.set(branch.name, {
+        label: `${branch.name}`,
+        value: `branch:${branch.name}`,
+        badge: { status: branch.abbr, type: branch.color },
+        color: `${branch.color}`
+      })
     }
   })
 
   if (branchesMap.size > 0) {
-    options.push(
-      { isDivider: true },
-      { isHeader: true, label: 'Branches' },
-      ...branchesMap.values()
-    )
+    options.push({ isDivider: true }, { isHeader: true, label: 'Branches' }, ...branchesMap.values())
   }
 
   return options
@@ -203,34 +177,18 @@ const filterOptions = computed(() => {
 
 const displayClasses = computed(() => {
   let result = [...searchResults.value]
-
   const filter = currentFilter.value
   if (filter !== 'all') {
     if (filter.startsWith('status:')) {
       const status = filter.replace('status:', '')
-      if (status === 'archived') {
-        result = result.filter(c => ['completed', 'archived'].includes(c.status?.toLowerCase()))
-      } else {
-        result = result.filter(c => c.status?.toLowerCase() === status)
-      }
+      result = result.filter(c => c.status?.toLowerCase() === (status === 'archived' ? 'archived' : status))
     } else if (filter.startsWith('avail:')) {
       const avail = filter.replace('avail:', '')
-      if (avail === 'available') {
-        result = result.filter(c => {
-          const cap = c.capacity || c.maxCapacity || 0
-          return cap === 0 || (c.currentCount || 0) < cap
-        })
-      } else if (avail === 'full') {
-        result = result.filter(c => {
-          const cap = c.capacity || c.maxCapacity || 0
-          return cap > 0 && (c.currentCount || 0) >= cap
-        })
-      } else if (avail === 'ongoing') {
-        result = result.filter(isOngoing)
-      }
+      if (avail === 'available') result = result.filter(c => (c.capacity || 0) === 0 || (c.currentCount || 0) < (c.capacity || 0))
+      else if (avail === 'full') result = result.filter(c => (c.capacity || 0) > 0 && (c.currentCount || 0) >= (c.capacity || 0))
+      else if (avail === 'ongoing') result = result.filter(isOngoing)
     } else if (filter.startsWith('branch:')) {
-      const branch = filter.replace('branch:', '')
-      result = result.filter(c => c.branch?.name === branch)
+      result = result.filter(c => c.branch?.name === filter.replace('branch:', ''))
     } else if (filter.startsWith('cat:')) {
       const catVal = filter.replace('cat:', '')
       result = result.filter(c => {
@@ -241,10 +199,10 @@ const displayClasses = computed(() => {
   }
 
   return result.sort((a, b) => {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    const dayDiff = days.indexOf(a.schedule?.day) - days.indexOf(b.schedule?.day)
-    if (dayDiff !== 0) return dayDiff
-    return (a.schedule?.time || '').localeCompare(b.schedule?.time || '')
+    const timeA = new Date(a.createdAt || 0).getTime()
+    const timeB = new Date(b.createdAt || 0).getTime()
+    if (timeA !== timeB) return timeB - timeA
+    return (a.program?.name || '').localeCompare(b.program?.name || '')
   })
 })
 
@@ -253,11 +211,8 @@ const paginatedClasses = computed(() => {
   return displayClasses.value.slice(start, start + pageSize)
 })
 
-watch([searchQuery, currentFilter], () => {
-  currentPage.value = 1
-})
+watch([searchQuery, currentFilter], () => { currentPage.value = 1 })
 
-// Modal State
 const modal = ref({
   isOpen: false,
   type: 'add',
@@ -268,25 +223,7 @@ const modal = ref({
 })
 
 const openAddModal = () => {
-  modal.value = {
-    isOpen: true,
-    type: 'add',
-    classItem: null,
-    loading: false,
-    error: '',
-    success: '',
-  }
-}
-
-const openEditModal = (item) => {
-  modal.value = {
-    isOpen: true,
-    type: 'edit',
-    classItem: item,
-    loading: false,
-    error: '',
-    success: '',
-  }
+  modal.value = { isOpen: true, type: 'add', classItem: null, loading: false, error: '', success: '' }
 }
 
 const closeModal = () => {
@@ -295,17 +232,37 @@ const closeModal = () => {
   modal.value.success = ''
 }
 
-const getRowClass = () => ''
+const selectedIds = ref([])
+const toggleAllSelection = () => {
+  if (selectedIds.value.length === displayClasses.value.length) selectedIds.value = []
+  else selectedIds.value = displayClasses.value.map(c => c.id)
+}
+
+const toggleSelection = (id) => {
+  const index = selectedIds.value.indexOf(id)
+  if (index > -1) selectedIds.value.splice(index, 1)
+  else selectedIds.value.push(id)
+}
+
+const openBulkDuplicateModal = () => {
+  if (selectedIds.value.length === 0) return
+  modal.value = { isOpen: true, type: 'duplicateSelected', classItem: { selectedIds: [...selectedIds.value] }, loading: false, error: '', success: '' }
+}
 
 const handleAction = (type, item) => {
-  modal.value = {
-    isOpen: true,
-    type,
-    classItem: item,
-    loading: false,
-    error: '',
-    success: '',
+  if (type === 'delete') {
+    const msg = item.currentCount > 0 
+      ? `Cannot delete class "${item.program?.name}" as it has ${item.currentCount} active enrollments.`
+      : `Are you sure you want to delete the class instance for "${item.program?.name}"? This action cannot be undone.`
+    
+    if (item.currentCount > 0) {
+      alert(msg)
+      return
+    }
+    
+    if (!confirm(msg)) return
   }
+  modal.value = { isOpen: true, type, classItem: item, loading: false, error: '', success: '' }
 }
 
 const handleModalSubmit = async (payload) => {
@@ -313,40 +270,28 @@ const handleModalSubmit = async (payload) => {
   modal.value.error = ''
   modal.value.success = ''
   try {
-    if (modal.value.type === 'add') {
-      await classService.createClass(payload)
-      modal.value.success = 'Class established successfully'
-    } else if (modal.value.type === 'edit') {
-      await classService.updateClass(modal.value.classItem.id, payload)
-      modal.value.success = 'Class updated successfully'
-    } else if (modal.value.type === 'delete') {
-      await classService.deleteClass(modal.value.classItem.id)
-      modal.value.success = 'Class deleted successfully'
-    }
+    if (modal.value.type === 'add') await classService.createClass(payload)
+    else if (modal.value.type === 'edit') await classService.updateClass(modal.value.classItem.id, payload)
+    else if (modal.value.type === 'duplicateSelected') {
+      await classService.duplicateSpecificClasses(payload.selectedIds, payload.targetTermId)
+      selectedIds.value = []
+    } else if (modal.value.type === 'delete') await classService.deleteClass(modal.value.classItem.id)
+    
+    modal.value.success = 'Operation successful'
     await fetchClasses()
-
-    // Auto close after 1.5s on success
-    setTimeout(() => {
-      if (modal.value.isOpen) {
-        closeModal()
-      }
-    }, 1500)
+    setTimeout(() => { if (modal.value.isOpen) closeModal() }, 1500)
   } catch (err) {
     modal.value.error = err.message || 'Action failed'
-    console.error('Action failed:', err)
   } finally {
     modal.value.loading = false
   }
 }
 
-const navigateToDetail = (item) => {
-  router.push(`/classes/${item.id}`)
-}
+const navigateToDetail = (item) => { router.push(`/classes/${item.id}`) }
 
 const isClassReadOnly = (item) => {
   if (!item.term) return false
-  const prog = calculateClassProgress(item.term.startDate, item.term.endDate, item.day, item.timeslot)
-  return prog.status !== 'Upcoming'
+  return getExtendedStatus(item).status !== 'upcoming'
 }
 
 onMounted(fetchClasses)
@@ -357,84 +302,98 @@ onMounted(fetchClasses)
     <DataPageLayout overviewTitle="Class Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
+          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" :loading="loading" />
         </div>
       </template>
 
       <template #table>
-        <DataTable title="Class Lists" :headers="classHeaders" :items="paginatedClasses" :loading="loading"
-          entityName="class" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search classes..."
-          :hasFilter="true" :currentFilter="currentFilter" :filterOptions="filterOptions"
-          @update:currentFilter="currentFilter = $event" :hasSort="false" :hasPagination="true"
-          :currentPage="currentPage" :pageSize="pageSize" :totalItems="displayClasses.length"
-          @update:currentPage="currentPage = $event" @action="({ type, item }) => handleAction(type, item)"
-          @row-click="navigateToDetail">
+        <DataTable title="Class Lists" :headers="[{ label: '', width: '40px', align: 'center' }, ...classHeaders]" 
+          :items="paginatedClasses" :loading="loading" entityName="class" :flexible="true"
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search classes..." :hasFilter="true"
+          :currentFilter="currentFilter" :filterOptions="filterOptions" @update:currentFilter="currentFilter = $event"
+          :hasSort="false" :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize"
+          :totalItems="displayClasses.length" @update:currentPage="currentPage = $event"
+          @action="({ type, item }) => handleAction(type, item)" @row-click="navigateToDetail">
+          
+          <template #header-index-0>
+            <input type="checkbox" :checked="selectedIds.length === displayClasses.length && displayClasses.length > 0"
+              @change="toggleAllSelection" class="w-4 h-4 rounded border-outline-std text-primary focus:ring-primary/20 cursor-pointer" />
+          </template>
+
           <template #toolbar-actions>
+            <transition enter-active-class="transition duration-300 ease-out" enter-from-class="transform -translate-y-4 opacity-0" enter-to-class="transform translate-y-0 opacity-100">
+              <div v-if="selectedIds.length > 0" class="flex items-center gap-2">
+                <AppButton variant="secondary" size="md" @click="openBulkDuplicateModal">
+                  <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-70" />
+                  <span class="font-bold tracking-tight">Migrate ({{ selectedIds.length }})</span>
+                </AppButton>
+              </div>
+            </transition>
+            <AppButton variant="secondary" size="md" :loading="loading" @click="fetchClasses">
+              <img :src="getActionIcon('refresh')" class="w-4 h-4 opacity-70" />
+              <span class="font-bold tracking-tight">Refresh</span>
+            </AppButton>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-semibold tracking-tight text-sm">Add Class</span>
+              <span class="font-bold tracking-tight">Add Class</span>
             </AppButton>
           </template>
 
-          <template #row="{ item, index, headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction }">
-            <td class="ui-cell text-center font-bold text-content-muted/20" :style="{ width: headers[0].width }">
+          <template #row="{ item, index, headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles }">
+            <td class="ui-cell text-center" :style="{ width: '40px' }">
+              <input type="checkbox" :checked="selectedIds.includes(item.id)" @click.stop="toggleSelection(item.id)"
+                class="w-4 h-4 rounded border-outline-std text-primary focus:ring-primary/20 cursor-pointer" />
+            </td>
+
+            <td class="ui-cell text-center font-bold text-content-muted/30 tabular-nums" :style="{ width: headers[1].width }">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
             <td class="ui-cell" :style="{ flex: '1.5 1 0%' }">
               <div class="flex items-center gap-4 group">
-                <div class="flex items-center -space-x-4">
-                  <div
-                    class="w-8 h-8 rounded-full overflow-hidden ring-2 ring-white/80 shadow-sm bg-surface-subtle p-1.5 transition-all duration-500">
-                    <img :src="item.program?.category?.profileURL || getImageUrl('common/logo-main')"
-                      class="w-full h-full object-contain" />
-                  </div>
+                <div class="w-8 h-8 rounded-full overflow-hidden ring-2 ring-white/80 shadow-sm bg-surface-subtle p-1.5 transition-all duration-500 group-hover:scale-110">
+                  <img :src="getProgramProfileURL(item.program?.profileURL, item.program?.category?.name || item.program?.category, item.program?.category?.profileURL)" 
+                    class="w-full h-full object-contain" />
                 </div>
                 <div class="flex flex-col">
-                  <span
-                    class="font-bold text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">{{
-                      item.program?.name || 'Academic Course' }}</span>
-                  <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest mt-0.5">{{
-                    item.program?.category?.name || item.program?.category || 'General' }}</span>
+                  <span class="font-bold text-content-dark group-hover:text-primary transition-colors tracking-tighter text-base leading-tight">
+                    {{ item.program?.name || 'Academic Course' }}
+                  </span>
+                  <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest mt-0.5">
+                    {{ item.program?.category?.name || item.program?.category || 'General' }}
+                  </span>
                 </div>
               </div>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[2].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[3].width }">
               <AppBadge :status="item.branch?.abbr || item.branch?.name" :type="item.branch?.color || 'blue'" />
             </td>
 
-            <td class="ui-cell" :style="{ width: headers[3].width }">
-              <span class="text-sm font-semibold text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
-                }}</span>
+            <td class="ui-cell" :style="{ width: headers[4].width }">
+              <span class="text-sm font-semibold text-content-dark tracking-tight">{{ item.term?.name || 'Active Term' }}</span>
             </td>
 
-            <td class="ui-cell" :style="{ width: headers[4].width }">
-              <span v-if="item.term && item.schedule"
-                class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">
-                {{ calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day,
-                  item.schedule.time).week }}/{{ calculateClassProgress(item.term.startDate, item.term.endDate,
-                    item.schedule.day, item.schedule.time).totalWeeks }} Sessions
+            <td class="ui-cell" :style="{ width: headers[5].width }">
+              <span v-if="item.term && item.schedule" class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">
+                {{ calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day, item.schedule.time).week }}/{{ calculateClassProgress(item.term.startDate, item.term.endDate, item.schedule.day, item.schedule.time).totalWeeks }} Sessions
               </span>
               <span v-else class="text-[10px] font-semibold uppercase text-content-muted/30 tracking-widest italic">TBD</span>
             </td>
 
-            <td class="ui-cell" :style="{ width: headers[5].width }">
+            <td class="ui-cell" :style="{ width: headers[6].width }">
               <div class="flex flex-col gap-1 items-start">
-                <AppBadge :status="item.schedule.day"
-                  :type="['Saturday', 'Sunday'].includes(item.schedule.day) ? 'blue' : 'gray'" size="sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tight leading-none">{{ item.schedule.time
-                }}</span>
+                <AppBadge :status="item.schedule?.day" :type="['Saturday', 'Sunday'].includes(item.schedule?.day) ? 'blue' : 'gray'" size="sm" />
+                <span class="text-sm font-semibold text-content-dark tracking-tight leading-none">{{ item.schedule?.time }}</span>
               </div>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
               <div class="flex flex-col items-center gap-2 w-full px-4">
-                <div
-                  class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
+                <div class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
                   <div class="h-full transition-all duration-700 ease-out rounded-full"
                     :style="{ width: ((item.capacity || item.maxCapacity) ? (item.currentCount / (item.capacity || item.maxCapacity)) * 100 : 0) + '%' }"
-                    :class="((item.capacity || item.maxCapacity) && (item.currentCount / (item.capacity || item.maxCapacity)) >= 1) ? 'bg-error' : ((item.capacity || item.maxCapacity) && (item.currentCount / (item.capacity || item.maxCapacity)) >= 0.8) ? 'bg-warning' : 'bg-emerald-500'">
+                    :class="((item.capacity || item.maxCapacity) && (item.currentCount / (item.capacity || item.maxCapacity)) >= 1) ? 'bg-error' : 'bg-emerald-500'">
                   </div>
                 </div>
                 <span class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">
@@ -443,43 +402,27 @@ onMounted(fetchClasses)
               </div>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-              <AppBadge
-                :status="getExtendedStatus(item).status"
-                :type="{
-                  'upcoming': 'blue',
-                  'archived': 'neutral',
-                  'ongoing': 'purple',
-                  'full': 'red',
-                  'active': 'success'
-                }[getExtendedStatus(item).status] || 'success'" />
+            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+              <AppBadge :status="getExtendedStatus(item).status" :type="{ 'upcoming': 'blue', 'archived': 'neutral', 'ongoing': 'purple', 'full': 'red', 'active': 'success' }[getExtendedStatus(item).status.toLowerCase()] || 'success'" />
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[9].width }">
               <div class="ui-action-menu">
-                <button @click.stop="toggleMenu($event, item.id)"
-                  class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark group">
+                <button @click.stop="toggleMenu($event, item.id)" class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark group">
                   <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
 
                 <Teleport to="body">
-                  <transition enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                    leave-to-class="opacity-0">
-                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
-                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
-                      @click.stop>
+                  <transition enter-active-class="transition duration-200 ease-out" enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
+                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu" :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles" @click.stop>
                       <template v-if="!isClassReadOnly(item)">
-                        <button class="ui-dropdown-item ui-dropdown-item-info group"
-                          @click.stop="(e) => { handleAction('edit', item); toggleMenu(e, item.id); }">
+                        <button class="ui-dropdown-item ui-dropdown-item-info group" @click.stop="(e) => { handleAction('edit', item); toggleMenu(e, item.id); }">
                           <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                           <span class="font-bold">Edit Detail</span>
                         </button>
                         <div class="h-px bg-surface-light mx-1 my-1"></div>
                       </template>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
-                        @click.stop="(e) => { handleAction('delete', item); toggleMenu(e, item.id); }">
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter" @click.stop="(e) => { handleAction('delete', item); toggleMenu(e, item.id); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete Class
                       </button>

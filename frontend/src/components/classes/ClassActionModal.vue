@@ -32,22 +32,27 @@ const getInitialData = () => ({
   programId: '',
   termId: '',
   branchIds: [],
+  schedules: [], // For multi-schedule batch add
   day: '',
   startTime: '',
   endTime: '',
   durationHour: 1,
   durationMinute: 30,
   teacherIds: [],
-  capacity: 0,
+  capacity: 10,
   status: 'active',
   scheduleType: 'fixed',
   adminNote: '',
   sourceTermId: '',
   targetTermId: '',
   deleteConfirm: '',
+  selectedIds: [], // For selective duplicate
 })
 
 const mapSourceToForm = () => {
+  if (props.type === 'duplicateSelected' && props.classInstance) {
+    return { ...getInitialData(), ...props.classInstance }
+  }
   if ((props.type === 'edit' || props.type === 'delete') && props.classInstance) {
     const data = { ...props.classInstance, deleteConfirm: '' }
     // Flatten schedule for the UI form
@@ -156,9 +161,43 @@ const timeOptions = computed(() => {
 
 const sortedTerms = computed(() => [...terms.value].sort((a, b) => b.id.localeCompare(a.id)))
 
+const availableMigrationTerms = computed(() => {
+  if (props.type !== 'duplicateSelected' || !localData.selectedIds?.length) return sortedTerms.value
+
+  const selectedClasses = allClassInstances.value.filter(c => localData.selectedIds.includes(c.id))
+  
+  return sortedTerms.value.filter(term => {
+    // 1. Must be strictly upcoming (start date in future)
+    const todayStr = new Date().toISOString().split('T')[0]
+    if (term.startDate <= todayStr) return false
+
+    // 2. Check if any selected class already exists in this term
+    const existingInTerm = allClassInstances.value.filter(c => c.termId === term.id && !c.isDeleted)
+    
+    const hasOverlap = selectedClasses.some(sc => {
+      return existingInTerm.some(ec => {
+        const scTime = sc.schedule?.time || (sc.schedules && sc.schedules[0]?.time)
+        const ecTime = ec.schedule?.time || (ec.schedules && ec.schedules[0]?.time)
+        return ec.programId === sc.programId && 
+               ec.branchId === sc.branchId && 
+               (ec.schedule?.day === sc.schedule?.day) && 
+               ecTime === scTime
+      })
+    })
+
+    return !hasOverlap
+  })
+})
+
+const selectedClassItems = computed(() => {
+  if (!localData.selectedIds?.length) return []
+  return allClassInstances.value.filter(c => localData.selectedIds.includes(c.id))
+})
+
 const modalTitle = computed(() => {
   if (props.type === 'edit') return 'Edit Class'
   if (props.type === 'duplicate') return 'Batch Term Propagation'
+  if (props.type === 'duplicateSelected') return 'Selective Term Migration'
   if (props.type === 'delete') return 'Delete Class'
   return 'Add Class'
 })
@@ -173,6 +212,7 @@ const modalIcon = computed(() => {
 const submitLabel = computed(() => {
   if (props.type === 'edit') return 'Edit'
   if (props.type === 'delete') return 'Delete'
+  if (props.type === 'duplicateSelected') return 'Migrate'
   return 'Add'
 })
 
@@ -210,6 +250,49 @@ const onTermChange = (termId) => {
     }
   }
   checkSessionMatch()
+}
+
+const addScheduleSlot = () => {
+  localData.schedules.push({
+    day: 'Saturday',
+    startTime: '9:00 AM',
+    endTime: '10:30 AM',
+    durationHour: 1,
+    durationMinute: 30
+  })
+}
+
+const removeScheduleSlot = (index) => {
+  localData.schedules.splice(index, 1)
+}
+
+const updateScheduleEndTime = (index) => {
+  const sched = localData.schedules[index]
+  if (!sched.startTime) return
+
+  const [time, ampm] = sched.startTime.split(' ')
+  if (!time || !ampm) return
+  let [hours, minutes] = time.split(':').map(Number)
+
+  if (ampm === 'PM' && hours !== 12) hours += 12
+  if (ampm === 'AM' && hours === 12) hours = 0
+
+  const date = new Date()
+  date.setHours(hours, minutes, 0, 0)
+
+  const h = parseInt(sched.durationHour) || 0
+  const m = parseInt(sched.durationMinute) || 0
+
+  date.setMinutes(date.getMinutes() + (h * 60) + m)
+
+  let endHours = date.getHours()
+  const endMinutes = date.getMinutes().toString().padStart(2, '0')
+  const endAmpm = endHours >= 12 ? 'PM' : 'AM'
+
+  endHours = endHours % 12
+  if (endHours === 0) endHours = 12
+
+  sched.endTime = `${endHours}:${endMinutes} ${endAmpm}`
 }
 
 const calculateEndTime = () => {
@@ -343,9 +426,11 @@ const requestConfirm = () => {
     required:
       props.type === 'duplicate'
         ? ['sourceTermId', 'targetTermId']
-        : props.type === 'delete'
-          ? ['deleteConfirm']
-          : ['programId', 'termId', 'branchIds', 'day', 'startTime', 'endTime', 'teacherIds'],
+        : props.type === 'duplicateSelected'
+          ? ['targetTermId']
+          : props.type === 'delete'
+            ? ['deleteConfirm']
+            : ['programId', 'termId', 'branchIds', 'day', 'startTime', 'endTime', 'teacherIds'],
     custom: {}
   }
 
@@ -370,7 +455,7 @@ const requestConfirm = () => {
 const handleActionSubmit = () => {
   showConfirm.value = false
 
-  if (props.type === 'duplicate') {
+  if (props.type === 'duplicate' || props.type === 'duplicateSelected') {
     const { durationHour, durationMinute, ...cleanData } = localData
     emit('submit', JSON.parse(JSON.stringify(cleanData)))
     return
@@ -390,16 +475,25 @@ const handleActionSubmit = () => {
     capacity: parseInt(localData.capacity || 0),
     scheduleType: localData.scheduleType || 'fixed',
     adminNote: localData.adminNote || '',
-    schedule: {
+  }
+
+  if (props.type === 'add' && localData.schedules.length > 0) {
+    payload.schedules = localData.schedules.map(s => ({
+      day: s.day,
+      time: `${s.startTime} - ${s.endTime}`
+    }))
+  } else {
+    payload.schedule = {
       day: localData.day,
       time: `${localData.startTime} - ${localData.endTime}`,
-    },
+    }
   }
 
   // Calculate and persist status based on Term dates
   const term = terms.value.find(t => t.id === localData.termId)
   if (term) {
-    const prog = calculateClassProgress(term.startDate, term.endDate, localData.day, `${localData.startTime} - ${localData.endTime}`)
+    const activeSched = payload.schedules ? payload.schedules[0] : payload.schedule
+    const prog = calculateClassProgress(term.startDate, term.endDate, activeSched.day, activeSched.time)
     payload.status = prog.status.toLowerCase()
   } else {
     payload.status = localData.status || 'upcoming'
@@ -427,6 +521,18 @@ const confirmRows = computed(() => {
     ]
   }
 
+  if (props.type === 'duplicateSelected') {
+    return [
+      {
+        key: 'Destination Term', value: (() => {
+          const t = terms.value.find(term => term.id === localData.targetTermId)
+          return t ? `${t.name} (${t.startDate} - ${t.endDate})` : 'N/A'
+        })()
+      },
+      { key: 'Classes Selected', value: `${localData.selectedIds?.length || 0} Instances` }
+    ]
+  }
+
   const rows = [
     { key: 'Program', value: selectedProgram.value ? `${selectedProgram.value.name} (${selectedProgram.value.level})` : 'N/A' },
     {
@@ -438,7 +544,12 @@ const confirmRows = computed(() => {
     },
     { key: 'Branches', value: localData.branchIds.length + ' selected' },
     { key: 'Schedule Type', value: localData.scheduleType },
-    { key: 'Schedule', value: `${localData.day}, ${localData.startTime} - ${localData.endTime}` },
+    {
+      key: 'Schedule',
+      value: props.type === 'add' && localData.schedules.length > 0
+        ? localData.schedules.map(s => `${s.day} (${s.startTime})`).join(', ')
+        : `${localData.day}, ${localData.startTime} - ${localData.endTime}`
+    },
     { key: 'Teachers', value: teachers.value.filter(t => localData.teacherIds?.includes(t.id)).map(t => t.name).join(', ') || 'Pending' },
     { key: 'Class Capacity', value: localData.capacity + ' Students' },
     {
@@ -446,7 +557,9 @@ const confirmRows = computed(() => {
       value: (() => {
         const term = terms.value.find(t => t.id === localData.termId)
         if (!term) return 'Upcoming'
-        return calculateClassProgress(term.startDate, term.endDate, localData.day, `${localData.startTime} - ${localData.endTime}`).status
+        const day = props.type === 'add' && localData.schedules.length > 0 ? localData.schedules[0].day : localData.day
+        const time = props.type === 'add' && localData.schedules.length > 0 ? `${localData.schedules[0].startTime} - ${localData.schedules[0].endTime}` : `${localData.startTime} - ${localData.endTime}`
+        return calculateClassProgress(term.startDate, term.endDate, day, time).status
       })(),
       badge: true
     }
@@ -502,6 +615,94 @@ watch(
               will be initialized to zero.
             </p>
           </div>
+        </AppAlert>
+      </div>
+
+      <!-- DUPLICATE SELECTED MODE -->
+      <div v-if="type === 'duplicateSelected'"
+        class="flex flex-col gap-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <!-- INSTRUCTIONS -->
+        <div class="bg-primary/5 p-5 rounded-2xl border border-primary/10 flex flex-col gap-3">
+          <div class="flex items-center gap-2">
+            <div class="p-1.5 bg-primary/10 rounded-lg">
+              <img :src="getActionIcon('info')" class="w-4 h-4 opacity-70" />
+            </div>
+            <span class="text-xs font-bold text-primary uppercase tracking-widest">Migration Instructions</span>
+          </div>
+          <ul class="text-[10px] text-content-muted space-y-1.5 list-disc pl-5 font-medium leading-relaxed">
+            <li>Choose a **Destination Term** from the dropdown below. Only upcoming terms are shown.</li>
+            <li>Verify the **Class Summary** to confirm you are migrating the intended schedules.</li>
+            <li>The system will propagate configurations including teachers, capacity, and timing.</li>
+            <li><strong class="text-primary">Note:</strong> Enrollments are reset; migrated classes will start with zero students.</li>
+          </ul>
+        </div>
+
+        <div class="bg-surface-subtle/50 p-6 rounded-2xl border border-outline-std/50 flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-primary uppercase tracking-widest">Selective Term Migration</span>
+            <AppBadge :status="localData.selectedIds?.length + ' Classes'" type="blue" size="sm" />
+          </div>
+          <p class="text-xs text-content-muted font-medium leading-relaxed">
+            Propagate the selected class configurations (Schedules, Teachers, and Capacity) into a new academic term.
+          </p>
+
+          <div class="mt-2 flex flex-col gap-2">
+            <div v-for="cls in selectedClassItems" :key="cls.id" 
+              class="flex items-center justify-between bg-white/50 p-2 rounded-lg border border-primary/5">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-bold text-content-dark">{{ cls.program?.name }}</span>
+                <AppBadge :status="cls.branch?.abbr" :type="cls.branch?.color" size="xs" />
+              </div>
+              <span class="text-[10px] font-semibold text-content-muted uppercase tracking-tight">
+                {{ cls.schedule?.day }} @ {{ cls.schedule?.time }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <AppSelect v-model="localData.targetTermId" :items="availableMigrationTerms" label="Select Destination Term"
+          placeholder="Choose next term..." required :error="errors.targetTermId" :shake="shaking.targetTermId"
+          @change="clearError('targetTermId')">
+          <template #selected="{ item }">
+            <div v-if="item" class="flex items-center justify-between w-full">
+              <div class="flex items-center gap-3">
+                <span class="text-sm font-bold text-black">{{ item.name }}</span>
+                <div class="flex gap-1">
+                  <AppBadge v-for="bId in (item.branchIds || (item.branchId ? [item.branchId] : []))" 
+                    :key="bId" :status="branches.find(b => b.id === bId)?.abbr" 
+                    :type="branches.find(b => b.id === bId)?.color || 'blue'" size="xs" />
+                </div>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] font-bold uppercase text-success tracking-widest">{{ item.startDate }} </span>
+                <span class="text-[8px] text-content-muted/30">/</span>
+                <span class="text-[10px] font-bold uppercase text-error tracking-widest">{{ item.endDate }} </span>
+              </div>
+            </div>
+          </template>
+          <template #item="{ item }">
+            <div class="flex items-center justify-between w-full">
+              <div class="flex items-center gap-3">
+                <span class="text-sm font-bold text-black">{{ item.name }}</span>
+                <div class="flex gap-1">
+                  <AppBadge v-for="bId in (item.branchIds || (item.branchId ? [item.branchId] : []))" 
+                    :key="bId" :status="branches.find(b => b.id === bId)?.abbr" 
+                    :type="branches.find(b => b.id === bId)?.color || 'blue'" size="xs" />
+                </div>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] font-bold uppercase text-success tracking-widest">{{ item.startDate }} </span>
+                <span class="text-[8px] text-content-muted/30">/</span>
+                <span class="text-[10px] font-bold uppercase text-error tracking-widest">{{ item.endDate }} </span>
+              </div>
+            </div>
+          </template>
+        </AppSelect>
+
+        <AppAlert type="warning" size="sm">
+          <p class="text-xs font-semibold leading-relaxed">
+            Note: All enrollment counts will be reset to 0 in the new term instances.
+          </p>
         </AppAlert>
       </div>
 
@@ -660,72 +861,114 @@ watch(
               errors.branchIds }}</span>
         </div>
 
-        <AppSelect v-model="localData.day"
-          :items="['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => ({ id: d, name: d }))"
-          label="Instruction Day" required :error="errors.day" :shake="shaking.day" :searchable="false"
-          @change="clearError('day')">
-          <template #selected="{ item }">
-            <div v-if="item" class="flex items-center gap-2">
-              <span class="text-sm font-semibold"
-                :class="['Saturday', 'Sunday'].includes(item.name) ? 'text-primary font-bold' : 'text-content-dark'">{{
-                  item.name }}</span>
-              <span v-if="['Saturday', 'Sunday'].includes(item.name)"
-                class="text-xs font-semibold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded-full tracking-tighter">Weekend</span>
+        <!-- Multi-Schedule Section (Add Mode) -->
+        <div v-if="type === 'add'" class="col-span-2 flex flex-col gap-4 bg-surface-subtle/50 p-4 rounded-xl border border-outline-std">
+          <div class="flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="text-sm font-bold text-content-dark uppercase tracking-tight">Class Schedules</span>
+              <span class="text-[10px] text-content-muted font-medium uppercase tracking-widest">Add one or more time slots</span>
             </div>
-          </template>
-          <template #item="{ item }">
-            <div class="flex items-center justify-between w-full">
-              <span class="text-sm font-semibold"
-                :class="['Saturday', 'Sunday'].includes(item.name) ? 'text-primary font-bold' : 'text-content-dark'">{{
-                  item.name }}</span>
-              <span v-if="['Saturday', 'Sunday'].includes(item.name)"
-                class="text-xs font-semibold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded-full tracking-tighter">Weekend</span>
-            </div>
-          </template>
-        </AppSelect>
+            <AppButton size="xs" variant="secondary" @click="addScheduleSlot">
+              <img :src="getActionIcon('plus')" class="w-3 h-3" />
+              <span>Add Time Slot</span>
+            </AppButton>
+          </div>
 
-        <div class="col-span-1 grid grid-cols-2 gap-3">
-          <AppSelect v-model="localData.durationHour" :items="[0, 1, 2, 3, 4].map(h => ({ id: h, name: h + ' hr' }))"
-            label="Duration (H)" placeholder="0" required :error="errors.durationHour" :shake="shaking.durationHour"
-            :searchable="false" @change="clearError('durationHour')">
-            <template #selected="{ item }">
-              <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-            </template>
-            <template #item="{ item }">
-              <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-            </template>
-          </AppSelect>
-          <AppSelect v-model="localData.durationMinute" :items="[0, 15, 30, 45].map(m => ({ id: m, name: m + ' min' }))"
-            label="Duration (M)" placeholder="0" required :error="errors.durationMinute" :shake="shaking.durationMinute"
-            :searchable="false" @change="clearError('durationMinute')">
-            <template #selected="{ item }">
-              <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-            </template>
-            <template #item="{ item }">
-              <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-            </template>
-          </AppSelect>
+          <div v-if="localData.schedules.length === 0" class="text-center py-6 border-2 border-dashed border-outline-std rounded-xl text-content-muted/50 italic text-xs">
+            No specific schedules added yet. Use the default below or add multiple slots.
+          </div>
+
+          <div v-for="(sched, sIdx) in localData.schedules" :key="sIdx" class="grid grid-cols-12 gap-3 items-end bg-white p-3 rounded-lg border border-outline-std shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
+            <div class="col-span-3">
+              <AppSelect v-model="sched.day" :items="['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => ({ id: d, name: d }))" label="Day" required :searchable="false" size="sm" />
+            </div>
+            <div class="col-span-3">
+              <AppSelect v-model="sched.startTime" :items="timeOptions" label="Start" required :searchable="false" size="sm" @change="updateScheduleEndTime(sIdx)" />
+            </div>
+            <div class="col-span-2">
+              <AppSelect v-model="sched.durationHour" :items="[0, 1, 2, 3].map(h => ({ id: h, name: h + 'h' }))" label="H" required :searchable="false" size="sm" @change="updateScheduleEndTime(sIdx)" />
+            </div>
+            <div class="col-span-2">
+              <AppSelect v-model="sched.durationMinute" :items="[0, 15, 30, 45].map(m => ({ id: m, name: m + 'm' }))" label="M" required :searchable="false" size="sm" @change="updateScheduleEndTime(sIdx)" />
+            </div>
+            <div class="col-span-2 flex items-center justify-center pb-2">
+              <button type="button" @click="removeScheduleSlot(sIdx)" class="w-8 h-8 rounded-full hover:bg-error/10 text-error/40 hover:text-error transition-all flex items-center justify-center">
+                <img :src="getActionIcon('delete')" class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div class="col-span-2 grid grid-cols-2 gap-6">
-          <AppSelect v-model="localData.startTime" :items="timeOptions" label="Start Time" placeholder="00:00" required
-            :error="errors.startTime" :shake="shaking.startTime" :searchable="false" @change="clearError('startTime')">
+        <!-- Default Schedule (Used as primary if no multi-schedules, or for Edit mode) -->
+        <div v-if="type === 'edit' || (type === 'add' && localData.schedules.length === 0)" class="col-span-2 grid grid-cols-2 gap-x-6 gap-y-5">
+          <AppSelect v-model="localData.day"
+            :items="['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map(d => ({ id: d, name: d }))"
+            label="Instruction Day" required :error="errors.day" :shake="shaking.day" :searchable="false"
+            @change="clearError('day')">
             <template #selected="{ item }">
-              <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              <div v-if="item" class="flex items-center gap-2">
+                <span class="text-sm font-semibold"
+                  :class="['Saturday', 'Sunday'].includes(item.name) ? 'text-primary font-bold' : 'text-content-dark'">{{
+                    item.name }}</span>
+                <span v-if="['Saturday', 'Sunday'].includes(item.name)"
+                  class="text-xs font-semibold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded-full tracking-tighter">Weekend</span>
+              </div>
             </template>
             <template #item="{ item }">
-              <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              <div class="flex items-center justify-between w-full">
+                <span class="text-sm font-semibold"
+                  :class="['Saturday', 'Sunday'].includes(item.name) ? 'text-primary font-bold' : 'text-content-dark'">{{
+                    item.name }}</span>
+                <span v-if="['Saturday', 'Sunday'].includes(item.name)"
+                  class="text-xs font-semibold uppercase bg-primary/10 text-primary px-1.5 py-0.5 rounded-full tracking-tighter">Weekend</span>
+              </div>
             </template>
           </AppSelect>
-          <AppSelect v-model="localData.endTime" :items="timeOptions" label="End Time (Auto)" placeholder="00:00"
-            required :error="errors.endTime" :shake="shaking.endTime" :searchable="false" disabled>
-            <template #selected="{ item }">
-              <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-            </template>
-            <template #item="{ item }">
-              <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-            </template>
-          </AppSelect>
+  
+          <div class="col-span-1 grid grid-cols-2 gap-3">
+            <AppSelect v-model="localData.durationHour" :items="[0, 1, 2, 3, 4].map(h => ({ id: h, name: h + ' hr' }))"
+              label="Duration (H)" placeholder="0" required :error="errors.durationHour" :shake="shaking.durationHour"
+              :searchable="false" @change="() => { clearError('durationHour'); calculateEndTime(); }">
+              <template #selected="{ item }">
+                <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              </template>
+              <template #item="{ item }">
+                <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              </template>
+            </AppSelect>
+            <AppSelect v-model="localData.durationMinute" :items="[0, 15, 30, 45].map(m => ({ id: m, name: m + ' min' }))"
+              label="Duration (M)" placeholder="0" required :error="errors.durationMinute" :shake="shaking.durationMinute"
+              :searchable="false" @change="() => { clearError('durationMinute'); calculateEndTime(); }">
+              <template #selected="{ item }">
+                <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              </template>
+              <template #item="{ item }">
+                <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              </template>
+            </AppSelect>
+          </div>
+  
+          <div class="col-span-2 grid grid-cols-2 gap-6">
+            <AppSelect v-model="localData.startTime" :items="timeOptions" label="Start Time" placeholder="--:-- --"
+              required :error="errors.startTime" :shake="shaking.startTime" :searchable="false"
+              @change="() => { clearError('startTime'); calculateEndTime(); }">
+              <template #selected="{ item }">
+                <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              </template>
+              <template #item="{ item }">
+                <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              </template>
+            </AppSelect>
+            <AppSelect v-model="localData.endTime" :items="timeOptions" label="End Time (Auto)" placeholder="00:00"
+              required :error="errors.endTime" :shake="shaking.endTime" :searchable="false" disabled>
+              <template #selected="{ item }">
+                <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              </template>
+              <template #item="{ item }">
+                <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              </template>
+            </AppSelect>
+          </div>
         </div>
 
         <div v-if="sessionWarning || duplicateWarning" class="col-span-2 space-y-2">

@@ -382,7 +382,7 @@ const handleActionSubmit = async (formData) => {
     <DataPageLayout overviewTitle="Program Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
+          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" :loading="loading" />
         </div>
       </template>
 

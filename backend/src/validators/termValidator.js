@@ -37,7 +37,7 @@ function validateTerm(termData) {
     endDate,
     totalSessions,
     branchIds: Array.isArray(termData.branchIds) ? termData.branchIds : (termData.branchId ? [termData.branchId] : []),
-    status: termData.status || 'upcoming',
+    status: dateHelper.calculateStatus(termData.startDate, endDate),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -65,11 +65,16 @@ function validateUpdateTerm(updateData) {
     
     if (startDate && totalSessions) {
       cleanData.endDate = dateHelper.calculateEndDate(startDate, totalSessions)
+      // Automatically update status if dates change
+      cleanData.status = dateHelper.calculateStatus(startDate, cleanData.endDate)
     }
   } else if (cleanData.endDate) {
     dateHelper.validateAndParseDate(cleanData.endDate, 'End Date', {
       allowFuture: true,
     })
+    if (updateData.startDate) {
+      cleanData.status = dateHelper.calculateStatus(updateData.startDate, cleanData.endDate)
+    }
   }
 
   cleanData.updatedAt = new Date().toISOString()

@@ -7,8 +7,10 @@ import DataTable from '@/components/common/data/DataTable.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import { paymentService } from '@/services/paymentService'
+import { enrollmentService } from '@/services/enrollmentService'
+import { trialService } from '@/services/trialService'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
-import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
+import { useSearch, paymentSearchMapper } from '@/composables/useSearch'
 import { isPaid, isPending } from '@/constants/status'
 
 const enrollments = ref([])
@@ -34,68 +36,103 @@ const fetchData = async () => {
 
 onMounted(fetchData)
 
+// 1. Base formatting
 const formattedPayments = computed(() => {
   return enrollments.value.map(e => ({
     id: e.id,
+    receiptId: e.receiptId || (e.enrollmentId ? `#${e.enrollmentId.slice(-6).toUpperCase()}` : 'N/A'),
+    transactionId: e.transactionId || (e.paymentMethod === 'cash' ? null : 'N/A'),
     parent: e.parent?.name || 'Unknown Parent',
+    parentProfile: e.parent?.profileURL,
     amount: e.amount || 0,
-    method: e.paymentMethod || 'Pending',
+    method: e.paymentMethod || 'cash',
+    bankName: e.bankName || e.paymentMethod,
     status: e.paymentStatus || e.status || 'unpaid',
     date: e.paidAt || e.enrollAt || e.createdAt,
     student: e.student?.name || 'Unknown Student',
-    program: e.program?.name || 'Standard Program'
+    studentProfile: e.student?.profileURL,
+    program: e.program?.name || 'Standard Program',
+    paymentModeType: e.paymentModeType || (e.isProrated ? 'partial' : 'full'),
+    termStatus: e.termStatus || 'unknown'
   }))
 })
 
+// 2. Status filtering
 const statusFilteredPayments = computed(() => {
-  if (currentFilter.value === 'all') return formattedPayments.value
-  return formattedPayments.value.filter(p => {
-    if (currentFilter.value === 'paid') return isPaid(p.status)
-    if (currentFilter.value === 'pending') return isPending(p.status)
+  const list = formattedPayments.value
+  if (currentFilter.value === 'all') return list
+  
+  const filter = currentFilter.value.toLowerCase()
+  return list.filter(p => {
+    if (filter === 'paid') return isPaid(p.status)
+    if (filter === 'pending') return isPending(p.status)
+    if (filter === 'failed') return p.status === 'failed'
+    if (filter === 'cash') return p.method === 'cash'
+    if (filter === 'online') return p.method !== 'cash'
     return true
   })
 })
 
-const { searchQuery, searchResults: filteredPayments } = useSearch(
+// 3. Search filtering
+const { searchQuery, searchResults: searchedPayments } = useSearch(
   statusFilteredPayments,
-  enrollmentSearchMapper
+  paymentSearchMapper
 )
+
+// 4. Operational sorting (Active terms first)
+const filteredPayments = computed(() => {
+  const list = [...searchedPayments.value]
+  return list.sort((a, b) => {
+    // 1. Prioritize Active Term
+    if (a.termStatus === 'active' && b.termStatus !== 'active') return -1
+    if (a.termStatus !== 'active' && b.termStatus === 'active') return 1
+    
+    // 2. Then by date (newest first)
+    return new Date(b.date) - new Date(a.date)
+  })
+})
 
 const paymentStats = computed(() => {
   const s = stats.value
   return [
     {
-      label: 'Financial Pipeline',
-      value: s?.totalCount || 0,
-      image: getImageUrl('payment/total-transaction'),
-      color: 'var(--color-primary-light)',
-    },
-    {
-      label: 'Net Yield',
-      value: '$' + formatPrice(s?.totalRevenue || 0),
+      label: 'Settled Revenue (Paid)',
+      value: '$' + formatPrice(s?.totalPaidRevenue || 0),
+      subtitle: `${s?.paidCount || 0} Successful Transactions`,
       image: getImageUrl('payment/total-revenue'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-success-soft)',
     },
     {
-      label: 'Accounts Receivable',
+      label: 'Cash Collection (Offline)',
+      value: '$' + formatPrice(s?.cashRevenue || 0),
+      subtitle: `${s?.cashCount || 0} Cash Payments`,
+      image: getImageUrl('payment/total-transaction'),
+      color: 'var(--color-warning-soft)',
+    },
+    {
+      label: 'Bank Collection (Online)',
+      value: '$' + formatPrice(s?.onlineRevenue || 0),
+      subtitle: `${s?.onlineCount || 0} Online Payments`,
+      image: getImageUrl('payment/total-revenue'),
+      color: 'var(--color-primary-soft)',
+    },
+    {
+      label: 'Outstanding (Pending)',
       value: '$' + formatPrice(s?.pendingRevenue || 0),
+      subtitle: `${s?.pendingCount || 0} Unpaid Records`,
       image: getImageUrl('payment/unpaid-payment'),
-      color: 'var(--color-primary-light)',
-    },
-    {
-      label: 'Settled Ratio',
-      value: (s?.settledRatio || 0) + '%',
-      image: getImageUrl('dashboard/card-available-program'),
-      color: 'var(--color-primary-light)',
+      color: 'var(--color-magenta-soft)',
     },
   ]
 })
 
 const paymentHeaders = [
-  { label: 'NO', width: '100px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'CLIENT IDENTITY' },
+  { label: 'NO', width: '60px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'CLIENT IDENTITY', width: '280px' },
+  { label: 'RECEIPT ID', align: 'center', width: '120px' },
+  { label: 'TRANSACTION ID', align: 'center', width: '150px' },
   { label: 'AMOUNT', align: 'center', width: '120px' },
-  { label: 'METHOD', class: 'hidden sm:table-cell' },
+  { label: 'METHOD', align: 'center', width: '120px' },
   { label: 'STATUS', align: 'center', width: '120px' },
   { label: 'DATE', class: 'hidden lg:table-cell', width: '150px' },
 ]
@@ -112,69 +149,61 @@ const paymentHeaders = [
 
       <template #table>
         <DataTable title="Payment Lists" :headers="paymentHeaders" :items="filteredPayments" :loading="loading"
-          searchPlaceholder="Search by parent, student, or program model..." :hasFilter="true"
+          searchPlaceholder="Search by parent, student, or transaction IDs..." :hasFilter="true"
           v-model:searchQuery="searchQuery" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Transactions', value: 'all' },
-            { label: 'Settled Only', value: 'paid' },
-            { label: 'Outstanding Only', value: 'pending' },
+            { label: 'Paid', value: 'paid' },
+            { label: 'Pending', value: 'pending' },
+            { label: 'Failed', value: 'failed' },
+            { label: 'Cash Only', value: 'cash' },
+            { label: 'Online Only', value: 'online' },
           ]">
           <template #row="{ item, index, headers }">
             <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell"
               :style="{ width: headers[0].width }">
-              #{{ String(item.id).slice(-6).toUpperCase() }}
+              {{ index + 1 }}
             </td>
-
-            <td class="ui-cell min-w-[240px]" :style="{ flex: '1 1 0%' }">
+ 
+            <td class="ui-cell" :style="{ width: headers[1].width }">
               <div class="ui-identity-cell">
-                <div class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center">
-                  <span class="text-lg font-bold text-primary opacity-40">{{ item.parent.charAt(0) }}</span>
+                <div class="ui-avatar">
+                  <img :src="item.parentProfile" :alt="item.parent" />
                 </div>
                 <div class="ui-identity-info">
                   <div class="flex items-center gap-2">
                     <span class="text-sm font-semibold text-content-dark truncate block">{{ item.parent }}</span>
-                    <div class="w-1 h-1 rounded-full bg-content-muted/30"></div>
-                    <span class="text-[10px] font-semibold text-content-muted">{{ item.student }}</span>
                   </div>
                   <div class="flex items-center gap-1.5 opacity-60">
-                    <img :src="getActionIcon('enrollment')" class="w-3 h-3 grayscale" />
-                    <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest leading-none">{{
-                      item.program }}</span>
+                    <img :src="item.studentProfile" class="w-3 h-3 rounded-full" />
+                    <span class="text-[10px] font-semibold text-content-muted">{{ item.student }}</span>
                   </div>
                 </div>
               </div>
             </td>
-
+ 
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
-              <div
-                class="inline-flex flex-col items-center px-4 py-1.5 rounded-xl border"
-                :class="item.status === 'paid' || item.status === 'confirmed'
-                  ? 'bg-emerald-50 border-emerald-100/50'
-                  : 'bg-amber-50 border-amber-100/50'">
-                <span class="text-sm font-semibold tabular-nums tracking-tighter"
-                  :class="item.status === 'paid' || item.status === 'confirmed'
-                    ? 'text-emerald-700'
-                    : 'text-amber-700'">${{
-                  formatPrice(item.amount) }}</span>
-                <span class="text-[8px] font-bold uppercase tracking-widest"
-                  :class="item.status === 'paid' || item.status === 'confirmed'
-                    ? 'text-emerald-600/60'
-                    : 'text-amber-600/60'">Amount</span>
-              </div>
+              <span class="text-xs font-bold text-content-dark tracking-tighter tabular-nums">{{ item.receiptId }}</span>
             </td>
-
-            <td class="ui-cell hidden sm:table-cell" :style="{ flex: '1 1 0%' }">
-              <div class="flex items-center gap-2">
-                <div class="w-2 h-2 rounded-full" :class="item.method === 'Cash' ? 'bg-orange-400' : 'bg-blue-400'">
-                </div>
-                <span class="text-xs font-semibold text-content-dark uppercase tracking-tight">{{ item.method }}</span>
-              </div>
+ 
+            <td class="ui-cell text-center" :style="{ width: headers[3].width }">
+              <span v-if="item.transactionId" class="text-xs font-semibold text-content-muted tabular-nums">{{
+                item.transactionId }}</span>
+              <span v-else class="text-[10px] font-bold text-content-muted/30 uppercase tracking-widest">Undefined</span>
             </td>
-
+ 
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">
+              <AppBadge :status="'$' + formatPrice(item.amount)" :colorValue="item.paymentModeType" type="finance" />
+            </td>
+ 
+            <td class="ui-cell text-center" :style="{ width: headers[5].width }">
+              <AppBadge :status="item.bankName" :type="item.method === 'cash' ? 'green' : 'blue'" />
+            </td>
+ 
+            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <AppBadge :status="item.status" />
             </td>
-
-            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[5].width }">
+ 
+            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[7].width }">
               <div class="flex flex-col items-center">
                 <span class="text-[11px] font-semibold text-content-dark tabular-nums tracking-tight">{{
                   formatDate(item.date) }}</span>

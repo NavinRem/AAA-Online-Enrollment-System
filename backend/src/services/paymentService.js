@@ -36,11 +36,24 @@ class PaymentService {
       })
     }
 
-    return payments.filter(p => {
-      if (!p.enrollmentId) return true
-      const enrollment = enrollmentMap[p.enrollmentId]
-      return enrollment && enrollment.isDeleted !== true
-    })
+    return payments
+      .filter(p => {
+        if (!p.enrollmentId) return true
+        const enrollment = enrollmentMap[p.enrollmentId]
+        return enrollment && enrollment.isDeleted !== true
+      })
+      .map(p => {
+        const enrollment = enrollmentMap[p.enrollmentId] || {}
+        return {
+          ...p,
+          // Inject enrollment snapshots if missing in payment record
+          student: p.student || enrollment.student,
+          parent: p.parent || enrollment.parent,
+          program: p.program || enrollment.program,
+          class: p.class || enrollment.class,
+          termStatus: p.class?.term?.status || enrollment.class?.term?.status || 'unknown'
+        }
+      })
   }
 
   async getPaymentHistory(uid) {
@@ -123,39 +136,80 @@ class PaymentService {
   }
 
   async getFinancialStats() {
-    const snapshot = await db.collection(COLLECTIONS.ENROLLMENT).get()
-    const enrollments = snapshot.docs
-      .map((doc) => doc.data())
-      .filter((e) => e.isDeleted !== true)
+    const [enrollSnap, paymentSnap, termSnap, classSnap] = await Promise.all([
+      db.collection(COLLECTIONS.ENROLLMENT).where('isDeleted', '!=', true).get(),
+      db.collection(COLLECTIONS.PAYMENT).get(),
+      db.collection(COLLECTIONS.TERM).where('status', '==', 'active').get(),
+      db.collection(COLLECTIONS.CLASS).get()
+    ])
 
-    let totalRevenue = 0
-    let pendingRevenue = 0
+    const activeTermIds = new Set(termSnap.docs.map(doc => doc.id))
+    const activeClassIds = new Set(
+      classSnap.docs
+        .filter(doc => activeTermIds.has(doc.data().termId))
+        .map(doc => doc.id)
+    )
+
+    const enrollmentToClassMap = {}
+    enrollSnap.forEach(doc => {
+      enrollmentToClassMap[doc.id] = doc.data().classId
+    })
+
+    const enrollments = enrollSnap.docs.map(doc => doc.data())
+    const payments = paymentSnap.docs.map(doc => doc.data())
+
+    // 1. Settled Stats (From Payments Collection, filtered by Active Term Classes)
+    let totalPaidRevenue = 0
     let paidCount = 0
-    let totalCount = 0
+    let cashRevenue = 0
+    let cashCount = 0
+    let onlineRevenue = 0
+    let onlineCount = 0
 
-    enrollments.forEach((data) => {
-      // Skip if it doesn't have an amount (not a financial record)
-      if (data.amount === undefined) return
+    payments.forEach(p => {
+      const classId = p.classId || (p.enrollmentId ? enrollmentToClassMap[p.enrollmentId] : null)
+      if (!activeClassIds.has(classId)) return
 
-      totalCount++
-      const status = String(data.paymentStatus || data.status || 'unpaid').toLowerCase()
-      const isPaid = ['paid', 'confirmed', 'active', 'success'].includes(status)
+      const amount = Number(p.amount) || 0
+      totalPaidRevenue += amount
+      paidCount++
 
-      if (isPaid) {
-        totalRevenue += data.amount || 0
-        paidCount++
-      } else if (status === 'unpaid' || status === 'pending') {
-        pendingRevenue += data.amount || 0
+      if (String(p.paymentMethod).toLowerCase() === 'cash') {
+        cashRevenue += amount
+        cashCount++
+      } else {
+        onlineRevenue += amount
+        onlineCount++
+      }
+    })
+
+    // 2. Outstanding Stats (From Enrollments Collection, filtered by Active Term Classes)
+    let pendingRevenue = 0
+    let pendingCount = 0
+    let totalEnrollments = 0
+
+    enrollments.forEach(e => {
+      if (!activeClassIds.has(e.classId)) return
+
+      totalEnrollments++
+      const status = String(e.paymentStatus || e.status || 'unpaid').toLowerCase()
+      if (['unpaid', 'pending'].includes(status)) {
+        pendingRevenue += Number(e.amount) || 0
+        pendingCount++
       }
     })
 
     return {
-      totalRevenue,
-      pendingRevenue,
+      totalPaidRevenue,
       paidCount,
-      totalCount,
-      settledRatio:
-        totalCount > 0 ? Math.round((paidCount / totalCount) * 100) : 0,
+      cashRevenue,
+      cashCount,
+      onlineRevenue,
+      onlineCount,
+      pendingRevenue,
+      pendingCount,
+      totalEnrollments,
+      settledRatio: totalEnrollments > 0 ? Math.round((paidCount / totalEnrollments) * 100) : 0,
       updatedAt: new Date().toISOString(),
     }
   }

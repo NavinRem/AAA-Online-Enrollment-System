@@ -133,41 +133,50 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
   if (!startDate || !endDate)
     return { status: 'N/A', week: 0, percentage: 0, totalWeeks: 0, isArchived: false, isOngoing: false }
 
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  const today = new Date()
+  // Normalize all dates to Local Midnight for consistent comparison
+  const normalizeLocal = (d) => {
+    const date = parseDate(d)
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  }
 
-  // Normalize today for date comparison (start of day)
-  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate())
-  const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate())
+  const todayDate = normalizeLocal(new Date())
+  const startDateOnly = normalizeLocal(startDate)
+  const endDateOnly = normalizeLocal(endDate)
 
   // Total weeks in term (Day-inclusive calculation)
   const diffDays = Math.round((endDateOnly - startDateOnly) / (24 * 60 * 60 * 1000)) + 1
   const totalWeeks = Math.ceil(diffDays / 7)
 
+  // Calculate academic progress
   const elapsedMs = todayDate - startDateOnly
-  const currentWeek = Math.min(
-    totalWeeks,
-    Math.max(1, Math.floor(elapsedMs / (7 * 24 * 60 * 60 * 1000)) + 1),
-  )
-
-  const currentWeekStartDate = new Date(startDateOnly)
-  currentWeekStartDate.setDate(currentWeekStartDate.getDate() + (currentWeek - 1) * 7)
-
-  let sessionPassed = todayDate > currentWeekStartDate
-  if (todayDate.getTime() === currentWeekStartDate.getTime()) {
+  
+  let currentWeek = 0
+  let sessionPassed = false
+  
+  if (elapsedMs >= 0) {
+    currentWeek = Math.min(totalWeeks, Math.floor(elapsedMs / (7 * 24 * 60 * 60 * 1000)) + 1)
+    
+    // For a specific class session, check if today's session has already happened
+    const currentWeekStartDate = new Date(startDateOnly)
+    currentWeekStartDate.setDate(currentWeekStartDate.getDate() + (currentWeek - 1) * 7)
+    
+    // sessionPassed is true if today is AFTER the scheduled session day of the current week
+    sessionPassed = todayDate > currentWeekStartDate
+  } else {
+    // Upcoming Term
+    currentWeek = 0
     sessionPassed = false
   }
 
   const remainingSessions = Math.max(0, totalWeeks - currentWeek + (sessionPassed ? 0 : 1))
-  const percentage = Math.min(100, Math.round((currentWeek / totalWeeks) * 100))
+  const percentage = currentWeek === 0 ? 0 : Math.min(100, Math.round((currentWeek / totalWeeks) * 100))
 
   // ── Status Priority Logic ──
   
   // 1. Check for Ongoing status (Dynamic temporary override)
   let isOngoing = false
-  if (todayDate >= startDateOnly && todayDate <= endDateOnly && day && time) {
+  if (todayDate.getTime() >= startDateOnly.getTime() && todayDate.getTime() <= endDateOnly.getTime() && day && time) {
+    const today = new Date()
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     const todayDayName = dayNames[today.getDay()]
 
@@ -202,9 +211,9 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
 
   return {
     status,
-    weekInfo: `Week ${currentWeek}/${totalWeeks}`,
+    weekInfo: currentWeek === 0 ? `Starts in ${Math.round(Math.abs(elapsedMs) / (24 * 60 * 60 * 1000))} days` : `Week ${currentWeek}/${totalWeeks}`,
     week: currentWeek,
-    remainingSessions,
+    remainingSessions: status === 'upcoming' ? totalWeeks : remainingSessions,
     percentage,
     totalWeeks,
     isOngoing,

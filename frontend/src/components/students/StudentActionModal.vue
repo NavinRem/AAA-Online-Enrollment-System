@@ -8,7 +8,7 @@ import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import { getStudentProfileURL, isSameProfileAsset, getActionIcon } from '@/utils/assetHelper'
+import { getStudentProfileURL, getActionIcon } from '@/utils/assetHelper'
 import { calculateAge } from '@/utils/formatUtils'
 import { useActionModal } from '@/composables/useActionModal'
 
@@ -145,27 +145,6 @@ const studentThemeClasses = computed(() => {
   return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
 })
 
-const isPresetActive = (field, chipValue) => {
-  const values = (localData[field] || '').split(',').map((v) => v.trim())
-  return values.includes(chipValue)
-}
-
-const togglePreset = (field, chipValue) => {
-  let values = (localData[field] || '')
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)
-  if (values.includes(chipValue)) {
-    values = values.filter((v) => v !== chipValue)
-  } else {
-    if (chipValue === 'None') values = ['None']
-    else {
-      values = values.filter((v) => v !== 'None')
-      values.push(chipValue)
-    }
-  }
-  localData[field] = values.join(', ')
-}
 
 watch(
   () => props.isOpen,

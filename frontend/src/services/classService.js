@@ -49,6 +49,13 @@ export const classService = {
     })
   },
 
+  duplicateSpecificClasses(classIds, targetTermId) {
+    return request('/classes/duplicate-selective', {
+      method: 'POST',
+      body: JSON.stringify({ classIds, targetTermId }),
+    })
+  },
+
   syncClassCount(id) {
     return request(`/classes/${id}/sync`, { method: 'POST' })
   },

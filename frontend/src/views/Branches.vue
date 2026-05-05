@@ -26,10 +26,22 @@ const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
 }
 
+const branchStatsMap = ref({})
+
+const calculateAllBranchStats = () => {
+  const branches = dataStore.branches
+  const stats = {}
+  branches.forEach(b => {
+    stats[b.id] = getBranchStats(b.id)
+  })
+  branchStatsMap.value = stats
+}
+
 const fetchData = async () => {
   loading.value = true
   try {
     await dataStore.fetchAllCommonData(true)
+    calculateAllBranchStats()
   } catch (error) {
     console.error('Failed to fetch branches data', error)
   } finally {
@@ -42,7 +54,7 @@ onMounted(() => {
 })
 
 const statsCards = computed(() => {
-  if (loading.value) return []
+  if (loading.value || !Object.keys(branchStatsMap.value).length) return []
 
   const branches = dataStore.branches
   const enrollments = dataStore.enrollments
@@ -51,7 +63,8 @@ const statsCards = computed(() => {
   let topBranchNames = []
   let maxStudents = 0
   branches.forEach((branch) => {
-    const stats = getBranchStats(branch.id)
+    const stats = branchStatsMap.value[branch.id]
+    if (!stats) return
     const count = stats.lifetime.studying
     if (count > maxStudents) {
       maxStudents = count
@@ -324,49 +337,49 @@ const handleActionSubmit = async (payload) => {
 
             <!-- Today Section -->
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
-              <AppBadge v-if="getBranchStats(item.id).today.enroll > 0" :status="'+' + getBranchStats(item.id).today.enroll" type="green" />
+              <AppBadge v-if="branchStatsMap[item.id]?.today.enroll > 0" :status="'+' + branchStatsMap[item.id].today.enroll" type="green" />
               <span v-else class="text-xs font-bold text-content-dark/40">0</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
-              <AppBadge v-if="getBranchStats(item.id).today.trial > 0" :status="'+' + getBranchStats(item.id).today.trial" type="blue" />
+              <AppBadge v-if="branchStatsMap[item.id]?.today.trial > 0" :status="'+' + branchStatsMap[item.id].today.trial" type="blue" />
               <span v-else class="text-xs font-bold text-content-dark/40">0</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-              <span class="text-xs font-bold text-emerald-700 tabular-nums" v-if="getBranchStats(item.id).today.rev > 0">
-                ${{ formatPrice(getBranchStats(item.id).today.rev) }}
+              <span class="text-xs font-bold text-emerald-700 tabular-nums" v-if="branchStatsMap[item.id]?.today.rev > 0">
+                ${{ formatPrice(branchStatsMap[item.id].today.rev) }}
               </span>
               <span v-else class="text-xs font-bold text-content-dark/40">$0</span>
             </td>
 
             <!-- Week Section -->
             <td class="ui-cell text-center" :style="{ width: headers[8].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getBranchStats(item.id).week.enroll }}</span>
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ branchStatsMap[item.id]?.week.enroll || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[9].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getBranchStats(item.id).week.trial }}</span>
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ branchStatsMap[item.id]?.week.trial || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[10].width }">
-              <span class="text-xs font-bold text-primary tabular-nums" v-if="getBranchStats(item.id).week.rev > 0">
-                ${{ formatPrice(getBranchStats(item.id).week.rev) }}
+              <span class="text-xs font-bold text-primary tabular-nums" v-if="branchStatsMap[item.id]?.week.rev > 0">
+                ${{ formatPrice(branchStatsMap[item.id].week.rev) }}
               </span>
               <span v-else class="text-xs font-bold text-content-dark/40">$0</span>
             </td>
 
             <!-- Lifetime Section -->
             <td class="ui-cell text-center" :style="{ width: headers[11].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getBranchStats(item.id).lifetime.classes }}</span>
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ branchStatsMap[item.id]?.lifetime.classes || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[12].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getBranchStats(item.id).lifetime.programs }}</span>
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ branchStatsMap[item.id]?.lifetime.programs || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[13].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ getBranchStats(item.id).lifetime.studying }}</span>
+              <span class="text-sm font-bold text-content-dark tabular-nums">{{ branchStatsMap[item.id]?.lifetime.studying || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[14].width }">
-              <span class="text-sm font-bold text-emerald-700 tabular-nums">${{ formatPrice(getBranchStats(item.id).lifetime.totalRev) }}</span>
+              <span class="text-sm font-bold text-emerald-700 tabular-nums">${{ formatPrice(branchStatsMap[item.id]?.lifetime.totalRev || 0) }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[15].width }">
-              <span class="text-sm font-bold text-amber-700 tabular-nums">${{ formatPrice(getBranchStats(item.id).lifetime.totalPending) }}</span>
+              <span class="text-sm font-bold text-amber-700 tabular-nums">${{ formatPrice(branchStatsMap[item.id]?.lifetime.totalPending || 0) }}</span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[16].width }">

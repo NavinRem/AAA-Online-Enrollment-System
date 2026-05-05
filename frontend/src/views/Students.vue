@@ -57,18 +57,23 @@ onMounted(() => {
   fetchStudents()
 })
 
+const currentActiveTerm = computed(() => {
+  const allTerms = dataStore.terms || []
+  return allTerms.find((t) => t.status === 'active') ||
+    [...allTerms].sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0] || null
+})
+
 const studentsEnriched = computed(() => {
-  const sData = dataStore.students
-  const rData = dataStore.enrollments
-  const pData = dataStore.parents
-  const allTerms = dataStore.terms
+  const sData = dataStore.students || []
+  const rData = dataStore.enrollments || []
+  const pData = dataStore.parents || []
+  const classes = dataStore.classes || []
+  const programs = dataStore.programs || []
+  const termId = currentActiveTerm.value?.id || null
 
-  const activeTerm =
-    allTerms.find((t) => t.status === 'active') ||
-    [...allTerms].sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0]
-  const activeTermId = activeTerm?.id || null
-
-  return enrichStudents(sData, rData, pData, activeTermId)
+  const enriched = enrichStudents(sData, rData, pData, termId, classes, programs)
+  // Clean up: Ensure we only show records with names and IDs
+  return (enriched || []).filter(s => s.id && s.name && s.name.trim() !== '')
 })
 
 const { searchQuery, searchResults } = useSearch(studentsEnriched, studentSearchMapper)
@@ -362,21 +367,22 @@ const submitActionModal = async (formData) => {
 
             <!-- Programs -->
             <td class="ui-cell hidden lg:table-cell">
-              <div class="flex -space-x-2">
+              <div class="flex -space-x-3 hover:space-x-1 transition-all duration-500 overflow-hidden py-1 px-2">
                 <template v-if="item.enrollments?.length">
-                  <div v-for="(reg, rIdx) in item.enrollments" :key="rIdx"
-                    class="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm hover:z-10 transition-transform hover:scale-110"
-                    :title="reg.programName">
-                    <img :src="getProgramProfileURL(reg.program?.profileURL)" class="w-full h-full object-cover" />
+                  <!-- Group by program to show unique programs only -->
+                  <div v-for="(reg, rIdx) in [...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()]" 
+                    :key="rIdx"
+                    class="w-10 h-10 rounded-full border-2 border-white bg-surface-subtle overflow-hidden shadow-md hover:z-10 transition-all duration-300 hover:scale-110 ring-1 ring-black/5 flex-shrink-0"
+                    :title="reg.program?.name || reg.programName">
+                    <img :src="getProgramProfileURL(reg.program?.profileURL || reg.programProfileURL, reg.program?.category?.name || reg.program?.category || reg.programCategory, reg.program?.categorySnapshot?.profileURL || reg.program?.category?.profileURL)" 
+                      class="w-full h-full object-contain p-1.5" />
                   </div>
-                  <div v-if="item.enrollments.length > 3"
-                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-[10px] font-semibold text-content-muted">
-                    +{{ item.enrollments.length - 3 }}
+                  <div v-if="[...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()].length > 3"
+                    class="w-10 h-10 rounded-full border-2 border-white bg-primary text-white flex items-center justify-center text-[10px] font-bold shadow-md z-20">
+                    +{{ [...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()].length - 3 }}
                   </div>
                 </template>
-                <span v-else class="text-[10px] font-semibold text-content-muted/40 uppercase italic tracking-widest">—
-                  No
-                  Programs —</span>
+                <span v-else class="text-[10px] font-bold text-content-muted/30 uppercase italic tracking-widest leading-loose">— No Programs —</span>
               </div>
             </td>
 

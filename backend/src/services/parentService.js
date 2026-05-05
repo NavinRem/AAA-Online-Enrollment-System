@@ -203,26 +203,6 @@ class ParentService {
     return writes
   }
 
-  async clearParentMirrors(id) {
-    const [studentsSnap, enrollmentsSnap] = await Promise.all([
-      db.collection(COLLECTIONS.STUDENT).where('parentId', '==', id).get(),
-      db.collection(COLLECTIONS.ENROLLMENT).where('parentId', '==', id).get(),
-    ])
-
-    const writes = [
-      ...studentsSnap.docs.map((doc) => ({
-        ref: doc.ref,
-        data: { parentInfo: null },
-      })),
-      ...enrollmentsSnap.docs.map((doc) => ({
-        ref: doc.ref,
-        data: { student: null },
-      })),
-    ]
-
-    await this.commitInChunks(writes)
-  }
-
   async commitInChunks(writes, incomingBatch = null) {
     if (incomingBatch) {
       writes.forEach(({ ref, data }) => incomingBatch.update(ref, data))

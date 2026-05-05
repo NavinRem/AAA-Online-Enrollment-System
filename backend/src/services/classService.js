@@ -8,7 +8,10 @@ const {
 class ClassService {
   async createClass(classData) {
     const validated = validateClass(classData)
-    const { branchIds, ...baseData } = validated
+    const { branchIds, schedules, schedule, ...baseData } = validated
+    
+    // Support both single schedule (legacy/edit) and multiple schedules (batch add)
+    const activeSchedules = schedules && schedules.length > 0 ? schedules : [schedule]
 
     const [programDoc, termDoc] = await Promise.all([
       db.collection(COLLECTIONS.PROGRAM).doc(validated.programId).get(),
@@ -30,17 +33,11 @@ class ClassService {
       if (catDoc.exists) {
         const catData = catDoc.data()
         programData.category = catData.name
-        // Use category profile URL as fallback if program doesn't have one
         if (!programData.profileURL) {
           programData.profileURL = catData.profileURL
         }
       }
     }
-
-    const calculatedStatus = this.calculateStatus(
-      termData.startDate,
-      termData.endDate,
-    )
 
     const teacherDocs = await Promise.all(
       validated.teacherIds.map((id) =>
@@ -51,75 +48,140 @@ class ClassService {
       throw new Error('One or more teachers not found')
 
     const createdClasses = []
-    const scheduleMatch = validated.schedules?.[0]
+    const batch = db.batch()
 
     for (const bId of branchIds) {
-      // Uniqueness check for each branch
-      if (scheduleMatch) {
+      const branchDoc = await db.collection(COLLECTIONS.BRANCH).doc(bId).get()
+      if (!branchDoc.exists) continue
+
+      const branchSnapshot = profileHelper.getBranchSnapshot(bId, branchDoc.data())
+
+      for (const sched of activeSchedules) {
+        // Uniqueness check: Program + Term + Branch + Schedule
         const duplicateQuery = db
           .collection(COLLECTIONS.CLASS)
           .where('termId', '==', validated.termId)
           .where('branchId', '==', bId)
           .where('programId', '==', validated.programId)
+          .where('isDeleted', '==', false)
+          .get()
 
-        const dupSnap = await duplicateQuery.get()
+        const dupSnap = await duplicateQuery
         const isDuplicate = dupSnap.docs.some((doc) => {
           const d = doc.data()
-          if (d.isDeleted === true) return false // Skip deleted classes
-          return d.schedules?.some(
-            (s) => s.day === scheduleMatch.day && s.time === scheduleMatch.time,
-          )
+          return (d.schedule?.day === sched.day && d.schedule?.time === sched.time) ||
+                 (d.schedules?.some(s => s.day === sched.day && s.time === sched.time))
         })
 
         if (isDuplicate) {
-          const branchDoc = await db
-            .collection(COLLECTIONS.BRANCH)
-            .doc(bId)
-            .get()
-          const bName = branchDoc.exists ? branchDoc.data().name : bId
-          throw new Error(
-            `A class with same Program, Term, and Schedule already exists at branch "${bName}".`,
-          )
+          console.warn(`[ClassService] Skipping duplicate: ${programData.name} at ${branchSnapshot.name} on ${sched.day} ${sched.time}`)
+          continue
         }
+
+        const id = db.collection(COLLECTIONS.CLASS).doc().id
+        const newClass = {
+          ...baseData,
+          branchId: bId,
+          schedule: sched,
+          schedules: [sched], // Maintain both for compatibility
+          currentCount: 0,
+          program: profileHelper.getProgramSnapshot(validated.programId, programData),
+          teachers: teacherDocs.map((d) => profileHelper.getTeacherSnapshot(d.id, d.data())),
+          branch: branchSnapshot,
+          term: profileHelper.getTermSnapshot(validated.termId, termData),
+          status: this.calculateStatus(
+            termData.startDate,
+            termData.endDate,
+            0,
+            validated.capacity || 0,
+          ),
+          isDeleted: false,
+          createdAt: new Date().toISOString(),
+        }
+
+        batch.set(db.collection(COLLECTIONS.CLASS).doc(id), newClass)
+        createdClasses.push({ id, ...newClass })
       }
-
-      const branchDoc = await db.collection(COLLECTIONS.BRANCH).doc(bId).get()
-      if (!branchDoc.exists) throw new Error(`Branch ${bId} not found`)
-
-      const id = db.collection(COLLECTIONS.CLASS).doc().id
-      const newClass = {
-        ...baseData,
-        branchId: bId,
-        currentCount: 0,
-        program: profileHelper.getProgramSnapshot(
-          validated.programId,
-          programData,
-        ),
-        teachers: teacherDocs.map((d) =>
-          profileHelper.getTeacherSnapshot(d.id, d.data()),
-        ),
-        branch: profileHelper.getBranchSnapshot(bId, branchDoc.data()),
-        term: profileHelper.getTermSnapshot(validated.termId, termData),
-        status: this.calculateStatus(
-          termData.startDate,
-          termData.endDate,
-          0,
-          validated.capacity || 0,
-        ),
-        isDeleted: false,
-        createdAt: new Date().toISOString(),
-      }
-
-      await db.collection(COLLECTIONS.CLASS).doc(id).set(newClass)
-      createdClasses.push({ id, ...newClass })
     }
+
+    if (createdClasses.length === 0) {
+      throw new Error('No new classes were created. They might already exist.')
+    }
+
+    await batch.commit()
 
     return createdClasses.length === 1
       ? createdClasses[0]
       : {
-          message: `Successfully created ${createdClasses.length} classes`,
+          message: `Successfully created ${createdClasses.length} class instances`,
+          count: createdClasses.length,
           classes: createdClasses,
         }
+  }
+
+  async duplicateSpecificClasses(classIds, targetTermId) {
+    if (!classIds || classIds.length === 0) throw new Error('No classes selected')
+    
+    const targetTermDoc = await db.collection(COLLECTIONS.TERM).doc(targetTermId).get()
+    if (!targetTermDoc.exists) throw new Error('Target term not found')
+    const targetTermSnapshot = profileHelper.getTermSnapshot(targetTermId, targetTermDoc.data())
+
+    const sourceClassesSnap = await Promise.all(
+      classIds.map(id => db.collection(COLLECTIONS.CLASS).doc(id).get())
+    )
+
+    // Fetch existing classes in target term to avoid duplicates
+    const existingTargetClassesSnap = await db.collection(COLLECTIONS.CLASS)
+      .where('termId', '==', targetTermId)
+      .get()
+    
+    const existingKeys = new Set(
+      existingTargetClassesSnap.docs.map((doc) => {
+        const d = doc.data()
+        const s = d.schedule || (d.schedules && d.schedules.length > 0 ? d.schedules[0] : null)
+        const branchKey = d.branchIds ? d.branchIds.sort().join(',') : (d.branchId || '')
+        return `${d.programId}-${branchKey}-${s?.day}-${s?.time}`
+      })
+    )
+
+    const batch = db.batch()
+    let count = 0
+
+    sourceClassesSnap.forEach(doc => {
+      if (!doc.exists) return
+      const data = doc.data()
+      if (data.isDeleted) return
+
+      const s = data.schedule || (data.schedules && data.schedules.length > 0 ? data.schedules[0] : null)
+      const branchKey = data.branchIds ? data.branchIds.sort().join(',') : (data.branchId || '')
+      const key = `${data.programId}-${branchKey}-${s?.day}-${s?.time}`
+
+      if (existingKeys.has(key)) return // Skip duplicates
+
+      const newId = db.collection(COLLECTIONS.CLASS).doc().id
+      const duplicatedClass = {
+        ...data,
+        termId: targetTermId,
+        term: targetTermSnapshot,
+        currentCount: 0,
+        studentIds: [], // Clear students from source class
+        students: [],    // Clear student snapshots
+        status: this.calculateStatus(
+          targetTermSnapshot.startDate,
+          targetTermSnapshot.endDate,
+          0,
+          data.capacity || 0
+        ),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      
+      batch.set(db.collection(COLLECTIONS.CLASS).doc(newId), duplicatedClass)
+      count++
+    })
+
+    if (count > 0) await batch.commit()
+    return { message: `Successfully duplicated ${count} classes to ${targetTermSnapshot.name}`, count }
   }
 
   async getAllClasses(filters = {}) {
@@ -302,7 +364,9 @@ class ClassService {
 
     snapshot.docs.forEach((doc) => {
       const data = doc.data()
-      const s = data.schedules?.[0]
+      if (data.isDeleted) return // Skip deleted classes
+
+      const s = data.schedule || (data.schedules && data.schedules.length > 0 ? data.schedules[0] : null)
       const key = `${data.programId}-${data.branchId}-${s?.day}-${s?.time}`
 
       if (existingKeys.has(key)) return // Skip duplicates
@@ -313,6 +377,8 @@ class ClassService {
         termId: targetTermId,
         term: targetTermSnapshot,
         currentCount: 0,
+        studentIds: [], // Ensure new classes start empty
+        students: [],
         createdAt: new Date().toISOString(),
       }
       delete duplicatedClass.updatedAt
@@ -328,14 +394,34 @@ class ClassService {
     const enrollmentsSnap = await db
       .collection(COLLECTIONS.ENROLLMENT)
       .where('classId', '==', classId)
-      .where('status', 'in', ['active', 'confirmed', 'paid', 'unpaid'])
       .get()
 
-    const count = enrollmentsSnap.size
+    const SEAT_TAKING_STATUSES = ['active', 'confirmed', 'paid', 'unpaid', 'success']
+    
+    const activeEnrollments = enrollmentsSnap.docs
+      .map(doc => doc.data())
+      .filter(e => !e.isDeleted && SEAT_TAKING_STATUSES.includes(String(e.status || '').toLowerCase()))
+
+    const studentIds = activeEnrollments.map(e => e.studentId)
+    const students = activeEnrollments.map(e => ({
+      id: e.studentId,
+      name: e.student?.name || 'Unknown',
+      profileURL: e.student?.profileURL || null,
+      enrolledAt: e.createdAt || e.enrollmentDate
+    }))
+
+    const count = activeEnrollments.length
+
     await db
       .collection(COLLECTIONS.CLASS)
       .doc(classId)
-      .update({ currentCount: count })
+      .update({ 
+        currentCount: count,
+        studentIds,
+        students,
+        updatedAt: new Date().toISOString()
+      })
+      
     return { classId, count }
   }
 

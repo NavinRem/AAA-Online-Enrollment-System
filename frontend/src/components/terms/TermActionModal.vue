@@ -107,7 +107,7 @@ const requestConfirm = () => {
   if (props.type === 'edit' && !isDirty.value) return
 
   const rules = {
-    required: props.type === 'delete' ? ['deleteConfirm'] : ['name', 'startDate', 'totalSessions', 'branchIds'],
+    required: props.type === 'delete' ? ['deleteConfirm'] : ['name', 'startDate', 'totalSessions'],
     custom: {}
   }
 
@@ -117,7 +117,8 @@ const requestConfirm = () => {
 
   if (!validate(rules)) {
     if (props.type !== 'delete') {
-      triggerShake('name')
+      const firstError = Object.keys(errors).find(k => errors[k])
+      if (firstError) triggerShake(firstError)
     }
     return
   }

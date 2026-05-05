@@ -40,11 +40,13 @@ defineProps({
                 typeof col === 'object' && col.align ? `text-${col.align}` : 'text-left',
                 typeof col === 'object' && col.hideOnMobile ? 'hidden-on-mobile' : '',
               ]">
-              <div class="flex flex-col gap-0.5">
-                <span class="block">{{ typeof col === 'object' ? col.label : col }}</span>
-                <span v-if="typeof col === 'object' && col.subLabel"
-                  class="block text-[9px] opacity-60 font-bold normal-case tracking-tight">{{ col.subLabel }}</span>
-              </div>
+              <slot :name="`header-${(typeof col === 'object' ? col.label : col).toLowerCase().replace(/\s+/g, '-') || 'index-' + index}`" :column="col" :index="index">
+                <div class="flex flex-col gap-0.5">
+                  <span class="block">{{ typeof col === 'object' ? col.label : col }}</span>
+                  <span v-if="typeof col === 'object' && col.subLabel"
+                    class="block text-[9px] opacity-60 font-bold normal-case tracking-tight">{{ col.subLabel }}</span>
+                </div>
+              </slot>
             </th>
           </tr>
         </thead>

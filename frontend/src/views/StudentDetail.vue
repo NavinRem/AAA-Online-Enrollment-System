@@ -62,7 +62,7 @@ const isArchived = computed(() => {
 
 const studentDetailsFields = computed(() => [
   { label: 'Gender', value: student.value?.gender || 'N/A' },
-  { label: 'Age', value: (student.value?.birthDate ? calculateAge(student.value.birthDate) : 'N/A') + ' years old' },
+  { label: 'Age', value: (student.value?.dob ? calculateAge(student.value.dob) : 'N/A') + ' years old' },
   { label: 'Student ID', value: student.value?.studentId || student.value?.id || 'N/A' },
   { label: 'Branch', value: student.value?.branchAbbr || 'N/A' },
   { label: 'Status', value: student.value?.status, isBadge: true }
@@ -778,53 +778,6 @@ watch(
 
       <template #right-content v-if="student">
         <div class="flex flex-col gap-8">
-          <!-- Basic Info Card -->
-          <section class="ui-detail-card flex flex-col items-center gap-6">
-            <h2 class="w-full font-bold text-content-dark text-center">Basic Information</h2>
-            <div class="relative group">
-              <div
-                class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100">
-                <img :src="student?.profileURL || getImageUrl('profiles/avatar-student')" alt="Student Profile"
-                  class="w-full h-full object-cover" />
-              </div>
-            </div>
-          </section>
-
-          <!-- Student Information Card -->
-          <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-bold uppercase tracking-widest text-content-muted">Student Information</h6>
-
-            <div class="space-y-5">
-              <div class="flex justify-between gap-1">
-                <span class="text-lg font-bold text-content-dark">Student Name:</span>
-                <span class="text-md font-bold text-content-muted">{{ student?.name }}</span>
-              </div>
-              <div class="flex justify-between gap-1">
-                <span class="text-lg font-bold text-content-dark">Date of Birth:</span>
-                <span class="text-md font-bold text-content-muted">{{ formatDateOnly(student?.dob) || '—' }}</span>
-              </div>
-              <div class="flex justify-between gap-1">
-                <span class="text-lg font-bold text-content-dark">Age:</span>
-                <div>
-                  <AppBadge :status="(student?.age || '—') + ' years old'" type="blue" />
-                </div>
-              </div>
-              <div class="flex justify-between gap-1">
-                <span class="text-lg font-bold text-content-dark">Status:</span>
-                <div>
-                  <AppBadge :status="computedStatus" />
-                </div>
-              </div>
-
-              <div v-if="student?.overrideReason"
-                class="flex flex-col gap-1 mt-4 p-4 bg-warning/5 border border-warning/10 rounded-xl">
-                <div class="flex items-center gap-2 mb-2">
-                  <img :src="getActionIcon('quick-action')" class="w-4 h-4 opacity-60" />
-                  <span class="text-xs font-semibold uppercase text-warning tracking-widest">Manual Override</span>
-                </div>
-                <p class="text-sm font-semibold text-content-dark mb-1">Reason: {{ student?.overrideReason }}</p>
-                <p class="text-xs text-content-muted leading-relaxed italic">{{ student?.overrideRemark }}</p>
-              </div>
           <EntityProfileCard :profileURL="student.profileURL" title="Basic Information" fallbackImage="profiles/avatar-student" />
           <RelationshipsCard title="Family Context" :items="parentItems" />
           <EntityInfoCard title="Student Details" :fields="studentDetailsFields" />

@@ -33,26 +33,78 @@ class TermService {
 
   async getAllTerms(filters = {}) {
     let query = db.collection(COLLECTIONS.TERM)
-    if (filters.branchId) {
-      // Fetch all terms and filter manually for array inclusion
-      const snapshot = await query.get()
-      const results = []
-      snapshot.forEach((doc) => {
-        const data = doc.data()
-        if (data.isDeleted === true) return
-        const branchIds = data.branchIds || (data.branchId ? [data.branchId] : [])
-        // Include if global OR if it matches the requested branch
-        if (branchIds.length === 0 || branchIds.includes(filters.branchId)) {
-          results.push({ id: doc.id, ...data })
-        }
-      })
-      return results
-    }
-
+    
+    // 1. Fetch basic terms
     const snapshot = await query.get()
-    return snapshot.docs
+    let terms = snapshot.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .filter((t) => t.isDeleted !== true)
+
+    // 2. Filter by branch if requested
+    if (filters.branchId) {
+      terms = terms.filter(t => {
+        const branchIds = t.branchIds || (t.branchId ? [t.branchId] : [])
+        return branchIds.length === 0 || branchIds.includes(filters.branchId)
+      })
+    }
+
+    // 3. Map enrollments to terms
+    const [classesSnap, enrollSnap] = await Promise.all([
+      db.collection(COLLECTIONS.CLASS).get(),
+      db.collection(COLLECTIONS.ENROLLMENT).where('isDeleted', '!=', true).get()
+    ])
+
+    const classToTermMap = {}
+    classesSnap.forEach(doc => {
+      const data = doc.data()
+      if (data.termId) classToTermMap[doc.id] = data.termId
+    })
+
+    const termToStudentsMap = {}
+    const termToRevenueMap = {}
+    
+    enrollSnap.forEach(doc => {
+      const e = doc.data()
+      const termId = classToTermMap[e.classId]
+      if (termId) {
+        if (!termToStudentsMap[termId]) termToStudentsMap[termId] = new Set()
+        termToStudentsMap[termId].add(e.studentId)
+        
+        if (e.paymentStatus === 'paid') {
+          termToRevenueMap[termId] = (termToRevenueMap[termId] || 0) + (Number(e.amount) || 0)
+        }
+      }
+    })
+
+    // 4. Calculate stats chronologically to identify first-time students
+    const chronTerms = [...terms].sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+    const globalSeenStudents = new Set()
+    const termStatsMap = {}
+
+    chronTerms.forEach(t => {
+      const studentsInTerm = termToStudentsMap[t.id] || new Set()
+      let newCount = 0
+      studentsInTerm.forEach(sid => {
+        if (!globalSeenStudents.has(sid)) {
+          newCount++
+        }
+      })
+      
+      termStatsMap[t.id] = {
+        totalStudents: studentsInTerm.size,
+        newStudents: newCount,
+        revenue: termToRevenueMap[t.id] || 0
+      }
+      
+      // Update global seen list AFTER calculating for this term
+      studentsInTerm.forEach(sid => globalSeenStudents.add(sid))
+    })
+
+    // 5. Return enriched terms
+    return terms.map(t => ({
+      ...t,
+      ...termStatsMap[t.id]
+    }))
   }
 
   async getTerm(id) {
@@ -83,12 +135,20 @@ class TermService {
 
     if (!classesSnap.empty) {
       const batch = db.batch()
-      classesSnap.forEach((cDoc) => {
+      const classService = require('./classService')
+      const enrollmentService = require('./enrollmentService')
+
+      for (const cDoc of classesSnap.docs) {
         batch.update(cDoc.ref, {
           term: termSnapshot,
           updatedAt: new Date().toISOString()
         })
-      })
+        
+        // Trigger enrollment sync for each class in this term
+        const classData = { ...cDoc.data(), term: termSnapshot }
+        const classSnapshot = profileHelper.getClassSnapshot(cDoc.id, classData)
+        await enrollmentService.syncEnrollmentsWithClass(cDoc.id, classSnapshot)
+      }
       await batch.commit()
     }
 

@@ -27,13 +27,6 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit', 'register-student'])
 
-const REMARK_PRESETS = [
-  'Sibling Discount',
-  'Sponsorship',
-  'Scholarship',
-  'Late Enrollment',
-  'Ocassional Discount'
-]
 
 const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm({
   parentId: '',
@@ -41,9 +34,6 @@ const { form, errors, shaking, validate, clearError, triggerShake, resetForm } =
   programId: '',
   classId: '',
   enrollAt: new Date().toISOString(),
-  enrollmentType: '',
-  status: '',
-  paymentStatus: '',
   isProrated: null,
   isSponsorship: null,
   sponsorName: '',
@@ -260,9 +250,6 @@ const handleFinalSubmit = () => {
     programId: form.programId,
     classId: form.classId,
     enrollAt: form.enrollAt || new Date().toISOString(),
-    enrollmentType: form.enrollmentType,
-    status: form.status,
-    paymentStatus: form.paymentStatus,
     isProrated: !!form.isProrated,
     isSponsorship: !!form.isSponsorship,
     sponsorName: form.sponsorName || '',
@@ -407,22 +394,7 @@ const handleClassChange = (cid) => {
   }
 }
 
-const toggleRemarkPreset = (p) => {
-  let values = (form.remark || '')
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean)
-  values = values.includes(p) ? values.filter((v) => v !== p) : [...values, p]
-  form.remark = values.join(', ')
-}
-
-const isRemarkPresetActive = (p) =>
-  (form.remark || '')
-    .split(',')
-    .map((v) => v.trim())
-    .includes(p)
-
-watch(
+const watchIsOpen = watch(
   () => props.isOpen,
   (open) => {
     if (open) {
@@ -706,12 +678,6 @@ watch(
 
           <div class="enroll-twin-card enroll-remarks-card" v-if="selectedClass">
             <span class="enroll-section-label">Administrative Remark</span>
-            <div class="ui-preset-bar">
-              <button v-for="preset in REMARK_PRESETS" :key="preset" type="button" class="ui-preset-btn"
-                :class="{ 'ui-preset-btn-hover': isRemarkPresetActive(preset) }" @click="toggleRemarkPreset(preset)">
-                {{ preset }}
-              </button>
-            </div>
             <textarea v-model="form.remark" placeholder="Input the administrative remark..." rows="3"
               class="ui-textarea-standard"
               :class="{ 'border-error bg-error-soft ring-error/10': errors.remark }"></textarea>

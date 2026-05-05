@@ -10,7 +10,7 @@ import TermActionModal from '@/components/terms/TermActionModal.vue'
 
 import { termService } from '@/services/termService'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
-import { formatDateOnly, calculateClassProgress } from '@/utils/formatUtils'
+import { formatDateOnly, calculateClassProgress, formatPrice } from '@/utils/formatUtils'
 import { useSearch } from '@/composables/useSearch'
 
 const loading = ref(false)
@@ -19,14 +19,15 @@ const branches = ref([])
 
 const headers = [
   { label: 'NO', width: '50px', align: 'center' },
-  { label: 'TERM NAME', width: '220px' },
-  { label: 'BRANCH', width: '120px', align: 'center' },
-  { label: 'START DATE', width: '140px', align: 'center' },
-  { label: 'END DATE', width: '140px', align: 'center' },
-  { label: 'SESSIONS', width: '100px', align: 'center' },
-  { label: 'DURATION', width: '120px', align: 'center' },
-  { label: 'STATUS', width: '120px', align: 'center' },
-  { label: 'ACTION', width: '80px', align: 'center' },
+  { label: 'TERM NAME', width: '180px' },
+  { label: 'BRANCH', width: '100px', align: 'center' },
+  { label: 'START DATE', width: '110px', align: 'center' },
+  { label: 'END DATE', width: '110px', align: 'center' },
+  { label: 'STUDENTS', width: '110px', align: 'center' },
+  { label: 'SESSIONS', width: '90px', align: 'center' },
+  { label: 'REVENUE', width: '110px', align: 'center' },
+  { label: 'STATUS', width: '100px', align: 'center' },
+  { label: 'ACTION', width: '50px', align: 'center' },
 ]
 
 const fetchData = async () => {
@@ -73,8 +74,11 @@ onMounted(fetchData)
 
 // Search Logic
 const { searchQuery, searchResults } = useSearch(items, (item) => {
-  const branchText = (item.branchIds || []).join(' ')
-  return `${item.name} ${item.status} ${branchText}`
+  const branchText = (item.branchIds || [])
+    .map(id => branches.value.find(b => b.id === id)?.abbr || '')
+    .filter(Boolean)
+    .join(' ')
+  return [item.name, item.status, branchText].filter(Boolean).join(' ').toLowerCase()
 })
 
 // Metrics logic
@@ -89,19 +93,19 @@ const statsCards = computed(() => {
     },
     {
       label: 'Active Terms',
-      value: stats.filter(s => s.status === 'Active' || s.status === 'Ongoing').length,
+      value: stats.filter(s => ['active', 'ongoing', 'full'].includes(s.status)).length,
       image: getImageUrl('dashboard/card-active-program'),
       color: 'var(--color-primary-light)',
     },
     {
       label: 'Upcoming Terms',
-      value: stats.filter(s => s.status === 'Upcoming').length,
+      value: stats.filter(s => s.status === 'upcoming').length,
       image: getImageUrl('dashboard/card-upcoming-program'),
       color: 'var(--color-primary-light)',
     },
     {
       label: 'Archived Terms',
-      value: stats.filter(s => s.isArchived).length,
+      value: stats.filter(s => s.status === 'archived').length,
       image: getImageUrl('programs/archived-program'),
       color: 'var(--color-primary-light)',
     },
@@ -177,10 +181,10 @@ const sortedItems = computed(() => {
     const progB = calculateClassProgress(b.startDate, b.endDate)
 
     const getPriority = (p) => {
-      if (p.isOngoing) return 3
-      if (p.isArchived) return 0
-      if (p.status === 'Active') return 2
-      if (p.status === 'Upcoming') return 1
+      // Group 'ongoing' and 'full' under 'active' priority as requested
+      if (p.status === 'active' || p.status === 'ongoing' || p.status === 'full') return 2
+      if (p.status === 'upcoming') return 1
+      if (p.status === 'archived') return 0
       return -1
     }
 
@@ -196,8 +200,8 @@ const displayItems = computed(() => {
   if (statusFilter.value === 'all') return sortedItems.value
   return sortedItems.value.filter(item => {
     const prog = calculateClassProgress(item.startDate, item.endDate)
-    if (statusFilter.value === 'upcoming') return prog.status === 'Upcoming'
-    if (statusFilter.value === 'active') return prog.status === 'Active' || prog.status === 'Ongoing'
+    if (statusFilter.value === 'upcoming') return prog.status === 'upcoming'
+    if (statusFilter.value === 'active') return prog.status === 'active' || prog.status === 'ongoing'
     if (statusFilter.value === 'archived') return prog.isArchived
     return true
   })
@@ -239,13 +243,13 @@ const isTermReadOnly = (item) => {
     <DataPageLayout overviewTitle="Term Overview">
       <template #overview>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <DataMetricCard v-for="(card, index) in statsCards" :key="index" v-bind="card" />
+          <DataMetricCard v-for="(card, index) in statsCards" :key="index" v-bind="card" :loading="loading" />
         </div>
       </template>
 
       <template #table>
         <DataTable title="Term Lists" :headers="headers" :items="displayItems" :loading="loading" entityName="term"
-          v-model:search="searchQuery" hasFilter v-model:currentFilter="statusFilter" :filterOptions="filterOptions"
+          v-model:searchQuery="searchQuery" hasFilter v-model:currentFilter="statusFilter" :filterOptions="filterOptions"
           :rowClass="getRowClass" @action="handleTableAction">
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
@@ -256,7 +260,7 @@ const isTermReadOnly = (item) => {
           </template>
 
           <template #row="{ item, index, headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }">
-            <td class="ui-cell text-center" :style="{ width: headers[0].width }">
+            <td class="ui-cell text-center font-bold text-content-dark/30" :style="{ width: headers[0].width }">
               <span v-if="calculateClassProgress(item.startDate, item.endDate).isOngoing" class="text-xs">🔥</span>
               <span v-else>{{ index + 1 }}</span>
             </td>
@@ -268,7 +272,7 @@ const isTermReadOnly = (item) => {
                   <img :src="getImageUrl('dashboard/card-top-program')" class="w-6 h-6" />
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-semibold text-content-dark tracking-tighter text-sm leading-tight">{{ item.name
+                  <span class="font-bold text-content-dark tracking-tighter text-sm leading-tight">{{ item.name
                   }}</span>
                 </div>
               </div>
@@ -294,33 +298,34 @@ const isTermReadOnly = (item) => {
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
-              <div class="flex items-center gap-xs justify-center">
-                <span class="text-sm font-semibold text-primary">
-                  {{ calculateClassProgress(item.startDate, item.endDate).remainingSessions }}
+              <div class="flex flex-col items-center">
+                <span class="text-sm font-bold text-primary tabular-nums">
+                  {{ item.totalStudents || 0 }}
                 </span>
-                <span class="text-xs font-semibold text-content-muted uppercase">Remaining</span>
+                <span class="text-[9px] font-bold text-success uppercase tracking-widest leading-none">
+                  +{{ item.newStudents || 0 }} New
+                </span>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex items-center gap-xs justify-center">
-                <span class="text-xs font-semibold text-content-dark"
-                  :class="{ 'text-error': item.totalSessions !== calculateClassProgress(item.startDate, item.endDate).totalWeeks }">
-                  {{ calculateClassProgress(item.startDate, item.endDate).totalWeeks }}
+                <span class="text-sm font-bold text-content-dark tabular-nums">
+                  {{ calculateClassProgress(item.startDate, item.endDate).remainingSessions }}
                 </span>
-                <span class="text-xs font-semibold text-content-muted uppercase tracking-widest"
-                  :class="{ 'text-error/60': item.totalSessions !== calculateClassProgress(item.startDate, item.endDate).totalWeeks }">
-                  {{ item.totalSessions === calculateClassProgress(item.startDate, item.endDate).totalWeeks ?
-                    'Weeks' : '⚠️ Misaligned' }}
-                </span>
+                <span class="text-[9px] font-bold text-content-muted uppercase">remaining</span>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-              <AppBadge :status="calculateClassProgress(item.startDate, item.endDate).status" />
+              <AppBadge :status="'$' + formatPrice(item.revenue || 0)" type="green" />
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+              <AppBadge :status="calculateClassProgress(item.startDate, item.endDate).status" />
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[9].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

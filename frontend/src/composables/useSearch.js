@@ -57,6 +57,24 @@ export const enrollmentSearchMapper = (r) =>
     .join(' ')
     .toLowerCase()
 
+export const paymentSearchMapper = (p) =>
+  [
+    p.id,
+    p.receiptId,
+    p.transactionId,
+    p.parent,
+    p.student,
+    p.program,
+    p.method,
+    p.bankName,
+    p.status,
+    p.amount,
+    formatDate(p.date),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
 export const trialSearchMapper = (t) =>
   [
     t.id,
@@ -74,16 +92,22 @@ export const trialSearchMapper = (t) =>
     .join(' ')
     .toLowerCase()
 
-export const studentSearchMapper = (s) =>
-  [
+export const studentSearchMapper = (s) => {
+  const programText = (s.enrollments || [])
+    .map(r => `${r.program?.name || ''} ${r.program?.category || ''}`)
+    .join(' ')
+    
+  return [
     s.name,
     s.parentInfo?.name,
     s.status,
+    programText,
     formatDateOnly(s.createdAt),
   ]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
+}
 
 export const parentSearchMapper = (p) =>
   [p.name, p.email, p.phone, p.location, p.status, formatDateOnly(p.createdAt)]
@@ -105,6 +129,26 @@ export const programSearchMapper = (p) =>
 
 export const teacherSearchMapper = (t) =>
   [t.name, t.email, t.phone, t.id].filter(Boolean).join(' ').toLowerCase()
+
+export const classSearchMapper = (c) => {
+  const catName = typeof c.program?.category === 'object' ? c.program.category.name : (c.program?.category || '')
+  const teacherNames = [
+    ...(c.teachers || []).map(t => t.name), 
+    c.teacher?.name
+  ].filter(Boolean).join(' ')
+  
+  return [
+    c.program?.name,
+    catName,
+    teacherNames,
+    c.branch?.name,
+    c.branch?.abbr,
+    c.schedule?.day,
+    c.schedule?.time,
+    c.term?.name,
+    c.status
+  ].filter(Boolean).join(' ').toLowerCase()
+}
 
 export const branchSearchMapper = (b) =>
   [b.name, b.abbr, b.location].filter(Boolean).join(' ').toLowerCase()

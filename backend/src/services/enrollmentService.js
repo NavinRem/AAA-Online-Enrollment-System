@@ -139,6 +139,26 @@ class EnrollmentService {
           totalEnrolledCount: admin.firestore.FieldValue.increment(1),
         })
       }
+
+      // Automatic Payment Record Creation
+      if (newEnrollment.paymentStatus === 'paid') {
+        const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc()
+        transaction.set(paymentRef, {
+          enrollmentId,
+          studentId: studentId,
+          parentId: parentId,
+          student: studentSnapshot,
+          parent: parentSnapshot,
+          program: programSnapshot,
+          amount: Number(newEnrollment.amount) || 0,
+          paymentMethod: (newEnrollment.paymentMethod || 'cash').toLowerCase(),
+          paymentStatus: 'paid',
+          paidAt: newEnrollment.paidAt || newEnrollment.createdAt,
+          createdAt: newEnrollment.createdAt,
+          updatedAt: newEnrollment.updatedAt,
+          remark: 'Automatically created during enrollment'
+        })
+      }
     })
 
     // Background task: Mark trials as successful
@@ -289,14 +309,40 @@ class EnrollmentService {
       }
 
       if (updateData.classId && updateData.classId !== currentData.classId) {
-        const cDoc = await transaction.get(
-          db.collection(COLLECTIONS.CLASS).doc(updateData.classId),
-        )
-        if (cDoc.exists) {
-          updates.class = profileHelper.getClassSnapshot(
-            updateData.classId,
-            cDoc.data(),
-          )
+        const admin = require('firebase-admin')
+        const oldClassRef = db.collection(COLLECTIONS.CLASS).doc(currentData.classId)
+        const newClassRef = db.collection(COLLECTIONS.CLASS).doc(updateData.classId)
+        
+        const [oldClassDoc, newClassDoc] = await Promise.all([
+          transaction.get(oldClassRef),
+          transaction.get(newClassRef)
+        ])
+
+        if (oldClassDoc.exists) {
+          const oldData = oldClassDoc.data()
+          const updatedStudents = (oldData.students || []).filter(s => s.id !== currentData.studentId)
+          transaction.update(oldClassRef, {
+            currentCount: admin.firestore.FieldValue.increment(-1),
+            studentIds: admin.firestore.FieldValue.arrayRemove(currentData.studentId),
+            students: updatedStudents
+          })
+        }
+
+        if (newClassDoc.exists) {
+          const newData = newClassDoc.data()
+          const studentSnapshot = {
+            id: currentData.studentId,
+            name: currentData.student?.name || 'Unknown',
+            profileURL: currentData.student?.profileURL || null,
+            enrolledAt: currentData.createdAt || new Date().toISOString()
+          }
+          transaction.update(newClassRef, {
+            currentCount: admin.firestore.FieldValue.increment(1),
+            studentIds: admin.firestore.FieldValue.arrayUnion(currentData.studentId),
+            students: admin.firestore.FieldValue.arrayUnion(studentSnapshot)
+          })
+          
+          updates.class = profileHelper.getClassSnapshot(updateData.classId, newData)
         }
       }
 
@@ -323,6 +369,26 @@ class EnrollmentService {
       }
 
       transaction.update(ref, updates)
+ 
+      // Automatic Payment Record Creation on Status Transition
+      if (updateData.paymentStatus === 'paid' && currentData.paymentStatus !== 'paid') {
+        const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc()
+        transaction.set(paymentRef, {
+          enrollmentId: id,
+          studentId: currentData.studentId,
+          parentId: currentData.parentId,
+          student: currentData.student,
+          parent: currentData.parent,
+          program: currentData.program,
+          amount: Number(updateData.amount || currentData.amount) || 0,
+          paymentMethod: (updateData.paymentMethod || currentData.paymentMethod || 'cash').toLowerCase(),
+          paymentStatus: 'paid',
+          paidAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          remark: 'Automatically created during enrollment update'
+        })
+      }
 
       // Capacity & Student Seat tracking logic
       if (updateData.status && currentData.status !== updateData.status) {
@@ -559,6 +625,9 @@ class EnrollmentService {
         enrollmentId,
         studentId: enrollmentData.studentId,
         parentId: enrollmentData.parentId,
+        student: enrollmentData.student,
+        parent: enrollmentData.parent,
+        program: enrollmentData.program,
         amount: amount || enrollmentData.amount || 0,
         paymentMethod: paymentMethod.toLowerCase(),
         bankName: paymentMethod === 'online' ? (bankName ? bankName.toLowerCase() : 'online') : null,

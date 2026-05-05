@@ -59,7 +59,7 @@ class StudentService {
     const snapshot = await db.collection(COLLECTIONS.STUDENT).get()
     return snapshot.docs
       .map((doc) => profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }))
-      .filter((s) => s.isDeleted !== true)
+      .filter((s) => s.isDeleted !== true && s.name && s.name.trim() !== '')
   }
 
   async getStudent(id, requestingUser = null) {
@@ -101,7 +101,7 @@ class StudentService {
       
     return snapshot.docs
       .map((doc) => profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }))
-      .filter((s) => s.isDeleted !== true)
+      .filter((s) => s.isDeleted !== true && s.name && s.name.trim() !== '')
   }
 
   async updateStudent(id, updateData, requestingUser = null) {
@@ -314,27 +314,7 @@ class StudentService {
     return writes
   }
 
-  async clearStudentMirrors(id) {
-    const [parentsSnap, enrollmentsSnap] = await Promise.all([
-      db.collection(COLLECTIONS.PARENT).where('studentId', '==', id).get(),
-      db.collection(COLLECTIONS.ENROLLMENT).where('studentId', '==', id).get(),
-    ])
-
-    const writes = [
-      ...parentsSnap.docs.map((doc) => ({
-        ref: doc.ref,
-        data: { parentInfo: null },
-      })),
-      ...enrollmentsSnap.docs.map((doc) => ({
-        ref: doc.ref,
-        data: { student: null },
-      })),
-    ]
-
-    await this._commitInChunks(writes)
-  }
-
-  async _commitInChunks(writes, incomingBatch = null) {
+  async commitInChunks(writes, incomingBatch = null) {
     if (incomingBatch) {
       writes.forEach(({ ref, data }) => incomingBatch.update(ref, data))
       return

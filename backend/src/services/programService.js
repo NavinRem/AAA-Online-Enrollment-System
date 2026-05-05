@@ -37,15 +37,35 @@ class ProgramService {
       query = query.where('categoryId', '==', filters.categoryId)
 
     const snapshot = await query.get()
-    return snapshot.docs
+    const results = snapshot.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .filter((p) => p.isDeleted !== true)
+
+    return await this._enrichWithCategoryInfo(results)
   }
 
   async getProgram(id) {
     const doc = await db.collection(COLLECTIONS.PROGRAM).doc(id).get()
     if (!doc.exists) throw new Error('Program not found')
-    return { id: doc.id, ...doc.data() }
+    const enriched = await this._enrichWithCategoryInfo([{ id: doc.id, ...doc.data() }])
+    return enriched[0]
+  }
+
+  async _enrichWithCategoryInfo(programs) {
+    if (!programs || programs.length === 0) return []
+    
+    const catSnap = await db.collection(COLLECTIONS.CATEGORY).get()
+    const catMap = {}
+    catSnap.forEach(doc => catMap[doc.id] = doc.data())
+
+    return programs.map(p => {
+      if (p.categoryId && catMap[p.categoryId]) {
+        const cat = catMap[p.categoryId]
+        p.categoryName = cat.name
+        if (!p.profileURL) p.profileURL = cat.profileURL
+      }
+      return p
+    })
   }
 
   async updateProgram(id, updateData) {
@@ -60,17 +80,17 @@ class ProgramService {
         updatedAt: new Date().toISOString(),
       })
       if (
-        validated.name ||
-        validated.description ||
-        validated.price !== undefined
+        validated.name !== undefined ||
+        validated.description !== undefined ||
+        validated.basePrice !== undefined ||
+        validated.profileURL !== undefined
       ) {
         const newData = { ...doc.data(), ...validated }
         const snapshot = profileHelper.getProgramSnapshot(id, newData)
-        const [classService, enrollmentService, trialService] = [
-          require('./classService'),
-          require('./enrollmentService'),
-          require('./trialService'),
-        ]
+        const classService = require('./classService')
+        const enrollmentService = require('./enrollmentService')
+        const trialService = require('./trialService')
+
         await Promise.all([
           classService.syncClassesWithProgram(id, snapshot),
           enrollmentService.syncEnrollmentsWithProgram(id, snapshot),
@@ -111,7 +131,6 @@ class ProgramService {
           ref: pDoc.ref,
           data: {
             category: categoryName,
-            categoryInfo: updatedSnapshot.categoryInfo,
             updatedAt: new Date().toISOString(),
           },
         }

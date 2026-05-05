@@ -18,8 +18,16 @@ function validateStudent(studentData) {
   const name = studentData.name?.trim()
   const dob = studentData.dob?.trim()
 
-  if (!parentId || !name || !dob) {
-    throw new Error('Parent ID, Name, and Date of Birth are required')
+  if (!parentId || typeof parentId !== 'string' || parentId.trim() === '') {
+    throw new Error('Valid Parent ID is required')
+  }
+  
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    throw new Error('Valid Student Name is required')
+  }
+
+  if (!dob || typeof dob !== 'string' || dob.trim() === '') {
+    throw new Error('Date of Birth is required')
   }
 
   return {
@@ -44,7 +52,11 @@ function validateUpdateStudent(updateData) {
   })
 
   if (updateData.name !== undefined) {
-    cleanData.name = updateData.name.trim()
+    const trimmed = updateData.name?.trim()
+    if (!trimmed || trimmed === '') {
+      throw new Error('Student name cannot be empty')
+    }
+    cleanData.name = trimmed
   }
 
   if (updateData.dob !== undefined) {

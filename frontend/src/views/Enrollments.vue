@@ -18,7 +18,7 @@ import { storageService } from '@/services/storageService'
 import { useSearch, enrollmentSearchMapper } from '../composables/useSearch'
 import { calculateTotalEnrollment, enrichEnrollments } from '../utils/enrollmentHelper'
 import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
-import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { formatPrice, formatDate } from '@/utils/formatUtils'
 import { useDataStore } from '../stores/dataStore'
 
@@ -323,8 +323,8 @@ const handleRegisterStudent = async (formData) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Enrollment Overview">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DataMetricCard v-for="stat in enrollmentStats" :key="stat.label" v-bind="stat" />
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <DataMetricCard v-for="stat in enrollmentStats" :key="stat.label" v-bind="stat" :loading="loading" />
         </div>
       </template>
       <template #table>
@@ -390,7 +390,9 @@ const handleRegisterStudent = async (formData) => {
             <td class="ui-cell" :style="{ width: headers[4].width }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
-                  <img :src="item.program?.profileURL" :alt="item.programName" />
+                  <img
+                    :src="getProgramProfileURL(item.program?.profileURL, item.program?.category?.name || item.program?.category, item.program?.category?.profileURL)"
+                    :alt="item.programName" />
                 </div>
                 <div class="ui-identity-info">
                   <span class="text-sm font-semibold text-content-dark truncate block">{{

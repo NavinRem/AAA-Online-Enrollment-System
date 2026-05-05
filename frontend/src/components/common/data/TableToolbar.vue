@@ -109,7 +109,7 @@ const selectFilter = (val) => {
           <img v-else :src="getActionIcon('filter')" class="w-4 h-4 transition-all"
             :class="{ 'brightness-0 invert': isActiveFilter }"
             :style="!isActiveFilter ? { filter: getStatusFilter('filter') } : {}" />
-          <span>{{ activeFilterLabel }}</span>
+          <span class="font-bold tracking-tight">{{ activeFilterLabel }}</span>
         </AppButton>
         <Teleport to="body">
           <transition enter-active-class="transition duration-200 ease-out"

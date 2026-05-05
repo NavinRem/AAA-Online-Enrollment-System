@@ -10,7 +10,7 @@ import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 
 import { teacherService } from '@/services/teacherService'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
-import { useSearch } from '@/composables/useSearch'
+import { useSearch, teacherSearchMapper } from '@/composables/useSearch'
 
 const teachers = ref([])
 const loading = ref(true)
@@ -37,13 +37,10 @@ const statusFilteredTeachers = computed(() => {
 
 const { searchQuery, searchResults: filteredTeachers } = useSearch(
   statusFilteredTeachers,
-  (item) => ({
-    ...item,
-    searchString: `${item.name} ${item.email} ${item.specialization}`.toLowerCase()
-  })
+  teacherSearchMapper
 )
 
-const stats = computed(() => {
+const statsCards = computed(() => {
   const all = teachers.value
   const active = all.filter(t => (t.status || 'active').toLowerCase() === 'active')
 
@@ -143,8 +140,8 @@ const handleDelete = async (teacher) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Teacher Overview">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DataMetricCard v-for="stat in stats" :key="stat.label" v-bind="stat" />
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" :loading="loading" />
         </div>
       </template>
 

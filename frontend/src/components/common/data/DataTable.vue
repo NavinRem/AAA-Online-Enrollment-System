@@ -88,6 +88,10 @@ const handleAction = (type, item) => {
     flexible ? '' : 'flex-1 min-h-0'
   ]">
     <AppTable :headers="headers" :loading="loading" :empty="!items || items.length === 0" :flexible="flexible">
+      <template v-for="(_, name) in $slots" #[name]="slotData">
+        <slot :name="name" v-bind="slotData"></slot>
+      </template>
+
       <template #toolbar>
         <TableToolbar :hasSearch="hasSearch" :searchQuery="searchQuery"
           @update:searchQuery="emit('update:searchQuery', $event)" :searchPlaceholder="searchPlaceholder"

@@ -41,8 +41,15 @@ class DateHelper {
     return dateObj
   }
 
+  formatDate(date) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   getTodayString() {
-    return new Date().toISOString().split('T')[0]
+    return this.formatDate(new Date())
   }
 
   calculateEndDate(startDateStr, sessionCount) {
@@ -50,7 +57,7 @@ class DateHelper {
     const end = new Date(start)
     // 11 sessions = 10 weeks after start date
     end.setDate(start.getDate() + (sessionCount - 1) * 7)
-    return end.toISOString().split('T')[0]
+    return this.formatDate(end)
   }
 
   calculateSessionCount(startDateStr, endDateStr) {
@@ -60,6 +67,13 @@ class DateHelper {
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
     // 70 days = 10 weeks = 11 sessions
     return Math.floor(diffDays / 7) + 1
+  }
+
+  calculateStatus(startDateStr, endDateStr) {
+    const today = this.getTodayString()
+    if (today > endDateStr) return 'archived'
+    if (today < startDateStr) return 'upcoming'
+    return 'active'
   }
 }
 
