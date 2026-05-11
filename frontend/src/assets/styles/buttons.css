@@ -70,7 +70,7 @@
   /* Use for: individual items inside a ui-preset-bar                         */
   .ui-preset-btn {
     @apply px-md py-1.5 rounded-full border-2 border-outline-std bg-surface-subtle 
-           text-3xs font-semibold uppercase tracking-widest text-content-muted
+           text-3xs font-semibold  text-content-muted
            transition-all duration-300 cursor-pointer hover:border-content-muted/30
            hover:bg-white hover:text-content-dark select-none;
   }

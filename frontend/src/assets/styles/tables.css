@@ -43,10 +43,13 @@
   /* ── Table Cell ──────────────────────────────────────────────────────────── */
   /* Use for: every <td> in the table body                                     */
   .ui-cell {
-    @apply p-md m-md text-sm transition-colors;
+    @apply p-md m-md text-sm text-content-dark font-bold transition-colors border-b border-outline-std;
     display: table-cell;
     vertical-align: middle;
     min-height: inherit;
+  }
+  .ui-row:last-child .ui-cell {
+    @apply border-b-0;
   }
   .ui-cell.text-center {
     text-align: center;
@@ -55,9 +58,9 @@
   /* ── Header Cell ─────────────────────────────────────────────────────────── */
   /* Use for: every <th> in the table header                                   */
   .ui-header-cell {
-    @apply px-md py-sm text-content-dark text-3xs font-bold uppercase
-           tracking-widest border-b border-outline-std
-           bg-surface-subtle sticky top-0 whitespace-nowrap
+    @apply px-md py-sm text-content-muted text-sm font-bold
+           border-b border-outline-std
+           bg-surface-subtle/50 backdrop-blur-sm sticky top-0 whitespace-nowrap
            z-sticky-header;
   }
 
@@ -79,7 +82,7 @@
   /* ── Avatar ──────────────────────────────────────────────────────────────── */
   /* Use for: circular user/student avatar in table rows                       */
   .ui-avatar {
-    @apply w-7 h-7 rounded-full overflow-hidden border-2 border-white
+    @apply w-10 h-10 rounded-full overflow-hidden border-2 border-white
            shadow-sm bg-surface-light flex-shrink-0;
   }
   .ui-avatar-sm {

@@ -208,16 +208,16 @@ export default {
       // ================================================================
 
       fontSize: {
-        '3xs': ['0.65rem', { lineHeight: '1rem' }], // tiny badge label
-        '2xs': ['0.70rem', { lineHeight: '1rem' }], // micro label
-        xs: ['0.75rem', { lineHeight: '1.1rem' }], // table header, tag
-        sm: ['0.85rem', { lineHeight: '1.4rem' }], // label, caption
-        base: ['0.95rem', { lineHeight: '1.5rem' }], // body (default)
-        lg: ['1.10rem', { lineHeight: '1.6rem' }], // subheading
-        xl: ['1.25rem', { lineHeight: '1.75rem' }], // section title
-        '2xl': ['1.50rem', { lineHeight: '2rem' }], // page subtitle
-        '3xl': ['1.80rem', { lineHeight: '2.25rem' }], // page title
-        '4xl': ['2.20rem', { lineHeight: '2.75rem' }], // hero heading
+        '3xs': ['0.75rem', { lineHeight: '1rem' }], // tiny badge label
+        '2xs': ['0.80rem', { lineHeight: '1.1rem' }], // micro label
+        xs: ['0.85rem', { lineHeight: '1.2rem' }], // table header, tag
+        sm: ['0.95rem', { lineHeight: '1.4rem' }], // label, caption
+        base: ['1.05rem', { lineHeight: '1.6rem' }], // body (default)
+        lg: ['1.20rem', { lineHeight: '1.75rem' }], // subheading
+        xl: ['1.40rem', { lineHeight: '2rem' }], // section title
+        '2xl': ['1.75rem', { lineHeight: '2.25rem' }], // page subtitle
+        '3xl': ['2.10rem', { lineHeight: '2.5rem' }], // page title
+        '4xl': ['2.60rem', { lineHeight: '3rem' }], // hero heading
       },
 
       // ================================================================
@@ -261,7 +261,7 @@ export default {
       // ================================================================
 
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Nunito', 'system-ui', 'sans-serif'],
       },
     },
   },

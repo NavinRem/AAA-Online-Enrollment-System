@@ -26,7 +26,7 @@
   }
 
   .enroll-section-label {
-    @apply text-2xs font-bold text-content-muted uppercase tracking-widest border-b border-outline-std pb-1 mb-1;
+    @apply text-3xs font-semibold text-content-muted/60  border-b border-outline-std pb-1 mb-1;
   }
 
   .enroll-remarks-card {
@@ -43,7 +43,7 @@
   }
 
   .enroll-info-key {
-    @apply text-3xs font-semibold text-content-muted/60 uppercase tracking-widest;
+    @apply text-3xs font-semibold text-content-muted/60;
   }
 
   .enroll-info-val {
@@ -128,7 +128,7 @@
   }
 
   .ui-summary-label {
-    @apply text-2xs font-bold uppercase tracking-widest opacity-70;
+    @apply text-3xs font-semibold  opacity-70;
   }
 
   .ui-summary-amount {

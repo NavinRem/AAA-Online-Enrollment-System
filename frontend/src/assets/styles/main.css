@@ -40,21 +40,21 @@
   /* ── BRAND COLORS ──────────────────────────────────────────────────────── */
   --color-primary: #38bdf8; /* sky-400  — main brand blue            */
   --color-primary-dark: #0ea5e9; /* sky-500  — hover / darker blue        */
-  --color-primary-soft: #f0f9ff; /* sky-50   — light blue tint background */
+  --color-primary-soft: #e0f2fe; /* sky-100  — light blue tint background */
   --color-primary-light: #e0f2fe; /* sky-100  — pale blue tint             */
   --color-primary-deep: #0284c7; /* sky-600  — strong border / pressed    */
 
   /* ── STATUS COLORS ─────────────────────────────────────────────────────── */
   --color-success: #10b981; /* emerald-500 — success green           */
-  --color-success-soft: #ecfdf5; /* emerald-50  — success background      */
+  --color-success-soft: #d1fae5; /* emerald-100 — success background      */
   --color-success-deep: #064e3b; /* emerald-900 — strong success text     */
 
   --color-error: #ef4444; /* red-500  — error red                  */
-  --color-error-soft: #fef2f2; /* red-50   — error background           */
+  --color-error-soft: #fee2e2; /* red-100   — error background           */
   --color-error-deep: #b91c1c; /* red-700  — strong error text          */
 
   --color-warning: #fbbf24; /* amber-400 — warning amber             */
-  --color-warning-soft: #fff7ed; /* orange-50 — warning background        */
+  --color-warning-soft: #fef3c7; /* amber-100 — warning background        */
   --color-warning-deep: #78350f; /* amber-900 — strong warning text       */
 
   --color-info: #3b82f6; /* blue-500 — info blue                  */
@@ -63,15 +63,15 @@
 
   /* ── EXTENDED COLORS ───────────────────────────────────────────────────── */
   --color-orange: #c2410c; /* orange-700                            */
-  --color-orange-soft: #fff7ed; /* orange-50                             */
+  --color-orange-soft: #ffedd5; /* orange-100                            */
   --color-orange-deep: #7c2d12; /* orange-900                            */
 
   --color-magenta: #be185d; /* pink-700                              */
-  --color-magenta-soft: #fce7f3; /* pink-100                              */
+  --color-magenta-soft: #fbcfe8; /* pink-200                              */
   --color-magenta-deep: #831843; /* pink-900                              */
 
   --color-purple: #7e22ce; /* purple-700                            */
-  --color-purple-soft: #faf5ff; /* purple-50                             */
+  --color-purple-soft: #f3e8ff; /* purple-100                            */
   --color-purple-deep: #581c87; /* purple-900                            */
 
   --color-teal: #0f766e; /* teal-700                              */
@@ -79,7 +79,7 @@
   --color-teal-deep: #115e59; /* teal-800                              */
 
   --color-gray: #64748b; /* slate-500                             */
-  --color-gray-soft: #f1f5f9; /* slate-100                             */
+  --color-gray-soft: #e2e8f0; /* slate-200                             */
   --color-gray-deep: #475569; /* slate-600                             */
 
   --color-cyan: #0891b2; /* cyan-600                              */
@@ -87,7 +87,7 @@
   --color-cyan-deep: #164e63; /* cyan-900                              */
 
   --color-pink: #db2777; /* pink-600                              */
-  --color-pink-soft: #fdf2f8; /* pink-50                               */
+  --color-pink-soft: #fce7f3; /* pink-100                              */
   --color-pink-deep: #831843; /* pink-900                              */
 
   /* ── COLOR ALIASES ─────────────────────────────────────────────────────── */
@@ -133,16 +133,16 @@
   --radius-full: 9999px; /* avatars, circular buttons                         */
 
   /* ── FONT SIZE ──────────────────────────────────────────────────────────── */
-  --text-3xs: 0.65rem; /* tiny badge labels                                 */
-  --text-2xs: 0.7rem; /* micro labels                                      */
-  --text-xs: 0.75rem; /* table headers, tags                               */
-  --text-sm: 0.85rem; /* form labels, captions, helper text                */
-  --text-base: 0.95rem; /* body text (default)                               */
-  --text-lg: 1.1rem; /* card titles, subheadings                          */
-  --text-xl: 1.25rem; /* section titles                                    */
-  --text-2xl: 1.5rem; /* page subtitles                                    */
-  --text-3xl: 1.8rem; /* page titles                                       */
-  --text-4xl: 2.2rem; /* hero headings                                     */
+  --text-3xs: 0.85rem; /* tiny badge labels                                 */
+  --text-2xs: 0.9rem; /* micro labels                                      */
+  --text-xs: 1rem; /* table headers, tags                               */
+  --text-sm: 1.1rem; /* form labels, captions, helper text                */
+  --text-base: 1.2rem; /* body text (default)                               */
+  --text-lg: 1.35rem; /* card titles, subheadings                          */
+  --text-xl: 1.5rem; /* section titles                                    */
+  --text-2xl: 1.85rem; /* page subtitles                                    */
+  --text-3xl: 2.25rem; /* page titles                                       */
+  --text-4xl: 2.75rem; /* hero headings                                     */
 
   /* ── SHADOWS ────────────────────────────────────────────────────────────── */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08); /* card lift             */
@@ -157,7 +157,7 @@
   --z-dropdown: 3000; /* dropdowns, tooltips (always on top)            */
 
   /* ── FONT FAMILY ─────────────────────────────────────────────────────────── */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Nunito', system-ui, -apple-system, sans-serif;
 
   /* ── LINE HEIGHT ─────────────────────────────────────────────────────────── */
   --leading-tight: 1.25;
