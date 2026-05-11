@@ -14,8 +14,6 @@ router.delete('/:id', isAdmin, classController.deleteClass)
 
 // --- Specialized Actions ---
 router.get('/:id/validate-capacity', classController.validateCapacity)
-router.post('/duplicate', isAdmin, classController.duplicateClasses)
-router.post('/duplicate-selective', isAdmin, classController.duplicateSpecificClasses)
 router.post('/:id/sync', isAdmin, classController.syncCount)
 router.post('/sync-all', isAdmin, classController.syncAllCounts)
 

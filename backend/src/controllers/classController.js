@@ -21,9 +21,7 @@ exports.getAllClasses = async (req, res) => {
 exports.getAvailableClasses = async (req, res) => {
   try {
     const { id } = req.params // Program ID
-    const { branchId } = req.query
-    const filters = { programId: id, status: 'open' }
-    if (branchId) filters.branchId = branchId
+    const filters = { programId: id, status: 'active' }
 
     const classes = await classService.getAllClasses(filters)
     res.status(200).json(classes)
@@ -61,31 +59,6 @@ exports.deleteClass = async (req, res) => {
 
 // --- Specialized Actions ---
 
-exports.duplicateClasses = async (req, res) => {
-  try {
-    const { sourceTermId, targetTermId, branchId } = req.body
-    if (!sourceTermId || !targetTermId) {
-      return res.status(400).json({ error: 'Source and Target Terms are required' })
-    }
-    const result = await classService.duplicateClassesFromTerm(sourceTermId, targetTermId, branchId)
-    res.status(200).json(result)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-}
-
-exports.duplicateSpecificClasses = async (req, res) => {
-  try {
-    const { classIds, targetTermId } = req.body
-    if (!classIds || !targetTermId) {
-      return res.status(400).json({ error: 'Class IDs and Target Term are required' })
-    }
-    const result = await classService.duplicateSpecificClasses(classIds, targetTermId)
-    res.status(200).json(result)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
-  }
-}
 
 exports.syncCount = async (req, res) => {
   try {

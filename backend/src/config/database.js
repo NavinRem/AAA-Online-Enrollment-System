@@ -32,6 +32,7 @@ const COLLECTIONS = {
   PARENT: 'parents',
   PAYMENT: 'payments',
   PROGRAM: 'programs',
+  SCHEDULE: 'schedules',
   STUDENT: 'students',
   TEACHER: 'teachers',
   TERM: 'terms',

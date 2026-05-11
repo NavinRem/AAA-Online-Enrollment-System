@@ -1,26 +1,33 @@
 const dateHelper = require('../utils/dateHelper')
 
 function validateTerm(termData) {
-  const fields = ['name', 'startDate', 'endDate', 'status', 'totalSessions', 'branchId', 'branchIds']
+  const fields = ['name', 'startDate', 'endDate', 'status', 'totalSessions', 'branchId', 'branchIds', 'offerings', 'duplicateFromTermId', 'branchSettings']
   Object.keys(termData).forEach((key) => {
     if (!fields.includes(key)) throw new Error(`Invalid field: ${key}`)
   })
 
   if (!termData.name) throw new Error('Term Name is required')
 
-  dateHelper.validateAndParseDate(termData.startDate, 'Start Date', {
-    allowFuture: true,
-  })
-
-  // If totalSessions is provided, we can auto-calculate or validate endDate
+  const branchSettings = Array.isArray(termData.branchSettings) ? termData.branchSettings : []
+  const branchIds = Array.isArray(termData.branchIds) ? termData.branchIds : (termData.branchId ? [termData.branchId] : [])
   const totalSessions = parseInt(termData.totalSessions || 11)
-  const expectedEndDate = dateHelper.calculateEndDate(termData.startDate, totalSessions)
 
-  if (termData.endDate && termData.endDate !== expectedEndDate) {
-    throw new Error(`End Date "${termData.endDate}" does not match the calculated end date "${expectedEndDate}" for ${totalSessions} sessions.`)
+  // Use global dates if branchSettings is empty, otherwise branchSettings takes priority
+  let startDate = termData.startDate
+  let endDate = termData.endDate
+
+  if (branchSettings.length > 0) {
+    // If we have branch settings, use the first one's dates as the global "representative" dates
+    startDate = branchSettings[0].startDate
+    endDate = branchSettings[0].endDate
+  } else if (startDate) {
+    dateHelper.validateAndParseDate(startDate, 'Start Date', { allowFuture: true })
+    const expectedEndDate = dateHelper.calculateEndDate(startDate, totalSessions)
+    if (endDate && endDate !== expectedEndDate) {
+      throw new Error(`End Date "${endDate}" does not match the calculated end date "${expectedEndDate}" for ${totalSessions} sessions.`)
+    }
+    endDate = endDate || expectedEndDate
   }
-
-  const endDate = termData.endDate || expectedEndDate
 
   const forbiddenKeywords = ['category', 'level', 'program', 'course']
   const lowerName = termData.name.toLowerCase()
@@ -33,18 +40,21 @@ function validateTerm(termData) {
 
   return {
     name: termData.name.trim(),
-    startDate: termData.startDate,
-    endDate,
+    startDate: startDate || '',
+    endDate: endDate || '',
     totalSessions,
-    branchIds: Array.isArray(termData.branchIds) ? termData.branchIds : (termData.branchId ? [termData.branchId] : []),
-    status: dateHelper.calculateStatus(termData.startDate, endDate),
+    branchIds,
+    branchSettings,
+    offerings: Array.isArray(termData.offerings) ? termData.offerings : [],
+    duplicateFromTermId: termData.duplicateFromTermId || '',
+    status: startDate && endDate ? dateHelper.calculateStatus(startDate, endDate) : 'upcoming',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
 }
 
 function validateUpdateTerm(updateData) {
-  const allowedFields = ['name', 'startDate', 'endDate', 'status', 'totalSessions', 'branchIds']
+  const allowedFields = ['name', 'startDate', 'endDate', 'status', 'totalSessions', 'branchIds', 'offerings', 'branchSettings']
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
@@ -60,12 +70,11 @@ function validateUpdateTerm(updateData) {
   if (cleanData.name) cleanData.name = cleanData.name.trim()
 
   if (cleanData.startDate || cleanData.totalSessions) {
-    const startDate = cleanData.startDate || updateData.startDate // Might need existing data here, but validator usually only has the patch
+    const startDate = cleanData.startDate || updateData.startDate
     const totalSessions = cleanData.totalSessions || updateData.totalSessions
     
     if (startDate && totalSessions) {
       cleanData.endDate = dateHelper.calculateEndDate(startDate, totalSessions)
-      // Automatically update status if dates change
       cleanData.status = dateHelper.calculateStatus(startDate, cleanData.endDate)
     }
   } else if (cleanData.endDate) {

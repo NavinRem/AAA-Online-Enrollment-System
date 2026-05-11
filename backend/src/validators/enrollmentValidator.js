@@ -6,6 +6,8 @@ function validateEnrollment(enrollmentData) {
     'studentId',
     'programId',
     'classId',
+    'termId',
+    'termOfferingId',
     'enrollAt',
     'enrollmentType',
     'status',
@@ -32,9 +34,11 @@ function validateEnrollment(enrollmentData) {
     !enrollmentData.parentId ||
     !enrollmentData.studentId ||
     !enrollmentData.classId ||
-    !enrollmentData.programId
+    !enrollmentData.programId ||
+    !enrollmentData.termId ||
+    !enrollmentData.termOfferingId
   ) {
-    throw new Error('parentId, studentId, programId, and classId are required')
+    throw new Error('parentId, studentId, programId, classId, termId, and termOfferingId are required')
   }
 
   if (enrollmentData.enrollAt) {
@@ -50,6 +54,8 @@ function validateEnrollment(enrollmentData) {
     studentId: enrollmentData.studentId,
     programId: enrollmentData.programId,
     classId: enrollmentData.classId,
+    termId: enrollmentData.termId,
+    termOfferingId: enrollmentData.termOfferingId,
     enrollAt: enrollmentData.enrollAt || new Date().toISOString(),
     enrollmentType: enrollmentData.enrollmentType || '',
     status: String(enrollmentData.status || 'unpaid').toLowerCase(),
@@ -58,6 +64,7 @@ function validateEnrollment(enrollmentData) {
     isSponsorship: !!enrollmentData.isSponsorship,
     sponsorName: enrollmentData.sponsorName || '',
     isCustomPrice: !!enrollmentData.isCustomPrice,
+    customPrice: parseFloat(enrollmentData.customPrice || 0),
     discountAmount: parseFloat(enrollmentData.discountAmount || 0),
     enrolledSessions: parseInt(enrollmentData.enrolledSessions || 0),
     amount: parseFloat(enrollmentData.amount || 0),
@@ -73,6 +80,8 @@ function validateUpdateEnrollment(updateData) {
     'studentId',
     'programId',
     'classId',
+    'termId',
+    'termOfferingId',
     'enrollAt',
     'enrollmentType',
     'status',
@@ -81,6 +90,7 @@ function validateUpdateEnrollment(updateData) {
     'isSponsorship',
     'sponsorName',
     'isCustomPrice',
+    'customPrice',
     'discountAmount',
     'enrolledSessions',
     'amount',
@@ -110,6 +120,8 @@ function validateUpdateEnrollment(updateData) {
     cleanData.enrolledSessions = parseInt(cleanData.enrolledSessions || 0)
   if (cleanData.amount !== undefined)
     cleanData.amount = parseFloat(cleanData.amount || 0)
+  if (cleanData.customPrice !== undefined)
+    cleanData.customPrice = parseFloat(cleanData.customPrice || 0)
   if (cleanData.isProrated !== undefined)
     cleanData.isProrated = !!cleanData.isProrated
   if (cleanData.isSponsorship !== undefined)

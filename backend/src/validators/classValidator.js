@@ -1,17 +1,10 @@
+function normalizeIds(value) {
+  if (!value) return []
+  return Array.isArray(value) ? value.filter(Boolean) : [value]
+}
+
 function validateClass(classData) {
-  const classFields = [
-    'programId',
-    'branchId',
-    'branchIds',
-    'termId',
-    'teacherIds',
-    'schedule',
-    'scheduleType',
-    'status',
-    'adminNote',
-    'capacity',
-    'currentCount',
-  ]
+  const classFields = ['programId', 'scheduleId', 'scheduleIds', 'status']
 
   Object.keys(classData).forEach((key) => {
     if (!classFields.includes(key)) {
@@ -19,39 +12,14 @@ function validateClass(classData) {
     }
   })
 
-  const { programId, termId, teacherIds, schedule } = classData
-  const branchIds =
-    classData.branchIds || (classData.branchId ? [classData.branchId] : [])
+  const scheduleIds = normalizeIds(classData.scheduleIds || classData.scheduleId)
 
-  if (
-    !programId ||
-    !termId ||
-    !branchIds.length ||
-    !teacherIds ||
-    !teacherIds.length
-  ) {
-    throw new Error(
-      'Program, Term, Branch (at least one), and at least one Teacher are required',
-    )
-  }
-
-  if (!schedule || !schedule.day || !schedule.time) {
-    throw new Error('A valid schedule (day and time) is required')
-  }
+  if (!classData.programId) throw new Error('Program is required')
+  if (!scheduleIds.length) throw new Error('At least one schedule is required')
 
   return {
-    programId,
-    termId,
-    branchIds,
-    teacherIds,
-    schedule: {
-      day: schedule.day,
-      time: schedule.time,
-    },
-    scheduleType: classData.scheduleType || 'fixed',
-    adminNote: classData.adminNote || '',
-    capacity: parseInt(classData.capacity || classData.maxCapacity || 0),
-    currentCount: parseInt(classData.currentCount || classData.enrolledCount || 0),
+    programId: classData.programId,
+    scheduleIds,
     status: String(classData.status || 'active').toLowerCase(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -59,44 +27,26 @@ function validateClass(classData) {
 }
 
 function validateUpdateClass(updateData) {
-  const allowedFields = [
-    'programId',
-    'termId',
-    'branchId',
-    'branchIds',
-    'teacherIds',
-    'schedule',
-    'scheduleType',
-    'status',
-    'adminNote',
-    'capacity',
-    'currentCount',
-  ]
+  const allowedFields = ['programId', 'scheduleId', 'scheduleIds', 'status']
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
-    if (allowedFields.includes(key)) {
-      cleanData[key] = updateData[key]
-    }
+    if (allowedFields.includes(key)) cleanData[key] = updateData[key]
   })
 
   if (Object.keys(cleanData).length === 0) {
     throw new Error('No valid fields provided for update')
   }
 
-  if (cleanData.schedule) {
-    if (!cleanData.schedule.day || !cleanData.schedule.time) {
-      throw new Error('Schedule must contain both day and time')
-    }
+  if (cleanData.scheduleId || cleanData.scheduleIds) {
+    cleanData.scheduleIds = normalizeIds(cleanData.scheduleIds || cleanData.scheduleId)
+    delete cleanData.scheduleId
+    if (!cleanData.scheduleIds.length) throw new Error('At least one schedule is required')
   }
 
-  if (cleanData.capacity !== undefined)
-    cleanData.capacity = parseInt(cleanData.capacity || 0)
-  if (cleanData.currentCount !== undefined)
-    cleanData.currentCount = parseInt(cleanData.currentCount || 0)
-
-  if (cleanData.status !== undefined)
+  if (cleanData.status !== undefined) {
     cleanData.status = String(cleanData.status).toLowerCase()
+  }
 
   cleanData.updatedAt = new Date().toISOString()
   return cleanData

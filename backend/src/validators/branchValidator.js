@@ -7,13 +7,15 @@ function validateBranch(branchData) {
     }
   })
 
-  const abbr = branchData.abbr?.toUpperCase().trim()
+  const abbr = branchData.abbr?.trim()
   const name = branchData.name?.trim()
   const location = branchData.location?.trim()
   const phone = branchData.phone?.trim()
 
   if (!abbr || !name || !location || !phone) {
-    throw new Error('Branch Abbreviation, Name, Location, and Phone are all required')
+    throw new Error(
+      'Branch Abbreviation, Name, Location, and Phone are all required',
+    )
   }
 
   return {
@@ -44,8 +46,9 @@ function validateUpdateBranch(updateData) {
   })
 
   if (updateData.name !== undefined) cleanData.name = updateData.name.trim()
-  if (updateData.abbr !== undefined) cleanData.abbr = updateData.abbr.toUpperCase().trim()
-  if (updateData.location !== undefined) cleanData.location = updateData.location.trim()
+  if (updateData.abbr !== undefined) cleanData.abbr = updateData.abbr.trim()
+  if (updateData.location !== undefined)
+    cleanData.location = updateData.location.trim()
   if (updateData.phone !== undefined) cleanData.phone = updateData.phone.trim()
   if (updateData.color !== undefined) cleanData.color = updateData.color
 

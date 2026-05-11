@@ -1,5 +1,9 @@
 const { db, COLLECTIONS } = require('../config/database')
 const profileHelper = require('../utils/profileHelper')
+const {
+  validateEnrollment,
+  validateUpdateEnrollment,
+} = require('../validators/enrollmentValidator')
 
 const SEAT_TAKING_STATUSES = [
   'active',
@@ -13,11 +17,8 @@ const isSeatTaking = (status) =>
 
 class EnrollmentService {
   async createEnrollment(enrollmentData) {
-    const { studentId, programId, classId } = enrollmentData
-
-    if (!studentId || !programId || !classId) {
-      throw new Error('studentId, programId, and classId are required')
-    }
+    const validated = validateEnrollment(enrollmentData)
+    const { studentId, programId, classId, termId, termOfferingId } = validated
 
     const [studentDoc, programDoc, classDoc] = await Promise.all([
       db.collection(COLLECTIONS.STUDENT).doc(studentId).get(),
@@ -29,28 +30,19 @@ class EnrollmentService {
     if (!programDoc.exists) throw new Error('Program not found')
     if (!classDoc.exists) throw new Error('Class not found')
 
-    const classData = classDoc.data()
-    const capacity = classData.capacity || classData.maxCapacity || 0
-    const currentCount = classData.currentCount || classData.enrolledCount || 0
-    
-    // Check for archived status or expired term
-    if (
-      classData.term?.endDate &&
-      new Date(classData.term.endDate) < new Date()
-    ) {
-      throw new Error(
-        'Cannot enroll in a class that has already ended (Archived).',
-      )
+    const termService = require('./termService')
+    const { term, offering } = await termService.getOffering(termId, termOfferingId)
+    if (offering.classId !== classId && offering.program?.id !== programId) {
+      throw new Error('Selected term offering does not match the selected class/program')
     }
-
-    if (capacity > 0 && currentCount >= capacity) {
-      throw new Error('Class is full')
+    if (term.endDate && new Date(term.endDate) < new Date()) {
+      throw new Error('Cannot enroll in a term offering that has already ended.')
     }
 
     const existingEnrollment = await db
       .collection(COLLECTIONS.ENROLLMENT)
       .where('studentId', '==', studentId)
-      .where('classId', '==', classId)
+      .where('termOfferingId', '==', termOfferingId)
       .get()
 
     const activeNonDeleted = existingEnrollment.docs.filter((doc) => {
@@ -59,7 +51,7 @@ class EnrollmentService {
     })
 
     if (activeNonDeleted.length > 0) {
-      throw new Error('Student already enrolled for this class')
+      throw new Error('Student already enrolled for this term offering')
     }
 
     const studentSnapshot = profileHelper.getStudentSnapshot(
@@ -70,7 +62,15 @@ class EnrollmentService {
       programId,
       programDoc.data(),
     )
-    const classSnapshot = profileHelper.getClassSnapshot(classId, classData)
+    const termSnapshot = termService.getTermSnapshot(termId, term, offering)
+    const classSnapshot = profileHelper.getClassSnapshot(classId, {
+      ...classDoc.data(),
+      program: offering.program || profileHelper.getProgramSnapshot(programId, programDoc.data()),
+      branch: offering.branch,
+      schedule: offering.schedule,
+      term: termSnapshot,
+      status: offering.status || 'active',
+    })
 
     let parentSnapshot = null
     const parentId = studentDoc.data().parentId
@@ -90,7 +90,7 @@ class EnrollmentService {
     const enrollmentId = db.collection(COLLECTIONS.ENROLLMENT).doc().id
 
     // Cleanup redundant names from root if sent from frontend
-    const cleanEnrollmentData = { ...enrollmentData }
+    const cleanEnrollmentData = { ...validated }
     const redundantFields = [
       'studentName',
       'parentName',
@@ -107,34 +107,22 @@ class EnrollmentService {
       parent: parentSnapshot,
       program: programSnapshot,
       class: classSnapshot,
-      status: enrollmentData.status || 'unpaid',
-      paymentStatus: enrollmentData.paymentStatus || 'unpaid',
-      enrollmentDate: enrollmentData.enrollAt || new Date().toISOString(),
+      term: termSnapshot,
+      status: validated.status || 'unpaid',
+      paymentStatus: validated.paymentStatus || 'unpaid',
+      enrollmentDate: validated.enrollAt || new Date().toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
 
     await db.runTransaction(async (transaction) => {
+      const admin = require('firebase-admin')
       transaction.set(
         db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId),
         newEnrollment,
       )
 
       if (isSeatTaking(newEnrollment.status)) {
-        const admin = require('firebase-admin')
-        const studentCompact = {
-          id: studentId,
-          name: studentSnapshot.name,
-          profileURL: studentSnapshot.profileURL,
-          enrolledAt: newEnrollment.createdAt,
-        }
-
-        transaction.update(db.collection(COLLECTIONS.CLASS).doc(classId), {
-          currentCount: currentCount + 1,
-          studentIds: admin.firestore.FieldValue.arrayUnion(studentId),
-          students: admin.firestore.FieldValue.arrayUnion(studentCompact),
-        })
-
         transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(programId), {
           totalEnrolledCount: admin.firestore.FieldValue.increment(1),
         })
@@ -160,6 +148,10 @@ class EnrollmentService {
         })
       }
     })
+
+    if (isSeatTaking(newEnrollment.status)) {
+      await termService.syncOfferingStudent(termId, termOfferingId, { id: enrollmentId, ...newEnrollment }, 'upsert')
+    }
 
     // Background task: Mark trials as successful
     this.markMatchingTrialsAsSuccessful(newEnrollment).catch((error) =>
@@ -256,15 +248,19 @@ class EnrollmentService {
 
   async updateEnrollment(id, updateData) {
     const ref = db.collection(COLLECTIONS.ENROLLMENT).doc(id)
+    const beforeDoc = await ref.get()
+    if (!beforeDoc.exists) throw new Error('Enrollment not found')
+    const beforeData = beforeDoc.data()
 
-    return await db.runTransaction(async (transaction) => {
+    const result = await db.runTransaction(async (transaction) => {
       const admin = require('firebase-admin')
+      const validated = validateUpdateEnrollment(updateData)
       const doc = await transaction.get(ref)
       if (!doc.exists) throw new Error('Enrollment not found')
 
       const currentData = doc.data()
 
-      const updates = { ...updateData }
+      const updates = { ...validated }
 
       // Re-fetch snapshots if critical IDs changed
       if (
@@ -308,42 +304,24 @@ class EnrollmentService {
         }
       }
 
-      if (updateData.classId && updateData.classId !== currentData.classId) {
-        const admin = require('firebase-admin')
-        const oldClassRef = db.collection(COLLECTIONS.CLASS).doc(currentData.classId)
-        const newClassRef = db.collection(COLLECTIONS.CLASS).doc(updateData.classId)
-        
-        const [oldClassDoc, newClassDoc] = await Promise.all([
-          transaction.get(oldClassRef),
-          transaction.get(newClassRef)
-        ])
-
-        if (oldClassDoc.exists) {
-          const oldData = oldClassDoc.data()
-          const updatedStudents = (oldData.students || []).filter(s => s.id !== currentData.studentId)
-          transaction.update(oldClassRef, {
-            currentCount: admin.firestore.FieldValue.increment(-1),
-            studentIds: admin.firestore.FieldValue.arrayRemove(currentData.studentId),
-            students: updatedStudents
-          })
-        }
-
-        if (newClassDoc.exists) {
-          const newData = newClassDoc.data()
-          const studentSnapshot = {
-            id: currentData.studentId,
-            name: currentData.student?.name || 'Unknown',
-            profileURL: currentData.student?.profileURL || null,
-            enrolledAt: currentData.createdAt || new Date().toISOString()
-          }
-          transaction.update(newClassRef, {
-            currentCount: admin.firestore.FieldValue.increment(1),
-            studentIds: admin.firestore.FieldValue.arrayUnion(currentData.studentId),
-            students: admin.firestore.FieldValue.arrayUnion(studentSnapshot)
-          })
-          
-          updates.class = profileHelper.getClassSnapshot(updateData.classId, newData)
-        }
+      if (
+        (validated.termId && validated.termId !== currentData.termId) ||
+        (validated.termOfferingId && validated.termOfferingId !== currentData.termOfferingId) ||
+        (validated.classId && validated.classId !== currentData.classId)
+      ) {
+        const termService = require('./termService')
+        const nextTermId = validated.termId || currentData.termId
+        const nextOfferingId = validated.termOfferingId || currentData.termOfferingId
+        const nextClassId = validated.classId || currentData.classId
+        const { term, offering } = await termService.getOffering(nextTermId, nextOfferingId)
+        updates.term = termService.getTermSnapshot(nextTermId, term, offering)
+        updates.class = profileHelper.getClassSnapshot(nextClassId, {
+          program: offering.program,
+          branch: offering.branch,
+          schedule: offering.schedule,
+          term: updates.term,
+          status: offering.status || 'active',
+        })
       }
 
       // Ensure we don't have redundant top-level name fields (Cleanup legacy data if any)
@@ -360,10 +338,10 @@ class EnrollmentService {
       })
 
       // Sync status with paymentStatus if updated
-      if (updateData.paymentStatus && updateData.paymentStatus !== currentData.paymentStatus) {
-        if (updateData.paymentStatus === 'paid') {
+      if (validated.paymentStatus && validated.paymentStatus !== currentData.paymentStatus) {
+        if (validated.paymentStatus === 'paid') {
           updates.status = 'paid'
-        } else if (['unpaid', 'pending', 'failed'].includes(updateData.paymentStatus)) {
+        } else if (['unpaid', 'pending', 'failed'].includes(validated.paymentStatus)) {
           updates.status = 'unpaid'
         }
       }
@@ -371,7 +349,7 @@ class EnrollmentService {
       transaction.update(ref, updates)
  
       // Automatic Payment Record Creation on Status Transition
-      if (updateData.paymentStatus === 'paid' && currentData.paymentStatus !== 'paid') {
+      if (validated.paymentStatus === 'paid' && currentData.paymentStatus !== 'paid') {
         const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc()
         transaction.set(paymentRef, {
           enrollmentId: id,
@@ -380,8 +358,8 @@ class EnrollmentService {
           student: currentData.student,
           parent: currentData.parent,
           program: currentData.program,
-          amount: Number(updateData.amount || currentData.amount) || 0,
-          paymentMethod: (updateData.paymentMethod || currentData.paymentMethod || 'cash').toLowerCase(),
+          amount: Number(validated.amount || currentData.amount) || 0,
+          paymentMethod: (validated.paymentMethod || currentData.paymentMethod || 'cash').toLowerCase(),
           paymentStatus: 'paid',
           paidAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
@@ -391,65 +369,52 @@ class EnrollmentService {
       }
 
       // Capacity & Student Seat tracking logic
-      if (updateData.status && currentData.status !== updateData.status) {
-        const classRef = db
-          .collection(COLLECTIONS.CLASS)
-          .doc(currentData.classId)
-        const classDoc = await transaction.get(classRef)
-        if (classDoc.exists) {
-          const classData = classDoc.data()
-          const admin = require('firebase-admin')
-          let newCount = classData.currentCount || classData.enrolledCount || 0
-          
-          if (
-            isSeatTaking(updateData.status) &&
-            !isSeatTaking(currentData.status)
-          ) {
-            newCount = newCount + 1
-            const studentCompact = {
-              id: currentData.studentId,
-              name: currentData.student?.name || 'Unknown',
-              profileURL: currentData.student?.profileURL || null,
-              enrolledAt: new Date().toISOString(),
-            }
-            transaction.update(classRef, {
-              currentCount: newCount,
-              studentIds: admin.firestore.FieldValue.arrayUnion(
-                currentData.studentId,
-              ),
-              students: admin.firestore.FieldValue.arrayUnion(studentCompact),
-            })
-            // Update Program total count
-            transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId), {
-              totalEnrolledCount: admin.firestore.FieldValue.increment(1),
-            })
-          } else if (
-            !isSeatTaking(updateData.status) &&
-            isSeatTaking(currentData.status)
-          ) {
-            newCount = Math.max(0, newCount - 1)
-
-            const updatedStudents = (classData.students || []).filter(
-              (s) => s.id !== currentData.studentId,
-            )
-
-            transaction.update(classRef, {
-              currentCount: newCount,
-              studentIds: admin.firestore.FieldValue.arrayRemove(
-                currentData.studentId,
-              ),
-              students: updatedStudents,
-            })
-            // Update Program total count
-            transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId), {
-              totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
-            })
-          }
+      if (updates.status && currentData.status !== updates.status) {
+        if (isSeatTaking(updates.status) && !isSeatTaking(currentData.status)) {
+          transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId), {
+            totalEnrolledCount: admin.firestore.FieldValue.increment(1),
+          })
+        } else if (!isSeatTaking(updates.status) && isSeatTaking(currentData.status)) {
+          transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId), {
+            totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
+          })
         }
       }
 
-      return { id, ...updateData }
+      return { id, ...validated }
     })
+
+    const afterDoc = await ref.get()
+    const afterData = afterDoc.data()
+    const termService = require('./termService')
+    const movedOffering = beforeData.termOfferingId !== afterData.termOfferingId || beforeData.termId !== afterData.termId
+
+    if (movedOffering && isSeatTaking(beforeData.status)) {
+      await termService.syncOfferingStudent(
+        beforeData.termId,
+        beforeData.termOfferingId,
+        { id, ...beforeData },
+        'remove',
+      )
+    }
+
+    if (isSeatTaking(afterData.status)) {
+      await termService.syncOfferingStudent(
+        afterData.termId,
+        afterData.termOfferingId,
+        { id, ...afterData },
+        'upsert',
+      )
+    } else if (isSeatTaking(beforeData.status)) {
+      await termService.syncOfferingStudent(
+        beforeData.termId,
+        beforeData.termOfferingId,
+        { id, ...beforeData },
+        'remove',
+      )
+    }
+
+    return result
   }
 
   async deleteEnrollment(id) {
@@ -457,7 +422,8 @@ class EnrollmentService {
     const enrollmentDoc = await enrollmentRef.get()
     if (!enrollmentDoc.exists) throw new Error('Enrollment not found')
 
-    const { classId, status } = enrollmentDoc.data()
+    const enrollmentData = enrollmentDoc.data()
+    const { status } = enrollmentData
 
     await db.runTransaction(async (transaction) => {
       transaction.update(enrollmentRef, {
@@ -466,28 +432,21 @@ class EnrollmentService {
         updatedAt: new Date().toISOString(),
       })
       if (isSeatTaking(status)) {
-        const classRef = db.collection(COLLECTIONS.CLASS).doc(classId)
-        const classDoc = await transaction.get(classRef)
-        if (classDoc.exists) {
-          const classData = classDoc.data()
-          const currentCount = classData.currentCount || classData.enrolledCount || 0
-          const updatedStudents = (classData.students || []).filter(
-            (s) => s.id !== enrollmentDoc.data().studentId,
-          )
-          const admin = require('firebase-admin')
-          transaction.update(classRef, {
-            currentCount: Math.max(0, currentCount - 1),
-            studentIds: admin.firestore.FieldValue.arrayRemove(
-              enrollmentDoc.data().studentId,
-            ),
-            students: updatedStudents,
-          })
-          transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(enrollmentDoc.data().programId), {
-            totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
-          })
-        }
+        const admin = require('firebase-admin')
+        transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId), {
+          totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
+        })
       }
     })
+
+    if (isSeatTaking(status)) {
+      await require('./termService').syncOfferingStudent(
+        enrollmentData.termId,
+        enrollmentData.termOfferingId,
+        { id, ...enrollmentData },
+        'remove',
+      )
+    }
 
     return { message: 'Enrollment deleted successfully (Soft delete)' }
   }
@@ -499,7 +458,8 @@ class EnrollmentService {
     const enrollmentDoc = await enrollmentRef.get()
     if (!enrollmentDoc.exists) throw new Error('Enrollment not found')
 
-    const { classId, status } = enrollmentDoc.data()
+    const enrollmentData = enrollmentDoc.data()
+    const { status } = enrollmentData
 
     if (!isSeatTaking(status))
       throw new Error(
@@ -513,28 +473,21 @@ class EnrollmentService {
         cancelledAt: new Date().toISOString(),
       })
       if (isSeatTaking(status)) {
-        const classRef = db.collection(COLLECTIONS.CLASS).doc(classId)
-        const classDoc = await transaction.get(classRef)
-        if (classDoc.exists) {
-          const classData = classDoc.data()
-          const currentCount = classData.currentCount || classData.enrolledCount || 0
-          const updatedStudents = (classData.students || []).filter(
-            (s) => s.id !== enrollmentDoc.data().studentId,
-          )
-          const admin = require('firebase-admin')
-          transaction.update(classRef, {
-            currentCount: Math.max(0, currentCount - 1),
-            studentIds: admin.firestore.FieldValue.arrayRemove(
-              enrollmentDoc.data().studentId,
-            ),
-            students: updatedStudents,
-          })
-          transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(enrollmentDoc.data().programId), {
-            totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
-          })
-        }
+        const admin = require('firebase-admin')
+        transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId), {
+          totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
+        })
       }
     })
+
+    if (isSeatTaking(status)) {
+      await require('./termService').syncOfferingStudent(
+        enrollmentData.termId,
+        enrollmentData.termOfferingId,
+        { id, ...enrollmentData },
+        'remove',
+      )
+    }
 
     return { message: 'Enrollment cancelled successfully' }
   }

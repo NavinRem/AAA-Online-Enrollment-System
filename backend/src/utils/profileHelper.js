@@ -40,6 +40,15 @@ class ProfileHelper {
 
   getProgramSnapshot(programId, programData) {
     if (!programId || !programData) return null
+    
+    // Normalize category to an object if it's just a string or missing
+    let category = programData.category
+    if (typeof category === 'string') {
+      category = { name: category, profileURL: '' }
+    } else if (!category && programData.categorySnapshot) {
+      category = programData.categorySnapshot
+    }
+
     return {
       id: programId,
       name: programData.name,
@@ -48,10 +57,10 @@ class ProfileHelper {
       description: programData.description || '',
       type: programData.type || '',
       profileURL: programData.profileURL || '',
-      maxCapacity: programData.maxCapacity || 0,
+      duration: programData.duration || 0,
       minAge: programData.minAge || 0,
       maxAge: programData.maxAge || 0,
-      category: programData.category || '',
+      category: category || { name: 'General', profileURL: '' },
       categoryId: programData.categoryId || '',
     }
   }
@@ -106,6 +115,7 @@ class ProfileHelper {
       teachers: data.teachers || [],
       level: data.level || null,
       schedule: data.schedule || null,
+      schedules: data.schedules || [],
       status: data.status || 'open',
       capacity,
       currentCount,

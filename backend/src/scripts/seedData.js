@@ -20,7 +20,7 @@ const profileHelper = require('../utils/profileHelper')
  */
 async function clearCollection(collectionName) {
   let snapshot = await db.collection(collectionName).get()
-  
+
   while (!snapshot.empty) {
     const batch = db.batch()
     snapshot.docs.forEach((doc) => batch.delete(doc.ref))
@@ -28,7 +28,7 @@ async function clearCollection(collectionName) {
     // Re-fetch to handle pagination if > 500
     snapshot = await db.collection(collectionName).limit(500).get()
   }
-  
+
   console.log(`🗑️ Cleared collection: ${collectionName}`)
 }
 
@@ -58,7 +58,7 @@ async function seedData() {
   try {
     if (shouldClear) {
       console.log('--- Global Purge: Wiping ALL Collections ---')
-      
+
       // 1. Clear Orphaned Sub-collections FIRST
       await clearAllSubCollections()
 
@@ -193,7 +193,9 @@ async function seedData() {
         termId: termRef.id,
         branchId: bRef.id,
         teacherId: tRef.id,
-        schedules: [{ day: i === 0 ? 'Tuesday' : 'Thursday', timeslot: '18:00 - 20:30' }],
+        schedules: [
+          { day: i === 0 ? 'Tuesday' : 'Thursday', timeslot: '18:00 - 20:30' },
+        ],
         maxCapacity: 12,
         enrolledCount: 0,
       }
@@ -207,7 +209,9 @@ async function seedData() {
       }
       const cRef = await db.collection(COLLECTIONS.CLASS).add(finalClassData)
       classRefs.push(cRef)
-      classSnapshots.push(profileHelper.getClassSnapshot(cRef.id, finalClassData))
+      classSnapshots.push(
+        profileHelper.getClassSnapshot(cRef.id, finalClassData),
+      )
     }
 
     // 7. Enrollment Chain
@@ -239,46 +243,46 @@ async function seedData() {
 
     // Enroll Leo in ALL classes to verify deep cascading
     for (let i = 0; i < classRefs.length; i++) {
-        const enrollmentData = {
-          parentId: pRef.id,
-          studentId: sRef.id,
-          classId: classRefs[i].id,
-          branchId: bRef.id,
-          enrolledSessions: 32,
-          amount: 450,
-          status: 'confirmed',
-          paymentStatus: 'paid',
-          enrollmentType: 'New',
-          parent: parentSnapshot,
-          student: studentSnapshot,
-          class: classSnapshots[i],
-          enrollAt: new Date().toISOString(),
-        }
-        const validatedEnroll = validateEnrollment(enrollmentData)
-        const finalEnroll = {
-          ...validatedEnroll,
-          parent: parentSnapshot,
-          student: studentSnapshot,
-          class: classSnapshots[i],
-        }
-        const eRef = await db.collection(COLLECTIONS.ENROLLMENT).add(finalEnroll)
-        await db
-          .collection(COLLECTIONS.CLASS)
-          .doc(classRefs[i].id)
-          .update({ enrolledCount: 1 })
+      const enrollmentData = {
+        parentId: pRef.id,
+        studentId: sRef.id,
+        classId: classRefs[i].id,
+        branchId: bRef.id,
+        enrolledSessions: 32,
+        amount: 450,
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        enrollmentType: 'New',
+        parent: parentSnapshot,
+        student: studentSnapshot,
+        class: classSnapshots[i],
+        enrollAt: new Date().toISOString(),
+      }
+      const validatedEnroll = validateEnrollment(enrollmentData)
+      const finalEnroll = {
+        ...validatedEnroll,
+        parent: parentSnapshot,
+        student: studentSnapshot,
+        class: classSnapshots[i],
+      }
+      const eRef = await db.collection(COLLECTIONS.ENROLLMENT).add(finalEnroll)
+      await db
+        .collection(COLLECTIONS.CLASS)
+        .doc(classRefs[i].id)
+        .update({ enrolledCount: 1 })
 
-        // 8. Payment (Linked to Enrollment)
-        console.log(`Step 8: Payment for Enrollment ${eRef.id}`)
-        const paymentData = {
-          enrollmentId: eRef.id,
-          parentId: pRef.id,
-          amount: enrollmentData.amount,
-          method: 'bank_transfer',
-          status: 'paid',
-          paidAt: new Date().toISOString(),
-          transactionId: `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-        }
-        await db.collection(COLLECTIONS.PAYMENT).add(validatePayment(paymentData))
+      // 8. Payment (Linked to Enrollment)
+      console.log(`Step 8: Payment for Enrollment ${eRef.id}`)
+      const paymentData = {
+        enrollmentId: eRef.id,
+        parentId: pRef.id,
+        amount: enrollmentData.amount,
+        method: 'bank_transfer',
+        status: 'paid',
+        paidAt: new Date().toISOString(),
+        transactionId: `TXN-${Math.random().toString(36).substr(2, 9)}`,
+      }
+      await db.collection(COLLECTIONS.PAYMENT).add(validatePayment(paymentData))
     }
 
     // 9. Trial Request
@@ -287,7 +291,9 @@ async function seedData() {
       studentId: sRef.id,
       parentId: pRef.id,
       classId: classRefs[0].id,
-      trialDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+      trialDate: new Date(Date.now() + 86400000 * 2)
+        .toISOString()
+        .split('T')[0],
       status: 'confirmed',
       remark: 'First time trial for cinematic arts',
     }

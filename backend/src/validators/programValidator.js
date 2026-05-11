@@ -11,6 +11,7 @@ function validateProgram(programData) {
     'minAge',
     'maxAge',
     'type',
+    'duration',
   ]
 
   const name = programData.name?.trim()
@@ -30,6 +31,7 @@ function validateProgram(programData) {
     minAge: parseInt(programData.minAge || 0),
     maxAge: parseInt(programData.maxAge || 0),
     type: programData.type || 'General',
+    duration: parseInt(programData.duration || 0),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -48,6 +50,7 @@ function validateUpdateProgram(updateData) {
     'minAge',
     'maxAge',
     'type',
+    'duration',
   ]
   const cleanData = {}
 
@@ -68,6 +71,8 @@ function validateUpdateProgram(updateData) {
     cleanData.minAge = parseInt(cleanData.minAge || 0)
   if (cleanData.maxAge !== undefined)
     cleanData.maxAge = parseInt(cleanData.maxAge || 0)
+  if (cleanData.duration !== undefined)
+    cleanData.duration = parseInt(cleanData.duration || 0)
 
   if (Object.keys(cleanData).length === 0) {
     throw new Error('No valid fields provided for update')
