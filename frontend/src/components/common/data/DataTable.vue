@@ -26,6 +26,7 @@ const props = defineProps({
   hasPagination: { type: Boolean, default: false },
   entityName: { type: String, default: 'record' },
   flexible: { type: Boolean, default: false },
+  searchVariant: { type: String, default: 'default' },
 })
 
 const emit = defineEmits([
@@ -95,7 +96,7 @@ const handleAction = (type, item) => {
       <template #toolbar>
         <TableToolbar :hasSearch="hasSearch" :searchQuery="searchQuery"
           @update:searchQuery="emit('update:searchQuery', $event)" :searchPlaceholder="searchPlaceholder"
-          :hasFilter="hasFilter" :currentFilter="currentFilter"
+          :hasFilter="hasFilter" :currentFilter="currentFilter" :searchVariant="searchVariant"
           @update:currentFilter="emit('update:currentFilter', $event)" :filterOptions="filterOptions" :title="title">
           <template #actions>
             <slot name="toolbar-actions"></slot>
@@ -108,7 +109,7 @@ const handleAction = (type, item) => {
       <template #empty>
         <div class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic">
           <span v-if="emptyState.prefix">{{ emptyState.prefix }}</span>
-          <AppBadge v-if="emptyState.showBadge" :status="emptyState.label" size="sm" :type="emptyState.color" />
+          <AppBadge v-if="emptyState.showBadge" :status="emptyState.label" :type="emptyState.color" />
           <span v-else-if="emptyState.label" class="text-primary">{{ emptyState.label }}</span>
           <span v-if="emptyState.suffix">{{ emptyState.suffix }}</span>
         </div>

@@ -217,18 +217,18 @@ onMounted(async () => {
         <div class="flex items-center gap-3">
           <button
             v-if="enrollment.status !== 'confirmed' && enrollment.paymentStatus !== 'paid' && enrollment.status !== 'cancelled'"
-            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-primary hover:border-primary group"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-soft hover:bg-primary hover:border-primary group"
             title="Edit Enrollment" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100" />
           </button>
           <button
             v-if="enrollment.status !== 'confirmed' && enrollment.paymentStatus !== 'paid' && enrollment.status !== 'cancelled'"
-            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-success hover:border-success group"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-soft hover:bg-success hover:border-success group"
             title="Pay Enrollment" @click="openActionModal('pay')">
             <img :src="getActionIcon('pay')" class="w-5 h-5 group-hover:opacity-100" />
           </button>
           <button v-if="enrollment.status !== 'cancelled'"
-            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-warning hover:border-warning group"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-soft hover:bg-warning hover:border-warning group"
             title="Cancel Enrollment" @click="openActionModal('cancel')">
             <img :src="getActionIcon('cancel')" class="w-5 h-5 group-hover:opacity-100" />
           </button>
@@ -251,13 +251,15 @@ onMounted(async () => {
               </div>
             </div>
             <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
-              <p class="text-sm"><strong class="font-bold text-content-dark">Fullname:</strong> <span
-                  class="font-bold text-content-muted">{{ enrollment.parent?.name || 'N/A' }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Email:</strong> <span
-                  class="font-bold text-content-muted">{{ enrollment.parent?.email || 'N/A' }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Phone Number:</strong> <span
-                  class="font-bold text-content-muted tabular-nums">{{ enrollment.parent?.phone || 'N/A' }}</span></p>
-              <p class="text-sm flex items-center gap-2"><strong class="font-bold text-content-dark">Role:</strong> <AppBadge status="Parent" /></p>
+              <p class="text-sm"><strong>Fullname:</strong> <span class="">{{ enrollment.parent?.name || 'N/A' }}</span>
+              </p>
+              <p class="text-sm"><strong>Email:</strong> <span class="">{{ enrollment.parent?.email || 'N/A' }}</span>
+              </p>
+              <p class="text-sm"><strong>Phone Number:</strong> <span class="tabular-nums">{{ enrollment.parent?.phone
+                  || 'N/A' }}</span></p>
+              <p class="text-sm flex items-center gap-2"><strong>Role:</strong>
+                <AppBadge status="Parent" />
+              </p>
             </div>
           </section>
 
@@ -269,14 +271,14 @@ onMounted(async () => {
               </div>
             </div>
             <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
-              <p class="text-sm"><strong class="font-bold text-content-dark">Fullname:</strong> <span
-                  class="font-bold text-content-muted">{{ enrollment.student?.name || 'N/A' }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Date of birth:</strong> <span
-                  class="font-bold text-content-muted">{{ formatDateOnly(enrollment.student?.dob) }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Age:</strong> <span
-                  class="font-bold text-content-muted">{{ calculateAge(enrollment.student?.dob) }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Medical Note:</strong> <span
-                  class="font-bold text-content-muted">{{ enrollment.student?.medicalNote || 'None' }}</span></p>
+              <p class="text-sm"><strong>Fullname:</strong> <span class="">{{ enrollment.student?.name || 'N/A'
+                  }}</span></p>
+              <p class="text-sm"><strong>Date of birth:</strong> <span class="">{{
+                formatDateOnly(enrollment.student?.dob) }}</span></p>
+              <p class="text-sm"><strong>Age:</strong> <span class="">{{ calculateAge(enrollment.student?.dob) }}</span>
+              </p>
+              <p class="text-sm"><strong>Medical Note:</strong> <span class="">{{ enrollment.student?.medicalNote ||
+                  'None' }}</span></p>
             </div>
           </section>
 
@@ -288,20 +290,18 @@ onMounted(async () => {
               </div>
             </div>
             <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
-              <p class="text-sm"><strong class="font-bold text-content-dark">Course title:</strong> <span
-                  class="font-bold text-content-muted">{{ enrollment.class?.program?.name || enrollment.program?.name
+              <p class="text-sm"><strong>Course title:</strong> <span class="">{{ enrollment.class?.program?.name ||
+                enrollment.program?.name
                   }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Session:</strong> <span
-                  class="font-bold text-content-muted">{{ getSessionDay(enrollment.class?.schedule ||
-                    enrollment.classSchedule) }}, {{ getSessionTime(enrollment.class?.schedule ||
+              <p class="text-sm"><strong>Session:</strong> <span class="">{{ getSessionDay(enrollment.class?.schedule ||
+                enrollment.classSchedule) }}, {{ getSessionTime(enrollment.class?.schedule ||
                     enrollment.classSchedule) }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Number Session Enrolled:</strong> <span
-                  class="font-bold text-content-muted">{{ enrollment.remainingSessions !== undefined ?
-                    enrollment.remainingSessions : (enrollment.totalSessions || enrollment.class?.program?.totalSessions
-                      || enrollment.program?.totalSessions || '10') }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Date:</strong> <span
-                  class="font-bold text-content-muted tabular-nums">{{ formatDate(enrollment.enrollAt ||
-                    enrollment.createdAt) }}</span></p>
+              <p class="text-sm"><strong>Number Session Enrolled:</strong> <span class="">{{
+                enrollment.remainingSessions !== undefined ?
+                  enrollment.remainingSessions : (enrollment.totalSessions || enrollment.class?.program?.totalSessions
+                    || enrollment.program?.totalSessions || '10') }}</span></p>
+              <p class="text-sm"><strong>Date:</strong> <span class="tabular-nums">{{ formatDate(enrollment.enrollAt ||
+                enrollment.createdAt) }}</span></p>
             </div>
           </section>
 
@@ -315,19 +315,19 @@ onMounted(async () => {
               </div>
             </div>
             <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
-              <p class="text-sm"><strong class="font-bold text-content-dark">Course:</strong> <span
-                  class="font-bold text-content-muted">{{ enrollment.class?.program?.name || enrollment.program?.name ||
-                    'N/A' }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Teacher Name:</strong> <span
-                  class="font-bold text-content-muted">{{ enrollment.teacher?.name ||
-                    (enrollment.class?.teachers?.map(t => t.name).join(', ') || enrollment.program?.teachers?.[0]?.name || 'N/A')
+              <p class="text-sm"><strong>Course:</strong> <span class="">{{ enrollment.class?.program?.name ||
+                enrollment.program?.name ||
+                  'N/A' }}</span></p>
+              <p class="text-sm"><strong>Teacher Name:</strong> <span class="">{{enrollment.teacher?.name ||
+                (enrollment.class?.teachers?.map(t => t.name).join(', ') || enrollment.program?.teachers?.[0]?.name ||
+                  'N/A')
                   }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Total Student:</strong> <span
-                  class="font-bold text-content-muted">{{ enrollment.studentCountAtEnrollment ??
-                    enrollment.class?.currentCount ?? 0 }}</span></p>
-              <p class="text-sm"><strong class="font-bold text-content-dark">Time Slot:</strong> <span
-                  class="font-bold text-content-muted">{{ getSessionDay(enrollment.class?.schedule ||
-                    enrollment.classSchedule) }}, {{ getSessionTime(enrollment.class?.schedule ||
+              <p class="text-sm"><strong>Total Student:</strong> <span class="">{{ enrollment.studentCountAtEnrollment
+                ??
+                enrollment.class?.currentCount ?? 0 }}</span></p>
+              <p class="text-sm"><strong>Time Slot:</strong> <span class="">{{ getSessionDay(enrollment.class?.schedule
+                ||
+                enrollment.classSchedule) }}, {{ getSessionTime(enrollment.class?.schedule ||
                     enrollment.classSchedule) }}</span></p>
             </div>
           </section>
@@ -337,7 +337,7 @@ onMounted(async () => {
       <template #right-content v-if="enrollment">
         <div class="flex flex-col gap-8">
           <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-bold uppercase tracking-widest text-content-muted">Basic Information</h6>
+            <h6 class="font-bold  text-content-muted">Basic Information</h6>
             <div class="space-y-5 mt-2">
               <div class="flex justify-between gap-1">
                 <span class="text-lg font-bold text-content-dark">Registration Status</span>
@@ -359,19 +359,19 @@ onMounted(async () => {
           </section>
 
           <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-bold uppercase tracking-widest text-content-muted">Payment Summary</h6>
+            <h6 class="font-bold  text-content-muted">Payment Summary</h6>
             <div class="space-y-5 mt-2">
               <div class="flex justify-between gap-1">
                 <span class="text-lg font-bold text-content-dark">Total Amount</span>
                 <div>
-                  <AppBadge :status="'$' + formatPrice(enrollment?.amount || 0)" :colorValue="enrollment?.isProrated ? 'partial' : 'full'" type="finance"
-                    class="text-md px-2 py-0.5" />
+                  <AppBadge :status="'$' + formatPrice(enrollment?.amount || 0)"
+                    :colorValue="enrollment?.isProrated ? 'partial' : 'full'" type="finance" />
                 </div>
               </div>
               <div class="flex flex-col gap-1">
                 <span class="text-lg font-bold text-content-dark">Transaction ID</span>
                 <span class="text-md font-bold text-content-muted break-all">{{ enrollment.transactionId || 'N/A'
-                  }}</span>
+                }}</span>
               </div>
               <div class="flex flex-col gap-1">
                 <span class="text-lg font-bold text-content-dark">Payment Date</span>
@@ -382,7 +382,7 @@ onMounted(async () => {
           </section>
 
           <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-            <h6 class="font-bold uppercase tracking-widest text-content-muted">Program Summary</h6>
+            <h6 class="font-bold  text-content-muted">Program Summary</h6>
             <div class="space-y-5 mt-2">
               <div class="flex flex-col gap-1">
                 <span class="text-lg font-bold text-content-dark">Course</span>
@@ -396,12 +396,12 @@ onMounted(async () => {
                     enrollment.classSchedule) }}</span>
               </div>
               <div class="flex flex-col gap-1">
-                <AppBadge type="green" class="w-fit text-sm px-2 py-0.5">Start Date</AppBadge>
+                <AppBadge type="green">Start Date</AppBadge>
                 <span class="text-md font-bold text-content-muted">{{ formatDate(enrollment.class?.startDate ||
                   enrollment.enrollAt) }}</span>
               </div>
               <div class="flex flex-col gap-1">
-                <AppBadge type="red" class="w-fit text-sm px-2 py-0.5">End Date</AppBadge>
+                <AppBadge type="red">End Date</AppBadge>
                 <span class="text-md font-bold text-content-muted">{{ formatDate(enrollment.class?.endDate || new
                   Date(new Date(enrollment.enrollAt).setMonth(new Date(enrollment.enrollAt).getMonth() +
                     1)).toISOString()) }}</span>

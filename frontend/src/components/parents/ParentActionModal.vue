@@ -263,11 +263,11 @@ watch(
           {{ selectedParent.name }}
         </h2>
         <div class="ui-identity-meta-compact">
-          <span class="text-[10px] font-semibold text-content-muted opacity-60 uppercase tracking-widest"
-            v-if="selectedParent.email">{{ selectedParent.email }}</span>
+          <span class="text-3xs font-semibold text-content-muted opacity-60 " v-if="selectedParent.email">{{
+            selectedParent.email }}</span>
           <span class="opacity-30" v-if="selectedParent.email && selectedParent.phone">•</span>
-          <span class="text-[10px] font-semibold text-content-dark uppercase tracking-widest"
-            v-if="selectedParent.phone">{{ selectedParent.phone }}</span>
+          <span class="text-3xs font-bold text-content-muted tracking-wider" v-if="selectedParent.phone">{{
+            selectedParent.phone }}</span>
         </div>
       </div>
     </div>
@@ -285,7 +285,7 @@ watch(
           :error="errors.phone" :shake="shaking.phone" @input="clearError('phone')" />
 
         <div class="flex flex-col gap-xs col-span-2 sm:col-span-1">
-          <label class="text-xs font-semibold uppercase text-content-muted tracking-widest">Avatar Signature <span
+          <label class="text-xs font-semibold text-content-muted ">Avatar Signature <span
               class="text-error">*</span></label>
           <AvatarSelector v-model="localData.profileURL" :role="localData.role" :uid="user?.id"
             :customFileName="`${localData.name}_${localData.role}`" :error="errors.profileURL"
@@ -310,7 +310,7 @@ watch(
             @click-disabled="handleDisabledClick('childInfo')" />
 
           <div class="flex flex-col gap-xs col-span-2">
-            <label class="text-xs font-semibold uppercase text-content-muted tracking-widest">Student Avatar <span
+            <label class="text-xs font-semibold text-content-muted ">Student Avatar <span
                 class="text-error">*</span></label>
             <AvatarSelector v-model="localData.profileURL" role="student"
               :customFileName="`${localData.name}_student` || ''" :disabled="!user && !localData.parentId"
@@ -325,7 +325,7 @@ watch(
     <div v-if="type === 'deactivate'" class="flex flex-col gap-lg">
       <AppAlert type="warning">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-sm font-semibold uppercase tracking-tight">Suspension Protocol</strong>
+          <strong class="text-sm font-semibold tracking-tight">Suspension Protocol</strong>
           <span class="text-xs opacity-90 font-medium">Deactivating this account will revoke system access for the
             parent immediately. All
             linked student data remained archived for future reactivation.</span>
@@ -336,7 +336,7 @@ watch(
     <div v-if="type === 'activate'" class="flex flex-col gap-lg">
       <AppAlert type="success">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-sm font-semibold uppercase tracking-tight">Reactivation Clearance</strong>
+          <strong class="text-sm font-semibold tracking-tight">Reactivation Clearance</strong>
           <span class="text-xs opacity-90 font-medium">System access will be restored across all devices immediately.
             The parent will be able
             to manage active enrollments and billing.</span>
@@ -347,7 +347,7 @@ watch(
     <div v-if="type === 'delete'" class="flex flex-col gap-lg">
       <AppAlert type="error">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-sm font-semibold uppercase tracking-tight">Permanent Registry Deletion</strong>
+          <strong class="text-sm font-semibold tracking-tight">⚠ Permanent Account Deletion</strong>
           <span class="text-xs opacity-90 font-medium leading-relaxed">This action will permanently erase the parent
             profile and all linked student relations. Historical billing data will be severed.</span>
         </div>
@@ -357,7 +357,7 @@ watch(
         :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
         <template #label-extra>
           <span class="block text-2xs font-semibold mt-0.5">
-            Type <span class="text-error px-1 font-semibold">DELETE</span> to authorize record deletion
+            Type <span class="text-error px-1 font-bold">DELETE</span> to authorize this permanent action
           </span>
         </template>
       </AppInput>
@@ -366,10 +366,10 @@ watch(
     <!-- Password Management View -->
     <div v-if="type === 'reset-password'" class="flex flex-col gap-lg">
       <div class="bg-surface-subtle/50 p-md rounded-sm border border-outline-std/30">
-        <h3 class="text-xs font-semibold uppercase tracking-widest mb-1 text-content-dark">
+        <h3 class="text-3xs font-semibold  mb-1 text-content-dark">
           Recovery Logic Selection
         </h3>
-        <p class="text-3xs text-content-muted uppercase font-bold tracking-widest opacity-60 italic">
+        <p class="text-3xs text-content-muted font-bold  opacity-60 italic">
           Choose a secure protocol for account restoration.
         </p>
       </div>
@@ -416,14 +416,13 @@ watch(
 
       <AppAlert type="info">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-xs font-semibold uppercase tracking-widest">Compliance Protocol</strong>
-          <p class="text-2xs opacity-90 font-bold uppercase tracking-tighter opacity-70">
+          <strong class="text-xs font-semibold ">Compliance Protocol</strong>
+          <p class="text-3xs opacity-90 font-bold tracking-tighter opacity-70">
             User will be required to update credentials upon first session authorization.
           </p>
         </div>
       </AppAlert>
-      <div v-if="errors.resetMode"
-        class="text-error text-3xs font-semibold text-center uppercase tracking-widest animate-shake mt-2">
+      <div v-if="errors.resetMode" class="text-error text-3xs font-semibold text-center  animate-shake mt-2">
         {{ errors.resetMode }}
       </div>
 
@@ -497,10 +496,10 @@ watch(
 }
 
 .parent-reset-title {
-  @apply text-xs font-semibold uppercase tracking-tighter;
+  @apply text-xs font-semibold tracking-tighter;
 }
 
 .parent-reset-sub {
-  @apply text-3xs text-content-muted font-bold leading-tight uppercase opacity-60;
+  @apply text-3xs text-content-muted font-bold leading-tight opacity-60;
 }
 </style>

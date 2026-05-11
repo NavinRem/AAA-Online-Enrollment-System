@@ -46,39 +46,35 @@ const statsCards = computed(() => {
 
   return [
     {
-      label: 'Faculty Strength',
+      label: 'Total Teacher',
       value: all.length,
       image: getImageUrl('teacher/total-teacher'),
-      color: 'var(--color-primary-light)',
     },
     {
-      label: 'Active Deployment',
+      label: 'Active Teacher',
       value: active.length,
-      image: getImageUrl('dashboard/active-now'),
-      color: 'var(--color-primary-light)',
+      image: getImageUrl('dashboard/card-student'),
     },
     {
       label: 'Academic Diversity',
       value: new Set(all.map(t => t.specialization).filter(Boolean)).size,
       image: getImageUrl('dashboard/card-top-program'),
-      color: 'var(--color-primary-light)',
     },
     {
       label: 'Capacity Utilization',
       value: all.length > 0 ? Math.round((active.length / all.length) * 100) + '%' : '0%',
       image: getImageUrl('dashboard/card-available-program'),
-      color: 'var(--color-primary-light)',
     },
   ]
 })
 
 const headers = [
-  { label: 'NO', width: '50px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'TEACHER IDENTITY' },
-  { label: 'SPECIALIZATION', class: 'hidden sm:table-cell' },
-  { label: 'CONTACT DETAILS', class: 'hidden md:table-cell' },
-  { label: 'STATUS', width: '120px', align: 'center' },
-  { label: 'ACTION', width: '80px', align: 'center' },
+  { label: 'No', width: '50px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'Teacher Identity' },
+  { label: 'Specialization', class: 'hidden sm:table-cell' },
+  { label: 'Contact Details', class: 'hidden md:table-cell' },
+  { label: 'Status', width: '120px', align: 'center' },
+  { label: 'Action', width: '80px', align: 'center' },
 ]
 
 // Modal Logic
@@ -140,7 +136,7 @@ const handleDelete = async (teacher) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Teacher Overview">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" :loading="loading" />
         </div>
       </template>
@@ -157,12 +153,12 @@ const handleDelete = async (teacher) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold tracking-tight">New Teacher</span>
+              <span class="font-bold">New Teacher</span>
             </AppButton>
           </template>
 
           <template #row="{ item, index, headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }">
-            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell"
+            <td class="ui-cell text-center hidden md:table-cell"
               :style="{ width: headers[0].width }">
               {{ index + 1 }}
             </td>
@@ -173,24 +169,25 @@ const handleDelete = async (teacher) => {
                   <span class="text-lg font-bold text-primary opacity-40">{{ item.name.charAt(0) }}</span>
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.name }}</span>
-                  <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{
-                    item.id.slice(-6).toUpperCase() }}</span>
+                  <span class="truncate block">{{ item.name }}</span>
+                  <span class="">{{
+                    item.id.slice(-6) }}</span>
                 </div>
               </div>
             </td>
 
             <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[2].width }">
               <div class="inline-flex px-3 py-1 rounded-lg bg-primary/5 border border-primary/10">
-                <span class="text-xs font-semibold text-primary tracking-tight uppercase">{{ item.specialization ||
+                <span class="">{{ item.specialization ||
                   'Generalist' }}</span>
               </div>
             </td>
 
             <td class="ui-cell hidden md:table-cell" :style="{ width: headers[3].width }">
               <div class="flex flex-col">
-                <span class="text-xs font-semibold text-content-dark">{{ item.email }}</span>
-                <span class="text-[9px] font-semibold text-content-muted uppercase tracking-tighter mt-1">{{ item.phone ||
+                <span class="">{{ item.email }}</span>
+                <span class="mt-1">{{ item.phone
+                  ||
                   'No Contact' }}</span>
               </div>
             </td>
@@ -223,7 +220,7 @@ const handleDelete = async (teacher) => {
 
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
 
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
                         @click="handleDelete(item); closeMenu()">
                         <img :src="getActionIcon('delete')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />

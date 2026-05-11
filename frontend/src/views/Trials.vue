@@ -62,25 +62,21 @@ const trialStats = computed(() => {
       label: 'Total Trials',
       value: totalcount,
       image: getImageUrl('enrollment/total-enrollment'),
-      color: 'var(--color-primary-light)',
     },
     {
       label: 'Booked Trials',
       value: bookedCount,
       image: getImageUrl('enrollment/today-enrollment'),
-      color: 'var(--color-purple-soft)',
     },
     {
       label: 'Walk-in Trials',
       value: walkinCount,
       image: getImageUrl('enrollment/total-unpaid-enrollment'),
-      color: 'var(--color-magenta-soft)',
     },
     {
       label: 'Successful Trials',
       value: successCount,
       image: getImageUrl('enrollment/total-paid-enrollment'),
-      color: 'var(--color-success-soft)',
     },
   ]
 })
@@ -216,14 +212,15 @@ const confirmRows = computed(() => {
 
       <template #table>
         <DataTable title="Trial Lists" :headers="trialHeaders" :items="paginatedTrials" entityName="trial"
-          :loading="loading" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search something..."
-          :rowClass="getRowClass" :hasPagination="true" :totalItems="totalItems" :pageSize="pageSize"
-          v-model:currentPage="currentPage" :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
+          :loading="loading" :hasPagination="true" :flexible="true" :pageSize="pageSize" :totalItems="totalItems"
+          v-model:currentPage="currentPage" v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search by name, program or guest..." :hasFilter="true" v-model:currentFilter="currentFilter"
+          :filterOptions="[
             { label: 'All Trials', value: 'all' },
             { label: 'Booked', value: 'booked' },
             { label: 'Walk-in', value: 'walk-in' },
             { label: 'Successful', value: 'successful' },
-          ]" @action="handleTableAction">
+          ]" :rowClass="getRowClass" @action="handleTableAction">
 
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
@@ -235,8 +232,7 @@ const confirmRows = computed(() => {
 
           <template
             #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
-            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell"
-              :style="{ width: headers[0].width }">
+            <td class="ui-cell text-center hidden md:table-cell" :style="{ width: headers[0].width }">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
@@ -247,7 +243,7 @@ const confirmRows = computed(() => {
                   <img :src="item.parent?.profileURL || getImageUrl('avatar-parent')" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.parent?.name ||
+                  <span class="truncate block">{{ item.parent?.name ||
                     item.guestParentName || 'Guest Parent' }}</span>
                 </div>
               </div>
@@ -260,9 +256,9 @@ const confirmRows = computed(() => {
                   <img :src="item.student?.profileURL || getImageUrl('avatar-student')" alt="student" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.student?.name ||
+                  <span class="truncate block">{{ item.student?.name ||
                     item.guestStudentName }}</span>
-                  <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{ item.isGuest ?
+                  <span class="">{{ item.isGuest ?
                     'Guest Prospect' : 'Registered Student' }}</span>
                 </div>
               </div>
@@ -276,8 +272,8 @@ const confirmRows = computed(() => {
                     class="object-contain" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.program?.name }}</span>
-                  <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">Trial Unit</span>
+                  <span class="truncate block">{{ item.program?.name }}</span>
+                  <span class="">Trial Unit</span>
                 </div>
               </div>
             </td>
@@ -295,7 +291,7 @@ const confirmRows = computed(() => {
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex flex-col items-center">
-                <span class="text-[11px] font-semibold text-content-dark tabular-nums tracking-tight">{{
+                <span class="tabular-nums tracking-tight">{{
                   formatDate(item.trialDate) }}</span>
               </div>
             </td>
@@ -321,7 +317,7 @@ const confirmRows = computed(() => {
                         <span class="font-bold">Edit</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete
@@ -337,18 +333,14 @@ const confirmRows = computed(() => {
     </DataPageLayout>
 
     <TrialFormModal :isOpen="showModal" :loading="submitting" :trial="selectedTrial" :parents="dataStore.parents"
-      :students="dataStore.students" :programs="dataStore.programs" :branches="dataStore.branches" :error="errorMessage" :success="successMessage"
+      :students="dataStore.students" :programs="dataStore.programs" :branches="dataStore.branches" :error="errorMessage"
+      :success="successMessage"
       @close="() => { showModal = false; selectedTrial = null; errorMessage = ''; successMessage = ''; }"
       @submit="handleSaveTrial" />
 
-    <AppConfirmOverlay :show="actionState.isOpen && actionState.type === 'delete'"
-      title="Delete Trial Record"
+    <AppConfirmOverlay :show="actionState.isOpen && actionState.type === 'delete'" title="Delete Trial Record"
       subtitle="Are you sure you want to permanently delete this trial engagement? This action will remove the record from all dashboard metrics."
-      :icon="getImageUrl('enrollment/total-enrollment')"
-      :rows="confirmRows"
-      confirmLabel="Delete Record"
-      :loading="submitting"
-      @back="actionState.isOpen = false"
-      @confirm="confirmDeleteTrial" />
+      :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows" confirmLabel="Delete Record"
+      :loading="submitting" @back="actionState.isOpen = false" @confirm="confirmDeleteTrial" />
   </DashboardLayout>
 </template>

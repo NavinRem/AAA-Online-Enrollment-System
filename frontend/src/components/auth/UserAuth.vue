@@ -96,7 +96,7 @@ const handleSubmit = async () => {
           </h2>
           <span class="auth-subtitle">
             {{ isResetMode ? 'Enter your email to receive a recovery link.'
-              : 'Welcom Back! Please Enter your details.' }}
+              : 'Welcome Back! Please Enter your details.' }}
           </span>
 
           <form @submit.prevent="handleSubmit" class="auth-form" novalidate>
@@ -201,7 +201,7 @@ const handleSubmit = async () => {
 }
 
 .auth-divider-hint {
-  @apply text-[10px] font-semibold uppercase tracking-[0.2em] whitespace-nowrap;
+  @apply text-sm font-semibold whitespace-nowrap;
   color: var(--color-content-muted);
   opacity: 0.5;
 }

@@ -21,17 +21,17 @@ defineProps({
     <div class="flex items-center gap-4">
       <!-- Icon Container -->
       <div
-        class="w-14 h-14 rounded-xl flex items-center justify-center bg-surface-subtle group-hover:bg-primary/5 transition-colors shrink-0">
-        <img :src="image" :alt="label" class="w-10 h-10 opacity-60 group-hover:opacity-100 transition-opacity" />
+        class="w-14 h-14 rounded-xl flex items-center justify-center bg-surface-subtle transition-colors shrink-0">
+        <img :src="image" :alt="label" class="w-10 h-10 transition-opacity" />
       </div>
 
       <!-- Content -->
       <div class="flex flex-col min-w-0">
-        <span class="text-[10px] font-semibold text-content-muted uppercase tracking-widest leading-none mb-1 truncate">
+        <span class="text-sm font-bold text-content-dark  leading-none mb-1 truncate">
           {{ label }}
         </span>
         <div class="flex items-baseline gap-2">
-          <span class="text-xl font-bold text-content-dark tracking-tight" v-html="value"></span>
+          <span class="text-2xl font-bold text-content-dark tracking-tight" v-html="value"></span>
         </div>
       </div>
     </div>

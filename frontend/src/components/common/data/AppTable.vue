@@ -44,7 +44,7 @@ defineProps({
                 <div class="flex flex-col gap-0.5">
                   <span class="block">{{ typeof col === 'object' ? col.label : col }}</span>
                   <span v-if="typeof col === 'object' && col.subLabel"
-                    class="block text-[9px] opacity-60 font-bold normal-case tracking-tight">{{ col.subLabel }}</span>
+                    class="block text-xs opacity-60 font-bold normal-case">{{ col.subLabel }}</span>
                 </div>
               </slot>
             </th>
@@ -84,7 +84,7 @@ defineProps({
 }
 
 .table-header-cell {
-  @apply px-md py-sm text-content-muted text-[11px] font-semibold uppercase tracking-widest border-b border-outline-std bg-surface-subtle/50 backdrop-blur-sm sticky top-0 whitespace-nowrap;
+  @apply px-md py-sm text-content-muted text-sm font-bold border-b border-outline-std bg-surface-subtle/50 backdrop-blur-sm sticky top-0 whitespace-nowrap;
 }
 
 .table-empty-state {

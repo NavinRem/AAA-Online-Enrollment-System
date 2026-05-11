@@ -27,10 +27,10 @@ const router = useRouter()
 const goBack = () => router.push(props.backRoute)
 
 import { computed } from 'vue'
-const colSpans = computed(() => {
-  if (props.sidebarWidth === 'sm') return { main: 'md:col-span-9', side: 'md:col-span-3' }
-  if (props.sidebarWidth === 'lg') return { main: 'md:col-span-7', side: 'md:col-span-5' }
-  return { main: 'md:col-span-8', side: 'md:col-span-4' }
+const flexWidths = computed(() => {
+  if (props.sidebarWidth === 'sm') return { main: 'flex-1', side: 'w-full md:w-[320px]' }
+  if (props.sidebarWidth === 'lg') return { main: 'flex-1', side: 'w-full md:w-[480px]' }
+  return { main: 'flex-1', side: 'w-full md:w-[400px]' }
 })
 </script>
 
@@ -51,9 +51,9 @@ const colSpans = computed(() => {
     </div>
 
     <div v-else class="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-xl flex-1 min-h-0 p-8 w-full max-w-[1600px] mx-auto">
+      <div class="flex flex-col md:flex-row gap-xl flex-1 min-h-0 p-8 w-full">
         <!-- Left Content (Main) -->
-        <div :class="[colSpans.main, 'flex flex-col gap-lg min-h-0 text-content-dark']">
+        <div :class="[flexWidths.main, 'flex flex-col gap-lg min-h-0 text-content-dark']">
           <div class="flex items-center justify-between min-h-[48px]">
             <button class="ui-back-button" @click="goBack">
               <img :src="getActionIcon('back')" />
@@ -71,7 +71,7 @@ const colSpans = computed(() => {
 
         <!-- Right Content (Sidebar) -->
         <aside
-          :class="[colSpans.side, 'flex flex-col gap-lg h-full min-h-0 rounded-std', rightScrollable ? 'overflow-y-auto scrollable-v' : '']"
+          :class="[flexWidths.side, 'flex flex-col gap-lg h-full min-h-0 rounded-std', rightScrollable ? 'overflow-y-auto scrollable-v' : '']"
         >
           <slot name="right-content"></slot>
         </aside>

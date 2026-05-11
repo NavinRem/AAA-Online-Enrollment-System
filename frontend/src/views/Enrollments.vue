@@ -43,6 +43,7 @@ const parents = computed(() => dataStore.parents)
 const students = computed(() => dataStore.students)
 const programs = computed(() => dataStore.getProgramWithCategory)
 const classes = computed(() => dataStore.classes)
+const terms = computed(() => dataStore.terms)
 
 const childRegistrationModal = ref({
   isOpen: false,
@@ -105,6 +106,8 @@ const handleSaveEnrollment = async (formData) => {
       studentId: formData.studentId,
       programId: formData.programId,
       classId: formData.classId,
+      termId: formData.termId,
+      termOfferingId: formData.termOfferingId,
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
       isSponsorship: formData.isSponsorship || false,
@@ -154,40 +157,36 @@ const enrollmentStats = computed(() => {
       label: 'Total Enrollment',
       value: s.total,
       image: getImageUrl('enrollment/total-enrollment'),
-      color: 'var(--color-primary-soft)',
     },
     {
       label: 'Total Paid Enrollment',
       value: s.paidCount,
       image: getImageUrl('enrollment/total-paid-enrollment'),
-      color: 'var(--color-success-soft)',
     },
     {
       label: 'Total Unpaid Enrollment',
       value: s.unpaidCount,
       image: getImageUrl('enrollment/total-unpaid-enrollment'),
-      color: 'var(--color-warning-soft)',
     },
     {
       label: 'Total Cancelled Enrollment',
       value: s.cancelledCount,
       image: getImageUrl('enrollment/total-canceled-enrollment'),
-      color: 'var(--color-error-soft)',
     }
   ]
 })
 
 const enrollmentHeaders = [
-  { label: 'NO', width: '50px' },
-  { label: 'PARENT' },
-  { label: 'CHILD' },
-  { label: 'TERM', width: '150px' },
-  { label: 'PROGRAM' },
-  { label: 'SESSION' },
-  { label: 'STATUS', width: '100px' },
-  { label: 'AMOUNT', width: '100px' },
-  { label: 'DATE', width: '120px' },
-  { label: 'ACTION', width: '50px' },
+  { label: 'No', width: '50px' },
+  { label: 'Parent' },
+  { label: 'Child' },
+  { label: 'Term', width: '200px' },
+  { label: 'Program' },
+  { label: 'Session' },
+  { label: 'Status', width: '100px' },
+  { label: 'Amount', width: '100px' },
+  { label: 'Date', width: '120px' },
+  { label: 'Action', width: '50px', align: 'center' },
 ]
 
 const navigateToDetail = (item) => {
@@ -323,7 +322,7 @@ const handleRegisterStudent = async (formData) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Enrollment Overview">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in enrollmentStats" :key="stat.label" v-bind="stat" :loading="loading" />
         </div>
       </template>
@@ -342,14 +341,13 @@ const handleRegisterStudent = async (formData) => {
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="handleOpenNewEnrollment">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold tracking-tight">New Enrollment</span>
+              <span class="font-bold">New Enrollment</span>
             </AppButton>
           </template>
 
           <template
             #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
-            <td class="ui-cell text-center font-semibold text-content-muted/20 hidden md:table-cell"
-              :style="{ width: headers[0].width }">
+            <td class="ui-cell text-center hidden md:table-cell" :style="{ width: headers[0].width }">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
@@ -360,7 +358,7 @@ const handleRegisterStudent = async (formData) => {
                   <img :src="item.parent?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.parent?.name }}</span>
+                  <span class="truncate block">{{ item.parent?.name }}</span>
                 </div>
               </div>
             </td>
@@ -372,7 +370,7 @@ const handleRegisterStudent = async (formData) => {
                   <img :src="item.student?.profileURL" alt="child" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.student?.name }}</span>
+                  <span class="truncate block">{{ item.student?.name }}</span>
                 </div>
               </div>
             </td>
@@ -380,9 +378,8 @@ const handleRegisterStudent = async (formData) => {
             <!-- Term Column -->
             <td class="ui-cell" :style="{ width: headers[3].width }">
               <div class="flex flex-col">
-                <span class="text-xs font-bold text-content-dark tracking-tighter">{{ item.termName }}</span>
-                <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" class="text-xs mt-1"
-                  :type="item.branchColor" />
+                <span class="">{{ item.termName }}</span>
+                <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" :type="item.branchColor" />
               </div>
             </td>
 
@@ -395,10 +392,9 @@ const handleRegisterStudent = async (formData) => {
                     :alt="item.programName" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-semibold text-content-dark truncate block">{{
+                  <span class="truncate block">{{
                     item.program?.name }}</span>
-                  <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{
-                    item.program?.type || 'Standard' }}</span>
+                  <AppBadge :status="item.program?.type" />
                 </div>
               </div>
             </td>
@@ -406,13 +402,12 @@ const handleRegisterStudent = async (formData) => {
             <!-- Session Column -->
             <td class="ui-cell" :style="{ width: headers[5].width }">
               <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col">
-                <span class="text-xs font-semibold text-content-dark uppercase tracking-tighter leading-none">{{
+                <span class="leading-none">{{
                   getSessionDay(item.classSchedule, true) }}</span>
-                <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest mt-0.5">{{
+                <span class="mt-0.5">{{
                   getSessionTime(item.classSchedule) }}</span>
               </div>
-              <span v-else
-                class="text-[10px] font-semibold uppercase text-content-muted/30 tracking-widest">Pending</span>
+              <span v-else>Pending</span>
             </td>
 
             <!-- Status Column -->
@@ -430,7 +425,7 @@ const handleRegisterStudent = async (formData) => {
 
             <!-- Date Column -->
             <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[8].width }">
-              <span class="text-xs font-semibold text-content-muted truncate block">{{
+              <span class="truncate block">{{
                 formatDate(item.enrollAt) }}</span>
             </td>
 
@@ -470,7 +465,7 @@ const handleRegisterStudent = async (formData) => {
                         <span class="font-semibold">Cancel</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
                         @click="() => { handleAction('delete', item); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete
@@ -486,7 +481,7 @@ const handleRegisterStudent = async (formData) => {
     </DataPageLayout>
 
     <EnrollmentFormModal ref="enrollmentForm" :isOpen="showModal" :loading="submitting" :parents="parents"
-      :students="students" :programs="programs" :classes="classes" :enrollments="enrollments"
+      :students="students" :programs="programs" :classes="classes" :terms="terms" :enrollments="enrollments"
       :enrollment="selectedEnrollment" :error="errorMessage" :success="successMessage"
       @close="() => { showModal = false; selectedEnrollment = null; errorMessage = ''; successMessage = ''; }"
       @submit="handleSaveEnrollment" @register-student="handleOpenRegisterStudent" />

@@ -176,7 +176,7 @@ const handleFileUpload = async (event) => {
           " @click="selectAvatar(avatar.url)">
           <img :src="avatar.url" :alt="avatar.name" class="w-full h-full rounded-full object-cover" />
           <div
-            class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm"
+            class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-3xs border-2 border-white shadow-sm"
             v-if="isSelected(avatar.url)">
             <i class="fas fa-check"></i>
           </div>
@@ -189,7 +189,7 @@ const handleFileUpload = async (event) => {
         }" @click="selectAvatar(customAvatar)">
           <img :src="customAvatar" alt="Custom" class="w-full h-full rounded-full object-cover" />
           <div
-            class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2 border-white shadow-sm"
+            class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-3xs border-2 border-white shadow-sm"
             v-if="isSelected(customAvatar)">
             <i class="fas fa-check"></i>
           </div>
@@ -208,7 +208,7 @@ const handleFileUpload = async (event) => {
           </div>
           <template v-else>
             <i class="fas fa-plus text-sm mb-0.5"></i>
-            <span class="text-[10px] font-semibold uppercase tracking-tighter">Upload</span>
+            <span class="text-3xs font-semibold tracking-tighter">Upload</span>
           </template>
         </div>
       </div>
@@ -254,7 +254,7 @@ const handleFileUpload = async (event) => {
 }
 
 .avatar-remove-btn {
-  @apply absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error text-white border-2 border-white flex items-center justify-center text-[10px] opacity-0 hover:scale-110 transition-all z-10 shadow-md group-hover:opacity-100;
+  @apply absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-error text-white border-2 border-white flex items-center justify-center text-3xs opacity-0 hover:scale-110 transition-all z-10 shadow-md group-hover:opacity-100;
 }
 
 .avatar-upload-btn {
@@ -262,10 +262,10 @@ const handleFileUpload = async (event) => {
 }
 
 .avatar-feedback-err {
-  @apply text-3xs font-semibold text-error uppercase tracking-widest pl-1;
+  @apply text-3xs font-semibold text-error pl-1;
 }
 
 .avatar-feedback-success {
-  @apply text-3xs font-semibold text-success uppercase tracking-widest pl-1 flex items-center gap-1;
+  @apply text-3xs font-semibold text-success pl-1 flex items-center gap-1;
 }
 </style>

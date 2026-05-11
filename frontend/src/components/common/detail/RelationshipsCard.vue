@@ -20,7 +20,7 @@ const navigate = (item) => {
 
 <template>
   <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-    <h6 class="font-bold uppercase tracking-widest text-content-muted mb-4">{{ title }}</h6>
+    <h6 class="font-bold  text-3xs text-content-muted mb-4">{{ title }}</h6>
     <div class="space-y-4">
       <div v-for="item in items" :key="item.id" @click="navigate(item)"
         class="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-subtle transition-all cursor-pointer group">
@@ -30,7 +30,7 @@ const navigate = (item) => {
         <span class="text-md font-bold text-content-dark group-hover:text-primary transition-colors">
           {{ item.name }}
         </span>
-        <AppBadge v-if="item.badgeText" :type="item.badgeType || 'blue'" class="ml-auto text-xs px-2 py-0.5">
+        <AppBadge v-if="item.badgeText" :type="item.badgeType || 'blue'">
           {{ item.badgeText }}
         </AppBadge>
       </div>

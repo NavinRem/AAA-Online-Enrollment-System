@@ -265,17 +265,15 @@ watch(() => form.guestStudentDOB, (dob) => {
       <div
         class="bg-surface-light/50 p-4 rounded-std border-2 border-dashed border-outline-std flex items-center justify-between">
         <div class="flex flex-col">
-          <span class="text-xs font-semibold text-content-dark uppercase tracking-tighter">Engagement Strategy</span>
-          <span class="text-[10px] font-semibold text-content-muted mt-0.5">Choose between registered accounts or guest
+          <span class="text-xs font-semibold text-content-dark tracking-tighter">Engagement Strategy</span>
+          <span class="text-3xs font-semibold text-content-muted mt-0.5">Choose between registered accounts or guest
             walk-ins</span>
         </div>
         <div class="flex bg-white p-1 rounded-lg border border-outline-std shadow-sm overflow-hidden">
-          <button type="button"
-            class="px-4 py-1.5 rounded-md text-[10px] font-semibold tracking-widest transition-all"
+          <button type="button" class="px-4 py-1.5 rounded-md text-3xs font-semibold  transition-all"
             :class="!form.isGuest ? 'bg-primary text-white shadow-md font-bold' : 'text-content-muted hover:bg-surface-light'"
             @click="form.isGuest = false">Registered</button>
-          <button type="button"
-            class="px-4 py-1.5 rounded-md text-[10px] font-semibold tracking-widest transition-all"
+          <button type="button" class="px-4 py-1.5 rounded-md text-3xs font-semibold  transition-all"
             :class="form.isGuest ? 'bg-primary text-white shadow-md font-bold' : 'text-content-muted hover:bg-surface-light'"
             @click="form.isGuest = true">Guest/Walk-in</button>
         </div>
@@ -292,7 +290,7 @@ watch(() => form.guestStudentDOB, (dob) => {
             placeholder="Search Active Student..." required :disabled="!form.parentId" :error="errors.studentId"
             :shake="shaking.studentId" @change="handleStudentChange" @click-disabled="handleDisabledClick('studentId')">
             <template #selected-badge="{ item }">
-              <AppBadge v-if="item.age" status="student" class="mr-4">
+              <AppBadge v-if="item.age" status="student">
                 {{ item.age }} years old
               </AppBadge>
             </template>
@@ -311,7 +309,7 @@ watch(() => form.guestStudentDOB, (dob) => {
             <!-- Parent Profile Section -->
             <div class="col-span-2 flex items-center gap-2 border-b border-outline-std pb-2">
               <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              <span class="text-[10px] font-semibold text-content-muted uppercase tracking-widest">Guest Parent
+              <span class="text-3xs font-semibold text-content-muted ">Guest Parent
                 Profile</span>
             </div>
 
@@ -332,7 +330,7 @@ watch(() => form.guestStudentDOB, (dob) => {
             <!-- Student Profile Section -->
             <div class="col-span-2 flex items-center gap-2 border-b border-outline-std pb-2 mt-4">
               <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              <span class="text-[10px] font-semibold text-content-muted uppercase tracking-widest">Guest Student
+              <span class="text-3xs font-semibold text-content-muted ">Guest Student
                 Profile</span>
             </div>
 
@@ -357,7 +355,7 @@ watch(() => form.guestStudentDOB, (dob) => {
             placeholder="Select Program..." required :error="errors.programId" :shake="shaking.programId"
             @change="handleProgramChange">
             <template #selected-badge="{ item }">
-              <AppBadge :status="item.type" class="mr-4" />
+              <AppBadge :status="item.type" />
             </template>
           </AppSelect>
 
@@ -365,7 +363,7 @@ watch(() => form.guestStudentDOB, (dob) => {
             placeholder="Select Branch..." required :error="errors.branchId" :shake="shaking.branchId"
             @change="handleBranchChange">
             <template #selected-badge="{ item }">
-              <AppBadge v-if="item.abbr" :status="item.abbr" class="mr-4" />
+              <AppBadge v-if="item.abbr" :status="item.abbr" />
             </template>
           </AppSelect>
         </div>
@@ -391,12 +389,12 @@ watch(() => form.guestStudentDOB, (dob) => {
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Type</span>
-                <AppBadge :status="selectedProgram?.type" class="mt-[2px]" />
+                <AppBadge :status="selectedProgram?.type" />
               </div>
               <div class="enroll-info-item col-span-2">
                 <span class="enroll-info-key">Branch</span>
                 <div class="flex items-center gap-2">
-                  <AppBadge :status="selectedBranch?.abbr" class="mt-[2px]" />
+                  <AppBadge :status="selectedBranch?.abbr" />
                 </div>
               </div>
               <div class="enroll-info-item">
@@ -412,13 +410,14 @@ watch(() => form.guestStudentDOB, (dob) => {
               <div v-if="isEditMode" class="enroll-info-item col-span-2 mt-2 pt-2 border-t border-outline-std/50">
                 <span class="enroll-info-key">Conversion Success</span>
                 <div class="flex items-center gap-4 mt-1">
-                   <div class="ui-box-toggle" :class="{ 'ui-box-toggle--active': form.isSuccessful }"
+                  <div class="ui-box-toggle" :class="{ 'ui-box-toggle--active': form.isSuccessful }"
                     @click="form.isSuccessful = !form.isSuccessful">
-                    <span class="text-xs font-bold uppercase tracking-widest" :class="form.isSuccessful ? 'text-success' : 'text-content-muted'">
+                    <span class="text-3xs font-semibold "
+                      :class="form.isSuccessful ? 'text-success' : 'text-content-muted'">
                       {{ form.isSuccessful ? 'Converted / Successful' : 'Pending / No Enrollment' }}
                     </span>
                   </div>
-                  <span class="text-[10px] text-content-muted leading-tight italic">
+                  <span class="text-3xs text-content-muted leading-tight italic">
                     Marking this as successful indicates the student has decided to enroll.
                   </span>
                 </div>

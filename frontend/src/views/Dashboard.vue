@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useDataStore } from '../stores/dataStore'
 import { getImageUrl } from '@/utils/assetHelper'
-import { parseDate, formatPrice, formatDateOnly } from '@/utils/formatUtils'
+import { parseDate, formatPrice, formatDateOnly, calculateClassProgress } from '@/utils/formatUtils'
 import { calculateDashboardStats } from '@/utils/statsHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
 import { authService } from '@/services/authService'
@@ -26,6 +26,29 @@ const loading = ref(true)
 const currentTermIndex = ref(0)
 let termInterval = null
 
+const getGroupedSettings = (item) => {
+  if (!item.branchSettings?.length) return []
+
+  const groups = []
+  item.branchSettings.forEach(setting => {
+    const key = `${setting.startDate}_${setting.endDate}`
+    let group = groups.find(g => g.key === key)
+    if (!group) {
+      const progress = calculateClassProgress(setting.startDate, setting.endDate)
+      group = {
+        key,
+        startDate: setting.startDate,
+        endDate: setting.endDate,
+        status: progress.status,
+        branchIds: []
+      }
+      groups.push(group)
+    }
+    group.branchIds.push(setting.branchId)
+  })
+  return groups.sort((a, b) => new Date(a.endDate) - new Date(b.endDate))
+}
+
 const activeTerms = computed(() => {
   const termData = dataStore.terms
   if (!Array.isArray(termData) || termData.length === 0) return []
@@ -33,11 +56,18 @@ const activeTerms = computed(() => {
   const todayStr = new Date().toISOString().split('T')[0]
   const branches = dataStore.branches
 
-  const filtered = termData.filter(t =>
+  // Filter to get terms that are currently live
+  const candidates = termData.filter(t =>
     t.status === 'active' || (t.startDate <= todayStr && t.endDate >= todayStr)
   )
 
-  return filtered.map(t => {
+  return candidates.map(t => {
+    // 1. Get all settings groups (which already uses calculateClassProgress)
+    const allGroups = getGroupedSettings(t)
+
+    // 2. Filter to show ONLY 'active' groups (excluding upcoming and archived)
+    const activeGroups = allGroups.filter(g => g.status === 'active')
+
     const branchIds = t.branchIds || (t.branchId ? [t.branchId] : [])
     const enrichedBranches = branchIds.map(bId => {
       const branch = branches.find(b => b.id === bId)
@@ -46,9 +76,10 @@ const activeTerms = computed(() => {
 
     return {
       ...t,
-      branches: enrichedBranches
+      branches: enrichedBranches,
+      groupedSettings: activeGroups
     }
-  })
+  }).filter(t => t.groupedSettings.length > 0) // Only show terms that have truly active branch groups
 })
 
 const currentTerm = computed(() => activeTerms.value[currentTermIndex.value] || null)
@@ -99,7 +130,7 @@ onMounted(() => {
 const startTermCycling = () => {
   if (termInterval) clearInterval(termInterval)
   termInterval = setInterval(() => {
-    if (activeTerms.value.length > 1) {
+    if (activeTerms.value?.length > 1) {
       currentTermIndex.value = (currentTermIndex.value + 1) % activeTerms.value.length
     }
   }, 5000)
@@ -113,55 +144,47 @@ const profileImageUrl = computed(() => getAvatarUrl(userProfile.value))
 
 const todayStats = computed(() => [
   {
-    label: 'New Accounts',
+    label: 'Today New Accounts',
     value: stats.value.today.reg,
     image: getImageUrl('dashboard/registration'),
-    color: 'var(--color-info-soft)',
   },
   {
     label: 'Today Enrollments',
     value: stats.value.today.enroll,
     image: getImageUrl('dashboard/enrollment'),
-    color: 'var(--color-success-soft)',
   },
   {
     label: 'Today Trial Class',
     value: stats.value.today.trial,
     image: getImageUrl('dashboard/trial'),
-    color: 'var(--color-warning-soft)',
   },
   {
     label: "Today Payments",
     value: `$${formatPrice(stats.value.today.pay)}`,
     image: getImageUrl('dashboard/payment'),
-    color: 'var(--color-success-soft)',
   },
 ])
 
 const thisWeekStats = computed(() => [
   {
-    label: 'New Accounts',
+    label: 'This Week New Accounts',
     value: stats.value.week.reg,
     image: getImageUrl('dashboard/registration'),
-    color: 'var(--color-info-soft)',
   },
   {
     label: 'This Week Enrollments',
     value: stats.value.week.enroll,
     image: getImageUrl('dashboard/enrollment'),
-    color: 'var(--color-success-soft)',
   },
   {
     label: 'This Week Trial Classes',
     value: stats.value.week.trial,
     image: getImageUrl('dashboard/trial'),
-    color: 'var(--color-warning-soft)',
   },
   {
     label: 'This Week Payments',
     value: `$${formatPrice(stats.value.week.pay)}`,
     image: getImageUrl('dashboard/payment'),
-    color: 'var(--color-success-soft)',
   },
 ])
 
@@ -170,43 +193,36 @@ const totalStats = computed(() => [
     title: 'Total Enrollments',
     value: stats.value.totals.enrollments,
     image: getImageUrl('dashboard/card-top-program'),
-    color: 'var(--color-primary-soft)',
   },
   {
     title: 'Total Parents',
     value: stats.value.totals.parents,
     image: getImageUrl('parent/total-parent'),
-    color: 'var(--color-info-soft)',
   },
   {
     title: 'Total Students',
     value: stats.value.totals.students,
     image: getImageUrl('student/total-student'),
-    color: 'var(--color-info-soft)',
   },
   {
     title: 'Total Branches',
     value: stats.value.totals.branches,
     image: getImageUrl('dashboard/card-branch'),
-    color: 'var(--color-success-soft)',
   },
   {
     title: 'Total Programs',
     value: stats.value.totals.programs,
     image: getImageUrl('dashboard/card-available-program'),
-    color: 'var(--color-success-soft)',
   },
   {
     title: 'Total Trial',
     value: stats.value.totals.trials,
     image: getImageUrl('dashboard/card-trial'),
-    color: 'var(--color-warning-soft)',
   },
   {
     title: 'Total Revenue',
     value: `$${formatPrice(stats.value.totals.totalRevenue)}`,
     image: getImageUrl('dashboard/card-revenue'),
-    color: 'var(--color-success-soft)',
   },
 ])
 
@@ -234,11 +250,11 @@ const mappedEnrollments = computed(() => {
   <DashboardLayout>
     <div v-if="loading" class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted">
       <div class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"></div>
-      <p class="font-semibold text-sm tracking-widest uppercase opacity-70">
+      <p class="font-semibold text-sm  opacity-70">
         Loading Dashboard Data...
       </p>
     </div>
-    <div v-else class="flex flex-col lg:flex-row gap-xl px-xl w-full h-[calc(100vh - 100px)] overflow-hidden">
+    <div v-else class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full h-[calc(100vh - 100px)] overflow-hidden">
       <div class="flex flex-col flex-1 min-w-0 h-full gap-lg overflow-y-auto pr-md scrollable-v">
         <section class="ui-detail-card">
           <div class="ui-section-header border-none flex items-center gap-md">
@@ -266,7 +282,7 @@ const mappedEnrollments = computed(() => {
               <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
             </div>
             <div class="flex flex-col items-center">
-              <p class="text-xs font-semibold text-content-muted uppercase tracking-[0.14em] mb-1 opacity-70">
+              <p class="text-xs font-semibold text-content-muted tracking-[0.14em] mb-1 opacity-70">
                 {{ userProfile?.role }}
               </p>
               <h3 class="text-xl font-bold text-content-dark tracking-tighter leading-tight">
@@ -278,35 +294,47 @@ const mappedEnrollments = computed(() => {
           <div class="relative overflow-hidden min-h-[140px] flex flex-col">
             <Transition name="fade" mode="out-in">
               <div v-if="currentTerm" :key="currentTerm.id"
-                class="px-md py-4 rounded-md border border-primary/20 bg-primary/5 flex flex-col items-center flex-1">
-                <span class="text-sm font-semibold uppercase tracking-widest text-primary mb-1">Active Academic
+                class="px-md py-4 rounded-md bg-primary-soft border border-outline-std flex flex-col items-center flex-1">
+                <span class="text-md font-semibold  text-primary-dark mb-1">Active Academic
                   Term</span>
 
-                <span class="text-md font-bold text-content-dark tracking-tighter leading-tight mb-2 text-center">
+                <span class="text-lg font-bold text-content-dark tracking-tighter leading-tight mb-2 text-center">
                   {{ currentTerm.name }}
                 </span>
 
-                <div class="w-full flex flex-col gap-2.5 mt-2">
-                  <!-- Branch Column Row -->
-                  <div class="flex justify-center items-center border-b border-primary/10 pb-2.5 px-1">
-                    <div class="flex flex-wrap justify-end gap-1">
-                      <AppBadge v-for="b in currentTerm.branches" :key="b.abbr" :status="b.abbr" :type="b.color"
-                        class="!px-1.5 !py-0.5 !text-xs" />
+                <div class="w-full flex flex-col gap-3 mt-2">
+                  <template v-if="currentTerm.groupedSettings?.length">
+                    <div v-for="group in currentTerm.groupedSettings" :key="group.key"
+                      class="flex flex-col items-center gap-1.5 border-b border-primary/10 last:border-0 pb-3 last:pb-0">
+                      <div class="flex justify-center gap-1">
+                        <AppBadge v-for="bId in group.branchIds" :key="bId"
+                          :status="dataStore.branches.find(b => b.id === bId)?.abbr"
+                          :type="dataStore.branches.find(b => b.id === bId)?.color || 'neutral'" />
+                      </div>
+                      <div
+                        class="flex w-full justify-center items-center gap-2 px-3 py-1 bg-white rounded-full border border-primary/5">
+                        <span class="text-xs font-bold text-content-muted tabular-nums">{{
+                          formatDateOnly(group.startDate) }}</span>
+                        <span class="text-content-muted font-black text-xs">→</span>
+                        <span class="text-xs font-bold text-content-muted tabular-nums">{{
+                          formatDateOnly(group.endDate) }}</span>
+                      </div>
                     </div>
-                  </div>
-
-                  <!-- Date Column Row -->
-                  <div class="flex justify-center items-center px-1">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs font-semibold text-content-dark tabular-nums">
-                        {{ formatDateOnly(currentTerm.startDate) }}
-                      </span>
-                      <span class="w-2 h-px bg-content-muted/30"></span>
-                      <span class="text-xs font-semibold text-content-dark tabular-nums">
-                        {{ formatDateOnly(currentTerm.endDate) }}
-                      </span>
+                  </template>
+                  <template v-else>
+                    <div class="flex flex-col items-center gap-1.5">
+                      <div class="flex flex-wrap justify-center gap-1">
+                        <AppBadge v-for="b in currentTerm.branches" :key="b.abbr" :status="b.abbr" :type="b.color" />
+                      </div>
+                      <div class="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-primary/5">
+                        <span class="text-xs font-bold text-content-muted tabular-nums">{{
+                          formatDateOnly(currentTerm.startDate) }}</span>
+                        <span class="text-content-muted/30 font-black text-xs">→</span>
+                        <span class="text-xs font-bold text-content-muted tabular-nums">{{
+                          formatDateOnly(currentTerm.endDate) }}</span>
+                      </div>
                     </div>
-                  </div>
+                  </template>
                 </div>
               </div>
             </Transition>
@@ -319,9 +347,9 @@ const mappedEnrollments = computed(() => {
           </div>
 
           <div class="flex flex-1 flex-col min-h-0 gap-md">
-            <h3 class="flex-shrink-0 text-xs font-semibold uppercase tracking-widest text-content-dark text-center">
+            <h6 class="flex-shrink-0 font-bold  text-content-dark text-center">
               Basic Information
-            </h3>
+            </h6>
             <div class="flex flex-1 flex-col min-h-0 gap-3 scrollable-v">
               <MiniCard v-for="stat in totalStats" :key="stat.title" v-bind="stat" />
             </div>

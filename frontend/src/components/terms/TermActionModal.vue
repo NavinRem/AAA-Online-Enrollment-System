@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
+import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
@@ -15,6 +16,7 @@ const props = defineProps({
   type: String, // 'add', 'edit', 'delete'
   term: Object,
   branches: { type: Array, default: () => [] },
+  terms: { type: Array, default: () => [] },
   loading: Boolean,
   error: String,
   success: String,
@@ -28,6 +30,8 @@ const getInitialData = () => ({
   endDate: '',
   totalSessions: 11,
   branchIds: [],
+  branchSettings: [],
+  duplicateFromTermId: '',
   status: 'upcoming',
   deleteConfirm: '',
 })
@@ -35,9 +39,17 @@ const getInitialData = () => ({
 const mapSourceToForm = () => {
   if (props.term) {
     const data = { ...props.term, deleteConfirm: '' }
-    // Migration: ensure branchIds exists
+    // Migration: ensure branchIds and branchSettings exist
     if (!data.branchIds) {
       data.branchIds = data.branchId ? [data.branchId] : []
+    }
+    if (!data.branchSettings) {
+      data.branchSettings = data.branchIds.map(id => ({
+        branchId: id,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        status: data.status || 'upcoming'
+      }))
     }
     return data
   }
@@ -46,7 +58,6 @@ const mapSourceToForm = () => {
 
 const {
   localData,
-  isDirty,
   shaking,
   errors,
   validate,
@@ -126,6 +137,28 @@ const requestConfirm = () => {
   showConfirm.value = true
 }
 
+const isDirty = computed(() => {
+  if (props.type !== 'edit') return true
+  if (!props.term) return false
+
+  const initial = props.term
+  const current = localData
+
+  // Check basic fields
+  const basicFields = ['name', 'startDate', 'endDate', 'totalSessions']
+  const basicChanged = basicFields.some(f => initial[f] !== current[f])
+
+  // Check branch associations
+  const initialBranches = [...(initial.branchIds || [])].sort().join(',')
+  const currentBranches = [...(current.branchIds || [])].sort().join(',')
+  const branchesChanged = initialBranches !== currentBranches
+
+  // Check branch settings (deep comparison of key fields)
+  const settingsChanged = JSON.stringify(initial.branchSettings || []) !== JSON.stringify(current.branchSettings || [])
+
+  return basicChanged || branchesChanged || settingsChanged
+})
+
 const handleActionSubmit = () => {
   showConfirm.value = false
 
@@ -139,9 +172,22 @@ const handleActionSubmit = () => {
   // Remove UI-only fields
   delete payload.deleteConfirm
 
-  // Calculate and persist status based on dates
-  const prog = calculateClassProgress(localData.startDate, localData.endDate)
-  payload.status = prog.status.toLowerCase()
+  // Calculate status for each branch setting
+  if (payload.branchSettings && payload.branchSettings.length > 0) {
+    payload.branchSettings = payload.branchSettings.map(s => ({
+      ...s,
+      status: calculateClassProgress(s.startDate, s.endDate).status.toLowerCase()
+    }))
+
+    // Representative status from first branch
+    payload.status = payload.branchSettings[0].status
+    payload.startDate = payload.branchSettings[0].startDate
+    payload.endDate = payload.branchSettings[0].endDate
+  } else {
+    // Fallback to global dates
+    const prog = calculateClassProgress(localData.startDate, localData.endDate)
+    payload.status = prog.status.toLowerCase()
+  }
 
   emit('submit', payload)
 }
@@ -149,11 +195,12 @@ const handleActionSubmit = () => {
 const confirmRows = computed(() => {
   const rows = [
     { key: 'Term', value: localData.name, badge: true, type: 'blue' },
-    { key: 'Start Date', value: formatDateOnly(localData.startDate), badge: true, type: 'green' },
-    { key: 'End Date', value: formatDateOnly(localData.endDate), badge: true, type: 'red' },
+    { key: 'Start Date', value: formatDateOnly(localData.startDate || localData.branchSettings?.[0]?.startDate), badge: true, type: 'green' },
+    { key: 'End Date', value: formatDateOnly(localData.endDate || localData.branchSettings?.[0]?.endDate), badge: true, type: 'red' },
     { key: 'Sessions', value: `${localData.totalSessions} Weeks` },
+    { key: 'Duplicate From', value: duplicateTermLabel.value || 'Fresh Term' },
     { key: 'Scope', value: '' }, // Handled by slot
-    { key: 'Status', value: calculateClassProgress(localData.startDate, localData.endDate).status, badge: true },
+    { key: 'Status', value: calculateClassProgress(localData.startDate || localData.branchSettings?.[0]?.startDate, localData.endDate || localData.branchSettings?.[0]?.endDate).status, badge: true },
   ]
 
   if (props.type === 'delete') {
@@ -163,15 +210,76 @@ const confirmRows = computed(() => {
   return rows
 })
 
-// Auto-calculate end date
+const duplicateTermOptions = computed(() => {
+  if (!props.terms) return []
+  return [...props.terms]
+    .filter((item) => item.id !== localData.id)
+    .sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0))
+    .slice(0, 5)
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      startDate: item.startDate,
+      endDate: item.endDate
+    }))
+})
+
+const duplicateTermLabel = computed(() =>
+  duplicateTermOptions.value.find((item) => item.id === localData.duplicateFromTermId)?.name || '',
+)
+
+// Auto-calculate end date for global
 watch(() => [localData.startDate, localData.totalSessions], ([start, sessions]) => {
   if (!start || !sessions) return
   const date = new Date(start)
-  // End date should be on the same day of the week as start date after (sessions - 1) weeks
-  // This ensures we count exactly 'sessions' occurrences of that day (e.g., 11 Mondays)
   date.setDate(date.getDate() + (parseInt(sessions) - 1) * 7)
   localData.endDate = date.toISOString().split('T')[0]
 })
+
+// Sync branchSettings with branchIds
+watch(() => localData.branchIds, (newIds) => {
+  if (!localData.branchSettings) localData.branchSettings = []
+
+  // Remove settings for unselected branches
+  localData.branchSettings = localData.branchSettings.filter(s => newIds.includes(s.branchId))
+
+  // Add settings for new branches, using global dates as initial default
+  newIds.forEach(id => {
+    if (!localData.branchSettings.find(s => s.branchId === id)) {
+      localData.branchSettings.push({
+        branchId: id,
+        startDate: localData.startDate,
+        endDate: localData.endDate,
+        status: 'upcoming'
+      })
+    }
+  })
+}, { deep: true })
+
+const getBranchSetting = (branchId) => {
+  if (!localData.branchSettings) localData.branchSettings = []
+  let setting = localData.branchSettings.find(s => s.branchId === branchId)
+  if (!setting) {
+    setting = { branchId, startDate: localData.startDate, endDate: localData.endDate, status: 'upcoming' }
+    localData.branchSettings.push(setting)
+  }
+  return setting
+}
+
+const calculateBranchEndDate = (branchId) => {
+  const setting = getBranchSetting(branchId)
+  if (!setting.startDate || !localData.totalSessions) return ''
+  const date = new Date(setting.startDate)
+  date.setDate(date.getDate() + (parseInt(localData.totalSessions) - 1) * 7)
+  const endDate = date.toISOString().split('T')[0]
+  setting.endDate = endDate
+  return endDate
+}
+
+const updateBranchStartDate = (branchId, val) => {
+  const setting = getBranchSetting(branchId)
+  setting.startDate = val
+}
 
 watch(
   () => props.isOpen,
@@ -195,15 +303,9 @@ watch(
         <AppInput v-model="localData.name" label="Term Name" placeholder="e.g. T1-2026-Saturday" required
           :error="errors.name" :shake="shaking.name" @input="clearError('name')" />
 
-        <div class="grid grid-cols-2 gap-lg">
-          <AppInput v-model="localData.startDate" type="date" label="Start Date" required :error="errors.startDate"
-            :shake="shaking.startDate" @input="clearError('startDate')" />
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-lg">
           <AppInput v-model="localData.totalSessions" type="number" label="Total Sessions" required
             :error="errors.totalSessions" :shake="shaking.totalSessions" @input="clearError('totalSessions')" />
-        </div>
-
-        <div class="grid grid-cols-2 gap-lg">
-          <AppInput v-model="localData.endDate" type="date" label="Auto-calculated End Date" readonly disabled />
 
           <div class="flex flex-col gap-xs text-left w-full">
             <label class="text-sm font-semibold text-content-dark flex items-center justify-between gap-1">
@@ -211,7 +313,7 @@ watch(
                 Branch Scope <span class="text-error font-bold leading-none">*</span>
               </div>
               <button type="button" @click="toggleAllBranches"
-                class="text-[10px] text-primary hover:underline font-bold uppercase tracking-tighter">
+                class="text-xs text-primary hover:underline font-bold tracking-tighter">
                 {{ localData.branchIds.length === branches.length ? 'Unselect All' : 'Select All' }}
               </button>
             </label>
@@ -227,7 +329,7 @@ watch(
                   <template v-else>
                     <AppBadge v-for="id in localData.branchIds" :key="id"
                       :status="branches.find(b => b.id === id)?.abbr"
-                      :type="branches.find(b => b.id === id)?.color || 'blue'" size="sm" />
+                      :type="branches.find(b => b.id === id)?.color || 'blue'" />
                   </template>
                 </div>
 
@@ -247,7 +349,7 @@ watch(
                     <label v-for="branch in branches" :key="branch.id"
                       class="flex items-center justify-between gap-3 p-3 rounded-lg cursor-pointer transition-all hover:bg-surface-subtle group"
                       :class="{ 'bg-primary/5': localData.branchIds.includes(branch.id) }">
-                      <span class="text-sm font-semibold text-content-dark truncate uppercase tracking-tight">{{
+                      <span class="text-sm font-semibold text-content-dark truncate tracking-tight">{{
                         branch.name }}</span>
                       <div class="flex items-center gap-2 min-w-0">
                         <AppBadge :status="branch.abbr" :type="branch.color || 'blue'" />
@@ -260,28 +362,58 @@ watch(
                 </div>
               </transition>
             </div>
-            <p v-if="errors.branchIds" class="text-3xs font-semibold text-error uppercase tracking-widest pl-1 mt-0.5">{{
-              errors.branchIds }}</p>
+            <p v-if="errors.branchIds" class="text-xs font-semibold text-error  pl-1 mt-0.5">
+              {{
+                errors.branchIds }}</p>
           </div>
         </div>
 
-        <div v-if="localData.startDate && localData.branchIds.length > 0"
-          class="p-4 rounded-md bg-primary/5 border border-primary/10 flex flex-col gap-1 mt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">Scheduling Insight</span>
-            <div class="h-px flex-1 bg-primary/10"></div>
+        <div v-if="localData.branchIds.length === 0"
+          class="grid grid-cols-2 gap-lg animate-in fade-in slide-in-from-top-2 duration-300">
+          <AppInput v-model="localData.startDate" type="date" label="Start Date" required :error="errors.startDate"
+            :shake="shaking.startDate" @input="clearError('startDate')" />
+          <AppInput v-model="localData.endDate" type="date" label="Auto-calculated End Date" readonly disabled />
+        </div>
+        <div v-if="localData.branchIds.length > 0" class="flex flex-col gap-4 mt-2 border-t border-outline-std pt-4">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-bold text-content-muted ">Branch-Specific
+              Scheduling</label>
+            <span class="text-xs font-medium text-primary italic">Different dates per branch? Edit below</span>
           </div>
-          <p class="text-sm text-content-dark leading-tight">
-            This term will span exactly <span class="text-primary">{{ localData.totalSessions }}</span> weekly sessions
-            starting
-            from
-            <span class="text-primary font-bold">{{ formatDateOnly(localData.startDate) }}</span> across
-            <span class="text-primary">{{ localData.branchIds.length }}</span> targeted branch{{
-              localData.branchIds.length > 1
-                ? 'es' : '' }}.
-          </p>
+          <div class="grid grid-cols-1 gap-3">
+            <div v-for="branchId in localData.branchIds" :key="branchId"
+              class="p-4 bg-surface-subtle/50 rounded-xl border border-outline-std hover:border-primary/30 transition-all">
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <AppBadge :status="branches.find(b => b.id === branchId)?.abbr"
+                    :type="branches.find(b => b.id === branchId)?.color || 'blue'" />
+                  <span class="text-sm font-bold text-content-dark tracking-tight">{{branches.find(b => b.id ===
+                    branchId)?.name}}</span>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <AppInput :modelValue="getBranchSetting(branchId).startDate" type="date" label="Start Date" size="sm"
+                  @update:modelValue="(val) => updateBranchStartDate(branchId, val)" />
+                <AppInput :modelValue="calculateBranchEndDate(branchId)" type="date" label="End Date" size="sm" readonly
+                  disabled />
+              </div>
+            </div>
+          </div>
         </div>
 
+        <AppSelect v-if="type === 'add'" v-model="localData.duplicateFromTermId" :items="duplicateTermOptions"
+          label="Duplicate Offerings From" placeholder="Select a recent term to clone...">
+          <template #item="{ item }">
+            <div class="flex items-center justify-between w-full gap-4">
+              <span class="font-bold text-content-dark truncate">{{ item.name }}</span>
+              <div class="flex items-center gap-2 shrink-0">
+                <AppBadge :status="formatDateOnly(item.startDate)" type="green" />
+                <span class="text-content-muted text-xs">→</span>
+                <AppBadge :status="formatDateOnly(item.endDate)" type="red" />
+              </div>
+            </div>
+          </template>
+        </AppSelect>
       </form>
 
       <!-- DELETE MODE -->
@@ -303,7 +435,7 @@ watch(
 
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-semibold tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
+            <strong class="text-sm font-semibold tracking-tight">⚠ Permanent Data Deletion</strong>
             <p class="text-xs opacity-90 font-medium leading-relaxed">
               Purging this term will permanently remove its scheduling data. This action is irreversible and should only
               be performed if no active classes are linked to this term.
@@ -314,8 +446,8 @@ watch(
         <AppInput v-model="localData.deleteConfirm" label="Security Confirmation" placeholder='Type "DELETE" to confirm'
           required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-2xs font-bold uppercase text-error/60 mt-1">
-              Type <span class="px-1 font-bold text-error">DELETE</span> to authorize
+            <span class="block text-xs font-bold text-error/60 mt-1">
+              Type <span class="text-error px-1 font-bold">DELETE</span> to authorize
             </span>
           </template>
         </AppInput>
@@ -331,9 +463,9 @@ watch(
           <div class="flex flex-wrap justify-end gap-1 max-w-[200px]">
             <template v-if="localData.branchIds.length > 0">
               <AppBadge v-for="id in localData.branchIds" :key="id" :status="branches.find(b => b.id === id)?.abbr"
-                :type="branches.find(b => b.id === id)?.color || 'blue'" size="sm" />
+                :type="branches.find(b => b.id === id)?.color || 'blue'" />
             </template>
-            <AppBadge v-else status="Global" type="neutral" size="sm" />
+            <AppBadge v-else status="Global" type="neutral" />
           </div>
         </template>
       </AppConfirmOverlay>
@@ -342,15 +474,14 @@ watch(
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
         <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
-          <span class="text-xs font-semibold tracking-tight uppercase">No modifications detected</span>
+          <span class="text-sm font-semibold tracking-tight">No Changes Detected</span>
         </AppAlert>
 
         <div class="flex items-center justify-end w-full gap-md">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" type="button" @click="requestConfirm"
-            :loading="loading" :disabled="loading"
-            :class="{ 'opacity-50 pointer-events-none': type === 'edit' && !isDirty }">
-            {{ submitLabel }}
+            :loading="loading" :disabled="loading || (type === 'edit' && !isDirty)">
+            {{ type === 'delete' ? 'Delete Term' : (type === 'edit' ? 'Save Changes' : 'Create Term') }}
           </AppButton>
         </div>
       </div>

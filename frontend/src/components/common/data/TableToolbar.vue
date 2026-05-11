@@ -35,6 +35,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  searchVariant: {
+    type: String,
+    default: 'default',
+  },
 })
 
 const emit = defineEmits(['update:searchQuery', 'update:currentFilter'])
@@ -91,13 +95,13 @@ const selectFilter = (val) => {
 <template>
   <div class="toolbar-root">
     <div class="toolbar-title-box">
-      <h3 v-if="title" class="ui-section-title">
+      <h3 v-if="title" class="ui-section-title whitespace-nowrap">
         {{ title }}
       </h3>
     </div>
     <div class="toolbar-actions">
       <SearchBox v-if="hasSearch" :modelValue="searchQuery" @update:modelValue="$emit('update:searchQuery', $event)"
-        :placeholder="searchPlaceholder" variant="white" class="w-[500px] flex-shrink-0" />
+        :placeholder="searchPlaceholder" :variant="searchVariant" class="w-[500px] flex-shrink-0" />
       <div v-if="hasFilter" class="relative">
         <AppButton ref="filterToggleRef" :variant="isActiveFilter ? 'ghost' : 'secondary'" size="md"
           :class="{ 'shadow-md': isActiveFilter }" @click="toggleFilter" :style="isActiveFilter ? {
@@ -119,7 +123,7 @@ const selectFilter = (val) => {
             <div v-if="isFilterOpen" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
               <template v-for="(option, idx) in filterOptions" :key="option.value || `item-${idx}`">
                 <div v-if="option.isHeader"
-                  class="px-md pt-md pb-xs text-[10px] font-semibold text-content-muted uppercase tracking-widest sticky top-0 bg-white/95 backdrop-blur-sm z-10 select-none flex items-center justify-between">
+                  class="px-md pt-md pb-xs text-3xs font-semibold text-content-muted  sticky top-0 bg-white/95 backdrop-blur-sm z-10 select-none flex items-center justify-between">
                   <span>{{ option.label }}</span>
                 </div>
                 <div v-else-if="option.isDivider" class="h-px w-full bg-outline-std/50 my-1"></div>
@@ -144,7 +148,7 @@ const selectFilter = (val) => {
                 }">
                   <div class="flex items-center gap-3">
                     <div v-if="option.badge" class="shrink-0 flex items-center justify-center min-w-[24px]">
-                      <AppBadge :status="option.badge.status" :type="option.badge.type" size="sm" />
+                      <AppBadge :status="option.badge.status" :type="option.badge.type" />
                     </div>
                     <div v-else-if="option.image || option.profileURL"
                       class="shrink-0 flex items-center justify-center overflow-hidden transition-all duration-200"
@@ -174,7 +178,7 @@ const selectFilter = (val) => {
 }
 
 .toolbar-title-box {
-  @apply flex flex-col gap-[2px];
+  @apply flex items-center gap-md flex-1 min-w-0 pr-xl;
 }
 
 .toolbar-title {

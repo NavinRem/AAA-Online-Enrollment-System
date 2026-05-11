@@ -211,17 +211,17 @@ onMounted(() => {
       <template #header-actions v-if="parent">
         <div class="flex items-center gap-3">
           <button v-if="!isInactive"
-            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-purple hover:border-purple group"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-soft hover:bg-purple hover:border-purple group"
             title="Register Child" @click="openAddChildModal">
             <img :src="getActionIcon('plus')" class="w-5 h-5  group-hover:opacity-100" />
           </button>
           <button v-if="!isInactive"
-            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-primary hover:border-primary group"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-soft hover:bg-primary hover:border-primary group"
             title="Edit Profile" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100" />
           </button>
           <button v-if="!isInactive"
-            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-warning hover:border-warning group"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-soft hover:bg-warning hover:border-warning group"
             title="Deactivate Account" @click="openActionModal('deactivate')">
             <img :src="getActionIcon('cancel')" class="w-5 h-5 group-hover:opacity-100" />
           </button>
@@ -247,7 +247,7 @@ onMounted(() => {
             { id: 'history', label: 'Enrollment History' },
             { id: 'payments', label: 'Payment History' }
           ]" :key="tab.id" @click="activeTab = tab.id"
-            class="px-8 py-3 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all duration-300"
+            class="px-8 py-3 rounded-2xl text-xs font-semibold  transition-all duration-300"
             :class="activeTab === tab.id ? 'bg-primary text-white shadow-md ring-1 ring-black/5 scale-[1.02]' : 'text-content-muted hover:text-content-dark hover:bg-white/50'">
             {{ tab.label }}
           </button>
@@ -263,8 +263,7 @@ onMounted(() => {
           <div class="flex flex-col lg:flex-row gap-8">
             <!-- Left: Child Selector -->
             <div class="w-full lg:w-48 flex flex-col gap-2">
-              <div
-                class="bg-surface-subtle rounded-xl text-xs p-md font-bold uppercase tracking-widest text-content-muted text-center mb-1">
+              <div class="bg-surface-subtle rounded-xl text-xs p-md font-bold  text-content-muted text-center mb-1">
                 Children List
               </div>
               <button v-for="s in students" :key="s.id" @click="selectedChildId = s.id"
@@ -276,12 +275,8 @@ onMounted(() => {
 
             <!-- Right: Table -->
             <div class="flex-1">
-              <EnrollmentTable
-                :items="currentChildEnrollments"
-                showSchedule
-                statusMode="class"
-                emptyMessage="No active programs found for this child."
-              />
+              <EnrollmentTable :items="currentChildEnrollments" showSchedule statusMode="class"
+                emptyMessage="No active programs found for this child." />
             </div>
           </div>
         </section>
@@ -294,12 +289,8 @@ onMounted(() => {
           </div>
 
           <div class="p-0">
-            <EnrollmentTable
-              :items="enrollmentHistory"
-              showChild
-              showDate
-              emptyMessage="No enrollment history found for this family."
-            />
+            <EnrollmentTable :items="enrollmentHistory" showChild showDate
+              emptyMessage="No enrollment history found for this family." />
           </div>
         </section>
 
@@ -311,17 +302,15 @@ onMounted(() => {
           </div>
 
           <div class="p-0">
-            <PaymentTable
-              :items="paymentHistory"
-              emptyMessage="No payment history found for this family."
-            />
+            <PaymentTable :items="paymentHistory" emptyMessage="No payment history found for this family." />
           </div>
         </section>
       </template>
 
       <template #right-content v-if="parent">
         <div class="flex flex-col gap-8">
-          <EntityProfileCard :profileURL="parent.profileURL" title="Basic Information" fallbackImage="profiles/avatar-parent" />
+          <EntityProfileCard :profileURL="parent.profileURL" title="Basic Information"
+            fallbackImage="profiles/avatar-parent" />
           <EntityInfoCard title="Parent Information" :fields="parentInfoFields" />
           <RelationshipsCard title="Children" :items="childrenItems" />
           <TimestampCard :createdAt="parent.createdAt" :updatedAt="parent.updatedAt" />
@@ -330,7 +319,7 @@ onMounted(() => {
     </DetailPageLayout>
 
     <!-- Shared Filter Menu -->
-<!-- Removed Filter Teleport as per request -->
+    <!-- Removed Filter Teleport as per request -->
 
     <ParentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :user="actionModal.user"
       :loading="submitting" v-model:error="globalError" v-model:success="globalSuccess"
@@ -348,7 +337,7 @@ onMounted(() => {
 }
 
 .filter-btn {
-  @apply px-4 py-2 bg-primary-soft text-primary text-xs font-semibold uppercase rounded-lg transition-all hover:bg-primary-light;
+  @apply px-4 py-2 bg-primary-soft text-primary text-xs font-semibold rounded-lg transition-all hover:bg-primary-soft;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */

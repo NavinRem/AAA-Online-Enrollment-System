@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DataPageLayout from '@/components/layout/DataPageLayout.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
@@ -10,24 +11,27 @@ import TermActionModal from '@/components/terms/TermActionModal.vue'
 
 import { termService } from '@/services/termService'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
-import { formatDateOnly, calculateClassProgress, formatPrice } from '@/utils/formatUtils'
+import { formatShortDate, formatPrice, calculateClassProgress } from '@/utils/formatUtils'
 import { useSearch } from '@/composables/useSearch'
 
 const loading = ref(false)
 const items = ref([])
 const branches = ref([])
+const statusFilter = ref('all')
+
+const router = useRouter()
 
 const headers = [
-  { label: 'NO', width: '50px', align: 'center' },
-  { label: 'TERM NAME', width: '180px' },
-  { label: 'BRANCH', width: '100px', align: 'center' },
-  { label: 'START DATE', width: '110px', align: 'center' },
-  { label: 'END DATE', width: '110px', align: 'center' },
-  { label: 'STUDENTS', width: '110px', align: 'center' },
-  { label: 'SESSIONS', width: '90px', align: 'center' },
-  { label: 'REVENUE', width: '110px', align: 'center' },
-  { label: 'STATUS', width: '100px', align: 'center' },
-  { label: 'ACTION', width: '50px', align: 'center' },
+  { label: 'No', width: '50px', align: 'center' },
+  { label: 'Academic Term', width: '220px' },
+  { label: 'Branch', width: '120px', align: 'center' },
+  { label: 'Start Date', width: '140px', align: 'center' },
+  { label: 'End Date', width: '140px', align: 'center' },
+  { label: 'Status', width: '110px', align: 'center' },
+  { label: 'Progress', width: '160px', align: 'center' },
+  { label: 'Enrolled Students', width: '100px', align: 'center' },
+  { label: 'Revenue', width: '100px', align: 'center' },
+  { label: 'Action', width: '50px', align: 'center' },
 ]
 
 const fetchData = async () => {
@@ -58,11 +62,18 @@ const fetchData = async () => {
       await Promise.all(syncTasks)
     }
 
-    items.value = terms.map(t => ({
-      ...t,
-      branchIds: t.branchIds || (t.branchId ? [t.branchId] : []),
-      totalSessions: t.totalSessions || 11
-    }))
+    items.value = terms.map(t => {
+      const sortedSettings = [...(t.branchSettings || [])].sort((a, b) =>
+        new Date(a.endDate || a.startDate) - new Date(b.endDate || b.startDate)
+      )
+
+      return {
+        ...t,
+        branchIds: t.branchIds || (t.branchId ? [t.branchId] : []),
+        totalSessions: t.totalSessions || 11,
+        branchSettings: sortedSettings
+      }
+    })
   } catch (err) {
     console.error('Failed to fetch terms', err)
   } finally {
@@ -72,13 +83,26 @@ const fetchData = async () => {
 
 onMounted(fetchData)
 
-// Search Logic
 const { searchQuery, searchResults } = useSearch(items, (item) => {
   const branchText = (item.branchIds || [])
     .map(id => branches.value.find(b => b.id === id)?.abbr || '')
     .filter(Boolean)
     .join(' ')
   return [item.name, item.status, branchText].filter(Boolean).join(' ').toLowerCase()
+})
+
+const currentPage = ref(1)
+const pageSize = 10
+
+const totalItems = computed(() => displayItems.value.length)
+const paginatedItems = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return displayItems.value.slice(start, end)
+})
+
+watch([searchQuery, statusFilter], () => {
+  currentPage.value = 1
 })
 
 // Metrics logic
@@ -89,25 +113,21 @@ const statsCards = computed(() => {
       label: 'Total Terms',
       value: items.value.length,
       image: getImageUrl('enrollment/total-enrollment'),
-      color: 'var(--color-primary-light)',
     },
     {
       label: 'Active Terms',
       value: stats.filter(s => ['active', 'ongoing', 'full'].includes(s.status)).length,
-      image: getImageUrl('dashboard/card-active-program'),
-      color: 'var(--color-primary-light)',
+      image: getImageUrl('programs/active-program'),
     },
     {
       label: 'Upcoming Terms',
       value: stats.filter(s => s.status === 'upcoming').length,
-      image: getImageUrl('dashboard/card-upcoming-program'),
-      color: 'var(--color-primary-light)',
+      image: getImageUrl('programs/upcoming-program'),
     },
     {
       label: 'Archived Terms',
       value: stats.filter(s => s.status === 'archived').length,
       image: getImageUrl('programs/archived-program'),
-      color: 'var(--color-primary-light)',
     },
   ]
 })
@@ -173,26 +193,17 @@ const handleActionSubmit = async (payload) => {
   }
 }
 
-const statusFilter = ref('all')
 
 const sortedItems = computed(() => {
   return [...searchResults.value].sort((a, b) => {
-    const progA = calculateClassProgress(a.startDate, a.endDate)
-    const progB = calculateClassProgress(b.startDate, b.endDate)
+    const dateA = new Date(a.endDate || a.startDate)
+    const dateB = new Date(b.endDate || b.startDate)
 
-    const getPriority = (p) => {
-      // Group 'ongoing' and 'full' under 'active' priority as requested
-      if (p.status === 'active' || p.status === 'ongoing' || p.status === 'full') return 2
-      if (p.status === 'upcoming') return 1
-      if (p.status === 'archived') return 0
-      return -1
-    }
+    // Primary sort: End date ascending (finishing soonest first)
+    if (dateA - dateB !== 0) return dateA - dateB
 
-    const prioA = getPriority(progA)
-    const prioB = getPriority(progB)
-
-    if (prioA !== prioB) return prioB - prioA
-    return new Date(b.startDate) - new Date(a.startDate)
+    // Secondary sort: Name
+    return a.name.localeCompare(b.name)
   })
 })
 
@@ -214,16 +225,6 @@ const filterOptions = [
   { label: 'Archived', value: 'archived', color: 'neutral' },
 ]
 
-const handleDelete = async (item) => {
-  if (!confirm(`Are you sure you want to delete this academic term?`)) return
-  try {
-    await termService.deleteTerm(item.id)
-    fetchData()
-  } catch (err) {
-    console.error('Failed to delete term', err)
-  }
-}
-
 const getTermBranches = (branchIds) => {
   if (!branchIds || branchIds.length === 0) return [{ name: 'All Branches', abbr: 'ALL', color: 'neutral' }]
   return branchIds.map(id => {
@@ -234,7 +235,35 @@ const getTermBranches = (branchIds) => {
 
 const isTermReadOnly = (item) => {
   const prog = calculateClassProgress(item.startDate, item.endDate)
-  return prog.status === 'Active' || prog.status === 'Ongoing' || prog.isArchived
+  const status = prog.status.toLowerCase()
+  return status === 'active' || status === 'ongoing' || prog.isArchived
+}
+
+const goToDetail = (item) => {
+  router.push(`/terms/${item.id}`)
+}
+
+const getGroupedSettings = (item) => {
+  if (!item.branchSettings?.length) return []
+
+  const groups = []
+  item.branchSettings.forEach(setting => {
+    const key = `${setting.startDate}_${setting.endDate}`
+    let group = groups.find(g => g.key === key)
+    if (!group) {
+      const progress = calculateClassProgress(setting.startDate, setting.endDate)
+      group = {
+        key,
+        startDate: setting.startDate,
+        endDate: setting.endDate,
+        status: progress.status,
+        branchIds: []
+      }
+      groups.push(group)
+    }
+    group.branchIds.push(setting.branchId)
+  })
+  return groups
 }
 </script>
 
@@ -242,87 +271,163 @@ const isTermReadOnly = (item) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Term Overview">
       <template #overview>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="(card, index) in statsCards" :key="index" v-bind="card" :loading="loading" />
         </div>
       </template>
 
       <template #table>
-        <DataTable title="Term Lists" :headers="headers" :items="displayItems" :loading="loading" entityName="term"
-          v-model:searchQuery="searchQuery" hasFilter v-model:currentFilter="statusFilter" :filterOptions="filterOptions"
-          :rowClass="getRowClass" @action="handleTableAction">
+        <DataTable title="Term List" :headers="headers" :items="paginatedItems" :loading="loading"
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search by term name, status or branch..."
+          :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
+          @update:currentPage="currentPage = $event" :hasSort="false" :rowClass="getRowClass"
+          @action="handleTableAction" @row-click="goToDetail">
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
               @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold tracking-tight">Add Term</span>
+              <span class="font-bold">Add Term</span>
             </AppButton>
           </template>
 
           <template #row="{ item, index, headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }">
-            <td class="ui-cell text-center font-bold text-content-dark/30" :style="{ width: headers[0].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[0].width }">
               <span v-if="calculateClassProgress(item.startDate, item.endDate).isOngoing" class="text-xs">🔥</span>
               <span v-else>{{ index + 1 }}</span>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[1].width }">
               <div class="flex items-center gap-4 group">
-                <div
-                  class="w-10 h-10 rounded-xl bg-surface-subtle border border-outline-std overflow-hidden flex items-center justify-center">
-                  <img :src="getImageUrl('dashboard/card-top-program')" class="w-6 h-6" />
-                </div>
                 <div class="flex flex-col">
-                  <span class="font-bold text-content-dark tracking-tighter text-sm leading-tight">{{ item.name
-                  }}</span>
+                  <span class="leading-tight">{{ item.name
+                    }}</span>
+                  <span class="mt-0.5 text-content-muted">{{
+                    item.totalSessions }} Weekly Sessions</span>
                 </div>
               </div>
             </td>
 
+            <!-- Branch Column -->
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
-              <div class="flex flex-wrap justify-center gap-1 max-w-[150px] mx-auto">
-                <AppBadge v-for="b in getTermBranches(item.branchIds)"
-                  :key="b.id || b.abbr" :status="b.abbr" :type="b.color || 'blue'" />
+              <div class="flex flex-col items-center justify-center gap-4 py-6">
+                <template v-if="item.branchSettings?.length">
+                  <div v-for="group in getGroupedSettings(item)" :key="group.key"
+                    class="flex items-center justify-center gap-1 h-8">
+                    <AppBadge v-for="bId in group.branchIds" :key="bId" :status="branches.find(b => b.id === bId)?.abbr"
+                      :type="branches.find(b => b.id === bId)?.color || 'neutral'" />
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="flex items-center justify-center h-8">
+                    <span class="">Global</span>
+                  </div>
+                </template>
               </div>
             </td>
 
+            <!-- Start Date Column -->
             <td class="ui-cell text-center" :style="{ width: headers[3].width }">
-              <div class="flex justify-center">
-                <AppBadge :status="formatDateOnly(item.startDate)" type="green" />
+              <div class="flex flex-col items-center justify-center gap-4 py-6">
+                <template v-if="item.branchSettings?.length">
+                  <div v-for="group in getGroupedSettings(item)" :key="group.key"
+                    class="flex items-center justify-center h-8">
+                    <AppBadge :status="formatShortDate(group.startDate)" type="green" />
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="flex items-center justify-center h-8">
+                    <AppBadge :status="formatShortDate(item.startDate)" type="green" />
+                  </div>
+                </template>
               </div>
             </td>
 
+            <!-- End Date Column -->
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">
-              <div class="flex justify-center">
-                <AppBadge :status="formatDateOnly(item.endDate)" type="red" />
+              <div class="flex flex-col items-center justify-center gap-4 py-6">
+                <template v-if="item.branchSettings?.length">
+                  <div v-for="group in getGroupedSettings(item)" :key="group.key"
+                    class="flex items-center justify-center h-8">
+                    <AppBadge :status="formatShortDate(group.endDate)" type="red" />
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="flex items-center justify-center h-8">
+                    <AppBadge :status="formatShortDate(item.endDate)" type="red" />
+                  </div>
+                </template>
               </div>
             </td>
 
+            <!-- Status Column -->
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
-              <div class="flex flex-col items-center">
-                <span class="text-sm font-bold text-primary tabular-nums">
-                  {{ item.totalStudents || 0 }}
-                </span>
-                <span class="text-[9px] font-bold text-success uppercase tracking-widest leading-none">
-                  +{{ item.newStudents || 0 }} New
-                </span>
+              <div class="flex flex-col items-center justify-center gap-4 py-6">
+                <template v-if="item.branchSettings?.length">
+                  <div v-for="group in getGroupedSettings(item)" :key="group.key"
+                    class="flex items-center justify-center h-8">
+                    <AppBadge :status="group.status" />
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="flex items-center justify-center h-8">
+                    <AppBadge :status="item.status" />
+                  </div>
+                </template>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
-              <div class="flex items-center gap-xs justify-center">
-                <span class="text-sm font-bold text-content-dark tabular-nums">
-                  {{ calculateClassProgress(item.startDate, item.endDate).remainingSessions }}
-                </span>
-                <span class="text-[9px] font-bold text-content-muted uppercase">remaining</span>
+              <div class="flex flex-col items-center justify-center gap-4 py-6 px-4">
+                <template v-if="item.branchSettings?.length">
+                  <div v-for="group in getGroupedSettings(item)" :key="group.key"
+                    class="w-full max-w-[150px] flex items-center gap-3 h-8 justify-center">
+                    <div class="flex items-center min-w-[40px] leading-none gap-1">
+                      <span class="text-sm font-bold text-content-dark">{{
+                        calculateClassProgress(group.startDate, group.endDate).remainingSessions }}</span>
+                      <span class="text-xs font-bold text-content-dark/60">Left</span>
+                    </div>
+                    <div
+                      class="flex-1 h-1.5 rounded-full overflow-hidden flex border border-outline-std/5 bg-surface-dark/20">
+                      <div class="h-full bg-primary transition-all duration-700"
+                        :style="{ width: calculateClassProgress(group.startDate, group.endDate).percentage + '%' }">
+                      </div>
+                      <div class="h-full bg-content-light/30 transition-all duration-700"
+                        :style="{ width: (100 - calculateClassProgress(group.startDate, group.endDate).percentage) + '%' }">
+                      </div>
+                    </div>
+                  </div>
+                </template>
+                <template v-else>
+                  <div v-for="prog in [calculateClassProgress(item.startDate, item.endDate)]" :key="item.id"
+                    class="w-full max-w-[150px] flex items-center gap-3 h-8 justify-center">
+                    <div class="flex flex-col items-start min-w-[40px] leading-none gap-0.5">
+                      <span class="text-sm font-bold text-content-dark">{{ prog.remainingSessions }}</span>
+                      <span class="text-xs font-bold text-content-dark/60">Left</span>
+                    </div>
+                    <div
+                      class="flex-1 h-1.5 rounded-full overflow-hidden flex border border-outline-std/5 bg-surface-dark/20">
+                      <div class="h-full bg-primary transition-all duration-700"
+                        :style="{ width: prog.percentage + '%' }">
+                      </div>
+                      <div class="h-full bg-surface-dark/10 transition-all duration-700"
+                        :style="{ width: (100 - prog.percentage) + '%' }">
+                      </div>
+                    </div>
+                  </div>
+                </template>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-              <AppBadge :status="'$' + formatPrice(item.revenue || 0)" type="green" />
+              <div class="flex flex-col items-center justify-center gap-1">
+                <AppBadge :status="item.enrollmentCount || 0" type="blue" />
+              </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[8].width }">
-              <AppBadge :status="calculateClassProgress(item.startDate, item.endDate).status" />
+              <div class="flex flex-col items-center justify-center gap-1">
+                <AppBadge :status="`$${formatPrice(item.totalRevenue || 0)}`" type="green" />
+              </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[9].width }">
@@ -349,7 +454,7 @@ const isTermReadOnly = (item) => {
                         </button>
                         <div class="h-px bg-surface-light mx-1 my-1"></div>
                       </template>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
                         @click="() => { handleTableAction({ type: 'delete', item }); closeMenu(); }">
                         <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete
@@ -365,7 +470,7 @@ const isTermReadOnly = (item) => {
     </DataPageLayout>
 
     <TermActionModal :isOpen="modal.isOpen" :type="modal.type" :loading="modal.submitting" :term="modal.selectedTerm"
-      :branches="branches" :error="modal.error" :success="modal.success"
+      :branches="branches" :terms="items" :error="modal.error" :success="modal.success"
       @close="() => { modal.isOpen = false; modal.selectedTerm = null; }" @submit="handleActionSubmit" />
   </DashboardLayout>
 </template>

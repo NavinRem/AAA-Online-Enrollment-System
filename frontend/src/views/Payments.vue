@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { formatDate, formatPrice } from '@/utils/formatUtils'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DataPageLayout from '@/components/layout/DataPageLayout.vue'
@@ -40,7 +40,7 @@ onMounted(fetchData)
 const formattedPayments = computed(() => {
   return enrollments.value.map(e => ({
     id: e.id,
-    receiptId: e.receiptId || (e.enrollmentId ? `#${e.enrollmentId.slice(-6).toUpperCase()}` : 'N/A'),
+    receiptId: e.receiptId || (e.enrollmentId ? `#${e.enrollmentId.slice(-6)}` : 'N/A'),
     transactionId: e.transactionId || (e.paymentMethod === 'cash' ? null : 'N/A'),
     parent: e.parent?.name || 'Unknown Parent',
     parentProfile: e.parent?.profileURL,
@@ -61,7 +61,7 @@ const formattedPayments = computed(() => {
 const statusFilteredPayments = computed(() => {
   const list = formattedPayments.value
   if (currentFilter.value === 'all') return list
-  
+
   const filter = currentFilter.value.toLowerCase()
   return list.filter(p => {
     if (filter === 'paid') return isPaid(p.status)
@@ -86,10 +86,24 @@ const filteredPayments = computed(() => {
     // 1. Prioritize Active Term
     if (a.termStatus === 'active' && b.termStatus !== 'active') return -1
     if (a.termStatus !== 'active' && b.termStatus === 'active') return 1
-    
+
     // 2. Then by date (newest first)
     return new Date(b.date) - new Date(a.date)
   })
+})
+
+const currentPage = ref(1)
+const pageSize = 10
+
+const totalItems = computed(() => filteredPayments.value.length)
+const paginatedPayments = computed(() => {
+  const start = (currentPage.value - 1) * pageSize
+  const end = start + pageSize
+  return filteredPayments.value.slice(start, end)
+})
+
+watch([searchQuery, currentFilter], () => {
+  currentPage.value = 1
 })
 
 const paymentStats = computed(() => {
@@ -100,41 +114,37 @@ const paymentStats = computed(() => {
       value: '$' + formatPrice(s?.totalPaidRevenue || 0),
       subtitle: `${s?.paidCount || 0} Successful Transactions`,
       image: getImageUrl('payment/total-revenue'),
-      color: 'var(--color-success-soft)',
     },
     {
       label: 'Cash Collection (Offline)',
       value: '$' + formatPrice(s?.cashRevenue || 0),
       subtitle: `${s?.cashCount || 0} Cash Payments`,
       image: getImageUrl('payment/total-transaction'),
-      color: 'var(--color-warning-soft)',
     },
     {
       label: 'Bank Collection (Online)',
       value: '$' + formatPrice(s?.onlineRevenue || 0),
       subtitle: `${s?.onlineCount || 0} Online Payments`,
       image: getImageUrl('payment/total-revenue'),
-      color: 'var(--color-primary-soft)',
     },
     {
       label: 'Outstanding (Pending)',
       value: '$' + formatPrice(s?.pendingRevenue || 0),
       subtitle: `${s?.pendingCount || 0} Unpaid Records`,
       image: getImageUrl('payment/unpaid-payment'),
-      color: 'var(--color-magenta-soft)',
     },
   ]
 })
 
 const paymentHeaders = [
-  { label: 'NO', width: '60px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'CLIENT IDENTITY', width: '280px' },
-  { label: 'RECEIPT ID', align: 'center', width: '120px' },
-  { label: 'TRANSACTION ID', align: 'center', width: '150px' },
-  { label: 'AMOUNT', align: 'center', width: '120px' },
-  { label: 'METHOD', align: 'center', width: '120px' },
-  { label: 'STATUS', align: 'center', width: '120px' },
-  { label: 'DATE', class: 'hidden lg:table-cell', width: '150px' },
+  { label: 'No', width: '60px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'Client Identity', width: '280px' },
+  { label: 'Receipt ID', align: 'center', width: '120px' },
+  { label: 'Transaction ID', align: 'center', width: '150px' },
+  { label: 'Amount', align: 'center', width: '120px' },
+  { label: 'Method', align: 'center', width: '120px' },
+  { label: 'Status', align: 'center', width: '120px' },
+  { label: 'Date', class: 'hidden lg:table-cell', width: '150px' },
 ]
 </script>
 
@@ -148,7 +158,9 @@ const paymentHeaders = [
       </template>
 
       <template #table>
-        <DataTable title="Payment Lists" :headers="paymentHeaders" :items="filteredPayments" :loading="loading"
+        <DataTable title="Payment Lists" :headers="paymentHeaders" :items="paginatedPayments" :loading="loading"
+          :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
+          @update:currentPage="currentPage = $event"
           searchPlaceholder="Search by parent, student, or transaction IDs..." :hasFilter="true"
           v-model:searchQuery="searchQuery" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Transactions', value: 'all' },
@@ -159,11 +171,10 @@ const paymentHeaders = [
             { label: 'Online Only', value: 'online' },
           ]">
           <template #row="{ item, index, headers }">
-            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell"
-              :style="{ width: headers[0].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[0].width }">
               {{ index + 1 }}
             </td>
- 
+
             <td class="ui-cell" :style="{ width: headers[1].width }">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
@@ -171,43 +182,44 @@ const paymentHeaders = [
                 </div>
                 <div class="ui-identity-info">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm font-semibold text-content-dark truncate block">{{ item.parent }}</span>
+                    <span class="truncate block">{{ item.parent }}</span>
                   </div>
                   <div class="flex items-center gap-1.5 opacity-60">
                     <img :src="item.studentProfile" class="w-3 h-3 rounded-full" />
-                    <span class="text-[10px] font-semibold text-content-muted">{{ item.student }}</span>
+                    <span class="">{{ item.student }}</span>
                   </div>
                 </div>
               </div>
             </td>
- 
+
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
-              <span class="text-xs font-bold text-content-dark tracking-tighter tabular-nums">{{ item.receiptId }}</span>
+              <span class="tracking-tighter tabular-nums">{{ item.receiptId
+                }}</span>
             </td>
- 
+
             <td class="ui-cell text-center" :style="{ width: headers[3].width }">
-              <span v-if="item.transactionId" class="text-xs font-semibold text-content-muted tabular-nums">{{
+              <span v-if="item.transactionId" class="tabular-nums">{{
                 item.transactionId }}</span>
-              <span v-else class="text-[10px] font-bold text-content-muted/30 uppercase tracking-widest">Undefined</span>
+              <span v-else class="">Undefined</span>
             </td>
- 
+
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">
               <AppBadge :status="'$' + formatPrice(item.amount)" :colorValue="item.paymentModeType" type="finance" />
             </td>
- 
+
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <AppBadge :status="item.bankName" :type="item.method === 'cash' ? 'green' : 'blue'" />
             </td>
- 
+
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <AppBadge :status="item.status" />
             </td>
- 
+
             <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[7].width }">
               <div class="flex flex-col items-center">
-                <span class="text-[11px] font-semibold text-content-dark tabular-nums tracking-tight">{{
+                <span class="tabular-nums tracking-tight">{{
                   formatDate(item.date) }}</span>
-                <span class="text-[8px] font-bold text-content-muted uppercase tracking-widest mt-1">Settlement</span>
+                <span class=" mt-1">Settlement</span>
               </div>
             </td>
           </template>

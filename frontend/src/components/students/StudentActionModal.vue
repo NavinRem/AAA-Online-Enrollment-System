@@ -190,10 +190,11 @@ watch(
           { id: 'stopped', name: 'Stopped' },
           { id: 'graduated', name: 'Graduated' },
         ]" required :error="errors.status" :shake="shaking.status"
-          :disabled="type === 'edit' && !['suspended', 'stopped'].includes(localData.status.toLowerCase())" :searchable="false"
-          @change="clearError('status')" />
+          :disabled="type === 'edit' && !['suspended', 'stopped'].includes(localData.status.toLowerCase())"
+          :searchable="false" @change="clearError('status')" />
 
-        <div class="flex flex-col gap-xs mb-md col-span-2" v-if="['suspended', 'stopped'].includes(localData.status.toLowerCase())">
+        <div class="flex flex-col gap-xs mb-md col-span-2"
+          v-if="['suspended', 'stopped'].includes(localData.status.toLowerCase())">
           <label class="text-sm font-semibold text-content-dark">Administrative Remarks <span
               class="text-error">*</span></label>
           <textarea v-model="localData.overrideRemark" placeholder="Document reason for status change..." rows="3"
@@ -201,7 +202,7 @@ watch(
               'border-error bg-error-soft ring-error/10': errors.overrideRemark,
               'animate-shake': shaking.overrideRemark,
             }"></textarea>
-          <div v-if="errors.overrideRemark" class="text-error text-3xs font-semibold px-1 mt-0.5 tracking-widest">
+          <div v-if="errors.overrideRemark" class="text-error text-3xs font-semibold px-1 mt-0.5 ">
             {{ errors.overrideRemark }}
           </div>
         </div>
@@ -217,7 +218,7 @@ watch(
       <div v-if="type === 'delete' || type === 'enrollment-delete'" class="flex flex-col gap-lg">
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-semibold tracking-tight uppercase">Permanent Record Erasure</strong>
+            <strong class="text-sm font-semibold tracking-tight">Permanent Record Erasure</strong>
             <span class="text-xs opacity-90 font-medium">This action will permanently remove the student profile and
               all historical data. Linked enrollments and academic logs will be severed.</span>
           </div>

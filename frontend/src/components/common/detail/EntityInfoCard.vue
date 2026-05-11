@@ -12,23 +12,18 @@ defineProps({
 </script>
 
 <template>
-  <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-    <h6 class="font-bold uppercase tracking-widest text-content-muted mb-4">{{ title }}</h6>
+  <section class="ui-summary-card">
+    <div v-if="title" class="ui-summary-card-title">{{ title }}</div>
 
-    <div class="space-y-5">
-      <div v-for="field in fields" :key="field.label" class="flex justify-between gap-2 items-start">
-        <span class="text-lg font-bold text-content-dark whitespace-nowrap">{{ field.label }}:</span>
-        <div class="flex justify-end text-right">
+    <div class="flex flex-col gap-md">
+      <div v-for="field in fields" :key="field.label" class="ui-data-item">
+        <span class="ui-data-label">{{ field.label }}</span>
+        <div class="flex items-center gap-xs">
           <AppBadge v-if="field.isBadge" :status="field.status || field.value" />
-          <span v-else class="text-md font-bold text-content-muted leading-tight">{{ field.value }}</span>
+          <span v-else class="ui-data-value">{{ field.value }}</span>
         </div>
       </div>
     </div>
   </section>
 </template>
 
-<style scoped>
-.ui-detail-card {
-  @apply bg-white border border-outline-std shadow-sm p-8 rounded-md;
-}
-</style>

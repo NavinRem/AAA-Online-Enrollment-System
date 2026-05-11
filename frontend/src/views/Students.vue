@@ -109,38 +109,34 @@ const statsCards = computed(() => {
       label: 'Total Students',
       value: s.total,
       image: getImageUrl('student/total-student'),
-      color: 'var(--color-primary-soft)'
     },
     {
       label: 'Currently Studying',
       value: s.studying,
       image: getImageUrl('student/currently-enrolled'),
-      color: 'var(--color-info-soft)'
     },
     {
       label: 'Not Enrolled',
       value: s.inactive,
       image: getImageUrl('student/currently-not-enrolled'),
-      color: 'var(--color-warning-soft)'
     },
     {
       label: 'Graduated',
       value: s.graduated,
       image: getImageUrl('student/graduated'),
-      color: 'var(--color-success-soft)'
     },
   ]
 })
 
 const studentHeaders = [
-  { label: 'NO', width: '60px', class: 'hidden md:table-cell', align: 'center' },
-  { label: 'AGE', class: 'hidden md:table-cell', width: '80px', align: 'center' },
-  { label: 'STUDENT' },
-  { label: 'PARENT', class: 'hidden md:table-cell' },
-  { label: 'PROGRAMS', class: 'hidden lg:table-cell', width: '150px' },
-  { label: 'STATUS', align: 'center', width: '120px' },
-  { label: 'JOINED DATE', class: 'hidden lg:table-cell', width: '200px', align: 'center' },
-  { label: 'ACTION', width: '80px', align: 'center' },
+  { label: 'No', width: '60px', class: 'hidden md:table-cell', align: 'center' },
+  { label: 'Age', class: 'hidden md:table-cell', width: '80px', align: 'center' },
+  { label: 'Student' },
+  { label: 'Parent', class: 'hidden md:table-cell' },
+  { label: 'Programs', class: 'hidden lg:table-cell', width: '300px' },
+  { label: 'Status', align: 'center', width: '120px' },
+  { label: 'Joined Date', class: 'hidden lg:table-cell', width: '350px', align: 'center' },
+  { label: 'Action', width: '80px', align: 'center' },
 ]
 
 const parentActionModal = ref({
@@ -272,7 +268,7 @@ const submitActionModal = async (formData) => {
     }
 
     await fetchStudents()
-    
+
     setTimeout(() => {
       actionModal.value.isOpen = false
     }, 1500)
@@ -289,7 +285,7 @@ const submitActionModal = async (formData) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Student Overview">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
         </div>
       </template>
@@ -327,13 +323,13 @@ const submitActionModal = async (formData) => {
             closeMenu
           }">
             <!-- No -->
-            <td class="ui-cell text-center font-bold text-content-muted/30 hidden md:table-cell">
+            <td class="ui-cell text-center hidden md:table-cell">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
             <!-- Age -->
             <td class="ui-cell text-center hidden md:table-cell">
-              <AppBadge type="blue" class="ml-auto text-xs px-2 py-0.5">
+              <AppBadge type="blue">
                 {{ item.age }}
               </AppBadge>
             </td>
@@ -348,19 +344,19 @@ const submitActionModal = async (formData) => {
                   </div>
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.name }}</span>
+                  <span class="truncate block tracking-tight">{{ item.name }}</span>
                 </div>
               </div>
             </td>
 
             <!-- Parent -->
             <td class="ui-cell hidden md:table-cell">
-              <div class="ui-identity-cell opacity-70 group-hover:opacity-100 transition-opacity">
+              <div class="ui-identity-cell">
                 <div class="ui-avatar !w-8 !h-8">
                   <img :src="item.parentInfo?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-xs font-semibold text-content-dark">{{ item.parentInfo?.name }}</span>
+                  <span class="tracking-tight">{{ item.parentInfo?.name }}</span>
                 </div>
               </div>
             </td>
@@ -370,19 +366,25 @@ const submitActionModal = async (formData) => {
               <div class="flex -space-x-3 hover:space-x-1 transition-all duration-500 overflow-hidden py-1 px-2">
                 <template v-if="item.enrollments?.length">
                   <!-- Group by program to show unique programs only -->
-                  <div v-for="(reg, rIdx) in [...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()]" 
+                  <div
+                    v-for="(reg, rIdx) in [...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()]"
                     :key="rIdx"
                     class="w-10 h-10 rounded-full border-2 border-white bg-surface-subtle overflow-hidden shadow-md hover:z-10 transition-all duration-300 hover:scale-110 ring-1 ring-black/5 flex-shrink-0"
                     :title="reg.program?.name || reg.programName">
-                    <img :src="getProgramProfileURL(reg.program?.profileURL || reg.programProfileURL, reg.program?.category?.name || reg.program?.category || reg.programCategory, reg.program?.categorySnapshot?.profileURL || reg.program?.category?.profileURL)" 
+                    <img
+                      :src="getProgramProfileURL(reg.program?.profileURL || reg.programProfileURL, reg.program?.category?.name || reg.program?.category || reg.programCategory, reg.program?.categorySnapshot?.profileURL || reg.program?.category?.profileURL)"
                       class="w-full h-full object-contain p-1.5" />
                   </div>
-                  <div v-if="[...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()].length > 3"
-                    class="w-10 h-10 rounded-full border-2 border-white bg-primary text-white flex items-center justify-center text-[10px] font-bold shadow-md z-20">
-                    +{{ [...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()].length - 3 }}
+                  <div
+                    v-if="[...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()].length > 3"
+                    class="w-10 h-10 rounded-full border-2 border-white bg-primary text-white flex items-center justify-center text-xs font-bold shadow-md z-20">
+                    +{{[...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()].length - 3
+                    }}
                   </div>
                 </template>
-                <span v-else class="text-[10px] font-bold text-content-muted/30 uppercase italic tracking-widest leading-loose">— No Programs —</span>
+                <template v-else>
+                  <span class="italic  leading-loose">— No Programs —</span>
+                </template>
               </div>
             </td>
 
@@ -393,7 +395,7 @@ const submitActionModal = async (formData) => {
 
             <!-- Joined -->
             <td class="ui-cell text-center hidden lg:table-cell">
-              <span class="text-[11px] font-semibold text-content-muted/60 tabular-nums">
+              <span class="tabular-nums ">
                 {{ formatDate(item.createdAt || new Date().toISOString()) }}
               </span>
             </td>

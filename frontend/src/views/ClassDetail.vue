@@ -8,9 +8,9 @@ import DetailMetricCard from '@/components/common/data/DetailMetricCard.vue'
 import { classService } from '@/services/classService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { programService } from '@/services/programService'
+import { termService } from '@/services/termService'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { calculateClassProgress, formatDateOnly, generateClassSessions } from '@/utils/formatUtils'
-import { getStatusTheme } from '@/utils/badgeUtils'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
 
@@ -21,6 +21,7 @@ import { attendanceService } from '@/services/attendanceService'
 
 const classData = ref(null)
 const enrollments = ref([])
+const terms = ref([])
 const attendanceData = ref({}) // sessionId -> { studentId -> status }
 const programData = ref(null)
 const loading = ref(true)
@@ -56,51 +57,87 @@ const toggleAttendance = async (sessionId, studentId) => {
   }
 }
 
+const allOfferings = computed(() =>
+  terms.value.flatMap((term) =>
+    (term.offerings || [])
+      .filter((offering) => offering.classId === classData.value?.id)
+      .map((offering) => ({
+        ...offering,
+        termId: term.id,
+        termName: term.name,
+        termStartDate: term.startDate,
+        termEndDate: term.endDate,
+      })),
+  ),
+)
+
+const activeUpcomingOfferings = computed(() =>
+  allOfferings.value.filter((offering) => {
+    if (!offering.termEndDate) return true
+    return new Date(offering.termEndDate) >= new Date()
+  }),
+)
+
+const primarySchedule = computed(() => {
+  if (classData.value?.schedule?.day || classData.value?.schedule?.time) return classData.value.schedule
+  return classData.value?.schedules?.[0] || { day: 'TBA', time: 'N/A' }
+})
+
+const uniqueBranchNames = computed(() =>
+  [...new Set(
+    activeUpcomingOfferings.value
+      .map((offering) => offering.branch?.name)
+      .filter(Boolean),
+  )],
+)
+
+const totalStudentsAcrossOfferings = computed(() =>
+  allOfferings.value.reduce(
+    (total, offering) => total + Number(offering.currentCount || offering.students?.length || 0),
+    0,
+  ),
+)
+
 const classStats = computed(() => {
   if (!classData.value) return []
 
-  const progress = calculateClassProgress(classData.value.term?.startDate, classData.value.term?.endDate, classData.value.schedule?.day, classData.value.schedule?.time)
-
   return [
     {
-      label: 'Remaining Sessions',
-      value: `<span class="text-primary">${progress.remainingSessions || 0}</span> / ${progress.totalWeeks || 0}`,
+      label: 'Linked Schedules',
+      value: classData.value.schedules?.length || 0,
       image: getImageUrl('data-metric-card/remaining-sessions'),
-      color: 'var(--color-primary-light)',
     },
     {
-      label: 'Student Capacity',
-      value: `${classData.value.enrolledCount || 0} / ${classData.value.maxCapacity || 20}`,
+      label: 'Active Offerings',
+      value: activeUpcomingOfferings.value.length,
       image: getImageUrl('data-metric-card/total-enrolled'),
-      color: 'var(--color-primary-light)',
     },
     {
-      label: 'Total Teachers',
-      value: classData.value.teachers?.length || 0,
+      label: 'Branch Coverage',
+      value: uniqueBranchNames.value.length,
       image: getImageUrl('data-metric-card/enrollment-capacity'),
-      color: 'var(--color-primary-light)',
     },
     {
-      label: 'Class Status',
-      value: progress.status || 'Active',
-      image: getImageUrl('dashboard/card-upcoming-program'),
-      color: 'var(--color-primary-light)',
+      label: 'Total Students',
+      value: totalStudentsAcrossOfferings.value,
+      image: getImageUrl('programs/upcoming-program'),
     }
   ]
 })
 
 const sessions = computed(() => {
-  const dayOfWeek = classData.value?.day || classData.value?.schedule?.day
-  const total = classData.value?.term?.totalSessions || classData.value?.totalSessions || 12
-  return generateClassSessions(classData.value?.term?.startDate, dayOfWeek, total)
+  const referenceOffering = activeUpcomingOfferings.value[0] || allOfferings.value[0]
+  const dayOfWeek = primarySchedule.value?.day
+  const total = referenceOffering?.term?.totalSessions || referenceOffering?.totalSessions || 12
+  return generateClassSessions(referenceOffering?.termStartDate, dayOfWeek, total)
 })
 
 const attendanceHeaders = computed(() => {
   const base = [
-    { label: 'NO', width: '50px', align: 'center' },
-    { label: 'NAME', width: '220px' },
-    { label: 'LEVEL', width: '100px', align: 'center' },
-    { label: 'TIMESLOT', width: '150px', align: 'center' },
+    { label: 'No', width: '50px', align: 'center' },
+    { label: 'Name', width: '220px' },
+    { label: 'Level', width: '100px', align: 'center' },
+    { label: 'Timeslot', width: '150px', align: 'center' },
   ]
 
   const sessionCols = sessions.value.map(s => ({
@@ -112,10 +149,10 @@ const attendanceHeaders = computed(() => {
   }))
 
   const extraCols = [
-    { label: 'EXAM', width: '90px', align: 'center' },
-    { label: 'REPORT CARD', width: '110px', align: 'center' },
-    { label: 'CERTIFICATE', width: '110px', align: 'center' },
-    { label: 'REMARK', width: '180px' }
+    { label: 'Exam', width: '90px', align: 'center' },
+    { label: 'Report Card', width: '110px', align: 'center' },
+    { label: 'Certificate', width: '110px', align: 'center' },
+    { label: 'Remark', width: '180px' }
   ]
 
   return [...base, ...sessionCols, ...extraCols]
@@ -175,23 +212,17 @@ const fetchData = async (id) => {
   loading.value = true
   errorMessage.value = ''
   try {
-    const [data, enrollmentData, attendanceMap] = await Promise.all([
+    const [data, enrollmentData, attendanceMap, termData] = await Promise.all([
       classService.getClass(id),
       enrollmentService.getAllEnrollments({ classId: id }),
-      attendanceService.getClassAttendance(id)
+      attendanceService.getClassAttendance(id),
+      termService.getAllTerms(),
     ])
-    // Ensure defaults for critical rendering fields
-    if (!data.schedule) {
-      data.schedule = { day: 'TBA', time: 'N/A' }
-    }
-    data.maxCapacity = data.maxCapacity || 20
-    data.enrolledCount = data.enrolledCount || 0
+    const normalizedSchedule = data.schedule || data.schedules?.[0] || { day: 'TBA', time: 'N/A' }
+    data.schedule = normalizedSchedule
 
     classData.value = data
-    // Ensure naming parity with backend (currentCount/capacity vs enrolledCount/maxCapacity)
-    classData.value.enrolledCount = data.currentCount || 0
-    classData.value.maxCapacity = data.capacity || 20
-    
+    terms.value = termData?.data || termData || []
     enrollments.value = enrollmentData?.data || enrollmentData || []
     attendanceData.value = attendanceMap || {}
 
@@ -223,7 +254,7 @@ watch(() => route.params.id, (newId) => {
       <template #header-actions v-if="classData">
         <div class="flex items-center">
           <button
-            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-primary-light transition-all duration-300 hover:bg-primary hover:border-primary group"
+            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-primary-soft transition-all duration-300 hover:bg-primary hover:border-primary group"
             title="Edit Class" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100 transition-opacity" />
           </button>
@@ -239,7 +270,7 @@ watch(() => route.params.id, (newId) => {
 
       <template #left-content v-if="classData">
         <!-- Metrics Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DetailMetricCard v-for="stat in classStats" :key="stat.label" v-bind="stat" />
         </div>
 
@@ -251,26 +282,27 @@ watch(() => route.params.id, (newId) => {
             :entityName="currentEntityName" :flexible="true" :hasSearch="false" :hasFilter="false">
 
             <template #row="{ item, index, headers }">
-              <td class="ui-cell text-center font-bold text-content-muted/20" :style="{ width: headers[0].width }">
+              <td class="ui-cell text-center" :style="{ width: headers[0].width }">
                 {{ index + 1 }}
               </td>
               <td class="ui-cell">
                 <div class="flex items-center gap-3">
                   <div class="flex flex-col">
-                    <span class="text-sm font-semibold text-content-dark leading-tight">{{ item.student?.name || 'Unknown'
+                    <span class="leading-tight">{{ item.student?.name ||
+                      'Unknown'
                     }}</span>
-                    <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{
+                    <span class="">{{
                       item.student?.nickname || 'No Nick' }}</span>
                   </div>
                 </div>
               </td>
-              <td class="ui-cell text-center text-xs font-semibold text-content-muted">
+              <td class="ui-cell text-center">
                 {{ classData.program?.level || 'L1' }}
               </td>
               <td class="ui-cell text-center">
                 <div class="flex flex-col items-center">
-                  <span class="text-[10px] font-semibold text-content-dark tabular-nums tracking-tight">{{
-                    classData.schedule.time }}</span>
+                  <span class="tabular-nums tracking-tight">{{
+                    primarySchedule.time }}</span>
                 </div>
               </td>
 
@@ -278,12 +310,11 @@ watch(() => route.params.id, (newId) => {
               <td v-for="session in sessions" :key="session.id" class="ui-cell text-center p-1">
                 <div class="flex flex-col items-center gap-1">
                   <div
-                    class="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold cursor-pointer transition-all hover:scale-110 shadow-sm border border-outline-std select-none"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-3xs font-bold cursor-pointer transition-all hover:scale-110 shadow-sm border border-outline-std select-none"
                     :class="[
                       ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)].theme,
                       session.date > new Date() ? 'opacity-30' : ''
-                    ]"
-                    @click="toggleAttendance(session.id, item.studentId)">
+                    ]" @click="toggleAttendance(session.id, item.studentId)">
                     {{ ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)].label }}
                   </div>
                 </div>
@@ -300,7 +331,7 @@ watch(() => route.params.id, (newId) => {
                 <div class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"></div>
               </td>
               <td class="ui-cell">
-                <span class="text-[10px] font-semibold text-content-muted italic">New Student</span>
+                <span class="italic">New Student</span>
               </td>
             </template>
           </DataTable>
@@ -321,52 +352,41 @@ watch(() => route.params.id, (newId) => {
               </div>
             </div>
           </section>
-          <section class="ui-detail-card">
-            <div class="space-y-5">
-              <div class="flex justify-between gap-1">
+          <!-- Parameters Card -->
+          <section class="ui-detail-card !py-6">
+            <div class="space-y-4">
+              <div class="flex justify-between items-center gap-1">
                 <span class="text-lg font-bold text-content-dark">Class Name:</span>
                 <span class="text-md font-bold text-content-muted">{{ programData?.name ||
                   classData.program?.name || 'N/A'
                   }}</span>
               </div>
-              <div class="flex justify-between gap-1 ">
+              <div class="flex justify-between items-center gap-1">
                 <span class="text-lg font-bold text-content-dark">Category:</span>
                 <span class="text-md font-bold text-content-muted">{{
                   programData?.category || classData.program?.category || 'Standard' }}</span>
               </div>
-              <div class="flex justify-between gap-1 ">
+              <div class="flex justify-between items-center gap-1">
                 <span class="text-lg font-bold text-content-dark">Level:</span>
                 <span class="text-md font-bold text-content-muted">{{
                   programData?.level || classData.program?.level || 'L1' }}</span>
               </div>
-              <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-bold text-content-dark">Branch:</span>
-                <div class="flex items-end">
-                  <AppBadge :status="classData.branch?.abbr || 'TBA'" :type="classData.branch?.color || 'blue'" />
-                  <span class="text-md font-bold text-content-muted mt-1">{{ classData.branch?.name || 'TBA' }}</span>
+              <div class="flex justify-between items-center gap-1">
+                <span class="text-lg font-bold text-content-dark">Schedules:</span>
+                <div class="flex flex-wrap justify-end gap-2 max-w-[60%]">
+                  <AppBadge v-for="schedule in (classData.schedules || [])"
+                    :key="schedule.id || `${schedule.day}-${schedule.time}`"
+                    :status="`${schedule.day} · ${schedule.time}`" type="blue" />
                 </div>
               </div>
-              <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-bold text-content-dark">Term:</span>
-                <AppBadge :status="classData.term?.name || 'Active Term'" type="blue" />
-              </div>
-              <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-bold text-content-dark">Day:</span>
-                <AppBadge :status="classData.schedule.day" type="blue" size="sm" />
-              </div>
-              <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-bold text-content-dark">Time:</span>
-                <span class="text-md font-bold text-content-muted tabular-nums">{{ classData.schedule.time }}</span>
-              </div>
-              <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-bold text-content-dark">Class Capacity:</span>
-                <span class="text-md font-bold text-content-muted tabular-nums">{{ classData.maxCapacity }}
-                  Students</span>
-              </div>
-              <div class="flex justify-between gap-1 ">
-                <span class="text-lg font-bold text-content-dark">Status:</span>
-                <AppBadge
-                  :status="calculateClassProgress(classData.term?.startDate, classData.term?.endDate, classData.schedule.day, classData.schedule.time).status" />
+              <div class="flex justify-between items-center gap-1">
+                <span class="text-lg font-bold text-content-dark">Branches:</span>
+                <div class="flex flex-wrap justify-end gap-2 max-w-[60%]">
+                  <AppBadge v-for="branchName in uniqueBranchNames" :key="branchName" :status="branchName"
+                    type="blue" />
+                  <span v-if="uniqueBranchNames.length === 0" class="text-md font-bold text-content-muted">No active
+                    offerings</span>
+                </div>
               </div>
             </div>
           </section>

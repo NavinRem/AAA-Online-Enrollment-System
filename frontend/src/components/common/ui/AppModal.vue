@@ -79,8 +79,8 @@ defineEmits(['close'])
 
           <!-- Sticky Alerts -->
           <div v-if="error || success" class="px-md sm:px-xl py-4 bg-white border-t border-surface-light shrink-0">
-            <AppAlert v-if="error" type="error" :message="error" class="mb-2 last:mb-0" />
-            <AppAlert v-if="success" type="success" :message="success" class="mb-2 last:mb-0" />
+            <AppAlert v-if="error" type="error" :message="error" class="mb-2 last:mb-0" closable @close="$emit('clear-error')" />
+            <AppAlert v-if="success" type="success" :message="success" class="mb-2 last:mb-0" closable @close="$emit('clear-success')" />
           </div>
 
           <!-- Footer -->

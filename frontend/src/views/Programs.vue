@@ -102,7 +102,7 @@ const topRevenueProgram = computed(() => {
 const getProgramMetrics = (programId, allEnrollments, allTrials) => {
   const pEnrollments = allEnrollments.filter(e => String(e.programId) === String(programId))
   const pTrials = allTrials.filter(t => String(t.programId) === String(programId))
-  
+
   // Unique Students: Count distinct studentIds associated with this program
   const uniqueStudentIds = new Set(pEnrollments.map(e => e.studentId).filter(id => id))
   const uniqueStudentCount = uniqueStudentIds.size
@@ -110,9 +110,9 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
   const now = new Date()
   const localTodayStr = now.toLocaleDateString('en-CA') // YYYY-MM-DD local
   const weekAgoTimestamp = now.getTime() - 7 * 86400000
-  
+
   const stats = {
-    uniqueStudents: uniqueStudentCount,
+    uniqueStudents: uniqueStudentCount || 0,
     enrollmentToday: 0,
     enrollmentWeek: 0,
     trialToday: 0,
@@ -120,7 +120,7 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
     revenueToday: 0,
     revenueWeek: 0
   }
-  
+
   pEnrollments.forEach(e => {
     const enrollDate = e.enrollAt || e.createdAt || ''
     const enrollDateStr = enrollDate.split('T')[0]
@@ -135,7 +135,7 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
       stats.revenueWeek += (Number(e.amount) || 0)
     }
   })
-  
+
   pTrials.forEach(t => {
     const trialDate = t.date || t.trialDate || t.createdAt || ''
     const trialDateStr = trialDate.split('T')[0]
@@ -144,7 +144,7 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
     if (trialDateStr === localTodayStr) stats.trialToday++
     if (trialTimestamp >= weekAgoTimestamp) stats.trialWeek++
   })
-  
+
   return stats
 }
 
@@ -154,28 +154,24 @@ const statsCards = computed(() => {
       label: 'Total Programs',
       value: programs.value.length,
       image: getImageUrl('programs/total-program'),
-      color: 'var(--color-primary-light)',
     },
     {
       label: 'Top Trial Program',
       value: topTrialProgram.value.name,
       subtitle: `${topTrialProgram.value.count} Trials`,
       image: getImageUrl('programs/active-program'),
-      color: 'var(--color-info-soft)',
     },
     {
       label: 'Most Popular',
       value: topEnrolledProgram.value.name,
       subtitle: `${topEnrolledProgram.value.count} Enrollments`,
       image: getImageUrl('programs/total-program'),
-      color: 'var(--color-success-soft)',
     },
     {
       label: 'Top Revenue Program',
       value: topRevenueProgram.value.name,
       subtitle: `$${topRevenueProgram.value.revenue.toLocaleString()} Total`,
       image: getImageUrl('programs/upcoming-program'),
-      color: 'var(--color-warning-soft)',
     },
   ]
 })
@@ -201,7 +197,7 @@ const fetchPrograms = async () => {
       const cat = cats.find((c) => (c.id) === p.categoryId || c.name === p.category)
       const lvl = lvls.find((l) => (l.id) === p.levelId)
       const metrics = getProgramMetrics(p.id, enrollDataList, trialsDataList)
-      
+
       return {
         ...p,
         ...metrics,
@@ -228,18 +224,18 @@ onMounted(() => {
 })
 
 const programHeaders = [
-  { label: 'NO', width: '50px', class: 'hidden md:table-cell', align: 'center' },
-  { label: 'PROGRAM IDENTITY', width: '220px' },
-  { label: 'LEVEL', class: 'hidden lg:table-cell', align: 'center', width: '100px' },
-  { label: 'STUDENTS', align: 'center', width: '90px' },
+  { label: 'No', width: '50px', class: 'hidden md:table-cell', align: 'center' },
+  { label: 'Program Identity', width: '220px' },
+  { label: 'Level', class: 'hidden lg:table-cell', align: 'center', width: '100px' },
+  { label: 'Students', align: 'center', width: '90px' },
   { label: 'New (T)', align: 'center', width: '80px' },
   { label: 'Trial (T)', align: 'center', width: '80px' },
   { label: 'Rev (T)', align: 'center', width: '95px' },
   { label: 'New (W)', align: 'center', width: '85px' },
   { label: 'Trial (W)', align: 'center', width: '85px' },
   { label: 'Rev (W)', align: 'center', width: '95px' },
-  { label: 'TYPE', align: 'center', width: '100px' },
-  { label: 'ACTION', width: '60px', align: 'center' },
+  { label: 'Type', align: 'center', width: '100px' },
+  { label: 'Action', width: '60px', align: 'center' },
 ]
 
 const currentFilter = ref('all')
@@ -381,7 +377,7 @@ const handleActionSubmit = async (formData) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Program Overview">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" :loading="loading" />
         </div>
       </template>
@@ -413,7 +409,7 @@ const handleActionSubmit = async (formData) => {
             closeMenu,
             headers,
           }">
-            <td class="ui-cell text-center font-bold text-content-muted/20 hidden md:table-cell" style="width: 50px">
+            <td class="ui-cell text-center hidden md:table-cell" style="width: 50px">
               {{ index + 1 }}
             </td>
 
@@ -424,9 +420,8 @@ const handleActionSubmit = async (formData) => {
                     alt="program" class="w-full h-full object-cover" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-sm font-semibold text-content-dark truncate block">{{ item.name }}</span>
-                  <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{ item.category ||
-                    'Standard' }}</span>
+                  <span class="truncate block tracking-tight">{{ item.name }}</span>
+                  <AppBadge :status="item.category || 'Standard'" :type="'blue'" />
                 </div>
               </div>
             </td>
@@ -434,35 +429,35 @@ const handleActionSubmit = async (formData) => {
             <td class="ui-cell text-center hidden lg:table-cell">
               <AppBadge :status="item.level" :type="'magenta'" />
             </td>
- 
+
             <td class="ui-cell text-center">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ item.uniqueStudents || 0 }}</span>
+              <AppBadge :status="item.uniqueStudents || 0" type="purple" />
             </td>
- 
+
             <td class="ui-cell text-center">
-              <span class="text-sm font-bold text-content-dark">{{ item.enrollmentToday }}</span>
+              <span>{{ item.enrollmentToday }}</span>
             </td>
- 
+
             <td class="ui-cell text-center">
-              <span class="text-sm font-bold text-content-dark">{{ item.trialToday }}</span>
+              <span>{{ item.trialToday }}</span>
             </td>
- 
+
             <td class="ui-cell text-center">
               <AppBadge :status="'$' + formatPrice(item.revenueToday)" type="green" />
             </td>
- 
+
             <td class="ui-cell text-center">
-              <span class="text-sm font-bold text-content-dark">{{ item.enrollmentWeek }}</span>
+              <span>{{ item.enrollmentWeek }}</span>
             </td>
- 
+
             <td class="ui-cell text-center">
-              <span class="text-sm font-bold text-content-dark">{{ item.trialWeek }}</span>
+              <span>{{ item.trialWeek }}</span>
             </td>
- 
+
             <td class="ui-cell text-center">
               <AppBadge :status="'$' + formatPrice(item.revenueWeek)" type="blue" />
             </td>
- 
+
             <td class="ui-cell text-center">
               <AppBadge :status="item.type || 'Group'" />
             </td>

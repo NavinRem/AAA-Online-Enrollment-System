@@ -156,6 +156,6 @@ const changePage = (page) => {
 }
 
 .pagination-ellipsis {
-  @apply w-8 text-center text-content-muted/40 font-bold tracking-widest select-none pt-1;
+  @apply w-8 text-center text-content-muted/40 font-bold select-none pt-1;
 }
 </style>

@@ -151,15 +151,15 @@ const handleDelete = async (item) => {
             <template v-if="activeTab === 'levels'">
               <td class="ui-cell">
                 <div class="flex flex-col">
-                  <span class="font-bold text-content-dark tracking-tighter text-base leading-tight">{{ item.name
-                    }}</span>
-                  <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest mt-1">Curriculum
+                  <span class="tracking-tighter leading-tight">{{ item.name
+                  }}</span>
+                  <span class=" mt-1">Curriculum
                     Grade</span>
                 </div>
               </td>
               <td class="ui-cell text-center">
                 <span
-                  class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-primary/5 text-primary font-semibold text-xs border border-primary/10">
+                  class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-primary/5 text-primary border border-primary/10">
                   {{ item.order || 0 }}
                 </span>
               </td>
@@ -169,15 +169,14 @@ const handleDelete = async (item) => {
             <template v-else-if="activeTab === 'categories'">
               <td class="ui-cell">
                 <div class="flex flex-col">
-                  <span class="font-bold text-content-dark tracking-tighter text-base leading-tight">{{ item.name
-                    }}</span>
-                  <span class="text-[9px] font-semibold text-content-muted uppercase tracking-widest mt-1">Subject
+                  <span class="tracking-tighter leading-tight">{{ item.name
+                  }}</span>
+                  <span class=" mt-1">Subject
                     Domain</span>
                 </div>
               </td>
               <td class="ui-cell">
-                <span
-                  class="px-2 py-1 rounded-md bg-surface-subtle border border-black/5 text-[10px] font-semibold text-content-muted uppercase tracking-widest">
+                <span class="px-2 py-1 rounded-md bg-surface-subtle border border-black/5 ">
                   {{ item.code || 'N/A' }}
                 </span>
               </td>
@@ -228,8 +227,7 @@ const handleDelete = async (item) => {
     </DataPageLayout>
 
     <!-- Generic Modal for Lookups -->
-    <AppModal :show="isModalOpen"
-      :title="(modalType === 'add' ? 'Add ' : 'Update ') + activeTab.slice(0, -1)"
+    <AppModal :show="isModalOpen" :title="(modalType === 'add' ? 'Add ' : 'Update ') + activeTab.slice(0, -1)"
       @close="isModalOpen = false">
       <form @submit.prevent="handleSubmit" class="flex flex-col gap-6">
         <AppInput v-model="form.name" label="Identity Name" placeholder="Enter display name..." required />

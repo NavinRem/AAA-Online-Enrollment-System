@@ -10,36 +10,36 @@ defineProps({
 </script>
 
 <template>
-  <div class="overflow-x-auto rounded-md border border-gray-100 bg-white">
-    <table class="w-full text-left border-collapse">
+  <div class="ui-table-scroll-wrapper">
+    <table class="ui-premium-table">
       <thead>
-        <tr class="bg-gray-50/50">
-          <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
-          <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Transaction</th>
-          <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Child</th>
-          <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Program</th>
-          <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">Amount</th>
-          <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Method</th>
-          <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Date</th>
-          <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">Payment Status</th>
+        <tr>
+          <th>No</th>
+          <th>Transaction</th>
+          <th>Child</th>
+          <th>Program</th>
+          <th class="text-center">Amount</th>
+          <th>Method</th>
+          <th>Date</th>
+          <th class="text-center">Status</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-gray-50">
-        <tr v-for="(item, idx) in items" :key="item.id || idx" class="hover:bg-gray-50/50 transition-colors">
-          <td class=" p-md text-xs font-semibold text-black">{{ idx + 1 }}</td>
-          <td class=" p-md text-xs font-mono text-black uppercase">
-            {{ item.transactionId || item.id.slice(0, 8).toUpperCase() }}
+      <tbody>
+        <tr v-for="(item, idx) in items" :key="item.id || idx">
+          <td class="ui-data-label !text-content-dark">{{ idx + 1 }}</td>
+          <td class="text-3xs font-semibold text-content-muted tracking-tight">
+            {{ item.transactionId || item.id.slice(0, 8) }}
           </td>
-          <td class=" p-md text-sm font-semibold text-black">{{ item.studentName }}</td>
-          <td class=" p-md text-sm font-semibold text-black">{{ item.programName }}</td>
-          <td class=" p-md text-sm font-semibold text-black text-center">
+          <td class="font-bold text-content-dark tracking-tight">{{ item.studentName }}</td>
+          <td class="font-semibold text-content-dark tracking-tighter">{{ item.programName }}</td>
+          <td class="text-center">
             <AppBadge :status="'$' + formatPrice(item.amount)" type="finance" :colorValue="item.paymentModeType" />
           </td>
-          <td class=" p-md text-xs font-bold text-black uppercase">{{ item.paymentMethod || 'N/A' }}</td>
-          <td class=" p-md text-xs font-semibold text-black tabular-nums">
+          <td class="text-2xs font-bold text-content-muted ">{{ item.paymentMethod || 'N/A' }}</td>
+          <td class="text-2xs font-semibold text-content-muted tabular-nums">
             {{ formatDate(item.paidAt || item.enrollAt) }}
           </td>
-          <td class=" p-md text-center">
+          <td class="text-center">
             <AppBadge :status="item.paymentStatus" />
           </td>
         </tr>

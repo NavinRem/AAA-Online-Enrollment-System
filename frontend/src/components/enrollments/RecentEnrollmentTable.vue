@@ -39,8 +39,8 @@ const navigateToDetail = (item) => {
   <div class="w-full h-full">
     <AppTable :headers="enrollmentHeaders" :empty="enrollments.length === 0">
       <template #toolbar>
-        <div class="ui-section-header border-none gap-md mb-4">
-          <h3 class="ui-section-title">Recent Enrollment</h3>
+        <div class="ui-section-header border-none flex items-center gap-md mb-4">
+          <h3 class="ui-section-title whitespace-nowrap">Recent Enrollment</h3>
           <div class="ui-section-divider"></div>
         </div>
       </template>
@@ -55,7 +55,7 @@ const navigateToDetail = (item) => {
               <img :src="getParentProfileURL(item.parent?.profileURL)" alt="parent" />
             </div>
             <div class="ui-identity-info min-w-0">
-              <span class="text-sm font-semibold text-content-dark truncate block" :title="item.parent?.name">{{
+              <span class="truncate block" :title="item.parent?.name">{{
                 item.parent?.name }}</span>
             </div>
           </div>
@@ -66,7 +66,7 @@ const navigateToDetail = (item) => {
               <img :src="getStudentProfileURL(item.student?.profileURL)" alt="child" />
             </div>
             <div class="ui-identity-info min-w-0">
-              <span class="text-sm font-semibold text-content-dark truncate block" :title="item.student?.name">{{
+              <span class="truncate block" :title="item.student?.name">{{
                 item.student?.name }}</span>
             </div>
           </div>
@@ -76,7 +76,7 @@ const navigateToDetail = (item) => {
             <div class="ui-avatar">
               <img :src="item.program?.profileURL" :alt="item.programName" />
             </div>
-            <span class="text-sm font-semibold text-content-dark truncate block">{{
+            <span class="truncate block">{{
               item.programName
               }}</span>
           </div>
@@ -89,7 +89,7 @@ const navigateToDetail = (item) => {
           :style="{ width: enrollmentHeaders[5].width, flex: '0 0 auto', minWidth: enrollmentHeaders[5].width }">
           <AppBadge :status="'$' + formatPrice(item.amount || 0)" :colorValue="item.paymentModeType" type="finance" />
         </td>
-        <td class="ui-cell !py-4 text-center text-xs text-content-muted font-bold overflow-hidden"
+        <td class="ui-cell !py-4 text-center overflow-hidden"
           :style="{ flex: '1 1 0%', minWidth: 0 }">
           <span class="truncate block">{{ formatDate(item.enrollAt) }}</span>
         </td>

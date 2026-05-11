@@ -32,7 +32,6 @@ const trials = ref([])
 const categories = ref([])
 const branches = ref([])
 const terms = ref([])
-const selectedTermId = ref('active') // Default to active terms
 const loading = ref(true)
 const errorMessage = ref('')
 const now = ref(new Date())
@@ -76,7 +75,6 @@ const initData = async () => {
   }
 }
 
-
 onMounted(() => {
   initData()
   const interval = setInterval(() => {
@@ -92,9 +90,7 @@ const resolvedCategory = computed(() => {
   return categories.value.find(c => c.id === program.value.categoryId)
 })
 
-const totalClassCapacity = computed(() => {
-  return classes.value.reduce((sum, c) => sum + (c.capacity || c.maxCapacity || 20), 0)
-})
+
 
 const programTeachers = computed(() => {
   if (!classes.value.length) return []
@@ -146,32 +142,28 @@ const statsCards = computed(() => {
       label: 'Total Students',
       value: uniqueStudentsCount,
       image: getImageUrl('data-metric-card/total-enrolled'),
-      color: 'var(--color-primary-light)',
     },
     {
       label: 'Total Revenue',
       value: `$${totalRevenue.toLocaleString()}`,
       image: getImageUrl('data-metric-card/program-revenue'),
-      color: 'var(--color-primary-light)',
     },
     {
       label: 'Total Trials',
       value: trials.value.length,
-      image: getImageUrl('data-metric-card/trial'),
-      color: 'var(--color-primary-light)',
+      image: getImageUrl('dashboard/card-trial'),
     },
     {
       label: 'Assigned Teachers',
       value: uniqueTeachersCount,
       image: getImageUrl('data-metric-card/enrollment-capacity'),
-      color: 'var(--color-primary-light)',
     }
   ]
 })
 
 const branchDistribution = computed(() => {
   if (!branches.value.length || !terms.value.length) return []
-  
+
   const distribution = []
 
   branches.value.forEach(branch => {
@@ -237,45 +229,45 @@ const enrolledStudents = computed(() => {
 })
 
 const studentHeaders = [
-  { label: 'NO', width: '50px', align: 'center' },
-  { label: 'STUDENT IDENTITY' },
-  { label: 'PARENT NAME' },
-  { label: 'AGE', align: 'center', width: '80px' },
-  { label: 'STATUS', align: 'center', width: '120px' },
+  { label: 'No', width: '50px', align: 'center' },
+  { label: 'Student Identity' },
+  { label: 'Parent Name' },
+  { label: 'Age', align: 'center', width: '80px' },
+  { label: 'Status', align: 'center', width: '120px' },
 ]
 
 const teacherHeaders = [
-  { label: 'NO', width: '50px', align: 'center' },
-  { label: 'TEACHER NAME' },
-  { label: 'BRANCH TEACHING', align: 'center', width: '150px' },
-  { label: 'CONTACT', width: '200px' },
+  { label: 'No', width: '50px', align: 'center' },
+  { label: 'Teacher Name' },
+  { label: 'Branch Teaching', align: 'center', width: '150px' },
+  { label: 'Contact', width: '200px' },
 ]
 
 const scheduleHeaders = [
-  { label: 'NO', width: '50px', align: 'center' },
-  { label: 'SCHEDULE IDENTITY' },
-  { label: 'BRANCH', align: 'center', width: '100px' },
-  { label: 'TERM' },
-  { label: 'CAPACITY', align: 'center', width: '200px' },
-  { label: 'STATUS', align: 'center', width: '120px' },
+  { label: 'No', width: '50px', align: 'center' },
+  { label: 'Schedule Identity' },
+  { label: 'Branch', align: 'center', width: '100px' },
+  { label: 'Term' },
+  { label: 'Capacity', align: 'center', width: '200px' },
+  { label: 'Status', align: 'center', width: '120px' },
 ]
 
 const trialHeaders = [
-  { label: 'NO', width: '50px', align: 'center' },
-  { label: 'STUDENT IDENTITY' },
-  { label: 'PARENT NAME' },
-  { label: 'BRANCH', align: 'center', width: '100px' },
-  { label: 'TIME OF TRIAL', align: 'center', width: '180px' },
-  { label: 'STATUS', align: 'center', width: '150px' },
+  { label: 'No', width: '50px', align: 'center' },
+  { label: 'Student Identity' },
+  { label: 'Parent Name' },
+  { label: 'Branch', align: 'center', width: '100px' },
+  { label: 'Time of Trial', align: 'center', width: '180px' },
+  { label: 'Status', align: 'center', width: '150px' },
 ]
 
 const distributionHeaders = [
   { label: 'No', width: '50px', align: 'center' },
-  { label: 'BRANCH', width: '180px' },
-  { label: 'TERM', width: '180px' },
-  { label: 'STUDENTS', align: 'center', width: '100px' },
-  { label: 'CLASSES', align: 'center', width: '100px' },
-  { label: 'REVENUE', align: 'center', width: '120px' },
+  { label: 'Branch', width: '180px' },
+  { label: 'Term', width: '180px' },
+  { label: 'Students', align: 'center', width: '100px' },
+  { label: 'Classes', align: 'center', width: '100px' },
+  { label: 'Revenue', align: 'center', width: '120px' },
 ]
 
 const currentHeaders = computed(() => {
@@ -300,8 +292,6 @@ const currentItems = computed(() => {
   return enrolledStudents.value
 })
 
-
-
 const currentEntityName = computed(() => {
   if (activeTab.value === 'schedule') return 'schedule'
   if (activeTab.value === 'teachers') return 'teacher'
@@ -317,10 +307,6 @@ const currentTableTitle = computed(() => {
   if (activeTab.value === 'distribution') return 'Branch-Wise Performance'
   return 'Student Roster'
 })
-
-
-
-
 
 const actionModal = ref({
   isOpen: false,
@@ -363,7 +349,6 @@ const handleActionSubmit = async (formData) => {
       }, 1500)
       return
     }
-
     setTimeout(() => {
       closeModal()
       initData()
@@ -383,7 +368,7 @@ const handleActionSubmit = async (formData) => {
       <template #header-actions v-if="program">
         <div class="flex items-center">
           <button
-            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-primary-light transition-all duration-300 hover:bg-primary hover:border-primary group"
+            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-primary-soft transition-all duration-300 hover:bg-primary hover:border-primary group"
             title="Edit Program" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100 transition-opacity" />
           </button>
@@ -399,14 +384,14 @@ const handleActionSubmit = async (formData) => {
 
       <template #left-content v-if="program">
         <!-- Metrics Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DetailMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
         </div>
 
         <!-- Tab Navigation -->
         <div class="flex items-center gap-2 p-xs bg-white rounded-full border border-outline-std w-fit">
           <button v-for="tab in ['schedule', 'teachers', 'students', 'trials', 'distribution']" :key="tab"
-            class="px-8 py-3 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all duration-300"
+            class="px-8 py-3 rounded-2xl text-xs font-semibold  transition-all duration-300"
             :class="activeTab === tab ? 'bg-primary text-white shadow-md ring-1 ring-black/5 scale-[1.02]' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
             @click="activeTab = tab">
             {{ tab === 'schedule' ? 'Schedule' : tab === 'teachers' ? 'Teachers' : tab === 'students' ? 'Students' :
@@ -421,14 +406,15 @@ const handleActionSubmit = async (formData) => {
             <template #row="{ item, index, headers }">
               <!-- Schedule Row -->
               <template v-if="activeTab === 'schedule'">
-                <td class="ui-cell text-center font-bold text-content-muted/20" :style="{ width: headers[0].width }">
+                <td class="ui-cell text-center" :style="{ width: headers[0].width }">
                   {{ index + 1 }}
                 </td>
                 <td class="ui-cell">
                   <div class="flex flex-col gap-1 items-start">
-                    <AppBadge :status="item.schedule.day" :type="['Saturday', 'Sunday'].includes(item.schedule.day) ? 'blue' : 'gray'"
-                      size="sm" />
-                    <span class="text-sm font-semibold text-content-dark tracking-tight leading-none">{{ item.schedule.time
+                    <AppBadge :status="item.schedule.day"
+                      :type="['Saturday', 'Sunday'].includes(item.schedule.day) ? 'blue' : 'gray'" />
+                    <span class="tracking-tight leading-none">{{
+                      item.schedule.time
                     }}</span>
                   </div>
                 </td>
@@ -436,19 +422,20 @@ const handleActionSubmit = async (formData) => {
                   <AppBadge :status="item.branch?.abbr || 'TBA'" :type="item.branch?.color || 'blue'" />
                 </td>
                 <td class="ui-cell">
-                  <span class="text-sm font-semibold text-content-dark tracking-tight">{{ item.term?.name || 'Active Term'
-                  }}</span>
+                  <span class="tracking-tight">{{ item.term?.name }}</span>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[4].width }">
                   <div class="flex flex-col items-center gap-2 w-full px-4">
-                    <div class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
+                    <div
+                      class="w-full h-1.5 bg-surface-subtle rounded-full overflow-hidden shadow-inner ring-1 ring-black/5">
                       <div class="h-full transition-all duration-700 ease-out rounded-full"
                         :style="{ width: ((item.capacity || item.maxCapacity) ? ((item.currentCount || item.enrolledCount) / (item.capacity || item.maxCapacity)) * 100 : 0) + '%' }"
                         :class="((item.capacity || item.maxCapacity) && ((item.currentCount || item.enrolledCount) / (item.capacity || item.maxCapacity)) >= 1) ? 'bg-error' : ((item.capacity || item.maxCapacity) && ((item.currentCount || item.enrolledCount) / (item.capacity || item.maxCapacity)) >= 0.8) ? 'bg-warning' : 'bg-emerald-500'">
                       </div>
                     </div>
-                    <span class="text-[10px] font-semibold text-content-muted tabular-nums tracking-widest uppercase">
-                      {{ item.currentCount || item.enrolledCount || 0 }}/{{ (item.capacity || item.maxCapacity) || '∞' }}
+                    <span class="tabular-nums ">
+                      {{ item.currentCount || item.enrolledCount || 0 }}/{{ (item.capacity || item.maxCapacity) || '∞'
+                      }}
                     </span>
                   </div>
                 </td>
@@ -466,7 +453,7 @@ const handleActionSubmit = async (formData) => {
 
               <!-- Teachers Row -->
               <template v-else-if="activeTab === 'teachers'">
-                <td class="ui-cell text-center font-bold text-content-muted/20" :style="{ width: headers[0].width }">
+                <td class="ui-cell text-center" :style="{ width: headers[0].width }">
                   {{ index + 1 }}
                 </td>
                 <td class="ui-cell">
@@ -476,8 +463,8 @@ const handleActionSubmit = async (formData) => {
                         class="w-full h-full object-cover" />
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-                      <span class="text-[10px] font-semibold text-content-muted uppercase tracking-widest">{{
+                      <span class="">{{ item.name }}</span>
+                      <span class="">{{
                         item.role || 'Instructor' }}</span>
                     </div>
                   </div>
@@ -485,14 +472,14 @@ const handleActionSubmit = async (formData) => {
                 <td class="ui-cell text-center" :style="{ width: headers[2].width }">
                   <AppBadge :status="item.branch || 'Multiple'" type="blue" />
                 </td>
-                <td class="ui-cell text-xs font-semibold text-content-muted">
+                <td class="ui-cell">
                   {{ item.email || 'N/A' }}
                 </td>
               </template>
 
               <!-- Students Row -->
               <template v-else-if="activeTab === 'students'">
-                <td class="ui-cell text-center font-bold text-content-muted/20" :style="{ width: headers[0].width }">
+                <td class="ui-cell text-center" :style="{ width: headers[0].width }">
                   {{ index + 1 }}
                 </td>
                 <td class="ui-cell">
@@ -502,17 +489,18 @@ const handleActionSubmit = async (formData) => {
                         class="w-full h-full object-cover" />
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-sm font-semibold text-content-dark">{{ item.student?.name || 'Unknown Student'
+                      <span class="">{{ item.student?.name || 'Unknown Student'
                         }}</span>
-                      <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{ item.programName ||
+                      <span class="">{{ item.programName
+                        ||
                         'Program' }}</span>
                     </div>
                   </div>
                 </td>
                 <td class="ui-cell">
-                  <span class="text-xs font-semibold text-content-muted">{{ item.student?.parentName || 'N/A' }}</span>
+                  <span class="">{{ item.student?.parentName || 'N/A' }}</span>
                 </td>
-                <td class="ui-cell text-center text-xs font-semibold text-content-muted tabular-nums">
+                <td class="ui-cell text-center tabular-nums">
                   {{ item.student?.age || 'N/A' }}
                 </td>
                 <td class="ui-cell text-center">
@@ -523,7 +511,7 @@ const handleActionSubmit = async (formData) => {
 
               <!-- Trials Row -->
               <template v-else-if="activeTab === 'trials'">
-                <td class="ui-cell text-center font-bold text-content-muted/20" :style="{ width: headers[0].width }">
+                <td class="ui-cell text-center" :style="{ width: headers[0].width }">
                   {{ index + 1 }}
                 </td>
                 <td class="ui-cell">
@@ -533,15 +521,16 @@ const handleActionSubmit = async (formData) => {
                         class="w-full h-full object-cover" />
                     </div>
                     <div class="flex flex-col">
-                      <span class="text-sm font-semibold text-content-dark">{{ item.student?.name || item.guestStudentName
+                      <span class="">{{ item.student?.name ||
+                        item.guestStudentName
                       }}</span>
-                      <span class="text-[10px] font-semibold text-primary uppercase tracking-widest">{{ item.isGuest ?
+                      <span class="">{{ item.isGuest ?
                         'Guest Prospect' : 'Registered Student' }}</span>
                     </div>
                   </div>
                 </td>
                 <td class="ui-cell">
-                  <span class="text-xs font-semibold text-content-muted">{{ item.parent?.name || item.guestParentName ||
+                  <span class="">{{ item.parent?.name || item.guestParentName ||
                     'Guest Parent' }}</span>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[3].width }">
@@ -549,9 +538,9 @@ const handleActionSubmit = async (formData) => {
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[4].width }">
                   <div class="flex flex-col items-center">
-                    <span class="text-[11px] font-semibold text-content-dark tabular-nums tracking-tight">{{
+                    <span class="tabular-nums tracking-tight">{{
                       item.trialDate ? new Date(item.trialDate).toLocaleDateString() : 'N/A' }}</span>
-                    <span class="text-[10px] font-semibold text-content-muted">{{ item.trialTime || '' }}</span>
+                    <span class="">{{ item.trialTime || '' }}</span>
                   </div>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[5].width }">
@@ -564,24 +553,24 @@ const handleActionSubmit = async (formData) => {
 
               <!-- Distribution Row -->
               <template v-else-if="activeTab === 'distribution'">
-                <td class="ui-cell text-center font-bold text-content-muted/20" :style="{ width: headers[0].width }">
+                <td class="ui-cell text-center" :style="{ width: headers[0].width }">
                   {{ index + 1 }}
                 </td>
                 <td class="ui-cell">
                   <div class="flex items-center gap-2">
-                    <span class="font-bold text-content-dark tracking-tighter text-sm uppercase">{{
+                    <span class="tracking-tighter">{{
                       item.branch?.name }}</span>
-                    <AppBadge :status="item.branch?.abbr" :type="item.branch?.color || 'blue'" size="sm" />
+                    <AppBadge :status="item.branch?.abbr" :type="item.branch?.color || 'blue'" />
                   </div>
                 </td>
                 <td class="ui-cell">
-                  <span class="text-sm font-bold text-content-muted tracking-tight">{{ item.term?.name }}</span>
+                  <span class="tracking-tight">{{ item.term?.name }}</span>
                 </td>
                 <td class="ui-cell text-center">
-                  <span class="text-sm font-bold text-content-dark tabular-nums">{{ item.studentCount }}</span>
+                  <span class="tabular-nums">{{ item.studentCount }}</span>
                 </td>
                 <td class="ui-cell text-center">
-                  <span class="text-sm font-bold text-content-dark tabular-nums">{{ item.classCount }}</span>
+                  <span class="tabular-nums">{{ item.classCount }}</span>
                 </td>
                 <td class="ui-cell text-center">
                   <AppBadge :status="'$' + item.revenue.toLocaleString()" type="green" />
@@ -589,8 +578,6 @@ const handleActionSubmit = async (formData) => {
               </template>
             </template>
           </DataTable>
-
-
         </section>
       </template>
 
@@ -643,13 +630,9 @@ const handleActionSubmit = async (formData) => {
                   years</span>
               </div>
               <div class="flex justify-between gap-1">
-                <span class="text-lg font-bold text-content-dark">Capacity:</span>
-                <div class="flex items-center gap-2">
-                  <span class="text-md font-bold text-content-muted">{{ program.maxCapacity || 'Unlimited' }}</span>
-                  <span v-if="!program.maxCapacity"
-                    class="text-[10px] font-semibold text-primary uppercase tracking-widest">(Active: {{ totalClassCapacity
-                    }})</span>
-                </div>
+                <span class="text-lg font-bold text-content-dark">Duration:</span>
+                <span class="text-md font-bold text-content-muted tabular-nums">{{ program.duration || 0 }}
+                  minutes</span>
               </div>
               <div class="flex justify-between gap-1">
                 <span class="text-lg font-bold text-content-dark">Status:</span>
@@ -663,16 +646,9 @@ const handleActionSubmit = async (formData) => {
               </div>
             </div>
           </section>
-
-
-
-
         </div>
       </template>
     </DetailPageLayout>
-
-
-
     <ProgramActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :program="actionModal.program"
       :loading="actionModal.loading" v-model:error="actionModal.error" v-model:success="actionModal.success"
       @close="closeModal" @submit="handleActionSubmit" />

@@ -32,6 +32,7 @@ const getInitialData = () => ({
   type: 'Group',
   basePrice: 180,
   totalSessions: 11,
+  duration: 60,
   minAge: 5,
   maxAge: 15,
   profileURL: '',
@@ -309,6 +310,7 @@ const confirmRows = computed(() => {
     { key: 'Type', value: localData.type, badge: true, type: 'tag' },
     { key: 'Base Price', value: `$${localData.basePrice}`, valueClass: 'font-bold text-primary text-base', badge: true, type: 'blue' },
     { key: 'Total Sessions', value: localData.totalSessions, valueClass: 'font-bold tabular-nums' },
+    { key: 'Duration', value: `${localData.duration} mins`, valueClass: 'font-bold tabular-nums' },
     { key: 'Age Range', value: `${localData.minAge} - ${localData.maxAge} years`, valueClass: 'font-bold text-content-dark' },
   ]
   if (props.type === 'delete') {
@@ -395,7 +397,7 @@ watch(
               Manage {{ lookupType }}s
             </span>
             <button type="button" @click="lookupType = null"
-              class="text-xs font-semibold text-content-muted hover:text-error uppercase tracking-widest">Close</button>
+              class="text-3xs font-semibold text-content-muted hover:text-error ">Close</button>
           </div>
           <div class="flex flex-col gap-sm">
             <div class="flex gap-sm">
@@ -410,7 +412,7 @@ watch(
               class="flex items-center gap-sm p-2 bg-white/40 rounded-xl border border-outline-std/50 shadow-inner">
               <div v-if="lookupType === 'category'" class="relative flex-1">
                 <input v-model="newLookupURL" placeholder="Category Asset URL (optional)..."
-                  class="w-full pl-9 pr-md py-2 text-[10px] bg-white/80 border border-outline-std rounded-lg focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
+                  class="w-full pl-9 pr-md py-2 text-3xs bg-white/80 border border-outline-std rounded-lg focus:ring-2 focus:ring-primary/20 outline-none transition-all" />
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 text-xs">🔗</span>
               </div>
 
@@ -437,13 +439,13 @@ watch(
               <div class="w-5 h-5 rounded-lg overflow-hidden border border-white shadow-xs bg-white shrink-0">
                 <img :src="getLookupImage(item)" class="w-full h-full object-cover opacity-80" />
               </div>
-              <span class="text-[10px] font-semibold uppercase tracking-tight">{{ item.name }}</span>
+              <span class="text-3xs font-semibold tracking-tight">{{ item.name }}</span>
               <button type="button" @click="deleteLookup(item.id)"
                 class="w-4 h-4 rounded-full flex items-center justify-center hover:bg-error/10 hover:text-error transition-all ml-xs">
                 ×
               </button>
             </div>
-            <div v-if="!currentLookupItems.length" class="text-[10px] text-content-muted italic py-2">
+            <div v-if="!currentLookupItems.length" class="text-3xs text-content-muted italic py-2">
               No items found in this catalog.
             </div>
           </div>
@@ -482,6 +484,9 @@ watch(
         <AppInput v-model="localData.totalSessions" type="number" label="Total Sessions" placeholder="24" required
           :error="errors.totalSessions" :shake="shaking.totalSessions" @input="clearError('totalSessions')" />
 
+        <AppInput v-model="localData.duration" type="number" label="Duration (Minutes)" placeholder="60" required
+          :error="errors.duration" :shake="shaking.duration" @input="clearError('duration')" />
+
         <AppInput v-model="localData.minAge" type="number" label="Minimum Age" placeholder="5" required />
         <AppInput v-model="localData.maxAge" type="number" label="Maximum Age" placeholder="12" required />
 
@@ -499,27 +504,27 @@ watch(
           v-if="props.program">
           <div class="grid grid-cols-2 gap-x-lg gap-y-md">
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-bold text-content-muted uppercase tracking-wider opacity-60">Program
+              <span class="text-2xs font-bold text-content-muted tracking-wider opacity-60">Program
                 Name</span>
               <div class="flex items-center gap-sm">
                 <span class="text-sm font-semibold text-content-dark tracking-tight">{{ props.program.name }}</span>
               </div>
             </div>
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-bold text-content-muted uppercase tracking-wider opacity-60">Category</span>
+              <span class="text-2xs font-bold text-content-muted tracking-wider opacity-60">Category</span>
               <div class="flex items-center gap-sm">
                 <AppBadge :status="categories.find(c => c.id === props.program.categoryId)?.name" type="blue" />
               </div>
             </div>
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-bold text-content-muted uppercase tracking-wider opacity-60">Level</span>
+              <span class="text-2xs font-bold text-content-muted tracking-wider opacity-60">Level</span>
               <div class="flex items-center gap-sm">
                 <AppBadge :status="levels.find(l => l.id === props.program.levelId)?.name"
                   class="bg-surface-subtle text-content-dark border-outline-std" />
               </div>
             </div>
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-bold text-content-muted uppercase tracking-wider opacity-60">Price</span>
+              <span class="text-2xs font-bold text-content-muted tracking-wider opacity-60">Price</span>
               <span class="text-sm font-semibold text-primary tracking-tighter">${{ props.program.basePrice }}</span>
             </div>
           </div>
@@ -527,7 +532,7 @@ watch(
 
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-semibold tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
+            <strong class="text-sm font-semibold tracking-tight">⚠ Permanent Data Deletion</strong>
             <span class="text-xs opacity-90 font-medium">This will erase all linked class records and enrollment history
               for this program. This action is irreversible.</span>
           </div>
@@ -536,7 +541,7 @@ watch(
         <AppInput v-model="localData.deleteConfirm" label="Security Confirmation" placeholder='Type "DELETE" to confirm'
           required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
           <template #label-extra>
-            <span class="block text-2xs font-bold uppercase text-content-muted/40 mt-1">
+            <span class="block text-3xs font-bold text-content-muted/40 mt-1">
               Type <span class="text-error px-1 font-bold">DELETE</span> to authorize this permanent action
             </span>
           </template>
@@ -556,7 +561,7 @@ watch(
             <span class="text-lg">ℹ️</span>
             <div class="flex flex-col">
               <span class="text-xs font-semibold tracking-tight">No Changes Detected</span>
-              <span class="text-[10px] opacity-80">Please modify at least one field to enable the update button.</span>
+              <span class="text-3xs opacity-80">Please modify at least one field to enable the update button.</span>
             </div>
           </div>
         </AppAlert>

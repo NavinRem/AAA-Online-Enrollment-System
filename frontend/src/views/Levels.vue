@@ -45,11 +45,11 @@ const fetchLevels = async () => {
 onMounted(fetchLevels)
 
 const levelHeaders = [
-  { label: 'NO', width: '80px', align: 'center' },
-  { label: 'LEVEL NAME' },
-  { label: 'DESCRIPTION', class: 'hidden md:table-cell' },
-  { label: 'PROGRAMS COUNT', align: 'center', width: '150px' },
-  { label: 'ACTION', width: '100px', align: 'center' },
+  { label: 'No', width: '80px', align: 'center' },
+  { label: 'Level Name' },
+  { label: 'Description', class: 'hidden md:table-cell' },
+  { label: 'Programs Count', align: 'center', width: '150px' },
+  { label: 'Action', width: '100px', align: 'center' },
 ]
 
 const { searchQuery, searchResults: filteredLevels } = useSearch(levels, (l) => {
@@ -62,14 +62,12 @@ const statsCards = computed(() => {
       label: 'Total Difficulty Levels',
       value: levels.value.length,
       image: getImageUrl('programs/total-program'),
-      color: 'var(--color-primary-light)',
     },
     {
       label: 'Most Common Level',
       value: getMostCommonLevel().name,
       subValue: `${getMostCommonLevel().count} Programs`,
       image: getImageUrl('programs/active-program'),
-      color: 'var(--color-primary-light)',
     },
   ]
 })
@@ -139,14 +137,15 @@ const getProgramCount = (levelId) => {
   <DashboardLayout>
     <DataPageLayout overviewTitle="Level Management">
       <template #overview>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
         </div>
       </template>
 
       <template #table>
         <DataTable title="Level Configuration" :headers="levelHeaders" :items="filteredLevels" :loading="loading"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search levels..." @action="({ type, item }) => handleAction(type, item)">
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search levels..."
+          @action="({ type, item }) => handleAction(type, item)">
           <template #toolbar-actions>
             <AppButton variant="primary" @click="handleAction('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
@@ -155,7 +154,7 @@ const getProgramCount = (levelId) => {
           </template>
 
           <template #row="{ item, index, headers }">
-            <td class="ui-cell text-center font-bold text-content-muted/20" style="width: 80px">
+            <td class="ui-cell text-center" style="width: 80px">
               {{ index + 1 }}
             </td>
             <td class="ui-cell">
@@ -163,21 +162,23 @@ const getProgramCount = (levelId) => {
                 <div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <span class="text-xs font-bold text-primary">{{ item.name.charAt(0) }}</span>
                 </div>
-                <span class="font-semibold text-content-dark">{{ item.name }}</span>
+                <span class="">{{ item.name }}</span>
               </div>
             </td>
             <td class="ui-cell hidden md:table-cell">
-              <span class="text-xs text-content-muted line-clamp-1">{{ item.description || 'No description' }}</span>
+              <span class="line-clamp-1">{{ item.description || 'No description' }}</span>
             </td>
             <td class="ui-cell text-center">
               <AppBadge :status="getProgramCount(item.id) + ' Programs'" type="blue" />
             </td>
             <td class="ui-cell text-center">
               <div class="flex justify-center gap-2">
-                <button @click="handleAction('edit', item)" class="p-2 hover:bg-surface-subtle rounded-lg transition-colors">
+                <button @click="handleAction('edit', item)"
+                  class="p-2 hover:bg-surface-subtle rounded-lg transition-colors">
                   <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-60" />
                 </button>
-                <button @click="handleAction('delete', item)" class="p-2 hover:bg-error-soft rounded-lg transition-colors">
+                <button @click="handleAction('delete', item)"
+                  class="p-2 hover:bg-error-soft rounded-lg transition-colors">
                   <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-60" />
                 </button>
               </div>

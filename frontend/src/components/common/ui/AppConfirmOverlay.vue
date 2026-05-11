@@ -35,7 +35,7 @@ defineEmits(['confirm', 'back'])
             <span class="app-confirm-key">{{ row.key }}</span>
             <!-- Slot-based custom rendering per row -->
             <slot :name="`row-${row.key}`" :row="row">
-              <AppBadge v-if="row.badge" :status="row.value" :type="row.type" size="sm" />
+              <AppBadge v-if="row.badge" :status="row.value" :type="row.type" />
               <span v-else class="app-confirm-val" :class="row.valueClass">{{ row.value ?? '—' }}</span>
             </slot>
           </div>
@@ -61,7 +61,7 @@ defineEmits(['confirm', 'back'])
 
 <style scoped>
 .app-confirm-overlay {
-  @apply fixed inset-0 z-[1000] bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-6;
+  @apply fixed inset-0 z-[3000] bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-6;
 }
 
 .app-confirm-card {
@@ -93,7 +93,7 @@ defineEmits(['confirm', 'back'])
 }
 
 .app-confirm-key {
-  @apply text-[10px] font-semibold text-content-muted/60 uppercase tracking-widest flex-shrink-0;
+  @apply text-3xs font-semibold text-content-muted/60 flex-shrink-0;
 }
 
 .app-confirm-val {

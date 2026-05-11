@@ -150,7 +150,7 @@ onUnmounted(() => {
 
 <template>
   <div class="flex flex-col gap-xs text-left w-full" :class="{ 'animate-shake': shake }">
-    <label v-if="label" class="text-sm font-semibold text-content-dark flex items-center gap-1">
+    <label v-if="label" class="text-sm font-semibold text-content-muted flex items-center gap-1 ">
       {{ label }}
       <span v-if="required" class="text-error font-bold leading-none">*</span>
     </label>
@@ -172,7 +172,7 @@ onUnmounted(() => {
                 <div class="w-5 h-5 rounded-full overflow-hidden border border-primary/30 bg-white shrink-0">
                   <img :src="item.profileURL || getActionIcon('edit')" class="w-full h-full object-cover" />
                 </div>
-                <span class="text-[11px] font-semibold text-primary truncate max-w-[100px]">{{ item.name }}</span>
+                <span class="text-3xs font-semibold text-primary truncate max-w-[100px]">{{ item.name }}</span>
                 <button type="button" @click.stop="selectItem(item)"
                   class="ml-1 text-primary/40 hover:text-primary transition-colors">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,8 +180,9 @@ onUnmounted(() => {
                   </svg>
                 </button>
               </div>
-              <span v-if="selectedItems.length === 0" class="text-content-light text-sm italic opacity-70">{{ placeholder
-                }}</span>
+              <span v-if="selectedItems.length === 0" class="text-content-light text-sm italic opacity-70">{{
+                placeholder
+              }}</span>
             </div>
 
             <!-- Single Selection View -->
@@ -217,7 +218,7 @@ onUnmounted(() => {
             <li v-for="item in filteredItems" :key="item.id"
               class="px-md py-sm flex items-center gap-sm cursor-pointer transition-colors hover:bg-surface-light group/item"
               :class="{
-                'bg-primary-soft text-primary font-bold': multiple
+                'bg-primary-light text-primary font-bold': multiple
                   ? (Array.isArray(modelValue) && modelValue.includes(item.id))
                   : modelValue == item.id
               }" @click="selectItem(item)">
@@ -245,7 +246,7 @@ onUnmounted(() => {
     <transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1"
       enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in"
       leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1">
-      <p v-if="error" class="text-3xs font-semibold text-error uppercase tracking-widest pl-1 mt-0.5">
+      <p v-if="error" class="text-3xs font-semibold text-error  pl-1 mt-0.5">
         {{ error }}
       </p>
     </transition>

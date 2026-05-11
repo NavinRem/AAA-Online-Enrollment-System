@@ -84,7 +84,7 @@ const statsCards = computed(() => {
   let bestEarnerNames = []
   let maxRevenue = 0
   const revByBranch = {}
-  
+
   todayEnrollments
     .filter((e) => isPaid(e.paymentStatus))
     .forEach((e) => {
@@ -117,28 +117,24 @@ const statsCards = computed(() => {
       value: topBranchNames.length > 0 ? topBranchNames.join(', ') : '—',
       subtitle: maxStudents > 0 ? `${maxStudents} Studying Students` : 'No students enrolled',
       image: getImageUrl('dashboard/branch'),
-      color: 'var(--color-info-soft)'
     },
     {
       label: 'Highest Earner Today',
       value: bestEarnerNames.length > 0 ? bestEarnerNames.join(', ') : '—',
       subtitle: maxRevenue > 0 ? `Revenue: $${formatPrice(maxRevenue)}` : 'No revenue today',
       image: getImageUrl('dashboard/high-payment'),
-      color: 'var(--color-success-soft)'
     },
     {
       label: 'Enrolled Today',
       value: enrolledValue,
       subtitle: enrolledSubtitle,
       image: getImageUrl('dashboard/card-available-program'),
-      color: 'var(--color-success-soft)'
     },
     {
       label: 'No Enrollment Today',
       value: idleValue,
       subtitle: idleSubtitle,
       image: getImageUrl('dashboard/card-nearlyfull-program'),
-      color: 'var(--color-error-soft)'
     }
   ]
 })
@@ -188,7 +184,7 @@ const getBranchStats = (branchId) => {
   const localTodayStr = now.toLocaleDateString('en-CA') // YYYY-MM-DD local
   const weekAgoTimestamp = now.getTime() - 7 * 86400000
 
-  const enrollments = dataStore.enrollments.filter(e => 
+  const enrollments = dataStore.enrollments.filter(e =>
     e.branchId === branchId || e.class?.branch?.id === branchId || e.class?.branchId === branchId
   )
   const trials = dataStore.trials.filter(t => t.branchId === branchId)
@@ -306,19 +302,19 @@ const handleActionSubmit = async (payload) => {
 
           <template #empty>
             <div class="py-20 text-center flex flex-col items-center gap-4 opacity-30 grayscale">
-              <img :src="getImageUrl('common/no-data')" class="w-24" />
-              <span class="text-sm font-bold text-black uppercase tracking-widest">No Branch Found</span>
+              <img :src="getImageUrl('dashboard/card-nearlyfull-program')" class="w-24" />
+              <span class="text-sm font-bold text-black ">No Branch Found</span>
             </div>
           </template>
 
           <template
             #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
-            <td class="ui-cell text-center font-bold text-content-dark/30" :style="{ width: headers[0].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[0].width }">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
             <td class="ui-cell" :style="{ width: headers[1].width }">
-              <span class="text-sm font-bold text-content-dark truncate block">{{ item.name }}</span>
+              <span class="truncate block">{{ item.name }}</span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
@@ -326,60 +322,61 @@ const handleActionSubmit = async (payload) => {
             </td>
 
             <td class="ui-cell" :style="{ width: headers[3].width }">
-              <span class="text-xs font-semibold text-content-muted line-clamp-2 leading-tight" :title="item.location">
+              <span class="line-clamp-2 text-content-light" :title="item.location">
                 {{ item.location || 'N/A' }}
               </span>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[4].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ item.phone || 'N/A' }}</span>
+              <span>{{ item.phone || 'N/A' }}</span>
             </td>
 
             <!-- Today Section -->
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
-              <AppBadge v-if="branchStatsMap[item.id]?.today.enroll > 0" :status="'+' + branchStatsMap[item.id].today.enroll" type="green" />
-              <span v-else class="text-xs font-bold text-content-dark/40">0</span>
+              <AppBadge
+                :status="branchStatsMap[item.id]?.today.enroll > 0 ? '+' + branchStatsMap[item.id].today.enroll : '0'"
+                type="green" />
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
-              <AppBadge v-if="branchStatsMap[item.id]?.today.trial > 0" :status="'+' + branchStatsMap[item.id].today.trial" type="blue" />
-              <span v-else class="text-xs font-bold text-content-dark/40">0</span>
+              <AppBadge
+                :status="branchStatsMap[item.id]?.today.trial > 0 ? '+' + branchStatsMap[item.id].today.trial : '0'"
+                type="blue" />
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-              <span class="text-xs font-bold text-emerald-700 tabular-nums" v-if="branchStatsMap[item.id]?.today.rev > 0">
-                ${{ formatPrice(branchStatsMap[item.id].today.rev) }}
-              </span>
-              <span v-else class="text-xs font-bold text-content-dark/40">$0</span>
+              <AppBadge :status="'$' + formatPrice(branchStatsMap[item.id]?.today.rev || 0)" type="magenta" />
             </td>
 
             <!-- Week Section -->
             <td class="ui-cell text-center" :style="{ width: headers[8].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ branchStatsMap[item.id]?.week.enroll || 0 }}</span>
+              <span class="tabular-nums">{{ branchStatsMap[item.id]?.week.enroll ||
+                0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[9].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ branchStatsMap[item.id]?.week.trial || 0 }}</span>
+              <span class="tabular-nums">{{ branchStatsMap[item.id]?.week.trial || 0
+                }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[10].width }">
-              <span class="text-xs font-bold text-primary tabular-nums" v-if="branchStatsMap[item.id]?.week.rev > 0">
-                ${{ formatPrice(branchStatsMap[item.id].week.rev) }}
-              </span>
-              <span v-else class="text-xs font-bold text-content-dark/40">$0</span>
+              <AppBadge :status="'$' + formatPrice(branchStatsMap[item.id]?.week.rev || 0)" type="purple" />
             </td>
 
             <!-- Lifetime Section -->
             <td class="ui-cell text-center" :style="{ width: headers[11].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ branchStatsMap[item.id]?.lifetime.classes || 0 }}</span>
+              <span class="tabular-nums">{{
+                branchStatsMap[item.id]?.lifetime.classes || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[12].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ branchStatsMap[item.id]?.lifetime.programs || 0 }}</span>
+              <span class="tabular-nums">{{
+                branchStatsMap[item.id]?.lifetime.programs || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[13].width }">
-              <span class="text-sm font-bold text-content-dark tabular-nums">{{ branchStatsMap[item.id]?.lifetime.studying || 0 }}</span>
+              <span class="tabular-nums">{{
+                branchStatsMap[item.id]?.lifetime.studying || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[14].width }">
-              <span class="text-sm font-bold text-emerald-700 tabular-nums">${{ formatPrice(branchStatsMap[item.id]?.lifetime.totalRev || 0) }}</span>
+              <AppBadge :status="'$' + formatPrice(branchStatsMap[item.id]?.lifetime.totalRev || 0)" type="green" />
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[15].width }">
-              <span class="text-sm font-bold text-amber-700 tabular-nums">${{ formatPrice(branchStatsMap[item.id]?.lifetime.totalPending || 0) }}</span>
+              <AppBadge :status="'$' + formatPrice(branchStatsMap[item.id]?.lifetime.totalPending || 0)" type="orange" />
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[16].width }">

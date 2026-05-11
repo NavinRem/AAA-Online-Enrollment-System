@@ -194,42 +194,43 @@ const modalIcon = computed(() => {
           <div class="grid grid-cols-2 gap-x-lg gap-y-md">
             <!-- Parent -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Parent
+              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60">Parent
                 Registry</span>
               <div class="enroll-identity-row">
                 <img :src="displaySummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ displaySummary.parentName }}</span>
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ displaySummary.parentName
+                  }}</span>
               </div>
             </div>
             <!-- Student -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Student
+              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60">Student
                 Name</span>
               <div class="enroll-identity-row">
                 <img :src="displaySummary.studentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
                 <span class="text-sm font-semibold text-content-dark tracking-tight">{{ displaySummary.studentName
-                  }}</span>
+                }}</span>
               </div>
             </div>
             <!-- Program -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Program
+              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60">Program
                 Selection</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <img :src="displaySummary.programAvatar"
                   class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
                 <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ displaySummary.programName
-                  }}</span>
+                }}</span>
               </div>
             </div>
             <!-- Class & Branch -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Class and
+              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60">Class and
                 Branch</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <AppBadge :status="displaySummary.branchAbbr" class="shadow-sm" />
+                <AppBadge :status="displaySummary.branchAbbr" />
                 <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ displaySummary.classTitle
-                  }}</span>
+                }}</span>
               </div>
             </div>
           </div>
@@ -237,11 +238,10 @@ const modalIcon = computed(() => {
           <div
             class="flex items-center justify-between bg-primary p-xl rounded-std shadow-lg shadow-primary/10 mt-lg border border-primary-dark">
             <div class="flex justify-between gap-1">
-              <span class="text-2xs font-semibold text-white/80 uppercase tracking-widest">Calculated Tuition Fee</span>
+              <span class="text-2xs font-semibold text-white/80 ">Calculated Tuition Fee</span>
               <div class="flex gap-xs">
-                <AppBadge :status="displaySummary.mode || displaySummary.status"
-                  class="bg-white/20 text-white border-transparent" />
-                <AppBadge :status="displaySummary.status" class="bg-white/20 text-white border-transparent" />
+                <AppBadge :status="displaySummary.mode || displaySummary.status" />
+                <AppBadge :status="displaySummary.status" />
               </div>
             </div>
             <div class="text-white">
@@ -260,7 +260,7 @@ const modalIcon = computed(() => {
         </AppAlert>
 
         <div class="flex flex-col gap-xs mt-lg">
-          <label class="text-xs font-semibold uppercase text-content-muted tracking-widest">Payment Channel
+          <label class="text-xs font-semibold text-content-muted ">Payment Channel
             Selection</label>
           <div class="grid grid-cols-2 gap-sm mt-1">
             <button type="button" class="enroll-channel-btn" :class="localData.paymentMethod === 'online'
@@ -301,7 +301,7 @@ const modalIcon = computed(() => {
         </div>
 
         <div class="flex flex-col gap-xs mt-md">
-          <label class="text-xs font-semibold uppercase text-content-muted tracking-widest">Internal Processing
+          <label class="text-xs font-semibold text-content-muted ">Internal Processing
             Remarks</label>
           <textarea v-model="localData.remark" placeholder="Add any specific notes for audit trailing..." rows="2"
             class="ui-remark-textarea"></textarea>
@@ -312,7 +312,7 @@ const modalIcon = computed(() => {
       <div v-if="type === 'cancel'" class="flex flex-col gap-lg">
         <AppAlert type="warning">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-semibold tracking-tight uppercase">Program Termination Warning</strong>
+            <strong class="text-sm font-semibold tracking-tight">Program Termination Warning</strong>
             <span class="text-xs opacity-90 font-medium">Marking this enrollment as cancelled will permanently release
               the reserved seat in
               the session schedule.</span>
@@ -320,12 +320,11 @@ const modalIcon = computed(() => {
         </AppAlert>
 
         <div class="flex flex-col gap-xs">
-          <label class="text-xs font-semibold uppercase text-content-muted tracking-widest">Cancellation Logic / Reason
+          <label class="text-xs font-semibold text-content-muted ">Cancellation Logic / Reason
             <span class="text-error">*</span></label>
           <div class="flex flex-wrap gap-xs mb-sm mt-1">
             <button v-for="preset in cancelPresets" :key="preset" type="button"
-              class="px-md py-1.5 border-2 rounded-sm text-2xs cursor-pointer font-semibold tracking-widest transition-all"
-              :class="activePreset === preset
+              class="px-md py-1.5 border-2 rounded-sm text-2xs cursor-pointer font-semibold  transition-all" :class="activePreset === preset
                 ? 'bg-primary text-white border-primary shadow-md scale-105'
                 : 'bg-surface-light border-outline-std/50 hover:bg-primary-soft hover:text-primary hover:border-primary/20'
                 " @click="selectPreset(preset)">
@@ -336,7 +335,7 @@ const modalIcon = computed(() => {
             'border-error': errors.reason,
             'animate-shake': shaking.reason,
           }" rows="3" placeholder="Provide a detailed cancel reason..." @input="activePreset = ''"></textarea>
-          <div v-if="errors.reason" class="text-error text-3xs font-semibold px-1 mt-0.5 tracking-widest">
+          <div v-if="errors.reason" class="text-error text-3xs font-semibold px-1 mt-0.5 ">
             {{ errors.reason }}
           </div>
         </div>
@@ -350,41 +349,42 @@ const modalIcon = computed(() => {
           <div class="grid grid-cols-2 gap-x-lg gap-y-md">
             <!-- Parent -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Parent
+              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60">Parent
                 Name</span>
               <div class="enroll-identity-row">
                 <img :src="displaySummary.parentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
-                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ displaySummary.parentName }}</span>
+                <span class="text-sm font-semibold text-content-dark tracking-tight">{{ displaySummary.parentName
+                  }}</span>
               </div>
             </div>
             <!-- Student -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Student
+              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60">Student
                 Name</span>
               <div class="enroll-identity-row">
                 <img :src="displaySummary.studentAvatar" class="w-8 h-8 rounded-full border border-white shadow-sm" />
                 <span class="text-sm font-semibold text-content-dark tracking-tight">{{ displaySummary.studentName
-                  }}</span>
+                }}</span>
               </div>
             </div>
             <!-- Program -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Program</span>
+              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60">Program</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
                 <img :src="displaySummary.programAvatar"
                   class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm" />
                 <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ displaySummary.programName
-                  }}</span>
+                }}</span>
               </div>
             </div>
             <!-- Class & Branch -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider opacity-60">Class and
+              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60">Class and
                 Branch</span>
               <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <AppBadge :status="displaySummary.branchAbbr" class="shadow-sm" />
+                <AppBadge :status="displaySummary.branchAbbr" />
                 <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ displaySummary.classTitle
-                  }}</span>
+                }}</span>
               </div>
             </div>
           </div>
@@ -392,7 +392,7 @@ const modalIcon = computed(() => {
 
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-semibold tracking-tight uppercase">⚠ Permanent Data Deletion</strong>
+            <strong class="text-sm font-semibold tracking-tight">⚠ Permanent Data Deletion</strong>
             <span class="text-xs opacity-90 font-medium">This will erase all linked financial logs and attendance
               records. This action is irreversible and cannot be undone.</span>
           </div>
@@ -438,7 +438,7 @@ const modalIcon = computed(() => {
 }
 
 .enroll-channel-btn {
-  @apply flex items-center justify-center gap-md p-xl rounded-sm border-2 font-semibold text-xs uppercase tracking-widest transition-all;
+  @apply flex items-center justify-center gap-md p-xl rounded-sm border-2 font-semibold text-xs transition-all;
 }
 
 .enroll-channel-btn--inactive {

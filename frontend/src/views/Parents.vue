@@ -51,25 +51,21 @@ const statsCards = computed(() => {
       label: 'Total Parents',
       value: s.parentCount,
       image: getImageUrl('parent/total-parent'),
-      color: 'var(--color-primary-light)',
     },
     {
       label: 'Registered Today',
       value: s.todayCount,
       image: getImageUrl('parent/recently-register'),
-      color: 'var(--color-info-soft)',
     },
     {
       label: 'Paid Today',
       value: s.paidTodayCount,
       image: getImageUrl('parent/paid-today'),
-      color: 'var(--color-success-soft)',
     },
     {
       label: 'Trial Today',
       value: s.trialTodayCount,
       image: getImageUrl('parent/active-now'),
-      color: 'var(--color-warning-soft)',
     },
   ]
 })
@@ -298,7 +294,7 @@ const navigateToDetail = (item) => {
             closeMenu,
           }">
             <!-- No -->
-            <td class="ui-cell text-center font-bold text-content-muted/30 hidden md:table-cell">
+            <td class="ui-cell text-center hidden md:table-cell">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
@@ -311,7 +307,7 @@ const navigateToDetail = (item) => {
                 </div>
                 <div class="flex flex-col">
                   <span
-                    class="font-bold text-content-dark group-hover:text-primary transition-colors tracking-tight text-base leading-tight">{{
+                    class="group-hover:text-primary transition-colors tracking-tight leading-tight">{{
                       item.name }}</span>
                 </div>
               </div>
@@ -327,7 +323,7 @@ const navigateToDetail = (item) => {
                     <img :src="child.profileURL" alt="child" class="w-full h-full object-cover" />
                   </div>
                   <div v-if="item.childrenInfo.length > 3"
-                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-[10px] font-semibold text-content-muted">
+                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center">
                     +{{ item.childrenInfo.length - 3 }}
                   </div>
                 </template>
@@ -337,19 +333,19 @@ const navigateToDetail = (item) => {
             <!-- Contact Details -->
             <td class="ui-cell hidden md:table-cell">
               <div class="flex flex-col">
-                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ item.phone }}</span>
+                <span class="tracking-tighter">{{ item.phone }}</span>
               </div>
             </td>
 
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex flex-col max-w-[160px]">
-                <span class="text-sm font-semibold text-content-muted truncate">{{ item.email }}</span>
+                <span class="truncate">{{ item.email }}</span>
               </div>
             </td>
 
             <!-- Joined -->
             <td class="ui-cell hidden lg:table-cell text-center">
-              <span class="text-sm font-semibold tabular-nums">
+              <span class="tabular-nums">
                 {{ formatDate(item.createdAt) }}
               </span>
             </td>

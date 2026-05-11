@@ -557,12 +557,12 @@ watch(
       <template #header-actions v-if="student">
         <div class="flex items-center gap-3">
           <button v-if="!isArchived && !isParentInactive"
-            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-primary hover:border-primary group"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-soft hover:bg-primary hover:border-primary group"
             title="Edit Profile" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100" />
           </button>
           <button v-if="!isArchived && !isParentInactive"
-            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-light hover:bg-purple hover:border-purple group"
+            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-soft hover:bg-purple hover:border-purple group"
             title="Update Status" @click="openActionModal('override')">
             <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100" />
           </button>
@@ -586,7 +586,7 @@ watch(
                 <img :src="stat.image" class="w-10 h-10 opacity-60 group-hover:opacity-100 transition-opacity" />
               </div>
               <div class="flex flex-col">
-                <span class="text-[10px] font-semibold text-content-muted uppercase tracking-widest leading-none mb-1">{{
+                <span class="text-3xs font-semibold text-content-muted  leading-none mb-1">{{
                   stat.label }}</span>
                 <span class="text-xl font-bold text-content-dark tracking-tight">{{ stat.value }}</span>
               </div>
@@ -597,7 +597,7 @@ watch(
         <!-- Tab Navigation -->
         <div class="flex items-center gap-2 p-2 bg-white rounded-full border border-outline-std w-fit">
           <button v-for="tab in ['academic', 'attendance', 'behavior', 'exam']" :key="tab"
-            class="px-8 py-3 rounded-2xl text-xs font-semibold uppercase tracking-widest transition-all duration-300"
+            class="px-8 py-3 rounded-2xl text-xs font-semibold  transition-all duration-300"
             :class="activeTab === tab ? 'bg-primary text-white shadow-md ring-1 ring-black/5 scale-[1.02]' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
             @click="activeTab = tab">
             {{ tab }}
@@ -611,8 +611,8 @@ watch(
             <div class="h-px flex-1 bg-gray-100"></div>
             <!-- Refined Filters -->
             <div v-if="true" class="relative">
-              <button class="px-4 py-2 text-xs font-semibold uppercase rounded-lg transition-all flex items-center gap-2"
-                :class="!isFilterActive ? 'bg-primary-light hover:bg-primary' : ''"
+              <button class="px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2"
+                :class="!isFilterActive ? 'bg-primary-soft hover:bg-primary' : ''"
                 :style="isFilterActive ? filterThemeStyles : {}" @click="toggleProgramFilter(activeTab, $event)">
                 <img :src="getActionIcon('filter')" class="w-3 h-3"
                   :style="{ filter: getStatusFilter(isFilterActive ? getActiveFilterValue(activeTab) : 'filter') }" />
@@ -654,11 +654,8 @@ watch(
             <div :key="activeTab">
               <!-- Academic View -->
               <div v-if="activeTab === 'academic'">
-                <EnrollmentTable
-                  :items="filteredAcademic"
-                  showDate
-                  emptyMessage="No academic history found for this student."
-                />
+                <EnrollmentTable :items="filteredAcademic" showDate
+                  emptyMessage="No academic history found for this student." />
               </div>
 
               <!-- Attendance View -->
@@ -668,20 +665,20 @@ watch(
                   <table class="w-full text-left border-collapse">
                     <thead>
                       <tr class="bg-gray-50/50">
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Course</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Session Date
+                        <th class=" p-md text-xs font-semibold text-content-muted ">No</th>
+                        <th class=" p-md text-xs font-semibold text-content-muted ">Course</th>
+                        <th class=" p-md text-xs font-semibold text-content-muted ">Session Date
                         </th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
+                        <th class=" p-md text-xs font-semibold text-content-muted  text-center">
                           Outcome</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
                       <tr v-for="(item, idx) in filteredAttendance" :key="item.id || idx"
                         class="hover:bg-gray-50/50 transition-colors">
-                        <td class=" p-md text-xs font-semibold text-content-muted">{{ idx + 1 }}</td>
-                        <td class=" p-md font-semibold text-content-dark text-sm">{{ item.programName }}</td>
-                        <td class=" p-md text-xs font-semibold text-content-muted tabular-nums">{{ formatDateOnly(item.date
+                        <td class=" p-md">{{ idx + 1 }}</td>
+                        <td class=" p-md">{{ item.programName }}</td>
+                        <td class=" p-md tabular-nums">{{ formatDateOnly(item.date
                           || item.attendanceDate) }}</td>
                         <td class=" p-md text-center">
                           <AppBadge :status="item.status || 'Present'" />
@@ -691,8 +688,8 @@ watch(
                   </table>
                 </div>
                 <div v-else class="flex flex-col items-center justify-center py-24 opacity-30">
-                  <img :src="getImageUrl('common/no-data')" class="w-24 mb-4 grayscale" />
-                  <span class="text-sm font-semibold uppercase tracking-widest">No Attendance Logs</span>
+                  <img :src="getImageUrl('dashboard/card-nearlyfull-program')" class="w-24 mb-4 grayscale" />
+                  <span class="text-sm font-semibold ">No Attendance Logs</span>
                 </div>
               </div>
 
@@ -703,25 +700,25 @@ watch(
                   <table class="w-full text-left border-collapse">
                     <thead>
                       <tr class="bg-gray-50/50">
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Program</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Date</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
+                        <th class=" p-md text-xs font-semibold text-content-muted ">No</th>
+                        <th class=" p-md text-xs font-semibold text-content-muted ">Program</th>
+                        <th class=" p-md text-xs font-semibold text-content-muted ">Date</th>
+                        <th class=" p-md text-xs font-semibold text-content-muted  text-center">
                           Result</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Remark</th>
+                        <th class=" p-md text-xs font-semibold text-content-muted ">Remark</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
                       <tr v-for="(item, idx) in filteredBehavior" :key="item.id || idx"
                         class="hover:bg-gray-50/50 transition-colors">
-                        <td class=" p-md text-xs font-semibold text-content-muted">{{ idx + 1 }}</td>
-                        <td class=" p-md font-semibold text-content-dark text-sm">{{ item.programName || '-' }}</td>
-                        <td class=" p-md text-xs font-semibold text-content-muted tabular-nums">{{ formatDateTime(item.date
+                        <td class=" p-md">{{ idx + 1 }}</td>
+                        <td class=" p-md">{{ item.programName || '-' }}</td>
+                        <td class=" p-md tabular-nums">{{ formatDateTime(item.date
                           || item.behaviorDate || item.createdAt) }}</td>
                         <td class=" p-md text-center">
                           <AppBadge :status="item.category || item.status || 'General'" />
                         </td>
-                        <td class=" p-md text-xs text-content-muted font-bold">
+                        <td class=" p-md">
                           {{ item.remark || item.note || item.displayStatus || '-' }}
                         </td>
                       </tr>
@@ -729,7 +726,7 @@ watch(
                   </table>
                 </div>
                 <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-40">
-                  <img :src="getImageUrl('common/no-data')" class="w-20" />
+                  <img :src="getImageUrl('dashboard/card-nearlyfull-program')" class="w-20" />
                   <p class="text-sm font-semibold">No behavior logs found.</p>
                 </div>
               </div>
@@ -740,25 +737,25 @@ watch(
                   <table class="w-full text-left border-collapse">
                     <thead>
                       <tr class="bg-gray-50/50">
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">No</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Program</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Date</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest">Examiner</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
+                        <th class=" p-md text-xs font-semibold text-content-muted ">No</th>
+                        <th class=" p-md text-xs font-semibold text-content-muted ">Program</th>
+                        <th class=" p-md text-xs font-semibold text-content-muted ">Date</th>
+                        <th class=" p-md text-xs font-semibold text-content-muted ">Examiner</th>
+                        <th class=" p-md text-xs font-semibold text-content-muted  text-center">
                           Score</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted uppercase tracking-widest text-center">
+                        <th class=" p-md text-xs font-semibold text-content-muted  text-center">
                           Status</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50">
                       <tr v-for="(item, idx) in filteredExams" :key="item.id || idx"
                         class="hover:bg-gray-50/50 transition-colors">
-                        <td class=" p-md text-xs font-semibold text-content-muted">{{ idx + 1 }}</td>
-                        <td class=" p-md font-semibold text-content-dark text-sm">{{ item.programName || '-' }}</td>
-                        <td class=" p-md text-xs font-semibold text-content-muted tabular-nums">{{ formatDateOnly(item.date
+                        <td class=" p-md">{{ idx + 1 }}</td>
+                        <td class=" p-md">{{ item.programName || '-' }}</td>
+                        <td class=" p-md tabular-nums">{{ formatDateOnly(item.date
                           || item.examDate) }}</td>
-                        <td class=" p-md text-xs font-semibold text-content-muted">{{ item.examiner || '-' }}</td>
-                        <td class=" p-md text-center font-bold text-primary">{{ item.score || '-' }}</td>
+                        <td class=" p-md">{{ item.examiner || '-' }}</td>
+                        <td class=" p-md text-center">{{ item.score || '-' }}</td>
                         <td class=" p-md text-center">
                           <AppBadge :status="item.score >= 50 ? 'Passed' : 'Failed'" />
                         </td>
@@ -767,7 +764,7 @@ watch(
                   </table>
                 </div>
                 <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-40">
-                  <img :src="getImageUrl('common/no-data')" class="w-20" />
+                  <img :src="getImageUrl('dashboard/card-nearlyfull-program')" class="w-20" />
                   <p class="text-sm font-semibold">No exam records found.</p>
                 </div>
               </div>
@@ -778,7 +775,8 @@ watch(
 
       <template #right-content v-if="student">
         <div class="flex flex-col gap-8">
-          <EntityProfileCard :profileURL="student.profileURL" title="Basic Information" fallbackImage="profiles/avatar-student" />
+          <EntityProfileCard :profileURL="student.profileURL" title="Basic Information"
+            fallbackImage="profiles/avatar-student" />
           <RelationshipsCard title="Family Context" :items="parentItems" />
           <EntityInfoCard title="Student Details" :fields="studentDetailsFields" />
           <TimestampCard :createdAt="student.createdAt" :updatedAt="student.updatedAt" />

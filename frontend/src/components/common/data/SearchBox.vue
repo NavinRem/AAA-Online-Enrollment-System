@@ -28,7 +28,9 @@ defineEmits(['update:modelValue'])
       class="w-full pl-11  pr-md py-3 border-2 rounded-2xl text-sm font-medium outline-none transition-all" :class="[
         variant === 'light'
           ? 'bg-white border-white/20 text-white placeholder-white/50 focus:bg-white/20 focus:border-white/40 focus:ring-4 focus:ring-white/10'
-          : 'bg-surface-subtle border-outline-std text-content-dark placeholder-text-muted focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5',
+          : variant === 'white'
+            ? 'bg-white border-outline-std text-content-dark placeholder-text-muted focus:border-primary focus:ring-4 focus:ring-primary/5'
+            : 'bg-primary-soft border-outline-std text-content-dark placeholder-text-muted focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5',
       ]" :placeholder="placeholder" />
   </div>
 </template>

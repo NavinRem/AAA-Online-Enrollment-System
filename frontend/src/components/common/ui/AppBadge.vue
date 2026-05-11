@@ -13,20 +13,21 @@ const badgeValue = computed(() => props.value || props.status)
 const badgeStyle = computed(() => getStatusTheme(props.colorValue || badgeValue.value, props.type))
 
 const displayLabel = computed(() => {
-  const val = String(badgeValue.value || '')
-  if (!val) return ''
-  
+  if (badgeValue.value === null || badgeValue.value === undefined || badgeValue.value === '') return ''
+
+  const val = String(badgeValue.value)
+
   // Don't capitalize if it's a price or already has multiple caps
   if (val.startsWith('$') || /^[A-Z]{2,}/.test(val)) return val
-  
+
   // Capitalize first letter of each word
-  return val.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ')
+  return val.split(' ').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')
 })
 </script>
 
 <template>
   <span
-    class="inline-flex items-center justify-center w-fit px-3 py-[3px] rounded-full text-sm font-semibold leading-none whitespace-nowrap text-center transition-all"
+    class="inline-flex items-center justify-center w-fit px-3.5 py-1 rounded-full text-sm font-bold leading-none whitespace-nowrap text-center transition-all"
     :style="badgeStyle">
     <slot>{{ displayLabel }}</slot>
   </span>
