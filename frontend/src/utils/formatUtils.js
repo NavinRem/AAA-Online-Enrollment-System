@@ -45,6 +45,16 @@ export const formatDateOnly = (val) => {
 }
 
 /**
+ * Formats a date into a short string (e.g., "17 Apr 26").
+ */
+export const formatShortDate = (val) => {
+  if (!val) return 'N/A'
+  const date = parseDate(val)
+  if (isNaN(date.getTime())) return 'N/A'
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+}
+
+/**
  * Calculates current age based on a birth date.
  *
  * @param {any} val - Birth date
@@ -129,7 +139,7 @@ export const formatPrice = (val) => {
  * @param {number} capacity - Max capacity
  * @returns {object} Progress stats { week, status, percentage, totalWeeks, isOngoing, isArchived }
  */
-export const calculateClassProgress = (startDate, endDate, day = null, time = null, currentCount = 0, capacity = 0) => {
+export const calculateClassProgress = (startDate, endDate, day = null, time = null) => {
   if (!startDate || !endDate)
     return { status: 'N/A', week: 0, percentage: 0, totalWeeks: 0, isArchived: false, isOngoing: false }
 
@@ -151,24 +161,20 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
   const elapsedMs = todayDate - startDateOnly
   
   let currentWeek = 0
-  let sessionPassed = false
+  let sessionHasPassed = false
   
   if (elapsedMs >= 0) {
     currentWeek = Math.min(totalWeeks, Math.floor(elapsedMs / (7 * 24 * 60 * 60 * 1000)) + 1)
     
-    // For a specific class session, check if today's session has already happened
+    // Check if the session for the current week has likely passed
+    // (Simple logic: if today is past the start of the week. 
+    // In a future update, this could be refined with the actual 'day' parameter)
     const currentWeekStartDate = new Date(startDateOnly)
     currentWeekStartDate.setDate(currentWeekStartDate.getDate() + (currentWeek - 1) * 7)
-    
-    // sessionPassed is true if today is AFTER the scheduled session day of the current week
-    sessionPassed = todayDate > currentWeekStartDate
-  } else {
-    // Upcoming Term
-    currentWeek = 0
-    sessionPassed = false
+    sessionHasPassed = todayDate > currentWeekStartDate
   }
 
-  const remainingSessions = Math.max(0, totalWeeks - currentWeek + (sessionPassed ? 0 : 1))
+  const remainingSessions = Math.max(0, totalWeeks - currentWeek + (sessionHasPassed ? 0 : 1))
   const percentage = currentWeek === 0 ? 0 : Math.min(100, Math.round((currentWeek / totalWeeks) * 100))
 
   // ── Status Priority Logic ──
@@ -203,8 +209,6 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
     status = 'archived'
   } else if (isOngoing) {
     status = 'ongoing'
-  } else if (capacity > 0 && currentCount >= capacity) {
-    status = 'full'
   } else if (todayDate < startDateOnly) {
     status = 'upcoming'
   }

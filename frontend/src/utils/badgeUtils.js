@@ -83,29 +83,29 @@ const REGISTRIES = {
 }
 
 const THEMES = {
-  green: { backgroundColor: 'var(--color-success-soft)', color: 'var(--color-success)' },
-  yellow: { backgroundColor: 'var(--color-warning-soft)', color: 'var(--color-warning)' },
-  orange: { backgroundColor: 'var(--color-orange-soft)', color: 'var(--color-orange)' },
-  red: { backgroundColor: 'var(--color-error-soft)', color: 'var(--color-error)' },
-  blue: { backgroundColor: 'var(--color-primary-soft)', color: 'var(--color-primary)' },
-  purple: { backgroundColor: 'var(--color-purple-soft)', color: 'var(--color-purple)' },
-  magenta: { backgroundColor: 'var(--color-magenta-soft)', color: 'var(--color-magenta)' },
-  pink: { backgroundColor: 'var(--color-pink-soft)', color: 'var(--color-pink)' },
-  gray: { backgroundColor: 'var(--color-gray-soft)', color: 'var(--color-gray)' },
+  green: { backgroundColor: 'var(--color-success-soft)', color: 'var(--color-success-deep)' },
+  yellow: { backgroundColor: 'var(--color-warning-soft)', color: 'var(--color-warning-deep)' },
+  orange: { backgroundColor: 'var(--color-orange-soft)', color: 'var(--color-orange-deep)' },
+  red: { backgroundColor: 'var(--color-error-soft)', color: 'var(--color-error-deep)' },
+  blue: { backgroundColor: 'var(--color-primary-soft)', color: 'var(--color-primary-deep)' },
+  purple: { backgroundColor: 'var(--color-purple-soft)', color: 'var(--color-purple-deep)' },
+  magenta: { backgroundColor: 'var(--color-magenta-soft)', color: 'var(--color-magenta-deep)' },
+  pink: { backgroundColor: 'var(--color-pink-soft)', color: 'var(--color-pink-deep)' },
+  gray: { backgroundColor: 'var(--color-gray-soft)', color: 'var(--color-gray-deep)' },
 }
 
 const THEME_FILTERS = {
-  green: 'invert(55%) sepia(86%) saturate(382%) hue-rotate(113deg) brightness(95%) contrast(89%)',
-  yellow: 'invert(61%) sepia(95%) saturate(1633%) hue-rotate(1deg) brightness(101%) contrast(93%)',
-  orange: 'invert(24%) sepia(99%) saturate(3736%) hue-rotate(16deg) brightness(94%) contrast(101%)',
-  red: 'invert(39%) sepia(81%) saturate(2314%) hue-rotate(336deg) brightness(95%) contrast(97%)',
-  blue: 'invert(51%) sepia(87%) saturate(2371%) hue-rotate(167deg) brightness(101%) contrast(105%)',
+  green: 'invert(15%) sepia(87%) saturate(1450%) hue-rotate(136deg) brightness(92%) contrast(101%)',
+  yellow: 'invert(18%) sepia(91%) saturate(2464%) hue-rotate(24deg) brightness(91%) contrast(101%)',
+  orange: 'invert(15%) sepia(99%) saturate(4138%) hue-rotate(10deg) brightness(96%) contrast(112%)',
+  red: 'invert(13%) sepia(94%) saturate(5411%) hue-rotate(358deg) brightness(94%) contrast(110%)',
+  blue: 'invert(36%) sepia(96%) saturate(1636%) hue-rotate(176deg) brightness(95%) contrast(105%)',
   purple:
-    'invert(16%) sepia(94%) saturate(3848%) hue-rotate(282deg) brightness(79%) contrast(110%)',
+    'invert(13%) sepia(77%) saturate(5603%) hue-rotate(272deg) brightness(85%) contrast(106%)',
   magenta:
-    'invert(18%) sepia(61%) saturate(6015%) hue-rotate(323deg) brightness(85%) contrast(106%)',
-  pink: 'invert(26%) sepia(91%) saturate(3474%) hue-rotate(314deg) brightness(96%) contrast(95%)',
-  gray: 'invert(38%) sepia(10%) saturate(394%) hue-rotate(170deg) brightness(94%) contrast(89%)',
+    'invert(14%) sepia(85%) saturate(3174%) hue-rotate(318deg) brightness(94%) contrast(106%)',
+  pink: 'invert(14%) sepia(85%) saturate(3174%) hue-rotate(318deg) brightness(94%) contrast(106%)',
+  gray: 'invert(34%) sepia(12%) saturate(1001%) hue-rotate(175deg) brightness(97%) contrast(90%)',
 }
 
 export const resolveColor = (value, module = null) => {

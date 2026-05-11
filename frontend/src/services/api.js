@@ -6,20 +6,26 @@ const API_URL = config.api.baseUrl
 
 export async function request(endpoint, options = {}) {
   let url = `${API_URL}${endpoint}`
-  const method = (options.method || 'GET').toUpperCase()
+  const method = options.method || 'GET'
 
   // Global Parameter Sanitization for GET requests
   if (method === 'GET' && endpoint.includes('?')) {
     const [path, query] = endpoint.split('?')
     const params = new URLSearchParams(query)
     const cleanParams = new URLSearchParams()
-    
+
     for (const [key, value] of params.entries()) {
-      if (value !== 'undefined' && value !== 'null' && value !== '' && value !== null && value !== undefined) {
+      if (
+        value !== 'undefined' &&
+        value !== 'null' &&
+        value !== '' &&
+        value !== null &&
+        value !== undefined
+      ) {
         cleanParams.append(key, value)
       }
     }
-    
+
     const newQuery = cleanParams.toString()
     url = newQuery ? `${API_URL}${path}?${newQuery}` : `${API_URL}${path}`
   }
@@ -42,7 +48,7 @@ export async function request(endpoint, options = {}) {
       currentUser = user
     })
     // Small delay to allow Firebase to initialize if it hasn't yet
-    await new Promise(resolve => setTimeout(resolve, 50))
+    await new Promise((resolve) => setTimeout(resolve, 50))
     unsubscribe()
   }
 

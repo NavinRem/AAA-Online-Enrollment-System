@@ -132,21 +132,17 @@ export const teacherSearchMapper = (t) =>
 
 export const classSearchMapper = (c) => {
   const catName = typeof c.program?.category === 'object' ? c.program.category.name : (c.program?.category || '')
-  const teacherNames = [
-    ...(c.teachers || []).map(t => t.name), 
-    c.teacher?.name
-  ].filter(Boolean).join(' ')
+  const scheduleText = (c.schedules || [])
+    .map((schedule) => `${schedule.day} ${schedule.time}`)
+    .join(' ')
   
   return [
     c.program?.name,
     catName,
-    teacherNames,
-    c.branch?.name,
-    c.branch?.abbr,
     c.schedule?.day,
     c.schedule?.time,
-    c.term?.name,
-    c.status
+    scheduleText,
+    c.status,
   ].filter(Boolean).join(' ').toLowerCase()
 }
 

@@ -21,7 +21,7 @@ const DAY_MAP = {
 /**
  * Extracts and formats the day of the week from a schedule source.
  * Supports legacy formats (e.g., "Day: Mon") and standardized objects.
- * 
+ *
  * @param {string|Object} schedule - Schedule data (string or { day: string })
  * @param {boolean} full - If true, returns full name (e.g. "Monday"), otherwise "MON"
  * @returns {string} The formatted day name or "N/A" if invalid
@@ -38,16 +38,16 @@ export const getSessionDay = (schedule, full = false) => {
 
   if (full) {
     const key = rawDay.toLowerCase()
-    return DAY_MAP[key] || rawDay.charAt(0).toUpperCase() + rawDay.slice(1).toLowerCase()
+    return DAY_MAP[key] || rawDay.charAt(0) + rawDay.slice(1).toLowerCase()
   }
 
-  return rawDay.substring(0, 3).toUpperCase()
+  return rawDay.substring(0, 3)
 }
 
 /**
  * Extracts the time slot (e.g., "09:00 - 10:30") from a schedule source.
  * Cleans prefix labels like "Timeslot:" or "Time:" and extracts bracketed content.
- * 
+ *
  * @param {string|Object} schedule - Schedule data (string or { timeslot: string })
  * @returns {string} The formatted time slot or "TBD" if not found
  */
@@ -67,5 +67,9 @@ export const getSessionTime = (schedule) => {
   const firstWord = rawStr.split(/[\s,:]/)[0]
   if (!firstWord) return rawStr
 
-  return rawStr.substring(firstWord.length).replace(/^[\s,:(]+/, '').replace(/\)$/, '').trim()
+  return rawStr
+    .substring(firstWord.length)
+    .replace(/^[\s,:(]+/, '')
+    .replace(/\)$/, '')
+    .trim()
 }

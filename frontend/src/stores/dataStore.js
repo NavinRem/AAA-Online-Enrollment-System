@@ -8,6 +8,7 @@ import { termService } from '../services/termService'
 import { trialService } from '../services/trialService'
 import { enrollmentService } from '../services/enrollmentService'
 import { branchService } from '../services/branchService'
+import { scheduleService } from '../services/scheduleService'
 
 export const useDataStore = defineStore('data', {
   state: () => ({
@@ -20,6 +21,7 @@ export const useDataStore = defineStore('data', {
     trials: [],
     enrollments: [],
     branches: [],
+    schedules: [],
     loading: {
       parents: false,
       students: false,
@@ -29,7 +31,8 @@ export const useDataStore = defineStore('data', {
       terms: false,
       trials: false,
       enrollments: false,
-      branches: false
+      branches: false,
+      schedules: false,
     },
     lastFetched: {
       parents: null,
@@ -40,8 +43,9 @@ export const useDataStore = defineStore('data', {
       terms: null,
       trials: null,
       enrollments: null,
-      branches: null
-    }
+      branches: null,
+      schedules: null,
+    },
   }),
 
   actions: {
@@ -52,7 +56,7 @@ export const useDataStore = defineStore('data', {
     async fetchAllCommonData(force = false, modules = null) {
       const allModules = [
         'parents', 'students', 'programs', 'classes', 
-        'categories', 'terms', 'trials', 'enrollments', 'branches'
+        'categories', 'terms', 'trials', 'enrollments', 'branches', 'schedules'
       ]
       
       const targetModules = Array.isArray(modules) ? modules : allModules
@@ -66,7 +70,8 @@ export const useDataStore = defineStore('data', {
         terms: () => this.fetchTerms(force),
         trials: () => this.fetchTrials(force),
         enrollments: () => this.fetchEnrollments(force),
-        branches: () => this.fetchBranches(force)
+        branches: () => this.fetchBranches(force),
+        schedules: () => this.fetchSchedules(force),
       }
 
       const promises = targetModules
@@ -192,6 +197,19 @@ export const useDataStore = defineStore('data', {
         this.lastFetched.branches = Date.now()
       } finally {
         this.loading.branches = false
+      }
+    },
+
+    async fetchSchedules(force = false) {
+      if (this.loading.schedules) return
+      if (!force && this.schedules.length > 0 && this.isFresh('schedules')) return
+      this.loading.schedules = true
+      try {
+        const data = await scheduleService.getAllSchedules()
+        this.schedules = Array.isArray(data) ? data : []
+        this.lastFetched.schedules = Date.now()
+      } finally {
+        this.loading.schedules = false
       }
     },
 
