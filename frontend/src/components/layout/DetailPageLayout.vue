@@ -53,7 +53,7 @@ const flexWidths = computed(() => {
     <div v-else class="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
       <div class="flex flex-col md:flex-row gap-xl flex-1 min-h-0 p-8 w-full">
         <!-- Left Content (Main) -->
-        <div :class="[flexWidths.main, 'flex flex-col gap-lg min-h-0 text-content-dark']">
+        <div :class="[flexWidths.main, 'flex flex-col gap-lg min-h-0 min-w-0 text-content-dark']">
           <div class="flex items-center justify-between min-h-[48px]">
             <button class="ui-back-button" @click="goBack">
               <img :src="getActionIcon('back')" />
@@ -64,7 +64,7 @@ const flexWidths = computed(() => {
             </div>
           </div>
 
-          <div class="flex flex-col gap-lg pr-1" :class="scrollable ? 'overflow-y-auto scrollable-v' : ''">
+          <div class="flex flex-col gap-lg pr-1 min-h-0" :class="scrollable ? 'overflow-y-auto scrollable-v' : 'flex-1'">
             <slot name="left-content"></slot>
           </div>
         </div>

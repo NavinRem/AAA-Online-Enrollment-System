@@ -31,12 +31,19 @@ class EnrollmentService {
     if (!classDoc.exists) throw new Error('Class not found')
 
     const termService = require('./termService')
-    const { term, offering } = await termService.getOffering(termId, termOfferingId)
+    const { term, offering } = await termService.getOffering(
+      termId,
+      termOfferingId,
+    )
     if (offering.classId !== classId && offering.program?.id !== programId) {
-      throw new Error('Selected term offering does not match the selected class/program')
+      throw new Error(
+        'Selected term offering does not match the selected class/program',
+      )
     }
     if (term.endDate && new Date(term.endDate) < new Date()) {
-      throw new Error('Cannot enroll in a term offering that has already ended.')
+      throw new Error(
+        'Cannot enroll in a term offering that has already ended.',
+      )
     }
 
     const existingEnrollment = await db
@@ -47,11 +54,19 @@ class EnrollmentService {
 
     const activeNonDeleted = existingEnrollment.docs.filter((doc) => {
       const data = doc.data()
-      return data.isDeleted !== true && !['cancelled', 'deleted'].includes(String(data.status).toLowerCase())
+      return (
+        data.isDeleted !== true &&
+        !['cancelled', 'deleted'].includes(String(data.status).toLowerCase())
+      )
     })
 
     if (activeNonDeleted.length > 0) {
       throw new Error('Student already enrolled for this term offering')
+    }
+
+    const scheduleCapacity = offering.schedule?.capacity || offering.capacity || classDoc.data().program?.capacity || 20
+    if ((offering.currentCount || 0) >= scheduleCapacity) {
+      throw new Error(`This schedule is full. Maximum capacity of ${scheduleCapacity} reached.`)
     }
 
     const studentSnapshot = profileHelper.getStudentSnapshot(
@@ -65,7 +80,9 @@ class EnrollmentService {
     const termSnapshot = termService.getTermSnapshot(termId, term, offering)
     const classSnapshot = profileHelper.getClassSnapshot(classId, {
       ...classDoc.data(),
-      program: offering.program || profileHelper.getProgramSnapshot(programId, programDoc.data()),
+      program:
+        offering.program ||
+        profileHelper.getProgramSnapshot(programId, programDoc.data()),
       branch: offering.branch,
       schedule: offering.schedule,
       term: termSnapshot,
@@ -144,13 +161,18 @@ class EnrollmentService {
           paidAt: newEnrollment.paidAt || newEnrollment.createdAt,
           createdAt: newEnrollment.createdAt,
           updatedAt: newEnrollment.updatedAt,
-          remark: 'Automatically created during enrollment'
+          remark: 'Automatically created during enrollment',
         })
       }
     })
 
     if (isSeatTaking(newEnrollment.status)) {
-      await termService.syncOfferingStudent(termId, termOfferingId, { id: enrollmentId, ...newEnrollment }, 'upsert')
+      await termService.syncOfferingStudent(
+        termId,
+        termOfferingId,
+        { id: enrollmentId, ...newEnrollment },
+        'upsert',
+      )
     }
 
     // Background task: Mark trials as successful
@@ -306,14 +328,19 @@ class EnrollmentService {
 
       if (
         (validated.termId && validated.termId !== currentData.termId) ||
-        (validated.termOfferingId && validated.termOfferingId !== currentData.termOfferingId) ||
+        (validated.termOfferingId &&
+          validated.termOfferingId !== currentData.termOfferingId) ||
         (validated.classId && validated.classId !== currentData.classId)
       ) {
         const termService = require('./termService')
         const nextTermId = validated.termId || currentData.termId
-        const nextOfferingId = validated.termOfferingId || currentData.termOfferingId
+        const nextOfferingId =
+          validated.termOfferingId || currentData.termOfferingId
         const nextClassId = validated.classId || currentData.classId
-        const { term, offering } = await termService.getOffering(nextTermId, nextOfferingId)
+        const { term, offering } = await termService.getOffering(
+          nextTermId,
+          nextOfferingId,
+        )
         updates.term = termService.getTermSnapshot(nextTermId, term, offering)
         updates.class = profileHelper.getClassSnapshot(nextClassId, {
           program: offering.program,
@@ -338,18 +365,26 @@ class EnrollmentService {
       })
 
       // Sync status with paymentStatus if updated
-      if (validated.paymentStatus && validated.paymentStatus !== currentData.paymentStatus) {
+      if (
+        validated.paymentStatus &&
+        validated.paymentStatus !== currentData.paymentStatus
+      ) {
         if (validated.paymentStatus === 'paid') {
           updates.status = 'paid'
-        } else if (['unpaid', 'pending', 'failed'].includes(validated.paymentStatus)) {
+        } else if (
+          ['unpaid', 'pending', 'failed'].includes(validated.paymentStatus)
+        ) {
           updates.status = 'unpaid'
         }
       }
 
       transaction.update(ref, updates)
- 
+
       // Automatic Payment Record Creation on Status Transition
-      if (validated.paymentStatus === 'paid' && currentData.paymentStatus !== 'paid') {
+      if (
+        validated.paymentStatus === 'paid' &&
+        currentData.paymentStatus !== 'paid'
+      ) {
         const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc()
         transaction.set(paymentRef, {
           enrollmentId: id,
@@ -359,25 +394,38 @@ class EnrollmentService {
           parent: currentData.parent,
           program: currentData.program,
           amount: Number(validated.amount || currentData.amount) || 0,
-          paymentMethod: (validated.paymentMethod || currentData.paymentMethod || 'cash').toLowerCase(),
+          paymentMethod: (
+            validated.paymentMethod ||
+            currentData.paymentMethod ||
+            'cash'
+          ).toLowerCase(),
           paymentStatus: 'paid',
           paidAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          remark: 'Automatically created during enrollment update'
+          remark: 'Automatically created during enrollment update',
         })
       }
 
       // Capacity & Student Seat tracking logic
       if (updates.status && currentData.status !== updates.status) {
         if (isSeatTaking(updates.status) && !isSeatTaking(currentData.status)) {
-          transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId), {
-            totalEnrolledCount: admin.firestore.FieldValue.increment(1),
-          })
-        } else if (!isSeatTaking(updates.status) && isSeatTaking(currentData.status)) {
-          transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId), {
-            totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
-          })
+          transaction.update(
+            db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId),
+            {
+              totalEnrolledCount: admin.firestore.FieldValue.increment(1),
+            },
+          )
+        } else if (
+          !isSeatTaking(updates.status) &&
+          isSeatTaking(currentData.status)
+        ) {
+          transaction.update(
+            db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId),
+            {
+              totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
+            },
+          )
         }
       }
 
@@ -387,7 +435,9 @@ class EnrollmentService {
     const afterDoc = await ref.get()
     const afterData = afterDoc.data()
     const termService = require('./termService')
-    const movedOffering = beforeData.termOfferingId !== afterData.termOfferingId || beforeData.termId !== afterData.termId
+    const movedOffering =
+      beforeData.termOfferingId !== afterData.termOfferingId ||
+      beforeData.termId !== afterData.termId
 
     if (movedOffering && isSeatTaking(beforeData.status)) {
       await termService.syncOfferingStudent(
@@ -433,9 +483,12 @@ class EnrollmentService {
       })
       if (isSeatTaking(status)) {
         const admin = require('firebase-admin')
-        transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId), {
-          totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
-        })
+        transaction.update(
+          db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId),
+          {
+            totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
+          },
+        )
       }
     })
 
@@ -474,9 +527,12 @@ class EnrollmentService {
       })
       if (isSeatTaking(status)) {
         const admin = require('firebase-admin')
-        transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId), {
-          totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
-        })
+        transaction.update(
+          db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId),
+          {
+            totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
+          },
+        )
       }
     })
 
@@ -501,7 +557,10 @@ class EnrollmentService {
 
     const activeNonDeleted = existing.docs.filter((doc) => {
       const data = doc.data()
-      return data.isDeleted !== true && !['cancelled', 'deleted'].includes(String(data.status).toLowerCase())
+      return (
+        data.isDeleted !== true &&
+        !['cancelled', 'deleted'].includes(String(data.status).toLowerCase())
+      )
     })
 
     return {
@@ -522,10 +581,29 @@ class EnrollmentService {
     if (snapshot.empty) return
 
     const firestoreHelper = require('../utils/firestoreHelper')
-    const writes = snapshot.docs.map((doc) => ({
-      ref: doc.ref,
-      data: { class: classSnapshot },
-    }))
+    const writes = snapshot.docs.map((doc) => {
+      const enrollmentData = doc.data()
+      
+      // Preserve the specific schedule assigned to this enrollment but update its snapshot if it exists in the new class data
+      const currentScheduleId = enrollmentData.class?.schedule?.id || enrollmentData.scheduleId
+      const updatedSchedule = (classSnapshot.schedules || []).find(
+        s => String(s.id) === String(currentScheduleId)
+      ) || enrollmentData.class?.schedule
+
+      return {
+        ref: doc.ref,
+        data: { 
+          class: {
+            ...classSnapshot,
+            // Restore and update session-specific fields that get lost in the global snapshot
+            schedule: updatedSchedule,
+            capacity: updatedSchedule?.capacity || enrollmentData.class?.capacity || classSnapshot.capacity || 20,
+            term: enrollmentData.class?.term,
+            branch: enrollmentData.class?.branch
+          } 
+        },
+      }
+    })
     await firestoreHelper.chunkedUpdate(writes)
   }
 
@@ -546,15 +624,21 @@ class EnrollmentService {
   }
 
   async processPayment(enrollmentId, paymentData) {
-    const { paymentMethod, bankName, amount, transactionId, remark } = paymentData
-    const enrollmentRef = db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId)
+    const { paymentMethod, bankName, amount, transactionId, remark } =
+      paymentData
+    const enrollmentRef = db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .doc(enrollmentId)
 
     return await db.runTransaction(async (transaction) => {
       const enrollmentDoc = await transaction.get(enrollmentRef)
       if (!enrollmentDoc.exists) throw new Error('Enrollment not found')
 
       const enrollmentData = enrollmentDoc.data()
-      if (enrollmentData.status === 'paid' && paymentData.paymentStatus === 'paid') {
+      if (
+        enrollmentData.status === 'paid' &&
+        paymentData.paymentStatus === 'paid'
+      ) {
         throw new Error('Enrollment is already paid')
       }
 
@@ -568,7 +652,12 @@ class EnrollmentService {
         status: eStatus.toLowerCase(),
         updatedAt: now,
         paidAt: pStatus === 'paid' ? now : null,
-        paymentMethod: paymentMethod === 'cash' ? 'cash' : (bankName ? bankName.toLowerCase() : 'online'),
+        paymentMethod:
+          paymentMethod === 'cash'
+            ? 'cash'
+            : bankName
+              ? bankName.toLowerCase()
+              : 'online',
         transactionId: transactionId || '',
       })
 
@@ -583,7 +672,12 @@ class EnrollmentService {
         program: enrollmentData.program,
         amount: amount || enrollmentData.amount || 0,
         paymentMethod: paymentMethod.toLowerCase(),
-        bankName: paymentMethod === 'online' ? (bankName ? bankName.toLowerCase() : 'online') : null,
+        bankName:
+          paymentMethod === 'online'
+            ? bankName
+              ? bankName.toLowerCase()
+              : 'online'
+            : null,
         transactionId: transactionId || '',
         paymentStatus: pStatus.toLowerCase(),
         remark: remark || '',
@@ -591,7 +685,11 @@ class EnrollmentService {
         createdAt: now,
       })
 
-      return { success: true, paymentId: paymentRef.id, enrollmentStatus: eStatus }
+      return {
+        success: true,
+        paymentId: paymentRef.id,
+        enrollmentStatus: eStatus,
+      }
     })
   }
 

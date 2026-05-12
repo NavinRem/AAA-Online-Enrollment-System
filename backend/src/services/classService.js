@@ -28,13 +28,12 @@ class ClassService {
       throw new Error('A class product already exists for this program')
     }
 
-    const schedules = scheduleDocs.map((doc) => this.getScheduleSnapshot(doc.id, doc.data()))
+    const schedules = scheduleDocs.map((doc) => this.getScheduleSnapshot(doc.id, doc.data(), validated.schedulesData))
     const newClass = {
       programId: validated.programId,
       program: profileHelper.getProgramSnapshot(validated.programId, programDoc.data()),
       scheduleIds: validated.scheduleIds,
       schedules,
-      status: validated.status,
       isDeleted: false,
       createdAt: validated.createdAt,
       updatedAt: validated.updatedAt,
@@ -93,8 +92,12 @@ class ClassService {
         throw new Error('One or more schedules not found')
       }
       updates.schedules = scheduleDocs.map((scheduleDoc) =>
-        this.getScheduleSnapshot(scheduleDoc.id, scheduleDoc.data()),
+        this.getScheduleSnapshot(scheduleDoc.id, scheduleDoc.data(), validated.schedulesData || []),
       )
+    }
+
+    if (updates.status !== undefined) {
+       delete updates.status // Remove root-level status update
     }
 
     await ref.update(updates)
@@ -131,11 +134,14 @@ class ClassService {
     )
   }
 
-  getScheduleSnapshot(scheduleId, data) {
+  getScheduleSnapshot(scheduleId, data, schedulesData = []) {
+    const sData = schedulesData.find(s => String(s.id) === String(scheduleId)) || {}
     return {
       id: scheduleId,
       day: data.day,
       time: data.time,
+      capacity: sData.capacity || 20,
+      status: 'active'
     }
   }
 
@@ -171,9 +177,17 @@ class ClassService {
       const termData = termDoc.data()
       const offerings = (termData.offerings || []).map((offering) => {
         if (offering.classId !== classId) return offering
+        
+        // Find matching schedule in classData to get updated capacity
+        const scheduleSnapshot = (classData.schedules || []).find(
+          s => String(s.id) === String(offering.scheduleId)
+        )
+        
         return {
           ...offering,
           program: classData.program || offering.program,
+          schedule: scheduleSnapshot || offering.schedule,
+          capacity: scheduleSnapshot?.capacity || offering.capacity || 20
         }
       })
 

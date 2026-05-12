@@ -8,6 +8,8 @@ import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import TermActionModal from '@/components/terms/TermActionModal.vue'
+import TermOfferingActionModal from '@/components/terms/TermOfferingActionModal.vue'
+import { useDataStore } from '@/stores/dataStore'
 
 import { termService } from '@/services/termService'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
@@ -18,6 +20,7 @@ const loading = ref(false)
 const items = ref([])
 const branches = ref([])
 const statusFilter = ref('all')
+const dataStore = useDataStore()
 
 const router = useRouter()
 
@@ -37,13 +40,13 @@ const headers = [
 const fetchData = async () => {
   loading.value = true
   try {
-    const [termData, branchData] = await Promise.all([
+    const [termData] = await Promise.all([
       termService.getAllTerms(),
-      import('@/services/branchService').then(m => m.branchService.getAllBranches())
+      dataStore.fetchAllCommonData(false, ['programs', 'classes', 'categories', 'schedules', 'branches'])
     ])
 
     const terms = Array.isArray(termData) ? termData : []
-    branches.value = Array.isArray(branchData) ? branchData : []
+    branches.value = dataStore.branches
 
     // Status Synchronization: Ensure stored status matches date-based logic
     const syncTasks = []
@@ -146,6 +149,39 @@ const modal = ref({
   error: '',
   success: '',
 })
+
+const addClassModal = ref({
+  isOpen: false,
+  selectedTerm: null,
+  loading: false,
+  error: '',
+  success: ''
+})
+
+const openAddClass = (term) => {
+  addClassModal.value.selectedTerm = term
+  addClassModal.value.error = ''
+  addClassModal.value.success = ''
+  addClassModal.value.isOpen = true
+}
+
+const handleAddClass = async (payload) => {
+  addClassModal.value.loading = true
+  addClassModal.value.error = ''
+  try {
+    const term = addClassModal.value.selectedTerm
+    await termService.updateTerm(term.id, { newOfferingsRequest: payload })
+    addClassModal.value.success = 'Classes added successfully'
+    setTimeout(() => {
+      addClassModal.value.isOpen = false
+      fetchData()
+    }, 1500)
+  } catch (err) {
+    addClassModal.value.error = err.message || 'Failed to add classes'
+  } finally {
+    addClassModal.value.loading = false
+  }
+}
 
 const openModal = (type = 'add', item = null) => {
   modal.value.selectedTerm = item
@@ -452,6 +488,12 @@ const getGroupedSettings = (item) => {
                           <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                           <span class="font-bold">Edit</span>
                         </button>
+                        <button v-if="calculateClassProgress(item.startDate, item.endDate).status === 'upcoming'"
+                          class="ui-dropdown-item ui-dropdown-item-info group"
+                          @click="() => { openAddClass(item); closeMenu(); }">
+                          <img :src="getActionIcon('plus')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                          <span class="font-bold">Add Class</span>
+                        </button>
                         <div class="h-px bg-surface-light mx-1 my-1"></div>
                       </template>
                       <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
@@ -472,5 +514,9 @@ const getGroupedSettings = (item) => {
     <TermActionModal :isOpen="modal.isOpen" :type="modal.type" :loading="modal.submitting" :term="modal.selectedTerm"
       :branches="branches" :terms="items" :error="modal.error" :success="modal.success"
       @close="() => { modal.isOpen = false; modal.selectedTerm = null; }" @submit="handleActionSubmit" />
+
+    <TermOfferingActionModal :isOpen="addClassModal.isOpen" :term="addClassModal.selectedTerm"
+      :loading="addClassModal.loading" :error="addClassModal.error" :success="addClassModal.success"
+      @close="addClassModal.isOpen = false" @submit="handleAddClass" />
   </DashboardLayout>
 </template>

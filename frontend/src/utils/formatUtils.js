@@ -231,15 +231,22 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
  * @param {string} startDate 
  * @param {string} dayOfWeek - e.g. "Monday"
  * @param {number} totalSessions - Total number of sessions to generate
+ * @param {string} endDate - Optional end date to stop generation
  * @param {Array} excludeDates - Optional list of ISO date strings to skip (holidays, etc.)
  * @returns {Array} List of { id, label, date } objects
  */
-export const generateClassSessions = (startDate, dayOfWeek, totalSessions = 12, excludeDates = []) => {
+export const generateClassSessions = (startDate, dayOfWeek, totalSessions = 12, endDate = null, excludeDates = []) => {
   if (!startDate || !dayOfWeek) return []
-  const start = new Date(startDate)
+  const normalize = (d) => {
+    const date = parseDate(d)
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  }
+
+  const start = normalize(startDate)
+  const end = endDate ? normalize(endDate) : null
   const total = parseInt(totalSessions) || 12
   const skippedSet = new Set(
-    (excludeDates || []).map(d => new Date(d).toISOString().split('T')[0])
+    (excludeDates || []).map(d => normalize(d).toISOString().split('T')[0])
   )
 
   const dates = []
@@ -256,6 +263,8 @@ export const generateClassSessions = (startDate, dayOfWeek, totalSessions = 12, 
   let sessionsFound = 0
   let safetyCounter = 0
   while (sessionsFound < total && safetyCounter < 365) {
+    if (end && current > end) break
+
     const dateStr = current.toISOString().split('T')[0]
     if (!skippedSet.has(dateStr)) {
       dates.push({

@@ -84,13 +84,13 @@ const handleNavClick = () => {
       <router-link v-for="item in menuItems" :key="item.name" :to="item.path"
         class="flex items-center gap-sm p-3 px-md rounded-sm transition-all font-semibold text-sm group" :class="[
           route.path === item.path
-            ? 'bg-primary-soft text-primary font-bold shadow-sm shadow-primary/5'
-            : 'text-content-muted hover:bg-surface-subtle hover:text-black'
+            ? 'bg-primary text-white font-bold shadow-md shadow-primary/20'
+            : 'text-content-muted hover:bg-primary-light hover:text-content-dark'
         ]" @click="handleNavClick">
         <img :src="getIconUrl(item.icon)" :alt="item.name" class="w-5 h-5 transition-all" :class="[
           route.path === item.path
-            ? 'opacity-100 !grayscale-0 ![filter:brightness(0)_saturate(100%)_invert(56%)_sepia(87%)_saturate(2311%)_hue-rotate(167deg)_contrast(101%)]'
-            : 'opacity-60 group-hover:opacity-100 group-hover:brightness-0'
+            ? 'opacity-100 !grayscale-0 brightness-0 invert'
+            : 'opacity-60 group-hover:opacity-100'
         ]" />
         <span class="whitespace-nowrap">{{ item.name }}</span>
       </router-link>

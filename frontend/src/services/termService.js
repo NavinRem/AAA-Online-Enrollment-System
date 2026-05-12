@@ -32,6 +32,13 @@ export const termService = {
       method: 'DELETE',
     })
   },
+
+  updateTermOffering(termId, offeringId, data) {
+    return request(`/terms/${termId}/offerings/${offeringId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  },
 }
 
 export default termService

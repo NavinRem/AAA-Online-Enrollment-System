@@ -1,10 +1,11 @@
 function normalizeIds(value) {
   if (!value) return []
-  return Array.isArray(value) ? value.filter(Boolean) : [value]
+  const ids = Array.isArray(value) ? value.filter(Boolean) : [value]
+  return Array.from(new Set(ids.map(id => String(id))))
 }
 
 function validateClass(classData) {
-  const classFields = ['programId', 'scheduleId', 'scheduleIds', 'status']
+  const classFields = ['programId', 'scheduleId', 'scheduleIds', 'schedulesData', 'status']
 
   Object.keys(classData).forEach((key) => {
     if (!classFields.includes(key)) {
@@ -20,6 +21,7 @@ function validateClass(classData) {
   return {
     programId: classData.programId,
     scheduleIds,
+    schedulesData: classData.schedulesData || [],
     status: String(classData.status || 'active').toLowerCase(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -27,7 +29,7 @@ function validateClass(classData) {
 }
 
 function validateUpdateClass(updateData) {
-  const allowedFields = ['programId', 'scheduleId', 'scheduleIds', 'status']
+  const allowedFields = ['programId', 'scheduleId', 'scheduleIds', 'schedulesData', 'status']
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {

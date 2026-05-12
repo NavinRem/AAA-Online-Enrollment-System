@@ -54,7 +54,7 @@ function validateTerm(termData) {
 }
 
 function validateUpdateTerm(updateData) {
-  const allowedFields = ['name', 'startDate', 'endDate', 'status', 'totalSessions', 'branchIds', 'offerings', 'branchSettings']
+  const allowedFields = ['name', 'startDate', 'endDate', 'status', 'totalSessions', 'branchIds', 'offerings', 'branchSettings', 'newOfferingsRequest', 'deleteOfferingsRequest']
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
