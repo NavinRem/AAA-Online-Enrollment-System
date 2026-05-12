@@ -1,6 +1,6 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useDataStore } from '@/stores/dataStore'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DataPageLayout from '@/components/layout/DataPageLayout.vue'
@@ -15,13 +15,110 @@ import { formatShortDate, formatPrice, calculateClassProgress } from '@/utils/fo
 import { useSearch, classSearchMapper } from '@/composables/useSearch'
 
 const dataStore = useDataStore()
-const loading = ref(false)
+const route = useRoute()
 const router = useRouter()
+
+const loading = ref(true)
+const errorMessage = ref('')
+
+// Filters
+const termFilter = ref('all')
+const branchFilter = ref('all')
+const dropdowns = ref({
+  term: false,
+  branch: false
+})
+const filterMenuStyles = ref({})
+
+const termOptions = computed(() => {
+  return dataStore.terms
+    .filter(t => !t.isDeleted)
+    .map(t => ({
+      label: t.name,
+      value: t.id,
+      isCurrent: t.isCurrent
+    }))
+    .sort((a, b) => {
+      if (a.isCurrent) return -1
+      if (b.isCurrent) return 1
+      return a.label.localeCompare(b.label)
+    })
+})
+
+const branchOptions = computed(() => {
+  return dataStore.branches
+    .filter(b => !b.isDeleted)
+    .map(b => ({
+      label: b.name,
+      value: b.id,
+      color: b.color,
+      abbr: b.abbr
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+})
+
+const toggleDropdown = (type, event) => {
+  event.stopPropagation()
+  const isOpening = !dropdowns.value[type]
+  // Reset all other dropdowns
+  Object.keys(dropdowns.value).forEach(key => {
+    dropdowns.value[key] = false
+  })
+  dropdowns.value[type] = isOpening
+
+  if (isOpening) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    filterMenuStyles.value = {
+      top: `${rect.bottom + window.scrollY + 8}px`,
+      left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 250)}px`,
+      minWidth: '240px'
+    }
+  }
+}
+
+const selectFilter = (type, value) => {
+  if (type === 'term') termFilter.value = value
+  else if (type === 'branch') branchFilter.value = value
+  dropdowns.value[type] = false
+}
+
+const getActiveLabel = (type) => {
+  if (type === 'term') {
+    const opt = termOptions.value.find(o => String(o.value) === String(termFilter.value))
+    return { label: opt ? opt.label : 'Select Term' }
+  } else if (type === 'branch') {
+    if (branchFilter.value === 'all') return { label: 'All Branches', color: 'purple' }
+    const opt = branchOptions.value.find(o => String(o.value) === String(branchFilter.value))
+    return { 
+      label: opt ? opt.label : 'Select Branch', 
+      color: opt?.color || 'purple' 
+    }
+  }
+  return { label: '' }
+}
+
+const handleClickOutside = (event) => {
+  if (dropdowns.value.term) {
+    const btn = document.getElementById('term-filter-btn')
+    if (btn && !btn.contains(event.target)) {
+      dropdowns.value.term = false
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('mousedown', handleClickOutside)
+  fetchClasses()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('mousedown', handleClickOutside)
+})
 
 const classHeaders = [
   { label: 'No', width: '50px', align: 'center' },
-  { label: 'Class Identity', width: '250px' },
-  { label: 'Branch', width: '100px', align: 'center' },
+  { label: 'Class Identity', width: '200px' },
+  { label: 'Branch', width: '150px', align: 'center' },
   { label: 'Schedule', width: '180px', align: 'center' },
   { label: 'Enrolled', width: '100px', align: 'center' },
   { label: 'Status', width: '110px', align: 'center' },
@@ -31,13 +128,24 @@ const classHeaders = [
 const fetchClasses = async () => {
   loading.value = true
   try {
-    await dataStore.fetchAllCommonData(true, ['classes', 'programs', 'categories', 'schedules', 'terms'])
+    await dataStore.fetchAllCommonData(true, ['classes', 'programs', 'categories', 'schedules', 'terms', 'branches'])
+    
+    // Set intelligent defaults: First current term and its first branch
+    if (dataStore.terms.length > 0) {
+      const activeTerm = dataStore.terms.find(t => t.isCurrent) || dataStore.terms[0]
+      if (activeTerm) {
+        termFilter.value = activeTerm.id
+        // Set branch default if term has branches
+        const termBranches = activeTerm.branchIds || []
+        if (termBranches.length > 0) {
+          branchFilter.value = termBranches[0]
+        }
+      }
+    }
   } finally {
     loading.value = false
   }
 }
-
-onMounted(fetchClasses)
 
 const activeOfferings = computed(() => {
   const products = dataStore.classes || []
@@ -57,49 +165,105 @@ const activeOfferings = computed(() => {
       }
     } : product.program
 
-    // Calculate total students across all branches/terms for this product
-    let globalStudentCount = 0
-    const offerings = []
+    const termGroups = new Map()
 
-    terms.forEach(term => {
-      if (term.isDeleted) return
-      const termOfferings = term.offerings || []
-      termOfferings.forEach(off => {
-        if (off.classId === product.id) {
-          globalStudentCount += (off.currentCount || 0)
-          offerings.push({
-            ...off,
-            termName: term.name,
-            termStartDate: term.startDate,
-            termEndDate: term.endDate,
-            classProduct: product,
-            program // Use enriched program
+    // Determine which terms to process based on filter
+    const termsToProcess = termFilter.value === 'all'
+      ? terms.filter(t => t.isCurrent && !t.isDeleted)
+      : terms.filter(t => String(t.id) === String(termFilter.value) && !t.isDeleted)
+
+    // Fallback: If 'all' (Auto) yields no terms, show the most recent available term
+    if (termFilter.value === 'all' && termsToProcess.length === 0 && terms.length > 0) {
+      const fallback = terms.find(t => !t.isDeleted)
+      if (fallback) termsToProcess.push(fallback)
+    }
+
+    termsToProcess.forEach(term => {
+      let termOfferings = (term.offerings || []).filter(o => String(o.classId) === String(product.id))
+
+      // Apply Branch Filter if not 'all'
+      if (branchFilter.value !== 'all') {
+        termOfferings = termOfferings.filter(o => String(o.branchId) === String(branchFilter.value))
+      }
+
+      if (termOfferings.length > 0) {
+        const branchesMap = new Map()
+        const schedulesMap = new Map()
+        let totalEnrolled = 0
+
+        termOfferings.forEach(off => {
+          if (off.branch) {
+            branchesMap.set(off.branch.id || off.branchId, off.branch)
+          } else if (off.branchId) {
+            const b = dataStore.branches.find(x => String(x.id) === String(off.branchId))
+            if (b) branchesMap.set(b.id, b)
+          }
+
+          const schedId = off.schedule?.id || off.scheduleId
+          if (schedId) {
+            const productSchedule = (product.schedules || []).find(ps => String(ps.id) === String(schedId))
+            const globalSchedule = dataStore.schedules.find(x => String(x.id) === String(schedId))
+            
+            // Prioritize the master capacity from the Class Product over the stale offering snapshot
+            const capacity = Number(productSchedule?.capacity) || Number(off.capacity) || Number(off.schedule?.capacity) || Number(program?.capacity) || 20
+
+            const schedData = { 
+              ...(off.schedule || globalSchedule || {}), 
+              status: getOfferingStatus(off), 
+              currentCount: off.currentCount || 0,
+              capacity: capacity
+            }
+            schedulesMap.set(schedId, schedData)
+          }
+          totalEnrolled += (off.currentCount || 0)
+        })
+
+        if (branchesMap.size === 0 && term.branchIds) {
+          term.branchIds.forEach(bid => {
+            const b = dataStore.branches.find(x => String(x.id) === String(bid))
+            if (b) branchesMap.set(b.id, b)
           })
         }
-      })
+
+        const totalCapacity = Array.from(schedulesMap.values()).reduce((sum, s) => sum + (Number(s.capacity) || 0), 0)
+
+        termGroups.set(term.id, {
+          id: `group-${product.id}-${term.id}`,
+          classProduct: product,
+          program,
+          branches: Array.from(branchesMap.values()),
+          schedules: Array.from(schedulesMap.values()),
+          currentCount: totalEnrolled,
+          capacity: totalCapacity,
+          termStartDate: term.startDate,
+          termEndDate: term.endDate,
+          termName: term.name,
+          termId: term.id,
+          offeringId: termOfferings[0]?.offeringId, // Primary offering ID
+          offeringIds: termOfferings.map(o => o.offeringId),
+          status: getOfferingStatus({ 
+            termStartDate: term.startDate, 
+            termEndDate: term.endDate, 
+            currentCount: totalEnrolled, 
+            capacity: totalCapacity || program?.capacity || 20 
+          })
+        })
+      }
     })
 
-    if (offerings.length === 0) {
+    if (termGroups.size === 0) {
       results.push({
         id: `catalog-${product.id}`,
         classProduct: product,
         program, // Use enriched program
         scheduleIds: product.scheduleIds,
-        branch: null,
+        branches: [],
         currentCount: 0,
         status: 'upcoming',
         termName: 'In Catalog'
       })
     } else {
-      offerings.forEach(off => {
-        results.push({
-          ...off,
-          id: off.id || `offering-${off.classId}-${off.branchId}`,
-          currentCount: off.currentCount || 0, // Use specific offering count
-          status: getOfferingStatus(off),
-          program // Use enriched program
-        })
-      })
+      results.push(...Array.from(termGroups.values()))
     }
   })
 
@@ -112,7 +276,8 @@ const activeOfferings = computed(() => {
 
 const getSchedules = (item) => {
   let list = []
-  if (item.schedule) list = [item.schedule]
+  if (item.schedules) list = item.schedules
+  else if (item.schedule) list = [item.schedule]
   else if (item.scheduleIds) {
     list = (item.scheduleIds || []).map(id => dataStore.schedules.find(s => s.id === id)).filter(Boolean)
   }
@@ -123,14 +288,23 @@ const getSchedules = (item) => {
   const isFull = (item.currentCount || 0) >= capacity
 
   return [...list].map(s => {
+    // Ensure we have the latest capacity from the product definition if it's missing (common for catalog items)
+    const schedId = s.id
+    const productSchedule = (item.classProduct?.schedules || []).find(ps => String(ps.id) === String(schedId))
+    const finalCapacity = s.capacity || productSchedule?.capacity || item.program?.capacity || 20
+
     // Save status back to the schedule object (context-aware)
-    if (isFull) {
+    if (isFull || (s.currentCount >= finalCapacity)) {
       s.status = 'full'
-    } else {
+    } else if (!s.status) {
       const progress = calculateClassProgress(item.termStartDate, item.termEndDate, s.day, s.time)
       s.status = progress.status
     }
-    return s
+    
+    return {
+      ...s,
+      capacity: finalCapacity
+    }
   }).sort((a, b) => {
     const dayA = dayOrder[a.day] || 99
     const dayB = dayOrder[b.day] || 99
@@ -146,10 +320,10 @@ const getScheduleStatus = (sched, item) => {
 
 const { searchQuery, searchResults } = useSearch(activeOfferings, (o) => {
   const scheds = getSchedules(o).map(s => `${s.day} ${s.time}`).join(' ')
+  const branchesText = (o.branches || []).map(b => `${b.abbr} ${b.name}`).join(' ')
   return [
     o.program?.name,
-    o.branch?.name,
-    o.branch?.abbr,
+    branchesText,
     scheds,
     o.termName
   ].filter(Boolean).join(' ').toLowerCase()
@@ -182,40 +356,56 @@ const getOfferingStatus = (offering) => {
   return 'active'
 }
 
-const statsCards = computed(() => [
-  {
-    label: 'Total Classes',
-    value: activeOfferings.value.length,
-    image: getImageUrl('programs/total-program'),
-  },
-  {
-    label: 'Available Classes',
-    value: activeOfferings.value.filter(o => getOfferingStatus(o) === 'active').length,
-    image: getImageUrl('dashboard/card-available-program'),
-  },
-  {
-    label: 'Full Classes',
-    value: activeOfferings.value.filter(o => getOfferingStatus(o) === 'full').length,
-    image: getImageUrl('programs/archived-program'),
-  },
-  {
-    label: 'Ongoing Classes',
-    value: activeOfferings.value.filter(o => getOfferingStatus(o) === 'ongoing').length,
-    image: getImageUrl('programs/active-program'),
-  },
-])
+const statsCards = computed(() => {
+  const activeTerms = termFilter.value === 'all' 
+    ? dataStore.terms.filter(t => t.isCurrent)
+    : dataStore.terms.filter(t => String(t.id) === String(termFilter.value))
+    
+  let activeOfferingsList = activeOfferings.value.filter(o => !o.id.startsWith('catalog-'))
+  
+  // Scoped stats by branch if filter active
+  if (branchFilter.value !== 'all') {
+     // activeOfferings already filtered by branch, so we just use it
+  }
+  
+  const totalEnrolled = activeOfferingsList.reduce((sum, o) => sum + (o.currentCount || 0), 0)
+
+  return [
+    {
+      label: 'Active Classes',
+      value: activeOfferingsList.length,
+      image: getImageUrl('programs/active-program'),
+    },
+    {
+      label: 'Active Enrollments',
+      value: totalEnrolled,
+      image: getImageUrl('enrollment/total-enrollment'),
+    },
+    {
+      label: 'Catalog Items',
+      value: activeOfferings.value.length - activeOfferingsList.length,
+      image: getImageUrl('programs/total-program'),
+    },
+    {
+      label: 'Current Term',
+      value: activeTerms.length > 0 ? activeTerms.map(t => t.name).join(', ') : 'None',
+      image: getImageUrl('programs/active-program'),
+    },
+  ]
+})
 
 const modal = ref({
   isOpen: false,
   type: 'add',
   classItem: null,
+  context: null, // { termId, offeringId, scheduleId, etc }
   loading: false,
   error: '',
   success: '',
 })
 
 const openAddModal = () => {
-  modal.value = { isOpen: true, type: 'add', classItem: null, loading: false, error: '', success: '' }
+  modal.value = { isOpen: true, type: 'add', classItem: null, context: null, loading: false, error: '', success: '' }
 }
 
 const closeModal = () => {
@@ -224,17 +414,39 @@ const closeModal = () => {
   modal.value.success = ''
 }
 
-const handleAction = (type, item) => {
-  modal.value = { isOpen: true, type, classItem: item, loading: false, error: '', success: '' }
+const handleAction = (type, item, context = null) => {
+  modal.value = { 
+    isOpen: true, 
+    type, 
+    classItem: item, 
+    context,
+    loading: false, 
+    error: '', 
+    success: '' 
+  }
 }
 
 const handleModalSubmit = async (payload) => {
   modal.value.loading = true
   modal.value.error = ''
   try {
-    if (modal.value.type === 'add') await classService.createClass(payload)
-    else if (modal.value.type === 'edit') await classService.updateClass(modal.value.classItem.id, payload)
-    else if (modal.value.type === 'delete') await classService.deleteClass(modal.value.classItem.id)
+    if (modal.value.type === 'add') {
+      await classService.createClass(payload)
+    } else if (modal.value.type === 'edit') {
+      if (modal.value.context?.termId && modal.value.context?.offeringId) {
+        // Mode: Update specific offering within a term
+        await termService.updateTermOffering(
+          modal.value.context.termId, 
+          modal.value.context.offeringId, 
+          payload
+        )
+      } else {
+        // Mode: Update global class product
+        await classService.updateClass(modal.value.classItem.id, payload)
+      }
+    } else if (modal.value.type === 'delete') {
+      await classService.deleteClass(modal.value.classItem.id)
+    }
 
     modal.value.success = 'Operation successful'
     await fetchClasses()
@@ -267,10 +479,74 @@ const navigateToDetail = (item) => {
           :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
           @update:currentPage="currentPage = $event" @row-click="navigateToDetail">
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold tracking-tight">Add Class</span>
-            </AppButton>
+            <div class="flex items-center gap-3">
+              <!-- Term Filter -->
+              <div class="relative" id="term-filter-btn">
+                <AppButton variant="secondary" size="md" @click="toggleDropdown('term', $event)"
+                  class="!bg-magenta !text-white rounded-xl shadow-md hover:shadow-lg transition-all group">
+                  <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert opacity-80 group-hover:opacity-100" />
+                  <span class="font-bold tracking-tight">{{ getActiveLabel('term').label }}</span>
+                  <span class="ml-2 text-xs opacity-60 group-hover:opacity-100">▼</span>
+                </AppButton>
+                <Teleport to="body">
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="dropdowns.term" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
+                      <div v-for="opt in termOptions" :key="opt.value" class="toolbar-filter-option"
+                        :class="{ 'active-filter-item': String(termFilter) === String(opt.value) }"
+                        @click="selectFilter('term', opt.value)">
+                        {{ opt.label }}
+                      </div>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
+
+              <!-- Branch Filter -->
+              <div class="relative" id="branch-filter-btn">
+                <AppButton variant="secondary" size="md" @click="toggleDropdown('branch', $event)"
+                  class="!text-white rounded-xl shadow-md hover:shadow-lg transition-all group"
+                  :style="{ backgroundColor: `var(--color-${getActiveLabel('branch').color})` }">
+                  <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert opacity-80 group-hover:opacity-100" />
+                  <span class="font-bold tracking-tight">{{ getActiveLabel('branch').label }}</span>
+                  <span class="ml-2 text-xs opacity-60 group-hover:opacity-100">▼</span>
+                </AppButton>
+                <Teleport to="body">
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="dropdowns.branch" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
+                      <div class="toolbar-filter-option flex items-center justify-between gap-4" 
+                        :class="{ 'active-filter-item': branchFilter === 'all' }"
+                        @click="selectFilter('branch', 'all')">
+                        <div class="flex items-center gap-3">
+                          <AppBadge status="ALL" type="gray" size="sm" class="w-12 text-center" />
+                          <span>All Branches</span>
+                        </div>
+                      </div>
+                      <div v-for="opt in branchOptions" :key="opt.value" 
+                        class="toolbar-filter-option flex items-center justify-between gap-4"
+                        :class="{ 'active-filter-item': String(branchFilter) === String(opt.value) }"
+                        @click="selectFilter('branch', opt.value)">
+                        <div class="flex items-center gap-3">
+                          <AppBadge :status="opt.abbr" :type="opt.color" size="sm" class="w-12 text-center" />
+                          <span class="truncate">{{ opt.label }}</span>
+                        </div>
+                        <span v-if="String(branchFilter) === String(opt.value)" class="text-xs">✓</span>
+                      </div>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
+
+              <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
+                <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
+                <span class="font-bold tracking-tight">Add Class</span>
+              </AppButton>
+            </div>
           </template>
 
           <template #row="{ item, index, headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }">
@@ -288,7 +564,7 @@ const navigateToDetail = (item) => {
                 </div>
                 <div class="flex flex-col">
                   <span class="leading-tight">{{ item.program?.name }}</span>
-                  <span class="mt-0.5">
+                  <span class="mt-0.5 text-xs font-semibold text-content-muted">
                     {{ item.termName }}
                   </span>
                 </div>
@@ -296,9 +572,14 @@ const navigateToDetail = (item) => {
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
-              <div class="flex flex-col items-center justify-center gap-4 py-6">
-                <div class="flex flex-col items-center justify-center h-8">
-                  <span class="">{{ item.branch?.abbr || 'N/A' }}</span>
+              <div class="flex flex-col items-center justify-center py-6">
+                <div v-if="item.branches && item.branches.length > 0"
+                  class="flex flex-wrap gap-lg justify-center items-center">
+                  <AppBadge v-for="b in item.branches" :key="b.id || b.abbr" :status="b.abbr"
+                    :type="b.color || 'neutral'" />
+                </div>
+                <div v-else class="flex flex-col items-center justify-center h-8">
+                  <span class="text-content-muted text-xs font-bold italic">Empty</span>
                 </div>
               </div>
             </td>
@@ -306,10 +587,11 @@ const navigateToDetail = (item) => {
             <td class="ui-cell text-center" :style="{ width: headers[3].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
                 <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
-                  class="flex flex-col items-center justify-center h-8">
+                  class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm">
                   <div class="flex flex-col items-center">
                     <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
-                    <span class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums">{{ sched.time }}</span>
+                    <span class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums">{{ sched.time
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -318,8 +600,8 @@ const navigateToDetail = (item) => {
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
                 <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
-                  class="flex flex-col items-center justify-center h-8">
-                  <AppBadge :status="item.currentCount || 0" type="blue" />
+                  class="flex flex-col items-center justify-center h-10">
+                  <AppBadge :status="`${sched.currentCount || 0} / ${sched.capacity || 20}`" type="blue" />
                 </div>
               </div>
             </td>
@@ -327,8 +609,8 @@ const navigateToDetail = (item) => {
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
                 <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
-                  class="flex items-center justify-center h-8">
-                  <AppBadge :status="getScheduleStatus(sched, item)" />
+                  class="flex items-center justify-center h-10">
+                  <AppBadge :status="sched.status || 'upcoming'" />
                 </div>
               </div>
             </td>
@@ -350,9 +632,22 @@ const navigateToDetail = (item) => {
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
                       <button class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="() => { 
+                          handleAction('edit', item.classProduct, { 
+                            termId: item.termId, 
+                            offeringId: item.offeringId,
+                            termName: item.termName,
+                            offeringIds: item.offeringIds
+                          }); 
+                          closeMenu(); 
+                        }">
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                        <span>Edit Current Term</span>
+                      </button>
+                      <button class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="() => { handleAction('edit', item.classProduct); closeMenu(); }">
                         <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
-                        <span class="font-bold">Edit</span>
+                        <span>Edit Master Settings</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
                       <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
@@ -375,3 +670,28 @@ const navigateToDetail = (item) => {
     :error="modal.error" :success="modal.success" @close="closeModal" @submit="handleModalSubmit"
     @clear-error="modal.error = ''" @clear-success="modal.success = ''" />
 </template>
+
+<style scoped>
+.toolbar-filter-menu,
+.ui-dropdown-menu {
+  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[240px] max-h-[300px] overflow-y-auto;
+}
+
+.toolbar-filter-option,
+.ui-dropdown-item {
+  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-all rounded-sm select-none flex items-center gap-2;
+}
+
+.toolbar-filter-option:hover,
+.ui-dropdown-item:hover {
+  @apply bg-surface-subtle text-primary;
+}
+
+.active-filter-item {
+  @apply bg-primary text-white hover:bg-primary hover:text-white !important;
+}
+
+.ui-dropdown-item-danger:hover {
+  @apply bg-error-soft text-error !important;
+}
+</style>
