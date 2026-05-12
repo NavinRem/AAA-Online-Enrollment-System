@@ -23,6 +23,36 @@ class TermService {
     return { id: docRef.id, ...cleanTerm }
   }
 
+  /**
+   * Updates a specific offering within a term.
+   * @param {string} termId 
+   * @param {string} offeringId 
+   * @param {Object} updateData - { capacity, status, etc. }
+   */
+  async updateTermOffering(termId, offeringId, updateData) {
+    if (!termId || !offeringId) throw new Error('Term ID and Offering ID are required')
+
+    const termRef = db.collection(COLLECTIONS.TERM).doc(termId)
+    const termDoc = await termRef.get()
+    if (!termDoc.exists) throw new Error('Term not found')
+
+    const termData = termDoc.data()
+    const offerings = termData.offerings || []
+    const offIdx = offerings.findIndex(o => String(o.offeringId) === String(offeringId))
+
+    if (offIdx === -1) throw new Error('Offering not found in this term')
+
+    // Apply updates to the specific offering
+    offerings[offIdx] = {
+      ...offerings[offIdx],
+      ...updateData,
+      updatedAt: new Date().toISOString()
+    }
+
+    await termRef.update({ offerings })
+    return offerings[offIdx]
+  }
+
   async getAllTerms(filters = {}) {
     let terms = (await db.collection(COLLECTIONS.TERM).get()).docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
@@ -79,7 +109,33 @@ class TermService {
     if (!id) throw new Error('Term ID is required')
     const doc = await db.collection(COLLECTIONS.TERM).doc(id).get()
     if (!doc.exists || doc.data().isDeleted) throw new Error('Term not found')
-    return { id: doc.id, ...doc.data() }
+    
+    const termData = { id: doc.id, ...doc.data() }
+    
+    // Enrich offerings with student data from enrollments
+    if (termData.offerings && termData.offerings.length > 0) {
+      const enrollmentsSnap = await db.collection('enrollments')
+        .where('termId', '==', id)
+        .where('status', 'in', ['active', 'confirmed', 'trial'])
+        .get()
+      
+      const enrollments = enrollmentsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      
+      termData.offerings = termData.offerings.map(off => {
+        const offEnrollments = enrollments.filter(e => 
+          String(e.termOfferingId) === String(off.offeringId) || 
+          (String(e.classId) === String(off.classId) && String(e.branchId) === String(off.branchId))
+        )
+        
+        return {
+          ...off,
+          currentCount: offEnrollments.length,
+          studentIds: offEnrollments.map(e => e.studentId)
+        }
+      })
+    }
+    
+    return termData
   }
 
   async updateTerm(id, data) {
@@ -92,14 +148,29 @@ class TermService {
 
     const existingTerm = termDoc.data()
     const oldBranchIds = existingTerm.branchIds || (existingTerm.branchId ? [existingTerm.branchId] : [])
-    const newBranchIds = validatedData.branchIds || []
+    const newBranchIds = validatedData.branchIds !== undefined ? validatedData.branchIds : oldBranchIds
+
+    if (validatedData.newOfferingsRequest) {
+      const { branchIds, programIds } = validatedData.newOfferingsRequest
+      const newOfferings = await this.buildOfferingsForPrograms(branchIds, programIds)
+      validatedData.offerings = [...(validatedData.offerings || existingTerm.offerings || []), ...newOfferings]
+      delete validatedData.newOfferingsRequest
+    }
+
+    if (validatedData.deleteOfferingsRequest) {
+      const { branchId, programId } = validatedData.deleteOfferingsRequest
+      validatedData.offerings = (validatedData.offerings || existingTerm.offerings || []).filter(
+        off => !(String(off.branchId) === String(branchId) && (String(off.classId) === String(programId) || String(off.program?.id) === String(programId)))
+      )
+      delete validatedData.deleteOfferingsRequest
+    }
 
     // 1. Handle Branch Expansion: If branches were added, add offerings for them
     const addedBranchIds = newBranchIds.filter(bid => !oldBranchIds.includes(bid))
     if (addedBranchIds.length > 0) {
       console.log(`Adding offerings for new branches: ${addedBranchIds.join(', ')}`)
       const newOfferings = await this.buildOfferingsForBranches(addedBranchIds, validatedData.branchSettings)
-      validatedData.offerings = [...(existingTerm.offerings || []), ...newOfferings]
+      validatedData.offerings = [...(validatedData.offerings || existingTerm.offerings || []), ...newOfferings]
     }
 
     // 2. Handle Branch Removal: If branches were removed, clean up offerings
@@ -108,6 +179,8 @@ class TermService {
       console.log(`Removing offerings for branches: ${removedBranchIds.join(', ')}`)
       validatedData.offerings = (validatedData.offerings || existingTerm.offerings || [])
         .filter(off => !removedBranchIds.includes(off.branchId))
+    } else {
+      validatedData.offerings = validatedData.offerings || existingTerm.offerings || []
     }
 
     await termRef.update(validatedData)
@@ -207,6 +280,55 @@ class TermService {
     return offerings
   }
 
+  async buildOfferingsForPrograms(branchIds, programIds) {
+    const ids = Array.isArray(branchIds) ? branchIds : [branchIds]
+    if (ids.length === 0) throw new Error('Branch IDs are required')
+    if (!programIds || programIds.length === 0) throw new Error('Program IDs are required')
+
+    const [branchesSnap, classesSnap] = await Promise.all([
+      db.collection(COLLECTIONS.BRANCH).get(),
+      db.collection(COLLECTIONS.CLASS).where('programId', 'in', programIds).where('isDeleted', '==', false).get(),
+    ])
+
+    const validBranches = branchesSnap.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(b => !b.isDeleted && ids.includes(b.id))
+
+    if (validBranches.length === 0) throw new Error('No valid branches found')
+
+    const offerings = []
+
+    classesSnap.docs.forEach((classDoc) => {
+      const classData = classDoc.data()
+      const schedules = classData.schedules || []
+
+      validBranches.forEach(branch => {
+        const branchSnapshot = profileHelper.getBranchSnapshot(branch.id, branch)
+        schedules.forEach((schedule) => {
+          offerings.push({
+            offeringId: db.collection(COLLECTIONS.TERM).doc().id,
+            classId: classDoc.id,
+            program: classData.program || null,
+            branchId: branch.id,
+            branch: branchSnapshot,
+            scheduleId: schedule.id,
+            schedule: {
+              id: schedule.id,
+              day: schedule.day,
+              time: schedule.time
+            },
+            capacity: classData.program?.capacity || 20,
+            currentCount: 0,
+            students: [],
+            status: 'active'
+          })
+        })
+      })
+    })
+
+    return offerings
+  }
+
   getTermSnapshot(termId, termData, offering = null) {
     let startDate = termData.startDate
     let endDate = termData.endDate
@@ -264,10 +386,14 @@ class TermService {
         else students.push(snapshot)
       }
 
+      const capacity = offering.schedule?.capacity || offering.capacity || 20
+      const newStatus = students.length >= capacity ? 'full' : 'active'
+
       offerings[index] = {
         ...offering,
         students,
         currentCount: students.length,
+        status: newStatus
       }
 
       transaction.update(termRef, {
