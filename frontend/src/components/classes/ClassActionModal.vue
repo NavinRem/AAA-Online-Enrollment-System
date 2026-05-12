@@ -17,6 +17,7 @@ const props = defineProps({
   isOpen: Boolean,
   type: String,
   classInstance: Object,
+  context: Object, // { termId, offeringId, termName, offeringIds }
   loading: Boolean,
   error: String,
   success: String,
@@ -27,6 +28,8 @@ const emit = defineEmits(['close', 'submit', 'clear-error', 'clear-success'])
 const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm({
   programId: '',
   scheduleIds: [],
+  scheduleCapacities: {},
+  status: 'active'
 })
 
 const programs = ref([])
@@ -93,9 +96,12 @@ const filteredSchedules = computed(() => {
 })
 
 const modalTitle = computed(() => {
-  if (props.type === 'delete') return 'Delete Class Product'
-  if (props.type === 'edit') return 'Edit Class Product'
-  return 'Add Class Product'
+  if (props.type === 'delete') return 'Remove from Catalog'
+  if (props.type === 'edit') {
+    if (props.context?.termName) return `Edit Current Term: ${props.classInstance?.program?.name || 'Class'}`
+    return 'Edit Master Settings'
+  }
+  return 'Add to Master Catalog'
 })
 
 const submitLabel = computed(() => {
@@ -114,7 +120,16 @@ const isDirty = computed(() => {
   const currentProg = form.programId
   const currentScheds = [...form.scheduleIds].sort().join(',')
 
-  return initialProg !== currentProg || initialScheds !== currentScheds
+  if (initialProg !== currentProg || initialScheds !== currentScheds) return true
+
+  // Compare capacities for currently selected schedules
+  for (const id of form.scheduleIds) {
+    const initialCap = props.classInstance.schedules?.find(s => s.id === id)?.capacity || 20
+    const currentCap = form.scheduleCapacities[id] || 20
+    if (Number(initialCap) !== Number(currentCap)) return true
+  }
+
+  return false
 })
 
 const confirmRows = computed(() => {
@@ -201,9 +216,11 @@ const addSchedule = async () => {
     const newId = response?.id || response?.data?.id
     await loadOptions(true)
 
-    // Automatically select the newly created schedule
-    if (newId && !form.scheduleIds.includes(newId)) {
-      form.scheduleIds.push(newId)
+    // Deduplicate schedule IDs and automatically select the newly created schedule
+    if (newId) {
+      const currentIds = new Set(form.scheduleIds)
+      currentIds.add(newId)
+      form.scheduleIds = Array.from(currentIds)
     }
 
     justAddedId.value = newId
@@ -252,13 +269,31 @@ watch(
     manageSchedules.value = false
     lookupError.value = ''
     newSchedule.value = { day: 'Saturday', startTime: '09:00' }
+
+    const initialCapacities = {}
+    if (props.classInstance?.schedules) {
+      props.classInstance.schedules.forEach(s => {
+        if (s.capacity) initialCapacities[s.id] = s.capacity
+      })
+    }
+
     resetForm({
       programId: props.classInstance?.programId || '',
-      scheduleIds: [...(props.classInstance?.scheduleIds || props.classInstance?.schedules?.map((schedule) => schedule.id) || [])],
+      scheduleIds: Array.from(new Set([...(props.classInstance?.scheduleIds || props.classInstance?.schedules?.map((schedule) => schedule.id) || [])])),
+      scheduleCapacities: initialCapacities,
+      status: props.classInstance?.status || 'active'
     })
   },
   { immediate: true },
 )
+
+watch(() => form.scheduleIds, (newIds) => {
+  newIds.forEach(id => {
+    if (!form.scheduleCapacities[id]) {
+      form.scheduleCapacities[id] = selectedProgram.value?.capacity || 5
+    }
+  })
+}, { deep: true })
 
 const handleProgramChange = () => {
   clearError('programId')
@@ -278,6 +313,8 @@ const handleDisabledClick = (field) => {
 }
 
 const handleSubmit = () => {
+  if (!isDirty.value && props.type === 'edit') return
+
   if (props.type === 'delete') {
     emit('submit', { id: props.classInstance?.id })
     return
@@ -294,10 +331,19 @@ const handleSubmit = () => {
 
 const confirmSubmit = () => {
   showConfirm.value = false
+
+  // Deduplicate and attach capacities to schedules
+  const uniqueIds = Array.from(new Set(form.scheduleIds))
+  const enrichedSchedules = uniqueIds.map(id => ({
+    id,
+    capacity: form.scheduleCapacities[id] || 20
+  }))
+
   emit('submit', {
     programId: form.programId,
-    scheduleIds: form.scheduleIds,
-    status: 'active',
+    scheduleIds: uniqueIds,
+    schedulesData: enrichedSchedules,
+    status: form.status,
   })
 }
 </script>
@@ -307,17 +353,20 @@ const confirmSubmit = () => {
     :error="error" :success="success" maxWidth="720px" @close="$emit('close')" @clear-error="$emit('clear-error')"
     @clear-success="$emit('clear-success')">
     <form class="flex flex-col gap-5" @submit.prevent="handleSubmit">
+      <AppAlert v-if="context?.termName" type="info" class="mb-2">
+        <span class="font-bold text-lg">⚠️ This Term Only</span><br/>
+        You are editing settings for <span class="font-bold text-primary">{{ context.termName }}</span>. 
+        These changes <span class="underline">will not</span> change your Master Catalog or other terms.
+      </AppAlert>
+
       <template v-if="type !== 'delete'">
-
-
-        <div class="grid grid-cols-2 gap-6 items-start">
+        <div class="grid grid-cols-2 gap-x-8 gap-y-10 items-start">
           <AppSelect v-model="form.programId" :items="programs" label="Program" placeholder="Select program..." required
-            :error="errors.programId" :shake="shaking.programId" @change="handleProgramChange">
+            :error="errors.programId" :shake="shaking.programId" :disabled="!!context" @change="handleProgramChange">
             <template #selected="{ item }">
               <div v-if="item" class="flex items-center gap-3 flex-1 overflow-hidden">
-                <div class="w-9 h-9 rounded-xl border border-outline-std overflow-hidden bg-white shrink-0 p-1.5">
-                  <img :src="getProgramProfileURL(item.profileURL, item.category, item.categoryProfileURL)"
-                    class="w-full h-full object-contain" />
+                <div class="w-10 h-10 rounded-xl bg-primary-soft/30 flex items-center justify-center shrink-0">
+                  <span class="text-xs font-black text-primary">{{ item.category?.substring(0, 3).toUpperCase() || 'PROG' }}</span>
                 </div>
                 <div class="flex flex-col overflow-hidden">
                   <span class="text-sm font-semibold text-content-dark truncate">{{ item.name }}</span>
@@ -329,17 +378,31 @@ const confirmSubmit = () => {
             </template>
           </AppSelect>
 
-          <div class="flex flex-col gap-xs">
-            <div class="flex justify-between items-center min-h-[20px]">
-              <label class="text-sm font-semibold text-content-dark flex items-center gap-1">
-                Schedule <span class="text-error font-bold leading-none">*</span>
-              </label>
-              <button type="button" @click="toggleScheduleManage"
-                class="text-xs font-bold text-primary hover:underline tracking-wider">Manage Catalog</button>
-            </div>
-            <AppSelect v-model="form.scheduleIds" :items="filteredSchedules" placeholder="Select schedules..." required
-              multiple :error="errors.scheduleIds" :shake="shaking.scheduleIds" :disabled="!form.programId"
-              @change="handleScheduleChange" @click-disabled="handleDisabledClick('scheduleIds')">
+          <div v-if="type === 'edit'" class="flex flex-col gap-xs">
+            <AppSelect v-model="form.status" label="Overall Status" :items="[
+              { id: 'active', name: 'Active (Open)', color: 'green' },
+              { id: 'full', name: 'Full (Waitlist)', color: 'magenta' },
+              { id: 'closed', name: 'Closed (Hidden)', color: 'red' }
+            ]">
+              <template #selected="{ item }">
+                <div v-if="item" class="flex items-center gap-2">
+                  <AppBadge :status="item.name" :type="item.color" size="sm" />
+                </div>
+              </template>
+              <template #item="{ item }">
+                <div class="flex items-center justify-between w-full">
+                  <span>{{ item.name }}</span>
+                  <AppBadge :status="item.id" :type="item.color" size="sm" />
+                </div>
+              </template>
+            </AppSelect>
+          </div>
+
+          <div v-if="!context" class="flex flex-col gap-xs">
+            <AppSelect v-model="form.scheduleIds" :items="filteredSchedules" label="Schedule"
+              placeholder="Select schedules..." required multiple :error="errors.scheduleIds"
+              :shake="shaking.scheduleIds" :disabled="!form.programId" class="mt-1" @change="handleScheduleChange"
+              @click-disabled="handleDisabledClick('scheduleIds')">
               <template #selected="{ items }">
                 <span v-if="!items?.length" class="text-content-muted/40 italic">Choose from catalog...</span>
                 <span v-else class="text-sm font-semibold text-primary">{{ items.length }} schedule{{ items.length === 1
@@ -356,27 +419,64 @@ const confirmSubmit = () => {
                 </div>
               </template>
             </AppSelect>
+            <div v-if="!context && !manageSchedules" class="flex justify-end">
+              <button type="button" @click="toggleScheduleManage" 
+                class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+                <img :src="getActionIcon('plus')" class="w-3 h-3 brightness-0 saturate-100 invert-[30%] sepia-[100%] saturate-[500%] hue-rotate-[240deg]" />
+                Manage Master Schedules Catalog
+              </button>
+            </div>
+          </div>
+        </div>
 
-            <!-- Selected Schedules Preview -->
-            <div v-if="form.scheduleIds.length > 0"
-              class="flex flex-col gap-2 mt-1 animate-in slide-in-from-top-2 duration-300">
-              <div class="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
-                <div v-for="id in form.scheduleIds" :key="id"
-                  class="flex items-center justify-between bg-surface-subtle/40 border border-outline-std rounded-sm p-3 shadow-sm group hover:border-primary/30 transition-all">
-                  <div class="flex flex-col">
-                    <span class="text-sm font-bold text-content-dark">{{ getScheduleById(id)?.day }}</span>
-                    <div class="flex items-center gap-2">
-                      <span class="text-xs font-semibold text-primary tracking-tight">{{ getScheduleById(id)?.time
-                      }}</span>
-                      <span class="text-xs font-bold text-content-muted/50 tracking-tighter">({{
-                        getScheduleDuration(getScheduleById(id)?.time) }})</span>
-                    </div>
-                  </div>
-                  <button type="button" @click="deselectSchedule(id)"
-                    class="p-2 hover:bg-error-soft rounded-lg transition-all">
-                    <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-60" />
-                  </button>
+        <!-- Selected Schedules Preview -->
+        <div v-if="form.scheduleIds.length > 0"
+          class="flex flex-col gap-4 mt-2 animate-in slide-in-from-top-2 duration-500">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-md text-content-muted">Selected Sessions Configuration</span>
+            <span class="text-sm font-bold text-content-muted">{{ form.scheduleIds.length }} session{{
+              form.scheduleIds.length
+                === 1 ? '' : 's' }}</span>
+          </div>
+          <div class="grid grid-cols-1 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            <div v-for="id in form.scheduleIds" :key="id"
+              class="flex items-center justify-between bg-white border border-outline-std rounded-md p-4 shadow-sm group hover:border-primary/50 hover:shadow-md transition-all duration-300">
+              <div class="flex items-center gap-4 flex-1">
+                <div class="w-14 h-14 rounded-md bg-primary-soft/30 flex items-center justify-center shrink-0">
+                  <span class="text-base font-black text-primary">{{ getScheduleById(id)?.day.substring(0,
+                    3).toUpperCase()
+                    }}</span>
                 </div>
+                <div class="flex flex-col gap-1">
+                  <span class="text-lg font-bold text-content-dark flex items-center gap-2">
+                    {{ getScheduleById(id)?.day }}
+                    <span class="text-sm font-bold text-content-muted/60 tracking-tighter">({{
+                      getScheduleDuration(getScheduleById(id)?.time) }})</span>
+                  </span>
+                  <div class="flex items-center gap-2">
+                    <span
+                      class="text-sm font-bold text-primary tracking-tight bg-primary-soft/50 px-2 py-0.5 rounded-md border border-primary/10">{{
+                        getScheduleById(id)?.time }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-6 ml-4">
+                <div class="flex flex-col items-center gap-1.5">
+                  <label class="text-xs font-bold text-content-muted mr-1">Session
+                    Capacity</label>
+                  <div
+                    class="flex items-center gap-3 bg-surface-subtle/80 px-4 py-2.5 rounded-xl border border-outline-std focus-within:border-primary/40 focus-within:bg-white transition-all">
+                    <input type="number" v-model.number="form.scheduleCapacities[id]"
+                      class="w-14 h-6 text-base font-black text-center bg-transparent text-content-dark outline-none focus:text-primary transition-colors"
+                      min="1" />
+                    <span class="text-xs font-bold text-content-muted">Seats</span>
+                  </div>
+                </div>
+                <button v-if="!context" type="button" @click="deselectSchedule(id)"
+                  class="w-12 h-12 flex items-center justify-center hover:bg-error-soft text-content-muted hover:text-error rounded-xl transition-all border border-transparent hover:border-error/20 group/btn">
+                  <img :src="getActionIcon('delete')" class="w-5 h-5 group-hover/btn:opacity-100 transition-opacity" />
+                </button>
               </div>
             </div>
           </div>
@@ -481,10 +581,20 @@ const confirmSubmit = () => {
     :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading" @back="showConfirm = false"
     @confirm="confirmSubmit">
     <template #row-Schedules>
-      <div class="flex flex-col gap-1 items-end">
-        <div v-for="id in form.scheduleIds" :key="id" class="flex items-center gap-2">
-          <span class="text-xs font-bold text-content-dark">{{ getScheduleById(id)?.day }}</span>
-          <span class="text-3xs font-semibold text-primary">({{ getScheduleById(id)?.time }})</span>
+      <div class="flex flex-col gap-2 items-end">
+        <div v-for="id in form.scheduleIds" :key="id"
+          class="flex items-center gap-4 bg-surface-subtle/30 px-4 py-2.5 rounded-xl border border-outline-std/40 transition-all hover:bg-white hover:border-primary/20">
+          <div class="flex flex-col items-end shrink-0">
+            <span class="text-sm font-bold text-content-dark">{{ getScheduleById(id)?.day }}</span>
+            <span class="text-xs font-semibold text-primary tracking-tight">{{ getScheduleById(id)?.time }}</span>
+          </div>
+          <div class="w-px h-8 bg-outline-std/50"></div>
+          <div class="flex flex-col items-end shrink-0">
+            <span class="text-xs font-black text-content-muted leading-none mb-1">Capacity</span>
+            <span class="text-sm font-black text-content-dark leading-none">{{ form.scheduleCapacities[id] || 20 }}
+              <span class="text-xs font-bold text-content-muted">Seats</span></span>
+          </div>
+          <AppBadge status="Active" type="green" size="md" class="scale-90 origin-right" />
         </div>
       </div>
     </template>
