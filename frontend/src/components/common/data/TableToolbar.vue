@@ -101,12 +101,14 @@ const selectFilter = (val) => {
     </div>
     <div class="toolbar-actions">
       <SearchBox v-if="hasSearch" :modelValue="searchQuery" @update:modelValue="$emit('update:searchQuery', $event)"
-        :placeholder="searchPlaceholder" :variant="searchVariant" class="w-[500px] flex-shrink-0" />
+        :placeholder="searchPlaceholder" :variant="searchVariant" class="lg:w-[500px] w-full flex-1" />
       <div v-if="hasFilter" class="relative">
         <AppButton ref="filterToggleRef" :variant="isActiveFilter ? 'ghost' : 'secondary'" size="md"
-          :class="{ 'shadow-md': isActiveFilter }" @click="toggleFilter" :style="isActiveFilter ? {
-            backgroundColor: getStatusTheme(currentFilter, activeOption?.color).color !== 'var(--color-gray)' ? getStatusTheme(currentFilter, activeOption?.color).color : 'var(--color-primary)',
-            color: 'white'
+          class="rounded-xl transition-all duration-300"
+          :class="{ 'shadow-md': isActiveFilter, 'shadow-sm': !isActiveFilter }" @click="toggleFilter" :style="isActiveFilter ? {
+            backgroundColor: getStatusTheme(currentFilter, activeOption?.color).backgroundColor,
+            color: getStatusTheme(currentFilter, activeOption?.color).color,
+            border: `1px solid ${getStatusTheme(currentFilter, activeOption?.color).color}20`
           } : {}">
           <img v-if="activeOption?.image || activeOption?.profileURL"
             :src="activeOption.image || activeOption.profileURL" class="w-4 h-4 transition-all brightness-0 invert" />
@@ -130,8 +132,8 @@ const selectFilter = (val) => {
                 <div v-else class="toolbar-filter-option" :class="{
                   'active-option': currentFilter === option.value,
                 }" :style="currentFilter === option.value ? {
-                  backgroundColor: getStatusTheme(option.value, option.color).color !== 'var(--color-gray)' ? getStatusTheme(option.value, option.color).color : 'var(--color-primary)',
-                  color: 'white'
+                  backgroundColor: getStatusTheme(option.value, option.color).backgroundColor,
+                  color: getStatusTheme(option.value, option.color).color
                 } : {}" @click.stop="selectFilter(option.value)" @mouseenter="(e) => {
                   if (currentFilter !== option.value) {
                     const theme = getStatusTheme(option.value, option.color);

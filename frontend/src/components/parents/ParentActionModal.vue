@@ -10,12 +10,22 @@ import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { getActionIcon, isSameProfileAsset } from '@/utils/assetHelper'
+import { calculateAge } from '@/utils/formatUtils'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 
 import { auth } from '@/firebase'
 import { sendPasswordResetEmail } from 'firebase/auth'
+import { useDataStore } from '@/stores/dataStore'
+import { parentService } from '@/services/parentService'
+import { processParentProfileImage, prepareParentPayload } from '@/utils/parentHelper'
+import ParentFormModal from './ParentFormModal.vue'
 
 const selectedResetMode = ref(null)
+const dataStore = useDataStore()
+const showNewParentSubModal = ref(false)
+const subModalLoading = ref(false)
+const subModalError = ref('')
+const subModalSuccess = ref('')
 
 const props = defineProps({
   isOpen: Boolean,
@@ -125,6 +135,7 @@ const isChanged = computed(() => {
 })
 
 const handleActionSubmit = () => {
+  if (props.loading) return // Prevent double-submit
   showConfirm.value = false
   if (props.type === 'reset-password') {
     if (selectedResetMode.value === 'email') {
@@ -149,7 +160,7 @@ const handleActionSubmit = () => {
 const confirmRows = computed(() => {
   const p = selectedParent.value
   const rows = [
-    { key: 'Parent Name', value: localData.name },
+    { key: 'Parent Name', value: p?.name || 'N/A' },
   ]
 
   if (props.type === 'edit') {
@@ -157,8 +168,12 @@ const confirmRows = computed(() => {
     rows.push({ key: 'Phone', value: localData.phone })
     rows.push({ key: 'Status', value: localData.status, badge: true })
   } else if (props.type === 'plus') {
+    rows.push({ key: 'Parent Contact', value: p?.phone || p?.email || 'N/A' })
     rows.push({ key: 'Student Name', value: localData.name })
     rows.push({ key: 'Birthday', value: localData.dob })
+    rows.push({ key: 'Age', value: localData.dob ? `${calculateAge(localData.dob)} years old` : 'N/A' })
+    rows.push({ key: 'Gender', value: (localData.profileURL || '').toLowerCase().includes('girl') || (localData.profileURL || '').toLowerCase().includes('woman') ? 'Female' : 'Male' })
+    rows.push({ key: 'Status', value: localData.status || 'Inactive', badge: true })
   } else if (props.type === 'delete') {
     rows.push({ key: 'Email', value: localData.email })
     rows.push({ key: 'Authorization', value: localData.deleteConfirm, valueClass: 'text-error font-bold' })
@@ -179,6 +194,42 @@ const handleSendResetEmail = async () => {
     console.error('Failed to send reset email:', err)
   } finally {
     submittingLocal.value = false
+  }
+}
+
+const handleInlineParentSubmit = async (data) => {
+  subModalLoading.value = true
+  subModalError.value = ''
+  subModalSuccess.value = ''
+
+  try {
+    const profileURL = await processParentProfileImage(data.profileURL, data.name)
+    const payload = prepareParentPayload({ ...data, profileURL })
+    const result = await parentService.createParent(payload)
+
+    const newParent = {
+      id: result.id,
+      ...payload,
+      createdAt: new Date().toISOString(),
+      childrenInfo: [],
+    }
+
+    // Update global store
+    dataStore.parents.unshift(newParent)
+
+    // Auto-select in dropdown
+    localData.parentId = result.id
+
+    subModalSuccess.value = 'Parent created successfully!'
+    setTimeout(() => {
+      showNewParentSubModal.value = false
+      subModalSuccess.value = ''
+    }, 1500)
+  } catch (error) {
+    console.error('Failed to create parent inline:', error)
+    subModalError.value = error.message || 'Failed to create parent'
+  } finally {
+    subModalLoading.value = false
   }
 }
 
@@ -234,7 +285,7 @@ const selectedParent = computed(() => {
 
 const handleDisabledClick = (field) => {
   if (field === 'childInfo' && !props.user && !localData.parentId) {
-    errors.parentId = 'PLEASE LINK TO A PARENT RECORD FIRST'
+    errors.parentId = 'Please link to a parent record first'
     triggerShake('parentId')
   }
 }
@@ -263,10 +314,10 @@ watch(
           {{ selectedParent.name }}
         </h2>
         <div class="ui-identity-meta-compact">
-          <span class="text-3xs font-semibold text-content-muted opacity-60 " v-if="selectedParent.email">{{
+          <span class="text-sm font-bold text-content-muted" v-if="selectedParent.email">{{
             selectedParent.email }}</span>
           <span class="opacity-30" v-if="selectedParent.email && selectedParent.phone">•</span>
-          <span class="text-3xs font-bold text-content-muted tracking-wider" v-if="selectedParent.phone">{{
+          <span class="text-sm font-bold text-content-muted" v-if="selectedParent.phone">{{
             selectedParent.phone }}</span>
         </div>
       </div>
@@ -299,6 +350,13 @@ watch(
           :items="filteredParents.map((p) => ({ id: p.id, name: p.name, profileURL: p.profileURL }))"
           label="Link to Parent Registry" placeholder="Search Parent" required :error="errors.parentId"
           :shake="shaking.parentId" @change="clearError('parentId')" />
+
+        <div v-if="!user && type === 'plus'" class="flex justify-end -mt-3 mb-2">
+          <button type="button" @click="showNewParentSubModal = true"
+            class="text-xs font-bold text-primary hover:text-primary-deep transition-colors flex items-center gap-1 group">
+            New Parent Registry
+          </button>
+        </div>
 
         <div class="ui-form-grid">
           <AppInput v-model="localData.name" label="Student Full Name" placeholder="Enter Student Name" required
@@ -425,13 +483,13 @@ watch(
       <div v-if="errors.resetMode" class="text-error text-3xs font-semibold text-center  animate-shake mt-2">
         {{ errors.resetMode }}
       </div>
-
-      <!-- Confirmation Overlay -->
-      <AppConfirmOverlay :show="showConfirm" :title="modalTitle"
-        :subtitle="type === 'delete' ? 'This action is irreversible. All data will be permanently erased.' : 'Please verify the details before completing this action.'"
-        :icon="getActionIcon(type)" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading"
-        @back="showConfirm = false" @confirm="handleActionSubmit" />
     </div>
+
+    <!-- Confirmation Overlay -->
+    <AppConfirmOverlay :show="showConfirm" :title="modalTitle"
+      :subtitle="type === 'delete' ? 'This action is irreversible. All data will be permanently erased.' : 'Please verify the details before completing this action.'"
+      :icon="getActionIcon(type)" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading"
+      @back="showConfirm = false" @confirm="handleActionSubmit" />
 
     <!-- Footer -->
     <template #footer>
@@ -448,6 +506,11 @@ watch(
       </div>
     </template>
   </AppModal>
+
+  <!-- Inline Parent Creation Sub-Modal -->
+  <ParentFormModal :isOpen="showNewParentSubModal" :loading="subModalLoading" :error="subModalError"
+    :success="subModalSuccess" @close="showNewParentSubModal = false; subModalError = ''; subModalSuccess = ''"
+    @submit="handleInlineParentSubmit" />
 </template>
 
 <style scoped>

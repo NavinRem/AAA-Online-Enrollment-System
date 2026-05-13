@@ -47,7 +47,7 @@ const navigateToDetail = (item) => {
       <tr v-for="(item, index) in enrollments.slice(0, 5)" :key="item.id || index" class="ui-row" @click="navigateToDetail(item)">
         <td class="ui-cell !py-4 text-center"
           :style="{ width: enrollmentHeaders[0].width, flex: '0 0 auto', minWidth: enrollmentHeaders[0].width }">
-          {{ index + 1 }}
+          <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
         </td>
         <td class="ui-cell !py-4 overflow-hidden" :style="{ flex: '1 1 0%', minWidth: 0 }">
           <div class="ui-identity-cell min-w-0 w-full">
@@ -55,7 +55,7 @@ const navigateToDetail = (item) => {
               <img :src="getParentProfileURL(item.parent?.profileURL)" alt="parent" />
             </div>
             <div class="ui-identity-info min-w-0">
-              <span class="truncate block" :title="item.parent?.name">{{
+              <span class="truncate block font-bold text-content-dark text-sm" :title="item.parent?.name">{{
                 item.parent?.name }}</span>
             </div>
           </div>
@@ -66,7 +66,7 @@ const navigateToDetail = (item) => {
               <img :src="getStudentProfileURL(item.student?.profileURL)" alt="child" />
             </div>
             <div class="ui-identity-info min-w-0">
-              <span class="truncate block" :title="item.student?.name">{{
+              <span class="truncate block font-bold text-content-dark text-sm" :title="item.student?.name">{{
                 item.student?.name }}</span>
             </div>
           </div>
@@ -76,7 +76,7 @@ const navigateToDetail = (item) => {
             <div class="ui-avatar">
               <img :src="item.program?.profileURL" :alt="item.programName" />
             </div>
-            <span class="truncate block">{{
+            <span class="truncate block font-bold text-content-dark text-sm">{{
               item.programName
               }}</span>
           </div>
@@ -91,7 +91,7 @@ const navigateToDetail = (item) => {
         </td>
         <td class="ui-cell !py-4 text-center overflow-hidden"
           :style="{ flex: '1 1 0%', minWidth: 0 }">
-          <span class="truncate block">{{ formatDate(item.enrollAt) }}</span>
+          <span class="truncate block font-bold text-content-muted text-xs tabular-nums">{{ formatDate(item.enrollAt) }}</span>
         </td>
       </tr>
     </AppTable>

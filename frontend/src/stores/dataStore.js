@@ -46,6 +46,8 @@ export const useDataStore = defineStore('data', {
       branches: null,
       schedules: null,
     },
+    // Track active promises to prevent race conditions
+    activePromises: {},
   }),
 
   actions: {
@@ -82,135 +84,183 @@ export const useDataStore = defineStore('data', {
     },
 
     async fetchParents(force = false) {
-      if (this.loading.parents) return
+      if (this.activePromises.parents) return this.activePromises.parents
       if (!force && this.parents.length > 0 && this.isFresh('parents')) return
+
       this.loading.parents = true
-      try {
-        const data = await parentService.getAllParents()
-        this.parents = Array.isArray(data) ? data : []
-        this.lastFetched.parents = Date.now()
-      } finally {
-        this.loading.parents = false
-      }
+      this.activePromises.parents = (async () => {
+        try {
+          const data = await parentService.getAllParents()
+          this.parents = Array.isArray(data) ? data : []
+          this.lastFetched.parents = Date.now()
+        } finally {
+          this.loading.parents = false
+          delete this.activePromises.parents
+        }
+      })()
+      return this.activePromises.parents
     },
 
     async fetchStudents(force = false) {
-      if (this.loading.students) return
+      if (this.activePromises.students) return this.activePromises.students
       if (!force && this.students.length > 0 && this.isFresh('students')) return
+      
       this.loading.students = true
-      try {
-        const data = await studentService.getAllStudents()
-        this.students = Array.isArray(data) ? data : []
-        this.lastFetched.students = Date.now()
-      } finally {
-        this.loading.students = false
-      }
+      this.activePromises.students = (async () => {
+        try {
+          const data = await studentService.getAllStudents()
+          this.students = Array.isArray(data) ? data : []
+          this.lastFetched.students = Date.now()
+        } finally {
+          this.loading.students = false
+          delete this.activePromises.students
+        }
+      })()
+      return this.activePromises.students
     },
 
     async fetchPrograms(force = false) {
-      if (this.loading.programs) return
+      if (this.activePromises.programs) return this.activePromises.programs
       if (!force && this.programs.length > 0 && this.isFresh('programs')) return
+
       this.loading.programs = true
-      try {
-        const data = await programService.getAllPrograms()
-        this.programs = Array.isArray(data) ? data : []
-        this.lastFetched.programs = Date.now()
-      } finally {
-        this.loading.programs = false
-      }
+      this.activePromises.programs = (async () => {
+        try {
+          const data = await programService.getAllPrograms()
+          this.programs = Array.isArray(data) ? data : []
+          this.lastFetched.programs = Date.now()
+        } finally {
+          this.loading.programs = false
+          delete this.activePromises.programs
+        }
+      })()
+      return this.activePromises.programs
     },
 
     async fetchClasses(force = false) {
-      if (this.loading.classes) return
+      if (this.activePromises.classes) return this.activePromises.classes
       if (!force && this.classes.length > 0 && this.isFresh('classes')) return
+
       this.loading.classes = true
-      try {
-        const data = await classService.getAllClasses()
-        this.classes = Array.isArray(data) ? data : []
-        this.lastFetched.classes = Date.now()
-      } finally {
-        this.loading.classes = false
-      }
+      this.activePromises.classes = (async () => {
+        try {
+          const data = await classService.getAllClasses()
+          this.classes = Array.isArray(data) ? data : []
+          this.lastFetched.classes = Date.now()
+        } finally {
+          this.loading.classes = false
+          delete this.activePromises.classes
+        }
+      })()
+      return this.activePromises.classes
     },
 
     async fetchCategories(force = false) {
-      if (this.loading.categories) return
+      if (this.activePromises.categories) return this.activePromises.categories
       if (!force && this.categories.length > 0 && this.isFresh('categories')) return
+
       this.loading.categories = true
-      try {
-        const data = await categoryService.getAllCategories()
-        this.categories = Array.isArray(data) ? data : (data?.data || [])
-        this.lastFetched.categories = Date.now()
-      } finally {
-        this.loading.categories = false
-      }
+      this.activePromises.categories = (async () => {
+        try {
+          const data = await categoryService.getAllCategories()
+          this.categories = Array.isArray(data) ? data : (data?.data || [])
+          this.lastFetched.categories = Date.now()
+        } finally {
+          this.loading.categories = false
+          delete this.activePromises.categories
+        }
+      })()
+      return this.activePromises.categories
     },
 
     async fetchTerms(force = false) {
-      if (this.loading.terms) return
+      if (this.activePromises.terms) return this.activePromises.terms
       if (!force && this.terms.length > 0 && this.isFresh('terms')) return
+
       this.loading.terms = true
-      try {
-        const data = await termService.getAllTerms()
-        this.terms = Array.isArray(data) ? data : []
-        this.lastFetched.terms = Date.now()
-      } finally {
-        this.loading.terms = false
-      }
+      this.activePromises.terms = (async () => {
+        try {
+          const data = await termService.getAllTerms()
+          this.terms = Array.isArray(data) ? data : []
+          this.lastFetched.terms = Date.now()
+        } finally {
+          this.loading.terms = false
+          delete this.activePromises.terms
+        }
+      })()
+      return this.activePromises.terms
     },
 
     async fetchTrials(force = false) {
-      if (this.loading.trials) return
+      if (this.activePromises.trials) return this.activePromises.trials
       if (!force && this.trials.length > 0 && this.isFresh('trials')) return
+
       this.loading.trials = true
-      try {
-        const data = await trialService.getAllTrials()
-        this.trials = Array.isArray(data) ? data : []
-        this.lastFetched.trials = Date.now()
-      } finally {
-        this.loading.trials = false
-      }
+      this.activePromises.trials = (async () => {
+        try {
+          const data = await trialService.getAllTrials()
+          this.trials = Array.isArray(data) ? data : []
+          this.lastFetched.trials = Date.now()
+        } finally {
+          this.loading.trials = false
+          delete this.activePromises.trials
+        }
+      })()
+      return this.activePromises.trials
     },
 
     async fetchEnrollments(force = false) {
-      if (this.loading.enrollments) return
-      // NOTE: For very large datasets, we should only fetch a summary or recent items here.
-      // But for small/medium schools, fetching active enrollments is manageable.
+      if (this.activePromises.enrollments) return this.activePromises.enrollments
       if (!force && this.enrollments.length > 0 && this.isFresh('enrollments')) return
+
       this.loading.enrollments = true
-      try {
-        const response = await enrollmentService.getAllEnrollments()
-        this.enrollments = response.data || (Array.isArray(response) ? response : [])
-        this.lastFetched.enrollments = Date.now()
-      } finally {
-        this.loading.enrollments = false
-      }
+      this.activePromises.enrollments = (async () => {
+        try {
+          const response = await enrollmentService.getAllEnrollments()
+          this.enrollments = response.data || (Array.isArray(response) ? response : [])
+          this.lastFetched.enrollments = Date.now()
+        } finally {
+          this.loading.enrollments = false
+          delete this.activePromises.enrollments
+        }
+      })()
+      return this.activePromises.enrollments
     },
 
     async fetchBranches(force = false) {
-      if (this.loading.branches) return
+      if (this.activePromises.branches) return this.activePromises.branches
       if (!force && this.branches.length > 0 && this.isFresh('branches')) return
+
       this.loading.branches = true
-      try {
-        const data = await branchService.getAllBranches()
-        this.branches = Array.isArray(data) ? data : []
-        this.lastFetched.branches = Date.now()
-      } finally {
-        this.loading.branches = false
-      }
+      this.activePromises.branches = (async () => {
+        try {
+          const data = await branchService.getAllBranches()
+          this.branches = Array.isArray(data) ? data : []
+          this.lastFetched.branches = Date.now()
+        } finally {
+          this.loading.branches = false
+          delete this.activePromises.branches
+        }
+      })()
+      return this.activePromises.branches
     },
 
     async fetchSchedules(force = false) {
-      if (this.loading.schedules) return
+      if (this.activePromises.schedules) return this.activePromises.schedules
       if (!force && this.schedules.length > 0 && this.isFresh('schedules')) return
+
       this.loading.schedules = true
-      try {
-        const data = await scheduleService.getAllSchedules()
-        this.schedules = Array.isArray(data) ? data : []
-        this.lastFetched.schedules = Date.now()
-      } finally {
-        this.loading.schedules = false
-      }
+      this.activePromises.schedules = (async () => {
+        try {
+          const data = await scheduleService.getAllSchedules()
+          this.schedules = Array.isArray(data) ? data : []
+          this.lastFetched.schedules = Date.now()
+        } finally {
+          this.loading.schedules = false
+          delete this.activePromises.schedules
+        }
+      })()
+      return this.activePromises.schedules
     },
 
     isFresh(key) {

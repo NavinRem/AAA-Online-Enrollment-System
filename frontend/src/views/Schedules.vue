@@ -45,6 +45,10 @@ const { searchQuery, searchResults } = useSearch(schedules, (schedule) =>
   [schedule.day, schedule.time, schedule.status].filter(Boolean).join(' '),
 )
 
+const sortedSchedules = computed(() => {
+  return [...searchResults.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+})
+
 const statsCards = computed(() => [
   {
     label: 'Total Schedules',
@@ -94,7 +98,7 @@ const handleSubmit = async (payload) => {
       </template>
 
       <template #table>
-        <DataTable title="Schedule Configuration" :headers="headers" :items="searchResults" :loading="loading"
+        <DataTable title="Schedule Configuration" :headers="headers" :items="sortedSchedules" :loading="loading"
           entityName="schedule" v-model:searchQuery="searchQuery" searchPlaceholder="Search schedules...">
           <template #toolbar-actions>
             <AppButton variant="primary" @click="openModal('add')">

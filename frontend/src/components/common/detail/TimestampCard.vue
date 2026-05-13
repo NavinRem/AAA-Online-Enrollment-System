@@ -9,20 +9,24 @@ defineProps({
 </script>
 
 <template>
-  <section class="ui-detail-card bg-surface-subtle/50">
-    <h6 class="font-bold  text-3xs text-content-muted mb-6">Account Timestamp</h6>
+  <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
+    <h2 class="font-bold text-2xl text-content-dark mb-2">Account Timestamp</h2>
     <div class="space-y-6">
-      <div class="flex items-center gap-3">
-        <AppBadge type="green">Created At</AppBadge>
-        <div class="text-sm font-semibold text-content-muted leading-tight tabular-nums">
-          {{ formatDate(createdAt) }}
+      <div class="flex justify-between items-center gap-1">
+        <span class="text-lg font-bold text-content-dark">Created At:</span>
+        <div class="flex items-center gap-2">
+          <AppBadge type="green">
+            {{ formatDate(createdAt) }}
+          </AppBadge>
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <AppBadge type="blue">Updated At</AppBadge>
-        <div class="text-sm font-semibold text-content-muted leading-tight tabular-nums">
-          {{ formatDate(updatedAt || createdAt) }}
+      <div class="flex justify-between items-center gap-1">
+        <span class="text-lg font-bold text-content-dark">Updated At:</span>
+        <div class="flex items-center gap-2">
+          <AppBadge type="blue">
+            {{ formatDate(updatedAt || createdAt) }}
+          </AppBadge>
         </div>
       </div>
     </div>

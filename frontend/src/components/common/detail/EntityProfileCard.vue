@@ -10,10 +10,10 @@ defineProps({
 
 <template>
   <section class="ui-detail-card flex flex-col items-center gap-6">
-    <h2 class="w-full font-bold text-content-dark text-center">{{ title }}</h2>
+    <h2 class="w-full font-bold text-2xl text-content-dark text-center">{{ title }}</h2>
     <div class="relative group">
       <div
-        class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100">
+        class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle">
         <img :src="profileURL || getImageUrl(fallbackImage)" class="w-full h-full object-cover" />
       </div>
     </div>

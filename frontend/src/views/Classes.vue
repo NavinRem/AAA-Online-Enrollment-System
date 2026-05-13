@@ -89,9 +89,9 @@ const getActiveLabel = (type) => {
   } else if (type === 'branch') {
     if (branchFilter.value === 'all') return { label: 'All Branches', color: 'purple' }
     const opt = branchOptions.value.find(o => String(o.value) === String(branchFilter.value))
-    return { 
-      label: opt ? opt.label : 'Select Branch', 
-      color: opt?.color || 'purple' 
+    return {
+      label: opt ? opt.label : 'Select Branch',
+      color: opt?.color || 'purple'
     }
   }
   return { label: '' }
@@ -129,7 +129,7 @@ const fetchClasses = async () => {
   loading.value = true
   try {
     await dataStore.fetchAllCommonData(true, ['classes', 'programs', 'categories', 'schedules', 'terms', 'branches'])
-    
+
     // Set intelligent defaults: First current term and its first branch
     if (dataStore.terms.length > 0) {
       const activeTerm = dataStore.terms.find(t => t.isCurrent) || dataStore.terms[0]
@@ -203,13 +203,13 @@ const activeOfferings = computed(() => {
           if (schedId) {
             const productSchedule = (product.schedules || []).find(ps => String(ps.id) === String(schedId))
             const globalSchedule = dataStore.schedules.find(x => String(x.id) === String(schedId))
-            
-            // Prioritize the master capacity from the Class Product over the stale offering snapshot
-            const capacity = Number(productSchedule?.capacity) || Number(off.capacity) || Number(off.schedule?.capacity) || Number(program?.capacity) || 20
 
-            const schedData = { 
-              ...(off.schedule || globalSchedule || {}), 
-              status: getOfferingStatus(off), 
+            // Prioritize the master capacity from the Class Product over the stale offering snapshot
+            const capacity = Number(productSchedule?.capacity) || Number(off.capacity) || Number(off.schedule?.capacity) || Number(program?.capacity) || 5
+
+            const schedData = {
+              ...(off.schedule || globalSchedule || {}),
+              status: getOfferingStatus(off),
               currentCount: off.currentCount || 0,
               capacity: capacity
             }
@@ -241,11 +241,11 @@ const activeOfferings = computed(() => {
           termId: term.id,
           offeringId: termOfferings[0]?.offeringId, // Primary offering ID
           offeringIds: termOfferings.map(o => o.offeringId),
-          status: getOfferingStatus({ 
-            termStartDate: term.startDate, 
-            termEndDate: term.endDate, 
-            currentCount: totalEnrolled, 
-            capacity: totalCapacity || program?.capacity || 20 
+          status: getOfferingStatus({
+            termStartDate: term.startDate,
+            termEndDate: term.endDate,
+            currentCount: totalEnrolled,
+            capacity: totalCapacity || program?.capacity || 5
           })
         })
       }
@@ -268,9 +268,16 @@ const activeOfferings = computed(() => {
   })
 
   return results.sort((a, b) => {
+    // Primary sort: Newest created/updated first
+    const dateA = new Date(a.classProduct?.createdAt || a.termStartDate || 0)
+    const dateB = new Date(b.classProduct?.createdAt || b.termStartDate || 0)
+    if (dateB - dateA !== 0) return dateB - dateA
+
+    // Secondary sort: Status
     if (a.status === 'upcoming' && b.status !== 'upcoming') return 1
     if (a.status !== 'upcoming' && b.status === 'upcoming') return -1
-    return (b.termStartDate || '').localeCompare(a.termStartDate || '')
+
+    return 0
   })
 })
 
@@ -284,14 +291,14 @@ const getSchedules = (item) => {
 
   // Calculate status for each schedule and sort
   const dayOrder = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 7 }
-  const capacity = item.capacity || item.program?.capacity || 20
+  const capacity = item.capacity || item.program?.capacity || 5
   const isFull = (item.currentCount || 0) >= capacity
 
   return [...list].map(s => {
     // Ensure we have the latest capacity from the product definition if it's missing (common for catalog items)
     const schedId = s.id
     const productSchedule = (item.classProduct?.schedules || []).find(ps => String(ps.id) === String(schedId))
-    const finalCapacity = s.capacity || productSchedule?.capacity || item.program?.capacity || 20
+    const finalCapacity = s.capacity || productSchedule?.capacity || item.program?.capacity || 5
 
     // Save status back to the schedule object (context-aware)
     if (isFull || (s.currentCount >= finalCapacity)) {
@@ -300,7 +307,7 @@ const getSchedules = (item) => {
       const progress = calculateClassProgress(item.termStartDate, item.termEndDate, s.day, s.time)
       s.status = progress.status
     }
-    
+
     return {
       ...s,
       capacity: finalCapacity
@@ -345,7 +352,7 @@ watch([searchQuery], () => {
 
 const getOfferingStatus = (offering) => {
   if (offering.status === 'upcoming') return 'upcoming'
-  const capacity = offering.capacity || offering.program?.capacity || 20
+  const capacity = offering.capacity || offering.program?.capacity || 5
   if ((offering.currentCount || 0) >= capacity) return 'full'
 
   const now = new Date()
@@ -357,17 +364,17 @@ const getOfferingStatus = (offering) => {
 }
 
 const statsCards = computed(() => {
-  const activeTerms = termFilter.value === 'all' 
+  const activeTerms = termFilter.value === 'all'
     ? dataStore.terms.filter(t => t.isCurrent)
     : dataStore.terms.filter(t => String(t.id) === String(termFilter.value))
-    
+
   let activeOfferingsList = activeOfferings.value.filter(o => !o.id.startsWith('catalog-'))
-  
+
   // Scoped stats by branch if filter active
   if (branchFilter.value !== 'all') {
-     // activeOfferings already filtered by branch, so we just use it
+    // activeOfferings already filtered by branch, so we just use it
   }
-  
+
   const totalEnrolled = activeOfferingsList.reduce((sum, o) => sum + (o.currentCount || 0), 0)
 
   return [
@@ -415,14 +422,14 @@ const closeModal = () => {
 }
 
 const handleAction = (type, item, context = null) => {
-  modal.value = { 
-    isOpen: true, 
-    type, 
-    classItem: item, 
+  modal.value = {
+    isOpen: true,
+    type,
+    classItem: item,
     context,
-    loading: false, 
-    error: '', 
-    success: '' 
+    loading: false,
+    error: '',
+    success: ''
   }
 }
 
@@ -436,8 +443,8 @@ const handleModalSubmit = async (payload) => {
       if (modal.value.context?.termId && modal.value.context?.offeringId) {
         // Mode: Update specific offering within a term
         await termService.updateTermOffering(
-          modal.value.context.termId, 
-          modal.value.context.offeringId, 
+          modal.value.context.termId,
+          modal.value.context.offeringId,
           payload
         )
       } else {
@@ -482,11 +489,11 @@ const navigateToDetail = (item) => {
             <div class="flex items-center gap-3">
               <!-- Term Filter -->
               <div class="relative" id="term-filter-btn">
-                <AppButton variant="secondary" size="md" @click="toggleDropdown('term', $event)"
-                  class="!bg-magenta !text-white rounded-xl shadow-md hover:shadow-lg transition-all group">
-                  <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert opacity-80 group-hover:opacity-100" />
-                  <span class="font-bold tracking-tight">{{ getActiveLabel('term').label }}</span>
-                  <span class="ml-2 text-xs opacity-60 group-hover:opacity-100">▼</span>
+                <AppButton variant="secondary" size="md" @click="toggleDropdown('term', $event)" class="!bg-magenta ">
+                  <img :src="getActionIcon('filter')"
+                    class="w-4 h-4 brightness-0 invert opacity-80 group-hover:opacity-100" />
+                  <span class="text-white font-bold tracking-tight">{{ getActiveLabel('term').label }}</span>
+                  <span class="text-white ml-2 text-xs opacity-60 group-hover:opacity-100">▼</span>
                 </AppButton>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -506,12 +513,17 @@ const navigateToDetail = (item) => {
 
               <!-- Branch Filter -->
               <div class="relative" id="branch-filter-btn">
-                <AppButton variant="secondary" size="md" @click="toggleDropdown('branch', $event)"
-                  class="!text-white rounded-xl shadow-md hover:shadow-lg transition-all group"
-                  :style="{ backgroundColor: `var(--color-${getActiveLabel('branch').color})` }">
-                  <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert opacity-80 group-hover:opacity-100" />
-                  <span class="font-bold tracking-tight">{{ getActiveLabel('branch').label }}</span>
-                  <span class="ml-2 text-xs opacity-60 group-hover:opacity-100">▼</span>
+                <AppButton :variant="branchFilter === 'all' ? 'secondary' : 'ghost'" size="md"
+                  @click="toggleDropdown('branch', $event)" class="rounded-xl transition-all duration-300 group"
+                  :class="{ '!text-white shadow-md': branchFilter !== 'all', 'shadow-sm': branchFilter === 'all' }"
+                  :style="branchFilter !== 'all' ? { backgroundColor: `var(--color-${getActiveLabel('branch').color})` } : {}">
+                  <img :src="getActionIcon('branch')"
+                    class="w-4 h-4 brightness-0 transition-all opacity-80 group-hover:opacity-100"
+                    :class="{ 'invert': branchFilter !== 'all' }" />
+                  <span class="text-white font-bold tracking-tight" :class="{ 'text-white': branchFilter !== 'all' }">{{
+                    getActiveLabel('branch').label }}</span>
+                  <span class="text-white ml-2 text-xs opacity-60 group-hover:opacity-100"
+                    :class="{ 'text-white': branchFilter !== 'all' }">▼</span>
                 </AppButton>
                 <Teleport to="body">
                   <transition enter-active-class="transition duration-200 ease-out"
@@ -519,7 +531,7 @@ const navigateToDetail = (item) => {
                     leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
                     leave-to-class="opacity-0">
                     <div v-if="dropdowns.branch" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
-                      <div class="toolbar-filter-option flex items-center justify-between gap-4" 
+                      <div class="toolbar-filter-option flex items-center justify-between gap-4"
                         :class="{ 'active-filter-item': branchFilter === 'all' }"
                         @click="selectFilter('branch', 'all')">
                         <div class="flex items-center gap-3">
@@ -527,7 +539,7 @@ const navigateToDetail = (item) => {
                           <span>All Branches</span>
                         </div>
                       </div>
-                      <div v-for="opt in branchOptions" :key="opt.value" 
+                      <div v-for="opt in branchOptions" :key="opt.value"
                         class="toolbar-filter-option flex items-center justify-between gap-4"
                         :class="{ 'active-filter-item': String(branchFilter) === String(opt.value) }"
                         @click="selectFilter('branch', opt.value)">
@@ -542,7 +554,8 @@ const navigateToDetail = (item) => {
                 </Teleport>
               </div>
 
-              <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
+              <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
+                @click="openAddModal">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold tracking-tight">Add Class</span>
               </AppButton>
@@ -591,7 +604,7 @@ const navigateToDetail = (item) => {
                   <div class="flex flex-col items-center">
                     <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
                     <span class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums">{{ sched.time
-                    }}</span>
+                      }}</span>
                   </div>
                 </div>
               </div>
@@ -601,7 +614,7 @@ const navigateToDetail = (item) => {
               <div class="flex flex-col items-center justify-center gap-4 py-6">
                 <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
                   class="flex flex-col items-center justify-center h-10">
-                  <AppBadge :status="`${sched.currentCount || 0} / ${sched.capacity || 20}`" type="blue" />
+                  <AppBadge :status="`${sched.currentCount || 0} / ${sched.capacity || 5}`" type="blue" />
                 </div>
               </div>
             </td>
@@ -631,16 +644,15 @@ const navigateToDetail = (item) => {
                     <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
                       :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
                       @click.stop>
-                      <button class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="() => { 
-                          handleAction('edit', item.classProduct, { 
-                            termId: item.termId, 
-                            offeringId: item.offeringId,
-                            termName: item.termName,
-                            offeringIds: item.offeringIds
-                          }); 
-                          closeMenu(); 
-                        }">
+                      <button class="ui-dropdown-item ui-dropdown-item-info group" @click="() => {
+                        handleAction('edit', item.classProduct, {
+                          termId: item.termId,
+                          offeringId: item.offeringId,
+                          termName: item.termName,
+                          offeringIds: item.offeringIds
+                        });
+                        closeMenu();
+                      }">
                         <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         <span>Edit Current Term</span>
                       </button>

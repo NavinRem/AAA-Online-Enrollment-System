@@ -71,7 +71,7 @@ export const hasTrialToday = (parentId, trials = [], todayStart) => {
   }
 }
 
-export const calculateParentStats = (parents = [], enrollments = [], trials = []) => {
+export const calculateParentStats = (parents = [], enrollments = []) => {
   const now = new Date()
   const todayStart = new Date(now.setHours(0, 0, 0, 0)).getTime()
 
@@ -79,11 +79,11 @@ export const calculateParentStats = (parents = [], enrollments = [], trials = []
     parentCount: parents.length,
     todayCount: parents.filter((p) => isRegisteredToday(p, todayStart)).length,
     paidTodayCount: parents.filter((p) => hasPaidToday(p.id, enrollments, todayStart)).length,
-    trialTodayCount: parents.filter((p) => hasTrialToday(p.id, trials, todayStart)).length,
+    inactiveCount: parents.filter((p) => (p.status || 'active').toLowerCase() === 'inactive').length,
   }
 }
 
-export const filterParents = (parents = [], enrollments = [], trials = [], filterType = 'all') => {
+export const filterParents = (parents = [], enrollments = [], filterType = 'all') => {
   const now = new Date()
   const todayStart = new Date(now.setHours(0, 0, 0, 0)).getTime()
 
@@ -92,7 +92,6 @@ export const filterParents = (parents = [], enrollments = [], trials = [], filte
     inactive: (p) => !isActiveParent(p),
     'registered-today': (p) => isRegisteredToday(p, todayStart),
     'paid-today': (p) => hasPaidToday(p.id, enrollments, todayStart),
-    'trial-today': (p) => hasTrialToday(p.id, trials, todayStart),
   }
 
   const filterFn = strategies[filterType]
@@ -128,6 +127,6 @@ export const prepareParentPayload = (data) => {
     email: data.email?.trim(),
     phone: data.phone?.trim(),
     profileURL: data.profileURL,
-    status: (data.status || 'active').toLowerCase(),
+    status: data.status || 'active',
   }
 }

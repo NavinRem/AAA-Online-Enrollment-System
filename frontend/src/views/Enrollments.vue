@@ -206,10 +206,15 @@ const enrichedEnrollments = computed(() => {
   )
 })
 
-const { searchQuery, searchResults: paginatedEnrollments } = useSearch(
+const { searchQuery, searchResults } = useSearch(
   enrichedEnrollments,
   enrollmentSearchMapper,
 )
+
+const paginatedEnrollments = computed(() => {
+  const list = [...searchResults.value].sort((a, b) => new Date(b.enrollAt || b.createdAt || 0) - new Date(a.enrollAt || a.createdAt || 0))
+  return list
+})
 
 watch([currentFilter, currentPage], () => {
   fetchEnrollments()
@@ -348,7 +353,7 @@ const handleRegisterStudent = async (formData) => {
           <template
             #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
             <td class="ui-cell text-center hidden md:table-cell" :style="{ width: headers[0].width }">
-              {{ (currentPage - 1) * pageSize + index + 1 }}
+              <span class="font-bold text-content-dark text-sm">{{ (currentPage - 1) * pageSize + index + 1 }}</span>
             </td>
 
             <!-- Parent Column -->
@@ -358,7 +363,7 @@ const handleRegisterStudent = async (formData) => {
                   <img :src="item.parent?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="truncate block">{{ item.parent?.name }}</span>
+                  <span class="truncate block font-bold text-content-dark text-sm">{{ item.parent?.name }}</span>
                 </div>
               </div>
             </td>
@@ -370,7 +375,7 @@ const handleRegisterStudent = async (formData) => {
                   <img :src="item.student?.profileURL" alt="child" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="truncate block">{{ item.student?.name }}</span>
+                  <span class="truncate block font-bold text-content-dark text-sm">{{ item.student?.name }}</span>
                 </div>
               </div>
             </td>
@@ -378,7 +383,7 @@ const handleRegisterStudent = async (formData) => {
             <!-- Term Column -->
             <td class="ui-cell" :style="{ width: headers[3].width }">
               <div class="flex flex-col">
-                <span class="">{{ item.termName }}</span>
+                <span class="text-xs font-bold text-content-dark">{{ item.termName }}</span>
                 <AppBadge v-if="item.branchAbbr" :status="item.branchAbbr" :type="item.branchColor" />
               </div>
             </td>
@@ -392,7 +397,7 @@ const handleRegisterStudent = async (formData) => {
                     :alt="item.programName" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="truncate block">{{
+                  <span class="truncate block font-bold text-content-dark text-sm">{{
                     item.program?.name }}</span>
                   <AppBadge :status="item.program?.type" />
                 </div>
@@ -402,12 +407,12 @@ const handleRegisterStudent = async (formData) => {
             <!-- Session Column -->
             <td class="ui-cell" :style="{ width: headers[5].width }">
               <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col">
-                <span class="leading-none">{{
+                <span class="text-xs font-bold text-content-dark leading-none">{{
                   getSessionDay(item.classSchedule, true) }}</span>
-                <span class="mt-0.5">{{
+                <span class="text-3xs font-bold text-content-muted mt-0.5 tabular-nums">{{
                   getSessionTime(item.classSchedule) }}</span>
               </div>
-              <span v-else>Pending</span>
+              <span v-else class="text-xs font-bold text-content-muted">Pending</span>
             </td>
 
             <!-- Status Column -->
@@ -425,7 +430,7 @@ const handleRegisterStudent = async (formData) => {
 
             <!-- Date Column -->
             <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[8].width }">
-              <span class="truncate block">{{
+              <span class="truncate block text-xs font-bold text-content-muted tabular-nums">{{
                 formatDate(item.enrollAt) }}</span>
             </td>
 

@@ -109,6 +109,7 @@ export const enrichEnrollments = (
         paymentStatus: r.paymentStatus || 'unpaid',
         status: String(r.status || r.paymentStatus || 'unpaid').toLowerCase(),
         class: classInst,
+        termId: classInst?.term?.id || r.class?.term?.id || r.termId,
       }
     })
     .sort((a, b) => parseDate(b.enrollAt).getTime() - parseDate(a.enrollAt).getTime())

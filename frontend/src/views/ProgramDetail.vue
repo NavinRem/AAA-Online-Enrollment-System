@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { branchService } from '@/services/branchService'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
@@ -80,9 +80,10 @@ onMounted(() => {
   const interval = setInterval(() => {
     now.value = new Date()
   }, 60000)
-  return () => {
+
+  onUnmounted(() => {
     clearInterval(interval)
-  }
+  })
 })
 
 const resolvedCategory = computed(() => {
@@ -407,13 +408,13 @@ const handleActionSubmit = async (formData) => {
               <!-- Schedule Row -->
               <template v-if="activeTab === 'schedule'">
                 <td class="ui-cell text-center" :style="{ width: headers[0].width }">
-                  {{ index + 1 }}
+                  <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
                 </td>
                 <td class="ui-cell">
                   <div class="flex flex-col gap-1 items-start">
                     <AppBadge :status="item.schedule.day"
                       :type="['Saturday', 'Sunday'].includes(item.schedule.day) ? 'blue' : 'gray'" />
-                    <span class="tracking-tight leading-none">{{
+                    <span class="text-xs font-bold text-content-dark leading-none tabular-nums">{{
                       item.schedule.time
                     }}</span>
                   </div>
@@ -422,7 +423,7 @@ const handleActionSubmit = async (formData) => {
                   <AppBadge :status="item.branch?.abbr || 'TBA'" :type="item.branch?.color || 'blue'" />
                 </td>
                 <td class="ui-cell">
-                  <span class="tracking-tight">{{ item.term?.name }}</span>
+                  <span class="text-xs font-bold text-content-muted tabular-nums">{{ item.term?.name }}</span>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[4].width }">
                   <div class="flex flex-col items-center gap-2 w-full px-4">
@@ -433,7 +434,7 @@ const handleActionSubmit = async (formData) => {
                         :class="((item.capacity || item.maxCapacity) && ((item.currentCount || item.enrolledCount) / (item.capacity || item.maxCapacity)) >= 1) ? 'bg-error' : ((item.capacity || item.maxCapacity) && ((item.currentCount || item.enrolledCount) / (item.capacity || item.maxCapacity)) >= 0.8) ? 'bg-warning' : 'bg-emerald-500'">
                       </div>
                     </div>
-                    <span class="tabular-nums ">
+                    <span class="tabular-nums text-xs font-bold text-content-dark">
                       {{ item.currentCount || item.enrolledCount || 0 }}/{{ (item.capacity || item.maxCapacity) || '∞'
                       }}
                     </span>
@@ -454,7 +455,7 @@ const handleActionSubmit = async (formData) => {
               <!-- Teachers Row -->
               <template v-else-if="activeTab === 'teachers'">
                 <td class="ui-cell text-center" :style="{ width: headers[0].width }">
-                  {{ index + 1 }}
+                  <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
                 </td>
                 <td class="ui-cell">
                   <div class="flex items-center gap-3">
@@ -463,8 +464,8 @@ const handleActionSubmit = async (formData) => {
                         class="w-full h-full object-cover" />
                     </div>
                     <div class="flex flex-col">
-                      <span class="">{{ item.name }}</span>
-                      <span class="">{{
+                      <span class="font-bold text-content-dark text-sm">{{ item.name }}</span>
+                      <span class="text-3xs font-bold text-content-muted">{{
                         item.role || 'Instructor' }}</span>
                     </div>
                   </div>
@@ -473,14 +474,14 @@ const handleActionSubmit = async (formData) => {
                   <AppBadge :status="item.branch || 'Multiple'" type="blue" />
                 </td>
                 <td class="ui-cell">
-                  {{ item.email || 'N/A' }}
+                  <span class="text-xs font-bold text-content-muted">{{ item.email || 'N/A' }}</span>
                 </td>
               </template>
 
               <!-- Students Row -->
               <template v-else-if="activeTab === 'students'">
                 <td class="ui-cell text-center" :style="{ width: headers[0].width }">
-                  {{ index + 1 }}
+                  <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
                 </td>
                 <td class="ui-cell">
                   <div class="flex items-center gap-3">
@@ -489,18 +490,18 @@ const handleActionSubmit = async (formData) => {
                         class="w-full h-full object-cover" />
                     </div>
                     <div class="flex flex-col">
-                      <span class="">{{ item.student?.name || 'Unknown Student'
+                      <span class="font-bold text-content-dark text-sm">{{ item.student?.name || 'Unknown Student'
                         }}</span>
-                      <span class="">{{ item.programName
+                      <span class="text-3xs font-bold text-content-muted uppercase tracking-tighter">{{ item.programName
                         ||
                         'Program' }}</span>
                     </div>
                   </div>
                 </td>
                 <td class="ui-cell">
-                  <span class="">{{ item.student?.parentName || 'N/A' }}</span>
+                  <span class="text-xs font-bold text-content-dark">{{ item.student?.parentName || 'N/A' }}</span>
                 </td>
-                <td class="ui-cell text-center tabular-nums">
+                <td class="ui-cell text-center tabular-nums text-sm font-bold text-content-dark">
                   {{ item.student?.age || 'N/A' }}
                 </td>
                 <td class="ui-cell text-center">
@@ -512,7 +513,7 @@ const handleActionSubmit = async (formData) => {
               <!-- Trials Row -->
               <template v-else-if="activeTab === 'trials'">
                 <td class="ui-cell text-center" :style="{ width: headers[0].width }">
-                  {{ index + 1 }}
+                  <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
                 </td>
                 <td class="ui-cell">
                   <div class="flex items-center gap-3">
@@ -521,16 +522,16 @@ const handleActionSubmit = async (formData) => {
                         class="w-full h-full object-cover" />
                     </div>
                     <div class="flex flex-col">
-                      <span class="">{{ item.student?.name ||
+                      <span class="font-bold text-content-dark text-sm">{{ item.student?.name ||
                         item.guestStudentName
                       }}</span>
-                      <span class="">{{ item.isGuest ?
+                      <span class="text-3xs font-bold text-content-muted">{{ item.isGuest ?
                         'Guest Prospect' : 'Registered Student' }}</span>
                     </div>
                   </div>
                 </td>
                 <td class="ui-cell">
-                  <span class="">{{ item.parent?.name || item.guestParentName ||
+                  <span class="text-xs font-bold text-content-dark">{{ item.parent?.name || item.guestParentName ||
                     'Guest Parent' }}</span>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[3].width }">
@@ -538,9 +539,9 @@ const handleActionSubmit = async (formData) => {
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[4].width }">
                   <div class="flex flex-col items-center">
-                    <span class="tabular-nums tracking-tight">{{
+                    <span class="tabular-nums text-xs font-bold text-content-dark">{{
                       item.trialDate ? new Date(item.trialDate).toLocaleDateString() : 'N/A' }}</span>
-                    <span class="">{{ item.trialTime || '' }}</span>
+                    <span class="text-3xs font-bold text-content-muted tabular-nums">{{ item.trialTime || '' }}</span>
                   </div>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[5].width }">
@@ -554,22 +555,22 @@ const handleActionSubmit = async (formData) => {
               <!-- Distribution Row -->
               <template v-else-if="activeTab === 'distribution'">
                 <td class="ui-cell text-center" :style="{ width: headers[0].width }">
-                  {{ index + 1 }}
+                  <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
                 </td>
                 <td class="ui-cell">
                   <div class="flex items-center gap-2">
-                    <span class="tracking-tighter">{{
+                    <span class="text-sm font-bold text-content-dark tracking-tighter">{{
                       item.branch?.name }}</span>
                     <AppBadge :status="item.branch?.abbr" :type="item.branch?.color || 'blue'" />
                   </div>
                 </td>
                 <td class="ui-cell">
-                  <span class="tracking-tight">{{ item.term?.name }}</span>
+                  <span class="text-xs font-bold text-content-muted tabular-nums">{{ item.term?.name }}</span>
                 </td>
-                <td class="ui-cell text-center">
+                <td class="ui-cell text-center font-bold text-content-dark text-sm">
                   <span class="tabular-nums">{{ item.studentCount }}</span>
                 </td>
-                <td class="ui-cell text-center">
+                <td class="ui-cell text-center font-bold text-content-dark text-sm">
                   <span class="tabular-nums">{{ item.classCount }}</span>
                 </td>
                 <td class="ui-cell text-center">

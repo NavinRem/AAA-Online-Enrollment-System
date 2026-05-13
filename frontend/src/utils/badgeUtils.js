@@ -2,7 +2,7 @@ const COMMON_STATUSES = {
   active: 'green',
   upcoming: 'blue',
   archived: 'magenta',
-  inactive: 'yellow',
+  inactive: 'red',
   failed: 'red',
   success: 'green',
 }
@@ -45,6 +45,7 @@ const REGISTRIES = {
   },
   account: {
     ...COMMON_STATUSES,
+    hold: 'orange',
   },
   gender: {
     female: 'pink',

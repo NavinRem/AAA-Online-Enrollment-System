@@ -631,7 +631,7 @@ const handleActionSubmit = async (payload) => {
               </div>
             </div>
             <div class="text-center">
-              <h3 class="text-xl font-black text-content-dark tracking-tight">{{ term.name }}</h3>
+              <h3 class="text-lg text-content-dark font-extrabold mt-md">{{ term.name }}</h3>
               <span class="text-sm font-bold text-content-muted  mt-1">{{ term.totalSessions }}
                 Weekly Sessions</span>
             </div>
@@ -642,33 +642,33 @@ const handleActionSubmit = async (payload) => {
             <div class="flex flex-col items-center gap-6">
               <div v-if="activeBranch"
                 class="flex flex-col items-center gap-2 w-full pb-6 border-b border-outline-std/50">
-                <span class="text-xs font-bold text-content-muted uppercase tracking-widest">Selected Branch</span>
+                <span class="text-sm font-bold text-content-muted ">Selected Branch</span>
                 <AppBadge :status="activeBranch.name" :type="activeBranch.color" class="px-6 py-1.5 text-sm" />
               </div>
 
               <div class="grid grid-cols-2 gap-x-12 gap-y-8 w-full" v-if="branchDisplayData">
                 <div class="flex flex-col items-center gap-2">
-                  <span class="text-xs font-bold text-content-muted uppercase tracking-widest">Status</span>
+                  <span class="text-sm font-bold text-content-muted ">Status</span>
                   <AppBadge :status="branchDisplayData.status" />
                 </div>
                 <div class="flex flex-col items-center gap-2">
-                  <span class="text-xs font-bold text-content-muted uppercase tracking-widest">Locations</span>
-                  <span class="text-md font-black text-content-dark">{{ term.branchIds.length }} Branches</span>
+                  <span class="text-sm font-bold text-content-muted ">Locations</span>
+                  <span class="text-lg font-bold text-content-dark">{{ term.branchIds.length }} Branches</span>
                 </div>
                 <div class="flex flex-col items-center gap-2">
-                  <span class="text-xs font-bold text-content-muted uppercase tracking-widest">Duration</span>
-                  <span class="text-md font-black text-content-dark">{{ term.totalSessions }} Weeks</span>
+                  <span class="text-sm font-bold text-content-muted ">Duration</span>
+                  <span class="text-lg font-bold text-content-dark">{{ term.totalSessions }} Weeks</span>
                 </div>
                 <div class="flex flex-col items-center gap-2">
-                  <span class="text-xs font-bold text-content-muted uppercase tracking-widest">Sessions</span>
-                  <span class="text-md font-black text-content-dark">{{ term.totalSessions }} Total</span>
+                  <span class="text-sm font-bold text-content-muted ">Sessions</span>
+                  <span class="text-lg font-bold text-content-dark">{{ term.totalSessions }} Total</span>
                 </div>
                 <div class="flex flex-col items-center gap-2">
-                  <span class="text-xs font-bold text-content-muted uppercase tracking-widest">Start Date</span>
+                  <span class="text-sm font-bold text-content-muted ">Start Date</span>
                   <AppBadge :status="formatShortDate(branchDisplayData.startDate)" type="green" />
                 </div>
                 <div class="flex flex-col items-center gap-2">
-                  <span class="text-xs font-bold text-content-muted uppercase tracking-widest">End Date</span>
+                  <span class="text-sm font-bold text-content-muted ">End Date</span>
                   <AppBadge :status="formatShortDate(branchDisplayData.endDate)" type="red" />
                 </div>
               </div>

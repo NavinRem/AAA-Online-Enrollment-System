@@ -43,32 +43,41 @@ const getAttendanceStatus = (sessionId, studentId) => {
 }
 
 const updateAttendanceStatus = async (sessionId, studentId, status) => {
-  // Optimistic update
   if (!attendanceData.value[sessionId]) {
     attendanceData.value[sessionId] = {}
   }
 
   const oldStatus = attendanceData.value[sessionId][studentId]
+  if (oldStatus === status) return
+
+  // 1. Optimistic Update
   attendanceData.value[sessionId][studentId] = status
 
-  // Makeup Logic: If status is 'M', find first 'A' in other sessions and change to 'M'
-  if (status === 'M') {
-    for (const session of sessions.value) {
-      if (session.id === sessionId) continue
-      if (attendanceData.value[session.id]?.[studentId] === 'A') {
-        attendanceData.value[session.id][studentId] = 'M'
-        // Persist the linked session change too
-        await attendanceService.recordAttendance(classData.value.id, session.id, attendanceData.value[session.id])
-        break // Only resolve one absence per makeup
+  try {
+    const updates = []
+    
+    // 2. Persist primary change
+    updates.push(attendanceService.recordAttendance(classData.value.id, sessionId, attendanceData.value[sessionId]))
+
+    // 3. Makeup Logic: If status is 'M', find first 'A' in other sessions and change to 'M'
+    if (status === 'M') {
+      for (const session of sessions.value) {
+        if (session.id === sessionId) continue
+        if (attendanceData.value[session.id]?.[studentId] === 'A') {
+          attendanceData.value[session.id][studentId] = 'M'
+          // Persist the linked session change
+          updates.push(attendanceService.recordAttendance(classData.value.id, session.id, attendanceData.value[session.id]))
+          break // Only resolve one absence per makeup
+        }
       }
     }
-  }
 
-  try {
-    await attendanceService.recordAttendance(classData.value.id, sessionId, attendanceData.value[sessionId])
+    await Promise.all(updates)
   } catch (error) {
     console.error('Failed to save attendance', error)
+    // Rollback (simplified)
     attendanceData.value[sessionId][studentId] = oldStatus
+    errorMessage.value = 'Failed to sync attendance. Please refresh.'
   }
 }
 
@@ -153,7 +162,7 @@ const totalRevenueAcrossOfferings = computed(() =>
 )
 
 const capacityUtilization = computed(() => {
-  const totalCap = selectedTermOfferings.value.reduce((sum, o) => sum + (o.capacity || 20), 0)
+  const totalCap = selectedTermOfferings.value.reduce((sum, o) => sum + (o.capacity || 5), 0)
   if (totalCap === 0) return 0
   return Math.round((totalStudentsAcrossOfferings.value / totalCap) * 100)
 })
@@ -469,7 +478,7 @@ const getScheduleStatus = (schedule) => {
   }
 
   const count = Number(off.currentCount || off.students?.length || 0)
-  const capacity = Number(off.capacity || schedule.capacity || 20)
+  const capacity = Number(off.capacity || schedule.capacity || 5)
 
   if (count >= capacity) return { status: 'Full', type: 'red' }
 
@@ -495,7 +504,7 @@ const getScheduleCapacity = (schedule) => {
     (String(o.scheduleId) === String(schedule.id) || String(o.schedule?.id) === String(schedule.id))
   )
 
-  return off?.capacity || schedule.capacity || 20
+  return off?.capacity || schedule.capacity || 5
 }
 
 const scheduleOptions = computed(() => {
@@ -710,27 +719,24 @@ watch(branchFilter, (newBranchId) => {
 
             <template #row="{ item, index, headers }">
               <td class="ui-cell text-center" :style="{ width: headers[0].width }">
-                {{ (currentPage - 1) * pageSize + index + 1 }}
+                <span class="font-bold text-content-dark text-sm">{{ (currentPage - 1) * pageSize + index + 1 }}</span>
               </td>
               <td class="ui-cell">
                 <div class="flex items-center gap-3">
                   <div class="flex flex-col">
-                    <span class="leading-tight">{{ item.student?.name ||
+                    <span class="font-bold text-content-dark text-sm leading-tight">{{ item.student?.name ||
                       'Unknown'
                     }}</span>
-                    <span class="">{{
+                    <span class="text-3xs font-bold text-content-muted tracking-tighter">{{
                       item.student?.nickname || 'No Nick' }}</span>
                   </div>
                 </div>
               </td>
-              <td class="ui-cell text-center">
+              <td class="ui-cell text-center font-bold text-content-dark text-sm">
                 {{ classData.program?.level || 'L1' }}
               </td>
-              <td class="ui-cell text-center">
-                <div class="flex flex-col items-center">
-                  <span class="tabular-nums tracking-tight">{{
-                    primarySchedule.time }}</span>
-                </div>
+              <td class="ui-cell text-center font-bold text-content-muted text-xs tabular-nums">
+                {{ primarySchedule.time }}
               </td>
 
               <!-- Session Columns -->

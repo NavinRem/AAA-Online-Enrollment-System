@@ -99,12 +99,11 @@ const statusFilteredTrials = computed(() => {
   else if (currentFilter.value === 'walk-in') filtered = filtered.filter(t => t.trialType === 'walk-in')
   else if (currentFilter.value === 'successful') filtered = filtered.filter(t => t.isSuccessful)
 
-  // Default Sort by Trial Type and then by Date
+  // Default Sort: Newest first (by createdAt or trialDate)
   return filtered.sort((a, b) => {
-    const typeA = a.trialType || (a.isGuest ? 'walk-in' : 'booked')
-    const typeB = b.trialType || (b.isGuest ? 'walk-in' : 'booked')
-    if (typeA !== typeB) return typeA.localeCompare(typeB)
-    return new Date(b.trialDate || 0) - new Date(a.trialDate || 0)
+    const dateA = new Date(a.createdAt || a.trialDate || 0)
+    const dateB = new Date(b.createdAt || b.trialDate || 0)
+    return dateB - dateA
   })
 })
 

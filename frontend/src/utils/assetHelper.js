@@ -68,6 +68,7 @@ export const ACTION_ICONS = {
   deactivate: 'action/deactivate',
   email: 'action/email',
   cash: 'action/cash',
+  branch: 'navigation/branch',
 }
 
 export const getActionIcon = (name) => getIcon(ACTION_ICONS[normalize(name)] || name)

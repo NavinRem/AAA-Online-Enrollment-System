@@ -237,13 +237,13 @@
     @apply text-3xl font-bold text-content-dark tracking-tighter leading-none;
   }
   .ui-identity-name-compact {
-    @apply text-2xl font-bold text-content-dark tracking-tighter leading-tight;
+    @apply text-3xl font-bold text-content-dark tracking-tighter leading-tight;
   }
   .ui-identity-meta {
     @apply flex items-center gap-md mt-2xs;
   }
   .ui-identity-meta-compact {
-    @apply text-sm text-content-muted font-medium flex items-center gap-xs;
+    @apply text-base text-content-muted font-bold flex items-center gap-xs;
   }
 
   /* ── Form Grid Layouts ───────────────────────────────────────────────────── */

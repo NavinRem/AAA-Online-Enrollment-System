@@ -68,9 +68,9 @@ export const enrichStudents = (
  */
 export const calculateTotalStudent = (students) => ({
   total: students.length,
-  studying: students.filter((s) => s.status === 'Studying').length,
-  inactive: students.filter((s) => s.status === 'Inactive').length,
-  graduated: students.filter((s) => s.status === 'Graduated').length,
+  active: students.filter((s) => (s.status || '').toLowerCase() === 'active').length,
+  inactive: students.filter((s) => (s.status || '').toLowerCase() === 'inactive').length,
+  hold: students.filter((s) => (s.status || '').toLowerCase() === 'hold').length,
 })
 
 /**
@@ -108,7 +108,7 @@ export const prepareStudentPayload = (data) => {
     name: data.name?.trim(),
     dob: data.dob,
     profileURL: data.profileURL,
-    status: data.status || 'Studying',
+    status: data.status || 'Inactive',
   }
   if (data.parentId) payload.parentId = data.parentId
   return payload

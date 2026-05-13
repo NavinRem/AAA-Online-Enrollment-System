@@ -82,21 +82,22 @@ class ParentService {
     const currentParentData = parentDoc.data()
     const childrenInfo = currentParentData.childrenInfo || []
 
-    const cleanUpdate = {
-      ...(validatedUpdate.name && { name: validatedUpdate.name }),
-      ...(validatedUpdate.email && { email: validatedUpdate.email }),
-      ...(validatedUpdate.phone && { phone: validatedUpdate.phone }),
-      ...(validatedUpdate.profileURL && {
-        profileURL: validatedUpdate.profileURL,
-      }),
-      ...(validatedUpdate.status && { status: validatedUpdate.status }),
-      ...(validatedUpdate.childrenInfo && { childrenInfo: validatedUpdate.childrenInfo }),
+    const cleanUpdate = {}
+    const syncFields = ['name', 'email', 'phone', 'profileURL', 'status']
+    
+    syncFields.forEach(field => {
+      if (validatedUpdate[field] !== undefined) {
+        cleanUpdate[field] = validatedUpdate[field]
+      }
+    })
+
+    if (validatedUpdate.childrenInfo !== undefined) {
+      cleanUpdate.childrenInfo = validatedUpdate.childrenInfo
     }
 
     const writes = []
     writes.push({ ref: parentRef, data: cleanUpdate })
 
-    const syncFields = ['name', 'email', 'phone', 'profileURL', 'status']
     const shouldSync = Object.keys(cleanUpdate).some((k) =>
       syncFields.includes(k),
     )
@@ -163,22 +164,22 @@ class ParentService {
   async getParentMirrorOperations(pid, snapshot, childrenInfo) {
     const writes = []
     if (childrenInfo && childrenInfo.length > 0) {
-      for (const child of childrenInfo) {
-        if (!child.id) continue
-        const studentRef = db.collection(COLLECTIONS.STUDENT).doc(child.id)
-        const studentDoc = await studentRef.get()
+      // Parallelize student fetches
+      const studentRefs = childrenInfo.map(c => db.collection(COLLECTIONS.STUDENT).doc(c.id))
+      const studentDocs = await db.getAll(...studentRefs)
 
-        if (studentDoc.exists) {
-          let parentInfo = [...(studentDoc.data().parentInfo || [])]
+      studentDocs.forEach(doc => {
+        if (doc.exists) {
+          let parentInfo = [...(doc.data().parentInfo || [])]
           const index = parentInfo.findIndex((p) => p.id === pid)
           if (index !== -1) {
             parentInfo[index] = snapshot
           } else {
             parentInfo.push(snapshot)
           }
-          writes.push({ ref: studentRef, data: { parentInfo } })
+          writes.push({ ref: doc.ref, data: { parentInfo } })
         }
-      }
+      })
     }
 
     const enrollmentsSnap = await db

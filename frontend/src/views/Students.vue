@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDataStore } from '../stores/dataStore'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
@@ -15,19 +15,81 @@ import { studentService } from '../services/studentService'
 import { parentService } from '../services/parentService'
 import { useSearch, studentSearchMapper } from '@/composables/useSearch'
 import { formatDate } from '@/utils/formatUtils'
-import { getProgramProfileURL } from '@/utils/assetHelper'
+import { getProgramProfileURL, getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import {
   calculateTotalStudent,
   enrichStudents,
   processStudentProfileImage,
   prepareStudentPayload,
 } from '@/utils/studentHelper'
-import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const dataStore = useDataStore()
 const newlyCreatedId = ref(null)
+
+// Filters
+const branchFilter = ref('all')
+const dropdowns = ref({
+  branch: false
+})
+const filterMenuStyles = ref({})
+
+const branchOptions = computed(() => {
+  return dataStore.branches
+    .filter(b => !b.isDeleted)
+    .map(b => ({
+      label: b.name,
+      value: b.id,
+      color: b.color,
+      abbr: b.abbr
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+})
+
+const toggleDropdown = (type, event) => {
+  event.stopPropagation()
+  const isOpening = !dropdowns.value[type]
+  Object.keys(dropdowns.value).forEach(key => {
+    dropdowns.value[key] = false
+  })
+  dropdowns.value[type] = isOpening
+
+  if (isOpening) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    filterMenuStyles.value = {
+      top: `${rect.bottom + window.scrollY + 8}px`,
+      left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 250)}px`,
+      minWidth: '240px'
+    }
+  }
+}
+
+const selectFilter = (type, value) => {
+  if (type === 'branch') branchFilter.value = value
+  dropdowns.value[type] = false
+}
+
+const getActiveLabel = (type) => {
+  if (type === 'branch') {
+    if (branchFilter.value === 'all') return { label: 'All Branches', color: 'purple' }
+    const opt = branchOptions.value.find(o => String(o.value) === String(branchFilter.value))
+    return {
+      label: opt ? opt.label : 'Select Branch',
+      color: opt?.color || 'purple'
+    }
+  }
+  return { label: '' }
+}
+
+const handleClickOutside = (event) => {
+  if (dropdowns.value.branch) {
+    const btn = document.getElementById('branch-filter-btn')
+    if (btn && !btn.contains(event.target)) {
+      dropdowns.value.branch = false
+    }
+  }
+}
 
 const students = computed(() => dataStore.students)
 const parentsList = computed(() => dataStore.parents)
@@ -54,7 +116,12 @@ const fetchStudents = async () => {
 }
 
 onMounted(() => {
+  window.addEventListener('mousedown', handleClickOutside)
   fetchStudents()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('mousedown', handleClickOutside)
 })
 
 const currentActiveTerm = computed(() => {
@@ -82,9 +149,21 @@ const currentFilter = ref('all')
 
 const filteredStudents = computed(() => {
   let list = searchResults.value
+
+  // 1. Status Filter
   if (currentFilter.value !== 'all') {
-    list = list.filter((s) => (s.status || 'studying').toLowerCase() === currentFilter.value)
+    list = list.filter((s) => (s.status || 'inactive').toLowerCase() === currentFilter.value)
   }
+
+  // 2. Branch Filter
+  if (branchFilter.value !== 'all') {
+    list = list.filter(s => {
+      // Check if student has ANY enrollment in the selected branch
+      const hasBranchEnrollment = (s.enrollments || []).some(e => String(e.branchId) === String(branchFilter.value))
+      return hasBranchEnrollment
+    })
+  }
+
   return [...list].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
 })
 
@@ -98,12 +177,15 @@ const paginatedStudents = computed(() => {
   return filteredStudents.value.slice(start, end)
 })
 
-watch([currentFilter, searchQuery], () => {
+watch([currentFilter, branchFilter, searchQuery], () => {
   currentPage.value = 1
 })
 
 const statsCards = computed(() => {
-  const s = calculateTotalStudent(studentsEnriched.value)
+  // Use branch-filtered list for metrics if branch filter is active
+  const statsList = branchFilter.value === 'all' ? studentsEnriched.value : filteredStudents.value
+  const s = calculateTotalStudent(statsList)
+
   return [
     {
       label: 'Total Students',
@@ -111,32 +193,33 @@ const statsCards = computed(() => {
       image: getImageUrl('student/total-student'),
     },
     {
-      label: 'Currently Studying',
-      value: s.studying,
+      label: 'Active (Studying)',
+      value: s.active,
       image: getImageUrl('student/currently-enrolled'),
     },
     {
-      label: 'Not Enrolled',
+      label: 'Inactive (Stopped)',
       value: s.inactive,
       image: getImageUrl('student/currently-not-enrolled'),
     },
     {
-      label: 'Graduated',
-      value: s.graduated,
-      image: getImageUrl('student/graduated'),
+      label: 'On Hold',
+      value: s.hold,
+      image: getImageUrl('student/stopped-enrolled'),
     },
   ]
 })
 
 const studentHeaders = [
-  { label: 'No', width: '60px', class: 'hidden md:table-cell', align: 'center' },
-  { label: 'Age', class: 'hidden md:table-cell', width: '80px', align: 'center' },
+  { label: 'No', width: '40px', class: 'hidden md:table-cell', align: 'center' },
+  { label: 'Age', class: 'hidden md:table-cell', width: '60px', align: 'center' },
   { label: 'Student' },
   { label: 'Parent', class: 'hidden md:table-cell' },
-  { label: 'Programs', class: 'hidden lg:table-cell', width: '300px' },
-  { label: 'Status', align: 'center', width: '120px' },
-  { label: 'Joined Date', class: 'hidden lg:table-cell', width: '350px', align: 'center' },
-  { label: 'Action', width: '80px', align: 'center' },
+  { label: 'Branch', width: '150px', align: 'center', class: 'hidden sm:table-cell' },
+  { label: 'Programs', class: 'hidden lg:table-cell', width: '240px' },
+  { label: 'Status', align: 'center', width: '100px' },
+  { label: 'Joined', class: 'hidden xl:table-cell', width: '300px', align: 'center' },
+  { label: 'Action', width: '60px', align: 'center' },
 ]
 
 const parentActionModal = ref({
@@ -155,6 +238,7 @@ const handleOpenAddStudent = async () => {
 }
 
 const handleRegisterStudent = async (formData) => {
+  if (modalLoading.value) return // Prevent double-submit
   modalLoading.value = true
   modalError.value = ''
   modalSuccess.value = ''
@@ -244,17 +328,17 @@ const submitActionModal = async (formData) => {
       modalSuccess.value = 'Student record permanently deleted.'
     } else if (type === 'override') {
       const { overrideReason, overrideRemark } = formData
-      const isStopping = status === 'Stopped'
+      const isInactive = status.toLowerCase() === 'inactive'
 
       await studentService.updateStudent(student.id, {
         status,
         overrideReason,
         overrideRemark,
         manualStatus: true,
-        archived: isStopping,
+        archived: isInactive,
       })
 
-      if (isStopping && student.parentId) {
+      if (isInactive && student.parentId) {
         try {
           await parentService.updateParent(student.parentId, { status: 'Inactive' })
         } catch (autoErr) {
@@ -262,9 +346,7 @@ const submitActionModal = async (formData) => {
         }
       }
 
-      // Removed manual mutation of computed property. 
-      // Relying on dataStore.fetchAllCommonData(true) below to sync the entire dashboard.
-      modalSuccess.value = `Student manually set to ${status} status.${isStopping ? ' Parent account deactivated.' : ''}`
+      modalSuccess.value = `Student manually set to ${status} status.${isInactive ? ' Parent account deactivated.' : ''}`
     }
 
     await fetchStudents()
@@ -296,20 +378,63 @@ const submitActionModal = async (formData) => {
           searchPlaceholder="Search by name or ID..." :hasFilter="true" v-model:currentFilter="currentFilter"
           :filterOptions="[
             { label: 'All Students', value: 'all' },
-            { label: 'Studying', value: 'studying' },
+            { label: 'Active', value: 'active' },
             { label: 'Inactive', value: 'inactive' },
-            { label: 'Graduated', value: 'graduated' },
-            { label: 'Suspended', value: 'suspended' },
-            { label: 'Stopped', value: 'stopped' },
+            { label: 'Hold', value: 'hold' },
           ]" :rowClass="getRowClass" :hasPagination="true" :totalItems="totalItems" :pageSize="pageSize"
           v-model:currentPage="currentPage" @row-click="navigateToDetail"
           @action="({ type, item }) => openActionModal(type, item)">
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
-              @click="handleOpenAddStudent">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold">New Student</span>
-            </AppButton>
+            <div class="flex items-center gap-3">
+              <!-- Branch Filter -->
+              <div class="relative" id="branch-filter-btn">
+                <AppButton :variant="branchFilter === 'all' ? 'secondary' : 'ghost'" size="md"
+                  @click="toggleDropdown('branch', $event)" class="rounded-xl transition-all duration-300 group"
+                  :class="{ '!text-white shadow-md': branchFilter !== 'all', 'shadow-sm': branchFilter === 'all' }"
+                  :style="branchFilter !== 'all' ? { backgroundColor: `var(--color-${getActiveLabel('branch').color})` } : {}">
+                  <img :src="getActionIcon('branch')"
+                    class="w-4 h-4 brightness-0 transition-all opacity-80 group-hover:opacity-100"
+                    :class="{ 'invert': branchFilter !== 'all' }" />
+                  <span class="font-bold tracking-tight" :class="{ 'text-white': branchFilter !== 'all' }">{{
+                    getActiveLabel('branch').label }}</span>
+                  <span class="ml-2 text-xs opacity-60 group-hover:opacity-100"
+                    :class="{ 'text-white': branchFilter !== 'all' }">▼</span>
+                </AppButton>
+                <Teleport to="body">
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="dropdowns.branch" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
+                      <div class="toolbar-filter-option flex items-center justify-between gap-4"
+                        :class="{ 'active-filter-item': branchFilter === 'all' }"
+                        @click="selectFilter('branch', 'all')">
+                        <div class="flex items-center gap-3">
+                          <AppBadge status="ALL" type="gray" size="sm" class="w-12 text-center" />
+                          <span>All Branches</span>
+                        </div>
+                      </div>
+                      <div v-for="opt in branchOptions" :key="opt.value"
+                        class="toolbar-filter-option flex items-center justify-between gap-4"
+                        :class="{ 'active-filter-item': String(branchFilter) === String(opt.value) }"
+                        @click="selectFilter('branch', opt.value)">
+                        <div class="flex items-center gap-3">
+                          <AppBadge :status="opt.abbr" :type="opt.color" size="sm" class="w-12 text-center" />
+                          <span class="truncate">{{ opt.label }}</span>
+                        </div>
+                        <span v-if="String(branchFilter) === String(opt.value)" class="text-xs">✓</span>
+                      </div>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
+
+              <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
+                @click="handleOpenAddStudent">
+                <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
+                <span class="font-bold">New Student</span>
+              </AppButton>
+            </div>
           </template>
 
           <template #row="{
@@ -324,7 +449,7 @@ const submitActionModal = async (formData) => {
           }">
             <!-- No -->
             <td class="ui-cell text-center hidden md:table-cell">
-              {{ (currentPage - 1) * pageSize + index + 1 }}
+              <span class="font-bold text-content-dark text-sm">{{ (currentPage - 1) * pageSize + index + 1 }}</span>
             </td>
 
             <!-- Age -->
@@ -344,7 +469,7 @@ const submitActionModal = async (formData) => {
                   </div>
                 </div>
                 <div class="ui-identity-info">
-                  <span class="truncate block tracking-tight">{{ item.name }}</span>
+                  <span class="truncate block font-bold text-content-dark text-sm tracking-tight">{{ item.name }}</span>
                 </div>
               </div>
             </td>
@@ -356,9 +481,15 @@ const submitActionModal = async (formData) => {
                   <img :src="item.parentInfo?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="tracking-tight">{{ item.parentInfo?.name }}</span>
+                  <span class="text-xs font-bold text-content-muted tracking-tight">{{ item.parentInfo?.name }}</span>
                 </div>
               </div>
+            </td>
+
+            <!-- Branch -->
+            <td class="ui-cell text-center hidden sm:table-cell">
+              <AppBadge v-if="item.branchInfo?.abbr" :status="item.branchInfo.abbr" :type="item.branchInfo.color" />
+              <span v-else class="opacity-30 text-2xs font-bold uppercase tracking-widest">—</span>
             </td>
 
             <!-- Programs -->
@@ -383,7 +514,7 @@ const submitActionModal = async (formData) => {
                   </div>
                 </template>
                 <template v-else>
-                  <span class="italic  leading-loose">— No Programs —</span>
+                  <span class="opacity-50"> No Programs </span>
                 </template>
               </div>
             </td>
@@ -394,8 +525,8 @@ const submitActionModal = async (formData) => {
             </td>
 
             <!-- Joined -->
-            <td class="ui-cell text-center hidden lg:table-cell">
-              <span class="tabular-nums ">
+            <td class="ui-cell text-center hidden xl:table-cell opacity-50">
+              <span class="text-xs font-bold text-content-muted tabular-nums">
                 {{ formatDate(item.createdAt || new Date().toISOString()) }}
               </span>
             </td>
@@ -455,3 +586,21 @@ const submitActionModal = async (formData) => {
       @close="parentActionModal.isOpen = false; modalError = ''; modalSuccess = ''" @submit="handleRegisterStudent" />
   </DashboardLayout>
 </template>
+
+<style scoped>
+.toolbar-filter-menu {
+  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[240px] max-h-[300px] overflow-y-auto;
+}
+
+.toolbar-filter-option {
+  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-all rounded-sm select-none flex items-center gap-2;
+}
+
+.toolbar-filter-option:hover {
+  @apply bg-surface-subtle text-primary;
+}
+
+.active-filter-item {
+  @apply bg-primary text-white hover:bg-primary hover:text-white !important;
+}
+</style>

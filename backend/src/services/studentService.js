@@ -17,6 +17,21 @@ class StudentService {
       throw new Error('Access Denied: You can only create students for your own account.')
     }
 
+    // Duplicate Prevention: Same name + DOB under same parent
+    const duplicateSnap = await db.collection(COLLECTIONS.STUDENT)
+      .where('parentId', '==', parentId)
+      .where('name', '==', validated.name)
+      .get()
+
+    const activeDuplicates = duplicateSnap.docs.filter(doc => {
+      const d = doc.data()
+      return d.isDeleted !== true && d.dob === validated.dob
+    })
+
+    if (activeDuplicates.length > 0) {
+      throw new Error(`A student named "${validated.name}" with the same birthday already exists under this parent.`)
+    }
+
     const parentRef = db.collection(COLLECTIONS.PARENT).doc(parentId)
     const parentDoc = await parentRef.get()
 

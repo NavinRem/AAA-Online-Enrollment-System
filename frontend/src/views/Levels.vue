@@ -52,8 +52,12 @@ const levelHeaders = [
   { label: 'Action', width: '100px', align: 'center' },
 ]
 
-const { searchQuery, searchResults: filteredLevels } = useSearch(levels, (l) => {
+const { searchQuery, searchResults } = useSearch(levels, (l) => {
   return `${l.name} ${l.description}`
+})
+
+const filteredLevels = computed(() => {
+  return [...searchResults.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
 })
 
 const statsCards = computed(() => {

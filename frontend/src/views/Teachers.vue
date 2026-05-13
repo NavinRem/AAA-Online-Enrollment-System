@@ -35,10 +35,14 @@ const statusFilteredTeachers = computed(() => {
   return teachers.value.filter(t => (t.status || 'active').toLowerCase() === currentFilter.value)
 })
 
-const { searchQuery, searchResults: filteredTeachers } = useSearch(
+const { searchQuery, searchResults } = useSearch(
   statusFilteredTeachers,
   teacherSearchMapper
 )
+
+const filteredTeachers = computed(() => {
+  return [...searchResults.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+})
 
 const statsCards = computed(() => {
   const all = teachers.value
@@ -160,7 +164,7 @@ const handleDelete = async (teacher) => {
           <template #row="{ item, index, headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }">
             <td class="ui-cell text-center hidden md:table-cell"
               :style="{ width: headers[0].width }">
-              {{ index + 1 }}
+              <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[1].width }">
@@ -169,8 +173,8 @@ const handleDelete = async (teacher) => {
                   <span class="text-lg font-bold text-primary opacity-40">{{ item.name.charAt(0) }}</span>
                 </div>
                 <div class="ui-identity-info">
-                  <span class="truncate block">{{ item.name }}</span>
-                  <span class="">{{
+                  <span class="truncate block font-bold text-content-dark text-sm">{{ item.name }}</span>
+                  <span class="text-3xs font-bold text-content-muted">{{
                     item.id.slice(-6) }}</span>
                 </div>
               </div>
@@ -178,15 +182,15 @@ const handleDelete = async (teacher) => {
 
             <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[2].width }">
               <div class="inline-flex px-3 py-1 rounded-lg bg-primary/5 border border-primary/10">
-                <span class="">{{ item.specialization ||
+                <span class="text-xs font-bold text-primary">{{ item.specialization ||
                   'Generalist' }}</span>
               </div>
             </td>
 
             <td class="ui-cell hidden md:table-cell" :style="{ width: headers[3].width }">
               <div class="flex flex-col">
-                <span class="">{{ item.email }}</span>
-                <span class="mt-1">{{ item.phone
+                <span class="text-xs font-bold text-content-dark">{{ item.email }}</span>
+                <span class="mt-1 text-3xs font-bold text-content-muted tabular-nums">{{ item.phone
                   ||
                   'No Contact' }}</span>
               </div>

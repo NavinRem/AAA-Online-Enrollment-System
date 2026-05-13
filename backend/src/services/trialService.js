@@ -11,6 +11,23 @@ class TrialService {
     const validated = validateTrial(trialData)
     const { studentId, programId, classId, branchId, isGuest } = validated
 
+    // Duplicate Prevention: Same student + program + trialDate (non-guest only)
+    if (!isGuest && studentId && programId && validated.trialDate) {
+      const dupSnap = await db.collection(COLLECTIONS.TRIAL)
+        .where('studentId', '==', studentId)
+        .where('programId', '==', programId)
+        .get()
+
+      const activeDups = dupSnap.docs.filter(doc => {
+        const d = doc.data()
+        return d.isDeleted !== true && d.trialDate === validated.trialDate
+      })
+
+      if (activeDups.length > 0) {
+        throw new Error('A trial for this student in this program on the same date already exists.')
+      }
+    }
+
     // 1. Fetch Basic Context (Program, Branch, Class)
     const [programDoc, classDoc, branchDoc] = await Promise.all([
       db.collection(COLLECTIONS.PROGRAM).doc(programId).get(),

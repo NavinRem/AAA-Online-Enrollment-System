@@ -39,7 +39,7 @@ function validateParent(parentData) {
     throw new Error('Invalid phone number format')
   }
 
-  if (!['active', 'inactive'].includes(status)) {
+  if (!['active', 'inactive'].includes(status.toLowerCase())) {
     throw new Error('Invalid status')
   }
 
@@ -70,7 +70,7 @@ function validateUpdateParent(updateData) {
     cleanData.profileURL = updateData.profileURL
   }
   if (updateData.status !== undefined) {
-    if (!['active', 'inactive'].includes(updateData.status)) {
+    if (!['active', 'inactive'].includes(updateData.status.toLowerCase())) {
       throw new Error('Invalid status')
     }
     cleanData.status = updateData.status

@@ -32,30 +32,30 @@ const getClassStatus = (enroll) => {
     <table class="w-full text-left border-collapse">
       <thead>
         <tr class="bg-gray-50/50">
-          <th class=" p-md text-2xs font-semibold text-content-muted ">No</th>
-          <th v-if="showChild" class=" p-md text-2xs font-semibold text-content-muted ">Child</th>
-          <th class=" p-md text-2xs font-semibold text-content-muted ">Program</th>
-          <th class=" p-md text-2xs font-semibold text-content-muted ">Branch</th>
-          <th class=" p-md text-2xs font-semibold text-content-muted ">Term</th>
-          <th v-if="showSchedule" class=" p-md text-2xs font-semibold text-content-muted ">Schedule</th>
-          <th v-if="showDate" class=" p-md text-2xs font-semibold text-content-muted ">Date</th>
-          <th class=" p-md text-2xs font-semibold text-content-muted  text-center">
+          <th class=" p-md text-2xs font-bold text-content-muted ">No</th>
+          <th v-if="showChild" class=" p-md text-2xs font-bold text-content-muted ">Child</th>
+          <th class=" p-md text-2xs font-bold text-content-muted ">Program</th>
+          <th class=" p-md text-2xs font-bold text-content-muted ">Branch</th>
+          <th class=" p-md text-2xs font-bold text-content-muted ">Term</th>
+          <th v-if="showSchedule" class=" p-md text-2xs font-bold text-content-muted ">Schedule</th>
+          <th v-if="showDate" class=" p-md text-2xs font-bold text-content-muted ">Date</th>
+          <th class=" p-md text-2xs font-bold text-content-muted  text-center">
             {{ statusMode === 'class' ? 'Class Status' : 'Enrollment Status' }}
           </th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-50">
         <tr v-for="(item, idx) in items" :key="item.id || idx" class="hover:bg-gray-50/50 transition-colors">
-          <td class=" p-md">{{ idx + 1 }}</td>
-          <td v-if="showChild" class=" p-md">{{ item.studentName }}</td>
-          <td class=" p-md">{{ item.programName }}</td>
+          <td class=" p-md text-sm font-bold text-content-dark">{{ idx + 1 }}</td>
+          <td v-if="showChild" class=" p-md text-sm font-bold text-content-dark">{{ item.studentName }}</td>
+          <td class=" p-md text-sm font-bold text-content-dark">{{ item.programName }}</td>
           <td class=" p-md">
             <AppBadge :status="item.branchAbbr" :type="item.branchColor" />
           </td>
-          <td class=" p-md tabular-nums">{{ item.termName }}</td>
-          <td v-if="showSchedule" class=" p-md leading-tight">{{ item.classSchedule }}
+          <td class=" p-md tabular-nums text-xs font-bold text-content-muted">{{ item.termName }}</td>
+          <td v-if="showSchedule" class=" p-md leading-tight text-xs font-bold text-content-muted">{{ item.classSchedule }}
           </td>
-          <td v-if="showDate" class=" p-md tabular-nums">{{ formatDate(item.enrollAt)
+          <td v-if="showDate" class=" p-md tabular-nums text-xs font-bold text-content-muted">{{ formatDate(item.enrollAt)
           }}</td>
           <td class=" p-md text-center">
             <AppBadge :status="statusMode === 'class' ? getClassStatus(item) : item.enrollmentStatus" />

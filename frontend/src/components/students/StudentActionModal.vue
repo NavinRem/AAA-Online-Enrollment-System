@@ -17,6 +17,7 @@ const props = defineProps({
   type: String, // 'edit', 'delete', 'override', 'enrollment-override', 'enrollment-delete'
   student: Object,
   enrollment: Object,
+  selectableParents: Array,
   loading: Boolean,
   error: String,
 })
@@ -27,7 +28,7 @@ const getInitialData = () => ({
   name: '',
   dob: '',
   profileURL: '',
-  status: 'studying',
+  status: 'inactive',
   deleteConfirm: '',
   overrideRemark: '',
 })
@@ -38,7 +39,7 @@ const mapSourceToForm = () => {
     name: source.name || '',
     dob: source.dob || '',
     profileURL: source.profileURL || '',
-    status: source.status || 'studying',
+    status: (source.status || 'inactive').toLowerCase(),
     deleteConfirm: '',
     overrideRemark: source.overrideRemark || '',
   }
@@ -62,7 +63,7 @@ const requestConfirm = () => {
     if (props.type === 'edit' && !isDirty.value) return
     rules.required = ['name', 'dob']
     rules.custom.overrideRemark = (val) => {
-      if (['suspended', 'stopped'].includes(localData.status.toLowerCase())) {
+      if (['hold', 'inactive'].includes(localData.status.toLowerCase())) {
         return !!val?.trim() || 'Detailed remark is required for this status change.'
       }
       return true
@@ -91,7 +92,9 @@ const confirmRows = computed(() => {
   const rows = [
     { key: 'Student Name', value: localData.name },
     { key: 'Date of Birth', value: localData.dob },
-    { key: 'Age', value: `${calculateAge(localData.dob)} yrs` },
+    { key: 'Age', value: `${calculateAge(localData.dob)} years old` },
+    { key: 'Gender', value: studentTheme.value === 'theme-pink' ? 'Female' : 'Male' },
+    { key: 'Status', value: localData.status, badge: true },
   ]
 
   if (props.type?.includes('delete')) {
@@ -170,7 +173,7 @@ watch(
         <div class="ui-identity-meta-compact">
           <AppBadge :status="studentTheme === 'theme-pink' ? 'Female' : 'Male'" />
           <span class="opacity-50">•</span>
-          <span>{{ calculateAge(localData.dob) }} yrs old</span>
+          <span>{{ calculateAge(localData.dob) }} years old</span>
         </div>
       </div>
     </div>
@@ -185,16 +188,15 @@ watch(
           :shake="shaking.dob" :disabled="type !== 'edit'" @input="clearError('dob')" />
 
         <AppSelect v-model="localData.status" label="Account Status" :items="[
-          { id: 'studying', name: 'Studying' },
-          { id: 'suspended', name: 'Suspended' },
-          { id: 'stopped', name: 'Stopped' },
-          { id: 'graduated', name: 'Graduated' },
+          { id: 'active', name: 'Active' },
+          { id: 'inactive', name: 'Inactive' },
+          { id: 'hold', name: 'Hold' },
         ]" required :error="errors.status" :shake="shaking.status"
-          :disabled="type === 'edit' && !['suspended', 'stopped'].includes(localData.status.toLowerCase())"
+          :disabled="type === 'edit' && ((student?.status || enrollment?.status) || '').toLowerCase() === 'stopped'"
           :searchable="false" @change="clearError('status')" />
 
         <div class="flex flex-col gap-xs mb-md col-span-2"
-          v-if="['suspended', 'stopped'].includes(localData.status.toLowerCase())">
+          v-if="['hold', 'inactive'].includes(localData.status.toLowerCase())">
           <label class="text-sm font-semibold text-content-dark">Administrative Remarks <span
               class="text-error">*</span></label>
           <textarea v-model="localData.overrideRemark" placeholder="Document reason for status change..." rows="3"

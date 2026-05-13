@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDataStore } from '../stores/dataStore'
 
@@ -30,6 +30,69 @@ const router = useRouter()
 const dataStore = useDataStore()
 const newlyCreatedId = ref(null)
 
+// Filters
+const branchFilter = ref('all')
+const dropdowns = ref({
+  branch: false
+})
+const filterMenuStyles = ref({})
+
+const branchOptions = computed(() => {
+  return dataStore.branches
+    .filter(b => !b.isDeleted)
+    .map(b => ({
+      label: b.name,
+      value: b.id,
+      color: b.color,
+      abbr: b.abbr
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+})
+
+const toggleDropdown = (type, event) => {
+  event.stopPropagation()
+  const isOpening = !dropdowns.value[type]
+  Object.keys(dropdowns.value).forEach(key => {
+    dropdowns.value[key] = false
+  })
+  dropdowns.value[type] = isOpening
+
+  if (isOpening) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    filterMenuStyles.value = {
+      top: `${rect.bottom + window.scrollY + 8}px`,
+      left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 250)}px`,
+      minWidth: '240px'
+    }
+  }
+}
+
+const selectFilter = (type, value) => {
+  if (type === 'branch') branchFilter.value = value
+  dropdowns.value[type] = false
+}
+
+const getActiveLabel = (type) => {
+  if (type === 'branch') {
+    if (branchFilter.value === 'all') return { label: 'All Branches', color: 'purple' }
+    const opt = branchOptions.value.find(o => String(o.value) === String(branchFilter.value))
+    return {
+      label: opt ? opt.label : 'Select Branch',
+      color: opt?.color || 'purple'
+    }
+  }
+  return { label: '' }
+}
+
+const handleClickOutside = (event) => {
+  if (dropdowns.value.branch) {
+    const btn = document.getElementById('branch-filter-btn')
+    if (btn && !btn.contains(event.target)) {
+      dropdowns.value.branch = false
+    }
+  }
+}
+
 const parents = computed(() => {
   const allParents = dataStore.parents
   const allStudents = dataStore.students
@@ -45,7 +108,8 @@ const getRowClass = (item) => {
 }
 
 const statsCards = computed(() => {
-  const s = calculateParentStats(parents.value, enrollments.value, trials.value)
+  const statsList = branchFilter.value === 'all' ? parents.value : statusFilteredParents.value
+  const s = calculateParentStats(statsList, enrollments.value)
   return [
     {
       label: 'Total Parents',
@@ -63,9 +127,9 @@ const statsCards = computed(() => {
       image: getImageUrl('parent/paid-today'),
     },
     {
-      label: 'Trial Today',
-      value: s.trialTodayCount,
-      image: getImageUrl('parent/active-now'),
+      label: 'Inactive Account',
+      value: s.inactiveCount,
+      image: getImageUrl('parent/total-guardian'),
     },
   ]
 })
@@ -82,6 +146,7 @@ const parentHeaders = [
 ]
 
 onMounted(async () => {
+  window.addEventListener('mousedown', handleClickOutside)
   try {
     await dataStore.fetchAllCommonData()
   } catch (error) {
@@ -89,10 +154,14 @@ onMounted(async () => {
   }
 })
 
+onUnmounted(() => {
+  window.removeEventListener('mousedown', handleClickOutside)
+})
+
 const currentFilter = ref('all')
 
 const statusFilteredParents = computed(() => {
-  return filterParents(parents.value, enrollments.value, trials.value, currentFilter.value)
+  return filterParents(parents.value, enrollments.value, currentFilter.value)
 })
 
 const { searchQuery, searchResults: filteredParents } = useSearch(
@@ -105,12 +174,13 @@ const pageSize = 10
 const totalItems = computed(() => filteredParents.value.length)
 
 const paginatedParents = computed(() => {
+  const list = [...filteredParents.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
   const start = (currentPage.value - 1) * pageSize
   const end = start + pageSize
-  return filteredParents.value.slice(start, end)
+  return list.slice(start, end)
 })
 
-watch([currentFilter, searchQuery], () => {
+watch([currentFilter, branchFilter, searchQuery], () => {
   currentPage.value = 1
 })
 
@@ -139,9 +209,9 @@ const closeActionModal = () => {
 }
 
 const updateLocalParent = (id, updates) => {
-  const idx = parents.value.findIndex((p) => p.id === id)
+  const idx = dataStore.parents.findIndex((p) => p.id === id)
   if (idx !== -1) {
-    parents.value[idx] = { ...parents.value[idx], ...updates }
+    dataStore.parents[idx] = { ...dataStore.parents[idx], ...updates }
   }
 }
 
@@ -163,7 +233,7 @@ const submitActionModal = async (formData) => {
     }
 
     if (type === 'deactivate' || type === 'activate') {
-      const status = type === 'activate' ? 'active' : 'inactive'
+      const status = type === 'activate' ? 'Active' : 'Inactive'
       await parentService.updateParent(id, { status })
       updateLocalParent(id, { status })
       successMessage.value = `Account ${type === 'activate' ? 'reactivated' : 'deactivated'} successfully!`
@@ -171,7 +241,7 @@ const submitActionModal = async (formData) => {
 
     if (type === 'delete') {
       await parentService.deleteParent(id)
-      parents.value = parents.value.filter((p) => p.id !== id)
+      dataStore.parents = dataStore.parents.filter((p) => p.id !== id)
       successMessage.value = 'Account deleted successfully!'
     }
 
@@ -223,7 +293,7 @@ const submitNewParent = async (data) => {
       childrenInfo: [],
     }
 
-    parents.value.unshift(newUser)
+    dataStore.parents.unshift(newUser)
     newlyCreatedId.value = result.id
     successMessage.value = `Account created successfully! ${result.tempPassword ? 'Temp Password: ' + result.tempPassword : ''}`
 
@@ -269,18 +339,20 @@ const navigateToDetail = (item) => {
           entityName="parent" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search something..."
           :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Parents', value: 'all' },
-            { label: 'Joined Today', value: 'joined-today' },
+            { label: 'Registered Today', value: 'registered-today' },
             { label: 'Paid Today', value: 'paid-today' },
-            { label: 'Trial Today', value: 'trial-today' },
+            { label: 'Inactive Account', value: 'inactive' },
           ]" :rowClass="getRowClass" :hasPagination="true" :totalItems="totalItems" :pageSize="pageSize"
           v-model:currentPage="currentPage" @row-click="navigateToDetail"
           @action="({ type, item }) => openActionModal(type, item)">
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
-              @click="showNewParentModal = true">
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold tracking-tight">New Parent</span>
-            </AppButton>
+            <div class="flex items-center gap-3">
+              <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
+                @click="showNewParentModal = true">
+                <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
+                <span class="font-bold tracking-tight">New Parent</span>
+              </AppButton>
+            </div>
           </template>
 
           <template #row="{
@@ -295,7 +367,7 @@ const navigateToDetail = (item) => {
           }">
             <!-- No -->
             <td class="ui-cell text-center hidden md:table-cell">
-              {{ (currentPage - 1) * pageSize + index + 1 }}
+              <span class="font-bold text-content-dark text-sm">{{ (currentPage - 1) * pageSize + index + 1 }}</span>
             </td>
 
             <!-- Identity -->
@@ -306,9 +378,8 @@ const navigateToDetail = (item) => {
                   <img :src="item.profileURL" alt="avatar" class="w-full h-full object-cover" />
                 </div>
                 <div class="flex flex-col">
-                  <span
-                    class="group-hover:text-primary transition-colors tracking-tight leading-tight">{{
-                      item.name }}</span>
+                  <span class="font-bold text-content-dark text-sm group-hover:text-primary transition-colors tracking-tight leading-tight">{{
+                    item.name }}</span>
                 </div>
               </div>
             </td>
@@ -323,7 +394,7 @@ const navigateToDetail = (item) => {
                     <img :src="child.profileURL" alt="child" class="w-full h-full object-cover" />
                   </div>
                   <div v-if="item.childrenInfo.length > 3"
-                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center">
+                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-3xs font-black">
                     +{{ item.childrenInfo.length - 3 }}
                   </div>
                 </template>
@@ -333,19 +404,19 @@ const navigateToDetail = (item) => {
             <!-- Contact Details -->
             <td class="ui-cell hidden md:table-cell">
               <div class="flex flex-col">
-                <span class="tracking-tighter">{{ item.phone }}</span>
+                <span class="text-xs font-bold text-content-dark tabular-nums tracking-tighter">{{ item.phone }}</span>
               </div>
             </td>
 
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex flex-col max-w-[160px]">
-                <span class="truncate">{{ item.email }}</span>
+                <span class="truncate text-xs font-bold text-content-muted">{{ item.email }}</span>
               </div>
             </td>
 
             <!-- Joined -->
             <td class="ui-cell hidden lg:table-cell text-center">
-              <span class="tabular-nums">
+              <span class="text-xs font-bold text-content-muted tabular-nums">
                 {{ formatDate(item.createdAt) }}
               </span>
             </td>
@@ -436,3 +507,21 @@ const navigateToDetail = (item) => {
       @close="showNewParentModal = false; errorMessage = ''; successMessage = ''" @submit="submitNewParent" />
   </DashboardLayout>
 </template>
+
+<style scoped>
+.toolbar-filter-menu {
+  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[240px] max-h-[300px] overflow-y-auto;
+}
+
+.toolbar-filter-option {
+  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-all rounded-sm select-none flex items-center gap-2;
+}
+
+.toolbar-filter-option:hover {
+  @apply bg-surface-subtle text-primary;
+}
+
+.active-filter-item {
+  @apply bg-primary text-white hover:bg-primary hover:text-white !important;
+}
+</style>

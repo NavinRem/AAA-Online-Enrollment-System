@@ -4,28 +4,26 @@ import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
-import AppButton from '@/components/common/ui/AppButton.vue'
-import TableToolbar from '@/components/common/data/TableToolbar.vue'
-import DetailedSummaryCard from '@/components/common/cards/DetailedSummaryCard.vue'
+
+import DataTable from '@/components/common/data/DataTable.vue'
+import DetailMetricCard from '@/components/common/data/DetailMetricCard.vue'
 import { studentService } from '@/services/studentService'
 import { parentService } from '@/services/parentService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { programService } from '@/services/programService'
 import { classService } from '@/services/classService'
-import { trackingService } from '@/services/trackingService'
-import { formatDate, formatDateOnly, calculateAge } from '@/utils/formatUtils'
+import { formatDate, formatDateOnly, calculateAge, generateClassSessions } from '@/utils/formatUtils'
 import { filterDetailEnrollments, getAcademicStatus, enrichEnrollments } from '@/utils/enrollmentHelper'
-import { getStatusTheme, getStatusFilter, getStatusUI } from '@/utils/badgeUtils'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
-import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
 
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { branchService } from '@/services/branchService'
+import RelationshipsCard from '@/components/common/detail/RelationshipsCard.vue'
+// Removed EnrollmentTable import
 import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
 import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
-import RelationshipsCard from '@/components/common/detail/RelationshipsCard.vue'
 import TimestampCard from '@/components/common/detail/TimestampCard.vue'
-import EnrollmentTable from '@/components/common/detail/EnrollmentTable.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -36,15 +34,11 @@ const enrollments = ref([])
 const attendanceHistory = ref([])
 const progressData = ref(null)
 const branches = ref([])
+const classAttendanceData = ref({}) // classId -> { sessionId -> { studentId -> status } }
+const selectedEnrollmentId = ref(null)
+const dropdownOpen = ref(false)
+const filterMenuStyles = ref({})
 
-const computedStatus = computed(() => {
-  return student.value?.status || 'Inactive'
-})
-
-const primaryParent = computed(() => {
-  const role = String(parent.value?.role || '').toLowerCase()
-  return role.includes('parent') ? parent.value : null
-})
 
 const loading = ref(true)
 const errorMessage = ref('')
@@ -60,148 +54,175 @@ const isArchived = computed(() => {
   return student.value?.archived || student.value?.status === 'Stopped'
 })
 
-const studentDetailsFields = computed(() => [
-  { label: 'Gender', value: student.value?.gender || 'N/A' },
-  { label: 'Age', value: (student.value?.dob ? calculateAge(student.value.dob) : 'N/A') + ' years old' },
-  { label: 'Student ID', value: student.value?.studentId || student.value?.id || 'N/A' },
-  { label: 'Branch', value: student.value?.branchAbbr || 'N/A' },
-  { label: 'Status', value: student.value?.status, isBadge: true }
+
+
+const inferredGender = computed(() => {
+  const url = (student.value?.profileURL || '').toLowerCase()
+  if (url.includes('boy')) return 'Male'
+  if (url.includes('girl')) return 'Female'
+  return student.value?.gender || '-'
+})
+
+const enrolledBranch = computed(() => {
+  const latest = enrollments.value[0]
+  if (!latest) return { abbr: student.value?.branchAbbr || 'HQ', color: student.value?.branchColor || 'blue' }
+  return {
+    abbr: latest.branchAbbr || 'HQ',
+    color: latest.branchColor || 'blue'
+  }
+})
+
+
+const attendanceRateValue = computed(() => {
+  if (attendanceHistory.value.length === 0) return '0%'
+  const presentCount = attendanceHistory.value.filter(
+    (a) => (a.status || '').toLowerCase() === 'present',
+  ).length
+  return Math.round((presentCount / attendanceHistory.value.length) * 100) + '%'
+})
+
+
+
+// ──────────────────────────────────────────────
+// Tab System
+// ──────────────────────────────────────────────
+// ──────────────────────────────────────────────
+// Enrollment & Attendance System
+// ──────────────────────────────────────────────
+const enrollmentOptions = computed(() => {
+  return enrollments.value.map(e => ({
+    label: `${e.termName} - ${e.programName} (${e.branchAbbr})`,
+    value: e.id,
+    classId: e.classId,
+    term: e.class?.term,
+    schedule: e.class?.schedule || e.class?.schedules?.[0]
+  }))
+})
+
+const selectedEnrollment = computed(() => {
+  return enrollments.value.find(e => e.id === selectedEnrollmentId.value) || enrollments.value[0]
+})
+
+const sessions = computed(() => {
+  const enrollment = selectedEnrollment.value
+  if (!enrollment || !enrollment.class?.term) return []
+
+  const term = enrollment.class.term
+  const schedule = enrollment.class.schedule || enrollment.class.schedules?.[0]
+  const dayOfWeek = schedule?.day || 'Monday'
+  const total = term.totalSessions || 12
+
+  return generateClassSessions(term.startDate, dayOfWeek, total, term.endDate)
+})
+
+const studentAttendanceRecords = computed(() => {
+  const enrollment = selectedEnrollment.value
+  if (!enrollment || !sessions.value.length) return []
+
+  const classId = enrollment.classId
+  const attendanceMap = classAttendanceData.value[classId] || {}
+  const studentId = student.value?.id
+
+  return sessions.value.map(session => {
+    const sessionData = attendanceMap[session.id] || {}
+    const status = sessionData[studentId] || 'N'
+    return {
+      ...session,
+      status,
+      remark: '-' // Placeholder for now
+    }
+  })
+})
+
+const attendanceStats = computed(() => {
+  const records = studentAttendanceRecords.value
+  if (!records.length) return { total: 0, passed: 0, absent: 0, remaining: 0 }
+
+  const total = records.length
+  const passed = records.filter(r => ['P', 'L', 'M'].includes(r.status)).length
+  const absent = records.filter(r => r.status === 'A').length
+  const completed = records.filter(r => r.status !== 'N').length
+  const remaining = total - completed
+
+  return { total, passed, absent, remaining }
+})
+
+const ATTENDANCE_STATUS = {
+  P: { label: 'P', theme: 'bg-success/10 text-success' },
+  A: { label: 'A', theme: 'bg-error-soft text-error' },
+  M: { label: 'M', theme: 'bg-primary-soft text-primary' },
+  L: { label: 'L', theme: 'bg-warning-soft text-warning' },
+  N: { label: 'N', theme: 'bg-surface-subtle text-content-muted/40' }
+}
+
+const studentInfoFields = computed(() => [
+  { label: 'Full Name', value: student.value?.name },
+  { label: 'Gender', value: inferredGender.value },
+  { label: 'Date of Birth', value: formatDateOnly(student.value?.dob) },
+  { label: 'Age', value: student.value?.dob ? `${calculateAge(student.value.dob)} yrs` : '-' },
+  { label: 'Branch', value: enrolledBranch.value.abbr, isBadge: true, type: enrolledBranch.value.color },
+  { label: 'Status', value: student.value?.status || 'Active', isBadge: true }
 ])
 
-const parentItems = computed(() => parent.value ? [{
-  id: parent.value.id,
-  name: parent.value.name,
-  profileURL: parent.value.profileURL,
-  badgeText: parent.value.phone,
-  route: `/parents/${parent.value.id}`
-}] : [])
+const parentDetailFields = computed(() => [
+  { label: 'Name', value: parent.value?.name, image: parent.value?.profileURL || getImageUrl('profiles/avatar-parent') },
+  { label: 'Phone', value: parent.value?.phone },
+  { label: 'Email', value: parent.value?.email }
+])
 
-const activeDropdown = ref(null)
-const programMenuStyles = ref({})
-const hoveredOption = ref(null)
-
-const toggleProgramFilter = (tab, event) => {
-  if (activeDropdown.value === tab) {
-    activeDropdown.value = null
-    return
-  }
-
-  activeDropdown.value = tab
-  const rect = event.currentTarget.getBoundingClientRect()
-  programMenuStyles.value = {
-    top: `${rect.bottom + window.scrollY + 8}px`,
-    right: `${window.innerWidth - rect.right - window.scrollX}px`,
-    minWidth: '180px',
+const toggleDropdown = (event) => {
+  dropdownOpen.value = !dropdownOpen.value
+  if (dropdownOpen.value && event) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    filterMenuStyles.value = {
+      top: `${rect.bottom + window.scrollY + 8}px`,
+      left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 300)}px`,
+      minWidth: '280px'
+    }
   }
 }
 
-const closeProgramFilter = (event) => {
-  setTimeout(() => {
-    const menu = document.querySelector('.program-filter-menu')
-    if (menu && menu.contains(event.relatedTarget)) return
-    activeDropdown.value = null
-  }, 200)
-}
-
-const selectProgramFilter = (tab, id) => {
-  if (tab === 'academic') academicFilter.value = id
-  else if (tab === 'attendance') attendanceFilter.value = id
-  else if (tab === 'behavior') behaviorFilter.value = id
-  else if (tab === 'exam') examFilter.value = id
-  activeDropdown.value = null
-}
-
-const getSelectedProgramLabel = (tab) => {
-  const val = getActiveFilterValue(tab)
-  if (val === 'all') {
-    return tab === 'exam' ? 'All Exams' : (tab === 'academic' ? 'All Status' : 'Filter')
+const selectEnrollment = (id) => {
+  selectedEnrollmentId.value = id
+  dropdownOpen.value = false
+  const enrollment = enrollments.value.find(e => e.id === id)
+  if (enrollment && !classAttendanceData.value[enrollment.classId]) {
+    fetchClassAttendance(enrollment.classId)
   }
-  return val
 }
 
-const activeTab = ref('academic')
-const academicFilter = ref('all')
-const attendanceFilter = ref('all')
-const behaviorFilter = ref('all')
-const examFilter = ref('all')
-const searchQuery = ref('')
-
-const isFilterActive = computed(() => {
-  if (activeTab.value === 'academic') return academicFilter.value !== 'all'
-  if (activeTab.value === 'attendance') return attendanceFilter.value !== 'all'
-  if (activeTab.value === 'behavior') return behaviorFilter.value !== 'all'
-  if (activeTab.value === 'exam') return examFilter.value !== 'all'
-  return false
-})
-
-const getActiveFilterValue = (tab) => {
-  if (tab === 'academic') return academicFilter.value
-  if (tab === 'attendance') return attendanceFilter.value
-  if (tab === 'behavior') return behaviorFilter.value
-  if (tab === 'exam') return examFilter.value
-  return 'all'
-}
-
-const filterThemeStyles = computed(() => {
-  const val = getActiveFilterValue(activeTab.value)
-  if (val === 'all') return {}
-  const theme = getStatusTheme(val)
-  return {
-    backgroundColor: theme.backgroundColor || 'var(--color-primary-soft)',
-    color: theme.color || 'var(--color-primary)'
+const fetchClassAttendance = async (classId) => {
+  try {
+    const { attendanceService } = await import('@/services/attendanceService')
+    const attendanceMap = await attendanceService.getClassAttendance(classId)
+    classAttendanceData.value[classId] = attendanceMap
+  } catch (e) {
+    console.error('Failed to fetch attendance for class', classId, e)
   }
-})
-
-const registeredPrograms = computed(() => {
-  if (!enrollments.value.length) return []
-  return enrollments.value
-    .map((e) => ({
-      id: e.programId,
-      name: e.programName || 'Unknown Program',
-    }))
-    .filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i)
-})
-
-const attendanceProgramOptions = computed(() => {
-  const idsWithLogs = new Set(attendanceHistory.value.map((a) => a.programId))
-  return registeredPrograms.value.filter((p) => idsWithLogs.has(p.id))
-})
-
-const behaviorProgramOptions = computed(() => {
-  const idsWithLogs = new Set((progressData.value?.behaviorLogs || []).map((b) => b.programId))
-  return registeredPrograms.value.filter((p) => idsWithLogs.has(p.id))
-})
-
-const examFilterOptions = computed(() => {
-  const terms = enrollments.value
-    .map((e) => e.termName || e.term)
-    .filter((v, i, a) => v && a.indexOf(v) === i)
-    .sort()
-    .map((t) => ({ id: `term:${t}`, title: `Term: ${t}` }))
-
-  return [
-    { id: 'all', title: 'All Exams' },
-    { id: 'passed', title: 'Result: Passed' },
-    { id: 'failed', title: 'Result: Failed' },
-    ...terms,
-  ]
-})
-
-const getFilterOptions = (tab) => {
-  if (tab === 'exam') return examFilterOptions.value
-  const options =
-    tab === 'attendance'
-      ? attendanceProgramOptions.value
-      : tab === 'behavior'
-        ? behaviorProgramOptions.value
-        : []
-  return options.length > 0 ? options : registeredPrograms.value
 }
 
-watch(activeTab, () => {
-  currentFilter.value = 'all'
-})
+watch(enrollments, (newEnrollments) => {
+  if (newEnrollments.length > 0 && !selectedEnrollmentId.value) {
+    selectedEnrollmentId.value = newEnrollments[0].id
+    fetchClassAttendance(newEnrollments[0].classId)
+  }
+}, { immediate: true })
 
+const attendanceHeaders = [
+  { label: 'No', width: '60px', align: 'center' },
+  { label: 'Session' },
+  { label: 'Date', width: '200px' },
+  { label: 'Outcome', align: 'center', width: '150px' },
+  { label: 'Remark' },
+  { label: 'Progress', width: '120px', align: 'center' },
+]
+
+
+
+
+// ──────────────────────────────────────────────
+// Action Modal
+// ──────────────────────────────────────────────
 const actionModal = ref({
   isOpen: false,
   type: '',
@@ -310,176 +331,9 @@ const submitActionModal = async (formData) => {
   }
 }
 
-const formatDateTime = (date) => {
-  if (!date) return '-'
-  try {
-    const d = typeof date === 'string' ? new Date(date) : date
-    if (isNaN(d.getTime())) return '-'
-
-    const dateStr = d.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    })
-    const timeStr = d.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    })
-
-    return `${dateStr} at ${timeStr}`
-  } catch (e) {
-    return '-'
-  }
-}
-
-const filterOptions = computed(() => {
-  if (activeTab.value === 'academic') {
-    return [
-      { label: 'All Status', value: 'all' },
-      { label: 'Studying', value: 'Studying' },
-      { label: 'Graduated', value: 'Graduated' },
-      { label: 'Suspended', value: 'Suspended' },
-      { label: 'Stopped', value: 'Stopped' },
-    ]
-  }
-  if (activeTab.value === 'attendance') {
-    return [
-      { label: 'All Status', value: 'all' },
-      { label: 'Present', value: 'Present' },
-      { label: 'Late', value: 'Late' },
-      { label: 'Permission', value: 'Permission' },
-      { label: 'Absent', value: 'Absent' },
-      { label: 'Make-up', value: 'Make-up' },
-    ]
-  }
-  if (activeTab.value === 'behavior') {
-    return [
-      { label: 'All Status', value: 'all' },
-      { label: 'Excellent', value: 'Excellent' },
-      { label: 'Good/Fair', value: 'Good/Fair' },
-      { label: 'Warning', value: 'Warning' },
-      { label: 'Serious', value: 'Serious' },
-    ]
-  }
-  if (activeTab.value === 'exam') {
-    return [
-      { label: 'All Exams', value: 'all' },
-      { label: 'Passed', value: 'Passed' },
-      { label: 'Failed', value: 'Failed' },
-    ]
-  }
-  return [{ label: 'All', value: 'all' }]
-})
-
-const filteredAcademic = computed(() => {
-  const result = filterDetailEnrollments(enrollments.value, {
-    academicStatus: academicFilter.value === 'all' ? null : academicFilter.value,
-  })
-
-  return result
-    .filter((r) =>
-      searchQuery.value
-        ? (r.programName || '').toLowerCase().includes(searchQuery.value.toLowerCase())
-        : true,
-    )
-    .sort((a, b) => {
-      const aAct = getAcademicStatus(a) === 'Studying' ? 1 : 0
-      const bAct = getAcademicStatus(b) === 'Studying' ? 1 : 0
-      if (aAct !== bAct) return bAct - aAct
-      const dateA = new Date(a.enrollAt || a.createdAt || 0)
-      const dateB = new Date(b.enrollAt || b.createdAt || 0)
-      return dateB - dateA
-    })
-})
-
-const filteredAttendance = computed(() => {
-  let result = [...attendanceHistory.value]
-  if (attendanceFilter.value !== 'all') {
-    result = result.filter((a) => (a.status || 'Present').toLowerCase() === attendanceFilter.value.toLowerCase())
-  }
-  return result.sort(
-    (a, b) =>
-      new Date(b.date || b.attendanceDate || b.createdAt) -
-      new Date(a.date || a.attendanceDate || a.createdAt),
-  )
-})
-
-const filteredBehavior = computed(() => {
-  let result = progressData.value?.behaviorLogs || []
-  if (behaviorFilter.value !== 'all') {
-    result = result.filter((b) => (b.category || b.status || 'General').toLowerCase() === behaviorFilter.value.toLowerCase())
-  }
-  return result.sort(
-    (a, b) =>
-      new Date(b.date || b.behaviorDate || b.createdAt) -
-      new Date(a.date || a.behaviorDate || a.createdAt),
-  )
-})
-
-const filteredExams = computed(() => {
-  let result = progressData.value?.examRecords || progressData.value?.examLogs || []
-  const filter = examFilter.value
-
-  if (filter !== 'all') {
-    if (filter === 'Passed') {
-      result = result.filter((e) => Number(e.score || 0) >= 50)
-    } else if (filter === 'Failed') {
-      result = result.filter((e) => Number(e.score || 0) < 50)
-    } else if (filter.startsWith('term:')) {
-      const term = filter.replace('term:', '')
-      result = result.filter((e) => (e.termName || e.term) === term)
-    } else {
-      result = result.filter((e) => e.programId === filter)
-    }
-  }
-  return result.sort((a, b) => new Date(b.date || b.examDate) - new Date(a.date || a.examDate))
-})
-
-const studentStats = computed(() => {
-  const academicCount = enrollments.value.length
-  let attendanceRate = '0%'
-  if (attendanceHistory.value.length > 0) {
-    const presentCount = attendanceHistory.value.filter(
-      (a) => (a.status || '').toLowerCase() === 'present',
-    ).length
-    attendanceRate = Math.round((presentCount / attendanceHistory.value.length) * 100) + '%'
-  }
-  const behaviorStanding = progressData.value?.overallProgress || 'Good'
-  const examAverage =
-    enrollments.value.reduce((max, e) => {
-      const score = parseInt(e.score || 0)
-      return score > max ? score : max
-    }, 0) || '-'
-
-  return [
-    {
-      label: 'Academic History',
-      value: academicCount,
-      image: getImageUrl('data-metric-card/academic-history'),
-      color: 'bg-primary-soft',
-    },
-    {
-      label: 'Attendance',
-      value: attendanceRate,
-      image: getImageUrl('data-metric-card/attendance'),
-      color: 'bg-primary-soft',
-    },
-    {
-      label: 'Behavior Standing',
-      value: behaviorStanding,
-      image: getImageUrl('data-metric-card/behavior'),
-      color: 'bg-primary-soft',
-    },
-    {
-      label: 'Exam Average',
-      value: examAverage,
-      image: getImageUrl('data-metric-card/exam'),
-      color: 'bg-primary-soft',
-    },
-  ]
-})
-
+// ──────────────────────────────────────────────
+// Data Fetching
+// ──────────────────────────────────────────────
 const fetchData = async (id) => {
   try {
     loading.value = true
@@ -553,7 +407,7 @@ watch(
 <template>
   <DashboardLayout>
     <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/students" title="Student Profile"
-      sidebarWidth="sm">
+      sidebarWidth="md">
       <template #header-actions v-if="student">
         <div class="flex items-center gap-3">
           <button v-if="!isArchived && !isParentInactive"
@@ -576,200 +430,88 @@ watch(
       </template>
 
       <template #left-content v-if="student">
-        <!-- Metrics Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div v-for="stat in studentStats" :key="stat.label"
-            class="bg-white rounded-md p-6 border border-outline-std shadow-sm hover:shadow-md transition-all duration-300 group">
-            <div class="flex items-center gap-4">
-              <div
-                class="rounded-xl flex items-center justify-center bg-surface-subtle group-hover:bg-primary/5 transition-colors">
-                <img :src="stat.image" class="w-10 h-10 opacity-60 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <div class="flex flex-col">
-                <span class="text-3xs font-semibold text-content-muted  leading-none mb-1">{{
-                  stat.label }}</span>
-                <span class="text-xl font-bold text-content-dark tracking-tight">{{ stat.value }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <!-- Tab Navigation -->
-        <div class="flex items-center gap-2 p-2 bg-white rounded-full border border-outline-std w-fit">
-          <button v-for="tab in ['academic', 'attendance', 'behavior', 'exam']" :key="tab"
-            class="px-8 py-3 rounded-2xl text-xs font-semibold  transition-all duration-300"
-            :class="activeTab === tab ? 'bg-primary text-white shadow-md ring-1 ring-black/5 scale-[1.02]' : 'text-content-muted hover:text-content-dark hover:bg-white/50'"
-            @click="activeTab = tab">
-            {{ tab }}
-          </button>
-        </div>
 
-        <section class="overflow-hidden animate-fade-in min-h-[500px]">
-          <div class="flex items-center gap-4">
-            <h3 class="text-lg font-bold text-content-dark whitespace-nowrap capitalize">{{ activeTab }} Table
-            </h3>
-            <div class="h-px flex-1 bg-gray-100"></div>
-            <!-- Refined Filters -->
-            <div v-if="true" class="relative">
-              <button class="px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2"
-                :class="!isFilterActive ? 'bg-primary-soft hover:bg-primary' : ''"
-                :style="isFilterActive ? filterThemeStyles : {}" @click="toggleProgramFilter(activeTab, $event)">
-                <img :src="getActionIcon('filter')" class="w-3 h-3"
-                  :style="{ filter: getStatusFilter(isFilterActive ? getActiveFilterValue(activeTab) : 'filter') }" />
-                {{ isFilterActive ? getSelectedProgramLabel(activeTab) : 'Filter' }}
-              </button>
+        <!-- Table Content Container -->
+        <section
+          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col min-h-0">
 
-              <Teleport to="body">
-                <transition enter-active-class="transition duration-200 ease-out"
-                  enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                  leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                  leave-to-class="opacity-0">
-                  <div v-if="activeDropdown === activeTab"
-                    class="fixed bg-white rounded-xl shadow-2xl border border-outline-std z-[9999] p-2 min-w-[180px] overflow-hidden"
-                    :style="programMenuStyles" @mousedown.stop>
-                    <div v-for="option in filterOptions" :key="option.id || option.value"
-                      class="px-4 py-2.5 text-sm font-semibold cursor-pointer transition-all rounded-lg flex items-center justify-between group"
-                      :class="[
-                        getActiveFilterValue(activeTab) === (option.id || option.value) ? 'shadow-sm' : '',
-                        getActiveFilterValue(activeTab) === (option.id || option.value) ? '' : 'text-content-muted'
-                      ]" :style="getActiveFilterValue(activeTab) === (option.id || option.value) || hoveredOption === (option.id || option.value) ? {
-                        backgroundColor: getStatusTheme(option.id || option.value).backgroundColor,
-                        color: getStatusTheme(option.id || option.value).color,
-                        transform: hoveredOption === (option.id || option.value) ? 'translateX(4px)' : ''
-                      } : {}" @click="selectProgramFilter(activeTab, option.id || option.value)"
-                      @mouseenter="hoveredOption = (option.id || option.value)" @mouseleave="hoveredOption = null">
-                      <span>{{ option.name || option.title || option.label }}</span>
-                      <div v-if="(option.id || option.value) !== 'all'"
-                        class="w-2 h-2 rounded-full transition-transform group-hover:scale-125"
-                        :style="{ backgroundColor: getStatusTheme(option.id || option.value).color }"></div>
-                    </div>
+          <DataTable title="Attendance Track" :headers="attendanceHeaders" :items="studentAttendanceRecords"
+            :loading="loading" entityName="session" :flexible="false" :hasSearch="false" :hasFilter="false">
+
+            <template #toolbar-actions>
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-6 px-6 py-2 bg-surface-subtle rounded-2xl border border-outline-std mr-4">
+                  <div class="flex flex-col">
+                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider">Total</span>
+                    <span class="text-lg font-black text-content-dark">{{ attendanceStats.total }}</span>
                   </div>
-                </transition>
-              </Teleport>
-            </div>
-          </div>
-
-          <!-- Content Area -->
-          <transition name="fade-up" mode="out-in">
-            <div :key="activeTab">
-              <!-- Academic View -->
-              <div v-if="activeTab === 'academic'">
-                <EnrollmentTable :items="filteredAcademic" showDate
-                  emptyMessage="No academic history found for this student." />
-              </div>
-
-              <!-- Attendance View -->
-              <div v-if="activeTab === 'attendance'">
-                <div v-if="filteredAttendance.length > 0"
-                  class="overflow-x-auto rounded-md border border-gray-100 bg-white">
-                  <table class="w-full text-left border-collapse">
-                    <thead>
-                      <tr class="bg-gray-50/50">
-                        <th class=" p-md text-xs font-semibold text-content-muted ">No</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted ">Course</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted ">Session Date
-                        </th>
-                        <th class=" p-md text-xs font-semibold text-content-muted  text-center">
-                          Outcome</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                      <tr v-for="(item, idx) in filteredAttendance" :key="item.id || idx"
-                        class="hover:bg-gray-50/50 transition-colors">
-                        <td class=" p-md">{{ idx + 1 }}</td>
-                        <td class=" p-md">{{ item.programName }}</td>
-                        <td class=" p-md tabular-nums">{{ formatDateOnly(item.date
-                          || item.attendanceDate) }}</td>
-                        <td class=" p-md text-center">
-                          <AppBadge :status="item.status || 'Present'" />
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <div class="w-px h-8 bg-outline-std/50"></div>
+                  <div class="flex flex-col">
+                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider text-success">Passed</span>
+                    <span class="text-lg font-black text-success">{{ attendanceStats.passed }}</span>
+                  </div>
+                  <div class="w-px h-8 bg-outline-std/50"></div>
+                  <div class="flex flex-col">
+                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider text-error">Absent</span>
+                    <span class="text-lg font-black text-error">{{ attendanceStats.absent }}</span>
+                  </div>
                 </div>
-                <div v-else class="flex flex-col items-center justify-center py-24 opacity-30">
-                  <img :src="getImageUrl('dashboard/card-nearlyfull-program')" class="w-24 mb-4 grayscale" />
-                  <span class="text-sm font-semibold ">No Attendance Logs</span>
+
+                <!-- Enrollment Selector -->
+                <div class="relative" id="enrollment-filter-btn">
+                  <AppButton variant="secondary" size="md" @click="toggleDropdown($event)" class="!bg-primary !text-white min-w-[240px]">
+                    <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
+                    <span class="font-bold truncate max-w-[200px]">{{ selectedEnrollment ? `${selectedEnrollment.programName} (${selectedEnrollment.termName})` : 'Select Enrollment' }}</span>
+                  </AppButton>
+                  
+                  <Teleport to="body">
+                    <transition enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                      leave-to-class="opacity-0">
+                      <div v-if="dropdownOpen" class="toolbar-filter-menu shadow-2xl" :style="filterMenuStyles" @mousedown.stop>
+                        <div v-for="opt in enrollmentOptions" :key="opt.value" class="toolbar-filter-option"
+                          :class="{ 'active-filter-item': selectedEnrollmentId === opt.value }"
+                          @click="selectEnrollment(opt.value)">
+                          <div class="flex flex-col gap-0.5">
+                            <span class="font-bold text-sm">{{ opt.label }}</span>
+                            <span class="text-3xs text-content-muted">{{ opt.schedule?.day }} at {{ opt.schedule?.time }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </transition>
+                  </Teleport>
                 </div>
               </div>
+            </template>
 
-              <!-- Behavior Content -->
-              <div v-if="activeTab === 'behavior'">
-                <div v-if="filteredBehavior.length > 0"
-                  class="overflow-x-auto rounded-md border border-gray-100 bg-white">
-                  <table class="w-full text-left border-collapse">
-                    <thead>
-                      <tr class="bg-gray-50/50">
-                        <th class=" p-md text-xs font-semibold text-content-muted ">No</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted ">Program</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted ">Date</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted  text-center">
-                          Result</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted ">Remark</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                      <tr v-for="(item, idx) in filteredBehavior" :key="item.id || idx"
-                        class="hover:bg-gray-50/50 transition-colors">
-                        <td class=" p-md">{{ idx + 1 }}</td>
-                        <td class=" p-md">{{ item.programName || '-' }}</td>
-                        <td class=" p-md tabular-nums">{{ formatDateTime(item.date
-                          || item.behaviorDate || item.createdAt) }}</td>
-                        <td class=" p-md text-center">
-                          <AppBadge :status="item.category || item.status || 'General'" />
-                        </td>
-                        <td class=" p-md">
-                          {{ item.remark || item.note || item.displayStatus || '-' }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+            <template #row="{ item, index, headers }">
+              <td class="ui-cell text-center" :style="{ width: headers[0].width }">
+                <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
+              </td>
+              <td class="ui-cell">
+                <span class="font-bold text-content-dark text-sm">{{ item.label }}</span>
+              </td>
+              <td class="ui-cell tabular-nums font-bold text-content-muted text-xs">
+                {{ formatDateOnly(item.date) }}
+              </td>
+              <td class="ui-cell text-center">
+                <div class="flex justify-center">
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-sm border border-outline-std select-none"
+                    :class="ATTENDANCE_STATUS[item.status].theme">
+                    {{ ATTENDANCE_STATUS[item.status].label }}
+                  </div>
                 </div>
-                <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-40">
-                  <img :src="getImageUrl('dashboard/card-nearlyfull-program')" class="w-20" />
-                  <p class="text-sm font-semibold">No behavior logs found.</p>
-                </div>
-              </div>
-
-              <!-- Exam Content -->
-              <div v-if="activeTab === 'exam'">
-                <div v-if="filteredExams.length > 0" class="overflow-x-auto rounded-md border border-gray-100 bg-white">
-                  <table class="w-full text-left border-collapse">
-                    <thead>
-                      <tr class="bg-gray-50/50">
-                        <th class=" p-md text-xs font-semibold text-content-muted ">No</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted ">Program</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted ">Date</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted ">Examiner</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted  text-center">
-                          Score</th>
-                        <th class=" p-md text-xs font-semibold text-content-muted  text-center">
-                          Status</th>
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                      <tr v-for="(item, idx) in filteredExams" :key="item.id || idx"
-                        class="hover:bg-gray-50/50 transition-colors">
-                        <td class=" p-md">{{ idx + 1 }}</td>
-                        <td class=" p-md">{{ item.programName || '-' }}</td>
-                        <td class=" p-md tabular-nums">{{ formatDateOnly(item.date
-                          || item.examDate) }}</td>
-                        <td class=" p-md">{{ item.examiner || '-' }}</td>
-                        <td class=" p-md text-center">{{ item.score || '-' }}</td>
-                        <td class=" p-md text-center">
-                          <AppBadge :status="item.score >= 50 ? 'Passed' : 'Failed'" />
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <div v-else class="flex flex-col items-center justify-center p-20 gap-md opacity-40">
-                  <img :src="getImageUrl('dashboard/card-nearlyfull-program')" class="w-20" />
-                  <p class="text-sm font-semibold">No exam records found.</p>
-                </div>
-              </div>
-            </div>
-          </transition>
+              </td>
+              <td class="ui-cell italic text-content-muted font-bold text-xs">
+                {{ item.remark }}
+              </td>
+              <td class="ui-cell text-center font-black text-content-dark text-xs tabular-nums">
+                {{ index + 1 }}/{{ attendanceStats.total }}
+              </td>
+            </template>
+          </DataTable>
         </section>
       </template>
 
@@ -777,8 +519,8 @@ watch(
         <div class="flex flex-col gap-8">
           <EntityProfileCard :profileURL="student.profileURL" title="Basic Information"
             fallbackImage="profiles/avatar-student" />
-          <RelationshipsCard title="Family Context" :items="parentItems" />
-          <EntityInfoCard title="Student Details" :fields="studentDetailsFields" />
+          <EntityInfoCard title="Student Details" :fields="studentInfoFields" />
+          <EntityInfoCard v-if="parent" title="Parent Details" :fields="parentDetailFields" />
           <TimestampCard :createdAt="student.createdAt" :updatedAt="student.updatedAt" />
         </div>
       </template>

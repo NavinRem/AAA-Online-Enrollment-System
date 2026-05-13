@@ -143,6 +143,15 @@ class EnrollmentService {
         transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(programId), {
           totalEnrolledCount: admin.firestore.FieldValue.increment(1),
         })
+
+        // Save enrolled branch to student detail
+        if (offering.branchId) {
+          transaction.update(db.collection(COLLECTIONS.STUDENT).doc(studentId), {
+            branchId: offering.branchId,
+            branchInfo: offering.branch || null,
+            updatedAt: new Date().toISOString(),
+          })
+        }
       }
 
       // Automatic Payment Record Creation
@@ -349,6 +358,15 @@ class EnrollmentService {
           term: updates.term,
           status: offering.status || 'active',
         })
+
+        // Sync student branch if it changed
+        if (offering.branchId) {
+          transaction.update(db.collection(COLLECTIONS.STUDENT).doc(currentData.studentId), {
+            branchId: offering.branchId,
+            branchInfo: offering.branch || null,
+            updatedAt: new Date().toISOString(),
+          })
+        }
       }
 
       // Ensure we don't have redundant top-level name fields (Cleanup legacy data if any)

@@ -14,29 +14,29 @@ defineProps({
     <table class="ui-premium-table">
       <thead>
         <tr>
-          <th>No</th>
-          <th>Transaction</th>
-          <th>Child</th>
-          <th>Program</th>
-          <th class="text-center">Amount</th>
-          <th>Method</th>
-          <th>Date</th>
-          <th class="text-center">Status</th>
+          <th class="text-2xs font-bold text-content-muted">No</th>
+          <th class="text-2xs font-bold text-content-muted">Transaction</th>
+          <th class="text-2xs font-bold text-content-muted">Child</th>
+          <th class="text-2xs font-bold text-content-muted">Program</th>
+          <th class="text-2xs font-bold text-content-muted text-center">Amount</th>
+          <th class="text-2xs font-bold text-content-muted">Method</th>
+          <th class="text-2xs font-bold text-content-muted">Date</th>
+          <th class="text-2xs font-bold text-content-muted text-center">Status</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="(item, idx) in items" :key="item.id || idx">
-          <td class="ui-data-label !text-content-dark">{{ idx + 1 }}</td>
-          <td class="text-3xs font-semibold text-content-muted tracking-tight">
+          <td class="ui-data-label !text-content-dark font-bold">{{ idx + 1 }}</td>
+          <td class="text-3xs font-bold text-content-muted tracking-tight">
             {{ item.transactionId || item.id.slice(0, 8) }}
           </td>
-          <td class="font-bold text-content-dark tracking-tight">{{ item.studentName }}</td>
-          <td class="font-semibold text-content-dark tracking-tighter">{{ item.programName }}</td>
+          <td class="font-bold text-content-dark tracking-tight text-sm">{{ item.studentName }}</td>
+          <td class="font-bold text-content-dark tracking-tighter text-sm">{{ item.programName }}</td>
           <td class="text-center">
             <AppBadge :status="'$' + formatPrice(item.amount)" type="finance" :colorValue="item.paymentModeType" />
           </td>
           <td class="text-2xs font-bold text-content-muted ">{{ item.paymentMethod || 'N/A' }}</td>
-          <td class="text-2xs font-semibold text-content-muted tabular-nums">
+          <td class="text-2xs font-bold text-content-muted tabular-nums">
             {{ formatDate(item.paidAt || item.enrollAt) }}
           </td>
           <td class="text-center">

@@ -232,14 +232,8 @@ const handleActionSubmit = async (payload) => {
 
 const sortedItems = computed(() => {
   return [...searchResults.value].sort((a, b) => {
-    const dateA = new Date(a.endDate || a.startDate)
-    const dateB = new Date(b.endDate || b.startDate)
-
-    // Primary sort: End date ascending (finishing soonest first)
-    if (dateA - dateB !== 0) return dateA - dateB
-
-    // Secondary sort: Name
-    return a.name.localeCompare(b.name)
+    // Primary sort: Newest created first
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
   })
 })
 
