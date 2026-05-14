@@ -1,5 +1,5 @@
 import { storageService } from '@/services/storageService'
-import { isSameProfileAsset } from './assetHelper'
+import { isSameProfileAsset, getImageUrl } from './assetHelper'
 
 /**
  * Enriches student data for the list view.
@@ -46,7 +46,9 @@ export const enrichStudents = (
       return { ...r, program: prog }
     })
 
-    const p = s.parentInfo || users.find((u) => u.uid === (s.parentId || ''))
+    const p =
+      s.parentInfo ||
+      users.find((u) => u.uid === (s.parentId || '') || u.id === (s.parentId || ''))
 
     return {
       ...s,
@@ -56,12 +58,18 @@ export const enrichStudents = (
         ? {
             id: p.uid || p.id,
             name: p.name || 'N/A',
-            profileURL: p.profileURL,
+            profileURL: p.profileURL || getImageUrl('profiles', 'avatar-guest'),
             status: p.status || 'Active',
           }
-        : s.parentInfo,
+        : {
+            id: s.parentId,
+            name: 'Registry Pending',
+            profileURL: getImageUrl('profiles', 'avatar-guest'),
+            status: 'Inactive',
+          },
       status: s.status || 'Inactive',
       enrollments: regs,
+      profileURL: s.profileURL || getImageUrl('profiles', 'avatar-student'),
     }
   })
 }

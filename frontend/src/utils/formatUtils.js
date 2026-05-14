@@ -3,6 +3,11 @@
  * Part of the "Universal Perfect State" data layer.
  */
 
+/** Global Constants */
+export const DEFAULT_CAPACITY = 5
+
+/** Date Formatting Utils */
+
 /**
  * 1. Date & Age Logic
  */

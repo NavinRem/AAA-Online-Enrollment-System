@@ -54,37 +54,37 @@ const fetchData = async () => {
     const terms = Array.isArray(termData) ? termData : []
     branches.value = dataStore.branches
 
-    // Status Synchronization: Ensure stored status matches date-based logic
-    const syncTasks = []
-    terms.forEach((term) => {
+    // Intelligent Status Synchronization:
+    // Instead of forcing every mismatch to the DB instantly (which causes network congestion),
+    // we compute the latest status for UI and identify only critical mismatches for background sync.
+    const syncPayloads = []
+    items.value = terms.map((term) => {
       const prog = calculateClassProgress(term.startDate, term.endDate)
       const calculatedStatus = prog.status.toLowerCase()
 
       if (term.status !== calculatedStatus) {
-        syncTasks.push(termService.updateTerm(term.id, { status: calculatedStatus }))
-        term.status = calculatedStatus // Update local state for immediate feedback
+        syncPayloads.push({ id: term.id, status: calculatedStatus })
       }
-    })
 
-    if (syncTasks.length > 0) {
-      console.log(
-        `[TermSync] Updating ${syncTasks.length} term statuses to maintain data integrity.`,
-      )
-      await Promise.all(syncTasks)
-    }
-
-    items.value = terms.map((t) => {
-      const sortedSettings = [...(t.branchSettings || [])].sort(
+      const sortedSettings = [...(term.branchSettings || [])].sort(
         (a, b) => new Date(a.endDate || a.startDate) - new Date(b.endDate || b.startDate),
       )
 
       return {
-        ...t,
-        branchIds: t.branchIds || (t.branchId ? [t.branchId] : []),
-        totalSessions: t.totalSessions || 11,
+        ...term,
+        status: calculatedStatus, // Prioritize computed status for UI accuracy
+        branchIds: term.branchIds || (term.branchId ? [term.branchId] : []),
+        totalSessions: term.totalSessions || 11,
         branchSettings: sortedSettings,
       }
     })
+
+    // Perform background sync for critical mismatches without blocking the UI
+    if (syncPayloads.length > 0) {
+      Promise.all(
+        syncPayloads.map((p) => termService.updateTerm(p.id, { status: p.status })),
+      ).catch((err) => console.warn('[TermSync] Background sync partially failed', err))
+    }
   } catch (err) {
     console.error('Failed to fetch terms', err)
   } finally {

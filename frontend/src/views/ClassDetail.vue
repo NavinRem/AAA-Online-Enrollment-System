@@ -13,6 +13,7 @@ import {
   calculateClassProgress,
   formatDateOnly,
   generateClassSessions,
+  DEFAULT_CAPACITY,
 } from '@/utils/formatUtils'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
@@ -50,6 +51,21 @@ const getAttendanceStatus = (sessionId, studentId) => {
   return attendanceData.value[sessionId]?.[studentId] || 'N'
 }
 
+let isSyncing = false
+const syncQueue = []
+
+const processSyncQueue = async () => {
+  if (isSyncing || syncQueue.length === 0) return
+  isSyncing = true
+  const task = syncQueue.shift()
+  try {
+    await task()
+  } finally {
+    isSyncing = false
+    processSyncQueue()
+  }
+}
+
 const updateAttendanceStatus = async (sessionId, studentId, status) => {
   if (!attendanceData.value[sessionId]) {
     attendanceData.value[sessionId] = {}
@@ -58,47 +74,54 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
   const oldStatus = attendanceData.value[sessionId][studentId]
   if (oldStatus === status) return
 
-  // 1. Optimistic Update
-  attendanceData.value[sessionId][studentId] = status
+  // 1. Reactive Clone Update
+  // We clone the inner object to ensure Vue detects the change properly
+  const newSessionData = { ...attendanceData.value[sessionId] }
+  newSessionData[studentId] = status
+  attendanceData.value[sessionId] = newSessionData
 
-  try {
-    const updates = []
+  syncQueue.push(async () => {
+    try {
+      const updates = []
 
-    // 2. Persist primary change
-    updates.push(
-      attendanceService.recordAttendance(
-        classData.value.id,
-        sessionId,
-        attendanceData.value[sessionId],
-      ),
-    )
+      // 2. Persist primary change
+      updates.push(
+        attendanceService.recordAttendance(
+          classData.value.id,
+          sessionId,
+          attendanceData.value[sessionId],
+        ),
+      )
 
-    // 3. Makeup Logic: If status is 'M', find first 'A' in other sessions and change to 'M'
-    if (status === 'M') {
-      for (const session of sessions.value) {
-        if (session.id === sessionId) continue
-        if (attendanceData.value[session.id]?.[studentId] === 'A') {
-          attendanceData.value[session.id][studentId] = 'M'
-          // Persist the linked session change
-          updates.push(
-            attendanceService.recordAttendance(
-              classData.value.id,
-              session.id,
-              attendanceData.value[session.id],
-            ),
-          )
-          break // Only resolve one absence per makeup
+      // 3. Makeup Logic
+      if (status === 'M') {
+        for (const session of sessions.value) {
+          if (session.id === sessionId) continue
+          if (attendanceData.value[session.id]?.[studentId] === 'A') {
+            const linkedData = { ...attendanceData.value[session.id] }
+            linkedData[studentId] = 'M'
+            attendanceData.value[session.id] = linkedData
+
+            updates.push(
+              attendanceService.recordAttendance(classData.value.id, session.id, linkedData),
+            )
+            break
+          }
         }
       }
-    }
 
-    await Promise.all(updates)
-  } catch (error) {
-    console.error('Failed to save attendance', error)
-    // Rollback (simplified)
-    attendanceData.value[sessionId][studentId] = oldStatus
-    errorMessage.value = 'Failed to sync attendance. Please refresh.'
-  }
+      await Promise.all(updates)
+    } catch (error) {
+      console.error('Failed to save attendance', error)
+      // Rollback
+      const rollbackData = { ...attendanceData.value[sessionId] }
+      rollbackData[studentId] = oldStatus
+      attendanceData.value[sessionId] = rollbackData
+      errorMessage.value = 'Failed to sync attendance. Please refresh.'
+    }
+  })
+
+  processSyncQueue()
 }
 
 const allOfferings = computed(() =>
@@ -455,7 +478,7 @@ const getScheduleStatus = (schedule) => {
   }
 
   const count = Number(off.currentCount || off.students?.length || 0)
-  const capacity = Number(off.capacity || schedule.capacity || 5)
+  const capacity = Number(off.capacity || schedule.capacity || DEFAULT_CAPACITY)
 
   if (count >= capacity) return { status: 'Full', type: 'red' }
 
@@ -489,7 +512,7 @@ const getScheduleCapacity = (schedule) => {
         String(o.schedule?.id) === String(schedule.id)),
   )
 
-  return off?.capacity || schedule.capacity || 5
+  return off?.capacity || schedule.capacity || DEFAULT_CAPACITY
 }
 
 const scheduleOptions = computed(() => {

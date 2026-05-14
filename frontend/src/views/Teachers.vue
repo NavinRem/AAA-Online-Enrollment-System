@@ -133,6 +133,15 @@ const handleDelete = async (teacher) => {
     console.error('Failed to delete teacher', err)
   }
 }
+
+const handleAction = (type, item, closeMenu) => {
+  if (type === 'edit') {
+    openModal('edit', item)
+  } else if (type === 'delete') {
+    handleDelete(item)
+  }
+  if (closeMenu) closeMenu()
+}
 </script>
 
 <template>
@@ -261,10 +270,7 @@ const handleDelete = async (teacher) => {
                     >
                       <button
                         class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="
-                          openModal('edit', item)
-                          closeMenu()
-                        "
+                        @click="handleAction('edit', item, closeMenu)"
                       >
                         <img
                           :src="getActionIcon('edit')"
@@ -277,10 +283,7 @@ const handleDelete = async (teacher) => {
 
                       <button
                         class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
-                        @click="
-                          handleDelete(item)
-                          closeMenu()
-                        "
+                        @click="handleAction('delete', item, closeMenu)"
                       >
                         <img
                           :src="getActionIcon('delete')"

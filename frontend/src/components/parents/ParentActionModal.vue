@@ -330,7 +330,10 @@ watch(
     <!-- Identity Banner (Standardized for Edit/Delete/Plus) -->
     <div v-if="selectedParent" class="ui-identity-banner mb-lg" :class="parentThemeClasses">
       <div class="ui-identity-avatar-round">
-        <img :src="selectedParent.profileURL" class="w-full h-full object-cover" />
+        <img
+          :src="selectedParent.profileURL || getImageUrl('profiles', 'avatar-guest')"
+          class="w-full h-full object-cover"
+        />
       </div>
       <div class="ui-identity-info">
         <h2 class="ui-identity-name-compact">
@@ -643,9 +646,9 @@ watch(
     :error="subModalError"
     :success="subModalSuccess"
     @close="
-      showNewParentSubModal = false
-      subModalError = ''
-      subModalSuccess = ''
+      showNewParentSubModal = false;
+      subModalError = '';
+      subModalSuccess = '';
     "
     @submit="handleInlineParentSubmit"
   />

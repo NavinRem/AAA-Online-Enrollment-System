@@ -578,16 +578,16 @@ watch(
     </DetailPageLayout>
 
     <StudentActionModal
-      :isOpen="actionModal.isOpen"
+      v-model:isOpen="actionModal.isOpen"
       :type="actionModal.type"
       :student="actionModal.student"
       :enrollment="actionModal.enrollment"
       :loading="submitting"
-      :error="globalError"
-      :success="globalSuccess"
+      v-model:error="globalError"
+      v-model:success="globalSuccess"
       :branches="branches"
-      @close="actionModal.isOpen = false"
       @submit="submitActionModal"
+      @close="actionModal.isOpen = false"
     />
   </DashboardLayout>
 </template>

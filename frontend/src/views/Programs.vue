@@ -16,7 +16,7 @@ import { enrollmentService } from '../services/enrollmentService'
 import { trialService } from '../services/trialService'
 import { useSearch } from '../composables/useSearch'
 import { getProgramProfileURL, getImageUrl, getActionIcon, getIconUrl } from '@/utils/assetHelper'
-import { formatPrice } from '@/utils/formatUtils'
+import { formatPrice, DEFAULT_CAPACITY } from '@/utils/formatUtils'
 
 const programs = ref([])
 const categories = ref([])
@@ -136,23 +136,30 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
 
   pEnrollments.forEach((e) => {
     const enrollDate = e.enrollAt || e.createdAt || ''
-    const enrollDateStr = enrollDate.split('T')[0]
-    const enrollTimestamp = new Date(enrollDate).getTime()
+    if (!enrollDate) return
+
+    const enrollObj = new Date(enrollDate)
+    const enrollDateStr = enrollObj.toLocaleDateString('en-CA')
+    const enrollTimestamp = enrollObj.getTime()
+    const amount = Number(e.amount) || 0
 
     if (enrollDateStr === localTodayStr) {
       stats.enrollmentToday++
-      stats.revenueToday += Number(e.amount) || 0
+      stats.revenueToday += amount
     }
     if (enrollTimestamp >= weekAgoTimestamp) {
       stats.enrollmentWeek++
-      stats.revenueWeek += Number(e.amount) || 0
+      stats.revenueWeek += amount
     }
   })
 
   pTrials.forEach((t) => {
     const trialDate = t.date || t.trialDate || t.createdAt || ''
-    const trialDateStr = trialDate.split('T')[0]
-    const trialTimestamp = new Date(trialDate).getTime()
+    if (!trialDate) return
+
+    const trialObj = new Date(trialDate)
+    const trialDateStr = trialObj.toLocaleDateString('en-CA')
+    const trialTimestamp = trialObj.getTime()
 
     if (trialDateStr === localTodayStr) stats.trialToday++
     if (trialTimestamp >= weekAgoTimestamp) stats.trialWeek++
@@ -370,7 +377,7 @@ const handleActionSubmit = async (formData) => {
           branchId: 'FM',
           day: formData.schedule.day,
           time: formData.schedule.time,
-          maxCapacity: 20,
+          maxCapacity: 20, // 4 * DEFAULT_CAPACITY
         })
       }
 

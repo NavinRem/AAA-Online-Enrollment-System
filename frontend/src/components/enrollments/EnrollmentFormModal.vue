@@ -358,6 +358,12 @@ watch(
   },
   { immediate: true },
 )
+const setStudent = (studentId) => {
+  form.studentId = studentId
+  handleStudentChange()
+}
+
+defineExpose({ setStudent })
 </script>
 
 <template>

@@ -8,7 +8,7 @@ import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import { getStudentProfileURL, getActionIcon } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { calculateAge } from '@/utils/formatUtils'
 import { useActionModal } from '@/composables/useActionModal'
 
@@ -18,11 +18,13 @@ const props = defineProps({
   student: Object,
   enrollment: Object,
   selectableParents: Array,
+  branches: Array,
   loading: Boolean,
   error: String,
+  success: String,
 })
 
-const emit = defineEmits(['close', 'submit', 'update:error'])
+const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
 
 const getInitialData = () => ({
   name: '',
@@ -166,11 +168,21 @@ watch(
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" @close="$emit('close')" :icon="modalIcon">
+  <AppModal
+    :show="isOpen"
+    :title="modalTitle"
+    @close="$emit('close')"
+    :icon="modalIcon"
+    :error="error"
+    :success="success"
+  >
     <!-- Identity Banner (Show for all types now for consistency) -->
     <div v-if="student || enrollment" class="ui-identity-banner mb-lg" :class="studentThemeClasses">
       <div class="ui-identity-avatar-round">
-        <img :src="getStudentProfileURL(localData.profileURL)" class="w-full h-full object-cover" />
+        <img
+          :src="localData.profileURL || getImageUrl('profiles', 'avatar-student')"
+          class="w-full h-full object-cover"
+        />
       </div>
       <div class="ui-identity-info">
         <h2 class="ui-identity-name-compact">

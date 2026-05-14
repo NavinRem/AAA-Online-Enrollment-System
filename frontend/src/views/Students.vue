@@ -1,18 +1,18 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useDataStore } from '../stores/dataStore'
-import DashboardLayout from '../components/layout/DashboardLayout.vue'
-import DataPageLayout from '../components/layout/DataPageLayout.vue'
-import AppButton from '../components/common/ui/AppButton.vue'
-import DataTable from '../components/common/data/DataTable.vue'
-import AppBadge from '../components/common/ui/AppBadge.vue'
-import ParentActionModal from '../components/parents/ParentActionModal.vue'
-import StudentActionModal from '../components/students/StudentActionModal.vue'
+import { useDataStore } from '@/stores/dataStore'
+import DashboardLayout from '@/components/layout/DashboardLayout.vue'
+import DataPageLayout from '@/components/layout/DataPageLayout.vue'
+import AppButton from '@/components/common/ui/AppButton.vue'
+import DataTable from '@/components/common/data/DataTable.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
+import ParentActionModal from '@/components/parents/ParentActionModal.vue'
+import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { useAuthStore } from '@/stores/auth'
-import { studentService } from '../services/studentService'
-import { parentService } from '../services/parentService'
+import { studentService } from '@/services/studentService'
+import { parentService } from '@/services/parentService'
 import { useSearch, studentSearchMapper } from '@/composables/useSearch'
 import { formatDate } from '@/utils/formatUtils'
 import { getProgramProfileURL, getImageUrl, getActionIcon } from '@/utils/assetHelper'
@@ -366,6 +366,18 @@ const submitActionModal = async (formData) => {
     modalLoading.value = false
   }
 }
+
+const handleAction = (type, item, closeMenu) => {
+  openActionModal(type, item)
+  if (closeMenu) closeMenu()
+}
+
+const closeModals = () => {
+  actionModal.value.isOpen = false
+  parentActionModal.value.isOpen = false
+  modalError.value = ''
+  modalSuccess.value = ''
+}
 </script>
 
 <template>
@@ -665,12 +677,7 @@ const submitActionModal = async (formData) => {
                     >
                       <button
                         class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="
-                          () => {
-                            handleAction('edit', item)
-                            closeMenu()
-                          }
-                        "
+                        @click="handleAction('edit', item, closeMenu)"
                       >
                         <img
                           :src="getActionIcon('edit')"
@@ -680,12 +687,7 @@ const submitActionModal = async (formData) => {
                       </button>
                       <button
                         class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="
-                          () => {
-                            handleAction('override', item)
-                            closeMenu()
-                          }
-                        "
+                        @click="handleAction('override', item, closeMenu)"
                       >
                         <img
                           :src="getActionIcon('view')"
@@ -696,12 +698,7 @@ const submitActionModal = async (formData) => {
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
                       <button
                         class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
-                        @click="
-                          () => {
-                            handleAction('delete', item)
-                            closeMenu()
-                          }
-                        "
+                        @click="handleAction('delete', item, closeMenu)"
                       >
                         <img
                           :src="getActionIcon('delete')"
@@ -728,11 +725,7 @@ const submitActionModal = async (formData) => {
       :loading="modalLoading"
       :error="modalError"
       :success="modalSuccess"
-      @close="
-        actionModal.isOpen = false
-        modalError = ''
-        modalSuccess = ''
-      "
+      @close="closeModals"
       @submit="submitActionModal"
     />
 
@@ -743,11 +736,7 @@ const submitActionModal = async (formData) => {
       :loading="modalLoading"
       v-model:error="modalError"
       v-model:success="modalSuccess"
-      @close="
-        parentActionModal.isOpen = false
-        modalError = ''
-        modalSuccess = ''
-      "
+      @close="closeModals"
       @submit="handleRegisterStudent"
     />
   </DashboardLayout>

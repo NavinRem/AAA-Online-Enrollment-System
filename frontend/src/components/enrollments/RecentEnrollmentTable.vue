@@ -91,7 +91,16 @@ const navigateToDetail = (item) => {
         <td class="ui-cell !py-4 overflow-hidden" :style="{ flex: '1 1 0%', minWidth: 0 }">
           <div class="ui-identity-cell min-w-0 w-full">
             <div class="ui-avatar">
-              <img :src="item.program?.profileURL" :alt="item.programName" />
+              <img
+                :src="
+                  getProgramProfileURL(
+                    item.program?.profileURL,
+                    item.program?.category?.name || item.program?.category,
+                    item.program?.category?.profileURL,
+                  )
+                "
+                :alt="item.programName"
+              />
             </div>
             <span class="truncate block font-bold text-content-dark text-sm">{{
               item.programName

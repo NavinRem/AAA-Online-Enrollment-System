@@ -12,9 +12,10 @@ import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import { classService } from '@/services/classService'
 import { termService } from '@/services/termService'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
-import { calculateClassProgress } from '@/utils/formatUtils'
+import { calculateClassProgress, DEFAULT_CAPACITY } from '@/utils/formatUtils'
 import { useSearch } from '@/composables/useSearch'
 
+const router = useRouter()
 const dataStore = useDataStore()
 const loading = ref(true)
 
@@ -225,7 +226,7 @@ const activeOfferings = computed(() => {
               Number(off.capacity) ||
               Number(off.schedule?.capacity) ||
               Number(program?.capacity) ||
-              5
+              DEFAULT_CAPACITY
 
             const schedData = {
               ...(off.schedule || globalSchedule || {}),
@@ -268,7 +269,7 @@ const activeOfferings = computed(() => {
             termStartDate: term.startDate,
             termEndDate: term.endDate,
             currentCount: totalEnrolled,
-            capacity: totalCapacity || program?.capacity || 5,
+            capacity: totalCapacity || program?.capacity || DEFAULT_CAPACITY,
           }),
         })
       }
@@ -324,28 +325,37 @@ const getSchedules = (item) => {
     Saturday: 6,
     Sunday: 7,
   }
-  const capacity = item.capacity || item.program?.capacity || 5
+  const capacity = item.capacity || item.program?.capacity || DEFAULT_CAPACITY
   const isFull = (item.currentCount || 0) >= capacity
 
   return [...list]
     .map((s) => {
+      // Create a shallow copy to prevent mutation of store objects
+      const sched = { ...s }
+
       // Ensure we have the latest capacity from the product definition if it's missing (common for catalog items)
-      const schedId = s.id
+      const schedId = sched.id
       const productSchedule = (item.classProduct?.schedules || []).find(
         (ps) => String(ps.id) === String(schedId),
       )
-      const finalCapacity = s.capacity || productSchedule?.capacity || item.program?.capacity || 5
+      const finalCapacity =
+        sched.capacity || productSchedule?.capacity || item.program?.capacity || DEFAULT_CAPACITY
 
-      // Save status back to the schedule object (context-aware)
-      if (isFull || s.currentCount >= finalCapacity) {
-        s.status = 'full'
-      } else if (!s.status) {
-        const progress = calculateClassProgress(item.termStartDate, item.termEndDate, s.day, s.time)
-        s.status = progress.status
+      // Save status back to the cloned schedule object (context-aware)
+      if (isFull || (sched.currentCount || 0) >= finalCapacity) {
+        sched.status = 'full'
+      } else if (!sched.status) {
+        const progress = calculateClassProgress(
+          item.termStartDate,
+          item.termEndDate,
+          sched.day,
+          sched.time,
+        )
+        sched.status = progress.status
       }
 
       return {
-        ...s,
+        ...sched,
         capacity: finalCapacity,
       }
     })
@@ -386,7 +396,7 @@ watch(searchQuery, () => {
 
 const getOfferingStatus = (offering) => {
   if (offering.status === 'upcoming') return 'upcoming'
-  const capacity = offering.capacity || offering.program?.capacity || 5
+  const capacity = offering.capacity || offering.program?.capacity || DEFAULT_CAPACITY
   if ((offering.currentCount || 0) >= capacity) return 'full'
 
   const now = new Date()

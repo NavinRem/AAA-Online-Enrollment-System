@@ -239,6 +239,15 @@ const handleOpenNewEnrollment = () => {
   showModal.value = true
 }
 
+const closeModals = () => {
+  showModal.value = false
+  childRegistrationModal.value.isOpen = false
+  errorMessage.value = ''
+  successMessage.value = ''
+  childRegistrationModal.value.error = ''
+  childRegistrationModal.value.success = ''
+}
+
 const handleTableAction = ({ type, item }) => {
   errorMessage.value = ''
   successMessage.value = ''
@@ -291,6 +300,11 @@ const closeActionModal = () => {
   actionState.value.isOpen = false
   errorMessage.value = ''
   successMessage.value = ''
+}
+
+const handleAction = (type, item, closeMenu) => {
+  handleTableAction({ type, item })
+  if (closeMenu) closeMenu()
 }
 
 const handleOpenRegisterStudent = (parentId) => {
@@ -539,12 +553,7 @@ const handleRegisterStudent = async (formData) => {
                           item.status !== 'cancelled'
                         "
                         class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="
-                          () => {
-                            handleAction('edit', item)
-                            closeMenu()
-                          }
-                        "
+                        @click="handleAction('edit', item, closeMenu)"
                       >
                         <img
                           :src="getActionIcon('edit')"
@@ -559,12 +568,7 @@ const handleRegisterStudent = async (formData) => {
                           item.status !== 'cancelled'
                         "
                         class="ui-dropdown-item ui-dropdown-item-success group"
-                        @click="
-                          () => {
-                            handleAction('pay', item)
-                            closeMenu()
-                          }
-                        "
+                        @click="handleAction('pay', item, closeMenu)"
                       >
                         <img
                           :src="getActionIcon('pay')"
@@ -575,12 +579,7 @@ const handleRegisterStudent = async (formData) => {
                       <button
                         v-if="item.status !== 'cancelled'"
                         class="ui-dropdown-item ui-dropdown-item-danger group"
-                        @click="
-                          () => {
-                            handleAction('cancel', item)
-                            closeMenu()
-                          }
-                        "
+                        @click="handleAction('cancel', item, closeMenu)"
                       >
                         <img
                           :src="getActionIcon('cancel')"
@@ -591,12 +590,7 @@ const handleRegisterStudent = async (formData) => {
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
                       <button
                         class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
-                        @click="
-                          () => {
-                            handleAction('delete', item)
-                            closeMenu()
-                          }
-                        "
+                        @click="handleAction('delete', item, closeMenu)"
                       >
                         <img
                           :src="getActionIcon('delete')"
@@ -627,14 +621,7 @@ const handleRegisterStudent = async (formData) => {
       :enrollment="selectedEnrollment"
       :error="errorMessage"
       :success="successMessage"
-      @close="
-        () => {
-          showModal = false
-          selectedEnrollment = null
-          errorMessage = ''
-          successMessage = ''
-        }
-      "
+      @close="closeModals"
       @submit="handleSaveEnrollment"
       @register-student="handleOpenRegisterStudent"
     />
@@ -647,13 +634,7 @@ const handleRegisterStudent = async (formData) => {
       :loading="childRegistrationModal.loading"
       :error="childRegistrationModal.error"
       :success="childRegistrationModal.success"
-      @close="
-        () => {
-          childRegistrationModal.isOpen = false
-          childRegistrationModal.error = ''
-          childRegistrationModal.success = ''
-        }
-      "
+      @close="closeModals"
       @submit="handleRegisterStudent"
     />
 
