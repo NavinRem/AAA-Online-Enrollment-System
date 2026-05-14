@@ -25,26 +25,43 @@ defineProps({
       <slot name="toolbar"></slot>
     </div>
 
-    <div v-if="loading"
-      class="flex-1 flex items-center justify-center p-xl sm:p-3xl text-content-light font-bold text-base animate-pulse">
+    <div
+      v-if="loading"
+      class="flex-1 flex items-center justify-center p-xl sm:p-3xl text-content-light font-bold text-base animate-pulse"
+    >
       <slot name="loading">Loading data...</slot>
     </div>
     <div v-else :class="['table-content-area', flexible ? '' : 'flex-1 scrollable-v']">
       <table class="w-full border-separate border-spacing-0 table-auto">
         <thead class="sticky top-0 z-20 bg-white">
           <tr class="w-full">
-            <th v-for="(col, index) in headers" :key="index"
-              :style="typeof col === 'object' && col.width ? { width: col.width, minWidth: col.width } : {}"
-              class="table-header-cell" :class="[
+            <th
+              v-for="(col, index) in headers"
+              :key="index"
+              :style="
+                typeof col === 'object' && col.width
+                  ? { width: col.width, minWidth: col.width }
+                  : {}
+              "
+              class="table-header-cell"
+              :class="[
                 typeof col === 'object' ? col.class : '',
                 typeof col === 'object' && col.align ? `text-${col.align}` : 'text-left',
                 typeof col === 'object' && col.hideOnMobile ? 'hidden-on-mobile' : '',
-              ]">
-              <slot :name="`header-${(typeof col === 'object' ? col.label : col).toLowerCase().replace(/\s+/g, '-') || 'index-' + index}`" :column="col" :index="index">
+              ]"
+            >
+              <slot
+                :name="`header-${(typeof col === 'object' ? col.label : col).toLowerCase().replace(/\s+/g, '-') || 'index-' + index}`"
+                :column="col"
+                :index="index"
+              >
                 <div class="flex flex-col gap-0.5">
                   <span class="block">{{ typeof col === 'object' ? col.label : col }}</span>
-                  <span v-if="typeof col === 'object' && col.subLabel"
-                    class="block text-xs opacity-60 font-bold normal-case">{{ col.subLabel }}</span>
+                  <span
+                    v-if="typeof col === 'object' && col.subLabel"
+                    class="block text-xs opacity-60 font-bold normal-case"
+                    >{{ col.subLabel }}</span
+                  >
                 </div>
               </slot>
             </th>

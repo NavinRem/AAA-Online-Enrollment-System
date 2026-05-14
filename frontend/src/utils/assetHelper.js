@@ -43,9 +43,12 @@ export const getProgramProfileURL = (progUrl, catName, catUrl) => {
   }
   return resolveAsset('images', 'common/logo-main')
 }
-export const getParentProfileURL = (url) => resolveAsset('images', url) || resolveAsset('images', 'profiles/avatar-man')
-export const getStudentProfileURL = (url) => resolveAsset('images', url) || resolveAsset('images', 'profiles/avatar-boy')
-export const getTeacherProfileURL = (url) => resolveAsset('images', url) || resolveAsset('images', 'profiles/avatar-teacher-man')
+export const getParentProfileURL = (url) =>
+  resolveAsset('images', url) || resolveAsset('images', 'profiles/avatar-man')
+export const getStudentProfileURL = (url) =>
+  resolveAsset('images', url) || resolveAsset('images', 'profiles/avatar-boy')
+export const getTeacherProfileURL = (url) =>
+  resolveAsset('images', url) || resolveAsset('images', 'profiles/avatar-teacher-man')
 
 export const ACTION_ICONS = {
   edit: 'action/edit',

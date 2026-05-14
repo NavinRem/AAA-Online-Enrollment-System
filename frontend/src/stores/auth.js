@@ -46,10 +46,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function init() {
     if (initialized.value) return user.value
     if (initPromise) return initPromise
-    
+
     initPromise = new Promise((resolve) => {
       if (authListenerAttached) {
-        // If listener is already attached but not initialized yet, 
+        // If listener is already attached but not initialized yet,
         // we just wait for the initialized flag to change.
         // This shouldn't happen with the current logic but for safety:
         const unwatch = watch(initialized, (val) => {
@@ -68,7 +68,7 @@ export const useAuthStore = defineStore('auth', () => {
           await fetchProfile()
         }
         loading.value = false
-        
+
         if (!initialized.value) {
           initialized.value = true
           initPromise = null
@@ -99,6 +99,6 @@ export const useAuthStore = defineStore('auth', () => {
     fetchProfile,
     setUser,
     init,
-    logout
+    logout,
   }
 })

@@ -13,8 +13,10 @@ defineProps({
 
 <template>
   <div class="flex flex-col gap-xl w-full h-full min-h-0 px-xl overflow-y-auto scrollable-v">
-    <section v-if="$slots.overview"
-      class="bg-white rounded-std p-xl shadow-sm border border-black/5 flex flex-col gap-xl">
+    <section
+      v-if="$slots.overview"
+      class="bg-white rounded-std p-xl shadow-sm border border-black/5 flex flex-col gap-xl"
+    >
       <div class="ui-section-header border-none flex items-center gap-md">
         <h2 class="ui-section-title whitespace-nowrap">{{ overviewTitle }}</h2>
         <div class="ui-section-divider"></div>

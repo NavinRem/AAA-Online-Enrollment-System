@@ -64,34 +64,54 @@ const handleNavClick = () => {
 <template>
   <aside
     class="w-[260px] h-screen bg-white flex flex-col border-r border-surface-light fixed left-0 top-0 z-[100] transition-transform duration-300 lg:translate-x-0"
-    :class="isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'">
-    <div class="p-md mb-md flex flex-col items-center justify-center relative border-b border-surface-light/50">
+    :class="isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'"
+  >
+    <div
+      class="p-md mb-md flex flex-col items-center justify-center relative border-b border-surface-light/50"
+    >
       <div class="w-20 h-20 flex items-center justify-center">
-        <img :src="getImageUrl('common/logo-main')" alt="Logo" class="w-full h-full object-contain" />
+        <img
+          :src="getImageUrl('common/logo-main')"
+          alt="Logo"
+          class="w-full h-full object-contain"
+        />
       </div>
       <div class="flex flex-col items-center text-center">
-        <span class="text-sm font-bold text-content-dark leading-tight tracking-tighter">Authentic Advanced
-          Academy</span>
+        <span class="text-sm font-bold text-content-dark leading-tight tracking-tighter"
+          >Authentic Advanced Academy</span
+        >
       </div>
       <button
         class="lg:hidden absolute right-4 top-4 bg-none border-none text-2xl text-content-light cursor-pointer p-1 leading-none hover:text-content-dark transition-all hover:rotate-90"
-        @click="emit('close')">
+        @click="emit('close')"
+      >
         ×
       </button>
     </div>
 
     <nav class="flex-1 p-2 px-md flex flex-col gap-1 overflow-y-auto">
-      <router-link v-for="item in menuItems" :key="item.name" :to="item.path"
-        class="flex items-center gap-sm p-3 px-md rounded-sm transition-all font-semibold text-sm group" :class="[
+      <router-link
+        v-for="item in menuItems"
+        :key="item.name"
+        :to="item.path"
+        class="flex items-center gap-sm p-3 px-md rounded-sm transition-all font-semibold text-sm group"
+        :class="[
           route.path === item.path
             ? 'bg-primary text-white font-bold shadow-md shadow-primary/20'
-            : 'text-content-muted hover:bg-primary-light hover:text-content-dark'
-        ]" @click="handleNavClick">
-        <img :src="getIconUrl(item.icon)" :alt="item.name" class="w-5 h-5 transition-all" :class="[
-          route.path === item.path
-            ? 'opacity-100 !grayscale-0 brightness-0 invert'
-            : 'opacity-60 group-hover:opacity-100'
-        ]" />
+            : 'text-content-muted hover:bg-primary-light hover:text-content-dark',
+        ]"
+        @click="handleNavClick"
+      >
+        <img
+          :src="getIconUrl(item.icon)"
+          :alt="item.name"
+          class="w-5 h-5 transition-all"
+          :class="[
+            route.path === item.path
+              ? 'opacity-100 !grayscale-0 brightness-0 invert'
+              : 'opacity-60 group-hover:opacity-100',
+          ]"
+        />
         <span class="whitespace-nowrap">{{ item.name }}</span>
       </router-link>
     </nav>
@@ -100,8 +120,12 @@ const handleNavClick = () => {
       <p v-if="logoutMessage" class="text-error text-sm mb-3 text-center font-bold animate-pulse">
         {{ logoutMessage }}
       </p>
-      <AppButton variant="logout" class="w-full font-bold shadow-lg shadow-error/5" :loading="!!logoutMessage"
-        @click="handleLogout">
+      <AppButton
+        variant="logout"
+        class="w-full font-bold shadow-lg shadow-error/5"
+        :loading="!!logoutMessage"
+        @click="handleLogout"
+      >
         Log Out
       </AppButton>
     </div>

@@ -19,15 +19,22 @@ defineEmits(['confirm', 'back'])
 </script>
 
 <template>
-  <transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 scale-95"
-    enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-150 ease-in"
-    leave-from-class="opacity-100" leave-to-class="opacity-0">
+  <transition
+    enter-active-class="transition duration-200 ease-out"
+    enter-from-class="opacity-0 scale-95"
+    enter-to-class="opacity-100 scale-100"
+    leave-active-class="transition duration-150 ease-in"
+    leave-from-class="opacity-100"
+    leave-to-class="opacity-0"
+  >
     <div v-if="show" class="app-confirm-overlay" @click.self="$emit('back')">
       <div class="app-confirm-card">
         <div class="app-confirm-header">
           <img v-if="icon" :src="icon" class="app-confirm-icon" alt="" />
           <h3 class="app-confirm-title">{{ title || 'Confirm Details' }}</h3>
-          <p class="app-confirm-sub">{{ subtitle || 'Please review carefully before submitting.' }}</p>
+          <p class="app-confirm-sub">
+            {{ subtitle || 'Please review carefully before submitting.' }}
+          </p>
         </div>
 
         <div class="app-confirm-body">
@@ -36,7 +43,9 @@ defineEmits(['confirm', 'back'])
             <!-- Slot-based custom rendering per row -->
             <slot :name="`row-${row.key}`" :row="row">
               <AppBadge v-if="row.badge" :status="row.value" :type="row.type" />
-              <span v-else class="app-confirm-val" :class="row.valueClass">{{ row.value ?? '—' }}</span>
+              <span v-else class="app-confirm-val" :class="row.valueClass">{{
+                row.value ?? '—'
+              }}</span>
             </slot>
           </div>
 
@@ -49,8 +58,13 @@ defineEmits(['confirm', 'back'])
 
         <div class="app-confirm-actions">
           <button type="button" class="ui-btn-cancel" @click="$emit('back')">Go back</button>
-          <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium"
-            @click="$emit('confirm')">
+          <AppButton
+            type="button"
+            variant="primary"
+            :loading="loading"
+            class="ui-btn-premium"
+            @click="$emit('confirm')"
+          >
             {{ confirmLabel || 'Confirm & Submit' }}
           </AppButton>
         </div>

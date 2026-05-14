@@ -100,66 +100,136 @@ const selectFilter = (val) => {
       </h3>
     </div>
     <div class="toolbar-actions">
-      <SearchBox v-if="hasSearch" :modelValue="searchQuery" @update:modelValue="$emit('update:searchQuery', $event)"
-        :placeholder="searchPlaceholder" :variant="searchVariant" class="lg:w-[500px] w-full flex-1" />
+      <SearchBox
+        v-if="hasSearch"
+        :modelValue="searchQuery"
+        @update:modelValue="$emit('update:searchQuery', $event)"
+        :placeholder="searchPlaceholder"
+        :variant="searchVariant"
+        class="lg:w-[500px] w-full flex-1"
+      />
       <div v-if="hasFilter" class="relative">
-        <AppButton ref="filterToggleRef" :variant="isActiveFilter ? 'ghost' : 'secondary'" size="md"
+        <AppButton
+          ref="filterToggleRef"
+          :variant="isActiveFilter ? 'ghost' : 'secondary'"
+          size="md"
           class="rounded-xl transition-all duration-300"
-          :class="{ 'shadow-md': isActiveFilter, 'shadow-sm': !isActiveFilter }" @click="toggleFilter" :style="isActiveFilter ? {
-            backgroundColor: getStatusTheme(currentFilter, activeOption?.color).backgroundColor,
-            color: getStatusTheme(currentFilter, activeOption?.color).color,
-            border: `1px solid ${getStatusTheme(currentFilter, activeOption?.color).color}20`
-          } : {}">
-          <img v-if="activeOption?.image || activeOption?.profileURL"
-            :src="activeOption.image || activeOption.profileURL" class="w-4 h-4 transition-all brightness-0 invert" />
-          <img v-else :src="getActionIcon('filter')" class="w-4 h-4 transition-all"
+          :class="{ 'shadow-md': isActiveFilter, 'shadow-sm': !isActiveFilter }"
+          @click="toggleFilter"
+          :style="
+            isActiveFilter
+              ? {
+                  backgroundColor: getStatusTheme(currentFilter, activeOption?.color)
+                    .backgroundColor,
+                  color: getStatusTheme(currentFilter, activeOption?.color).color,
+                  border: `1px solid ${getStatusTheme(currentFilter, activeOption?.color).color}20`,
+                }
+              : {}
+          "
+        >
+          <img
+            v-if="activeOption?.image || activeOption?.profileURL"
+            :src="activeOption.image || activeOption.profileURL"
+            class="w-4 h-4 transition-all brightness-0 invert"
+          />
+          <img
+            v-else
+            :src="getActionIcon('filter')"
+            class="w-4 h-4 transition-all"
             :class="{ 'brightness-0 invert': isActiveFilter }"
-            :style="!isActiveFilter ? { filter: getStatusFilter('filter') } : {}" />
+            :style="!isActiveFilter ? { filter: getStatusFilter('filter') } : {}"
+          />
           <span class="font-bold tracking-tight">{{ activeFilterLabel }}</span>
         </AppButton>
         <Teleport to="body">
-          <transition enter-active-class="transition duration-200 ease-out"
-            enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-            leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-            leave-to-class="opacity-0">
-            <div v-if="isFilterOpen" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
+          <transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="transform scale-95 opacity-0"
+            enter-to-class="transform scale-100 opacity-100"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+          >
+            <div
+              v-if="isFilterOpen"
+              class="toolbar-filter-menu"
+              :style="filterMenuStyles"
+              @mousedown.stop
+            >
               <template v-for="(option, idx) in filterOptions" :key="option.value || `item-${idx}`">
-                <div v-if="option.isHeader"
-                  class="px-md pt-md pb-xs text-3xs font-semibold text-content-muted  sticky top-0 bg-white/95 backdrop-blur-sm z-10 select-none flex items-center justify-between">
+                <div
+                  v-if="option.isHeader"
+                  class="px-md pt-md pb-xs text-3xs font-semibold text-content-muted sticky top-0 bg-white/95 backdrop-blur-sm z-10 select-none flex items-center justify-between"
+                >
                   <span>{{ option.label }}</span>
                 </div>
                 <div v-else-if="option.isDivider" class="h-px w-full bg-outline-std/50 my-1"></div>
-                <div v-else class="toolbar-filter-option" :class="{
-                  'active-option': currentFilter === option.value,
-                }" :style="currentFilter === option.value ? {
-                  backgroundColor: getStatusTheme(option.value, option.color).backgroundColor,
-                  color: getStatusTheme(option.value, option.color).color
-                } : {}" @click.stop="selectFilter(option.value)" @mouseenter="(e) => {
-                  if (currentFilter !== option.value) {
-                    const theme = getStatusTheme(option.value, option.color);
-                    if (theme.color !== 'var(--color-gray)') {
-                      e.currentTarget.style.backgroundColor = theme.backgroundColor;
-                      e.currentTarget.style.color = theme.color;
+                <div
+                  v-else
+                  class="toolbar-filter-option"
+                  :class="{
+                    'active-option': currentFilter === option.value,
+                  }"
+                  :style="
+                    currentFilter === option.value
+                      ? {
+                          backgroundColor: getStatusTheme(option.value, option.color)
+                            .backgroundColor,
+                          color: getStatusTheme(option.value, option.color).color,
+                        }
+                      : {}
+                  "
+                  @click.stop="selectFilter(option.value)"
+                  @mouseenter="
+                    (e) => {
+                      if (currentFilter !== option.value) {
+                        const theme = getStatusTheme(option.value, option.color)
+                        if (theme.color !== 'var(--color-gray)') {
+                          e.currentTarget.style.backgroundColor = theme.backgroundColor
+                          e.currentTarget.style.color = theme.color
+                        }
+                      }
                     }
-                  }
-                }" @mouseleave="(e) => {
-                  if (currentFilter !== option.value) {
-                    e.currentTarget.style.backgroundColor = '';
-                    e.currentTarget.style.color = '';
-                  }
-                }">
+                  "
+                  @mouseleave="
+                    (e) => {
+                      if (currentFilter !== option.value) {
+                        e.currentTarget.style.backgroundColor = ''
+                        e.currentTarget.style.color = ''
+                      }
+                    }
+                  "
+                >
                   <div class="flex items-center gap-3">
-                    <div v-if="option.badge" class="shrink-0 flex items-center justify-center min-w-[24px]">
+                    <div
+                      v-if="option.badge"
+                      class="shrink-0 flex items-center justify-center min-w-[24px]"
+                    >
                       <AppBadge :status="option.badge.status" :type="option.badge.type" />
                     </div>
-                    <div v-else-if="option.image || option.profileURL"
+                    <div
+                      v-else-if="option.image || option.profileURL"
                       class="shrink-0 flex items-center justify-center overflow-hidden transition-all duration-200"
-                      :class="String(option.image || option.profileURL).includes('.svg') ? 'w-4 h-4' : 'w-6 h-6 border border-outline-std/50 bg-white shadow-sm'">
-                      <img :src="option.image || option.profileURL" class="w-full h-full transition-all duration-200"
+                      :class="
+                        String(option.image || option.profileURL).includes('.svg')
+                          ? 'w-4 h-4'
+                          : 'w-6 h-6 border border-outline-std/50 bg-white shadow-sm'
+                      "
+                    >
+                      <img
+                        :src="option.image || option.profileURL"
+                        class="w-full h-full transition-all duration-200"
                         :class="[
-                          String(option.image || option.profileURL).includes('.svg') ? 'object-contain' : 'object-cover',
-                          { 'brightness-0 invert': currentFilter === option.value && String(option.image || option.profileURL).includes('.svg') }
-                        ]" />
+                          String(option.image || option.profileURL).includes('.svg')
+                            ? 'object-contain'
+                            : 'object-cover',
+                          {
+                            'brightness-0 invert':
+                              currentFilter === option.value &&
+                              String(option.image || option.profileURL).includes('.svg'),
+                          },
+                        ]"
+                      />
                     </div>
                     <span class="flex-1 truncate">{{ option.label }}</span>
                   </div>

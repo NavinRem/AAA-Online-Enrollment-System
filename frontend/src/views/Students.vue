@@ -31,18 +31,18 @@ const newlyCreatedId = ref(null)
 // Filters
 const branchFilter = ref('all')
 const dropdowns = ref({
-  branch: false
+  branch: false,
 })
 const filterMenuStyles = ref({})
 
 const branchOptions = computed(() => {
   return dataStore.branches
-    .filter(b => !b.isDeleted)
-    .map(b => ({
+    .filter((b) => !b.isDeleted)
+    .map((b) => ({
       label: b.name,
       value: b.id,
       color: b.color,
-      abbr: b.abbr
+      abbr: b.abbr,
     }))
     .sort((a, b) => a.label.localeCompare(b.label))
 })
@@ -50,7 +50,7 @@ const branchOptions = computed(() => {
 const toggleDropdown = (type, event) => {
   event.stopPropagation()
   const isOpening = !dropdowns.value[type]
-  Object.keys(dropdowns.value).forEach(key => {
+  Object.keys(dropdowns.value).forEach((key) => {
     dropdowns.value[key] = false
   })
   dropdowns.value[type] = isOpening
@@ -60,7 +60,7 @@ const toggleDropdown = (type, event) => {
     filterMenuStyles.value = {
       top: `${rect.bottom + window.scrollY + 8}px`,
       left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 250)}px`,
-      minWidth: '240px'
+      minWidth: '240px',
     }
   }
 }
@@ -73,10 +73,10 @@ const selectFilter = (type, value) => {
 const getActiveLabel = (type) => {
   if (type === 'branch') {
     if (branchFilter.value === 'all') return { label: 'All Branches', color: 'purple' }
-    const opt = branchOptions.value.find(o => String(o.value) === String(branchFilter.value))
+    const opt = branchOptions.value.find((o) => String(o.value) === String(branchFilter.value))
     return {
       label: opt ? opt.label : 'Select Branch',
-      color: opt?.color || 'purple'
+      color: opt?.color || 'purple',
     }
   }
   return { label: '' }
@@ -126,8 +126,11 @@ onUnmounted(() => {
 
 const currentActiveTerm = computed(() => {
   const allTerms = dataStore.terms || []
-  return allTerms.find((t) => t.status === 'active') ||
-    [...allTerms].sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0] || null
+  return (
+    allTerms.find((t) => t.status === 'active') ||
+    [...allTerms].sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0] ||
+    null
+  )
 })
 
 const studentsEnriched = computed(() => {
@@ -140,7 +143,7 @@ const studentsEnriched = computed(() => {
 
   const enriched = enrichStudents(sData, rData, pData, termId, classes, programs)
   // Clean up: Ensure we only show records with names and IDs
-  return (enriched || []).filter(s => s.id && s.name && s.name.trim() !== '')
+  return (enriched || []).filter((s) => s.id && s.name && s.name.trim() !== '')
 })
 
 const { searchQuery, searchResults } = useSearch(studentsEnriched, studentSearchMapper)
@@ -157,9 +160,11 @@ const filteredStudents = computed(() => {
 
   // 2. Branch Filter
   if (branchFilter.value !== 'all') {
-    list = list.filter(s => {
+    list = list.filter((s) => {
       // Check if student has ANY enrollment in the selected branch
-      const hasBranchEnrollment = (s.enrollments || []).some(e => String(e.branchId) === String(branchFilter.value))
+      const hasBranchEnrollment = (s.enrollments || []).some(
+        (e) => String(e.branchId) === String(branchFilter.value),
+      )
       return hasBranchEnrollment
     })
   }
@@ -373,83 +378,147 @@ const submitActionModal = async (formData) => {
       </template>
 
       <template #table>
-        <DataTable title="Student Lists" :headers="studentHeaders" :items="paginatedStudents"
-          :loading="dataStore.loading.students" entityName="student" :flexible="true" v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search by name or ID..." :hasFilter="true" v-model:currentFilter="currentFilter"
+        <DataTable
+          title="Student Lists"
+          :headers="studentHeaders"
+          :items="paginatedStudents"
+          :loading="dataStore.loading.students"
+          entityName="student"
+          :flexible="true"
+          v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search by name or ID..."
+          :hasFilter="true"
+          v-model:currentFilter="currentFilter"
           :filterOptions="[
             { label: 'All Students', value: 'all' },
             { label: 'Active', value: 'active' },
             { label: 'Inactive', value: 'inactive' },
             { label: 'Hold', value: 'hold' },
-          ]" :rowClass="getRowClass" :hasPagination="true" :totalItems="totalItems" :pageSize="pageSize"
-          v-model:currentPage="currentPage" @row-click="navigateToDetail"
-          @action="({ type, item }) => openActionModal(type, item)">
+          ]"
+          :rowClass="getRowClass"
+          :hasPagination="true"
+          :totalItems="totalItems"
+          :pageSize="pageSize"
+          v-model:currentPage="currentPage"
+          @row-click="navigateToDetail"
+          @action="({ type, item }) => openActionModal(type, item)"
+        >
           <template #toolbar-actions>
             <div class="flex items-center gap-3">
               <!-- Branch Filter -->
               <div class="relative" id="branch-filter-btn">
-                <AppButton :variant="branchFilter === 'all' ? 'secondary' : 'ghost'" size="md"
-                  @click="toggleDropdown('branch', $event)" class="rounded-xl transition-all duration-300 group"
-                  :class="{ '!text-white shadow-md': branchFilter !== 'all', 'shadow-sm': branchFilter === 'all' }"
-                  :style="branchFilter !== 'all' ? { backgroundColor: `var(--color-${getActiveLabel('branch').color})` } : {}">
-                  <img :src="getActionIcon('branch')"
+                <AppButton
+                  :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"
+                  size="md"
+                  @click="toggleDropdown('branch', $event)"
+                  class="rounded-xl transition-all duration-300 group"
+                  :class="{
+                    '!text-white shadow-md': branchFilter !== 'all',
+                    'shadow-sm': branchFilter === 'all',
+                  }"
+                  :style="
+                    branchFilter !== 'all'
+                      ? { backgroundColor: `var(--color-${getActiveLabel('branch').color})` }
+                      : {}
+                  "
+                >
+                  <img
+                    :src="getActionIcon('branch')"
                     class="w-4 h-4 brightness-0 transition-all opacity-80 group-hover:opacity-100"
-                    :class="{ 'invert': branchFilter !== 'all' }" />
-                  <span class="font-bold tracking-tight" :class="{ 'text-white': branchFilter !== 'all' }">{{
-                    getActiveLabel('branch').label }}</span>
-                  <span class="ml-2 text-xs opacity-60 group-hover:opacity-100"
-                    :class="{ 'text-white': branchFilter !== 'all' }">▼</span>
+                    :class="{ invert: branchFilter !== 'all' }"
+                  />
+                  <span
+                    class="font-bold tracking-tight"
+                    :class="{ 'text-white': branchFilter !== 'all' }"
+                    >{{ getActiveLabel('branch').label }}</span
+                  >
+                  <span
+                    class="ml-2 text-xs opacity-60 group-hover:opacity-100"
+                    :class="{ 'text-white': branchFilter !== 'all' }"
+                    >▼</span
+                  >
                 </AppButton>
                 <Teleport to="body">
-                  <transition enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                    leave-to-class="opacity-0">
-                    <div v-if="dropdowns.branch" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
-                      <div class="toolbar-filter-option flex items-center justify-between gap-4"
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="dropdowns.branch"
+                      class="toolbar-filter-menu"
+                      :style="filterMenuStyles"
+                      @mousedown.stop
+                    >
+                      <div
+                        class="toolbar-filter-option flex items-center justify-between gap-4"
                         :class="{ 'active-filter-item': branchFilter === 'all' }"
-                        @click="selectFilter('branch', 'all')">
+                        @click="selectFilter('branch', 'all')"
+                      >
                         <div class="flex items-center gap-3">
                           <AppBadge status="ALL" type="gray" size="sm" class="w-12 text-center" />
                           <span>All Branches</span>
                         </div>
                       </div>
-                      <div v-for="opt in branchOptions" :key="opt.value"
+                      <div
+                        v-for="opt in branchOptions"
+                        :key="opt.value"
                         class="toolbar-filter-option flex items-center justify-between gap-4"
-                        :class="{ 'active-filter-item': String(branchFilter) === String(opt.value) }"
-                        @click="selectFilter('branch', opt.value)">
+                        :class="{
+                          'active-filter-item': String(branchFilter) === String(opt.value),
+                        }"
+                        @click="selectFilter('branch', opt.value)"
+                      >
                         <div class="flex items-center gap-3">
-                          <AppBadge :status="opt.abbr" :type="opt.color" size="sm" class="w-12 text-center" />
+                          <AppBadge
+                            :status="opt.abbr"
+                            :type="opt.color"
+                            size="sm"
+                            class="w-12 text-center"
+                          />
                           <span class="truncate">{{ opt.label }}</span>
                         </div>
-                        <span v-if="String(branchFilter) === String(opt.value)" class="text-xs">✓</span>
+                        <span v-if="String(branchFilter) === String(opt.value)" class="text-xs"
+                          >✓</span
+                        >
                       </div>
                     </div>
                   </transition>
                 </Teleport>
               </div>
 
-              <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
-                @click="handleOpenAddStudent">
+              <AppButton
+                variant="primary"
+                size="md"
+                class="rounded-xl shadow-lg shadow-primary/20"
+                @click="handleOpenAddStudent"
+              >
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold">New Student</span>
               </AppButton>
             </div>
           </template>
 
-          <template #row="{
-            item,
-            index,
-            toggleMenu,
-            activeMenuId,
-            isMenuAbove,
-            menuStyles,
-            handleAction,
-            closeMenu
-          }">
+          <template
+            #row="{
+              item,
+              index,
+              toggleMenu,
+              activeMenuId,
+              isMenuAbove,
+              menuStyles,
+              handleAction,
+              closeMenu,
+            }"
+          >
             <!-- No -->
             <td class="ui-cell text-center hidden md:table-cell">
-              <span class="font-bold text-content-dark text-sm">{{ (currentPage - 1) * pageSize + index + 1 }}</span>
+              <span class="font-bold text-content-dark text-sm">{{
+                (currentPage - 1) * pageSize + index + 1
+              }}</span>
             </td>
 
             <!-- Age -->
@@ -460,16 +529,19 @@ const submitActionModal = async (formData) => {
             </td>
 
             <!-- Identity -->
-            <td class=" ui-cell min-w-[200px]" @click="navigateToDetail(item)">
+            <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
               <div class="ui-identity-cell">
                 <div class="relative">
                   <div
-                    class="ui-avatar ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-300 shadow-sm">
+                    class="ui-avatar ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-300 shadow-sm"
+                  >
                     <img :src="item.profileURL" alt="avatar" class="w-full h-full object-cover" />
                   </div>
                 </div>
                 <div class="ui-identity-info">
-                  <span class="truncate block font-bold text-content-dark text-sm tracking-tight">{{ item.name }}</span>
+                  <span class="truncate block font-bold text-content-dark text-sm tracking-tight">{{
+                    item.name
+                  }}</span>
                 </div>
               </div>
             </td>
@@ -481,35 +553,70 @@ const submitActionModal = async (formData) => {
                   <img :src="item.parentInfo?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-xs font-bold text-content-muted tracking-tight">{{ item.parentInfo?.name }}</span>
+                  <span class="text-xs font-bold text-content-muted tracking-tight">{{
+                    item.parentInfo?.name
+                  }}</span>
                 </div>
               </div>
             </td>
 
             <!-- Branch -->
             <td class="ui-cell text-center hidden sm:table-cell">
-              <AppBadge v-if="item.branchInfo?.abbr" :status="item.branchInfo.abbr" :type="item.branchInfo.color" />
+              <AppBadge
+                v-if="item.branchInfo?.abbr"
+                :status="item.branchInfo.abbr"
+                :type="item.branchInfo.color"
+              />
               <span v-else class="opacity-30 text-2xs font-bold uppercase tracking-widest">—</span>
             </td>
 
             <!-- Programs -->
             <td class="ui-cell hidden lg:table-cell">
-              <div class="flex -space-x-3 hover:space-x-1 transition-all duration-500 overflow-hidden py-1 px-2">
+              <div
+                class="flex -space-x-3 hover:space-x-1 transition-all duration-500 overflow-hidden py-1 px-2"
+              >
                 <template v-if="item.enrollments?.length">
                   <!-- Group by program to show unique programs only -->
                   <div
-                    v-for="(reg, rIdx) in [...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()]"
+                    v-for="(reg, rIdx) in [
+                      ...new Map(
+                        item.enrollments.map((e) => [e.programId || e.program?.id, e]),
+                      ).values(),
+                    ]"
                     :key="rIdx"
                     class="w-10 h-10 rounded-full border-2 border-white bg-surface-subtle overflow-hidden shadow-md hover:z-10 transition-all duration-300 hover:scale-110 ring-1 ring-black/5 flex-shrink-0"
-                    :title="reg.program?.name || reg.programName">
+                    :title="reg.program?.name || reg.programName"
+                  >
                     <img
-                      :src="getProgramProfileURL(reg.program?.profileURL || reg.programProfileURL, reg.program?.category?.name || reg.program?.category || reg.programCategory, reg.program?.categorySnapshot?.profileURL || reg.program?.category?.profileURL)"
-                      class="w-full h-full object-contain p-1.5" />
+                      :src="
+                        getProgramProfileURL(
+                          reg.program?.profileURL || reg.programProfileURL,
+                          reg.program?.category?.name ||
+                            reg.program?.category ||
+                            reg.programCategory,
+                          reg.program?.categorySnapshot?.profileURL ||
+                            reg.program?.category?.profileURL,
+                        )
+                      "
+                      class="w-full h-full object-contain p-1.5"
+                    />
                   </div>
                   <div
-                    v-if="[...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()].length > 3"
-                    class="w-10 h-10 rounded-full border-2 border-white bg-primary text-white flex items-center justify-center text-xs font-bold shadow-md z-20">
-                    +{{[...new Map(item.enrollments.map(e => [e.programId || e.program?.id, e])).values()].length - 3
+                    v-if="
+                      [
+                        ...new Map(
+                          item.enrollments.map((e) => [e.programId || e.program?.id, e]),
+                        ).values(),
+                      ].length > 3
+                    "
+                    class="w-10 h-10 rounded-full border-2 border-white bg-primary text-white flex items-center justify-center text-xs font-bold shadow-md z-20"
+                  >
+                    +{{
+                      [
+                        ...new Map(
+                          item.enrollments.map((e) => [e.programId || e.program?.id, e]),
+                        ).values(),
+                      ].length - 3
                     }}
                   </div>
                 </template>
@@ -536,34 +643,70 @@ const submitActionModal = async (formData) => {
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
-                  @click.stop="toggleMenu($event, item.id)">
+                  @click.stop="toggleMenu($event, item.id)"
+                >
                   <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
-                  <transition enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                    leave-to-class="opacity-0">
-                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
-                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
-                      @click.stop>
-                      <button class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="() => { handleAction('edit', item); closeMenu(); }">
-                        <img :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="activeMenuId === item.id"
+                      class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
+                      :style="menuStyles"
+                      @click.stop
+                    >
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="
+                          () => {
+                            handleAction('edit', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold text-sm">Edit</span>
                       </button>
-                      <button class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="() => { handleAction('override', item); closeMenu(); }">
-                        <img :src="getActionIcon('view')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="
+                          () => {
+                            handleAction('override', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('view')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold text-sm">Status Override</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
-                        @click="() => { handleAction('delete', item); closeMenu(); }">
-                        <img :src="getActionIcon('delete')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
+                        @click="
+                          () => {
+                            handleAction('delete', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('delete')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         Delete
                       </button>
                     </div>
@@ -577,13 +720,36 @@ const submitActionModal = async (formData) => {
     </DataPageLayout>
 
     <!-- Modals -->
-    <StudentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :student="actionModal.student"
-      :selectableParents="parentsList" :loading="modalLoading" :error="modalError" :success="modalSuccess"
-      @close="actionModal.isOpen = false; modalError = ''; modalSuccess = ''" @submit="submitActionModal" />
+    <StudentActionModal
+      :isOpen="actionModal.isOpen"
+      :type="actionModal.type"
+      :student="actionModal.student"
+      :selectableParents="parentsList"
+      :loading="modalLoading"
+      :error="modalError"
+      :success="modalSuccess"
+      @close="
+        actionModal.isOpen = false
+        modalError = ''
+        modalSuccess = ''
+      "
+      @submit="submitActionModal"
+    />
 
-    <ParentActionModal :isOpen="parentActionModal.isOpen" :type="parentActionModal.type"
-      :selectableParents="parentsList" :loading="modalLoading" v-model:error="modalError" v-model:success="modalSuccess"
-      @close="parentActionModal.isOpen = false; modalError = ''; modalSuccess = ''" @submit="handleRegisterStudent" />
+    <ParentActionModal
+      :isOpen="parentActionModal.isOpen"
+      :type="parentActionModal.type"
+      :selectableParents="parentsList"
+      :loading="modalLoading"
+      v-model:error="modalError"
+      v-model:success="modalSuccess"
+      @close="
+        parentActionModal.isOpen = false
+        modalError = ''
+        modalSuccess = ''
+      "
+      @submit="handleRegisterStudent"
+    />
   </DashboardLayout>
 </template>
 

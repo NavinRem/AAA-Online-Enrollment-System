@@ -32,21 +32,20 @@ onMounted(fetchData)
 
 const statusFilteredTeachers = computed(() => {
   if (currentFilter.value === 'all') return teachers.value
-  return teachers.value.filter(t => (t.status || 'active').toLowerCase() === currentFilter.value)
+  return teachers.value.filter((t) => (t.status || 'active').toLowerCase() === currentFilter.value)
 })
 
-const { searchQuery, searchResults } = useSearch(
-  statusFilteredTeachers,
-  teacherSearchMapper
-)
+const { searchQuery, searchResults } = useSearch(statusFilteredTeachers, teacherSearchMapper)
 
 const filteredTeachers = computed(() => {
-  return [...searchResults.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  return [...searchResults.value].sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+  )
 })
 
 const statsCards = computed(() => {
   const all = teachers.value
-  const active = all.filter(t => (t.status || 'active').toLowerCase() === 'active')
+  const active = all.filter((t) => (t.status || 'active').toLowerCase() === 'active')
 
   return [
     {
@@ -61,7 +60,7 @@ const statsCards = computed(() => {
     },
     {
       label: 'Academic Diversity',
-      value: new Set(all.map(t => t.specialization).filter(Boolean)).size,
+      value: new Set(all.map((t) => t.specialization).filter(Boolean)).size,
       image: getImageUrl('dashboard/card-top-program'),
     },
     {
@@ -141,58 +140,94 @@ const handleDelete = async (teacher) => {
     <DataPageLayout overviewTitle="Teacher Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" :loading="loading" />
+          <DataMetricCard
+            v-for="stat in statsCards"
+            :key="stat.label"
+            v-bind="stat"
+            :loading="loading"
+          />
         </div>
       </template>
 
       <template #table>
-        <DataTable title="Teacher Lists" :headers="headers" :items="filteredTeachers" :loading="loading"
-          searchPlaceholder="Search by name, email or specialization..." :hasFilter="true"
-          v-model:searchQuery="searchQuery" v-model:currentFilter="currentFilter" :filterOptions="[
+        <DataTable
+          title="Teacher Lists"
+          :headers="headers"
+          :items="filteredTeachers"
+          :loading="loading"
+          searchPlaceholder="Search by name, email or specialization..."
+          :hasFilter="true"
+          v-model:searchQuery="searchQuery"
+          v-model:currentFilter="currentFilter"
+          :filterOptions="[
             { label: 'All Faculty', value: 'all' },
             { label: 'Active Duty', value: 'active' },
             { label: 'Inactive / Leave', value: 'inactive' },
-          ]">
+          ]"
+        >
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
-              @click="openModal('add')">
+            <AppButton
+              variant="primary"
+              size="md"
+              class="rounded-xl shadow-lg shadow-primary/20"
+              @click="openModal('add')"
+            >
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-bold">New Teacher</span>
             </AppButton>
           </template>
 
-          <template #row="{ item, index, headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }">
-            <td class="ui-cell text-center hidden md:table-cell"
-              :style="{ width: headers[0].width }">
+          <template
+            #row="{
+              item,
+              index,
+              headers,
+              toggleMenu,
+              activeMenuId,
+              isMenuAbove,
+              menuStyles,
+              closeMenu,
+            }"
+          >
+            <td
+              class="ui-cell text-center hidden md:table-cell"
+              :style="{ width: headers[0].width }"
+            >
               <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[1].width }">
               <div class="ui-identity-cell">
-                <div class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center">
-                  <span class="text-lg font-bold text-primary opacity-40">{{ item.name.charAt(0) }}</span>
+                <div
+                  class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center"
+                >
+                  <span class="text-lg font-bold text-primary opacity-40">{{
+                    item.name.charAt(0)
+                  }}</span>
                 </div>
                 <div class="ui-identity-info">
-                  <span class="truncate block font-bold text-content-dark text-sm">{{ item.name }}</span>
-                  <span class="text-3xs font-bold text-content-muted">{{
-                    item.id.slice(-6) }}</span>
+                  <span class="truncate block font-bold text-content-dark text-sm">{{
+                    item.name
+                  }}</span>
+                  <span class="text-3xs font-bold text-content-muted">{{ item.id.slice(-6) }}</span>
                 </div>
               </div>
             </td>
 
             <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[2].width }">
               <div class="inline-flex px-3 py-1 rounded-lg bg-primary/5 border border-primary/10">
-                <span class="text-xs font-bold text-primary">{{ item.specialization ||
-                  'Generalist' }}</span>
+                <span class="text-xs font-bold text-primary">{{
+                  item.specialization || 'Generalist'
+                }}</span>
               </div>
             </td>
 
             <td class="ui-cell hidden md:table-cell" :style="{ width: headers[3].width }">
               <div class="flex flex-col">
                 <span class="text-xs font-bold text-content-dark">{{ item.email }}</span>
-                <span class="mt-1 text-3xs font-bold text-content-muted tabular-nums">{{ item.phone
-                  ||
-                  'No Contact' }}</span>
+                <span class="mt-1 text-3xs font-bold text-content-muted tabular-nums">{{
+                  item.phone || 'No Contact'
+                }}</span>
               </div>
             </td>
 
@@ -204,30 +239,53 @@ const handleDelete = async (teacher) => {
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
-                  @click.stop="toggleMenu($event, item.id)">
+                  @click.stop="toggleMenu($event, item.id)"
+                >
                   <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
-                  <transition enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                    leave-to-class="opacity-0">
-                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
-                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
-                      @click.stop>
-                      <button class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="openModal('edit', item); closeMenu()">
-                        <img :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="activeMenuId === item.id"
+                      class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
+                      :style="menuStyles"
+                      @click.stop
+                    >
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="
+                          openModal('edit', item)
+                          closeMenu()
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold text-sm">Edit</span>
                       </button>
 
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
 
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
-                        @click="handleDelete(item); closeMenu()">
-                        <img :src="getActionIcon('delete')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
+                        @click="
+                          handleDelete(item)
+                          closeMenu()
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('delete')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         Delete
                       </button>
                     </div>
@@ -240,7 +298,15 @@ const handleDelete = async (teacher) => {
       </template>
     </DataPageLayout>
 
-    <TeacherActionModal :isOpen="isModalOpen" :type="modalType" :teacher="selectedTeacher" :loading="submitting"
-      :error="error" :success="success" @close="isModalOpen = false" @submit="handleSubmit" />
+    <TeacherActionModal
+      :isOpen="isModalOpen"
+      :type="modalType"
+      :teacher="selectedTeacher"
+      :loading="submitting"
+      :error="error"
+      :success="success"
+      @close="isModalOpen = false"
+      @submit="handleSubmit"
+    />
   </DashboardLayout>
 </template>

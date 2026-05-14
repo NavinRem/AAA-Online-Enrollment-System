@@ -48,24 +48,51 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <AppModal :isOpen="isOpen" :title="type === 'add' ? 'New Difficulty Level' : type === 'edit' ? 'Edit Level' : 'Delete Level'"
-    @close="emit('close')">
+  <AppModal
+    :isOpen="isOpen"
+    :title="
+      type === 'add' ? 'New Difficulty Level' : type === 'edit' ? 'Edit Level' : 'Delete Level'
+    "
+    @close="emit('close')"
+  >
     <div v-if="type === 'delete'" class="p-6">
-      <AppConfirmOverlay :isOpen="true" title="Confirm Deletion"
+      <AppConfirmOverlay
+        :isOpen="true"
+        title="Confirm Deletion"
         :message="`Are you sure you want to delete the level '${level?.name}'? This will disconnect all programs currently using this level.`"
-        :confirmText="`Delete ${level?.name}`" :loading="loading" :error="error" :success="success"
-        @close="emit('close')" @confirm="handleSubmit" />
+        :confirmText="`Delete ${level?.name}`"
+        :loading="loading"
+        :error="error"
+        :success="success"
+        @close="emit('close')"
+        @confirm="handleSubmit"
+      />
     </div>
 
     <form v-else @submit.prevent="handleSubmit" class="p-6 space-y-4">
-      <AppInput label="Level Name" v-model="formData.name" placeholder="e.g. Beginner, Advanced" required />
-      <AppInput label="Description" v-model="formData.description" placeholder="Briefly describe this level..." />
+      <AppInput
+        label="Level Name"
+        v-model="formData.name"
+        placeholder="e.g. Beginner, Advanced"
+        required
+      />
+      <AppInput
+        label="Description"
+        v-model="formData.description"
+        placeholder="Briefly describe this level..."
+      />
 
-      <div v-if="error" class="p-3 bg-error-soft text-error text-xs font-semibold rounded-lg border border-error/10">
+      <div
+        v-if="error"
+        class="p-3 bg-error-soft text-error text-xs font-semibold rounded-lg border border-error/10"
+      >
         {{ error }}
       </div>
 
-      <div v-if="success" class="p-3 bg-success-soft text-success text-xs font-semibold rounded-lg border border-success/10">
+      <div
+        v-if="success"
+        class="p-3 bg-success-soft text-success text-xs font-semibold rounded-lg border border-success/10"
+      >
         {{ success }}
       </div>
 

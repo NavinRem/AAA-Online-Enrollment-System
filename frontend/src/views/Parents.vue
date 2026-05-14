@@ -30,69 +30,6 @@ const router = useRouter()
 const dataStore = useDataStore()
 const newlyCreatedId = ref(null)
 
-// Filters
-const branchFilter = ref('all')
-const dropdowns = ref({
-  branch: false
-})
-const filterMenuStyles = ref({})
-
-const branchOptions = computed(() => {
-  return dataStore.branches
-    .filter(b => !b.isDeleted)
-    .map(b => ({
-      label: b.name,
-      value: b.id,
-      color: b.color,
-      abbr: b.abbr
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label))
-})
-
-const toggleDropdown = (type, event) => {
-  event.stopPropagation()
-  const isOpening = !dropdowns.value[type]
-  Object.keys(dropdowns.value).forEach(key => {
-    dropdowns.value[key] = false
-  })
-  dropdowns.value[type] = isOpening
-
-  if (isOpening) {
-    const rect = event.currentTarget.getBoundingClientRect()
-    filterMenuStyles.value = {
-      top: `${rect.bottom + window.scrollY + 8}px`,
-      left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 250)}px`,
-      minWidth: '240px'
-    }
-  }
-}
-
-const selectFilter = (type, value) => {
-  if (type === 'branch') branchFilter.value = value
-  dropdowns.value[type] = false
-}
-
-const getActiveLabel = (type) => {
-  if (type === 'branch') {
-    if (branchFilter.value === 'all') return { label: 'All Branches', color: 'purple' }
-    const opt = branchOptions.value.find(o => String(o.value) === String(branchFilter.value))
-    return {
-      label: opt ? opt.label : 'Select Branch',
-      color: opt?.color || 'purple'
-    }
-  }
-  return { label: '' }
-}
-
-const handleClickOutside = (event) => {
-  if (dropdowns.value.branch) {
-    const btn = document.getElementById('branch-filter-btn')
-    if (btn && !btn.contains(event.target)) {
-      dropdowns.value.branch = false
-    }
-  }
-}
-
 const parents = computed(() => {
   const allParents = dataStore.parents
   const allStudents = dataStore.students
@@ -100,7 +37,6 @@ const parents = computed(() => {
 })
 
 const enrollments = computed(() => dataStore.enrollments)
-const trials = computed(() => dataStore.trials)
 const loading = computed(() => dataStore.loading.parents)
 
 const getRowClass = (item) => {
@@ -146,7 +82,6 @@ const parentHeaders = [
 ]
 
 onMounted(async () => {
-  window.addEventListener('mousedown', handleClickOutside)
   try {
     await dataStore.fetchAllCommonData()
   } catch (error) {
@@ -155,7 +90,6 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
-  window.removeEventListener('mousedown', handleClickOutside)
 })
 
 const currentFilter = ref('all')
@@ -174,13 +108,15 @@ const pageSize = 10
 const totalItems = computed(() => filteredParents.value.length)
 
 const paginatedParents = computed(() => {
-  const list = [...filteredParents.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  const list = [...filteredParents.value].sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+  )
   const start = (currentPage.value - 1) * pageSize
   const end = start + pageSize
   return list.slice(start, end)
 })
 
-watch([currentFilter, branchFilter, searchQuery], () => {
+watch([currentFilter, searchQuery], () => {
   currentPage.value = 1
 })
 
@@ -250,7 +186,7 @@ const submitActionModal = async (formData) => {
       const payload = prepareStudentPayload({ ...formData, profileURL, parentId: id })
       const result = await studentService.createStudent(payload)
 
-      const parent = parents.value.find(p => p.id === id)
+      const parent = parents.value.find((p) => p.id === id)
       const childrenInfo = [...(parent?.childrenInfo || []), { id: result.id, ...payload }]
 
       await parentService.updateParent(id, { childrenInfo })
@@ -267,7 +203,8 @@ const submitActionModal = async (formData) => {
     setTimeout(closeActionModal, delay)
   } catch (error) {
     console.error(`Failed ${type}:`, error)
-    errorMessage.value = error.response?.data?.message || error.message || `Action failed. Please try again.`
+    errorMessage.value =
+      error.response?.data?.message || error.message || `Action failed. Please try again.`
   } finally {
     submitting.value = false
   }
@@ -303,7 +240,8 @@ const submitNewParent = async (data) => {
     }, 2000)
   } catch (error) {
     console.error('Failed creation:', error)
-    errorMessage.value = error.response?.data?.message || error.message || 'Failed to create parent account.'
+    errorMessage.value =
+      error.response?.data?.message || error.message || 'Failed to create parent account.'
   } finally {
     submitting.value = false
   }
@@ -335,51 +273,77 @@ const navigateToDetail = (item) => {
       </template>
 
       <template #table>
-        <DataTable title="Parent Lists" :headers="parentHeaders" :items="paginatedParents" :loading="loading"
-          entityName="parent" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search something..."
-          :hasFilter="true" v-model:currentFilter="currentFilter" :filterOptions="[
+        <DataTable
+          title="Parent Lists"
+          :headers="parentHeaders"
+          :items="paginatedParents"
+          :loading="loading"
+          entityName="parent"
+          :flexible="true"
+          v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search something..."
+          :hasFilter="true"
+          v-model:currentFilter="currentFilter"
+          :filterOptions="[
             { label: 'All Parents', value: 'all' },
             { label: 'Registered Today', value: 'registered-today' },
             { label: 'Paid Today', value: 'paid-today' },
             { label: 'Inactive Account', value: 'inactive' },
-          ]" :rowClass="getRowClass" :hasPagination="true" :totalItems="totalItems" :pageSize="pageSize"
-          v-model:currentPage="currentPage" @row-click="navigateToDetail"
-          @action="({ type, item }) => openActionModal(type, item)">
+          ]"
+          :rowClass="getRowClass"
+          :hasPagination="true"
+          :totalItems="totalItems"
+          :pageSize="pageSize"
+          v-model:currentPage="currentPage"
+          @row-click="navigateToDetail"
+          @action="({ type, item }) => openActionModal(type, item)"
+        >
           <template #toolbar-actions>
             <div class="flex items-center gap-3">
-              <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
-                @click="showNewParentModal = true">
+              <AppButton
+                variant="primary"
+                size="md"
+                class="rounded-xl shadow-lg shadow-primary/20"
+                @click="showNewParentModal = true"
+              >
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold tracking-tight">New Parent</span>
               </AppButton>
             </div>
           </template>
 
-          <template #row="{
-            item,
-            index,
-            toggleMenu,
-            activeMenuId,
-            isMenuAbove,
-            menuStyles,
-            handleAction,
-            closeMenu,
-          }">
+          <template
+            #row="{
+              item,
+              index,
+              toggleMenu,
+              activeMenuId,
+              isMenuAbove,
+              menuStyles,
+              handleAction,
+              closeMenu,
+            }"
+          >
             <!-- No -->
             <td class="ui-cell text-center hidden md:table-cell">
-              <span class="font-bold text-content-dark text-sm">{{ (currentPage - 1) * pageSize + index + 1 }}</span>
+              <span class="font-bold text-content-dark text-sm">{{
+                (currentPage - 1) * pageSize + index + 1
+              }}</span>
             </td>
 
             <!-- Identity -->
             <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
               <div class="flex items-center gap-4 group cursor-pointer">
                 <div
-                  class="w-8 h-8 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm">
+                  class="w-8 h-8 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm"
+                >
                   <img :src="item.profileURL" alt="avatar" class="w-full h-full object-cover" />
                 </div>
                 <div class="flex flex-col">
-                  <span class="font-bold text-content-dark text-sm group-hover:text-primary transition-colors tracking-tight leading-tight">{{
-                    item.name }}</span>
+                  <span
+                    class="font-bold text-content-dark text-sm group-hover:text-primary transition-colors tracking-tight leading-tight"
+                    >{{ item.name }}</span
+                  >
                 </div>
               </div>
             </td>
@@ -388,13 +352,18 @@ const navigateToDetail = (item) => {
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex -space-x-2">
                 <template v-if="item.childrenInfo?.length">
-                  <div v-for="(child, i) in item.childrenInfo" :key="child.id || i"
+                  <div
+                    v-for="(child, i) in item.childrenInfo"
+                    :key="child.id || i"
                     class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle overflow-hidden shadow-sm hover:z-10 transition-transform hover:scale-110"
-                    :title="child.name">
+                    :title="child.name"
+                  >
                     <img :src="child.profileURL" alt="child" class="w-full h-full object-cover" />
                   </div>
-                  <div v-if="item.childrenInfo.length > 3"
-                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-3xs font-black">
+                  <div
+                    v-if="item.childrenInfo.length > 3"
+                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-3xs font-black"
+                  >
                     +{{ item.childrenInfo.length - 3 }}
                   </div>
                 </template>
@@ -404,7 +373,9 @@ const navigateToDetail = (item) => {
             <!-- Contact Details -->
             <td class="ui-cell hidden md:table-cell">
               <div class="flex flex-col">
-                <span class="text-xs font-bold text-content-dark tabular-nums tracking-tighter">{{ item.phone }}</span>
+                <span class="text-xs font-bold text-content-dark tabular-nums tracking-tighter">{{
+                  item.phone
+                }}</span>
               </div>
             </td>
 
@@ -431,62 +402,115 @@ const navigateToDetail = (item) => {
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
-                  @click.stop="toggleMenu($event, item.id)">
+                  @click.stop="toggleMenu($event, item.id)"
+                >
                   <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
-                  <transition enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                    leave-to-class="opacity-0">
-                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
-                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
-                      @click.stop>
-                      <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="activeMenuId === item.id"
+                      class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
+                      :style="menuStyles"
+                      @click.stop
+                    >
+                      <button
+                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
                         class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="openAddChildModal(item); closeMenu()">
-                        <img :src="getActionIcon('plus')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        @click="
+                          openAddChildModal(item)
+                          closeMenu()
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('plus')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold text-sm">Register Child</span>
                       </button>
-                      <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
+                      <button
+                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
                         class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="openActionModal('edit', item); closeMenu()">
-                        <img :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        @click="
+                          openActionModal('edit', item)
+                          closeMenu()
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold text-sm">Edit</span>
                       </button>
-                      <button v-if="(item.status || 'Active').toLowerCase() === 'inactive'"
+                      <button
+                        v-if="(item.status || 'Active').toLowerCase() === 'inactive'"
                         class="ui-dropdown-item ui-dropdown-item-success group"
-                        @click="handleAction('activate', item); closeMenu()">
-                        <img :src="getActionIcon('reactivate')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        @click="
+                          handleAction('activate', item)
+                          closeMenu()
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('reactivate')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold text-sm">Reactivate</span>
                       </button>
-                      <button v-else class="ui-dropdown-item ui-dropdown-item-danger group"
-                        @click="handleAction('deactivate', item); closeMenu()">
-                        <img :src="getActionIcon('cancel')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                      <button
+                        v-else
+                        class="ui-dropdown-item ui-dropdown-item-danger group"
+                        @click="
+                          handleAction('deactivate', item)
+                          closeMenu()
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('cancel')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold text-sm">Deactivate</span>
                       </button>
 
-                      <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
+                      <button
+                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
                         class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="openActionModal('reset-password', item); closeMenu()">
-                        <img :src="getActionIcon('reset-password')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        @click="
+                          openActionModal('reset-password', item)
+                          closeMenu()
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('reset-password')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold text-sm">Security Reset</span>
                       </button>
 
-                      <div class="h-px bg-surface-light mx-1 my-1"
-                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'">
-                      </div>
+                      <div
+                        class="h-px bg-surface-light mx-1 my-1"
+                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
+                      ></div>
 
-                      <button v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
+                      <button
+                        v-if="(item.status || 'Active').toLowerCase() !== 'inactive'"
                         class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
-                        @click="handleAction('delete', item); closeMenu()">
-                        <img :src="getActionIcon('delete')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        @click="
+                          handleAction('delete', item)
+                          closeMenu()
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('delete')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         Delete
                       </button>
                     </div>
@@ -499,12 +523,29 @@ const navigateToDetail = (item) => {
       </template>
     </DataPageLayout>
 
-    <ParentActionModal :isOpen="isActionModalOpen" :type="actionModalType" :user="actionModalParent"
-      :loading="submitting" :error="errorMessage" :success="successMessage" @close="closeActionModal"
-      @submit="submitActionModal" />
+    <ParentActionModal
+      :isOpen="isActionModalOpen"
+      :type="actionModalType"
+      :user="actionModalParent"
+      :loading="submitting"
+      :error="errorMessage"
+      :success="successMessage"
+      @close="closeActionModal"
+      @submit="submitActionModal"
+    />
 
-    <ParentFormModal :isOpen="showNewParentModal" :loading="submitting" :error="errorMessage" :success="successMessage"
-      @close="showNewParentModal = false; errorMessage = ''; successMessage = ''" @submit="submitNewParent" />
+    <ParentFormModal
+      :isOpen="showNewParentModal"
+      :loading="submitting"
+      :error="errorMessage"
+      :success="successMessage"
+      @close="
+        showNewParentModal = false
+        errorMessage = ''
+        successMessage = ''
+      "
+      @submit="submitNewParent"
+    />
   </DashboardLayout>
 </template>
 

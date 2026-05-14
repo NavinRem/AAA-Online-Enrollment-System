@@ -36,12 +36,20 @@ const flexWidths = computed(() => {
 
 <template>
   <div class="flex-1 flex flex-col min-h-0 bg-surface-light w-full">
-    <div v-if="loading" class="flex flex-col items-center justify-center p-20 text-content-muted italic animate-pulse">
-      <div class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-md"></div>
+    <div
+      v-if="loading"
+      class="flex flex-col items-center justify-center p-20 text-content-muted italic animate-pulse"
+    >
+      <div
+        class="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-md"
+      ></div>
       Loading details...
     </div>
 
-    <div v-else-if="errorMessage" class="flex flex-col items-center justify-center p-20 gap-lg text-center">
+    <div
+      v-else-if="errorMessage"
+      class="flex flex-col items-center justify-center p-20 gap-lg text-center"
+    >
       <div class="text-5xl">⚠️</div>
       <p class="text-xl font-bold text-content-dark">{{ errorMessage }}</p>
       <button class="ui-back-button" @click="goBack">
@@ -64,14 +72,21 @@ const flexWidths = computed(() => {
             </div>
           </div>
 
-          <div class="flex flex-col gap-lg pr-1 min-h-0" :class="scrollable ? 'overflow-y-auto scrollable-v' : 'flex-1'">
+          <div
+            class="flex flex-col gap-lg pr-1 min-h-0"
+            :class="scrollable ? 'overflow-y-auto scrollable-v' : 'flex-1'"
+          >
             <slot name="left-content"></slot>
           </div>
         </div>
 
         <!-- Right Content (Sidebar) -->
         <aside
-          :class="[flexWidths.side, 'flex flex-col gap-lg h-full min-h-0 rounded-std', rightScrollable ? 'overflow-y-auto scrollable-v' : '']"
+          :class="[
+            flexWidths.side,
+            'flex flex-col gap-lg h-full min-h-0 rounded-std',
+            rightScrollable ? 'overflow-y-auto scrollable-v' : '',
+          ]"
         >
           <slot name="right-content"></slot>
         </aside>

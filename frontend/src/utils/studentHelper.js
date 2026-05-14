@@ -15,18 +15,18 @@ export const enrichStudents = (
   return students.map((s) => {
     const id = s.id || ''
     let regs = enrollments.filter((r) => String(r.studentId) === String(id))
-    
+
     // Filter by Current Term if provided
     if (currentTermId) {
       regs = regs.filter((r) => {
         let eTermId = r.termId || r.class?.termId || r.class?.term?.id || r.classSnapshot?.termId
-        
+
         // Fallback: If no termId in enrollment, look up via classId in the classes array
         if (!eTermId && r.classId && classes.length) {
-          const cls = classes.find(c => c.id === r.classId)
+          const cls = classes.find((c) => c.id === r.classId)
           if (cls) eTermId = cls.termId || cls.term?.id
         }
-        
+
         return String(eTermId) === String(currentTermId)
       })
     }
@@ -39,7 +39,10 @@ export const enrichStudents = (
 
     // Program Joining: Ensure each enrollment has its full program metadata
     regs = regs.map((r) => {
-      const prog = r.program || r.programSnapshot || programs.find(p => p.id === (r.programId || r.program?.id))
+      const prog =
+        r.program ||
+        r.programSnapshot ||
+        programs.find((p) => p.id === (r.programId || r.program?.id))
       return { ...r, program: prog }
     })
 

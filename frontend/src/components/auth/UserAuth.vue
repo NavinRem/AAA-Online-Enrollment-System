@@ -88,24 +88,47 @@ const handleSubmit = async () => {
       <transition name="fade-up" appear>
         <div class="auth-card">
           <div class="auth-logo-box">
-            <img :src="getImageUrl('common/logo-main')" alt="Active Kids Academy" class="auth-logo" />
+            <img
+              :src="getImageUrl('common/logo-main')"
+              alt="Active Kids Academy"
+              class="auth-logo"
+            />
           </div>
 
           <h2 class="auth-title">
             {{ isResetMode ? 'Reset Password' : 'Welcome Back' }}
           </h2>
           <span class="auth-subtitle">
-            {{ isResetMode ? 'Enter your email to receive a recovery link.'
-              : 'Welcome Back! Please Enter your details.' }}
+            {{
+              isResetMode
+                ? 'Enter your email to receive a recovery link.'
+                : 'Welcome Back! Please Enter your details.'
+            }}
           </span>
 
           <form @submit.prevent="handleSubmit" class="auth-form" novalidate>
-            <AppInput v-model="form.email" type="email" label="Email Address" placeholder="Enter your email" required
-              :error="errors.email" :shake="shaking.email" @input="clearError('email')" />
+            <AppInput
+              v-model="form.email"
+              type="email"
+              label="Email Address"
+              placeholder="Enter your email"
+              required
+              :error="errors.email"
+              :shake="shaking.email"
+              @input="clearError('email')"
+            />
 
-            <AppInput v-if="!isResetMode" v-model="form.password" type="password" label="Password"
-              placeholder="Enter your password" required :error="errors.password" :shake="shaking.password"
-              @input="clearError('password')" />
+            <AppInput
+              v-if="!isResetMode"
+              v-model="form.password"
+              type="password"
+              label="Password"
+              placeholder="Enter your password"
+              required
+              :error="errors.password"
+              :shake="shaking.password"
+              @input="clearError('password')"
+            />
 
             <div class="mt-2 text-center">
               <a href="#" @click.prevent="toggleResetMode" class="auth-footer-link">
@@ -113,8 +136,13 @@ const handleSubmit = async () => {
               </a>
             </div>
 
-            <AppButton :loading="loading" :disabled="loading" type="submit" variant="primary"
-              class="w-full mt-4 py-4 ui-btn-premium">
+            <AppButton
+              :loading="loading"
+              :disabled="loading"
+              type="submit"
+              variant="primary"
+              class="w-full mt-4 py-4 ui-btn-premium"
+            >
               {{ isResetMode ? 'Send Recovery Link' : 'Sign In' }}
             </AppButton>
           </form>
@@ -150,7 +178,12 @@ const handleSubmit = async () => {
 
 .auth-banner::after {
   @apply content-[''] absolute inset-0;
-  background: linear-gradient(to bottom right, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.05), transparent);
+  background: linear-gradient(
+    to bottom right,
+    rgba(56, 189, 248, 0.2),
+    rgba(56, 189, 248, 0.05),
+    transparent
+  );
 }
 
 .auth-overlay {

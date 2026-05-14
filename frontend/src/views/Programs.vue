@@ -48,33 +48,42 @@ const topTrialProgram = computed(() => {
   trials.value.forEach((t) => {
     if (t.programId) counts[t.programId] = (counts[t.programId] || 0) + 1
   })
-  let maxCount = 0, maxPid = null
+  let maxCount = 0,
+    maxPid = null
   for (const pid in counts) {
-    if (counts[pid] > maxCount) { maxCount = counts[pid]; maxPid = pid }
+    if (counts[pid] > maxCount) {
+      maxCount = counts[pid]
+      maxPid = pid
+    }
   }
   if (!maxPid) return { name: 'No Trials', count: 0 }
   const p = programs.value.find((p) => String(p.id) === String(maxPid))
   return {
     name: p ? p.name : 'Unknown',
-    count: maxCount
+    count: maxCount,
   }
 })
 
 const topEnrolledProgram = computed(() => {
-  if (!enrollments.value.length || !programs.value.length) return { name: 'No Enrollments', count: 0 }
+  if (!enrollments.value.length || !programs.value.length)
+    return { name: 'No Enrollments', count: 0 }
   const counts = {}
   enrollments.value.forEach((e) => {
     if (e.programId) counts[e.programId] = (counts[e.programId] || 0) + 1
   })
-  let maxCount = 0, maxPid = null
+  let maxCount = 0,
+    maxPid = null
   for (const pid in counts) {
-    if (counts[pid] > maxCount) { maxCount = counts[pid]; maxPid = pid }
+    if (counts[pid] > maxCount) {
+      maxCount = counts[pid]
+      maxPid = pid
+    }
   }
   if (!maxPid) return { name: 'No Enrollments', count: 0 }
   const p = programs.value.find((p) => String(p.id) === String(maxPid))
   return {
     name: p ? p.name : 'Unknown',
-    count: maxCount
+    count: maxCount,
   }
 })
 
@@ -87,24 +96,28 @@ const topRevenueProgram = computed(() => {
       revs[e.programId] = (revs[e.programId] || 0) + (Number(e.amount) || 0)
     }
   })
-  let maxRev = 0, maxPid = null
+  let maxRev = 0,
+    maxPid = null
   for (const pid in revs) {
-    if (revs[pid] > maxRev) { maxRev = revs[pid]; maxPid = pid }
+    if (revs[pid] > maxRev) {
+      maxRev = revs[pid]
+      maxPid = pid
+    }
   }
   if (!maxPid) return { name: 'No Revenue', revenue: 0 }
   const p = programs.value.find((p) => String(p.id) === String(maxPid))
   return {
     name: p ? p.name : 'Unknown',
-    revenue: maxRev
+    revenue: maxRev,
   }
 })
 
 const getProgramMetrics = (programId, allEnrollments, allTrials) => {
-  const pEnrollments = allEnrollments.filter(e => String(e.programId) === String(programId))
-  const pTrials = allTrials.filter(t => String(t.programId) === String(programId))
+  const pEnrollments = allEnrollments.filter((e) => String(e.programId) === String(programId))
+  const pTrials = allTrials.filter((t) => String(t.programId) === String(programId))
 
   // Unique Students: Count distinct studentIds associated with this program
-  const uniqueStudentIds = new Set(pEnrollments.map(e => e.studentId).filter(id => id))
+  const uniqueStudentIds = new Set(pEnrollments.map((e) => e.studentId).filter((id) => id))
   const uniqueStudentCount = uniqueStudentIds.size
 
   const now = new Date()
@@ -118,25 +131,25 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
     trialToday: 0,
     trialWeek: 0,
     revenueToday: 0,
-    revenueWeek: 0
+    revenueWeek: 0,
   }
 
-  pEnrollments.forEach(e => {
+  pEnrollments.forEach((e) => {
     const enrollDate = e.enrollAt || e.createdAt || ''
     const enrollDateStr = enrollDate.split('T')[0]
     const enrollTimestamp = new Date(enrollDate).getTime()
 
     if (enrollDateStr === localTodayStr) {
       stats.enrollmentToday++
-      stats.revenueToday += (Number(e.amount) || 0)
+      stats.revenueToday += Number(e.amount) || 0
     }
     if (enrollTimestamp >= weekAgoTimestamp) {
       stats.enrollmentWeek++
-      stats.revenueWeek += (Number(e.amount) || 0)
+      stats.revenueWeek += Number(e.amount) || 0
     }
   })
 
-  pTrials.forEach(t => {
+  pTrials.forEach((t) => {
     const trialDate = t.date || t.trialDate || t.createdAt || ''
     const trialDateStr = trialDate.split('T')[0]
     const trialTimestamp = new Date(trialDate).getTime()
@@ -187,15 +200,15 @@ const fetchPrograms = async () => {
       trialService.getAllTrials().catch(() => []),
     ])
 
-    const cats = Array.isArray(catsData) ? catsData : (catsData?.data || [])
-    const lvls = Array.isArray(levelsData) ? levelsData : (levelsData?.data || [])
+    const cats = Array.isArray(catsData) ? catsData : catsData?.data || []
+    const lvls = Array.isArray(levelsData) ? levelsData : levelsData?.data || []
 
     const enrollDataList = enrollData?.data || (Array.isArray(enrollData) ? enrollData : [])
     const trialsDataList = Array.isArray(trialsData) ? trialsData : []
 
     programs.value = (Array.isArray(programsData) ? programsData : []).map((p) => {
-      const cat = cats.find((c) => (c.id) === p.categoryId || c.name === p.category)
-      const lvl = lvls.find((l) => (l.id) === p.levelId)
+      const cat = cats.find((c) => c.id === p.categoryId || c.name === p.category)
+      const lvl = lvls.find((l) => l.id === p.levelId)
       const metrics = getProgramMetrics(p.id, enrollDataList, trialsDataList)
 
       return {
@@ -243,8 +256,18 @@ const currentFilter = ref('all')
 const filterOptions = computed(() => {
   const types = [
     { label: 'All Programs', value: 'all', profileURL: getActionIcon('filter'), color: 'blue' },
-    { label: 'Group Programs', value: 'type:Group', profileURL: getIconUrl('navigation/parent.svg'), color: 'purple' },
-    { label: 'Private Programs', value: 'type:Private', profileURL: getIconUrl('navigation/class.svg'), color: 'magenta' },
+    {
+      label: 'Group Programs',
+      value: 'type:Group',
+      profileURL: getIconUrl('navigation/parent.svg'),
+      color: 'purple',
+    },
+    {
+      label: 'Private Programs',
+      value: 'type:Private',
+      profileURL: getIconUrl('navigation/class.svg'),
+      color: 'magenta',
+    },
   ]
 
   const COLORS = ['teal', 'orange', 'green', 'blue', 'purple']
@@ -378,46 +401,80 @@ const handleActionSubmit = async (formData) => {
     <DataPageLayout overviewTitle="Program Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" :loading="loading" />
+          <DataMetricCard
+            v-for="stat in statsCards"
+            :key="stat.label"
+            v-bind="stat"
+            :loading="loading"
+          />
         </div>
       </template>
 
       <template #table>
-        <DataTable title="Program Lists" :headers="programHeaders" :items="paginatedPrograms" :loading="loading"
-          entityName="program" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search programs..."
-          :hasFilter="true" :currentFilter="currentFilter" :filterOptions="filterOptions"
-          @update:currentFilter="currentFilter = $event" :hasSort="false" :rowClass="getRowClass" :hasPagination="true"
-          :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalProgramsCount"
-          @update:currentPage="currentPage = $event" @action="({ type, item }) => handleAction(type, item)"
-          @row-click="navigateToDetail">
+        <DataTable
+          title="Program Lists"
+          :headers="programHeaders"
+          :items="paginatedPrograms"
+          :loading="loading"
+          entityName="program"
+          :flexible="true"
+          v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search programs..."
+          :hasFilter="true"
+          :currentFilter="currentFilter"
+          :filterOptions="filterOptions"
+          @update:currentFilter="currentFilter = $event"
+          :hasSort="false"
+          :rowClass="getRowClass"
+          :hasPagination="true"
+          :currentPage="currentPage"
+          :pageSize="pageSize"
+          :totalItems="totalProgramsCount"
+          @update:currentPage="currentPage = $event"
+          @action="({ type, item }) => handleAction(type, item)"
+          @row-click="navigateToDetail"
+        >
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
-              @click="openModal('add')">
+            <AppButton
+              variant="primary"
+              size="md"
+              class="rounded-xl shadow-lg shadow-primary/20"
+              @click="openModal('add')"
+            >
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-bold tracking-tight">New Program</span>
             </AppButton>
           </template>
 
-          <template #row="{
-            item,
-            index,
-            toggleMenu,
-            activeMenuId,
-            isMenuAbove,
-            menuStyles,
-            handleAction,
-            closeMenu,
-            headers,
-          }">
+          <template
+            #row="{
+              item,
+              index,
+              toggleMenu,
+              activeMenuId,
+              isMenuAbove,
+              menuStyles,
+              handleAction,
+              closeMenu,
+              headers,
+            }"
+          >
             <td class="ui-cell text-center hidden md:table-cell" style="width: 50px">
               {{ index + 1 }}
             </td>
 
             <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
               <div class="ui-identity-cell">
-                <div class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center">
-                  <img :src="getProgramProfileURL(item.profileURL, item.category, item.categoryProfileURL)"
-                    alt="program" class="w-full h-full object-cover" />
+                <div
+                  class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center"
+                >
+                  <img
+                    :src="
+                      getProgramProfileURL(item.profileURL, item.category, item.categoryProfileURL)
+                    "
+                    alt="program"
+                    class="w-full h-full object-cover"
+                  />
                 </div>
                 <div class="ui-identity-info">
                   <span class="truncate block tracking-tight">{{ item.name }}</span>
@@ -466,26 +523,55 @@ const handleActionSubmit = async (formData) => {
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
-                  @click.stop="toggleMenu($event, item.id)">
+                  @click.stop="toggleMenu($event, item.id)"
+                >
                   <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
-                  <transition enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                    leave-to-class="opacity-0">
-                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
-                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
-                      @click.stop>
-                      <button class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="() => { handleAction('edit', item); closeMenu(); }">
-                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="activeMenuId === item.id"
+                      class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
+                      :style="menuStyles"
+                      @click.stop
+                    >
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="
+                          () => {
+                            handleAction('edit', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
+                        />
                         <span class="font-bold">Edit</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
-                        @click="() => { handleAction('delete', item); closeMenu(); }">
-                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
+                        @click="
+                          () => {
+                            handleAction('delete', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('delete')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
+                        />
                         Delete
                       </button>
                     </div>
@@ -498,8 +584,16 @@ const handleActionSubmit = async (formData) => {
       </template>
     </DataPageLayout>
 
-    <ProgramActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :program="actionModal.program"
-      :loading="actionModal.loading" :error="actionModal.error" :success="actionModal.success" @close="closeModal"
-      @submit="handleActionSubmit" @lookup-deleted="fetchPrograms" />
+    <ProgramActionModal
+      :isOpen="actionModal.isOpen"
+      :type="actionModal.type"
+      :program="actionModal.program"
+      :loading="actionModal.loading"
+      :error="actionModal.error"
+      :success="actionModal.success"
+      @close="closeModal"
+      @submit="handleActionSubmit"
+      @lookup-deleted="fetchPrograms"
+    />
   </DashboardLayout>
 </template>

@@ -3,27 +3,27 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
-import AppBadge from '@/components/common/ui/AppBadge.vue'
-
 import DataTable from '@/components/common/data/DataTable.vue'
-import DetailMetricCard from '@/components/common/data/DetailMetricCard.vue'
 import { studentService } from '@/services/studentService'
 import { parentService } from '@/services/parentService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { programService } from '@/services/programService'
 import { classService } from '@/services/classService'
-import { formatDate, formatDateOnly, calculateAge, generateClassSessions } from '@/utils/formatUtils'
-import { filterDetailEnrollments, getAcademicStatus, enrichEnrollments } from '@/utils/enrollmentHelper'
+import {
+  formatDateOnly,
+  calculateAge,
+  generateClassSessions,
+} from '@/utils/formatUtils'
+import { getAcademicStatus, enrichEnrollments } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { branchService } from '@/services/branchService'
-import RelationshipsCard from '@/components/common/detail/RelationshipsCard.vue'
-// Removed EnrollmentTable import
 import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
 import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
 import TimestampCard from '@/components/common/detail/TimestampCard.vue'
+import { trackingService } from '@/services/trackingService'
 
 const route = useRoute()
 const router = useRouter()
@@ -32,13 +32,11 @@ const student = ref(null)
 const parent = ref(null)
 const enrollments = ref([])
 const attendanceHistory = ref([])
-const progressData = ref(null)
 const branches = ref([])
 const classAttendanceData = ref({}) // classId -> { sessionId -> { studentId -> status } }
 const selectedEnrollmentId = ref(null)
 const dropdownOpen = ref(false)
 const filterMenuStyles = ref({})
-
 
 const loading = ref(true)
 const errorMessage = ref('')
@@ -54,8 +52,6 @@ const isArchived = computed(() => {
   return student.value?.archived || student.value?.status === 'Stopped'
 })
 
-
-
 const inferredGender = computed(() => {
   const url = (student.value?.profileURL || '').toLowerCase()
   if (url.includes('boy')) return 'Male'
@@ -65,23 +61,13 @@ const inferredGender = computed(() => {
 
 const enrolledBranch = computed(() => {
   const latest = enrollments.value[0]
-  if (!latest) return { abbr: student.value?.branchAbbr || 'HQ', color: student.value?.branchColor || 'blue' }
+  if (!latest)
+    return { abbr: student.value?.branchAbbr || 'HQ', color: student.value?.branchColor || 'blue' }
   return {
     abbr: latest.branchAbbr || 'HQ',
-    color: latest.branchColor || 'blue'
+    color: latest.branchColor || 'blue',
   }
 })
-
-
-const attendanceRateValue = computed(() => {
-  if (attendanceHistory.value.length === 0) return '0%'
-  const presentCount = attendanceHistory.value.filter(
-    (a) => (a.status || '').toLowerCase() === 'present',
-  ).length
-  return Math.round((presentCount / attendanceHistory.value.length) * 100) + '%'
-})
-
-
 
 // ──────────────────────────────────────────────
 // Tab System
@@ -90,17 +76,17 @@ const attendanceRateValue = computed(() => {
 // Enrollment & Attendance System
 // ──────────────────────────────────────────────
 const enrollmentOptions = computed(() => {
-  return enrollments.value.map(e => ({
+  return enrollments.value.map((e) => ({
     label: `${e.termName} - ${e.programName} (${e.branchAbbr})`,
     value: e.id,
     classId: e.classId,
     term: e.class?.term,
-    schedule: e.class?.schedule || e.class?.schedules?.[0]
+    schedule: e.class?.schedule || e.class?.schedules?.[0],
   }))
 })
 
 const selectedEnrollment = computed(() => {
-  return enrollments.value.find(e => e.id === selectedEnrollmentId.value) || enrollments.value[0]
+  return enrollments.value.find((e) => e.id === selectedEnrollmentId.value) || enrollments.value[0]
 })
 
 const sessions = computed(() => {
@@ -123,13 +109,13 @@ const studentAttendanceRecords = computed(() => {
   const attendanceMap = classAttendanceData.value[classId] || {}
   const studentId = student.value?.id
 
-  return sessions.value.map(session => {
+  return sessions.value.map((session) => {
     const sessionData = attendanceMap[session.id] || {}
     const status = sessionData[studentId] || 'N'
     return {
       ...session,
       status,
-      remark: '-' // Placeholder for now
+      remark: '-', // Placeholder for now
     }
   })
 })
@@ -139,9 +125,9 @@ const attendanceStats = computed(() => {
   if (!records.length) return { total: 0, passed: 0, absent: 0, remaining: 0 }
 
   const total = records.length
-  const passed = records.filter(r => ['P', 'L', 'M'].includes(r.status)).length
-  const absent = records.filter(r => r.status === 'A').length
-  const completed = records.filter(r => r.status !== 'N').length
+  const passed = records.filter((r) => ['P', 'L', 'M'].includes(r.status)).length
+  const absent = records.filter((r) => r.status === 'A').length
+  const completed = records.filter((r) => r.status !== 'N').length
   const remaining = total - completed
 
   return { total, passed, absent, remaining }
@@ -152,7 +138,7 @@ const ATTENDANCE_STATUS = {
   A: { label: 'A', theme: 'bg-error-soft text-error' },
   M: { label: 'M', theme: 'bg-primary-soft text-primary' },
   L: { label: 'L', theme: 'bg-warning-soft text-warning' },
-  N: { label: 'N', theme: 'bg-surface-subtle text-content-muted/40' }
+  N: { label: 'N', theme: 'bg-surface-subtle text-content-muted/40' },
 }
 
 const studentInfoFields = computed(() => [
@@ -160,14 +146,23 @@ const studentInfoFields = computed(() => [
   { label: 'Gender', value: inferredGender.value },
   { label: 'Date of Birth', value: formatDateOnly(student.value?.dob) },
   { label: 'Age', value: student.value?.dob ? `${calculateAge(student.value.dob)} yrs` : '-' },
-  { label: 'Branch', value: enrolledBranch.value.abbr, isBadge: true, type: enrolledBranch.value.color },
-  { label: 'Status', value: student.value?.status || 'Active', isBadge: true }
+  {
+    label: 'Branch',
+    value: enrolledBranch.value.abbr,
+    isBadge: true,
+    type: enrolledBranch.value.color,
+  },
+  { label: 'Status', value: student.value?.status || 'Active', isBadge: true },
 ])
 
 const parentDetailFields = computed(() => [
-  { label: 'Name', value: parent.value?.name, image: parent.value?.profileURL || getImageUrl('profiles/avatar-parent') },
+  {
+    label: 'Name',
+    value: parent.value?.name,
+    image: parent.value?.profileURL || getImageUrl('profiles/avatar-parent'),
+  },
   { label: 'Phone', value: parent.value?.phone },
-  { label: 'Email', value: parent.value?.email }
+  { label: 'Email', value: parent.value?.email },
 ])
 
 const toggleDropdown = (event) => {
@@ -177,7 +172,7 @@ const toggleDropdown = (event) => {
     filterMenuStyles.value = {
       top: `${rect.bottom + window.scrollY + 8}px`,
       left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 300)}px`,
-      minWidth: '280px'
+      minWidth: '280px',
     }
   }
 }
@@ -185,7 +180,7 @@ const toggleDropdown = (event) => {
 const selectEnrollment = (id) => {
   selectedEnrollmentId.value = id
   dropdownOpen.value = false
-  const enrollment = enrollments.value.find(e => e.id === id)
+  const enrollment = enrollments.value.find((e) => e.id === id)
   if (enrollment && !classAttendanceData.value[enrollment.classId]) {
     fetchClassAttendance(enrollment.classId)
   }
@@ -201,12 +196,16 @@ const fetchClassAttendance = async (classId) => {
   }
 }
 
-watch(enrollments, (newEnrollments) => {
-  if (newEnrollments.length > 0 && !selectedEnrollmentId.value) {
-    selectedEnrollmentId.value = newEnrollments[0].id
-    fetchClassAttendance(newEnrollments[0].classId)
-  }
-}, { immediate: true })
+watch(
+  enrollments,
+  (newEnrollments) => {
+    if (newEnrollments.length > 0 && !selectedEnrollmentId.value) {
+      selectedEnrollmentId.value = newEnrollments[0].id
+      fetchClassAttendance(newEnrollments[0].classId)
+    }
+  },
+  { immediate: true },
+)
 
 const attendanceHeaders = [
   { label: 'No', width: '60px', align: 'center' },
@@ -216,9 +215,6 @@ const attendanceHeaders = [
   { label: 'Remark' },
   { label: 'Progress', width: '120px', align: 'center' },
 ]
-
-
-
 
 // ──────────────────────────────────────────────
 // Action Modal
@@ -362,7 +358,8 @@ const fetchData = async (id) => {
     ])
 
     const sid = String(id)
-    const enrollmentData = allEnrollments?.data || (Array.isArray(allEnrollments) ? allEnrollments : [])
+    const enrollmentData =
+      allEnrollments?.data || (Array.isArray(allEnrollments) ? allEnrollments : [])
     const rawEnrollments = enrollmentData.filter((r) => String(r.studentId || '') === sid)
 
     enrollments.value = enrichEnrollments(
@@ -373,14 +370,8 @@ const fetchData = async (id) => {
       allClasses,
     )
     try {
-      const [attendance, progress] = await Promise.all([
-        trackingService.getAttendanceHistory(id),
-        trackingService.getStudentProgress(id),
-      ])
+      const attendance = await trackingService.getAttendanceHistory(id)
       attendanceHistory.value = attendance || []
-      if (progress) {
-        progressData.value = progress
-      }
     } catch (e) {
       console.warn('Could not fetch tracking data silently', e)
     }
@@ -406,77 +397,132 @@ watch(
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/students" title="Student Profile"
-      sidebarWidth="md">
+    <DetailPageLayout
+      :loading="loading"
+      :errorMessage="errorMessage"
+      backRoute="/students"
+      title="Student Profile"
+      sidebarWidth="md"
+    >
       <template #header-actions v-if="student">
         <div class="flex items-center gap-3">
-          <button v-if="!isArchived && !isParentInactive"
-            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-soft hover:bg-primary hover:border-primary group"
-            title="Edit Profile" @click="openActionModal('edit')">
-            <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100" />
-          </button>
-          <button v-if="!isArchived && !isParentInactive"
-            class="w-11 h-11 flex items-center justify-center rounded-full border transition-all duration-300 bg-primary-soft hover:bg-purple hover:border-purple group"
-            title="Update Status" @click="openActionModal('override')">
-            <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100" />
-          </button>
-          <div class="w-px h-6 bg-outline-std mx-1"></div>
           <button
-            class="w-11 h-11 flex items-center justify-center rounded-full border bg-error-soft transition-all duration-300 hover:bg-error hover:border-error group"
-            title="Delete Student" @click="openActionModal('delete')">
-            <img :src="getActionIcon('delete')" class="w-5 h-5 icon-danger group-hover:opacity-100" />
+            v-if="!isArchived && !isParentInactive"
+            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std transition-all duration-300 bg-primary-soft hover:bg-primary hover:border-primary group"
+            title="Edit Profile"
+            @click="openActionModal('edit')"
+          >
+            <img :src="getActionIcon('edit')" class="w-5 h-5 brightness-0 transition-all" />
+          </button>
+          <button
+            v-if="!isArchived && !isParentInactive"
+            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std transition-all duration-300 bg-warning-soft hover:bg-warning hover:border-warning group"
+            title="Update Status"
+            @click="openActionModal('override')"
+          >
+            <img :src="getActionIcon('view')" class="w-5 h-5 brightness-0 transition-all" />
+          </button>
+          <button
+            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-error-soft transition-all duration-300 hover:bg-error hover:border-error group"
+            title="Delete Student"
+            @click="openActionModal('delete')"
+          >
+            <img :src="getActionIcon('delete')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
         </div>
       </template>
 
       <template #left-content v-if="student">
-
-
         <!-- Table Content Container -->
         <section
-          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col min-h-0">
-
-          <DataTable title="Attendance Track" :headers="attendanceHeaders" :items="studentAttendanceRecords"
-            :loading="loading" entityName="session" :flexible="false" :hasSearch="false" :hasFilter="false">
-
+          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col min-h-0"
+        >
+          <DataTable
+            title="Attendance Track"
+            :headers="attendanceHeaders"
+            :items="studentAttendanceRecords"
+            :loading="loading"
+            entityName="session"
+            :flexible="false"
+            :hasSearch="false"
+            :hasFilter="false"
+          >
             <template #toolbar-actions>
               <div class="flex items-center gap-3">
-                <div class="flex items-center gap-6 px-6 py-2 bg-surface-subtle rounded-2xl border border-outline-std mr-4">
+                <div
+                  class="flex items-center gap-6 px-6 py-2 bg-surface-subtle rounded-2xl border border-outline-std mr-4"
+                >
                   <div class="flex flex-col">
-                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider">Total</span>
-                    <span class="text-lg font-black text-content-dark">{{ attendanceStats.total }}</span>
+                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider"
+                      >Total</span
+                    >
+                    <span class="text-lg font-black text-content-dark">{{
+                      attendanceStats.total
+                    }}</span>
                   </div>
                   <div class="w-px h-8 bg-outline-std/50"></div>
                   <div class="flex flex-col">
-                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider text-success">Passed</span>
-                    <span class="text-lg font-black text-success">{{ attendanceStats.passed }}</span>
+                    <span
+                      class="text-3xs font-bold text-content-muted uppercase tracking-wider text-success"
+                      >Passed</span
+                    >
+                    <span class="text-lg font-black text-success">{{
+                      attendanceStats.passed
+                    }}</span>
                   </div>
                   <div class="w-px h-8 bg-outline-std/50"></div>
                   <div class="flex flex-col">
-                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider text-error">Absent</span>
+                    <span
+                      class="text-3xs font-bold text-content-muted uppercase tracking-wider text-error"
+                      >Absent</span
+                    >
                     <span class="text-lg font-black text-error">{{ attendanceStats.absent }}</span>
                   </div>
                 </div>
 
                 <!-- Enrollment Selector -->
                 <div class="relative" id="enrollment-filter-btn">
-                  <AppButton variant="secondary" size="md" @click="toggleDropdown($event)" class="!bg-primary !text-white min-w-[240px]">
+                  <AppButton
+                    variant="secondary"
+                    size="md"
+                    @click="toggleDropdown($event)"
+                    class="!bg-primary !text-white min-w-[240px]"
+                  >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
-                    <span class="font-bold truncate max-w-[200px]">{{ selectedEnrollment ? `${selectedEnrollment.programName} (${selectedEnrollment.termName})` : 'Select Enrollment' }}</span>
+                    <span class="font-bold truncate max-w-[200px]">{{
+                      selectedEnrollment
+                        ? `${selectedEnrollment.programName} (${selectedEnrollment.termName})`
+                        : 'Select Enrollment'
+                    }}</span>
                   </AppButton>
-                  
+
                   <Teleport to="body">
-                    <transition enter-active-class="transition duration-200 ease-out"
-                      enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                      leave-to-class="opacity-0">
-                      <div v-if="dropdownOpen" class="toolbar-filter-menu shadow-2xl" :style="filterMenuStyles" @mousedown.stop>
-                        <div v-for="opt in enrollmentOptions" :key="opt.value" class="toolbar-filter-option"
+                    <transition
+                      enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-150 ease-in"
+                      leave-from-class="opacity-100"
+                      leave-to-class="opacity-0"
+                    >
+                      <div
+                        v-if="dropdownOpen"
+                        class="toolbar-filter-menu shadow-2xl"
+                        :style="filterMenuStyles"
+                        @mousedown.stop
+                      >
+                        <div
+                          v-for="opt in enrollmentOptions"
+                          :key="opt.value"
+                          class="toolbar-filter-option"
                           :class="{ 'active-filter-item': selectedEnrollmentId === opt.value }"
-                          @click="selectEnrollment(opt.value)">
+                          @click="selectEnrollment(opt.value)"
+                        >
                           <div class="flex flex-col gap-0.5">
                             <span class="font-bold text-sm">{{ opt.label }}</span>
-                            <span class="text-3xs text-content-muted">{{ opt.schedule?.day }} at {{ opt.schedule?.time }}</span>
+                            <span class="text-3xs text-content-muted"
+                              >{{ opt.schedule?.day }} at {{ opt.schedule?.time }}</span
+                            >
                           </div>
                         </div>
                       </div>
@@ -498,8 +544,10 @@ watch(
               </td>
               <td class="ui-cell text-center">
                 <div class="flex justify-center">
-                  <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-sm border border-outline-std select-none"
-                    :class="ATTENDANCE_STATUS[item.status].theme">
+                  <div
+                    class="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-sm border border-outline-std select-none"
+                    :class="ATTENDANCE_STATUS[item.status].theme"
+                  >
                     {{ ATTENDANCE_STATUS[item.status].label }}
                   </div>
                 </div>
@@ -517,8 +565,11 @@ watch(
 
       <template #right-content v-if="student">
         <div class="flex flex-col gap-8">
-          <EntityProfileCard :profileURL="student.profileURL" title="Basic Information"
-            fallbackImage="profiles/avatar-student" />
+          <EntityProfileCard
+            :profileURL="student.profileURL"
+            title="Basic Information"
+            fallbackImage="profiles/avatar-student"
+          />
           <EntityInfoCard title="Student Details" :fields="studentInfoFields" />
           <EntityInfoCard v-if="parent" title="Parent Details" :fields="parentDetailFields" />
           <TimestampCard :createdAt="student.createdAt" :updatedAt="student.updatedAt" />
@@ -526,8 +577,17 @@ watch(
       </template>
     </DetailPageLayout>
 
-    <StudentActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :student="actionModal.student"
-      :enrollment="actionModal.enrollment" :loading="submitting" :error="globalError" :success="globalSuccess"
-      :branches="branches" @close="actionModal.isOpen = false" @submit="submitActionModal" />
+    <StudentActionModal
+      :isOpen="actionModal.isOpen"
+      :type="actionModal.type"
+      :student="actionModal.student"
+      :enrollment="actionModal.enrollment"
+      :loading="submitting"
+      :error="globalError"
+      :success="globalSuccess"
+      :branches="branches"
+      @close="actionModal.isOpen = false"
+      @submit="submitActionModal"
+    />
   </DashboardLayout>
 </template>

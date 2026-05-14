@@ -44,9 +44,20 @@ const navigateToDetail = (item) => {
           <div class="ui-section-divider"></div>
         </div>
       </template>
-      <tr v-for="(item, index) in enrollments.slice(0, 5)" :key="item.id || index" class="ui-row" @click="navigateToDetail(item)">
-        <td class="ui-cell !py-4 text-center"
-          :style="{ width: enrollmentHeaders[0].width, flex: '0 0 auto', minWidth: enrollmentHeaders[0].width }">
+      <tr
+        v-for="(item, index) in enrollments.slice(0, 5)"
+        :key="item.id || index"
+        class="ui-row"
+        @click="navigateToDetail(item)"
+      >
+        <td
+          class="ui-cell !py-4 text-center"
+          :style="{
+            width: enrollmentHeaders[0].width,
+            flex: '0 0 auto',
+            minWidth: enrollmentHeaders[0].width,
+          }"
+        >
           <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
         </td>
         <td class="ui-cell !py-4 overflow-hidden" :style="{ flex: '1 1 0%', minWidth: 0 }">
@@ -55,8 +66,11 @@ const navigateToDetail = (item) => {
               <img :src="getParentProfileURL(item.parent?.profileURL)" alt="parent" />
             </div>
             <div class="ui-identity-info min-w-0">
-              <span class="truncate block font-bold text-content-dark text-sm" :title="item.parent?.name">{{
-                item.parent?.name }}</span>
+              <span
+                class="truncate block font-bold text-content-dark text-sm"
+                :title="item.parent?.name"
+                >{{ item.parent?.name }}</span
+              >
             </div>
           </div>
         </td>
@@ -66,8 +80,11 @@ const navigateToDetail = (item) => {
               <img :src="getStudentProfileURL(item.student?.profileURL)" alt="child" />
             </div>
             <div class="ui-identity-info min-w-0">
-              <span class="truncate block font-bold text-content-dark text-sm" :title="item.student?.name">{{
-                item.student?.name }}</span>
+              <span
+                class="truncate block font-bold text-content-dark text-sm"
+                :title="item.student?.name"
+                >{{ item.student?.name }}</span
+              >
             </div>
           </div>
         </td>
@@ -78,20 +95,40 @@ const navigateToDetail = (item) => {
             </div>
             <span class="truncate block font-bold text-content-dark text-sm">{{
               item.programName
-              }}</span>
+            }}</span>
           </div>
         </td>
-        <td class="ui-cell !py-4 text-center"
-          :style="{ width: enrollmentHeaders[4].width, flex: '0 0 auto', minWidth: enrollmentHeaders[4].width }">
+        <td
+          class="ui-cell !py-4 text-center"
+          :style="{
+            width: enrollmentHeaders[4].width,
+            flex: '0 0 auto',
+            minWidth: enrollmentHeaders[4].width,
+          }"
+        >
           <AppBadge :status="item.status" />
         </td>
-        <td class="ui-cell !py-4 text-center"
-          :style="{ width: enrollmentHeaders[5].width, flex: '0 0 auto', minWidth: enrollmentHeaders[5].width }">
-          <AppBadge :status="'$' + formatPrice(item.amount || 0)" :colorValue="item.paymentModeType" type="finance" />
+        <td
+          class="ui-cell !py-4 text-center"
+          :style="{
+            width: enrollmentHeaders[5].width,
+            flex: '0 0 auto',
+            minWidth: enrollmentHeaders[5].width,
+          }"
+        >
+          <AppBadge
+            :status="'$' + formatPrice(item.amount || 0)"
+            :colorValue="item.paymentModeType"
+            type="finance"
+          />
         </td>
-        <td class="ui-cell !py-4 text-center overflow-hidden"
-          :style="{ flex: '1 1 0%', minWidth: 0 }">
-          <span class="truncate block font-bold text-content-muted text-xs tabular-nums">{{ formatDate(item.enrollAt) }}</span>
+        <td
+          class="ui-cell !py-4 text-center overflow-hidden"
+          :style="{ flex: '1 1 0%', minWidth: 0 }"
+        >
+          <span class="truncate block font-bold text-content-muted text-xs tabular-nums">{{
+            formatDate(item.enrollAt)
+          }}</span>
         </td>
       </tr>
     </AppTable>

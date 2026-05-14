@@ -57,7 +57,9 @@ const { searchQuery, searchResults } = useSearch(levels, (l) => {
 })
 
 const filteredLevels = computed(() => {
-  return [...searchResults.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  return [...searchResults.value].sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+  )
 })
 
 const statsCards = computed(() => {
@@ -79,14 +81,18 @@ const statsCards = computed(() => {
 function getMostCommonLevel() {
   if (!levels.value.length || !programs.value.length) return { name: 'None', count: 0 }
   const counts = {}
-  programs.value.forEach(p => {
+  programs.value.forEach((p) => {
     if (p.levelId) counts[p.levelId] = (counts[p.levelId] || 0) + 1
   })
-  let max = 0, maxId = null
+  let max = 0,
+    maxId = null
   for (const id in counts) {
-    if (counts[id] > max) { max = counts[id]; maxId = id }
+    if (counts[id] > max) {
+      max = counts[id]
+      maxId = id
+    }
   }
-  const level = levels.value.find(l => l.id === maxId)
+  const level = levels.value.find((l) => l.id === maxId)
   return { name: level?.name || 'Unassigned', count: max }
 }
 
@@ -133,7 +139,7 @@ const handleActionSubmit = async (formData) => {
 }
 
 const getProgramCount = (levelId) => {
-  return programs.value.filter(p => p.levelId === levelId).length
+  return programs.value.filter((p) => p.levelId === levelId).length
 }
 </script>
 
@@ -147,9 +153,15 @@ const getProgramCount = (levelId) => {
       </template>
 
       <template #table>
-        <DataTable title="Level Configuration" :headers="levelHeaders" :items="filteredLevels" :loading="loading"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search levels..."
-          @action="({ type, item }) => handleAction(type, item)">
+        <DataTable
+          title="Level Configuration"
+          :headers="levelHeaders"
+          :items="filteredLevels"
+          :loading="loading"
+          v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search levels..."
+          @action="({ type, item }) => handleAction(type, item)"
+        >
           <template #toolbar-actions>
             <AppButton variant="primary" @click="handleAction('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
@@ -177,12 +189,16 @@ const getProgramCount = (levelId) => {
             </td>
             <td class="ui-cell text-center">
               <div class="flex justify-center gap-2">
-                <button @click="handleAction('edit', item)"
-                  class="p-2 hover:bg-surface-subtle rounded-lg transition-colors">
+                <button
+                  @click="handleAction('edit', item)"
+                  class="p-2 hover:bg-surface-subtle rounded-lg transition-colors"
+                >
                   <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-60" />
                 </button>
-                <button @click="handleAction('delete', item)"
-                  class="p-2 hover:bg-error-soft rounded-lg transition-colors">
+                <button
+                  @click="handleAction('delete', item)"
+                  class="p-2 hover:bg-error-soft rounded-lg transition-colors"
+                >
                   <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-60" />
                 </button>
               </div>
@@ -192,8 +208,15 @@ const getProgramCount = (levelId) => {
       </template>
     </DataPageLayout>
 
-    <LevelActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :level="actionModal.level"
-      :loading="actionModal.loading" :error="actionModal.error" :success="actionModal.success" @close="closeModal"
-      @submit="handleActionSubmit" />
+    <LevelActionModal
+      :isOpen="actionModal.isOpen"
+      :type="actionModal.type"
+      :level="actionModal.level"
+      :loading="actionModal.loading"
+      :error="actionModal.error"
+      :success="actionModal.success"
+      @close="closeModal"
+      @submit="handleActionSubmit"
+    />
   </DashboardLayout>
 </template>

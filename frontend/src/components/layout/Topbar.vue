@@ -50,7 +50,8 @@ onMounted(() => {
     <div class="flex items-center gap-md">
       <button
         class="lg:hidden flex flex-col items-center justify-center gap-[5px] w-10 h-10 bg-white shadow-sm rounded-std"
-        @click="emit('toggle-menu')">
+        @click="emit('toggle-menu')"
+      >
         <span class="w-6 h-0.5 bg-text-dark rounded-full"></span>
         <span class="w-6 h-0.5 bg-text-dark rounded-full"></span>
         <span class="w-6 h-0.5 bg-text-dark rounded-full"></span>
@@ -66,7 +67,11 @@ onMounted(() => {
 
     <div class="flex items-center gap-md">
       <button class="topbar-action-btn">
-        <img :src="getIconUrl('action', 'bell-svgrepo.svg')" alt="Notifications" class="w-5 opacity-60" />
+        <img
+          :src="getIconUrl('action', 'bell-svgrepo.svg')"
+          alt="Notifications"
+          class="w-5 opacity-60"
+        />
       </button>
       <button class="topbar-action-btn">
         <img :src="getIconUrl('navigation', 'setting.svg')" alt="Settings" class="w-5 opacity-60" />
@@ -75,9 +80,7 @@ onMounted(() => {
       <div class="topbar-user-pill">
         <div class="flex flex-col text-right">
           <span class="font-semibold text-xs text-content-dark leading-tight">{{ userName }}</span>
-          <span class="text-2xs font-bold text-content-muted tracking-wider">{{
-            userRole
-          }}</span>
+          <span class="text-2xs font-bold text-content-muted tracking-wider">{{ userRole }}</span>
         </div>
         <div class="topbar-user-avatar">
           <img :src="avatarUrl" alt="Profile" class="w-full h-full object-cover" />

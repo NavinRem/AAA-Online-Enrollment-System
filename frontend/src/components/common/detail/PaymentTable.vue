@@ -5,7 +5,7 @@ import { getImageUrl } from '@/utils/assetHelper'
 
 defineProps({
   items: { type: Array, default: () => [] },
-  emptyMessage: { type: String, default: 'No payment records found.' }
+  emptyMessage: { type: String, default: 'No payment records found.' },
 })
 </script>
 
@@ -31,11 +31,17 @@ defineProps({
             {{ item.transactionId || item.id.slice(0, 8) }}
           </td>
           <td class="font-bold text-content-dark tracking-tight text-sm">{{ item.studentName }}</td>
-          <td class="font-bold text-content-dark tracking-tighter text-sm">{{ item.programName }}</td>
-          <td class="text-center">
-            <AppBadge :status="'$' + formatPrice(item.amount)" type="finance" :colorValue="item.paymentModeType" />
+          <td class="font-bold text-content-dark tracking-tighter text-sm">
+            {{ item.programName }}
           </td>
-          <td class="text-2xs font-bold text-content-muted ">{{ item.paymentMethod || 'N/A' }}</td>
+          <td class="text-center">
+            <AppBadge
+              :status="'$' + formatPrice(item.amount)"
+              type="finance"
+              :colorValue="item.paymentModeType"
+            />
+          </td>
+          <td class="text-2xs font-bold text-content-muted">{{ item.paymentMethod || 'N/A' }}</td>
           <td class="text-2xs font-bold text-content-muted tabular-nums">
             {{ formatDate(item.paidAt || item.enrollAt) }}
           </td>

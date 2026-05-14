@@ -1,5 +1,5 @@
 <script setup>
-const props = defineProps({
+defineProps({
   show: {
     type: Boolean,
     default: true,
@@ -61,4 +61,3 @@ defineEmits(['close'])
     </div>
   </transition>
 </template>
-

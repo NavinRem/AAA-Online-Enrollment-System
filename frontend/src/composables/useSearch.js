@@ -94,16 +94,10 @@ export const trialSearchMapper = (t) =>
 
 export const studentSearchMapper = (s) => {
   const programText = (s.enrollments || [])
-    .map(r => `${r.program?.name || ''} ${r.program?.category || ''}`)
+    .map((r) => `${r.program?.name || ''} ${r.program?.category || ''}`)
     .join(' ')
-    
-  return [
-    s.name,
-    s.parentInfo?.name,
-    s.status,
-    programText,
-    formatDateOnly(s.createdAt),
-  ]
+
+  return [s.name, s.parentInfo?.name, s.status, programText, formatDateOnly(s.createdAt)]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
@@ -116,34 +110,22 @@ export const parentSearchMapper = (p) =>
     .toLowerCase()
 
 export const programSearchMapper = (p) =>
-  [
-    p.name,
-    p.category,
-    p.level,
-    p.description,
-    p.type,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase()
+  [p.name, p.category, p.level, p.description, p.type].filter(Boolean).join(' ').toLowerCase()
 
 export const teacherSearchMapper = (t) =>
   [t.name, t.email, t.phone, t.id].filter(Boolean).join(' ').toLowerCase()
 
 export const classSearchMapper = (c) => {
-  const catName = typeof c.program?.category === 'object' ? c.program.category.name : (c.program?.category || '')
+  const catName =
+    typeof c.program?.category === 'object' ? c.program.category.name : c.program?.category || ''
   const scheduleText = (c.schedules || [])
     .map((schedule) => `${schedule.day} ${schedule.time}`)
     .join(' ')
-  
-  return [
-    c.program?.name,
-    catName,
-    c.schedule?.day,
-    c.schedule?.time,
-    scheduleText,
-    c.status,
-  ].filter(Boolean).join(' ').toLowerCase()
+
+  return [c.program?.name, catName, c.schedule?.day, c.schedule?.time, scheduleText, c.status]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
 }
 
 export const branchSearchMapper = (b) =>

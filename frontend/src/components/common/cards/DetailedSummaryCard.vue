@@ -10,10 +10,7 @@ defineProps({
 
 <template>
   <div class="w-full flex flex-col gap-lg">
-    <h3
-      v-if="title"
-      class="text-2xl font-bold text-content-dark tracking-tighter text-center py-4"
-    >
+    <h3 v-if="title" class="text-2xl font-bold text-content-dark tracking-tighter text-center py-4">
       {{ title }}
     </h3>
 

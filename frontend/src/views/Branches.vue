@@ -31,7 +31,7 @@ const branchStatsMap = ref({})
 const calculateAllBranchStats = () => {
   const branches = dataStore.branches
   const stats = {}
-  branches.forEach(b => {
+  branches.forEach((b) => {
     stats[b.id] = getBranchStats(b.id)
   })
   branchStatsMap.value = stats
@@ -104,7 +104,11 @@ const statsCards = computed(() => {
   })
 
   // 3. Activity metrics
-  const activeBranchIds = new Set(todayEnrollments.map((e) => e.branchId || e.class?.branch?.id || e.class?.branchId).filter(Boolean))
+  const activeBranchIds = new Set(
+    todayEnrollments
+      .map((e) => e.branchId || e.class?.branch?.id || e.class?.branchId)
+      .filter(Boolean),
+  )
   const enrolledValue = activeBranchIds.size
   const enrolledSubtitle = `${enrolledValue} Active Campus${enrolledValue !== 1 ? 'es' : ''}`
 
@@ -135,7 +139,7 @@ const statsCards = computed(() => {
       value: idleValue,
       subtitle: idleSubtitle,
       image: getImageUrl('dashboard/card-nearlyfull-program'),
-    }
+    },
   ]
 })
 
@@ -156,13 +160,18 @@ const branchHeaders = [
   { label: 'Studying', width: '80px', align: 'center' },
   { label: 'Total Rev', width: '100px', align: 'center' },
   { label: 'Pending', width: '100px', align: 'center' },
-  { label: 'Action', width: '60px', align: 'center' }
+  { label: 'Action', width: '60px', align: 'center' },
 ]
 
-const { searchQuery, searchResults } = useSearch(computed(() => dataStore.branches), branchSearchMapper)
+const { searchQuery, searchResults } = useSearch(
+  computed(() => dataStore.branches),
+  branchSearchMapper,
+)
 
 const filteredBranches = computed(() => {
-  return [...searchResults.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  return [...searchResults.value].sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+  )
 })
 
 const currentPage = ref(1)
@@ -184,44 +193,59 @@ const getBranchStats = (branchId) => {
   const localTodayStr = now.toLocaleDateString('en-CA') // YYYY-MM-DD local
   const weekAgoTimestamp = now.getTime() - 7 * 86400000
 
-  const enrollments = dataStore.enrollments.filter(e =>
-    e.branchId === branchId || e.class?.branch?.id === branchId || e.class?.branchId === branchId
+  const enrollments = dataStore.enrollments.filter(
+    (e) =>
+      e.branchId === branchId || e.class?.branch?.id === branchId || e.class?.branchId === branchId,
   )
-  const trials = dataStore.trials.filter(t => t.branchId === branchId)
+  const trials = dataStore.trials.filter((t) => t.branchId === branchId)
 
   // TODAY
-  const todayEnroll = enrollments.filter(e => {
+  const todayEnroll = enrollments.filter((e) => {
     const enrollDate = e.enrollAt || e.createdAt || ''
     return enrollDate.split('T')[0] === localTodayStr
   })
-  const todayTrials = trials.filter(t => {
+  const todayTrials = trials.filter((t) => {
     const trialDate = t.trialDate || t.createdAt || ''
     return trialDate.split('T')[0] === localTodayStr
   })
-  const todayRev = todayEnroll.filter(e => isPaid(e.paymentStatus)).reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+  const todayRev = todayEnroll
+    .filter((e) => isPaid(e.paymentStatus))
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
 
   // WEEK
-  const weekEnroll = enrollments.filter(e => {
+  const weekEnroll = enrollments.filter((e) => {
     const timestamp = new Date(e.enrollAt || e.createdAt || 0).getTime()
     return timestamp >= weekAgoTimestamp
   })
-  const weekTrials = trials.filter(tr => {
+  const weekTrials = trials.filter((tr) => {
     const timestamp = new Date(tr.trialDate || tr.createdAt || 0).getTime()
     return timestamp >= weekAgoTimestamp
   })
-  const weekRev = weekEnroll.filter(e => isPaid(e.paymentStatus)).reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+  const weekRev = weekEnroll
+    .filter((e) => isPaid(e.paymentStatus))
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
 
   // LIFETIME
-  const classes = dataStore.classes.filter(c => c.branchId === branchId || c.branch?.id === branchId)
-  const programs = new Set(classes.map(c => c.programId || c.program?.id)).size
-  const studying = new Set(enrollments.filter(e => isPaid(e.paymentStatus) && !['cancelled', 'deleted'].includes(e.status)).map(e => e.studentId)).size
-  const totalRev = enrollments.filter(e => isPaid(e.paymentStatus)).reduce((sum, e) => sum + (e.amount || 0), 0)
-  const totalPending = enrollments.filter(e => isPending(e.paymentStatus)).reduce((sum, e) => sum + (e.amount || 0), 0)
+  const classes = dataStore.classes.filter(
+    (c) => c.branchId === branchId || c.branch?.id === branchId,
+  )
+  const programs = new Set(classes.map((c) => c.programId || c.program?.id)).size
+  const studying = new Set(
+    enrollments
+      .filter((e) => isPaid(e.paymentStatus) && !['cancelled', 'deleted'].includes(e.status))
+      .map((e) => e.studentId),
+  ).size
+  const totalRev = enrollments
+    .filter((e) => isPaid(e.paymentStatus))
+    .reduce((sum, e) => sum + (e.amount || 0), 0)
+  const totalPending = enrollments
+    .filter((e) => isPending(e.paymentStatus))
+    .reduce((sum, e) => sum + (e.amount || 0), 0)
 
   return {
     today: { enroll: todayEnroll.length, trial: todayTrials.length, rev: todayRev },
     week: { enroll: weekEnroll.length, trial: weekTrials.length, rev: weekRev },
-    lifetime: { classes: classes.length, programs, studying, totalRev, totalPending }
+    lifetime: { classes: classes.length, programs, studying, totalRev, totalPending },
   }
 }
 
@@ -288,13 +312,30 @@ const handleActionSubmit = async (payload) => {
       </template>
 
       <template #table>
-        <DataTable title="Branch Lists" :headers="branchHeaders" :items="paginatedBranches" :loading="loading"
-          entityName="branch" :flexible="true" :rowClass="getRowClass" :hasSearch="true"
-          v-model:searchQuery="searchQuery" searchPlaceholder="Search branches..." :hasPagination="true"
-          :totalItems="totalItems" :pageSize="pageSize" v-model:currentPage="currentPage" @action="handleTableAction">
-
+        <DataTable
+          title="Branch Lists"
+          :headers="branchHeaders"
+          :items="paginatedBranches"
+          :loading="loading"
+          entityName="branch"
+          :flexible="true"
+          :rowClass="getRowClass"
+          :hasSearch="true"
+          v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search branches..."
+          :hasPagination="true"
+          :totalItems="totalItems"
+          :pageSize="pageSize"
+          v-model:currentPage="currentPage"
+          @action="handleTableAction"
+        >
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20" @click="openAddModal">
+            <AppButton
+              variant="primary"
+              size="md"
+              class="rounded-xl shadow-lg shadow-primary/20"
+              @click="openAddModal"
+            >
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-bold tracking-tight">Add Branch</span>
             </AppButton>
@@ -303,12 +344,23 @@ const handleActionSubmit = async (payload) => {
           <template #empty>
             <div class="py-20 text-center flex flex-col items-center gap-4 opacity-30 grayscale">
               <img :src="getImageUrl('dashboard/card-nearlyfull-program')" class="w-24" />
-              <span class="text-sm font-bold text-black ">No Branch Found</span>
+              <span class="text-sm font-bold text-black">No Branch Found</span>
             </div>
           </template>
 
           <template
-            #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, handleAction, closeMenu, headers }">
+            #row="{
+              item,
+              index,
+              toggleMenu,
+              activeMenuId,
+              isMenuAbove,
+              menuStyles,
+              handleAction,
+              closeMenu,
+              headers,
+            }"
+          >
             <td class="ui-cell text-center" :style="{ width: headers[0].width }">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
@@ -334,75 +386,125 @@ const handleActionSubmit = async (payload) => {
             <!-- Today Section -->
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <AppBadge
-                :status="branchStatsMap[item.id]?.today.enroll > 0 ? '+' + branchStatsMap[item.id].today.enroll : '0'"
-                type="green" />
+                :status="
+                  branchStatsMap[item.id]?.today.enroll > 0
+                    ? '+' + branchStatsMap[item.id].today.enroll
+                    : '0'
+                "
+                type="green"
+              />
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <AppBadge
-                :status="branchStatsMap[item.id]?.today.trial > 0 ? '+' + branchStatsMap[item.id].today.trial : '0'"
-                type="blue" />
+                :status="
+                  branchStatsMap[item.id]?.today.trial > 0
+                    ? '+' + branchStatsMap[item.id].today.trial
+                    : '0'
+                "
+                type="blue"
+              />
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-              <AppBadge :status="'$' + formatPrice(branchStatsMap[item.id]?.today.rev || 0)" type="magenta" />
+              <AppBadge
+                :status="'$' + formatPrice(branchStatsMap[item.id]?.today.rev || 0)"
+                type="magenta"
+              />
             </td>
 
             <!-- Week Section -->
             <td class="ui-cell text-center" :style="{ width: headers[8].width }">
-              <span class="tabular-nums">{{ branchStatsMap[item.id]?.week.enroll ||
-                0 }}</span>
+              <span class="tabular-nums">{{ branchStatsMap[item.id]?.week.enroll || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[9].width }">
-              <span class="tabular-nums">{{ branchStatsMap[item.id]?.week.trial || 0
-                }}</span>
+              <span class="tabular-nums">{{ branchStatsMap[item.id]?.week.trial || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[10].width }">
-              <AppBadge :status="'$' + formatPrice(branchStatsMap[item.id]?.week.rev || 0)" type="purple" />
+              <AppBadge
+                :status="'$' + formatPrice(branchStatsMap[item.id]?.week.rev || 0)"
+                type="purple"
+              />
             </td>
 
             <!-- Lifetime Section -->
             <td class="ui-cell text-center" :style="{ width: headers[11].width }">
-              <span class="tabular-nums">{{
-                branchStatsMap[item.id]?.lifetime.classes || 0 }}</span>
+              <span class="tabular-nums">{{ branchStatsMap[item.id]?.lifetime.classes || 0 }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[12].width }">
               <span class="tabular-nums">{{
-                branchStatsMap[item.id]?.lifetime.programs || 0 }}</span>
+                branchStatsMap[item.id]?.lifetime.programs || 0
+              }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[13].width }">
               <span class="tabular-nums">{{
-                branchStatsMap[item.id]?.lifetime.studying || 0 }}</span>
+                branchStatsMap[item.id]?.lifetime.studying || 0
+              }}</span>
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[14].width }">
-              <AppBadge :status="'$' + formatPrice(branchStatsMap[item.id]?.lifetime.totalRev || 0)" type="green" />
+              <AppBadge
+                :status="'$' + formatPrice(branchStatsMap[item.id]?.lifetime.totalRev || 0)"
+                type="green"
+              />
             </td>
             <td class="ui-cell text-center" :style="{ width: headers[15].width }">
-              <AppBadge :status="'$' + formatPrice(branchStatsMap[item.id]?.lifetime.totalPending || 0)" type="orange" />
+              <AppBadge
+                :status="'$' + formatPrice(branchStatsMap[item.id]?.lifetime.totalPending || 0)"
+                type="orange"
+              />
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[16].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
-                  @click.stop="toggleMenu($event, item.id)">
+                  @click.stop="toggleMenu($event, item.id)"
+                >
                   <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
-                  <transition enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                    leave-to-class="opacity-0">
-                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
-                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
-                      @click.stop>
-                      <button class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="() => { handleAction('edit', item); closeMenu(); }">
-                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="activeMenuId === item.id"
+                      class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
+                      :style="menuStyles"
+                      @click.stop
+                    >
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="
+                          () => {
+                            handleAction('edit', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
+                        />
                         <span class="font-bold">Edit</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
-                        @click="() => { handleAction('delete', item); closeMenu(); }">
-                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
+                        @click="
+                          () => {
+                            handleAction('delete', item)
+                            closeMenu()
+                          }
+                        "
+                      >
+                        <img
+                          :src="getActionIcon('delete')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
+                        />
                         Delete
                       </button>
                     </div>
@@ -415,8 +517,20 @@ const handleActionSubmit = async (payload) => {
       </template>
     </DataPageLayout>
 
-    <BranchActionModal :isOpen="showModal" :type="modalType" :loading="submitting" :branch="selectedBranch"
-      :error="error" :success="success" @close="() => { showModal = false; selectedBranch = null; }"
-      @submit="handleActionSubmit" />
+    <BranchActionModal
+      :isOpen="showModal"
+      :type="modalType"
+      :loading="submitting"
+      :branch="selectedBranch"
+      :error="error"
+      :success="success"
+      @close="
+        () => {
+          showModal = false
+          selectedBranch = null
+        }
+      "
+      @submit="handleActionSubmit"
+    />
   </DashboardLayout>
 </template>

@@ -79,7 +79,8 @@ export const calculateParentStats = (parents = [], enrollments = []) => {
     parentCount: parents.length,
     todayCount: parents.filter((p) => isRegisteredToday(p, todayStart)).length,
     paidTodayCount: parents.filter((p) => hasPaidToday(p.id, enrollments, todayStart)).length,
-    inactiveCount: parents.filter((p) => (p.status || 'active').toLowerCase() === 'inactive').length,
+    inactiveCount: parents.filter((p) => (p.status || 'active').toLowerCase() === 'inactive')
+      .length,
   }
 }
 

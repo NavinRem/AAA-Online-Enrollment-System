@@ -57,12 +57,20 @@ export const useDataStore = defineStore('data', {
      */
     async fetchAllCommonData(force = false, modules = null) {
       const allModules = [
-        'parents', 'students', 'programs', 'classes', 
-        'categories', 'terms', 'trials', 'enrollments', 'branches', 'schedules'
+        'parents',
+        'students',
+        'programs',
+        'classes',
+        'categories',
+        'terms',
+        'trials',
+        'enrollments',
+        'branches',
+        'schedules',
       ]
-      
+
       const targetModules = Array.isArray(modules) ? modules : allModules
-      
+
       const fetchMap = {
         parents: () => this.fetchParents(force),
         students: () => this.fetchStudents(force),
@@ -76,9 +84,7 @@ export const useDataStore = defineStore('data', {
         schedules: () => this.fetchSchedules(force),
       }
 
-      const promises = targetModules
-        .filter(m => fetchMap[m])
-        .map(m => fetchMap[m]())
+      const promises = targetModules.filter((m) => fetchMap[m]).map((m) => fetchMap[m]())
 
       return Promise.all(promises)
     },
@@ -104,7 +110,7 @@ export const useDataStore = defineStore('data', {
     async fetchStudents(force = false) {
       if (this.activePromises.students) return this.activePromises.students
       if (!force && this.students.length > 0 && this.isFresh('students')) return
-      
+
       this.loading.students = true
       this.activePromises.students = (async () => {
         try {
@@ -163,7 +169,7 @@ export const useDataStore = defineStore('data', {
       this.activePromises.categories = (async () => {
         try {
           const data = await categoryService.getAllCategories()
-          this.categories = Array.isArray(data) ? data : (data?.data || [])
+          this.categories = Array.isArray(data) ? data : data?.data || []
           this.lastFetched.categories = Date.now()
         } finally {
           this.loading.categories = false
@@ -267,19 +273,19 @@ export const useDataStore = defineStore('data', {
       const last = this.lastFetched[key]
       if (!last) return false
       const CACHE_TIME = 5 * 60 * 1000 // 5 minutes
-      return (Date.now() - last) < CACHE_TIME
-    }
+      return Date.now() - last < CACHE_TIME
+    },
   },
 
   getters: {
     getProgramWithCategory: (state) => {
-      return state.programs.map(p => {
-        const cat = state.categories.find(c => c.id === p.categoryId || c.name === p.category)
+      return state.programs.map((p) => {
+        const cat = state.categories.find((c) => c.id === p.categoryId || c.name === p.category)
         return {
           ...p,
-          categoryProfileURL: cat?.profileURL || ''
+          categoryProfileURL: cat?.profileURL || '',
         }
       })
-    }
-  }
+    },
+  },
 })

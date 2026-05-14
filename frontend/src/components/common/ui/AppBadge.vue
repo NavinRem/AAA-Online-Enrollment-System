@@ -13,7 +13,8 @@ const badgeValue = computed(() => props.value || props.status)
 const badgeStyle = computed(() => getStatusTheme(props.colorValue || badgeValue.value, props.type))
 
 const displayLabel = computed(() => {
-  if (badgeValue.value === null || badgeValue.value === undefined || badgeValue.value === '') return ''
+  if (badgeValue.value === null || badgeValue.value === undefined || badgeValue.value === '')
+    return ''
 
   const val = String(badgeValue.value)
 
@@ -21,14 +22,18 @@ const displayLabel = computed(() => {
   if (val.startsWith('$') || /^[A-Z]{2,}/.test(val)) return val
 
   // Capitalize first letter of each word
-  return val.split(' ').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')
+  return val
+    .split(' ')
+    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+    .join(' ')
 })
 </script>
 
 <template>
   <span
     class="inline-flex items-center justify-center w-fit px-3.5 py-1 rounded-full text-sm font-bold leading-none whitespace-nowrap text-center transition-all"
-    :style="badgeStyle">
+    :style="badgeStyle"
+  >
     <slot>{{ displayLabel }}</slot>
   </span>
 </template>

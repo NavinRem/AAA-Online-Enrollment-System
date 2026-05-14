@@ -30,8 +30,8 @@ defineProps({
 <template>
   <div
     class="flex flex-col items-center justify-between gap-xs p-6 rounded-std shadow-sm flex-1 transition-all hover:shadow-md text-center group border border-primary/5 min-h-[180px]"
-    :style="{ backgroundColor: loading ? 'var(--surface-subtle)' : color }">
-
+    :style="{ backgroundColor: loading ? 'var(--surface-subtle)' : color }"
+  >
     <template v-if="loading">
       <div class="w-24 h-3 bg-content-dark/5 animate-pulse rounded-full"></div>
       <div class="w-16 h-16 bg-content-dark/5 animate-pulse rounded-full my-2"></div>
@@ -49,9 +49,11 @@ defineProps({
       </div>
 
       <div class="flex flex-col items-center gap-2xs">
-        <span class="text-content-dark font-bold leading-tight line-clamp-2 max-w-full"
-          :class="String(value).length > 8 ? 'text-2xl' : 'text-3xl'">{{
-            value }}</span>
+        <span
+          class="text-content-dark font-bold leading-tight line-clamp-2 max-w-full"
+          :class="String(value).length > 8 ? 'text-2xl' : 'text-3xl'"
+          >{{ value }}</span
+        >
         <span v-if="subtitle" class="text-sm font-semibold text-content-light">{{ subtitle }}</span>
       </div>
     </template>

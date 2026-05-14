@@ -4,7 +4,7 @@ import { formatDate } from '@/utils/formatUtils'
 
 defineProps({
   createdAt: { type: [String, Object, Date, Number], default: '' },
-  updatedAt: { type: [String, Object, Date, Number], default: '' }
+  updatedAt: { type: [String, Object, Date, Number], default: '' },
 })
 </script>
 

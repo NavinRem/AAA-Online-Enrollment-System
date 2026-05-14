@@ -17,17 +17,19 @@ defineProps({
 
 <template>
   <div
-    class="bg-white rounded-md p-6 border border-outline-std shadow-sm hover:shadow-md transition-all duration-300 group">
+    class="bg-white rounded-md p-6 border border-outline-std shadow-sm hover:shadow-md transition-all duration-300 group"
+  >
     <div class="flex items-center gap-4">
       <!-- Icon Container -->
       <div
-        class="w-14 h-14 rounded-xl flex items-center justify-center bg-surface-subtle transition-colors shrink-0">
+        class="w-14 h-14 rounded-xl flex items-center justify-center bg-surface-subtle transition-colors shrink-0"
+      >
         <img :src="image" :alt="label" class="w-10 h-10 transition-opacity" />
       </div>
 
       <!-- Content -->
       <div class="flex flex-col min-w-0">
-        <span class="text-sm font-bold text-content-dark  leading-none mb-1 truncate">
+        <span class="text-sm font-bold text-content-dark leading-none mb-1 truncate">
           {{ label }}
         </span>
         <div class="flex items-baseline gap-2">

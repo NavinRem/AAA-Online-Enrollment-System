@@ -1,10 +1,10 @@
 import { initializeApp } from 'firebase/app'
 import { getStorage, connectStorageEmulator } from 'firebase/storage'
-import { 
-  initializeFirestore, 
-  connectFirestoreEmulator, 
-  persistentLocalCache, 
-  persistentMultipleTabManager 
+import {
+  initializeFirestore,
+  connectFirestoreEmulator,
+  persistentLocalCache,
+  persistentMultipleTabManager,
 } from 'firebase/firestore'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
 
@@ -18,7 +18,7 @@ const app = initializeApp(firebaseConfig)
 // Initialize Firestore with modern persistence config (replaces deprecated enableMultiTabIndexedDbPersistence)
 const firestore = initializeFirestore(app, {
   localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
+    tabManager: persistentMultipleTabManager(),
   }),
   experimentalForceLongPolling: true,
 })

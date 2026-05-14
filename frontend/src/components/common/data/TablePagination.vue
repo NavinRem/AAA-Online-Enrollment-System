@@ -73,30 +73,49 @@ const changePage = (page) => {
 
     <div class="pagination-actions">
       <!-- Previous Button -->
-      <button class="pagination-nav-btn group/btn" :disabled="!canPrev" @click="changePage(currentPage - 1)"
-        title="Previous Page">
-        <img :src="prevIcon" alt="Previous" class="w-4 h-4 transition-transform group-hover/btn:-translate-x-0.5">
+      <button
+        class="pagination-nav-btn group/btn"
+        :disabled="!canPrev"
+        @click="changePage(currentPage - 1)"
+        title="Previous Page"
+      >
+        <img
+          :src="prevIcon"
+          alt="Previous"
+          class="w-4 h-4 transition-transform group-hover/btn:-translate-x-0.5"
+        />
       </button>
 
       <!-- Numeric Pages -->
       <div class="flex items-center gap-1.5 px-1">
         <template v-for="(page, idx) in pages" :key="idx">
-          <button v-if="page !== '...'" class="pagination-number-btn" :class="[
-            page === currentPage
-              ? 'pagination-number-btn--active'
-              : 'pagination-number-btn--inactive'
-          ]" @click="changePage(page)">
+          <button
+            v-if="page !== '...'"
+            class="pagination-number-btn"
+            :class="[
+              page === currentPage
+                ? 'pagination-number-btn--active'
+                : 'pagination-number-btn--inactive',
+            ]"
+            @click="changePage(page)"
+          >
             {{ page }}
           </button>
-          <span v-else class="pagination-ellipsis">
-            ...
-          </span>
+          <span v-else class="pagination-ellipsis"> ... </span>
         </template>
       </div>
 
-      <button class="pagination-nav-btn group/btn" :disabled="!canNext" @click="changePage(currentPage + 1)"
-        title="Next Page">
-        <img :src="nextIcon" alt="Next" class="w-4 h-4 transition-transform group-hover/btn:translate-x-0.5">
+      <button
+        class="pagination-nav-btn group/btn"
+        :disabled="!canNext"
+        @click="changePage(currentPage + 1)"
+        title="Next Page"
+      >
+        <img
+          :src="nextIcon"
+          alt="Next"
+          class="w-4 h-4 transition-transform group-hover/btn:translate-x-0.5"
+        />
       </button>
     </div>
   </div>

@@ -4,7 +4,7 @@ import { isSameProfileAsset } from './assetHelper'
 /**
  * Manages the transition of profile images from the temporary bucket to the
  * admin-specific production path. Ensures filenames are standardized and sanitized.
- * 
+ *
  * @param {string} profile - Incoming profile URL (potentially temporary)
  * @param {string} name - Entity name for filename generation
  * @param {string} currentProfile - Existing profile URL for comparison
@@ -37,7 +37,7 @@ export const processAdminProfileImage = async (profile, name, currentProfile = '
 /**
  * Prepares a clean, standardized payload for admin registrations or updates.
  * Enforces the 'admin' role and ensures 'active' status is the system default.
- * 
+ *
  * @param {Object} data - Form data
  * @returns {Object} Purified payload for the backend
  */

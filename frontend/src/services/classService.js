@@ -42,7 +42,6 @@ export const classService = {
     return request(`/programs/${programId}/classes${query}`)
   },
 
-
   syncClassCount(id) {
     return request(`/classes/${id}/sync`, { method: 'POST' })
   },

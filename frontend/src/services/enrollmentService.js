@@ -10,13 +10,13 @@ export const enrollmentService = {
 
   getAllEnrollments(params = {}, options = {}) {
     const cleanParams = Object.fromEntries(
-      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== 'undefined')
+      Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== 'undefined'),
     )
     const searchParams = new URLSearchParams(cleanParams).toString()
     const url = searchParams ? `/enrollments?${searchParams}` : '/enrollments'
     return request(url, {
       method: 'GET',
-      ...options
+      ...options,
     })
   },
 

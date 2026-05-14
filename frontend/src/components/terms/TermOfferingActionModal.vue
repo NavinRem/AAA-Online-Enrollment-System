@@ -31,7 +31,9 @@ const programs = computed(() => dataStore.programs)
 const branches = computed(() => {
   if (!props.term || !dataStore.branches.length) return dataStore.branches
   const termBranchIds = props.term.branchIds || []
-  const filtered = dataStore.branches.filter(b => termBranchIds.map(String).includes(String(b.id)))
+  const filtered = dataStore.branches.filter((b) =>
+    termBranchIds.map(String).includes(String(b.id)),
+  )
 
   if (filtered.length === 0) {
     return [{ id: 'none', name: 'No Branch', abbr: 'EMPTY', color: 'neutral' }]
@@ -41,20 +43,25 @@ const branches = computed(() => {
 
 const isBranchLocked = computed(() => !!props.initialBranchId)
 
-watch(() => props.isOpen, (val) => {
-  if (val) {
-    form.value = {
-      branchIds: props.initialBranchId ? [props.initialBranchId] : [],
-      programIds: [],
+watch(
+  () => props.isOpen,
+  (val) => {
+    if (val) {
+      form.value = {
+        branchIds: props.initialBranchId ? [props.initialBranchId] : [],
+        programIds: [],
+      }
+      errors.value = {}
     }
-    errors.value = {}
-  }
-})
+  },
+)
 
 const validate = () => {
   const newErrors = {}
-  if (!form.value.branchIds || form.value.branchIds.length === 0) newErrors.branchIds = 'At least one branch is required'
-  if (!form.value.programIds || form.value.programIds.length === 0) newErrors.programIds = 'At least one class is required'
+  if (!form.value.branchIds || form.value.branchIds.length === 0)
+    newErrors.branchIds = 'At least one branch is required'
+  if (!form.value.programIds || form.value.programIds.length === 0)
+    newErrors.programIds = 'At least one class is required'
 
   errors.value = newErrors
   return Object.keys(newErrors).length === 0
@@ -65,25 +72,36 @@ const handleSubmit = () => {
 
   emit('submit', {
     branchIds: form.value.branchIds,
-    programIds: form.value.programIds
+    programIds: form.value.programIds,
   })
 }
 
 const selectAllBranches = () => {
-  form.value.branchIds = branches.value.filter(b => b.id !== 'none').map(b => b.id)
+  form.value.branchIds = branches.value.filter((b) => b.id !== 'none').map((b) => b.id)
 }
 
 const selectAllPrograms = () => {
-  form.value.programIds = programs.value.map(p => p.id)
+  form.value.programIds = programs.value.map((p) => p.id)
 }
 </script>
 
 <template>
-  <AppModal :show="isOpen" title="Add Classes to Term" :icon="getActionIcon('plus')" :error="error" :success="success"
-    maxWidth="550px" @close="$emit('close')">
+  <AppModal
+    :show="isOpen"
+    title="Add Classes to Term"
+    :icon="getActionIcon('plus')"
+    :error="error"
+    :success="success"
+    maxWidth="550px"
+    @close="$emit('close')"
+  >
     <div class="flex flex-col gap-lg py-2">
-      <div class="bg-surface-subtle/50 p-4 rounded-2xl border border-outline-std flex items-center gap-4 mb-2">
-        <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm border border-outline-std">
+      <div
+        class="bg-surface-subtle/50 p-4 rounded-2xl border border-outline-std flex items-center gap-4 mb-2"
+      >
+        <div
+          class="w-12 h-12 rounded-xl bg-white flex items-center justify-center shadow-sm border border-outline-std"
+        >
           <span class="text-2xl">📅</span>
         </div>
         <div class="flex flex-col">
@@ -94,17 +112,37 @@ const selectAllPrograms = () => {
 
       <div class="flex flex-col gap-1">
         <div class="flex items-center justify-between px-1">
-          <label class="text-sm font-semibold text-content-dark">Select Target Branches <span
-              class="text-error font-bold leading-none">*</span></label>
-          <button type="button" @click="selectAllBranches"
-            class="text-3xs font-bold text-primary hover:underline">Select All</button>
+          <label class="text-sm font-semibold text-content-dark"
+            >Select Target Branches <span class="text-error font-bold leading-none">*</span></label
+          >
+          <button
+            type="button"
+            @click="selectAllBranches"
+            class="text-3xs font-bold text-primary hover:underline"
+          >
+            Select All
+          </button>
         </div>
-        <AppSelect v-model="form.branchIds" :items="branches" placeholder="Choose branches..." required multiple
-          :error="errors.branchIds" class="mb-4">
+        <AppSelect
+          v-model="form.branchIds"
+          :items="branches"
+          placeholder="Choose branches..."
+          required
+          multiple
+          :error="errors.branchIds"
+          class="mb-4"
+        >
           <template #selected="{ items }">
-            <div v-if="!items?.length" class="text-content-muted/50 italic">Select target branches...</div>
+            <div v-if="!items?.length" class="text-content-muted/50 italic">
+              Select target branches...
+            </div>
             <div v-else class="flex flex-wrap gap-1 py-1">
-              <AppBadge v-for="item in items" :key="item.id" :status="item.abbr" :type="item.color || 'blue'" />
+              <AppBadge
+                v-for="item in items"
+                :key="item.id"
+                :status="item.abbr"
+                :type="item.color || 'blue'"
+              />
             </div>
           </template>
           <template #item="{ item }">
@@ -118,23 +156,42 @@ const selectAllPrograms = () => {
 
       <div class="flex flex-col gap-1">
         <div class="flex items-center justify-between px-1">
-          <label class="text-sm font-semibold text-content-dark">Select Class Products <span
-              class="text-error font-bold leading-none">*</span></label>
-          <button type="button" @click="selectAllPrograms"
-            class="text-3xs font-bold text-primary hover:underline">Select
-            All</button>
+          <label class="text-sm font-semibold text-content-dark"
+            >Select Class Products <span class="text-error font-bold leading-none">*</span></label
+          >
+          <button
+            type="button"
+            @click="selectAllPrograms"
+            class="text-3xs font-bold text-primary hover:underline"
+          >
+            Select All
+          </button>
         </div>
-        <AppSelect v-model="form.programIds" :items="programs" placeholder="Select multiple classes..." required
-          multiple :error="errors.programIds">
+        <AppSelect
+          v-model="form.programIds"
+          :items="programs"
+          placeholder="Select multiple classes..."
+          required
+          multiple
+          :error="errors.programIds"
+        >
           <template #selected="{ items }">
-            <div v-if="!items?.length" class="text-content-muted/50 italic">Select from catalog...</div>
+            <div v-if="!items?.length" class="text-content-muted/50 italic">
+              Select from catalog...
+            </div>
             <div v-else class="flex flex-wrap gap-2 py-1">
-              <div v-for="item in items" :key="item.id"
-                class="flex items-center gap-2 bg-primary/5 border border-primary/10 rounded-full pl-1 pr-3 py-1 shadow-sm">
+              <div
+                v-for="item in items"
+                :key="item.id"
+                class="flex items-center gap-2 bg-primary/5 border border-primary/10 rounded-full pl-1 pr-3 py-1 shadow-sm"
+              >
                 <div
-                  class="w-6 h-6 rounded-full overflow-hidden border border-primary/20 bg-white flex items-center justify-center p-0.5">
-                  <img :src="getProgramProfileURL(item.profileURL, item.category)"
-                    class="w-full h-full object-contain" />
+                  class="w-6 h-6 rounded-full overflow-hidden border border-primary/20 bg-white flex items-center justify-center p-0.5"
+                >
+                  <img
+                    :src="getProgramProfileURL(item.profileURL, item.category)"
+                    class="w-full h-full object-contain"
+                  />
                 </div>
                 <span class="text-xs font-bold text-primary">{{ item.name }}</span>
               </div>
@@ -142,13 +199,19 @@ const selectAllPrograms = () => {
           </template>
           <template #item="{ item }">
             <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-lg border border-outline-std overflow-hidden bg-white p-1">
-                <img :src="getProgramProfileURL(item.profileURL, item.category)" class="w-full h-full object-contain" />
+              <div
+                class="w-8 h-8 rounded-lg border border-outline-std overflow-hidden bg-white p-1"
+              >
+                <img
+                  :src="getProgramProfileURL(item.profileURL, item.category)"
+                  class="w-full h-full object-contain"
+                />
               </div>
               <div class="flex flex-col">
                 <span class="font-bold text-content-dark text-sm">{{ item.name }}</span>
-                <span class="text-3xs text-content-muted font-bold tracking-tighter">{{ item.category }} • {{
-                  item.duration }}mn</span>
+                <span class="text-3xs text-content-muted font-bold tracking-tighter"
+                  >{{ item.category }} • {{ item.duration }}mn</span
+                >
               </div>
             </div>
           </template>

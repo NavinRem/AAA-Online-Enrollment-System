@@ -46,7 +46,9 @@ const { searchQuery, searchResults } = useSearch(schedules, (schedule) =>
 )
 
 const sortedSchedules = computed(() => {
-  return [...searchResults.value].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+  return [...searchResults.value].sort(
+    (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+  )
 })
 
 const statsCards = computed(() => [
@@ -75,7 +77,8 @@ const handleSubmit = async (payload) => {
   modal.value.error = ''
   try {
     if (modal.value.type === 'add') await scheduleService.createSchedule(payload)
-    else if (modal.value.type === 'edit') await scheduleService.updateSchedule(modal.value.item.id, payload)
+    else if (modal.value.type === 'edit')
+      await scheduleService.updateSchedule(modal.value.item.id, payload)
     else if (modal.value.type === 'delete') await scheduleService.deleteSchedule(payload.id)
     modal.value.success = 'Schedule saved successfully'
     await fetchSchedules()
@@ -93,13 +96,25 @@ const handleSubmit = async (payload) => {
     <DataPageLayout overviewTitle="Schedule Management">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" :loading="loading" />
+          <DataMetricCard
+            v-for="stat in statsCards"
+            :key="stat.label"
+            v-bind="stat"
+            :loading="loading"
+          />
         </div>
       </template>
 
       <template #table>
-        <DataTable title="Schedule Configuration" :headers="headers" :items="sortedSchedules" :loading="loading"
-          entityName="schedule" v-model:searchQuery="searchQuery" searchPlaceholder="Search schedules...">
+        <DataTable
+          title="Schedule Configuration"
+          :headers="headers"
+          :items="sortedSchedules"
+          :loading="loading"
+          entityName="schedule"
+          v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search schedules..."
+        >
           <template #toolbar-actions>
             <AppButton variant="primary" @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
@@ -120,10 +135,16 @@ const handleSubmit = async (payload) => {
             </td>
             <td class="ui-cell text-center">
               <div class="flex justify-center gap-2">
-                <button class="p-2 hover:bg-surface-subtle rounded-lg" @click="openModal('edit', item)">
+                <button
+                  class="p-2 hover:bg-surface-subtle rounded-lg"
+                  @click="openModal('edit', item)"
+                >
                   <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-60" />
                 </button>
-                <button class="p-2 hover:bg-error-soft rounded-lg" @click="openModal('delete', item)">
+                <button
+                  class="p-2 hover:bg-error-soft rounded-lg"
+                  @click="openModal('delete', item)"
+                >
                   <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-60" />
                 </button>
               </div>
@@ -133,7 +154,15 @@ const handleSubmit = async (payload) => {
       </template>
     </DataPageLayout>
 
-    <ScheduleActionModal :isOpen="modal.isOpen" :type="modal.type" :schedule="modal.item" :loading="modal.loading"
-      :error="modal.error" :success="modal.success" @close="closeModal" @submit="handleSubmit" />
+    <ScheduleActionModal
+      :isOpen="modal.isOpen"
+      :type="modal.type"
+      :schedule="modal.item"
+      :loading="modal.loading"
+      :error="modal.error"
+      :success="modal.success"
+      @close="closeModal"
+      @submit="handleSubmit"
+    />
   </DashboardLayout>
 </template>

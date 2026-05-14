@@ -22,18 +22,18 @@ const currentFilter = ref('all')
 // Filters
 const branchFilter = ref('all')
 const dropdowns = ref({
-  branch: false
+  branch: false,
 })
 const filterMenuStyles = ref({})
 
 const branchOptions = computed(() => {
   return dataStore.branches
-    .filter(b => !b.isDeleted)
-    .map(b => ({
+    .filter((b) => !b.isDeleted)
+    .map((b) => ({
       label: b.name,
       value: b.id,
       color: b.color,
-      abbr: b.abbr
+      abbr: b.abbr,
     }))
     .sort((a, b) => a.label.localeCompare(b.label))
 })
@@ -41,7 +41,7 @@ const branchOptions = computed(() => {
 const toggleDropdown = (type, event) => {
   event.stopPropagation()
   const isOpening = !dropdowns.value[type]
-  Object.keys(dropdowns.value).forEach(key => {
+  Object.keys(dropdowns.value).forEach((key) => {
     dropdowns.value[key] = false
   })
   dropdowns.value[type] = isOpening
@@ -51,7 +51,7 @@ const toggleDropdown = (type, event) => {
     filterMenuStyles.value = {
       top: `${rect.bottom + window.scrollY + 8}px`,
       left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 250)}px`,
-      minWidth: '240px'
+      minWidth: '240px',
     }
   }
 }
@@ -64,10 +64,10 @@ const selectFilter = (type, value) => {
 const getActiveLabel = (type) => {
   if (type === 'branch') {
     if (branchFilter.value === 'all') return { label: 'All Branches', color: 'purple' }
-    const opt = branchOptions.value.find(o => String(o.value) === String(branchFilter.value))
+    const opt = branchOptions.value.find((o) => String(o.value) === String(branchFilter.value))
     return {
       label: opt ? opt.label : 'Select Branch',
-      color: opt?.color || 'purple'
+      color: opt?.color || 'purple',
     }
   }
   return { label: '' }
@@ -88,7 +88,7 @@ const fetchData = async () => {
     const [paymentsData, financialStats] = await Promise.all([
       paymentService.getAllPayments(),
       paymentService.getFinancialStats(),
-      dataStore.fetchBranches()
+      dataStore.fetchBranches(),
     ])
     enrollments.value = Array.isArray(paymentsData) ? paymentsData : []
     stats.value = financialStats
@@ -110,7 +110,7 @@ onUnmounted(() => {
 
 // 1. Base formatting
 const formattedPayments = computed(() => {
-  return enrollments.value.map(e => ({
+  return enrollments.value.map((e) => ({
     id: e.id,
     receiptId: e.receiptId || (e.enrollmentId ? `#${e.enrollmentId.slice(-6)}` : 'N/A'),
     transactionId: e.transactionId || (e.paymentMethod === 'cash' ? null : 'N/A'),
@@ -126,7 +126,12 @@ const formattedPayments = computed(() => {
     program: e.program?.name || 'Standard Program',
     paymentModeType: e.paymentModeType || (e.isProrated ? 'partial' : 'full'),
     termStatus: e.termStatus || 'unknown',
-    branchId: e.branchId || e.enrollment?.branchId || e.class?.branchId || e.branch?.id || e.enrollment?.branch?.id
+    branchId:
+      e.branchId ||
+      e.enrollment?.branchId ||
+      e.class?.branchId ||
+      e.branch?.id ||
+      e.enrollment?.branch?.id,
   }))
 })
 
@@ -137,7 +142,7 @@ const statusFilteredPayments = computed(() => {
   // 1. Status Filter
   if (currentFilter.value !== 'all') {
     const filter = currentFilter.value.toLowerCase()
-    list = list.filter(p => {
+    list = list.filter((p) => {
       if (filter === 'paid') return isPaid(p.status)
       if (filter === 'pending') return isPending(p.status)
       if (filter === 'failed') return p.status === 'failed'
@@ -149,7 +154,7 @@ const statusFilteredPayments = computed(() => {
 
   // 2. Branch Filter
   if (branchFilter.value !== 'all') {
-    list = list.filter(p => String(p.branchId) === String(branchFilter.value))
+    list = list.filter((p) => String(p.branchId) === String(branchFilter.value))
   }
 
   return list
@@ -158,7 +163,7 @@ const statusFilteredPayments = computed(() => {
 // 3. Search filtering
 const { searchQuery, searchResults: searchedPayments } = useSearch(
   statusFilteredPayments,
-  paymentSearchMapper
+  paymentSearchMapper,
 )
 
 // 4. Operational sorting (Active terms first)
@@ -189,28 +194,31 @@ watch([searchQuery, currentFilter, branchFilter], () => {
 })
 
 const paymentStats = computed(() => {
-  const pList = branchFilter.value === 'all'
-    ? formattedPayments.value
-    : formattedPayments.value.filter(p => String(p.branchId) === String(branchFilter.value))
+  const pList =
+    branchFilter.value === 'all'
+      ? formattedPayments.value
+      : formattedPayments.value.filter((p) => String(p.branchId) === String(branchFilter.value))
 
   // 1. Monthly Revenue (Current Month, Paid)
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  const monthlyPaid = pList.filter(p => {
+  const monthlyPaid = pList.filter((p) => {
     const d = new Date(p.date)
     return isPaid(p.status) && d.getMonth() === currentMonth && d.getFullYear() === currentYear
   })
   const monthlyRevenue = monthlyPaid.reduce((sum, p) => sum + (p.amount || 0), 0)
 
   // 2. Pending Payments (Total Outstanding)
-  const pendingPaid = pList.filter(p => isPending(p.status))
+  const pendingPaid = pList.filter((p) => isPending(p.status))
   const pendingRevenue = pendingPaid.reduce((sum, p) => sum + (p.amount || 0), 0)
 
   // 3. Collection Overview (Cash vs Online)
-  const paidList = pList.filter(p => isPaid(p.status))
-  const cashPaid = paidList.filter(p => p.method === 'cash').reduce((sum, p) => sum + (p.amount || 0), 0)
+  const paidList = pList.filter((p) => isPaid(p.status))
+  const cashPaid = paidList
+    .filter((p) => p.method === 'cash')
+    .reduce((sum, p) => sum + (p.amount || 0), 0)
   const onlinePaid = paidList.reduce((sum, p) => sum + (p.amount || 0), 0) - cashPaid
 
   return [
@@ -263,57 +271,110 @@ const paymentHeaders = [
       </template>
 
       <template #table>
-        <DataTable title="Payment Lists" :headers="paymentHeaders" :items="paginatedPayments" :loading="loading"
-          :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
+        <DataTable
+          title="Payment Lists"
+          :headers="paymentHeaders"
+          :items="paginatedPayments"
+          :loading="loading"
+          :hasPagination="true"
+          :currentPage="currentPage"
+          :pageSize="pageSize"
+          :totalItems="totalItems"
           @update:currentPage="currentPage = $event"
-          searchPlaceholder="Search by parent, student, or transaction IDs..." :hasFilter="true"
-          v-model:searchQuery="searchQuery" v-model:currentFilter="currentFilter" :filterOptions="[
+          searchPlaceholder="Search by parent, student, or transaction IDs..."
+          :hasFilter="true"
+          v-model:searchQuery="searchQuery"
+          v-model:currentFilter="currentFilter"
+          :filterOptions="[
             { label: 'All Transactions', value: 'all' },
             { label: 'Paid', value: 'paid' },
             { label: 'Pending', value: 'pending' },
             { label: 'Failed', value: 'failed' },
             { label: 'Cash Only', value: 'cash' },
             { label: 'Online Only', value: 'online' },
-          ]">
+          ]"
+        >
           <template #toolbar-actions>
             <div class="flex items-center gap-3">
               <!-- Branch Filter -->
               <div class="relative" id="branch-filter-btn">
-                <AppButton :variant="branchFilter === 'all' ? 'secondary' : 'ghost'" size="md"
-                  @click="toggleDropdown('branch', $event)" class="rounded-xl transition-all duration-300 group"
-                  :class="{ '!text-white shadow-md': branchFilter !== 'all', 'shadow-sm': branchFilter === 'all' }"
-                  :style="branchFilter !== 'all' ? { backgroundColor: `var(--color-${getActiveLabel('branch').color})` } : {}">
-                  <img :src="getActionIcon('branch')"
+                <AppButton
+                  :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"
+                  size="md"
+                  @click="toggleDropdown('branch', $event)"
+                  class="rounded-xl transition-all duration-300 group"
+                  :class="{
+                    '!text-white shadow-md': branchFilter !== 'all',
+                    'shadow-sm': branchFilter === 'all',
+                  }"
+                  :style="
+                    branchFilter !== 'all'
+                      ? { backgroundColor: `var(--color-${getActiveLabel('branch').color})` }
+                      : {}
+                  "
+                >
+                  <img
+                    :src="getActionIcon('branch')"
                     class="w-4 h-4 brightness-0 transition-all opacity-80 group-hover:opacity-100"
-                    :class="{ 'invert': branchFilter !== 'all' }" />
-                  <span class="font-bold tracking-tight" :class="{ 'text-white': branchFilter !== 'all' }">{{
-                    getActiveLabel('branch').label }}</span>
-                  <span class="ml-2 text-xs opacity-60 group-hover:opacity-100"
-                    :class="{ 'text-white': branchFilter !== 'all' }">▼</span>
+                    :class="{ invert: branchFilter !== 'all' }"
+                  />
+                  <span
+                    class="font-bold tracking-tight"
+                    :class="{ 'text-white': branchFilter !== 'all' }"
+                    >{{ getActiveLabel('branch').label }}</span
+                  >
+                  <span
+                    class="ml-2 text-xs opacity-60 group-hover:opacity-100"
+                    :class="{ 'text-white': branchFilter !== 'all' }"
+                    >▼</span
+                  >
                 </AppButton>
                 <Teleport to="body">
-                  <transition enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                    leave-to-class="opacity-0">
-                    <div v-if="dropdowns.branch" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
-                      <div class="toolbar-filter-option flex items-center justify-between gap-4"
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="dropdowns.branch"
+                      class="toolbar-filter-menu"
+                      :style="filterMenuStyles"
+                      @mousedown.stop
+                    >
+                      <div
+                        class="toolbar-filter-option flex items-center justify-between gap-4"
                         :class="{ 'active-filter-item': branchFilter === 'all' }"
-                        @click="selectFilter('branch', 'all')">
+                        @click="selectFilter('branch', 'all')"
+                      >
                         <div class="flex items-center gap-3">
                           <AppBadge status="ALL" type="gray" size="sm" class="w-12 text-center" />
                           <span>All Branches</span>
                         </div>
                       </div>
-                      <div v-for="opt in branchOptions" :key="opt.value"
+                      <div
+                        v-for="opt in branchOptions"
+                        :key="opt.value"
                         class="toolbar-filter-option flex items-center justify-between gap-4"
-                        :class="{ 'active-filter-item': String(branchFilter) === String(opt.value) }"
-                        @click="selectFilter('branch', opt.value)">
+                        :class="{
+                          'active-filter-item': String(branchFilter) === String(opt.value),
+                        }"
+                        @click="selectFilter('branch', opt.value)"
+                      >
                         <div class="flex items-center gap-3">
-                          <AppBadge :status="opt.abbr" :type="opt.color" size="sm" class="w-12 text-center" />
+                          <AppBadge
+                            :status="opt.abbr"
+                            :type="opt.color"
+                            size="sm"
+                            class="w-12 text-center"
+                          />
                           <span class="truncate">{{ opt.label }}</span>
                         </div>
-                        <span v-if="String(branchFilter) === String(opt.value)" class="text-xs">✓</span>
+                        <span v-if="String(branchFilter) === String(opt.value)" class="text-xs"
+                          >✓</span
+                        >
                       </div>
                     </div>
                   </transition>
@@ -333,7 +394,9 @@ const paymentHeaders = [
                 </div>
                 <div class="ui-identity-info">
                   <div class="flex items-center gap-2">
-                    <span class="truncate block font-bold text-content-dark text-sm">{{ item.parent }}</span>
+                    <span class="truncate block font-bold text-content-dark text-sm">{{
+                      item.parent
+                    }}</span>
                   </div>
                   <div class="flex items-center gap-1.5 opacity-60">
                     <img :src="item.studentProfile" class="w-3 h-3 rounded-full" />
@@ -344,13 +407,17 @@ const paymentHeaders = [
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
-              <span class="text-xs font-bold text-content-dark tracking-tighter tabular-nums">{{ item.receiptId
+              <span class="text-xs font-bold text-content-dark tracking-tighter tabular-nums">{{
+                item.receiptId
               }}</span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[3].width }">
-              <span v-if="item.transactionId" class="text-xs font-bold text-content-muted tabular-nums">{{
-                item.transactionId }}</span>
+              <span
+                v-if="item.transactionId"
+                class="text-xs font-bold text-content-muted tabular-nums"
+                >{{ item.transactionId }}</span
+              >
               <span v-else class="opacity-30">—</span>
             </td>
 
@@ -366,11 +433,17 @@ const paymentHeaders = [
               <AppBadge :status="item.status" />
             </td>
 
-            <td class="ui-cell text-center hidden lg:table-cell" :style="{ width: headers[7].width }">
+            <td
+              class="ui-cell text-center hidden lg:table-cell"
+              :style="{ width: headers[7].width }"
+            >
               <div class="flex flex-col items-center">
                 <span class="text-xs font-bold text-content-dark tabular-nums tracking-tight">{{
-                  formatDate(item.date) }}</span>
-                <span class="text-3xs font-bold text-content-muted mt-1 uppercase tracking-tighter">Settlement</span>
+                  formatDate(item.date)
+                }}</span>
+                <span class="text-3xs font-bold text-content-muted mt-1 uppercase tracking-tighter"
+                  >Settlement</span
+                >
               </div>
             </td>
           </template>

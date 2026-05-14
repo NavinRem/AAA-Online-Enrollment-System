@@ -44,11 +44,11 @@ const mapSourceToForm = () => {
       data.branchIds = data.branchId ? [data.branchId] : []
     }
     if (!data.branchSettings) {
-      data.branchSettings = data.branchIds.map(id => ({
+      data.branchSettings = data.branchIds.map((id) => ({
         branchId: id,
         startDate: data.startDate,
         endDate: data.endDate,
-        status: data.status || 'upcoming'
+        status: data.status || 'upcoming',
       }))
     }
     return data
@@ -56,19 +56,12 @@ const mapSourceToForm = () => {
   return getInitialData()
 }
 
-const {
-  localData,
-  shaking,
-  errors,
-  validate,
-  clearError,
-  triggerShake,
-  resetForm,
-} = useActionModal(props, emit, {
-  getInitialData,
-  mapSourceToForm,
-  sourceKey: 'term',
-})
+const { localData, shaking, errors, validate, clearError, triggerShake, resetForm } =
+  useActionModal(props, emit, {
+    getInitialData,
+    mapSourceToForm,
+    sourceKey: 'term',
+  })
 
 const showConfirm = ref(false)
 const isBranchDropdownOpen = ref(false)
@@ -78,13 +71,17 @@ const toggleAllBranches = () => {
   if (localData.branchIds.length === props.branches.length) {
     localData.branchIds = []
   } else {
-    localData.branchIds = props.branches.map(b => b.id)
+    localData.branchIds = props.branches.map((b) => b.id)
   }
   clearError('branchIds')
 }
 
 const handleClickOutside = (event) => {
-  if (isBranchDropdownOpen.value && dropdownContainer.value && !dropdownContainer.value.contains(event.target)) {
+  if (
+    isBranchDropdownOpen.value &&
+    dropdownContainer.value &&
+    !dropdownContainer.value.contains(event.target)
+  ) {
     isBranchDropdownOpen.value = false
   }
 }
@@ -119,7 +116,7 @@ const requestConfirm = () => {
 
   const rules = {
     required: props.type === 'delete' ? ['deleteConfirm'] : ['name', 'startDate', 'totalSessions'],
-    custom: {}
+    custom: {},
   }
 
   if (props.type === 'delete') {
@@ -128,7 +125,7 @@ const requestConfirm = () => {
 
   if (!validate(rules)) {
     if (props.type !== 'delete') {
-      const firstError = Object.keys(errors).find(k => errors[k])
+      const firstError = Object.keys(errors).find((k) => errors[k])
       if (firstError) triggerShake(firstError)
     }
     return
@@ -146,7 +143,7 @@ const isDirty = computed(() => {
 
   // Check basic fields
   const basicFields = ['name', 'startDate', 'endDate', 'totalSessions']
-  const basicChanged = basicFields.some(f => initial[f] !== current[f])
+  const basicChanged = basicFields.some((f) => initial[f] !== current[f])
 
   // Check branch associations
   const initialBranches = [...(initial.branchIds || [])].sort().join(',')
@@ -154,7 +151,8 @@ const isDirty = computed(() => {
   const branchesChanged = initialBranches !== currentBranches
 
   // Check branch settings (deep comparison of key fields)
-  const settingsChanged = JSON.stringify(initial.branchSettings || []) !== JSON.stringify(current.branchSettings || [])
+  const settingsChanged =
+    JSON.stringify(initial.branchSettings || []) !== JSON.stringify(current.branchSettings || [])
 
   return basicChanged || branchesChanged || settingsChanged
 })
@@ -174,9 +172,9 @@ const handleActionSubmit = () => {
 
   // Calculate status for each branch setting
   if (payload.branchSettings && payload.branchSettings.length > 0) {
-    payload.branchSettings = payload.branchSettings.map(s => ({
+    payload.branchSettings = payload.branchSettings.map((s) => ({
       ...s,
-      status: calculateClassProgress(s.startDate, s.endDate).status.toLowerCase()
+      status: calculateClassProgress(s.startDate, s.endDate).status.toLowerCase(),
     }))
 
     // Representative status from first branch
@@ -195,16 +193,37 @@ const handleActionSubmit = () => {
 const confirmRows = computed(() => {
   const rows = [
     { key: 'Term', value: localData.name, badge: true, type: 'blue' },
-    { key: 'Start Date', value: formatDateOnly(localData.startDate || localData.branchSettings?.[0]?.startDate), badge: true, type: 'green' },
-    { key: 'End Date', value: formatDateOnly(localData.endDate || localData.branchSettings?.[0]?.endDate), badge: true, type: 'red' },
+    {
+      key: 'Start Date',
+      value: formatDateOnly(localData.startDate || localData.branchSettings?.[0]?.startDate),
+      badge: true,
+      type: 'green',
+    },
+    {
+      key: 'End Date',
+      value: formatDateOnly(localData.endDate || localData.branchSettings?.[0]?.endDate),
+      badge: true,
+      type: 'red',
+    },
     { key: 'Sessions', value: `${localData.totalSessions} Weeks` },
     { key: 'Duplicate From', value: duplicateTermLabel.value || 'Fresh Term' },
     { key: 'Scope', value: '' }, // Handled by slot
-    { key: 'Status', value: calculateClassProgress(localData.startDate || localData.branchSettings?.[0]?.startDate, localData.endDate || localData.branchSettings?.[0]?.endDate).status, badge: true },
+    {
+      key: 'Status',
+      value: calculateClassProgress(
+        localData.startDate || localData.branchSettings?.[0]?.startDate,
+        localData.endDate || localData.branchSettings?.[0]?.endDate,
+      ).status,
+      badge: true,
+    },
   ]
 
   if (props.type === 'delete') {
-    rows.push({ key: 'Security Check', value: localData.deleteConfirm, valueClass: 'text-error font-bold' })
+    rows.push({
+      key: 'Security Check',
+      value: localData.deleteConfirm,
+      valueClass: 'text-error font-bold',
+    })
   }
 
   return rows
@@ -220,47 +239,61 @@ const duplicateTermOptions = computed(() => {
       id: item.id,
       name: item.name,
       startDate: item.startDate,
-      endDate: item.endDate
+      endDate: item.endDate,
     }))
 })
 
-const duplicateTermLabel = computed(() =>
-  duplicateTermOptions.value.find((item) => item.id === localData.duplicateFromTermId)?.name || '',
+const duplicateTermLabel = computed(
+  () =>
+    duplicateTermOptions.value.find((item) => item.id === localData.duplicateFromTermId)?.name ||
+    '',
 )
 
 // Auto-calculate end date for global
-watch(() => [localData.startDate, localData.totalSessions], ([start, sessions]) => {
-  if (!start || !sessions) return
-  const date = new Date(start)
-  date.setDate(date.getDate() + (parseInt(sessions) - 1) * 7)
-  localData.endDate = date.toISOString().split('T')[0]
-})
+watch(
+  () => [localData.startDate, localData.totalSessions],
+  ([start, sessions]) => {
+    if (!start || !sessions) return
+    const date = new Date(start)
+    date.setDate(date.getDate() + (parseInt(sessions) - 1) * 7)
+    localData.endDate = date.toISOString().split('T')[0]
+  },
+)
 
 // Sync branchSettings with branchIds
-watch(() => localData.branchIds, (newIds) => {
-  if (!localData.branchSettings) localData.branchSettings = []
+watch(
+  () => localData.branchIds,
+  (newIds) => {
+    if (!localData.branchSettings) localData.branchSettings = []
 
-  // Remove settings for unselected branches
-  localData.branchSettings = localData.branchSettings.filter(s => newIds.includes(s.branchId))
+    // Remove settings for unselected branches
+    localData.branchSettings = localData.branchSettings.filter((s) => newIds.includes(s.branchId))
 
-  // Add settings for new branches, using global dates as initial default
-  newIds.forEach(id => {
-    if (!localData.branchSettings.find(s => s.branchId === id)) {
-      localData.branchSettings.push({
-        branchId: id,
-        startDate: localData.startDate,
-        endDate: localData.endDate,
-        status: 'upcoming'
-      })
-    }
-  })
-}, { deep: true })
+    // Add settings for new branches, using global dates as initial default
+    newIds.forEach((id) => {
+      if (!localData.branchSettings.find((s) => s.branchId === id)) {
+        localData.branchSettings.push({
+          branchId: id,
+          startDate: localData.startDate,
+          endDate: localData.endDate,
+          status: 'upcoming',
+        })
+      }
+    })
+  },
+  { deep: true },
+)
 
 const getBranchSetting = (branchId) => {
   if (!localData.branchSettings) localData.branchSettings = []
-  let setting = localData.branchSettings.find(s => s.branchId === branchId)
+  let setting = localData.branchSettings.find((s) => s.branchId === branchId)
   if (!setting) {
-    setting = { branchId, startDate: localData.startDate, endDate: localData.endDate, status: 'upcoming' }
+    setting = {
+      branchId,
+      startDate: localData.startDate,
+      endDate: localData.endDate,
+      status: 'upcoming',
+    }
     localData.branchSettings.push(setting)
   }
   return setting
@@ -292,117 +325,214 @@ watch(
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" :icon="modalIcon" :error="error" :success="success" maxWidth="600px"
-    @close="$emit('close')">
+  <AppModal
+    :show="isOpen"
+    :title="modalTitle"
+    :icon="modalIcon"
+    :error="error"
+    :success="success"
+    maxWidth="600px"
+    @close="$emit('close')"
+  >
     <div class="relative min-h-[350px]">
       <!-- ADD / EDIT MODE -->
-      <form v-if="type === 'add' || type === 'edit'" id="termActionForm"
+      <form
+        v-if="type === 'add' || type === 'edit'"
+        id="termActionForm"
         class="flex flex-col gap-lg animate-in fade-in slide-in-from-bottom-4 duration-500"
-        @submit.prevent="requestConfirm" novalidate>
-
-        <AppInput v-model="localData.name" label="Term Name" placeholder="e.g. T1-2026-Saturday" required
-          :error="errors.name" :shake="shaking.name" @input="clearError('name')" />
+        @submit.prevent="requestConfirm"
+        novalidate
+      >
+        <AppInput
+          v-model="localData.name"
+          label="Term Name"
+          placeholder="e.g. T1-2026-Saturday"
+          required
+          :error="errors.name"
+          :shake="shaking.name"
+          @input="clearError('name')"
+        />
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-lg">
-          <AppInput v-model="localData.totalSessions" type="number" label="Total Sessions" required
-            :error="errors.totalSessions" :shake="shaking.totalSessions" @input="clearError('totalSessions')" />
+          <AppInput
+            v-model="localData.totalSessions"
+            type="number"
+            label="Total Sessions"
+            required
+            :error="errors.totalSessions"
+            :shake="shaking.totalSessions"
+            @input="clearError('totalSessions')"
+          />
 
           <div class="flex flex-col gap-xs text-left w-full">
-            <label class="text-sm font-semibold text-content-dark flex items-center justify-between gap-1">
+            <label
+              class="text-sm font-semibold text-content-dark flex items-center justify-between gap-1"
+            >
               <div class="flex items-center gap-1">
                 Branch Scope <span class="text-error font-bold leading-none">*</span>
               </div>
-              <button type="button" @click="toggleAllBranches"
-                class="text-xs text-primary hover:underline font-bold tracking-tighter">
+              <button
+                type="button"
+                @click="toggleAllBranches"
+                class="text-xs text-primary hover:underline font-bold tracking-tighter"
+              >
                 {{ localData.branchIds.length === branches.length ? 'Unselect All' : 'Select All' }}
               </button>
             </label>
 
             <div class="relative group" ref="dropdownContainer">
-              <div @click="isBranchDropdownOpen = !isBranchDropdownOpen"
+              <div
+                @click="isBranchDropdownOpen = !isBranchDropdownOpen"
                 class="w-full px-4 py-3 border-2 border-outline-std rounded-sm bg-white text-base outline-none transition-all hover:border-primary/50 cursor-pointer flex items-center justify-between min-h-[50px]"
-                :class="{ 'border-primary ring-[3px] ring-info-soft': isBranchDropdownOpen, 'ui-input-invalid': errors.branchIds }">
-
+                :class="{
+                  'border-primary ring-[3px] ring-info-soft': isBranchDropdownOpen,
+                  'ui-input-invalid': errors.branchIds,
+                }"
+              >
                 <div class="flex flex-wrap gap-1 max-w-[85%]">
-                  <span v-if="localData.branchIds.length === 0" class="text-content-light/50 italic text-base">Select
-                    branches...</span>
+                  <span
+                    v-if="localData.branchIds.length === 0"
+                    class="text-content-light/50 italic text-base"
+                    >Select branches...</span
+                  >
                   <template v-else>
-                    <AppBadge v-for="id in localData.branchIds" :key="id"
-                      :status="branches.find(b => b.id === id)?.abbr"
-                      :type="branches.find(b => b.id === id)?.color || 'blue'" />
+                    <AppBadge
+                      v-for="id in localData.branchIds"
+                      :key="id"
+                      :status="branches.find((b) => b.id === id)?.abbr"
+                      :type="branches.find((b) => b.id === id)?.color || 'blue'"
+                    />
                   </template>
                 </div>
 
-                <span class="text-xs transition-transform duration-300"
-                  :class="{ 'rotate-180': isBranchDropdownOpen }">▼</span>
+                <span
+                  class="text-xs transition-transform duration-300"
+                  :class="{ 'rotate-180': isBranchDropdownOpen }"
+                  >▼</span
+                >
               </div>
 
               <!-- Dropdown Content -->
-              <transition enter-active-class="transition duration-200 ease-out"
-                enter-from-class="opacity-0 scale-95 translate-y-2" enter-to-class="opacity-100 scale-100 translate-y-0"
+              <transition
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="opacity-0 scale-95 translate-y-2"
+                enter-to-class="opacity-100 scale-100 translate-y-0"
                 leave-active-class="transition duration-150 ease-in"
                 leave-from-class="opacity-100 scale-100 translate-y-0"
-                leave-to-class="opacity-0 scale-95 translate-y-2">
-                <div v-if="isBranchDropdownOpen"
-                  class="absolute z-[100] mt-2 w-full bg-white border-2 border-outline-std rounded-sm shadow-2xl overflow-hidden max-h-[250px] flex flex-col">
+                leave-to-class="opacity-0 scale-95 translate-y-2"
+              >
+                <div
+                  v-if="isBranchDropdownOpen"
+                  class="absolute z-[100] mt-2 w-full bg-white border-2 border-outline-std rounded-sm shadow-2xl overflow-hidden max-h-[250px] flex flex-col"
+                >
                   <div class="flex flex-col overflow-y-auto scrollable-v p-2 gap-1">
-                    <label v-for="branch in branches" :key="branch.id"
+                    <label
+                      v-for="branch in branches"
+                      :key="branch.id"
                       class="flex items-center justify-between gap-3 p-3 rounded-lg cursor-pointer transition-all hover:bg-surface-subtle group"
-                      :class="{ 'bg-primary/5': localData.branchIds.includes(branch.id) }">
-                      <span class="text-sm font-semibold text-content-dark truncate tracking-tight">{{
-                        branch.name }}</span>
+                      :class="{ 'bg-primary/5': localData.branchIds.includes(branch.id) }"
+                    >
+                      <span
+                        class="text-sm font-semibold text-content-dark truncate tracking-tight"
+                        >{{ branch.name }}</span
+                      >
                       <div class="flex items-center gap-2 min-w-0">
                         <AppBadge :status="branch.abbr" :type="branch.color || 'blue'" />
-                        <input type="checkbox" v-model="localData.branchIds" :value="branch.id"
+                        <input
+                          type="checkbox"
+                          v-model="localData.branchIds"
+                          :value="branch.id"
                           class="w-4 h-4 rounded border-outline-std text-primary focus:ring-primary/20 cursor-pointer"
-                          @change="clearError('branchIds')" />
+                          @change="clearError('branchIds')"
+                        />
                       </div>
                     </label>
                   </div>
                 </div>
               </transition>
             </div>
-            <p v-if="errors.branchIds" class="text-xs font-semibold text-error  pl-1 mt-0.5">
-              {{
-                errors.branchIds }}</p>
+            <p v-if="errors.branchIds" class="text-xs font-semibold text-error pl-1 mt-0.5">
+              {{ errors.branchIds }}
+            </p>
           </div>
         </div>
 
-        <div v-if="localData.branchIds.length === 0"
-          class="grid grid-cols-2 gap-lg animate-in fade-in slide-in-from-top-2 duration-300">
-          <AppInput v-model="localData.startDate" type="date" label="Start Date" required :error="errors.startDate"
-            :shake="shaking.startDate" @input="clearError('startDate')" />
-          <AppInput v-model="localData.endDate" type="date" label="Auto-calculated End Date" readonly disabled />
+        <div
+          v-if="localData.branchIds.length === 0"
+          class="grid grid-cols-2 gap-lg animate-in fade-in slide-in-from-top-2 duration-300"
+        >
+          <AppInput
+            v-model="localData.startDate"
+            type="date"
+            label="Start Date"
+            required
+            :error="errors.startDate"
+            :shake="shaking.startDate"
+            @input="clearError('startDate')"
+          />
+          <AppInput
+            v-model="localData.endDate"
+            type="date"
+            label="Auto-calculated End Date"
+            readonly
+            disabled
+          />
         </div>
-        <div v-if="localData.branchIds.length > 0" class="flex flex-col gap-4 mt-2 border-t border-outline-std pt-4">
+        <div
+          v-if="localData.branchIds.length > 0"
+          class="flex flex-col gap-4 mt-2 border-t border-outline-std pt-4"
+        >
           <div class="flex items-center justify-between">
-            <label class="text-xs font-bold text-content-muted ">Branch-Specific
-              Scheduling</label>
-            <span class="text-xs font-medium text-primary italic">Different dates per branch? Edit below</span>
+            <label class="text-xs font-bold text-content-muted">Branch-Specific Scheduling</label>
+            <span class="text-xs font-medium text-primary italic"
+              >Different dates per branch? Edit below</span
+            >
           </div>
           <div class="grid grid-cols-1 gap-3">
-            <div v-for="branchId in localData.branchIds" :key="branchId"
-              class="p-4 bg-surface-subtle/50 rounded-xl border border-outline-std hover:border-primary/30 transition-all">
+            <div
+              v-for="branchId in localData.branchIds"
+              :key="branchId"
+              class="p-4 bg-surface-subtle/50 rounded-xl border border-outline-std hover:border-primary/30 transition-all"
+            >
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                  <AppBadge :status="branches.find(b => b.id === branchId)?.abbr"
-                    :type="branches.find(b => b.id === branchId)?.color || 'blue'" />
-                  <span class="text-sm font-bold text-content-dark tracking-tight">{{branches.find(b => b.id ===
-                    branchId)?.name}}</span>
+                  <AppBadge
+                    :status="branches.find((b) => b.id === branchId)?.abbr"
+                    :type="branches.find((b) => b.id === branchId)?.color || 'blue'"
+                  />
+                  <span class="text-sm font-bold text-content-dark tracking-tight">{{
+                    branches.find((b) => b.id === branchId)?.name
+                  }}</span>
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-4">
-                <AppInput :modelValue="getBranchSetting(branchId).startDate" type="date" label="Start Date" size="sm"
-                  @update:modelValue="(val) => updateBranchStartDate(branchId, val)" />
-                <AppInput :modelValue="calculateBranchEndDate(branchId)" type="date" label="End Date" size="sm" readonly
-                  disabled />
+                <AppInput
+                  :modelValue="getBranchSetting(branchId).startDate"
+                  type="date"
+                  label="Start Date"
+                  size="sm"
+                  @update:modelValue="(val) => updateBranchStartDate(branchId, val)"
+                />
+                <AppInput
+                  :modelValue="calculateBranchEndDate(branchId)"
+                  type="date"
+                  label="End Date"
+                  size="sm"
+                  readonly
+                  disabled
+                />
               </div>
             </div>
           </div>
         </div>
 
-        <AppSelect v-if="type === 'add'" v-model="localData.duplicateFromTermId" :items="duplicateTermOptions"
-          label="Duplicate Offerings From" placeholder="Select a recent term to clone...">
+        <AppSelect
+          v-if="type === 'add'"
+          v-model="localData.duplicateFromTermId"
+          :items="duplicateTermOptions"
+          label="Duplicate Offerings From"
+          placeholder="Select a recent term to clone..."
+        >
           <template #item="{ item }">
             <div class="flex items-center justify-between w-full gap-4">
               <span class="font-bold text-content-dark truncate">{{ item.name }}</span>
@@ -417,18 +547,27 @@ watch(
       </form>
 
       <!-- DELETE MODE -->
-      <div v-else-if="type === 'delete'"
-        class="flex flex-col gap-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div class="bg-white border border-outline-std rounded-md p-lg flex flex-col gap-lg shadow-sm" v-if="term">
+      <div
+        v-else-if="type === 'delete'"
+        class="flex flex-col gap-lg animate-in fade-in slide-in-from-bottom-4 duration-500"
+      >
+        <div
+          class="bg-white border border-outline-std rounded-md p-lg flex flex-col gap-lg shadow-sm"
+          v-if="term"
+        >
           <div class="flex items-center gap-4">
             <div
-              class="w-14 h-14 rounded-2xl overflow-hidden ring-4 ring-primary/5 bg-surface-subtle border border-outline-std/50 flex items-center justify-center">
+              class="w-14 h-14 rounded-2xl overflow-hidden ring-4 ring-primary/5 bg-surface-subtle border border-outline-std/50 flex items-center justify-center"
+            >
               <span class="text-2xl">📅</span>
             </div>
             <div class="flex flex-col">
-              <span class="text-sm font-semibold text-content-dark tracking-tighter">{{ term.name }}</span>
-              <span class="text-xs font-semibold text-content-muted">{{ formatDateOnly(term.startDate) }} — {{
-                formatDateOnly(term.endDate) }}</span>
+              <span class="text-sm font-semibold text-content-dark tracking-tighter">{{
+                term.name
+              }}</span>
+              <span class="text-xs font-semibold text-content-muted"
+                >{{ formatDateOnly(term.startDate) }} — {{ formatDateOnly(term.endDate) }}</span
+              >
             </div>
           </div>
         </div>
@@ -437,14 +576,22 @@ watch(
           <div class="flex flex-col gap-0.5">
             <strong class="text-sm font-semibold tracking-tight">⚠ Permanent Data Deletion</strong>
             <p class="text-xs opacity-90 font-medium leading-relaxed">
-              Purging this term will permanently remove its scheduling data. This action is irreversible and should only
-              be performed if no active classes are linked to this term.
+              Purging this term will permanently remove its scheduling data. This action is
+              irreversible and should only be performed if no active classes are linked to this
+              term.
             </p>
           </div>
         </AppAlert>
 
-        <AppInput v-model="localData.deleteConfirm" label="Security Confirmation" placeholder='Type "DELETE" to confirm'
-          required :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
+        <AppInput
+          v-model="localData.deleteConfirm"
+          label="Security Confirmation"
+          placeholder='Type "DELETE" to confirm'
+          required
+          :error="errors.deleteConfirm"
+          :shake="shaking.deleteConfirm"
+          @input="clearError('deleteConfirm')"
+        >
           <template #label-extra>
             <span class="block text-xs font-bold text-error/60 mt-1">
               Type <span class="text-error px-1 font-bold">DELETE</span> to authorize
@@ -454,16 +601,30 @@ watch(
       </div>
 
       <!-- ── Confirmation Overlay ── -->
-      <AppConfirmOverlay :show="showConfirm"
-        :title="type === 'delete' ? 'Delete Term' : (type === 'edit' ? 'Edit Term' : 'Add Term')"
-        :subtitle="type === 'delete' ? 'This action will permanently erase this academic term and its historical data.' : 'Please verify the academic schedule and parameters before proceeding.'"
-        :icon="modalIcon" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading" @back="showConfirm = false"
-        @confirm="handleActionSubmit">
+      <AppConfirmOverlay
+        :show="showConfirm"
+        :title="type === 'delete' ? 'Delete Term' : type === 'edit' ? 'Edit Term' : 'Add Term'"
+        :subtitle="
+          type === 'delete'
+            ? 'This action will permanently erase this academic term and its historical data.'
+            : 'Please verify the academic schedule and parameters before proceeding.'
+        "
+        :icon="modalIcon"
+        :rows="confirmRows"
+        :confirmLabel="submitLabel"
+        :loading="loading"
+        @back="showConfirm = false"
+        @confirm="handleActionSubmit"
+      >
         <template #row-Scope>
           <div class="flex flex-wrap justify-end gap-1 max-w-[200px]">
             <template v-if="localData.branchIds.length > 0">
-              <AppBadge v-for="id in localData.branchIds" :key="id" :status="branches.find(b => b.id === id)?.abbr"
-                :type="branches.find(b => b.id === id)?.color || 'blue'" />
+              <AppBadge
+                v-for="id in localData.branchIds"
+                :key="id"
+                :status="branches.find((b) => b.id === id)?.abbr"
+                :type="branches.find((b) => b.id === id)?.color || 'blue'"
+              />
             </template>
             <AppBadge v-else status="Global" type="neutral" />
           </div>
@@ -479,9 +640,16 @@ watch(
 
         <div class="flex items-center justify-end w-full gap-md">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-          <AppButton :variant="type === 'delete' ? 'danger' : 'primary'" type="button" @click="requestConfirm"
-            :loading="loading" :disabled="loading || (type === 'edit' && !isDirty)">
-            {{ type === 'delete' ? 'Delete Term' : (type === 'edit' ? 'Save Changes' : 'Create Term') }}
+          <AppButton
+            :variant="type === 'delete' ? 'danger' : 'primary'"
+            type="button"
+            @click="requestConfirm"
+            :loading="loading"
+            :disabled="loading || (type === 'edit' && !isDirty)"
+          >
+            {{
+              type === 'delete' ? 'Delete Term' : type === 'edit' ? 'Save Changes' : 'Create Term'
+            }}
           </AppButton>
         </div>
       </div>

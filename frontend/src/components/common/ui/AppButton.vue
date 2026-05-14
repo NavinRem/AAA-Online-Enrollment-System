@@ -13,7 +13,8 @@ const props = defineProps({
 
 const variantClasses = {
   primary: 'bg-primary text-white hover:bg-primary-dark shadow-md',
-  secondary: 'bg-primary-light text-content-deep border border-primary-light/50 hover:bg-primary-light',
+  secondary:
+    'bg-primary-light text-content-deep border border-primary-light/50 hover:bg-primary-light',
   danger: 'bg-error text-white hover:bg-error-deep',
   success: 'bg-success text-white hover:bg-success-deep',
   cancel: 'bg-surface-light text-content-muted hover:bg-surface-subtle hover:text-content-dark',
@@ -52,29 +53,43 @@ defineEmits(['click'])
   <button
     class="flex items-center justify-center gap-xs font-semibold px-6 py-2.5 text-sm cursor-pointer whitespace-nowrap transition-all duration-200 active:scale-[0.98] select-none"
     :class="[
-      !isSemantic ? (variantClasses[variant] || variantClasses.primary) : 'border border-transparent hover:brightness-95',
+      !isSemantic
+        ? variantClasses[variant] || variantClasses.primary
+        : 'border border-transparent hover:brightness-95',
       {
         'opacity-60 cursor-not-allowed pointer-events-none grayscale-[0.2]': disabled || loading,
         'p-xs rounded-full': iconOnly,
         'rounded-std': !iconOnly,
         'shadow-sm': !isSemantic && !['ghost', 'cancel'].includes(variant) && !disabled,
       },
-    ]" :style="buttonStyle" :type="type" :disabled="disabled || loading" @click="$emit('click', $event)">
-    <span v-if="loading"
-      class="w-4 h-4 border-2 border-white/40 border-t-current rounded-full animate-spin mr-[-4px]"></span>
+    ]"
+    :style="buttonStyle"
+    :type="type"
+    :disabled="disabled || loading"
+    @click="$emit('click', $event)"
+  >
+    <span
+      v-if="loading"
+      class="w-4 h-4 border-2 border-white/40 border-t-current rounded-full animate-spin mr-[-4px]"
+    ></span>
 
     <span v-if="$slots['icon-left'] && !loading" class="flex items-center justify-center">
       <slot name="icon-left"></slot>
     </span>
 
-    <span v-if="icon && !loading" class="flex items-center justify-center text-[1.25em] translate-y-[0.5px]">
+    <span
+      v-if="icon && !loading"
+      class="flex items-center justify-center text-[1.25em] translate-y-[0.5px]"
+    >
       <img v-if="icon.includes('/')" :src="icon" class="w-[1em] h-[1em] object-contain" />
       <span v-else>{{ icon }}</span>
     </span>
 
-    <span v-if="!iconOnly && $slots.default"
+    <span
+      v-if="!iconOnly && $slots.default"
       class="w-full flex items-center justify-center gap-xs transition-opacity duration-200"
-      :class="{ 'opacity-30': loading }">
+      :class="{ 'opacity-30': loading }"
+    >
       <slot></slot>
     </span>
 

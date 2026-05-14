@@ -6,9 +6,9 @@ defineProps({
   title: { type: String, required: true },
   items: {
     type: Array,
-    default: () => []
+    default: () => [],
     // Each item: { id, name, profileURL, badgeText, badgeType, route, programIcons: [] }
-  }
+  },
 })
 
 const router = useRouter()
@@ -25,15 +25,22 @@ const navigate = (item) => {
       <slot name="header-action"></slot>
     </div>
     <div class="space-y-4">
-      <div v-for="item in items" :key="item.id" @click="navigate(item)"
-        class="flex items-center gap-4 p-3 rounded-xl hover:bg-surface-subtle transition-all cursor-pointer group">
+      <div
+        v-for="item in items"
+        :key="item.id"
+        @click="navigate(item)"
+        class="flex items-center gap-4 p-3 rounded-xl hover:bg-surface-subtle transition-all cursor-pointer group"
+      >
         <div
-          class="w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-md bg-surface-subtle flex-shrink-0">
+          class="w-14 h-14 rounded-full overflow-hidden border-2 border-white shadow-md bg-surface-subtle flex-shrink-0"
+        >
           <img :src="item.profileURL" class="w-full h-full object-cover" />
         </div>
         <div class="flex flex-col flex-1 min-w-0">
           <div class="flex items-center justify-between gap-2">
-            <span class="text-lg font-bold text-content-dark group-hover:text-primary transition-colors truncate">
+            <span
+              class="text-lg font-bold text-content-dark group-hover:text-primary transition-colors truncate"
+            >
               {{ item.name }}
             </span>
             <AppBadge v-if="item.badgeText" :type="item.badgeType || 'blue'">

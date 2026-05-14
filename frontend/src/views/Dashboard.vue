@@ -1,8 +1,8 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useDataStore } from '../stores/dataStore'
 import { getImageUrl } from '@/utils/assetHelper'
-import { parseDate, formatPrice, formatDateOnly, calculateClassProgress } from '@/utils/formatUtils'
+import { formatPrice, calculateClassProgress } from '@/utils/formatUtils'
 import { calculateDashboardStats } from '@/utils/statsHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
 import { authService } from '@/services/authService'
@@ -13,6 +13,7 @@ import MiniCard from '../components/common/cards/MiniCard.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
 import RecentEnrollmentTable from '../components/enrollments/RecentEnrollmentTable.vue'
 import { enrichEnrollments } from '@/utils/enrollmentHelper'
+import { formatDateOnly, parseDate } from '@/utils/formatUtils'
 
 const dataStore = useDataStore()
 
@@ -30,9 +31,9 @@ const getGroupedSettings = (item) => {
   if (!item.branchSettings?.length) return []
 
   const groups = []
-  item.branchSettings.forEach(setting => {
+  item.branchSettings.forEach((setting) => {
     const key = `${setting.startDate}_${setting.endDate}`
-    let group = groups.find(g => g.key === key)
+    let group = groups.find((g) => g.key === key)
     if (!group) {
       const progress = calculateClassProgress(setting.startDate, setting.endDate)
       group = {
@@ -40,7 +41,7 @@ const getGroupedSettings = (item) => {
         startDate: setting.startDate,
         endDate: setting.endDate,
         status: progress.status,
-        branchIds: []
+        branchIds: [],
       }
       groups.push(group)
     }
@@ -56,30 +57,30 @@ const activeTerms = computed(() => {
   const todayStr = new Date().toISOString().split('T')[0]
   const branches = dataStore.branches
 
-  // Filter to get terms that are currently live
-  const candidates = termData.filter(t =>
-    t.status === 'active' || (t.startDate <= todayStr && t.endDate >= todayStr)
+  const candidates = termData.filter(
+    (t) => t.status === 'active' || (t.startDate <= todayStr && t.endDate >= todayStr),
   )
 
-  return candidates.map(t => {
-    // 1. Get all settings groups (which already uses calculateClassProgress)
-    const allGroups = getGroupedSettings(t)
+  return candidates
+    .map((t) => {
+      const allGroups = getGroupedSettings(t)
+      const activeGroups = allGroups.filter((g) => g.status === 'active')
 
-    // 2. Filter to show ONLY 'active' groups (excluding upcoming and archived)
-    const activeGroups = allGroups.filter(g => g.status === 'active')
+      const branchIds = t.branchIds || (t.branchId ? [t.branchId] : [])
+      const enrichedBranches = branchIds
+        .map((bId) => {
+          const branch = branches.find((b) => b.id === bId)
+          return branch ? { abbr: branch.abbr, color: branch.color } : null
+        })
+        .filter(Boolean)
 
-    const branchIds = t.branchIds || (t.branchId ? [t.branchId] : [])
-    const enrichedBranches = branchIds.map(bId => {
-      const branch = branches.find(b => b.id === bId)
-      return branch ? { abbr: branch.abbr, color: branch.color } : null
-    }).filter(Boolean)
-
-    return {
-      ...t,
-      branches: enrichedBranches,
-      groupedSettings: activeGroups
-    }
-  }).filter(t => t.groupedSettings.length > 0) // Only show terms that have truly active branch groups
+      return {
+        ...t,
+        branches: enrichedBranches,
+        groupedSettings: activeGroups,
+      }
+    })
+    .filter((t) => t.groupedSettings.length > 0)
 })
 
 const currentTerm = computed(() => activeTerms.value[currentTermIndex.value] || null)
@@ -92,7 +93,7 @@ const stats = computed(() => {
     dataStore.students,
     dataStore.classes,
     dataStore.branches,
-    dataStore.trials
+    dataStore.trials,
   )
 })
 
@@ -159,7 +160,7 @@ const todayStats = computed(() => [
     image: getImageUrl('dashboard/trial'),
   },
   {
-    label: "Today Payments",
+    label: 'Today Payments',
     value: `$${formatPrice(stats.value.today.pay)}`,
     image: getImageUrl('dashboard/payment'),
   },
@@ -226,7 +227,6 @@ const totalStats = computed(() => [
   },
 ])
 
-
 const mappedEnrollments = computed(() => {
   const raw = [...dataStore.enrollments]
     .sort((a, b) => {
@@ -241,20 +241,26 @@ const mappedEnrollments = computed(() => {
     dataStore.parents,
     dataStore.students,
     dataStore.getProgramWithCategory,
-    dataStore.classes
+    dataStore.classes,
   )
 })
 </script>
 
 <template>
   <DashboardLayout>
-    <div v-if="loading" class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted">
-      <div class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"></div>
-      <p class="font-semibold text-sm  opacity-70">
-        Loading Dashboard Data...
-      </p>
+    <div
+      v-if="loading"
+      class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted"
+    >
+      <div
+        class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"
+      ></div>
+      <p class="font-semibold text-sm opacity-70">Loading Dashboard Data...</p>
     </div>
-    <div v-else class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full h-[calc(100vh - 100px)] overflow-hidden">
+    <div
+      v-else
+      class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full h-[calc(100vh - 100px)] overflow-hidden"
+    >
       <div class="flex flex-col flex-1 min-w-0 h-full gap-lg overflow-y-auto pr-md scrollable-v">
         <section class="ui-detail-card">
           <div class="ui-section-header border-none flex items-center gap-md">
@@ -277,8 +283,12 @@ const mappedEnrollments = computed(() => {
 
       <div class="hidden lg:block lg:min-w-[300px] h-full min-h-0 max-w-[320px] flex-shrink-0">
         <div class="ui-detail-card h-full flex flex-col min-h-0 gap-md !p-lg">
-          <div class="border-b-[1px] border-gray-200 pb-lg flex flex-col items-center text-center gap-2">
-            <div class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2">
+          <div
+            class="border-b-[1px] border-gray-200 pb-lg flex flex-col items-center text-center gap-2"
+          >
+            <div
+              class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2"
+            >
               <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
             </div>
             <div class="flex flex-col items-center">
@@ -293,45 +303,69 @@ const mappedEnrollments = computed(() => {
 
           <div class="relative overflow-hidden min-h-[140px] flex flex-col">
             <Transition name="fade" mode="out-in">
-              <div v-if="currentTerm" :key="currentTerm.id"
-                class="px-md py-4 rounded-md bg-primary-soft border border-outline-std flex flex-col items-center flex-1">
-                <span class="text-md font-semibold  text-primary-dark mb-1">Active Academic
-                  Term</span>
+              <div
+                v-if="currentTerm"
+                :key="currentTerm.id"
+                class="px-md py-4 rounded-md bg-primary-soft border border-outline-std flex flex-col items-center flex-1"
+              >
+                <span class="text-md font-semibold text-primary-dark mb-1"
+                  >Active Academic Term</span
+                >
 
-                <span class="text-lg font-bold text-content-dark tracking-tighter leading-tight mb-2 text-center">
+                <span
+                  class="text-lg font-bold text-content-dark tracking-tighter leading-tight mb-2 text-center"
+                >
                   {{ currentTerm.name }}
                 </span>
 
                 <div class="w-full flex flex-col gap-3 mt-2">
                   <template v-if="currentTerm.groupedSettings?.length">
-                    <div v-for="group in currentTerm.groupedSettings" :key="group.key"
-                      class="flex flex-col items-center gap-1.5 border-b border-primary/10 last:border-0 pb-3 last:pb-0">
+                    <div
+                      v-for="group in currentTerm.groupedSettings"
+                      :key="group.key"
+                      class="flex flex-col items-center gap-1.5 border-b border-primary/10 last:border-0 pb-3 last:pb-0"
+                    >
                       <div class="flex justify-center gap-1">
-                        <AppBadge v-for="bId in group.branchIds" :key="bId"
-                          :status="dataStore.branches.find(b => b.id === bId)?.abbr"
-                          :type="dataStore.branches.find(b => b.id === bId)?.color || 'neutral'" />
+                        <AppBadge
+                          v-for="bId in group.branchIds"
+                          :key="bId"
+                          :status="dataStore.branches.find((b) => b.id === bId)?.abbr"
+                          :type="dataStore.branches.find((b) => b.id === bId)?.color || 'neutral'"
+                        />
                       </div>
                       <div
-                        class="flex w-full justify-center items-center gap-2 px-3 py-1 bg-white rounded-full border border-primary/5">
+                        class="flex w-full justify-center items-center gap-2 px-3 py-1 bg-white rounded-full border border-primary/5"
+                      >
                         <span class="text-xs font-bold text-content-muted tabular-nums">{{
-                          formatDateOnly(group.startDate) }}</span>
+                          formatDateOnly(group.startDate)
+                        }}</span>
                         <span class="text-content-muted font-black text-xs">→</span>
                         <span class="text-xs font-bold text-content-muted tabular-nums">{{
-                          formatDateOnly(group.endDate) }}</span>
+                          formatDateOnly(group.endDate)
+                        }}</span>
                       </div>
                     </div>
                   </template>
                   <template v-else>
                     <div class="flex flex-col items-center gap-1.5">
                       <div class="flex flex-wrap justify-center gap-1">
-                        <AppBadge v-for="b in currentTerm.branches" :key="b.abbr" :status="b.abbr" :type="b.color" />
+                        <AppBadge
+                          v-for="b in currentTerm.branches"
+                          :key="b.abbr"
+                          :status="b.abbr"
+                          :type="b.color"
+                        />
                       </div>
-                      <div class="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-primary/5">
+                      <div
+                        class="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-primary/5"
+                      >
                         <span class="text-xs font-bold text-content-muted tabular-nums">{{
-                          formatDateOnly(currentTerm.startDate) }}</span>
+                          formatDateOnly(currentTerm.startDate)
+                        }}</span>
                         <span class="text-content-muted/30 font-black text-xs">→</span>
                         <span class="text-xs font-bold text-content-muted tabular-nums">{{
-                          formatDateOnly(currentTerm.endDate) }}</span>
+                          formatDateOnly(currentTerm.endDate)
+                        }}</span>
                       </div>
                     </div>
                   </template>
@@ -340,16 +374,17 @@ const mappedEnrollments = computed(() => {
             </Transition>
 
             <div v-if="activeTerms.length > 1" class="flex justify-center gap-1 mt-2">
-              <div v-for="(_, idx) in activeTerms" :key="idx" class="w-1 h-1 rounded-full transition-all duration-300"
-                :class="idx === currentTermIndex ? 'bg-primary w-3' : 'bg-surface-light'">
-              </div>
+              <div
+                v-for="(_, idx) in activeTerms"
+                :key="idx"
+                class="w-1 h-1 rounded-full transition-all duration-300"
+                :class="idx === currentTermIndex ? 'bg-primary w-3' : 'bg-surface-light'"
+              ></div>
             </div>
           </div>
 
           <div class="flex flex-1 flex-col min-h-0 gap-md">
-            <h6 class="flex-shrink-0 font-bold  text-content-dark text-center">
-              Basic Information
-            </h6>
+            <h6 class="flex-shrink-0 font-bold text-content-dark text-center">Basic Information</h6>
             <div class="flex flex-1 flex-col min-h-0 gap-3 scrollable-v">
               <MiniCard v-for="stat in totalStats" :key="stat.title" v-bind="stat" />
             </div>

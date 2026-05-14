@@ -159,9 +159,7 @@ const handleActionSubmit = () => {
 
 const confirmRows = computed(() => {
   const p = selectedParent.value
-  const rows = [
-    { key: 'Parent Name', value: p?.name || 'N/A' },
-  ]
+  const rows = [{ key: 'Parent Name', value: p?.name || 'N/A' }]
 
   if (props.type === 'edit') {
     rows.push({ key: 'Email', value: localData.email })
@@ -171,14 +169,32 @@ const confirmRows = computed(() => {
     rows.push({ key: 'Parent Contact', value: p?.phone || p?.email || 'N/A' })
     rows.push({ key: 'Student Name', value: localData.name })
     rows.push({ key: 'Birthday', value: localData.dob })
-    rows.push({ key: 'Age', value: localData.dob ? `${calculateAge(localData.dob)} years old` : 'N/A' })
-    rows.push({ key: 'Gender', value: (localData.profileURL || '').toLowerCase().includes('girl') || (localData.profileURL || '').toLowerCase().includes('woman') ? 'Female' : 'Male' })
+    rows.push({
+      key: 'Age',
+      value: localData.dob ? `${calculateAge(localData.dob)} years old` : 'N/A',
+    })
+    rows.push({
+      key: 'Gender',
+      value:
+        (localData.profileURL || '').toLowerCase().includes('girl') ||
+        (localData.profileURL || '').toLowerCase().includes('woman')
+          ? 'Female'
+          : 'Male',
+    })
     rows.push({ key: 'Status', value: localData.status || 'Inactive', badge: true })
   } else if (props.type === 'delete') {
     rows.push({ key: 'Email', value: localData.email })
-    rows.push({ key: 'Authorization', value: localData.deleteConfirm, valueClass: 'text-error font-bold' })
+    rows.push({
+      key: 'Authorization',
+      value: localData.deleteConfirm,
+      valueClass: 'text-error font-bold',
+    })
   } else if (props.type === 'reset-password') {
-    rows.push({ key: 'Reset Method', value: selectedResetMode.value === 'email' ? 'Email Link' : 'Manual Override', valueClass: 'font-bold text-primary' })
+    rows.push({
+      key: 'Reset Method',
+      value: selectedResetMode.value === 'email' ? 'Email Link' : 'Manual Override',
+      valueClass: 'font-bold text-primary',
+    })
   }
 
   return rows
@@ -279,7 +295,7 @@ const { searchResults: filteredParents } = useSearch(activeParents, parentSearch
 
 const selectedParent = computed(() => {
   if (!localData.parentId) return null
-  if (props.user && (props.user.id === localData.parentId)) return props.user
+  if (props.user && props.user.id === localData.parentId) return props.user
   return props.selectableParents?.find((p) => p.id === localData.parentId)
 })
 
@@ -302,8 +318,15 @@ watch(
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" variant="action" @close="$emit('close')" :icon="getActionIcon(type)"
-    :error="error" :success="success">
+  <AppModal
+    :show="isOpen"
+    :title="modalTitle"
+    variant="action"
+    @close="$emit('close')"
+    :icon="getActionIcon(type)"
+    :error="error"
+    :success="success"
+  >
     <!-- Identity Banner (Standardized for Edit/Delete/Plus) -->
     <div v-if="selectedParent" class="ui-identity-banner mb-lg" :class="parentThemeClasses">
       <div class="ui-identity-avatar-round">
@@ -315,10 +338,12 @@ watch(
         </h2>
         <div class="ui-identity-meta-compact">
           <span class="text-sm font-bold text-content-muted" v-if="selectedParent.email">{{
-            selectedParent.email }}</span>
+            selectedParent.email
+          }}</span>
           <span class="opacity-30" v-if="selectedParent.email && selectedParent.phone">•</span>
           <span class="text-sm font-bold text-content-muted" v-if="selectedParent.phone">{{
-            selectedParent.phone }}</span>
+            selectedParent.phone
+          }}</span>
         </div>
       </div>
     </div>
@@ -326,54 +351,116 @@ watch(
     <form id="parentActionForm" @submit.prevent="requestConfirm" novalidate>
       <!-- Edit Parent Form -->
       <div v-if="type === 'edit'" class="ui-form-grid">
-        <AppInput v-model="localData.name" label="Legal Full Name" placeholder="Registry name" required
-          :error="errors.name" :shake="shaking.name" @input="clearError('name')" />
+        <AppInput
+          v-model="localData.name"
+          label="Legal Full Name"
+          placeholder="Registry name"
+          required
+          :error="errors.name"
+          :shake="shaking.name"
+          @input="clearError('name')"
+        />
 
-        <AppInput v-model="localData.email" type="email" label="Account Email" placeholder="email@address.com" required
-          :error="errors.email" :shake="shaking.email" @input="clearError('email')" />
+        <AppInput
+          v-model="localData.email"
+          type="email"
+          label="Account Email"
+          placeholder="email@address.com"
+          required
+          :error="errors.email"
+          :shake="shaking.email"
+          @input="clearError('email')"
+        />
 
-        <AppInput v-model="localData.phone" label="Contact Phone" placeholder="Active phone line" required
-          :error="errors.phone" :shake="shaking.phone" @input="clearError('phone')" />
+        <AppInput
+          v-model="localData.phone"
+          label="Contact Phone"
+          placeholder="Active phone line"
+          required
+          :error="errors.phone"
+          :shake="shaking.phone"
+          @input="clearError('phone')"
+        />
 
         <div class="flex flex-col gap-xs col-span-2 sm:col-span-1">
-          <label class="text-xs font-semibold text-content-muted ">Avatar Signature <span
-              class="text-error">*</span></label>
-          <AvatarSelector v-model="localData.profileURL" :role="localData.role" :uid="user?.id"
-            :customFileName="`${localData.name}_${localData.role}`" :error="errors.profileURL"
-            :shake="shaking.profileURL" />
+          <label class="text-xs font-semibold text-content-muted"
+            >Avatar Signature <span class="text-error">*</span></label
+          >
+          <AvatarSelector
+            v-model="localData.profileURL"
+            :role="localData.role"
+            :uid="user?.id"
+            :customFileName="`${localData.name}_${localData.role}`"
+            :error="errors.profileURL"
+            :shake="shaking.profileURL"
+          />
         </div>
       </div>
 
       <!-- Register Child Form -->
       <div v-if="type === 'plus'" class="flex flex-col gap-lg">
-        <AppSelect v-if="!user && selectableParents && selectableParents.length > 0" v-model="localData.parentId"
-          :items="filteredParents.map((p) => ({ id: p.id, name: p.name, profileURL: p.profileURL }))"
-          label="Link to Parent Registry" placeholder="Search Parent" required :error="errors.parentId"
-          :shake="shaking.parentId" @change="clearError('parentId')" />
+        <AppSelect
+          v-if="!user && selectableParents && selectableParents.length > 0"
+          v-model="localData.parentId"
+          :items="
+            filteredParents.map((p) => ({ id: p.id, name: p.name, profileURL: p.profileURL }))
+          "
+          label="Link to Parent Registry"
+          placeholder="Search Parent"
+          required
+          :error="errors.parentId"
+          :shake="shaking.parentId"
+          @change="clearError('parentId')"
+        />
 
         <div v-if="!user && type === 'plus'" class="flex justify-end -mt-3 mb-2">
-          <button type="button" @click="showNewParentSubModal = true"
-            class="text-xs font-bold text-primary hover:text-primary-deep transition-colors flex items-center gap-1 group">
+          <button
+            type="button"
+            @click="showNewParentSubModal = true"
+            class="text-xs font-bold text-primary hover:text-primary-deep transition-colors flex items-center gap-1 group"
+          >
             New Parent Registry
           </button>
         </div>
 
         <div class="ui-form-grid">
-          <AppInput v-model="localData.name" label="Student Full Name" placeholder="Enter Student Name" required
-            :disabled="!user && !localData.parentId" :error="errors.name" :shake="shaking.name"
-            @input="clearError('name')" @click-disabled="handleDisabledClick('childInfo')" />
+          <AppInput
+            v-model="localData.name"
+            label="Student Full Name"
+            placeholder="Enter Student Name"
+            required
+            :disabled="!user && !localData.parentId"
+            :error="errors.name"
+            :shake="shaking.name"
+            @input="clearError('name')"
+            @click-disabled="handleDisabledClick('childInfo')"
+          />
 
-          <AppInput v-model="localData.dob" type="date" label="Student Birthday" required
-            :disabled="!user && !localData.parentId" :error="errors.dob" :shake="shaking.dob" @input="clearError('dob')"
-            @click-disabled="handleDisabledClick('childInfo')" />
+          <AppInput
+            v-model="localData.dob"
+            type="date"
+            label="Student Birthday"
+            required
+            :disabled="!user && !localData.parentId"
+            :error="errors.dob"
+            :shake="shaking.dob"
+            @input="clearError('dob')"
+            @click-disabled="handleDisabledClick('childInfo')"
+          />
 
           <div class="flex flex-col gap-xs col-span-2">
-            <label class="text-xs font-semibold text-content-muted ">Student Avatar <span
-                class="text-error">*</span></label>
-            <AvatarSelector v-model="localData.profileURL" role="student"
-              :customFileName="`${localData.name}_student` || ''" :disabled="!user && !localData.parentId"
-              :error="errors.profileURL" :shake="shaking.profileURL"
-              @click-disabled="handleDisabledClick('childInfo')" />
+            <label class="text-xs font-semibold text-content-muted"
+              >Student Avatar <span class="text-error">*</span></label
+            >
+            <AvatarSelector
+              v-model="localData.profileURL"
+              role="student"
+              :customFileName="`${localData.name}_student` || ''"
+              :disabled="!user && !localData.parentId"
+              :error="errors.profileURL"
+              :shake="shaking.profileURL"
+              @click-disabled="handleDisabledClick('childInfo')"
+            />
           </div>
         </div>
       </div>
@@ -384,9 +471,10 @@ watch(
       <AppAlert type="warning">
         <div class="flex flex-col gap-0.5">
           <strong class="text-sm font-semibold tracking-tight">Suspension Protocol</strong>
-          <span class="text-xs opacity-90 font-medium">Deactivating this account will revoke system access for the
-            parent immediately. All
-            linked student data remained archived for future reactivation.</span>
+          <span class="text-xs opacity-90 font-medium"
+            >Deactivating this account will revoke system access for the parent immediately. All
+            linked student data remained archived for future reactivation.</span
+          >
         </div>
       </AppAlert>
     </div>
@@ -395,9 +483,10 @@ watch(
       <AppAlert type="success">
         <div class="flex flex-col gap-0.5">
           <strong class="text-sm font-semibold tracking-tight">Reactivation Clearance</strong>
-          <span class="text-xs opacity-90 font-medium">System access will be restored across all devices immediately.
-            The parent will be able
-            to manage active enrollments and billing.</span>
+          <span class="text-xs opacity-90 font-medium"
+            >System access will be restored across all devices immediately. The parent will be able
+            to manage active enrollments and billing.</span
+          >
         </div>
       </AppAlert>
     </div>
@@ -406,16 +495,26 @@ watch(
       <AppAlert type="error">
         <div class="flex flex-col gap-0.5">
           <strong class="text-sm font-semibold tracking-tight">⚠ Permanent Account Deletion</strong>
-          <span class="text-xs opacity-90 font-medium leading-relaxed">This action will permanently erase the parent
-            profile and all linked student relations. Historical billing data will be severed.</span>
+          <span class="text-xs opacity-90 font-medium leading-relaxed"
+            >This action will permanently erase the parent profile and all linked student relations.
+            Historical billing data will be severed.</span
+          >
         </div>
       </AppAlert>
 
-      <AppInput v-model="localData.deleteConfirm" label="Authorization Confirmation" placeholder="DELETE" required
-        :error="errors.deleteConfirm" :shake="shaking.deleteConfirm" @input="clearError('deleteConfirm')">
+      <AppInput
+        v-model="localData.deleteConfirm"
+        label="Authorization Confirmation"
+        placeholder="DELETE"
+        required
+        :error="errors.deleteConfirm"
+        :shake="shaking.deleteConfirm"
+        @input="clearError('deleteConfirm')"
+      >
         <template #label-extra>
           <span class="block text-2xs font-semibold mt-0.5">
-            Type <span class="text-error px-1 font-bold">DELETE</span> to authorize this permanent action
+            Type <span class="text-error px-1 font-bold">DELETE</span> to authorize this permanent
+            action
           </span>
         </template>
       </AppInput>
@@ -424,49 +523,57 @@ watch(
     <!-- Password Management View -->
     <div v-if="type === 'reset-password'" class="flex flex-col gap-lg">
       <div class="bg-surface-subtle/50 p-md rounded-sm border border-outline-std/30">
-        <h3 class="text-3xs font-semibold  mb-1 text-content-dark">
-          Recovery Logic Selection
-        </h3>
-        <p class="text-3xs text-content-muted font-bold  opacity-60 italic">
+        <h3 class="text-3xs font-semibold mb-1 text-content-dark">Recovery Logic Selection</h3>
+        <p class="text-3xs text-content-muted font-bold opacity-60 italic">
           Choose a secure protocol for account restoration.
         </p>
       </div>
 
       <div class="grid grid-cols-2 gap-md">
-        <div class="parent-reset-card group" :class="selectedResetMode === 'email'
-          ? 'parent-reset-card--email-active'
-          : 'parent-reset-card--inactive'
-          " @click="selectedResetMode = 'email'">
+        <div
+          class="parent-reset-card group"
+          :class="
+            selectedResetMode === 'email'
+              ? 'parent-reset-card--email-active'
+              : 'parent-reset-card--inactive'
+          "
+          @click="selectedResetMode = 'email'"
+        >
           <div class="parent-reset-icon parent-reset-icon--email">
             <img :src="getActionIcon('email')" class="w-5 h-5 opacity-80" />
           </div>
           <div class="parent-reset-info">
             <strong class="parent-reset-title">Automated Link</strong>
-            <p class="parent-reset-sub">
-              Send link to registered email address.
-            </p>
+            <p class="parent-reset-sub">Send link to registered email address.</p>
           </div>
-          <div v-if="selectedResetMode === 'email'"
-            class="absolute -top-1 -right-1 w-6 h-6 bg-primary text-white flex items-center justify-center text-xs font-semibold border-2 border-white rounded-full">
+          <div
+            v-if="selectedResetMode === 'email'"
+            class="absolute -top-1 -right-1 w-6 h-6 bg-primary text-white flex items-center justify-center text-xs font-semibold border-2 border-white rounded-full"
+          >
             ✓
           </div>
         </div>
 
-        <div class="parent-reset-card group" :class="selectedResetMode === 'manual'
-          ? 'parent-reset-card--manual-active'
-          : 'parent-reset-card--inactive'
-          " @click="selectedResetMode = 'manual'">
+        <div
+          class="parent-reset-card group"
+          :class="
+            selectedResetMode === 'manual'
+              ? 'parent-reset-card--manual-active'
+              : 'parent-reset-card--inactive'
+          "
+          @click="selectedResetMode = 'manual'"
+        >
           <div class="parent-reset-icon parent-reset-icon--manual">
             <img :src="getActionIcon('edit')" class="w-5 h-5 opacity-80" />
           </div>
           <div class="parent-reset-info">
             <strong class="parent-reset-title">Administrative Override</strong>
-            <p class="parent-reset-sub">
-              Initialize with temporary credentials.
-            </p>
+            <p class="parent-reset-sub">Initialize with temporary credentials.</p>
           </div>
-          <div v-if="selectedResetMode === 'manual'"
-            class="absolute -top-1 -right-1 w-6 h-6 bg-warning text-white flex items-center justify-center text-xs font-semibold border-2 border-white rounded-full">
+          <div
+            v-if="selectedResetMode === 'manual'"
+            class="absolute -top-1 -right-1 w-6 h-6 bg-warning text-white flex items-center justify-center text-xs font-semibold border-2 border-white rounded-full"
+          >
             ✓
           </div>
         </div>
@@ -474,32 +581,54 @@ watch(
 
       <AppAlert type="info">
         <div class="flex flex-col gap-0.5">
-          <strong class="text-xs font-semibold ">Compliance Protocol</strong>
+          <strong class="text-xs font-semibold">Compliance Protocol</strong>
           <p class="text-3xs opacity-90 font-bold tracking-tighter opacity-70">
             User will be required to update credentials upon first session authorization.
           </p>
         </div>
       </AppAlert>
-      <div v-if="errors.resetMode" class="text-error text-3xs font-semibold text-center  animate-shake mt-2">
+      <div
+        v-if="errors.resetMode"
+        class="text-error text-3xs font-semibold text-center animate-shake mt-2"
+      >
         {{ errors.resetMode }}
       </div>
     </div>
 
     <!-- Confirmation Overlay -->
-    <AppConfirmOverlay :show="showConfirm" :title="modalTitle"
-      :subtitle="type === 'delete' ? 'This action is irreversible. All data will be permanently erased.' : 'Please verify the details before completing this action.'"
-      :icon="getActionIcon(type)" :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading"
-      @back="showConfirm = false" @confirm="handleActionSubmit" />
+    <AppConfirmOverlay
+      :show="showConfirm"
+      :title="modalTitle"
+      :subtitle="
+        type === 'delete'
+          ? 'This action is irreversible. All data will be permanently erased.'
+          : 'Please verify the details before completing this action.'
+      "
+      :icon="getActionIcon(type)"
+      :rows="confirmRows"
+      :confirmLabel="submitLabel"
+      :loading="loading"
+      @back="showConfirm = false"
+      @confirm="handleActionSubmit"
+    />
 
     <!-- Footer -->
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
         <div class="flex items-center justify-end w-full gap-md">
-          <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success">Cancel</AppButton>
-          <AppButton :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'" type="button"
-            @click="requestConfirm" :loading="loading" :disabled="loading || !!success" :class="{
+          <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success"
+            >Cancel</AppButton
+          >
+          <AppButton
+            :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
+            type="button"
+            @click="requestConfirm"
+            :loading="loading"
+            :disabled="loading || !!success"
+            :class="{
               'button-disabled-visual': (type === 'edit' && !isDirty) || !!success,
-            }">
+            }"
+          >
             {{ submitLabel }}
           </AppButton>
         </div>
@@ -508,9 +637,18 @@ watch(
   </AppModal>
 
   <!-- Inline Parent Creation Sub-Modal -->
-  <ParentFormModal :isOpen="showNewParentSubModal" :loading="subModalLoading" :error="subModalError"
-    :success="subModalSuccess" @close="showNewParentSubModal = false; subModalError = ''; subModalSuccess = ''"
-    @submit="handleInlineParentSubmit" />
+  <ParentFormModal
+    :isOpen="showNewParentSubModal"
+    :loading="subModalLoading"
+    :error="subModalError"
+    :success="subModalSuccess"
+    @close="
+      showNewParentSubModal = false
+      subModalError = ''
+      subModalSuccess = ''
+    "
+    @submit="handleInlineParentSubmit"
+  />
 </template>
 
 <style scoped>

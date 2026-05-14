@@ -8,8 +8,12 @@ import { classService } from '@/services/classService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { programService } from '@/services/programService'
 import { termService } from '@/services/termService'
-import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
-import { calculateClassProgress, formatDateOnly, generateClassSessions, formatPrice } from '@/utils/formatUtils'
+import { getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
+import {
+  calculateClassProgress,
+  formatDateOnly,
+  generateClassSessions,
+} from '@/utils/formatUtils'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
@@ -33,9 +37,13 @@ const errorMessage = ref('')
 const ATTENDANCE_STATUS = {
   P: { label: 'P', color: 'green', theme: 'bg-success/10 text-success' },
   A: { label: 'A', color: 'red', theme: 'bg-error-soft text-error' },
-  M: { label: 'M', color: 'purple', theme: 'bg-primary-soft text-primary border border-primary/20 font-black' },
+  M: {
+    label: 'M',
+    color: 'purple',
+    theme: 'bg-primary-soft text-primary border border-primary/20 font-black',
+  },
   L: { label: 'L', color: 'yellow', theme: 'bg-warning-soft text-warning' },
-  N: { label: 'N', color: 'gray', theme: 'bg-surface-subtle text-content-muted/40' }
+  N: { label: 'N', color: 'gray', theme: 'bg-surface-subtle text-content-muted/40' },
 }
 
 const getAttendanceStatus = (sessionId, studentId) => {
@@ -55,9 +63,15 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
 
   try {
     const updates = []
-    
+
     // 2. Persist primary change
-    updates.push(attendanceService.recordAttendance(classData.value.id, sessionId, attendanceData.value[sessionId]))
+    updates.push(
+      attendanceService.recordAttendance(
+        classData.value.id,
+        sessionId,
+        attendanceData.value[sessionId],
+      ),
+    )
 
     // 3. Makeup Logic: If status is 'M', find first 'A' in other sessions and change to 'M'
     if (status === 'M') {
@@ -66,7 +80,13 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
         if (attendanceData.value[session.id]?.[studentId] === 'A') {
           attendanceData.value[session.id][studentId] = 'M'
           // Persist the linked session change
-          updates.push(attendanceService.recordAttendance(classData.value.id, session.id, attendanceData.value[session.id]))
+          updates.push(
+            attendanceService.recordAttendance(
+              classData.value.id,
+              session.id,
+              attendanceData.value[session.id],
+            ),
+          )
           break // Only resolve one absence per makeup
         }
       }
@@ -90,7 +110,7 @@ const allOfferings = computed(() =>
         let startDate = term.startDate
         let endDate = term.endDate
         if (offering.branchId && term.branchSettings) {
-          const setting = term.branchSettings.find(s => s.branchId === offering.branchId)
+          const setting = term.branchSettings.find((s) => s.branchId === offering.branchId)
           if (setting) {
             startDate = setting.startDate
             endDate = setting.endDate
@@ -107,24 +127,18 @@ const allOfferings = computed(() =>
   ),
 )
 
-const activeUpcomingOfferings = computed(() =>
-  allOfferings.value.filter((offering) => {
-    if (!offering.termEndDate) return true
-    return new Date(offering.termEndDate) >= new Date()
-  }),
-)
-
 // Scoped offerings for metrics based on selected term filter
 const selectedTermOfferings = computed(() => {
   if (termFilter.value === 'all') {
-    const currentTermIds = terms.value.filter(t => t.isCurrent).map(t => String(t.id))
-    return allOfferings.value.filter(o => currentTermIds.includes(String(o.termId)))
+    const currentTermIds = terms.value.filter((t) => t.isCurrent).map((t) => String(t.id))
+    return allOfferings.value.filter((o) => currentTermIds.includes(String(o.termId)))
   }
-  return allOfferings.value.filter(o => String(o.termId) === String(termFilter.value))
+  return allOfferings.value.filter((o) => String(o.termId) === String(termFilter.value))
 })
 
 const primarySchedule = computed(() => {
-  if (classData.value?.schedule?.day || classData.value?.schedule?.time) return classData.value.schedule
+  if (classData.value?.schedule?.day || classData.value?.schedule?.time)
+    return classData.value.schedule
   return classData.value?.schedules?.[0] || { day: 'TBA', time: 'N/A' }
 })
 
@@ -133,7 +147,7 @@ const uniqueBranches = computed(() => {
   selectedTermOfferings.value.forEach((offering) => {
     if (offering.branch?.id) {
       const branchId = offering.branch.id
-      const liveBranch = dataStore.branches.find(b => b.id === branchId)
+      const liveBranch = dataStore.branches.find((b) => b.id === branchId)
 
       if (!branchMap.has(branchId)) {
         branchMap.set(branchId, {
@@ -141,10 +155,12 @@ const uniqueBranches = computed(() => {
           name: offering.branch.name,
           abbr: liveBranch?.abbr || offering.branch.abbr || offering.branch.name,
           color: liveBranch?.color || offering.branch.color || 'blue',
-          studentCount: 0
+          studentCount: 0,
         })
       }
-      branchMap.get(branchId).studentCount += Number(offering.currentCount || offering.students?.length || 0)
+      branchMap.get(branchId).studentCount += Number(
+        offering.currentCount || offering.students?.length || 0,
+      )
     }
   })
   return Array.from(branchMap.values())
@@ -157,43 +173,6 @@ const totalStudentsAcrossOfferings = computed(() =>
   ),
 )
 
-const totalRevenueAcrossOfferings = computed(() =>
-  selectedTermOfferings.value.reduce((sum, o) => sum + (o.totalRevenue || 0), 0)
-)
-
-const capacityUtilization = computed(() => {
-  const totalCap = selectedTermOfferings.value.reduce((sum, o) => sum + (o.capacity || 5), 0)
-  if (totalCap === 0) return 0
-  return Math.round((totalStudentsAcrossOfferings.value / totalCap) * 100)
-})
-
-const classStats = computed(() => {
-  if (!classData.value) return []
-
-  return [
-    {
-      label: 'Total Enrolled',
-      value: totalStudentsAcrossOfferings.value,
-      image: getImageUrl('data-metric-card/total-enrolled'),
-    },
-    {
-      label: 'Total Revenue',
-      value: `$${formatPrice(totalRevenueAcrossOfferings.value)}`,
-      image: getImageUrl('data-metric-card/total-revenue'),
-    },
-    {
-      label: 'Active Offerings',
-      value: selectedTermOfferings.value.length,
-      image: getImageUrl('data-metric-card/enrollment-capacity'),
-    },
-    {
-      label: 'Utilization',
-      value: `${capacityUtilization.value}%`,
-      image: getImageUrl('data-metric-card/remaining-sessions'),
-    }
-  ]
-})
-
 const normalizeDate = (val) => {
   const date = new Date(val)
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -202,12 +181,14 @@ const normalizeDate = (val) => {
 // Resolve the correct start/end dates directly from term.branchSettings
 // This is the single source of truth for session date generation — no offering chain
 const selectedTermDates = computed(() => {
-  const term = terms.value.find(t => String(t.id) === String(termFilter.value))
+  const term = terms.value.find((t) => String(t.id) === String(termFilter.value))
   if (!term) return { startDate: null, endDate: null }
 
   // Resolve branch-specific dates from branchSettings
   if (branchFilter.value && term.branchSettings) {
-    const setting = term.branchSettings.find(s => String(s.branchId) === String(branchFilter.value))
+    const setting = term.branchSettings.find(
+      (s) => String(s.branchId) === String(branchFilter.value),
+    )
     if (setting) {
       return { startDate: setting.startDate, endDate: setting.endDate }
     }
@@ -217,29 +198,18 @@ const selectedTermDates = computed(() => {
   return { startDate: term.startDate, endDate: term.endDate }
 })
 
-const selectedOffering = computed(() => {
-  if (allOfferings.value.length === 0) return null
-
-  return allOfferings.value.find(o =>
-    (String(o.termId) === String(termFilter.value) || String(o.term?.id) === String(termFilter.value)) &&
-    (String(o.branchId) === String(branchFilter.value) || String(o.branch?.id) === String(branchFilter.value)) &&
-    (String(o.scheduleId) === String(scheduleFilter.value) || String(o.schedule?.id) === String(scheduleFilter.value))
-  ) || allOfferings.value.find(o =>
-    (String(o.termId) === String(termFilter.value) || String(o.term?.id) === String(termFilter.value)) &&
-    (String(o.branchId) === String(branchFilter.value) || String(o.branch?.id) === String(branchFilter.value))
-  ) || null
-})
-
 const sessions = computed(() => {
   const { startDate, endDate } = selectedTermDates.value
   if (!startDate) return []
 
   // Get day of week from the selected schedule (class blueprint), not from offering
-  const schedule = classData.value?.schedules?.find(s => String(s.id) === String(scheduleFilter.value))
+  const schedule = classData.value?.schedules?.find(
+    (s) => String(s.id) === String(scheduleFilter.value),
+  )
   const dayOfWeek = schedule?.day || primarySchedule.value?.day
 
   // Calculate total sessions
-  const term = terms.value.find(t => String(t.id) === String(termFilter.value))
+  const term = terms.value.find((t) => String(t.id) === String(termFilter.value))
   let total = term?.totalSessions || programData.value?.totalSessions
   if (!total) {
     const diff = normalizeDate(endDate) - normalizeDate(startDate)
@@ -251,15 +221,10 @@ const sessions = computed(() => {
   // Audit: Enrich session IDs with term + branch prefix.
   // CRITICAL: This ensures attendance data is scoped to specific term/branch offerings,
   // preventing "Session 1" from Term A being overwritten by "Session 1" from Term B.
-  return baseSessions.map(s => ({
+  return baseSessions.map((s) => ({
     ...s,
-    id: `${termFilter.value}_${branchFilter.value}_${s.id}`
+    id: `${termFilter.value}_${branchFilter.value}_${s.id}`,
   }))
-})
-
-const nextSession = computed(() => {
-  const today = normalizeDate(new Date())
-  return sessions.value.find(s => normalizeDate(s.date) >= today)
 })
 
 const attendanceHeaders = computed(() => {
@@ -270,19 +235,19 @@ const attendanceHeaders = computed(() => {
     { label: 'Timeslot', width: '150px', align: 'center' },
   ]
 
-  const sessionCols = sessions.value.map(s => ({
+  const sessionCols = sessions.value.map((s) => ({
     label: s.label,
     subLabel: formatDateOnly(s.date),
     width: '90px',
     align: 'center',
-    class: 'session-col'
+    class: 'session-col',
   }))
 
   const extraCols = [
     { label: 'Exam', width: '90px', align: 'center' },
     { label: 'Report Card', width: '110px', align: 'center' },
     { label: 'Certificate', width: '110px', align: 'center' },
-    { label: 'Remark', width: '180px' }
+    { label: 'Remark', width: '180px' },
   ]
 
   return [...base, ...sessionCols, ...extraCols]
@@ -302,13 +267,13 @@ const scheduleFilter = ref('all')
 
 const termOptions = computed(() => {
   return terms.value
-    .map(t => {
+    .map((t) => {
       const progress = calculateClassProgress(t.startDate, t.endDate)
       return {
         label: t.name,
         value: t.id,
         isCurrent: t.isCurrent,
-        status: progress.status
+        status: progress.status,
       }
     })
     .sort((a, b) => {
@@ -319,23 +284,25 @@ const termOptions = computed(() => {
 })
 
 const branchFilterOptions = computed(() => {
-  return uniqueBranches.value.map(b => ({
+  return uniqueBranches.value.map((b) => ({
     label: b.name,
     value: b.id,
     color: b.color,
-    badge: { status: b.abbr, type: b.color }
+    badge: { status: b.abbr, type: b.color },
   }))
 })
 
 const filteredEnrollments = computed(() => {
-  return enrollments.value.filter(e => {
+  return enrollments.value.filter((e) => {
     // Audit: Only successful/eligible enrollments are shown for attendance
     const eligibleStatuses = ['active', 'confirmed', 'trial']
     if (!eligibleStatuses.includes(e.status)) return false
 
     const termMatch = termFilter.value === 'all' || String(e.termId) === String(termFilter.value)
-    const branchMatch = branchFilter.value === 'all' || String(e.branchId) === String(branchFilter.value)
-    const scheduleMatch = scheduleFilter.value === 'all' ||
+    const branchMatch =
+      branchFilter.value === 'all' || String(e.branchId) === String(branchFilter.value)
+    const scheduleMatch =
+      scheduleFilter.value === 'all' ||
       String(e.class?.schedule?.id) === String(scheduleFilter.value) ||
       String(e.scheduleId) === String(scheduleFilter.value)
 
@@ -343,7 +310,7 @@ const filteredEnrollments = computed(() => {
   })
 })
 
-const { searchQuery, searchResults } = useSearch(filteredEnrollments, enrollmentSearchMapper)
+const { searchResults } = useSearch(filteredEnrollments, enrollmentSearchMapper)
 
 const paginatedItems = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
@@ -353,7 +320,7 @@ const paginatedItems = computed(() => {
 const dropdowns = ref({
   term: false,
   branch: false,
-  schedule: false
+  schedule: false,
 })
 
 const filterMenuStyles = ref({})
@@ -372,7 +339,7 @@ const toggleDropdown = (type, event) => {
     filterMenuStyles.value = {
       top: `${rect.bottom + window.scrollY + 8}px`,
       left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 250)}px`,
-      minWidth: '240px'
+      minWidth: '240px',
     }
   }
 }
@@ -389,14 +356,16 @@ const selectFilter = (type, value) => {
 
 const getActiveLabel = (type) => {
   if (type === 'term') {
-    const opt = termOptions.value.find(o => String(o.value) === String(termFilter.value))
-    return opt ? opt.label : (termOptions.value[0]?.label || 'Term')
+    const opt = termOptions.value.find((o) => String(o.value) === String(termFilter.value))
+    return opt ? opt.label : termOptions.value[0]?.label || 'Term'
   } else if (type === 'branch') {
-    const opt = branchFilterOptions.value.find(o => String(o.value) === String(branchFilter.value))
+    const opt = branchFilterOptions.value.find(
+      (o) => String(o.value) === String(branchFilter.value),
+    )
     return opt || branchFilterOptions.value[0] || { label: 'Branch', color: 'gray' }
   } else {
-    const opt = scheduleOptions.value.find(o => String(o.id) === String(scheduleFilter.value))
-    return opt ? opt.name : (scheduleOptions.value[0]?.name || 'Schedule')
+    const opt = scheduleOptions.value.find((o) => String(o.id) === String(scheduleFilter.value))
+    return opt ? opt.name : scheduleOptions.value[0]?.name || 'Schedule'
   }
 }
 
@@ -422,7 +391,7 @@ const actionModal = ref({
   type: 'edit',
   loading: false,
   error: '',
-  success: ''
+  success: '',
 })
 
 const openActionModal = (type) => {
@@ -431,7 +400,7 @@ const openActionModal = (type) => {
     type,
     loading: false,
     error: '',
-    success: ''
+    success: '',
   }
 }
 
@@ -463,13 +432,21 @@ const handleModalSubmit = async (payload) => {
 }
 
 const getScheduleStatus = (schedule) => {
-  const currentTermId = termFilter.value === 'all' ? (terms.value.find(t => t.isCurrent)?.id || terms.value[0]?.id) : termFilter.value
-  const currentBranchId = branchFilter.value === 'all' ? (uniqueBranches.value[0]?.id) : branchFilter.value
+  const currentTermId =
+    termFilter.value === 'all'
+      ? terms.value.find((t) => t.isCurrent)?.id || terms.value[0]?.id
+      : termFilter.value
+  const currentBranchId =
+    branchFilter.value === 'all' ? uniqueBranches.value[0]?.id : branchFilter.value
 
-  const off = allOfferings.value.find(o =>
-    (String(o.termId) === String(currentTermId) || String(o.term?.id) === String(currentTermId)) &&
-    (String(o.branchId) === String(currentBranchId) || String(o.branch?.id) === String(currentBranchId)) &&
-    (String(o.scheduleId) === String(schedule.id) || String(o.schedule?.id) === String(schedule.id))
+  const off = allOfferings.value.find(
+    (o) =>
+      (String(o.termId) === String(currentTermId) ||
+        String(o.term?.id) === String(currentTermId)) &&
+      (String(o.branchId) === String(currentBranchId) ||
+        String(o.branch?.id) === String(currentBranchId)) &&
+      (String(o.scheduleId) === String(schedule.id) ||
+        String(o.schedule?.id) === String(schedule.id)),
   )
 
   if (!off) {
@@ -495,13 +472,21 @@ const getScheduleStatus = (schedule) => {
 }
 
 const getScheduleCapacity = (schedule) => {
-  const currentTermId = termFilter.value === 'all' ? (terms.value.find(t => t.isCurrent)?.id || terms.value[0]?.id) : termFilter.value
-  const currentBranchId = branchFilter.value === 'all' ? (uniqueBranches.value[0]?.id) : branchFilter.value
+  const currentTermId =
+    termFilter.value === 'all'
+      ? terms.value.find((t) => t.isCurrent)?.id || terms.value[0]?.id
+      : termFilter.value
+  const currentBranchId =
+    branchFilter.value === 'all' ? uniqueBranches.value[0]?.id : branchFilter.value
 
-  const off = allOfferings.value.find(o =>
-    (String(o.termId) === String(currentTermId) || String(o.term?.id) === String(currentTermId)) &&
-    (String(o.branchId) === String(currentBranchId) || String(o.branch?.id) === String(currentBranchId)) &&
-    (String(o.scheduleId) === String(schedule.id) || String(o.schedule?.id) === String(schedule.id))
+  const off = allOfferings.value.find(
+    (o) =>
+      (String(o.termId) === String(currentTermId) ||
+        String(o.term?.id) === String(currentTermId)) &&
+      (String(o.branchId) === String(currentBranchId) ||
+        String(o.branch?.id) === String(currentBranchId)) &&
+      (String(o.scheduleId) === String(schedule.id) ||
+        String(o.schedule?.id) === String(schedule.id)),
   )
 
   return off?.capacity || schedule.capacity || 5
@@ -509,16 +494,10 @@ const getScheduleCapacity = (schedule) => {
 
 const scheduleOptions = computed(() => {
   if (!classData.value?.schedules) return []
-  return classData.value.schedules.map(s => ({
+  return classData.value.schedules.map((s) => ({
     id: s.id,
-    name: `${s.day} (${s.time})`
+    name: `${s.day} (${s.time})`,
   }))
-})
-
-const selectedScheduleName = computed(() => {
-  if (scheduleFilter.value === 'all') return 'All Schedules'
-  const opt = scheduleOptions.value.find(o => String(o.id) === String(scheduleFilter.value))
-  return opt ? opt.name : 'Schedule'
 })
 
 const fetchData = async (id) => {
@@ -530,7 +509,7 @@ const fetchData = async (id) => {
       enrollmentService.getAllEnrollments({ classId: id }),
       attendanceService.getClassAttendance(id),
       termService.getAllTerms(),
-      dataStore.fetchBranches()
+      dataStore.fetchBranches(),
     ])
     const normalizedSchedule = data.schedule || data.schedules?.[0] || { day: 'TBA', time: 'N/A' }
     data.schedule = normalizedSchedule
@@ -547,7 +526,7 @@ const fetchData = async (id) => {
 
     // Set default filters — always select a concrete option, no "All" state
     if (terms.value.length > 0) {
-      const currentTerm = terms.value.find(t => t.isCurrent) || terms.value[0]
+      const currentTerm = terms.value.find((t) => t.isCurrent) || terms.value[0]
       if (currentTerm) {
         termFilter.value = currentTerm.id
       }
@@ -577,9 +556,12 @@ onUnmounted(() => {
   window.removeEventListener('mousedown', handleClickOutside)
 })
 
-watch(() => route.params.id, (newId) => {
-  if (newId) fetchData(newId)
-})
+watch(
+  () => route.params.id,
+  (newId) => {
+    if (newId) fetchData(newId)
+  },
+)
 
 watch(termFilter, (newTermId) => {
   if (newTermId) {
@@ -601,58 +583,91 @@ watch(branchFilter, (newBranchId) => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/classes" title="Class Analytics"
-      sidebarWidth="md" :scrollable="false">
+    <DetailPageLayout
+      :loading="loading"
+      :errorMessage="errorMessage"
+      backRoute="/classes"
+      title="Class Analytics"
+      sidebarWidth="md"
+      :scrollable="false"
+    >
       <template #header-actions v-if="classData">
-        <div class="flex items-center">
+        <div class="flex items-center gap-3">
           <button
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-primary-soft transition-all duration-300 hover:bg-primary hover:border-primary group"
-            title="Edit Class" @click="openActionModal('edit')">
-            <img :src="getActionIcon('edit')" class="w-5 h-5 group-hover:opacity-100 transition-opacity" />
+            title="Edit Class"
+            @click="openActionModal('edit')"
+          >
+            <img :src="getActionIcon('edit')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
-          <div class="w-px h-6 bg-outline-std/50 mx-1"></div>
           <button
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-error-soft transition-all duration-300 hover:bg-error hover:border-error group"
-            title="Delete Class" @click="openActionModal('delete')">
-            <img :src="getActionIcon('delete')"
-              class="w-5 h-5 icon-danger group-hover:opacity-100 transition-opacity" />
+            title="Delete Class"
+            @click="openActionModal('delete')"
+          >
+            <img :src="getActionIcon('delete')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
         </div>
       </template>
 
       <template #left-content v-if="classData">
-        <!-- Metrics Grid -->
-        <!-- <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DetailMetricCard v-for="stat in classStats" :key="stat.label" v-bind="stat" />
-        </div> -->
-
         <!-- Table Content -->
 
         <section
-          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col min-h-0 mb-6">
-          <DataTable :title="currentTableTitle" :headers="attendanceHeaders" :items="paginatedItems" :loading="loading"
-            :entityName="currentEntityName" :flexible="false" :hasSearch="false" :hasPagination="true"
-            v-model:currentPage="currentPage" :pageSize="pageSize" :totalItems="searchResults.length" :hasFilter="false"
-            class="flex-1 min-h-0">
-
+          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col min-h-0 mb-6"
+        >
+          <DataTable
+            :title="currentTableTitle"
+            :headers="attendanceHeaders"
+            :items="paginatedItems"
+            :loading="loading"
+            :entityName="currentEntityName"
+            :flexible="false"
+            :hasSearch="false"
+            :hasPagination="true"
+            v-model:currentPage="currentPage"
+            :pageSize="pageSize"
+            :totalItems="searchResults.length"
+            :hasFilter="false"
+            class="flex-1 min-h-0"
+          >
             <template #toolbar-actions>
               <div class="flex items-center gap-3">
                 <!-- Term Filter -->
                 <div class="relative" id="term-filter-btn">
-                  <AppButton variant="secondary" size="md" @click="toggleDropdown('term', $event)"
-                    class="!bg-primary !text-white">
+                  <AppButton
+                    variant="secondary"
+                    size="md"
+                    @click="toggleDropdown('term', $event)"
+                    class="!bg-primary !text-white"
+                  >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
                     <span class="font-bold">{{ getActiveLabel('term') }}</span>
                   </AppButton>
                   <Teleport to="body">
-                    <transition enter-active-class="transition duration-200 ease-out"
-                      enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                      leave-to-class="opacity-0">
-                      <div v-if="dropdowns.term" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
-                        <div v-for="opt in termOptions" :key="opt.value" class="toolbar-filter-option"
-                          :class="{ 'active-filter-item': String(termFilter) === String(opt.value) }"
-                          @click="selectFilter('term', opt.value)">
+                    <transition
+                      enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-150 ease-in"
+                      leave-from-class="opacity-100"
+                      leave-to-class="opacity-0"
+                    >
+                      <div
+                        v-if="dropdowns.term"
+                        class="toolbar-filter-menu"
+                        :style="filterMenuStyles"
+                        @mousedown.stop
+                      >
+                        <div
+                          v-for="opt in termOptions"
+                          :key="opt.value"
+                          class="toolbar-filter-option"
+                          :class="{
+                            'active-filter-item': String(termFilter) === String(opt.value),
+                          }"
+                          @click="selectFilter('term', opt.value)"
+                        >
                           {{ opt.label }}
                         </div>
                       </div>
@@ -662,27 +677,56 @@ watch(branchFilter, (newBranchId) => {
 
                 <!-- Branch Filter -->
                 <div class="relative" id="branch-filter-btn">
-                  <AppButton variant="secondary" size="md" @click="toggleDropdown('branch', $event)" class="!text-white"
-                    :style="{ backgroundColor: getActiveLabel('branch').color ? `var(--color-${getActiveLabel('branch').color})` : '#3b82f6' }">
+                  <AppButton
+                    variant="secondary"
+                    size="md"
+                    @click="toggleDropdown('branch', $event)"
+                    class="!text-white"
+                    :style="{
+                      backgroundColor: getActiveLabel('branch').color
+                        ? `var(--color-${getActiveLabel('branch').color})`
+                        : '#3b82f6',
+                    }"
+                  >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
                     <span class="font-bold">{{ getActiveLabel('branch').label }}</span>
                   </AppButton>
                   <Teleport to="body">
-                    <transition enter-active-class="transition duration-200 ease-out"
-                      enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                      leave-to-class="opacity-0">
-                      <div v-if="dropdowns.branch" class="toolbar-filter-menu" :style="filterMenuStyles"
-                        @mousedown.stop>
-                        <div v-for="opt in branchFilterOptions" :key="opt.value" class="toolbar-filter-option"
-                          :class="{ 'active-filter-item': String(branchFilter) === String(opt.value) }"
-                          @click="selectFilter('branch', opt.value)">
+                    <transition
+                      enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-150 ease-in"
+                      leave-from-class="opacity-100"
+                      leave-to-class="opacity-0"
+                    >
+                      <div
+                        v-if="dropdowns.branch"
+                        class="toolbar-filter-menu"
+                        :style="filterMenuStyles"
+                        @mousedown.stop
+                      >
+                        <div
+                          v-for="opt in branchFilterOptions"
+                          :key="opt.value"
+                          class="toolbar-filter-option"
+                          :class="{
+                            'active-filter-item': String(branchFilter) === String(opt.value),
+                          }"
+                          @click="selectFilter('branch', opt.value)"
+                        >
                           <div class="flex items-center justify-between gap-3">
-                            <div v-if="opt.badge" class="shrink-0 flex items-center justify-center min-w-[40px]">
+                            <div
+                              v-if="opt.badge"
+                              class="shrink-0 flex items-center justify-center min-w-[40px]"
+                            >
                               <AppBadge :status="opt.badge.status" :type="opt.badge.type" />
                             </div>
-                            <div v-else-if="opt.color" class="w-2 h-2 rounded-full mx-1"
-                              :style="{ backgroundColor: `var(--color-${opt.color})` }"></div>
+                            <div
+                              v-else-if="opt.color"
+                              class="w-2 h-2 rounded-full mx-1"
+                              :style="{ backgroundColor: `var(--color-${opt.color})` }"
+                            ></div>
                             <span class="truncate">{{ opt.label }}</span>
                           </div>
                         </div>
@@ -693,21 +737,40 @@ watch(branchFilter, (newBranchId) => {
 
                 <!-- Schedule Filter -->
                 <div class="relative" id="schedule-filter-btn" v-if="scheduleOptions.length > 1">
-                  <AppButton variant="secondary" size="md" @click="toggleDropdown('schedule', $event)"
-                    class="!text-white" style="background-color: #e91e8c;">
+                  <AppButton
+                    variant="secondary"
+                    size="md"
+                    @click="toggleDropdown('schedule', $event)"
+                    class="!text-white"
+                    style="background-color: #e91e8c"
+                  >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
                     <span class="font-bold">{{ getActiveLabel('schedule') }}</span>
                   </AppButton>
                   <Teleport to="body">
-                    <transition enter-active-class="transition duration-200 ease-out"
-                      enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                      leave-to-class="opacity-0">
-                      <div v-if="dropdowns.schedule" class="toolbar-filter-menu" :style="filterMenuStyles"
-                        @mousedown.stop>
-                        <div v-for="opt in scheduleOptions" :key="opt.id" class="toolbar-filter-option"
-                          :class="{ 'active-filter-item': String(scheduleFilter) === String(opt.id) }"
-                          @click="selectFilter('schedule', opt.id)">
+                    <transition
+                      enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-150 ease-in"
+                      leave-from-class="opacity-100"
+                      leave-to-class="opacity-0"
+                    >
+                      <div
+                        v-if="dropdowns.schedule"
+                        class="toolbar-filter-menu"
+                        :style="filterMenuStyles"
+                        @mousedown.stop
+                      >
+                        <div
+                          v-for="opt in scheduleOptions"
+                          :key="opt.id"
+                          class="toolbar-filter-option"
+                          :class="{
+                            'active-filter-item': String(scheduleFilter) === String(opt.id),
+                          }"
+                          @click="selectFilter('schedule', opt.id)"
+                        >
                           {{ opt.name }}
                         </div>
                       </div>
@@ -719,16 +782,19 @@ watch(branchFilter, (newBranchId) => {
 
             <template #row="{ item, index, headers }">
               <td class="ui-cell text-center" :style="{ width: headers[0].width }">
-                <span class="font-bold text-content-dark text-sm">{{ (currentPage - 1) * pageSize + index + 1 }}</span>
+                <span class="font-bold text-content-dark text-sm">{{
+                  (currentPage - 1) * pageSize + index + 1
+                }}</span>
               </td>
               <td class="ui-cell">
                 <div class="flex items-center gap-3">
                   <div class="flex flex-col">
-                    <span class="font-bold text-content-dark text-sm leading-tight">{{ item.student?.name ||
-                      'Unknown'
+                    <span class="font-bold text-content-dark text-sm leading-tight">{{
+                      item.student?.name || 'Unknown'
                     }}</span>
                     <span class="text-3xs font-bold text-content-muted tracking-tighter">{{
-                      item.student?.nickname || 'No Nick' }}</span>
+                      item.student?.nickname || 'No Nick'
+                    }}</span>
                   </div>
                 </div>
               </td>
@@ -744,21 +810,38 @@ watch(branchFilter, (newBranchId) => {
                 <div class="flex flex-col items-center gap-1 relative group/cell">
                   <!-- Attendance Select Dropdown -->
                   <div class="relative w-10 h-10">
-                    <select :value="getAttendanceStatus(session.id, item.studentId)"
-                      @change="updateAttendanceStatus(session.id, item.studentId, $event.target.value)"
+                    <select
+                      :value="getAttendanceStatus(session.id, item.studentId)"
+                      @change="
+                        updateAttendanceStatus(session.id, item.studentId, $event.target.value)
+                      "
                       class="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
-                      :disabled="session.date > new Date()">
+                      :disabled="session.date > new Date()"
+                    >
                       <option v-for="(cfg, key) in ATTENDANCE_STATUS" :key="key" :value="key">
-                        {{ cfg.label }} - {{ key === 'P' ? 'Present' : key === 'A' ? 'Absent' : key === 'M' ? 'Makeup' :
-                          key === 'L' ? 'Late' : 'None' }}
+                        {{ cfg.label }} -
+                        {{
+                          key === 'P'
+                            ? 'Present'
+                            : key === 'A'
+                              ? 'Absent'
+                              : key === 'M'
+                                ? 'Makeup'
+                                : key === 'L'
+                                  ? 'Late'
+                                  : 'None'
+                        }}
                       </option>
                     </select>
                     <div
                       class="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all group-hover/cell:scale-110 shadow-sm border border-outline-std select-none"
                       :class="[
                         ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)].theme,
-                        session.date > new Date() ? 'opacity-20 grayscale cursor-not-allowed' : 'cursor-pointer hover:shadow-md'
-                      ]">
+                        session.date > new Date()
+                          ? 'opacity-20 grayscale cursor-not-allowed'
+                          : 'cursor-pointer hover:shadow-md',
+                      ]"
+                    >
                       {{ ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)].label }}
                     </div>
                   </div>
@@ -767,13 +850,19 @@ watch(branchFilter, (newBranchId) => {
 
               <!-- Special Columns -->
               <td class="ui-cell text-center">
-                <div class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"></div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"
+                ></div>
               </td>
               <td class="ui-cell text-center">
-                <div class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"></div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"
+                ></div>
               </td>
               <td class="ui-cell text-center">
-                <div class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"></div>
+                <div
+                  class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"
+                ></div>
               </td>
               <td class="ui-cell">
                 <span class="italic">New Student</span>
@@ -790,10 +879,20 @@ watch(branchFilter, (newBranchId) => {
             <h2 class="w-full font-bold text-content-dark text-center">Basic Information</h2>
             <div class="relative group">
               <div
-                class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle p-6">
+                class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle p-6"
+              >
                 <img
-                  :src="getProgramProfileURL(programData?.profileURL || classData.program?.profileURL, programData?.category || classData.program?.category, programData?.categorySnapshot?.profileURL || classData.program?.categorySnapshot?.profileURL)"
-                  alt="Program Logo" class="w-full h-full object-contain" />
+                  :src="
+                    getProgramProfileURL(
+                      programData?.profileURL || classData.program?.profileURL,
+                      programData?.category || classData.program?.category,
+                      programData?.categorySnapshot?.profileURL ||
+                        classData.program?.categorySnapshot?.profileURL,
+                    )
+                  "
+                  alt="Program Logo"
+                  class="w-full h-full object-contain"
+                />
               </div>
             </div>
           </section>
@@ -802,30 +901,36 @@ watch(branchFilter, (newBranchId) => {
             <div class="space-y-4">
               <div class="flex justify-between items-center gap-1">
                 <span class="text-base font-bold text-content-dark">Class Name:</span>
-                <span class="text-base font-bold text-content-muted">{{ programData?.name ||
-                  classData.program?.name || 'N/A'
-                  }}</span>
+                <span class="text-base font-bold text-content-muted">{{
+                  programData?.name || classData.program?.name || 'N/A'
+                }}</span>
               </div>
               <div class="flex justify-between items-center gap-1">
                 <span class="text-base font-bold text-content-dark">Category:</span>
                 <span class="text-base font-bold text-content-muted">{{
-                  programData?.category || classData.program?.category || 'Standard' }}</span>
+                  programData?.category || classData.program?.category || 'Standard'
+                }}</span>
               </div>
               <div class="flex justify-between items-center gap-1">
                 <span class="text-base font-bold text-content-dark">Level:</span>
                 <span class="text-base font-bold text-content-muted">{{
-                  programData?.level || classData.program?.level || 'L1' }}</span>
+                  programData?.level || classData.program?.level || 'L1'
+                }}</span>
               </div>
               <!-- Schedules Section -->
               <div class="flex flex-col gap-3 pt-2">
                 <span class="text-base font-bold text-content-dark">Schedules</span>
                 <div class="space-y-2.5">
-                  <div v-for="schedule in (classData.schedules || [])"
+                  <div
+                    v-for="schedule in classData.schedules || []"
                     :key="schedule.id || `${schedule.day}-${schedule.time}`"
-                    class="flex items-center justify-between bg-primary-soft px-4 py-3 rounded-sm border border-outline-std transition-all group">
+                    class="flex items-center justify-between bg-primary-soft px-4 py-3 rounded-sm border border-outline-std transition-all group"
+                  >
                     <div class="flex flex-col gap-0.5">
-                      <span class="text-sm font-bold text-content-dark group-hover:text-primary transition-colors">{{
-                        schedule.day }}</span>
+                      <span
+                        class="text-sm font-bold text-content-dark group-hover:text-primary transition-colors"
+                        >{{ schedule.day }}</span
+                      >
                       <span class="text-xs font-semibold text-primary/80">{{ schedule.time }}</span>
                     </div>
 
@@ -833,13 +938,19 @@ watch(branchFilter, (newBranchId) => {
                       <div class="w-px h-6 bg-outline-std/50"></div>
                       <div class="flex flex-col items-center shrink-0">
                         <span
-                          class="text-xs font-black text-content-muted tracking-tighter leading-none mb-1">Seats</span>
+                          class="text-xs font-black text-content-muted tracking-tighter leading-none mb-1"
+                          >Seats</span
+                        >
                         <span class="text-sm font-black text-content-dark leading-none">{{
-                          getScheduleCapacity(schedule) }}</span>
+                          getScheduleCapacity(schedule)
+                        }}</span>
                       </div>
                       <div class="w-px h-6 bg-outline-std/50"></div>
-                      <AppBadge v-bind="getScheduleStatus(schedule)" size="sm"
-                        class="min-w-[80px] justify-center shadow-sm" />
+                      <AppBadge
+                        v-bind="getScheduleStatus(schedule)"
+                        size="sm"
+                        class="min-w-[80px] justify-center shadow-sm"
+                      />
                     </div>
                   </div>
                 </div>
@@ -849,19 +960,35 @@ watch(branchFilter, (newBranchId) => {
               <div class="flex flex-col gap-3 pt-4 border-t border-outline-std/40">
                 <span class="text-base font-bold text-content-dark">Branches</span>
                 <div class="grid grid-cols-1 gap-2.5">
-                  <div v-for="branch in uniqueBranches" :key="branch.id"
-                    class="flex items-center justify-between bg-primary-soft p-2.5 pl-4 rounded-sm border border-outline-std transition-all group">
-                    <span class="text-sm font-bold text-content-dark group-hover:text-primary transition-colors">{{
-                      branch.name || branch.abbr }}</span>
+                  <div
+                    v-for="branch in uniqueBranches"
+                    :key="branch.id"
+                    class="flex items-center justify-between bg-primary-soft p-2.5 pl-4 rounded-sm border border-outline-std transition-all group"
+                  >
+                    <span
+                      class="text-sm font-bold text-content-dark group-hover:text-primary transition-colors"
+                      >{{ branch.name || branch.abbr }}</span
+                    >
                     <div class="flex items-center gap-2">
-                      <AppBadge :status="branch.abbr" :type="branch.color" size="sm" class="min-w-[60px] shadow-sm" />
-                      <AppBadge :status="`${branch.studentCount} Students`" type="gray" size="sm"
-                        class="!bg-transparent !border-none font-bold text-content-muted" />
+                      <AppBadge
+                        :status="branch.abbr"
+                        :type="branch.color"
+                        size="sm"
+                        class="min-w-[60px] shadow-sm"
+                      />
+                      <AppBadge
+                        :status="`${branch.studentCount} Students`"
+                        type="gray"
+                        size="sm"
+                        class="!bg-transparent !border-none font-bold text-content-muted"
+                      />
                     </div>
                   </div>
-                  <span v-if="uniqueBranches.length === 0"
-                    class="text-sm font-bold text-content-muted italic p-4 text-center bg-primary-soft border border-outline-std rounded-sm">No
-                    active offerings for this term</span>
+                  <span
+                    v-if="uniqueBranches.length === 0"
+                    class="text-sm font-bold text-content-muted italic p-4 text-center bg-primary-soft border border-outline-std rounded-sm"
+                    >No active offerings for this term</span
+                  >
                 </div>
               </div>
             </div>
@@ -870,9 +997,16 @@ watch(branchFilter, (newBranchId) => {
       </template>
     </DetailPageLayout>
 
-    <ClassActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :classInstance="classData"
-      :loading="actionModal.loading" v-model:error="actionModal.error" v-model:success="actionModal.success"
-      @close="actionModal.isOpen = false" @submit="handleModalSubmit" />
+    <ClassActionModal
+      :isOpen="actionModal.isOpen"
+      :type="actionModal.type"
+      :classInstance="classData"
+      :loading="actionModal.loading"
+      v-model:error="actionModal.error"
+      v-model:success="actionModal.success"
+      @close="actionModal.isOpen = false"
+      @submit="handleModalSubmit"
+    />
   </DashboardLayout>
 </template>
 

@@ -3,7 +3,7 @@ import { request } from './api'
 export const attendanceService = {
   /**
    * Fetches all attendance records for a class.
-   * @param {string} classId 
+   * @param {string} classId
    */
   getClassAttendance(classId) {
     return request(`/attendance/${classId}`)
@@ -11,14 +11,14 @@ export const attendanceService = {
 
   /**
    * Records attendance for a specific session.
-   * @param {string} classId 
-   * @param {number} sessionId 
-   * @param {Object} statuses 
+   * @param {string} classId
+   * @param {number} sessionId
+   * @param {Object} statuses
    */
   recordAttendance(classId, sessionId, statuses) {
     return request('/attendance/record', {
       method: 'POST',
-      body: JSON.stringify({ classId, sessionId, statuses })
+      body: JSON.stringify({ classId, sessionId, statuses }),
     })
-  }
+  },
 }

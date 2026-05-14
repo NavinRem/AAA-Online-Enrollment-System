@@ -24,8 +24,15 @@ const form = reactive({
   status: 'active',
 })
 
-const dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-  .map((day) => ({ id: day, name: day }))
+const dayOptions = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+].map((day) => ({ id: day, name: day }))
 
 const title = computed(() => {
   if (props.type === 'delete') return 'Delete Schedule'
@@ -53,21 +60,39 @@ const handleSubmit = () => {
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="title" :icon="getActionIcon(type === 'delete' ? 'delete' : 'plus')"
-    :error="error" :success="success" maxWidth="520px" @close="emit('close')">
+  <AppModal
+    :show="isOpen"
+    :title="title"
+    :icon="getActionIcon(type === 'delete' ? 'delete' : 'plus')"
+    :error="error"
+    :success="success"
+    maxWidth="520px"
+    @close="emit('close')"
+  >
     <form class="flex flex-col gap-4" @submit.prevent="handleSubmit">
       <template v-if="type !== 'delete'">
-        <AppSelect v-model="form.day" :items="dayOptions" label="Day" required :searchable="false" />
+        <AppSelect
+          v-model="form.day"
+          :items="dayOptions"
+          label="Day"
+          required
+          :searchable="false"
+        />
         <AppInput v-model="form.time" label="Time" placeholder="e.g. 9:00 AM - 10:30 AM" required />
       </template>
 
       <AppAlert v-else type="error">
-        Delete {{ schedule?.day }} {{ schedule?.time }}? Existing class and term snapshots keep their historical copy.
+        Delete {{ schedule?.day }} {{ schedule?.time }}? Existing class and term snapshots keep
+        their historical copy.
       </AppAlert>
 
       <div class="flex justify-end gap-3 pt-2">
         <button type="button" class="ui-btn-cancel" @click="emit('close')">Cancel</button>
-        <AppButton type="submit" :variant="type === 'delete' ? 'danger' : 'primary'" :loading="loading">
+        <AppButton
+          type="submit"
+          :variant="type === 'delete' ? 'danger' : 'primary'"
+          :loading="loading"
+        >
           {{ type === 'delete' ? 'Delete' : 'Save' }}
         </AppButton>
       </div>

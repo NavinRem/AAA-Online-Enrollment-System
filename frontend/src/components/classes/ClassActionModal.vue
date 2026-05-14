@@ -29,7 +29,7 @@ const { form, errors, shaking, validate, clearError, triggerShake, resetForm } =
   programId: '',
   scheduleIds: [],
   scheduleCapacities: {},
-  status: 'active'
+  status: 'active',
 })
 
 const programs = ref([])
@@ -45,10 +45,19 @@ const newSchedule = ref({
   startTime: '09:00',
 })
 
-const dayOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-  .map((day) => ({ id: day, name: day }))
+const dayOptions = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+].map((day) => ({ id: day, name: day }))
 
-const selectedProgram = computed(() => programs.value.find((program) => program.id === form.programId))
+const selectedProgram = computed(() =>
+  programs.value.find((program) => program.id === form.programId),
+)
 const sortedSchedules = computed(() => {
   const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
   return [...schedules.value].sort((left, right) => {
@@ -68,7 +77,7 @@ const parse12hToMinutes = (time12h) => {
   return hours * 60 + minutes
 }
 
-const getScheduleById = (id) => schedules.value.find(s => s.id === id)
+const getScheduleById = (id) => schedules.value.find((s) => s.id === id)
 
 const getScheduleDuration = (timeRange) => {
   const range = (timeRange || '').split(' - ')
@@ -98,7 +107,8 @@ const filteredSchedules = computed(() => {
 const modalTitle = computed(() => {
   if (props.type === 'delete') return 'Remove from Catalog'
   if (props.type === 'edit') {
-    if (props.context?.termName) return `Edit Current Term: ${props.classInstance?.program?.name || 'Class'}`
+    if (props.context?.termName)
+      return `Edit Current Term: ${props.classInstance?.program?.name || 'Class'}`
     return 'Edit Master Settings'
   }
   return 'Add to Master Catalog'
@@ -115,7 +125,11 @@ const isDirty = computed(() => {
   if (!props.classInstance) return false
 
   const initialProg = props.classInstance.programId || ''
-  const initialScheds = [...(props.classInstance.scheduleIds || props.classInstance.schedules?.map(s => s.id) || [])].sort().join(',')
+  const initialScheds = [
+    ...(props.classInstance.scheduleIds || props.classInstance.schedules?.map((s) => s.id) || []),
+  ]
+    .sort()
+    .join(',')
 
   const currentProg = form.programId
   const currentScheds = [...form.scheduleIds].sort().join(',')
@@ -124,7 +138,7 @@ const isDirty = computed(() => {
 
   // Compare capacities for currently selected schedules
   for (const id of form.scheduleIds) {
-    const initialCap = props.classInstance.schedules?.find(s => s.id === id)?.capacity || 20
+    const initialCap = props.classInstance.schedules?.find((s) => s.id === id)?.capacity || 20
     const currentCap = form.scheduleCapacities[id] || 20
     if (Number(initialCap) !== Number(currentCap)) return true
   }
@@ -133,14 +147,19 @@ const isDirty = computed(() => {
 })
 
 const confirmRows = computed(() => {
-  if (props.type === 'delete') return [
-    { key: 'Warning', value: 'This will permanently remove this class product from the catalog.', valueClass: 'text-error' }
-  ]
+  if (props.type === 'delete')
+    return [
+      {
+        key: 'Warning',
+        value: 'This will permanently remove this class product from the catalog.',
+        valueClass: 'text-error',
+      },
+    ]
   return [
     { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
     { key: 'Category', value: selectedProgram.value?.category || 'Standard' },
     { key: 'Duration', value: `${selectedProgram.value?.duration || 0} Minutes` },
-    { key: 'Schedules', value: `${form.scheduleIds.length} Sessions Assigned` }
+    { key: 'Schedules', value: `${form.scheduleIds.length} Sessions Assigned` },
   ]
 })
 
@@ -151,9 +170,9 @@ const loadOptions = async (skipCache = false) => {
     scheduleService.getAllSchedules({}, { skipCache }),
   ])
 
-  const categories = Array.isArray(categoryData) ? categoryData : (categoryData?.data || [])
-  const programsList = Array.isArray(programData) ? programData : (programData?.data || [])
-  const schedulesList = Array.isArray(scheduleData) ? scheduleData : (scheduleData?.data || [])
+  const categories = Array.isArray(categoryData) ? categoryData : categoryData?.data || []
+  const programsList = Array.isArray(programData) ? programData : programData?.data || []
+  const schedulesList = Array.isArray(scheduleData) ? scheduleData : scheduleData?.data || []
 
   programs.value = programsList.map((program) => {
     const category = categories.find((item) => item.id === program.categoryId)
@@ -189,7 +208,9 @@ const calculatedEndTime = computed(() => {
 
   const endHours = date.getHours()
   const endMinutes = date.getMinutes()
-  return formatTime12h(`${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`)
+  return formatTime12h(
+    `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`,
+  )
 })
 
 const formatTime12h = (time24) => {
@@ -224,12 +245,16 @@ const addSchedule = async () => {
     }
 
     justAddedId.value = newId
-    setTimeout(() => { justAddedId.value = null }, 5000)
+    setTimeout(() => {
+      justAddedId.value = null
+    }, 5000)
 
     const addedDay = newSchedule.value.day
     newSchedule.value = { day: 'Saturday', startTime: '09:00' }
     lookupSuccess.value = `Schedule "${addedDay}: ${timeRange}" added to catalog`
-    setTimeout(() => { lookupSuccess.value = '' }, 3000)
+    setTimeout(() => {
+      lookupSuccess.value = ''
+    }, 3000)
   } catch (error) {
     lookupError.value = error.message || 'Failed to add schedule'
   } finally {
@@ -272,32 +297,42 @@ watch(
 
     const initialCapacities = {}
     if (props.classInstance?.schedules) {
-      props.classInstance.schedules.forEach(s => {
+      props.classInstance.schedules.forEach((s) => {
         if (s.capacity) initialCapacities[s.id] = s.capacity
       })
     }
 
     resetForm({
       programId: props.classInstance?.programId || '',
-      scheduleIds: Array.from(new Set([...(props.classInstance?.scheduleIds || props.classInstance?.schedules?.map((schedule) => schedule.id) || [])])),
+      scheduleIds: Array.from(
+        new Set([
+          ...(props.classInstance?.scheduleIds ||
+            props.classInstance?.schedules?.map((schedule) => schedule.id) ||
+            []),
+        ]),
+      ),
       scheduleCapacities: initialCapacities,
-      status: props.classInstance?.status || 'active'
+      status: props.classInstance?.status || 'active',
     })
   },
   { immediate: true },
 )
 
-watch(() => form.scheduleIds, (newIds) => {
-  newIds.forEach(id => {
-    if (!form.scheduleCapacities[id]) {
-      form.scheduleCapacities[id] = selectedProgram.value?.capacity || 5
-    }
-  })
-}, { deep: true })
+watch(
+  () => form.scheduleIds,
+  (newIds) => {
+    newIds.forEach((id) => {
+      if (!form.scheduleCapacities[id]) {
+        form.scheduleCapacities[id] = selectedProgram.value?.capacity || 5
+      }
+    })
+  },
+  { deep: true },
+)
 
 const handleProgramChange = () => {
   clearError('programId')
-  // We no longer automatically filter scheduleIds here to allow the user 
+  // We no longer automatically filter scheduleIds here to allow the user
   // to see 'previously chosen' schedules and manually manage them.
 }
 
@@ -334,9 +369,9 @@ const confirmSubmit = () => {
 
   // Deduplicate and attach capacities to schedules
   const uniqueIds = Array.from(new Set(form.scheduleIds))
-  const enrichedSchedules = uniqueIds.map(id => ({
+  const enrichedSchedules = uniqueIds.map((id) => ({
     id,
-    capacity: form.scheduleCapacities[id] || 20
+    capacity: form.scheduleCapacities[id] || 20,
   }))
 
   emit('submit', {
@@ -349,29 +384,53 @@ const confirmSubmit = () => {
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" :icon="getActionIcon(type === 'delete' ? 'delete' : 'plus')"
-    :error="error" :success="success" maxWidth="720px" @close="$emit('close')" @clear-error="$emit('clear-error')"
-    @clear-success="$emit('clear-success')">
+  <AppModal
+    :show="isOpen"
+    :title="modalTitle"
+    :icon="getActionIcon(type === 'delete' ? 'delete' : 'plus')"
+    :error="error"
+    :success="success"
+    maxWidth="720px"
+    @close="$emit('close')"
+    @clear-error="$emit('clear-error')"
+    @clear-success="$emit('clear-success')"
+  >
     <form class="flex flex-col gap-5" @submit.prevent="handleSubmit">
       <AppAlert v-if="context?.termName" type="info" class="mb-2">
-        <span class="font-bold text-lg">⚠️ This Term Only</span><br/>
-        You are editing settings for <span class="font-bold text-primary">{{ context.termName }}</span>. 
-        These changes <span class="underline">will not</span> change your Master Catalog or other terms.
+        <span class="font-bold text-lg">⚠️ This Term Only</span><br />
+        You are editing settings for
+        <span class="font-bold text-primary">{{ context.termName }}</span
+        >. These changes <span class="underline">will not</span> change your Master Catalog or other
+        terms.
       </AppAlert>
 
       <template v-if="type !== 'delete'">
         <div class="grid grid-cols-2 gap-x-8 gap-y-10 items-start">
-          <AppSelect v-model="form.programId" :items="programs" label="Program" placeholder="Select program..." required
-            :error="errors.programId" :shake="shaking.programId" :disabled="!!context" @change="handleProgramChange">
+          <AppSelect
+            v-model="form.programId"
+            :items="programs"
+            label="Program"
+            placeholder="Select program..."
+            required
+            :error="errors.programId"
+            :shake="shaking.programId"
+            :disabled="!!context"
+            @change="handleProgramChange"
+          >
             <template #selected="{ item }">
               <div v-if="item" class="flex items-center gap-3 flex-1 overflow-hidden">
-                <div class="w-10 h-10 rounded-xl bg-primary-soft/30 flex items-center justify-center shrink-0">
-                  <span class="text-xs font-black text-primary">{{ item.category?.substring(0, 3).toUpperCase() || 'PROG' }}</span>
+                <div
+                  class="w-10 h-10 rounded-xl bg-primary-soft/30 flex items-center justify-center shrink-0"
+                >
+                  <span class="text-xs font-black text-primary">{{
+                    item.category?.substring(0, 3).toUpperCase() || 'PROG'
+                  }}</span>
                 </div>
                 <div class="flex flex-col overflow-hidden">
-                  <span class="text-sm font-semibold text-content-dark truncate">{{ item.name }}</span>
-                  <span class="text-3xs font-semibold text-content-muted ">{{ item.category
+                  <span class="text-sm font-semibold text-content-dark truncate">{{
+                    item.name
                   }}</span>
+                  <span class="text-3xs font-semibold text-content-muted">{{ item.category }}</span>
                 </div>
                 <AppBadge :status="`${item.duration} MIN`" type="blue" />
               </div>
@@ -379,11 +438,15 @@ const confirmSubmit = () => {
           </AppSelect>
 
           <div v-if="type === 'edit'" class="flex flex-col gap-xs">
-            <AppSelect v-model="form.status" label="Overall Status" :items="[
-              { id: 'active', name: 'Active (Open)', color: 'green' },
-              { id: 'full', name: 'Full (Waitlist)', color: 'magenta' },
-              { id: 'closed', name: 'Closed (Hidden)', color: 'red' }
-            ]">
+            <AppSelect
+              v-model="form.status"
+              label="Overall Status"
+              :items="[
+                { id: 'active', name: 'Active (Open)', color: 'green' },
+                { id: 'full', name: 'Full (Waitlist)', color: 'magenta' },
+                { id: 'closed', name: 'Closed (Hidden)', color: 'red' },
+              ]"
+            >
               <template #selected="{ item }">
                 <div v-if="item" class="flex items-center gap-2">
                   <AppBadge :status="item.name" :type="item.color" size="sm" />
@@ -399,30 +462,50 @@ const confirmSubmit = () => {
           </div>
 
           <div v-if="!context" class="flex flex-col gap-xs">
-            <AppSelect v-model="form.scheduleIds" :items="filteredSchedules" label="Schedule"
-              placeholder="Select schedules..." required multiple :error="errors.scheduleIds"
-              :shake="shaking.scheduleIds" :disabled="!form.programId" class="mt-1" @change="handleScheduleChange"
-              @click-disabled="handleDisabledClick('scheduleIds')">
+            <AppSelect
+              v-model="form.scheduleIds"
+              :items="filteredSchedules"
+              label="Schedule"
+              placeholder="Select schedules..."
+              required
+              multiple
+              :error="errors.scheduleIds"
+              :shake="shaking.scheduleIds"
+              :disabled="!form.programId"
+              class="mt-1"
+              @change="handleScheduleChange"
+              @click-disabled="handleDisabledClick('scheduleIds')"
+            >
               <template #selected="{ items }">
-                <span v-if="!items?.length" class="text-content-muted/40 italic">Choose from catalog...</span>
-                <span v-else class="text-sm font-semibold text-primary">{{ items.length }} schedule{{ items.length === 1
-                  ? '' : 's' }} selected</span>
+                <span v-if="!items?.length" class="text-content-muted/40 italic"
+                  >Choose from catalog...</span
+                >
+                <span v-else class="text-sm font-semibold text-primary"
+                  >{{ items.length }} schedule{{ items.length === 1 ? '' : 's' }} selected</span
+                >
               </template>
               <template #item="{ item }">
                 <div class="flex items-center justify-between w-full">
                   <span class="text-sm font-semibold text-content-dark">{{ item.day }}</span>
                   <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-content-muted opacity-40">({{ getScheduleDuration(item.time)
-                    }})</span>
+                    <span class="text-xs font-bold text-content-muted opacity-40"
+                      >({{ getScheduleDuration(item.time) }})</span
+                    >
                     <span class="text-xs font-semibold text-primary">{{ item.time }}</span>
                   </div>
                 </div>
               </template>
             </AppSelect>
             <div v-if="!context && !manageSchedules" class="flex justify-end">
-              <button type="button" @click="toggleScheduleManage" 
-                class="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                <img :src="getActionIcon('plus')" class="w-3 h-3 brightness-0 saturate-100 invert-[30%] sepia-[100%] saturate-[500%] hue-rotate-[240deg]" />
+              <button
+                type="button"
+                @click="toggleScheduleManage"
+                class="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+              >
+                <img
+                  :src="getActionIcon('plus')"
+                  class="w-3 h-3 brightness-0 saturate-100 invert-[30%] sepia-[100%] saturate-[500%] hue-rotate-[240deg]"
+                />
                 Manage Master Schedules Catalog
               </button>
             </div>
@@ -430,78 +513,111 @@ const confirmSubmit = () => {
         </div>
 
         <!-- Selected Schedules Preview -->
-        <div v-if="form.scheduleIds.length > 0"
-          class="flex flex-col gap-4 mt-2 animate-in slide-in-from-top-2 duration-500">
+        <div
+          v-if="form.scheduleIds.length > 0"
+          class="flex flex-col gap-4 mt-2 animate-in slide-in-from-top-2 duration-500"
+        >
           <div class="flex items-center justify-between px-1">
             <span class="text-md text-content-muted">Selected Sessions Configuration</span>
-            <span class="text-sm font-bold text-content-muted">{{ form.scheduleIds.length }} session{{
-              form.scheduleIds.length
-                === 1 ? '' : 's' }}</span>
+            <span class="text-sm font-bold text-content-muted"
+              >{{ form.scheduleIds.length }} session{{
+                form.scheduleIds.length === 1 ? '' : 's'
+              }}</span
+            >
           </div>
           <div class="grid grid-cols-1 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-            <div v-for="id in form.scheduleIds" :key="id"
-              class="flex items-center justify-between bg-white border border-outline-std rounded-md p-4 shadow-sm group hover:border-primary/50 hover:shadow-md transition-all duration-300">
+            <div
+              v-for="id in form.scheduleIds"
+              :key="id"
+              class="flex items-center justify-between bg-white border border-outline-std rounded-md p-4 shadow-sm group hover:border-primary/50 hover:shadow-md transition-all duration-300"
+            >
               <div class="flex items-center gap-4 flex-1">
-                <div class="w-14 h-14 rounded-md bg-primary-soft/30 flex items-center justify-center shrink-0">
-                  <span class="text-base font-black text-primary">{{ getScheduleById(id)?.day.substring(0,
-                    3).toUpperCase()
-                    }}</span>
+                <div
+                  class="w-14 h-14 rounded-md bg-primary-soft/30 flex items-center justify-center shrink-0"
+                >
+                  <span class="text-base font-black text-primary">{{
+                    getScheduleById(id)?.day.substring(0, 3).toUpperCase()
+                  }}</span>
                 </div>
                 <div class="flex flex-col gap-1">
                   <span class="text-lg font-bold text-content-dark flex items-center gap-2">
                     {{ getScheduleById(id)?.day }}
-                    <span class="text-sm font-bold text-content-muted/60 tracking-tighter">({{
-                      getScheduleDuration(getScheduleById(id)?.time) }})</span>
+                    <span class="text-sm font-bold text-content-muted/60 tracking-tighter"
+                      >({{ getScheduleDuration(getScheduleById(id)?.time) }})</span
+                    >
                   </span>
                   <div class="flex items-center gap-2">
                     <span
-                      class="text-sm font-bold text-primary tracking-tight bg-primary-soft/50 px-2 py-0.5 rounded-md border border-primary/10">{{
-                        getScheduleById(id)?.time }}</span>
+                      class="text-sm font-bold text-primary tracking-tight bg-primary-soft/50 px-2 py-0.5 rounded-md border border-primary/10"
+                      >{{ getScheduleById(id)?.time }}</span
+                    >
                   </div>
                 </div>
               </div>
 
               <div class="flex items-center gap-6 ml-4">
                 <div class="flex flex-col items-center gap-1.5">
-                  <label class="text-xs font-bold text-content-muted mr-1">Session
-                    Capacity</label>
+                  <label class="text-xs font-bold text-content-muted mr-1">Session Capacity</label>
                   <div
-                    class="flex items-center gap-3 bg-surface-subtle/80 px-4 py-2.5 rounded-xl border border-outline-std focus-within:border-primary/40 focus-within:bg-white transition-all">
-                    <input type="number" v-model.number="form.scheduleCapacities[id]"
+                    class="flex items-center gap-3 bg-surface-subtle/80 px-4 py-2.5 rounded-xl border border-outline-std focus-within:border-primary/40 focus-within:bg-white transition-all"
+                  >
+                    <input
+                      type="number"
+                      v-model.number="form.scheduleCapacities[id]"
                       class="w-14 h-6 text-base font-black text-center bg-transparent text-content-dark outline-none focus:text-primary transition-colors"
-                      min="1" />
+                      min="1"
+                    />
                     <span class="text-xs font-bold text-content-muted">Seats</span>
                   </div>
                 </div>
-                <button v-if="!context" type="button" @click="deselectSchedule(id)"
-                  class="w-12 h-12 flex items-center justify-center hover:bg-error-soft text-content-muted hover:text-error rounded-xl transition-all border border-transparent hover:border-error/20 group/btn">
-                  <img :src="getActionIcon('delete')" class="w-5 h-5 group-hover/btn:opacity-100 transition-opacity" />
+                <button
+                  v-if="!context"
+                  type="button"
+                  @click="deselectSchedule(id)"
+                  class="w-12 h-12 flex items-center justify-center hover:bg-error-soft text-content-muted hover:text-error rounded-xl transition-all border border-transparent hover:border-error/20 group/btn"
+                >
+                  <img
+                    :src="getActionIcon('delete')"
+                    class="w-5 h-5 group-hover/btn:opacity-100 transition-opacity"
+                  />
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div v-if="manageSchedules"
-          class="p-md bg-primary-soft/30 rounded-std border-2 border-dashed border-primary/20 flex flex-col gap-sm animate-in fade-in slide-in-from-top-2 duration-300">
+        <div
+          v-if="manageSchedules"
+          class="p-md bg-primary-soft/30 rounded-std border-2 border-dashed border-primary/20 flex flex-col gap-sm animate-in fade-in slide-in-from-top-2 duration-300"
+        >
           <div class="flex justify-between items-center">
             <span class="text-sm font-semibold text-primary flex items-center gap-xs">
               <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
               Manage schedules
             </span>
-            <button type="button" @click="toggleScheduleManage"
-              class="text-xs font-semibold text-content-muted hover:text-error ">Close</button>
+            <button
+              type="button"
+              @click="toggleScheduleManage"
+              class="text-xs font-semibold text-content-muted hover:text-error"
+            >
+              Close
+            </button>
           </div>
 
           <div class="flex flex-col gap-sm">
             <div class="grid grid-cols-2 gap-x-6 gap-y-4">
-
-
               <!-- Setup Row -->
               <div class="col-span-2 grid grid-cols-[1.2fr_1fr_1fr] gap-4 items-end">
-                <AppSelect v-model="newSchedule.day" :items="dayOptions" label="Day" :searchable="false">
+                <AppSelect
+                  v-model="newSchedule.day"
+                  :items="dayOptions"
+                  label="Day"
+                  :searchable="false"
+                >
                   <template #selected="{ item }">
-                    <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+                    <span v-if="item" class="text-sm font-semibold text-content-dark">{{
+                      item.name
+                    }}</span>
                   </template>
                   <template #item="{ item }">
                     <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
@@ -522,35 +638,61 @@ const confirmSubmit = () => {
           <AppAlert v-if="lookupError" type="error" size="sm" closable @close="lookupError = ''">
             {{ lookupError }}
           </AppAlert>
-          <AppAlert v-if="lookupSuccess" type="success" size="sm" closable @close="lookupSuccess = ''">
+          <AppAlert
+            v-if="lookupSuccess"
+            type="success"
+            size="sm"
+            closable
+            @close="lookupSuccess = ''"
+          >
             {{ lookupSuccess }}
           </AppAlert>
 
           <div class="flex flex-col gap-1 max-h-[180px] overflow-y-auto pr-1 scrollable-v">
-            <div v-for="item in sortedSchedules" :key="item.id"
+            <div
+              v-for="item in sortedSchedules"
+              :key="item.id"
               class="px-4 py-2.5 cursor-pointer bg-white border border-outline-std rounded-xl flex items-center justify-between group hover:border-primary/30 hover:bg-primary-light transition-all"
-              :class="{ 'ring-2 ring-primary border-primary bg-primary/5 z-10': item.id === justAddedId }">
+              :class="{
+                'ring-2 ring-primary border-primary bg-primary/5 z-10': item.id === justAddedId,
+              }"
+            >
               <div class="flex items-center gap-4">
                 <div class="w-24">
-                  <AppBadge :status="item.day" :type="['Saturday', 'Sunday'].includes(item.day) ? 'purple' : 'blue'" />
+                  <AppBadge
+                    :status="item.day"
+                    :type="['Saturday', 'Sunday'].includes(item.day) ? 'purple' : 'blue'"
+                  />
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-bold text-content-dark tracking-tight">{{ item.time }}</span>
-                  <span class="text-sm font-bold text-primary opacity-60">({{ getScheduleDuration(item.time)
-                    }})</span>
+                  <span class="text-sm font-bold text-content-dark tracking-tight">{{
+                    item.time
+                  }}</span>
+                  <span class="text-sm font-bold text-primary opacity-60"
+                    >({{ getScheduleDuration(item.time) }})</span
+                  >
                 </div>
               </div>
 
-              <button type="button" @click="deleteSchedule(item.id)"
-                class="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:bg-error-soft hover:text-error transition-all opacity-40 group-hover:opacity-100">
+              <button
+                type="button"
+                @click="deleteSchedule(item.id)"
+                class="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:bg-error-soft hover:text-error transition-all opacity-40 group-hover:opacity-100"
+              >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
             </div>
-            <div v-if="!schedules.length"
-              class="flex flex-col items-center justify-center py-8 text-content-muted bg-surface-subtle/50 rounded-xl border border-dashed border-outline-std">
+            <div
+              v-if="!schedules.length"
+              class="flex flex-col items-center justify-center py-8 text-content-muted bg-surface-subtle/50 rounded-xl border border-dashed border-outline-std"
+            >
               <span class="text-sm font-semibold italic">No schedules found in catalog</span>
             </div>
           </div>
@@ -558,41 +700,68 @@ const confirmSubmit = () => {
       </template>
 
       <AppAlert v-else type="error">
-        Delete class product {{ props.classInstance?.program?.name || 'this class' }}? Existing term offerings and
-        enrollments
-        keep their historical snapshots.
+        Delete class product {{ props.classInstance?.program?.name || 'this class' }}? Existing term
+        offerings and enrollments keep their historical snapshots.
       </AppAlert>
     </form>
 
     <template #footer>
       <div class="flex items-center justify-end gap-3 w-full">
         <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
-        <AppButton type="button" :variant="type === 'delete' ? 'danger' : 'primary'" :loading="loading"
-          :disabled="!isDirty" @click="handleSubmit">
+        <AppButton
+          type="button"
+          :variant="type === 'delete' ? 'danger' : 'primary'"
+          :loading="loading"
+          :disabled="!isDirty"
+          @click="handleSubmit"
+        >
           {{ submitLabel }}
         </AppButton>
       </div>
     </template>
   </AppModal>
 
-  <AppConfirmOverlay :show="showConfirm" :title="modalTitle"
-    :subtitle="type === 'delete' ? 'This action cannot be undone.' : 'Please review the class configuration below.'"
-    :icon="getProgramProfileURL(selectedProgram?.profileURL, selectedProgram?.category, selectedProgram?.categoryProfileURL)"
-    :rows="confirmRows" :confirmLabel="submitLabel" :loading="loading" @back="showConfirm = false"
-    @confirm="confirmSubmit">
+  <AppConfirmOverlay
+    :show="showConfirm"
+    :title="modalTitle"
+    :subtitle="
+      type === 'delete'
+        ? 'This action cannot be undone.'
+        : 'Please review the class configuration below.'
+    "
+    :icon="
+      getProgramProfileURL(
+        selectedProgram?.profileURL,
+        selectedProgram?.category,
+        selectedProgram?.categoryProfileURL,
+      )
+    "
+    :rows="confirmRows"
+    :confirmLabel="submitLabel"
+    :loading="loading"
+    @back="showConfirm = false"
+    @confirm="confirmSubmit"
+  >
     <template #row-Schedules>
       <div class="flex flex-col gap-2 items-end">
-        <div v-for="id in form.scheduleIds" :key="id"
-          class="flex items-center gap-4 bg-surface-subtle/30 px-4 py-2.5 rounded-xl border border-outline-std/40 transition-all hover:bg-white hover:border-primary/20">
+        <div
+          v-for="id in form.scheduleIds"
+          :key="id"
+          class="flex items-center gap-4 bg-surface-subtle/30 px-4 py-2.5 rounded-xl border border-outline-std/40 transition-all hover:bg-white hover:border-primary/20"
+        >
           <div class="flex flex-col items-end shrink-0">
             <span class="text-sm font-bold text-content-dark">{{ getScheduleById(id)?.day }}</span>
-            <span class="text-xs font-semibold text-primary tracking-tight">{{ getScheduleById(id)?.time }}</span>
+            <span class="text-xs font-semibold text-primary tracking-tight">{{
+              getScheduleById(id)?.time
+            }}</span>
           </div>
           <div class="w-px h-8 bg-outline-std/50"></div>
           <div class="flex flex-col items-end shrink-0">
             <span class="text-xs font-black text-content-muted leading-none mb-1">Capacity</span>
-            <span class="text-sm font-black text-content-dark leading-none">{{ form.scheduleCapacities[id] || 20 }}
-              <span class="text-xs font-bold text-content-muted">Seats</span></span>
+            <span class="text-sm font-black text-content-dark leading-none"
+              >{{ form.scheduleCapacities[id] || 20 }}
+              <span class="text-xs font-bold text-content-muted">Seats</span></span
+            >
           </div>
           <AppBadge status="Active" type="green" size="md" class="scale-90 origin-right" />
         </div>

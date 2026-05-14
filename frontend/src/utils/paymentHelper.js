@@ -1,7 +1,7 @@
 /**
  * Utility for aggregating payment statistics for financial reporting.
  * Processes a list of payment records to calculate volume, revenue, and exceptions.
- * 
+ *
  * @param {Array} payments - List of standardized payment records
  * @returns {Object} Metric summary including revenue and lifecycle counts
  */

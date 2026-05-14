@@ -141,7 +141,14 @@ export const formatPrice = (val) => {
  */
 export const calculateClassProgress = (startDate, endDate, day = null, time = null) => {
   if (!startDate || !endDate)
-    return { status: 'N/A', week: 0, percentage: 0, totalWeeks: 0, isArchived: false, isOngoing: false }
+    return {
+      status: 'N/A',
+      week: 0,
+      percentage: 0,
+      totalWeeks: 0,
+      isArchived: false,
+      isOngoing: false,
+    }
 
   // Normalize all dates to Local Midnight for consistent comparison
   const normalizeLocal = (d) => {
@@ -159,15 +166,15 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
 
   // Calculate academic progress
   const elapsedMs = todayDate - startDateOnly
-  
+
   let currentWeek = 0
   let sessionHasPassed = false
-  
+
   if (elapsedMs >= 0) {
     currentWeek = Math.min(totalWeeks, Math.floor(elapsedMs / (7 * 24 * 60 * 60 * 1000)) + 1)
-    
+
     // Check if the session for the current week has likely passed
-    // (Simple logic: if today is past the start of the week. 
+    // (Simple logic: if today is past the start of the week.
     // In a future update, this could be refined with the actual 'day' parameter)
     const currentWeekStartDate = new Date(startDateOnly)
     currentWeekStartDate.setDate(currentWeekStartDate.getDate() + (currentWeek - 1) * 7)
@@ -175,13 +182,19 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
   }
 
   const remainingSessions = Math.max(0, totalWeeks - currentWeek + (sessionHasPassed ? 0 : 1))
-  const percentage = currentWeek === 0 ? 0 : Math.min(100, Math.round((currentWeek / totalWeeks) * 100))
+  const percentage =
+    currentWeek === 0 ? 0 : Math.min(100, Math.round((currentWeek / totalWeeks) * 100))
 
   // ── Status Priority Logic ──
-  
+
   // 1. Check for Ongoing status (Dynamic temporary override)
   let isOngoing = false
-  if (todayDate.getTime() >= startDateOnly.getTime() && todayDate.getTime() <= endDateOnly.getTime() && day && time) {
+  if (
+    todayDate.getTime() >= startDateOnly.getTime() &&
+    todayDate.getTime() <= endDateOnly.getTime() &&
+    day &&
+    time
+  ) {
     const today = new Date()
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     const todayDayName = dayNames[today.getDay()]
@@ -215,7 +228,10 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
 
   return {
     status,
-    weekInfo: currentWeek === 0 ? `Starts in ${Math.round(Math.abs(elapsedMs) / (24 * 60 * 60 * 1000))} days` : `Week ${currentWeek}/${totalWeeks}`,
+    weekInfo:
+      currentWeek === 0
+        ? `Starts in ${Math.round(Math.abs(elapsedMs) / (24 * 60 * 60 * 1000))} days`
+        : `Week ${currentWeek}/${totalWeeks}`,
     week: currentWeek,
     remainingSessions: status === 'upcoming' ? totalWeeks : remainingSessions,
     percentage,
@@ -227,15 +243,21 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
 
 /**
  * Generates a list of all scheduled session dates for a class based on term and schedule.
- * 
- * @param {string} startDate 
+ *
+ * @param {string} startDate
  * @param {string} dayOfWeek - e.g. "Monday"
  * @param {number} totalSessions - Total number of sessions to generate
  * @param {string} endDate - Optional end date to stop generation
  * @param {Array} excludeDates - Optional list of ISO date strings to skip (holidays, etc.)
  * @returns {Array} List of { id, label, date } objects
  */
-export const generateClassSessions = (startDate, dayOfWeek, totalSessions = 12, endDate = null, excludeDates = []) => {
+export const generateClassSessions = (
+  startDate,
+  dayOfWeek,
+  totalSessions = 12,
+  endDate = null,
+  excludeDates = [],
+) => {
   if (!startDate || !dayOfWeek) return []
   const normalize = (d) => {
     const date = parseDate(d)
@@ -246,11 +268,19 @@ export const generateClassSessions = (startDate, dayOfWeek, totalSessions = 12, 
   const end = endDate ? normalize(endDate) : null
   const total = parseInt(totalSessions) || 12
   const skippedSet = new Set(
-    (excludeDates || []).map(d => normalize(d).toISOString().split('T')[0])
+    (excludeDates || []).map((d) => normalize(d).toISOString().split('T')[0]),
   )
 
   const dates = []
-  const dayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 }
+  const dayMap = {
+    Sunday: 0,
+    Monday: 1,
+    Tuesday: 2,
+    Wednesday: 3,
+    Thursday: 4,
+    Friday: 5,
+    Saturday: 6,
+  }
   const targetDay = dayMap[dayOfWeek]
   if (targetDay === undefined) return []
 

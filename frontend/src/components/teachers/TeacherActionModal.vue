@@ -10,7 +10,7 @@ const props = defineProps({
   isOpen: Boolean,
   type: {
     type: String,
-    default: 'add' // 'add', 'edit'
+    default: 'add', // 'add', 'edit'
   },
   teacher: Object,
   loading: Boolean,
@@ -23,7 +23,7 @@ const emit = defineEmits(['close', 'submit'])
 const form = ref({
   name: '',
   email: '',
-  status: 'active'
+  status: 'active',
 })
 
 watch(
@@ -77,23 +77,50 @@ const submitLabel = computed(() => {
 </script>
 
 <template>
-  <AppModal :show="isOpen" :title="modalTitle" :icon="modalIcon" :error="error" :success="success" maxWidth="500px"
-    @close="$emit('close')">
+  <AppModal
+    :show="isOpen"
+    :title="modalTitle"
+    :icon="modalIcon"
+    :error="error"
+    :success="success"
+    maxWidth="500px"
+    @close="$emit('close')"
+  >
     <form @submit.prevent="handleSubmit" class="flex flex-col gap-6">
-      <AppInput v-model="form.name" label="Full Professional Name" placeholder="e.g. Dr. John Doe" required />
+      <AppInput
+        v-model="form.name"
+        label="Full Professional Name"
+        placeholder="e.g. Dr. John Doe"
+        required
+      />
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <AppInput v-model="form.email" type="email" label="Contact Email" placeholder="teacher@aaa.edu" required />
+        <AppInput
+          v-model="form.email"
+          type="email"
+          label="Contact Email"
+          placeholder="teacher@aaa.edu"
+          required
+        />
       </div>
 
-      <AppSelect v-model="form.status" label="Deployment Status" :items="[
-        { id: 'active', name: 'Active Duty' },
-        { id: 'inactive', name: 'On Leave / Inactive' },
-      ]" />
+      <AppSelect
+        v-model="form.status"
+        label="Deployment Status"
+        :items="[
+          { id: 'active', name: 'Active Duty' },
+          { id: 'inactive', name: 'On Leave / Inactive' },
+        ]"
+      />
 
       <div class="flex items-center justify-end gap-3 mt-4">
         <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
-        <AppButton type="submit" :variant="type === 'delete' ? 'danger' : 'primary'" :loading="loading" class="px-8 font-bold">
+        <AppButton
+          type="submit"
+          :variant="type === 'delete' ? 'danger' : 'primary'"
+          :loading="loading"
+          class="px-8 font-bold"
+        >
           {{ submitLabel }}
         </AppButton>
       </div>

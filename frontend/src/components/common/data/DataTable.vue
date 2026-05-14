@@ -45,7 +45,8 @@ const displayEmptyMessage = computed(() => {
 })
 
 const emptyState = computed(() => {
-  if (props.loading) return { prefix: props.loadingMessage, label: '', suffix: '', showBadge: false }
+  if (props.loading)
+    return { prefix: props.loadingMessage, label: '', suffix: '', showBadge: false }
 
   const entity = props.entityName?.toLowerCase()
 
@@ -54,7 +55,7 @@ const emptyState = computed(() => {
       prefix: 'No',
       label: `"${props.searchQuery}"`,
       suffix: `found in ${entity} records.`,
-      showBadge: false
+      showBadge: false,
     }
   }
 
@@ -65,7 +66,7 @@ const emptyState = computed(() => {
       label: option ? option.label : props.currentFilter,
       color: option?.color || '',
       suffix: `${entity} records found.`,
-      showBadge: true
+      showBadge: true,
     }
   }
 
@@ -73,7 +74,7 @@ const emptyState = computed(() => {
     prefix: 'No',
     label: '',
     suffix: `${entity} records found.`,
-    showBadge: false
+    showBadge: false,
   }
 })
 
@@ -84,20 +85,30 @@ const handleAction = (type, item) => {
 </script>
 
 <template>
-  <div :class="[
-    'w-full flex flex-col',
-    flexible ? '' : 'flex-1 min-h-0'
-  ]">
-    <AppTable :headers="headers" :loading="loading" :empty="!items || items.length === 0" :flexible="flexible">
+  <div :class="['w-full flex flex-col', flexible ? '' : 'flex-1 min-h-0']">
+    <AppTable
+      :headers="headers"
+      :loading="loading"
+      :empty="!items || items.length === 0"
+      :flexible="flexible"
+    >
       <template v-for="(_, name) in $slots" #[name]="slotData">
         <slot :name="name" v-bind="slotData"></slot>
       </template>
 
       <template #toolbar>
-        <TableToolbar :hasSearch="hasSearch" :searchQuery="searchQuery"
-          @update:searchQuery="emit('update:searchQuery', $event)" :searchPlaceholder="searchPlaceholder"
-          :hasFilter="hasFilter" :currentFilter="currentFilter" :searchVariant="searchVariant"
-          @update:currentFilter="emit('update:currentFilter', $event)" :filterOptions="filterOptions" :title="title">
+        <TableToolbar
+          :hasSearch="hasSearch"
+          :searchQuery="searchQuery"
+          @update:searchQuery="emit('update:searchQuery', $event)"
+          :searchPlaceholder="searchPlaceholder"
+          :hasFilter="hasFilter"
+          :currentFilter="currentFilter"
+          :searchVariant="searchVariant"
+          @update:currentFilter="emit('update:currentFilter', $event)"
+          :filterOptions="filterOptions"
+          :title="title"
+        >
           <template #actions>
             <slot name="toolbar-actions"></slot>
           </template>
@@ -107,29 +118,58 @@ const handleAction = (type, item) => {
       <template #loading>{{ displayEmptyMessage }}</template>
 
       <template #empty>
-        <div class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic">
+        <div
+          class="flex items-center justify-center gap-sm text-content-muted text-sm font-semibold italic"
+        >
           <span v-if="emptyState.prefix">{{ emptyState.prefix }}</span>
-          <AppBadge v-if="emptyState.showBadge" :status="emptyState.label" :type="emptyState.color" />
+          <AppBadge
+            v-if="emptyState.showBadge"
+            :status="emptyState.label"
+            :type="emptyState.color"
+          />
           <span v-else-if="emptyState.label" class="text-primary">{{ emptyState.label }}</span>
           <span v-if="emptyState.suffix">{{ emptyState.suffix }}</span>
         </div>
       </template>
 
-      <tr v-for="(item, index) in items" :key="item.id || index" class="ui-row group" :class="rowClass(item)"
-        @click="emit('row-click', item)">
-        <slot name="row" :item="item" :index="index" :toggleMenu="toggleMenu" :activeMenuId="activeMenuId"
-          :isMenuAbove="isMenuAbove" :menuStyles="menuStyles" :handleAction="handleAction" :closeMenu="closeMenu"
-          :headers="headers">
-          <td v-for="(header, hIdx) in headers" :key="hIdx" class="ui-cell" :class="[
-            typeof header === 'object' && header.align ? `text-${header.align}` : '',
-            typeof header === 'object' && header.hideOnMobile ? 'hidden-on-mobile' : ''
-          ]"
-            :style="typeof header === 'object' && header.width ? { width: header.width, minWidth: header.width } : {}">
+      <tr
+        v-for="(item, index) in items"
+        :key="item.id || index"
+        class="ui-row group"
+        :class="rowClass(item)"
+        @click="emit('row-click', item)"
+      >
+        <slot
+          name="row"
+          :item="item"
+          :index="index"
+          :toggleMenu="toggleMenu"
+          :activeMenuId="activeMenuId"
+          :isMenuAbove="isMenuAbove"
+          :menuStyles="menuStyles"
+          :handleAction="handleAction"
+          :closeMenu="closeMenu"
+          :headers="headers"
+        >
+          <td
+            v-for="(header, hIdx) in headers"
+            :key="hIdx"
+            class="ui-cell"
+            :class="[
+              typeof header === 'object' && header.align ? `text-${header.align}` : '',
+              typeof header === 'object' && header.hideOnMobile ? 'hidden-on-mobile' : '',
+            ]"
+            :style="
+              typeof header === 'object' && header.width
+                ? { width: header.width, minWidth: header.width }
+                : {}
+            "
+          >
             {{
               item[
-              typeof header === 'object'
-                ? header.key || header.label.toLowerCase().replace(' ', '')
-                : header.toLowerCase().replace(' ', '')
+                typeof header === 'object'
+                  ? header.key || header.label.toLowerCase().replace(' ', '')
+                  : header.toLowerCase().replace(' ', '')
               ]
             }}
           </td>
@@ -137,8 +177,13 @@ const handleAction = (type, item) => {
       </tr>
 
       <template #footer>
-        <TablePagination v-if="hasPagination && items && items.length > 0" :currentPage="currentPage"
-          :pageSize="pageSize" :totalItems="totalItems" @update:currentPage="emit('update:currentPage', $event)" />
+        <TablePagination
+          v-if="hasPagination && items && items.length > 0"
+          :currentPage="currentPage"
+          :pageSize="pageSize"
+          :totalItems="totalItems"
+          @update:currentPage="emit('update:currentPage', $event)"
+        />
       </template>
     </AppTable>
   </div>
