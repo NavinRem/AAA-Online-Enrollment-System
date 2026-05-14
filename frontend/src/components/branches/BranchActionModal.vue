@@ -41,6 +41,7 @@ const { localData, isDirty, errors, shaking, validate, clearError, triggerShake,
     getInitialData,
     mapSourceToForm,
     sourceKey: 'branch',
+    autoClear: 3000,
   })
 
 const showConfirm = ref(false)
@@ -306,8 +307,12 @@ watch(
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
-        <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
-          <span class="text-xs font-semibold tracking-tight">No modifications detected</span>
+        <AppAlert
+          v-if="type === 'edit' && !isDirty"
+          type="info"
+          class="w-full"
+        >
+          No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
 
         <div class="flex items-center justify-end w-full gap-md">
@@ -317,7 +322,7 @@ watch(
             type="button"
             @click="requestConfirm"
             :loading="loading"
-            :disabled="loading"
+            :disabled="loading || (type === 'edit' && !isDirty)"
             :class="{ 'opacity-50 pointer-events-none': type === 'edit' && !isDirty }"
           >
             {{ submitLabel }}

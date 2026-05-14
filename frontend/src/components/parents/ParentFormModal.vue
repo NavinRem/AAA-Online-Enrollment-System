@@ -22,7 +22,7 @@ const { form, errors, shaking, validate, clearError, resetForm } = useForm({
   email: '',
   phone: '',
   profileURL: '',
-})
+}, { autoClear: 3000 })
 
 watch(
   () => props.isOpen,
@@ -112,19 +112,16 @@ const handleFinalSubmit = () => {
           @input="clearError('phone')"
         />
 
-        <div class="flex flex-col gap-xs">
-          <label class="text-sm font-semibold text-content-dark"
-            >Select Profile Avatar <span class="text-error font-bold">*</span></label
-          >
-          <AvatarSelector
-            v-model="form.profileURL"
-            role="parent"
-            :customFileName="`${form.name}_parent`"
-            :error="errors.profileURL"
-            :shake="shaking.profileURL"
-            @update:modelValue="clearError('profileURL')"
-          />
-        </div>
+        <AvatarSelector
+          v-model="form.profileURL"
+          label="Select Profile Avatar"
+          required
+          role="parent"
+          :customFileName="`${form.name}_parent`"
+          :error="errors.profileURL"
+          :shake="shaking.profileURL"
+          @update:modelValue="clearError('profileURL')"
+        />
       </div>
     </form>
 

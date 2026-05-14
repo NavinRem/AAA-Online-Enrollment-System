@@ -42,6 +42,7 @@ const { localData, isDirty, errors, shaking, clearError, validate, submitForm } 
   {
     getInitialData,
     sourceKey: 'enrollment',
+    autoClear: 3000,
   },
 )
 
@@ -218,12 +219,12 @@ const modalIcon = computed(() => {
               <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60"
                 >Parent Registry</span
               >
-              <div class="enroll-identity-row">
+              <div class="enroll-identity-row bg-primary-soft/40 border-primary/10">
                 <img
                   :src="displaySummary.parentAvatar"
-                  class="w-8 h-8 rounded-full border border-white shadow-sm"
+                  class="w-8 h-8 rounded-full border-2 border-white shadow-sm"
                 />
-                <span class="text-sm font-semibold text-content-dark tracking-tight">{{
+                <span class="text-sm font-bold text-content-dark tracking-tight">{{
                   displaySummary.parentName
                 }}</span>
               </div>
@@ -233,12 +234,12 @@ const modalIcon = computed(() => {
               <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60"
                 >Student Name</span
               >
-              <div class="enroll-identity-row">
+              <div class="enroll-identity-row bg-primary-soft/40 border-primary/10">
                 <img
                   :src="displaySummary.studentAvatar"
-                  class="w-8 h-8 rounded-full border border-white shadow-sm"
+                  class="w-8 h-8 rounded-full border-2 border-white shadow-sm"
                 />
-                <span class="text-sm font-semibold text-content-dark tracking-tight">{{
+                <span class="text-sm font-bold text-content-dark tracking-tight">{{
                   displaySummary.studentName
                 }}</span>
               </div>
@@ -273,17 +274,16 @@ const modalIcon = computed(() => {
           </div>
 
           <div
-            class="flex items-center justify-between bg-primary p-xl rounded-std shadow-lg shadow-primary/10 mt-lg border border-primary-dark"
+            class="flex items-center justify-between bg-gradient-to-br from-primary to-primary-dark p-xl rounded-std shadow-xl shadow-primary/20 mt-lg border border-primary-dark/30"
           >
-            <div class="flex justify-between gap-1">
-              <span class="text-2xs font-semibold text-white/80">Calculated Tuition Fee</span>
+            <div class="flex flex-col gap-1">
+              <span class="text-xs font-bold text-white/70 uppercase tracking-widest">Calculated Tuition Fee</span>
               <div class="flex gap-xs">
-                <AppBadge :status="displaySummary.mode || displaySummary.status" />
-                <AppBadge :status="displaySummary.status" />
+                <AppBadge :status="displaySummary.mode || displaySummary.status" type="blue" class="bg-white/20 text-white border-none" />
               </div>
             </div>
-            <div class="text-white">
-              <span class="text-3xl font-bold tracking-tighter"
+            <div class="text-white text-right">
+              <span class="text-3xl font-black tracking-tighter"
                 >${{ formatPrice(displaySummary.amount) }}</span
               >
             </div>
@@ -376,17 +376,15 @@ const modalIcon = computed(() => {
           />
         </div>
 
-        <div class="flex flex-col gap-xs mt-md">
-          <label class="text-xs font-semibold text-content-muted"
-            >Internal Processing Remarks</label
-          >
-          <textarea
-            v-model="localData.remark"
-            placeholder="Add any specific notes for audit trailing..."
-            rows="2"
-            class="ui-remark-textarea"
-          ></textarea>
-        </div>
+        <AppInput
+          v-model="localData.remark"
+          type="textarea"
+          label="Internal Processing Remarks"
+          placeholder="Add any specific notes for audit trailing..."
+          :error="errors.remark"
+          :shake="shaking.remark"
+          @input="clearError('remark')"
+        />
       </div>
 
       <!-- Content for Cancel Action -->
@@ -404,9 +402,6 @@ const modalIcon = computed(() => {
         </AppAlert>
 
         <div class="flex flex-col gap-xs">
-          <label class="text-xs font-semibold text-content-muted"
-            >Cancellation Logic / Reason <span class="text-error">*</span></label
-          >
           <div class="flex flex-wrap gap-xs mb-sm mt-1">
             <button
               v-for="preset in cancelPresets"
@@ -423,20 +418,19 @@ const modalIcon = computed(() => {
               {{ preset }}
             </button>
           </div>
-          <textarea
+          <AppInput
             v-model="localData.reason"
-            class="ui-remark-textarea"
-            :class="{
-              'border-error': errors.reason,
-              'animate-shake': shaking.reason,
-            }"
-            rows="3"
+            type="textarea"
+            label="Cancellation Logic / Reason"
+            required
+            :error="errors.reason"
+            :shake="shaking.reason"
             placeholder="Provide a detailed cancel reason..."
-            @input="activePreset = ''"
-          ></textarea>
-          <div v-if="errors.reason" class="text-error text-3xs font-semibold px-1 mt-0.5">
-            {{ errors.reason }}
-          </div>
+            @input="
+              activePreset = '';
+              clearError('reason');
+            "
+          />
         </div>
       </div>
 
@@ -561,6 +555,13 @@ const modalIcon = computed(() => {
         >
           {{ error }}
         </AppAlert>
+        <AppAlert
+          v-if="type === 'edit' && !isDirty"
+          type="info"
+          class="w-full"
+        >
+          No modifications detected. Please update at least one field to enable saving.
+        </AppAlert>
         <div class="flex items-center justify-end w-full gap-md">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton
@@ -568,8 +569,8 @@ const modalIcon = computed(() => {
             type="button"
             @click="requestConfirm"
             :loading="loading"
-            :disabled="loading"
-            :class="{ 'button-disabled-visual': !isSubmittable }"
+            :disabled="loading || (type === 'edit' && !isDirty)"
+            :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
           >
             {{ submitLabel }}
           </AppButton>

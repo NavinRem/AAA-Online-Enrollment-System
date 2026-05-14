@@ -27,8 +27,9 @@ export const setCachedData = (key, data) => {
 }
 
 export const clearCachePrefix = (prefix) => {
+  const actualPrefix = prefix.startsWith('/') ? prefix : `/${prefix}`
   Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith(`${CACHE_PREFIX}${prefix}`)) {
+    if (key.startsWith(CACHE_PREFIX) && key.includes(actualPrefix)) {
       localStorage.removeItem(key)
     }
   })

@@ -18,11 +18,13 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const form = reactive({
+import { useForm } from '@/composables/useForm'
+
+const { form, errors, shaking, validate, clearError, resetForm } = useForm({
   day: 'Saturday',
   time: '',
   status: 'active',
-})
+}, { autoClear: 3000 })
 
 const dayOptions = [
   'Monday',
@@ -41,13 +43,16 @@ const title = computed(() => {
 })
 
 watch(
-  () => [props.isOpen, props.schedule],
-  () => {
-    form.day = props.schedule?.day || 'Saturday'
-    form.time = props.schedule?.time || ''
-    form.status = props.schedule?.status || 'active'
+  () => props.isOpen,
+  (val) => {
+    if (val) {
+      resetForm({
+        day: props.schedule?.day || 'Saturday',
+        time: props.schedule?.time || '',
+        status: props.schedule?.status || 'active',
+      })
+    }
   },
-  { immediate: true },
 )
 
 const handleSubmit = () => {
@@ -55,6 +60,13 @@ const handleSubmit = () => {
     emit('submit', { id: props.schedule?.id })
     return
   }
+
+  const isValid = validate({
+    required: ['day', 'time'],
+  })
+
+  if (!isValid) return
+
   emit('submit', { day: form.day, time: form.time, status: form.status })
 }
 </script>
@@ -76,9 +88,20 @@ const handleSubmit = () => {
           :items="dayOptions"
           label="Day"
           required
+          :error="errors.day"
+          :shake="shaking.day"
           :searchable="false"
+          @change="clearError('day')"
         />
-        <AppInput v-model="form.time" label="Time" placeholder="e.g. 9:00 AM - 10:30 AM" required />
+        <AppInput
+          v-model="form.time"
+          label="Time"
+          placeholder="e.g. 9:00 AM - 10:30 AM"
+          required
+          :error="errors.time"
+          :shake="shaking.time"
+          @input="clearError('time')"
+        />
       </template>
 
       <AppAlert v-else type="error">

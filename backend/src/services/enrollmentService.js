@@ -127,9 +127,11 @@ class EnrollmentService {
       term: termSnapshot,
       status: validated.status || 'unpaid',
       paymentStatus: validated.paymentStatus || 'unpaid',
+      amount: Number(validated.amount) || 0,
       enrollmentDate: validated.enrollAt || new Date().toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isDeleted: false
     }
 
     await db.runTransaction(async (transaction) => {
@@ -499,7 +501,7 @@ class EnrollmentService {
         status: 'deleted',
         updatedAt: new Date().toISOString(),
       })
-      if (isSeatTaking(status)) {
+      if (isSeatTaking(status) && enrollmentData.programId) {
         const admin = require('firebase-admin')
         transaction.update(
           db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId),
@@ -510,13 +512,13 @@ class EnrollmentService {
       }
     })
 
-    if (isSeatTaking(status)) {
+    if (isSeatTaking(status) && enrollmentData.termId && enrollmentData.termOfferingId) {
       await require('./termService').syncOfferingStudent(
         enrollmentData.termId,
         enrollmentData.termOfferingId,
         { id, ...enrollmentData },
         'remove',
-      )
+      ).catch(err => console.error('Failed to sync offering on delete:', err))
     }
 
     return { message: 'Enrollment deleted successfully (Soft delete)' }

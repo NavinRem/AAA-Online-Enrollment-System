@@ -13,6 +13,9 @@ import { formatPrice, formatShortDate, calculateClassProgress } from '@/utils/fo
 import TermActionModal from '@/components/terms/TermActionModal.vue'
 import TermOfferingActionModal from '@/components/terms/TermOfferingActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
+import AppSelect from '@/components/common/ui/AppSelect.vue'
+import AppModal from '@/components/common/ui/AppModal.vue'
+import { teacherService } from '@/services/teacherService'
 import { useSearch, classSearchMapper, studentSearchMapper } from '@/composables/useSearch'
 
 const route = useRoute()
@@ -172,7 +175,7 @@ const groupedBranchOfferings = computed(() => {
 const branchStudents = computed(() => {
   const studentMap = new Map()
   rawBranchOfferings.value.forEach((offering) => {
-    ;(offering.students || []).forEach((s) => {
+    ; (offering.students || []).forEach((s) => {
       if (!studentMap.has(s.id || s.studentId)) {
         studentMap.set(s.id || s.studentId, {
           ...s,
@@ -257,7 +260,7 @@ const classFilterOptions = computed(() => {
   }
   const daysInBranch = new Set()
   groupedBranchOfferings.value.forEach((g) => {
-    ;(g.schedules || []).forEach((s) => {
+    ; (g.schedules || []).forEach((s) => {
       if (s.day) daysInBranch.add(s.day)
     })
   })
@@ -374,10 +377,53 @@ const classHeaders = [
   { label: 'Class Identity' },
   { label: 'Schedule', width: '200px', align: 'center' },
   { label: 'Enrolled', align: 'center', width: '100px' },
+  { label: 'Weekly Schedule', align: 'center', width: '180px' }, // New Column
   { label: 'Revenue', align: 'center', width: '130px' },
   { label: 'Status', align: 'center', width: '110px' },
   { label: 'Action', align: 'center', width: '80px' },
 ]
+
+const sessionModal = ref({
+  isOpen: false,
+  offeringId: null,
+  programId: null,
+  programName: '',
+  schedule: null,
+})
+
+const openSessionModal = (sched, item) => {
+  sessionModal.value = {
+    isOpen: true,
+    offeringId: sched.offeringId,
+    programId: item.program?.id,
+    programName: item.program?.name || 'Class',
+    schedule: sched,
+  }
+}
+
+const teachers = ref([])
+const filteredTeachers = computed(() => {
+  if (!sessionModal.value.isOpen || !sessionModal.value.programId) return teachers.value
+  
+  // Filter teachers who have this programId in their programIds array
+  return teachers.value.filter(t => 
+    (t.programIds || []).some(pid => String(pid) === String(sessionModal.value.programId))
+  )
+})
+
+const loadTeachers = async () => {
+  try {
+    const data = await teacherService.getAllTeachers()
+    teachers.value = data.data || data
+  } catch (err) {
+    console.error('Failed to load teachers', err)
+  }
+}
+
+onMounted(() => {
+  initData()
+  loadTeachers()
+})
 
 const studentHeaders = [
   { label: 'No', width: '50px', align: 'center' },
@@ -398,6 +444,33 @@ const modal = ref({
 const openModal = (type) => {
   modal.value.type = type
   modal.value.isOpen = true
+}
+
+const updateSessionTeacher = async (offeringId, weekIndex, teacherId) => {
+  try {
+    const offering = (term.value.offerings || []).find(o => o.offeringId === offeringId)
+    if (!offering) return
+
+    const sessionTeachers = [...(offering.sessionTeachers || [])]
+    // Ensure array is padded to totalSessions
+    while (sessionTeachers.length < term.value.totalSessions) {
+      sessionTeachers.push(null)
+    }
+
+    const teacher = teachers.value.find(t => t.id === teacherId)
+    sessionTeachers[weekIndex] = teacher ? {
+      id: teacher.id,
+      name: teacher.name,
+      profileURL: teacher.profileURL
+    } : null
+
+    await termService.updateTermOffering(term.value.id, offeringId, { sessionTeachers })
+    // Update local state
+    offering.sessionTeachers = sessionTeachers
+  } catch (err) {
+    console.error('Failed to update session teacher', err)
+    errorMessage.value = 'Failed to update session teacher'
+  }
 }
 
 const addClassModal = ref({
@@ -480,27 +553,18 @@ const handleActionSubmit = async (payload) => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout
-      :loading="loading"
-      :errorMessage="errorMessage"
-      backRoute="/terms"
-      title="Term Analytics"
-      sidebarWidth="sm"
-    >
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/terms" title="Term Analytics"
+      sidebarWidth="sm">
       <template #header-actions v-if="term">
         <div class="flex items-center gap-3">
           <button
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-primary-soft transition-all duration-300 hover:bg-primary hover:border-primary group"
-            title="Edit Term"
-            @click="openModal('edit')"
-          >
+            title="Edit Term" @click="openModal('edit')">
             <img :src="getActionIcon('edit')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
           <button
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-error-soft transition-all duration-300 hover:bg-error hover:border-error group"
-            title="Delete Term"
-            @click="openModal('delete')"
-          >
+            title="Delete Term" @click="openModal('delete')">
             <img :src="getActionIcon('delete')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
         </div>
@@ -514,79 +578,44 @@ const handleActionSubmit = async (payload) => {
 
         <!-- Branch Selector & Sub Tabs -->
         <div class="flex flex-col gap-6">
-          <div
-            class="flex flex-wrap items-center gap-2 p-2 bg-white rounded-2xl border border-outline-std w-fit"
-          >
-            <button
-              v-for="branch in termBranches"
-              :key="branch.id"
+          <div class="flex flex-wrap items-center gap-2 p-2 bg-white rounded-2xl border border-outline-std w-fit">
+            <button v-for="branch in termBranches" :key="branch.id"
               class="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border border-transparent"
-              :class="
-                activeBranchId === branch.id
-                  ? 'shadow-md ring-1 ring-black/5'
-                  : 'text-content-muted hover:text-content-dark hover:bg-surface-subtle/50'
-              "
-              :style="
-                activeBranchId === branch.id
+              :class="activeBranchId === branch.id
+                ? 'shadow-md ring-1 ring-black/5'
+                : 'text-content-muted hover:text-content-dark hover:bg-surface-subtle/50'
+                " :style="activeBranchId === branch.id
                   ? {
-                      backgroundColor: `var(--color-${branch.color || 'blue'})`,
-                      color: 'white',
-                    }
+                    backgroundColor: `var(--color-${branch.color || 'blue'})`,
+                    color: 'white',
+                  }
                   : {}
-              "
-              @click="activeBranchId = branch.id"
-            >
+                  " @click="activeBranchId = branch.id">
               {{ branch.name }}
             </button>
           </div>
 
-          <div
-            class="flex items-center gap-1 p-1 bg-white rounded-xl border border-outline-std w-fit"
-          >
-            <button
-              v-for="tab in ['classes', 'students']"
-              :key="tab"
-              class="px-8 py-2.5 rounded-lg text-xs font-bold transition-all duration-300"
-              :class="
-                activeSubTab === tab
-                  ? 'bg-primary text-white shadow-md'
-                  : 'text-content-muted hover:text-content-dark'
-              "
-              @click="activeSubTab = tab"
-            >
+          <div class="flex items-center gap-1 p-1 bg-white rounded-xl border border-outline-std w-fit">
+            <button v-for="tab in ['classes', 'students']" :key="tab"
+              class="px-8 py-2.5 rounded-lg text-xs font-bold transition-all duration-300" :class="activeSubTab === tab
+                ? 'bg-primary text-white shadow-md'
+                : 'text-content-muted hover:text-content-dark'
+                " @click="activeSubTab = tab">
               {{ tab }}
             </button>
           </div>
         </div>
 
         <section
-          class="overflow-hidden animate-fade-in h-[650px] border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col"
-        >
-          <DataTable
-            v-if="activeSubTab === 'classes'"
-            title="Branch Classes"
-            :headers="classHeaders"
-            :items="paginatedClasses"
-            entityName="class"
-            :flexible="false"
-            :hasSearch="true"
-            v-model:searchQuery="classSearchQuery"
-            v-model:currentFilter="classFilter"
-            :filterOptions="classFilterOptions"
-            :hasFilter="true"
-            :hasPagination="true"
-            v-model:currentPage="classCurrentPage"
-            :pageSize="classPageSize"
-            :totalItems="filteredClasses.length"
-          >
+          class="overflow-hidden animate-fade-in h-[650px] border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col">
+          <DataTable v-if="activeSubTab === 'classes'" title="Branch Classes" :headers="classHeaders"
+            :items="paginatedClasses" entityName="class" :flexible="false" :hasSearch="true"
+            v-model:searchQuery="classSearchQuery" v-model:currentFilter="classFilter"
+            :filterOptions="classFilterOptions" :hasFilter="true" :hasPagination="true"
+            v-model:currentPage="classCurrentPage" :pageSize="classPageSize" :totalItems="filteredClasses.length">
             <template #toolbar-actions>
-              <AppButton
-                v-if="branchDisplayData?.status === 'upcoming'"
-                variant="primary"
-                size="md"
-                class="rounded-xl shadow-lg shadow-primary/20"
-                @click="addClassModal.isOpen = true"
-              >
+              <AppButton v-if="branchDisplayData?.status === 'upcoming'" variant="primary" size="md"
+                class="rounded-xl shadow-lg shadow-primary/20" @click="addClassModal.isOpen = true">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold tracking-tight">Add Class</span>
               </AppButton>
@@ -598,122 +627,95 @@ const handleActionSubmit = async (payload) => {
               <td class="ui-cell" :style="{ width: headers[1].width }">
                 <div class="flex items-center gap-4">
                   <div
-                    class="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/80 shadow-sm bg-surface-subtle p-1.5"
-                  >
-                    <img
-                      :src="
-                        getProgramProfileURL(
-                          item.program?.profileURL,
-                          item.program?.category?.name || item.program?.category,
-                          item.program?.category?.profileURL,
-                        )
-                      "
-                      class="w-full h-full object-contain"
-                    />
+                    class="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/80 shadow-sm bg-surface-subtle p-1.5">
+                    <img :src="getProgramProfileURL(
+                      item.program?.profileURL,
+                      item.program?.category?.name || item.program?.category,
+                      item.program?.category?.profileURL,
+                    )
+                      " class="w-full h-full object-contain" />
                   </div>
                   <div class="flex flex-col">
                     <span class="leading-tight">{{ item.program?.name || 'Program' }}</span>
                     <span class="mt-0.5 text-xs font-semibold text-content-muted">{{
                       item.program?.category?.name || item.program?.category || 'Uncategorized'
-                    }}</span>
+                      }}</span>
                   </div>
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[2].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
-                  <div
-                    v-for="(sched, idx) in item.schedules"
-                    :key="idx"
-                    class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm min-w-[120px]"
-                  >
+                  <div v-for="(sched, idx) in item.schedules" :key="idx"
+                    class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm min-w-[120px]">
                     <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
-                    <span
-                      class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums"
-                      >{{ sched.time }}</span
-                    >
+                    <span class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums">{{ sched.time
+                      }}</span>
                   </div>
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[3].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
-                  <div
-                    v-for="(sched, idx) in item.schedules"
-                    :key="idx"
-                    class="flex items-center justify-center h-10"
-                  >
+                  <div v-for="(sched, idx) in item.schedules" :key="idx" class="flex items-center justify-center h-10">
                     <AppBadge :status="sched.currentCount || 0" type="blue" />
                   </div>
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[4].width }">
-                <span class="text-sm font-bold text-primary tabular-nums"
-                  >${{ formatPrice(item.totalRevenue) }}</span
-                >
+                <div class="flex flex-col items-center justify-center gap-4 py-6">
+                  <div v-for="(sched, idx) in item.schedules" :key="idx" class="flex items-center justify-center h-10">
+                    <button
+                      class="px-3 py-1.5 rounded-lg border border-outline-std bg-surface-subtle hover:bg-white transition-all text-[10px] font-bold text-primary flex items-center gap-2 shadow-sm"
+                      @click="openSessionModal(sched, item)">
+                      <span class="opacity-70">📋</span>
+                      Manage Sessions
+                    </button>
+                  </div>
+                </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[5].width }">
+                <span class="text-sm font-bold text-primary tabular-nums">${{ formatPrice(item.totalRevenue) }}</span>
+              </td>
+              <td class="ui-cell text-center" :style="{ width: headers[6].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
-                  <div
-                    v-for="(sched, idx) in item.schedules"
-                    :key="idx"
-                    class="flex items-center justify-center h-10"
-                  >
+                  <div v-for="(sched, idx) in item.schedules" :key="idx" class="flex items-center justify-center h-10">
                     <AppBadge :status="sched.status || 'Active'" />
                   </div>
                 </div>
               </td>
-              <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+              <td class="ui-cell text-center" :style="{ width: headers[7].width }">
                 <div class="flex items-center justify-center py-6 h-full">
                   <button
                     class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-error-soft text-error transition-all group"
-                    title="Remove Class from Branch"
-                    @click="handleRemoveClass(item)"
-                  >
-                    <img
-                      :src="getActionIcon('delete')"
-                      class="w-5 h-5 icon-danger group-hover:scale-110 transition-transform"
-                    />
+                    title="Remove Class from Branch" @click="handleRemoveClass(item)">
+                    <img :src="getActionIcon('delete')"
+                      class="w-5 h-5 icon-danger group-hover:scale-110 transition-transform" />
                   </button>
                 </div>
               </td>
             </template>
+
           </DataTable>
 
-          <DataTable
-            v-else-if="activeSubTab === 'students'"
-            title="Enrolled Students"
-            :headers="studentHeaders"
-            :items="paginatedStudents"
-            entityName="student"
-            :flexible="false"
-            :hasSearch="true"
-            v-model:searchQuery="studentSearchQuery"
-            v-model:currentFilter="studentFilter"
-            :filterOptions="studentFilterOptions"
-            :hasFilter="true"
-            :hasPagination="true"
-            v-model:currentPage="studentCurrentPage"
-            :pageSize="studentPageSize"
-            :totalItems="filteredStudents.length"
-          >
+          <DataTable v-else-if="activeSubTab === 'students'" title="Enrolled Students" :headers="studentHeaders"
+            :items="paginatedStudents" entityName="student" :flexible="false" :hasSearch="true"
+            v-model:searchQuery="studentSearchQuery" v-model:currentFilter="studentFilter"
+            :filterOptions="studentFilterOptions" :hasFilter="true" :hasPagination="true"
+            v-model:currentPage="studentCurrentPage" :pageSize="studentPageSize" :totalItems="filteredStudents.length">
             <template #row="{ item, index, headers }">
               <td class="ui-cell text-center" :style="{ width: headers[0].width }">
                 {{ (studentCurrentPage - 1) * studentPageSize + index + 1 }}
               </td>
               <td class="ui-cell" :style="{ width: headers[1].width }">
                 <div class="flex items-center gap-3">
-                  <div
-                    class="w-8 h-8 rounded-full overflow-hidden bg-surface-subtle border border-outline-std"
-                  >
-                    <img
-                      :src="item.profileURL || getImageUrl('common/default-avatar')"
-                      class="w-full h-full object-cover"
-                    />
+                  <div class="w-8 h-8 rounded-full overflow-hidden bg-surface-subtle border border-outline-std">
+                    <img :src="item.profileURL || getImageUrl('common/default-avatar')"
+                      class="w-full h-full object-cover" />
                   </div>
                   <div class="flex flex-col">
                     <span class="font-bold text-content-dark text-sm">{{ item.name }}</span>
                     <span class="text-3xs text-content-muted font-bold tracking-tighter">{{
                       item.studentId
-                    }}</span>
+                      }}</span>
                   </div>
                 </div>
               </td>
@@ -738,36 +740,24 @@ const handleActionSubmit = async (payload) => {
             <h2 class="w-full font-bold text-content-dark text-center">Basic Information</h2>
             <div class="relative group">
               <div
-                class="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle flex items-center justify-center p-6"
-              >
-                <img
-                  :src="getImageUrl('enrollment/total-enrollment')"
-                  alt="Term Icon"
-                  class="w-full h-full object-contain"
-                />
+                class="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle flex items-center justify-center p-6">
+                <img :src="getImageUrl('enrollment/total-enrollment')" alt="Term Icon"
+                  class="w-full h-full object-contain" />
               </div>
             </div>
             <div class="text-center">
               <h3 class="text-lg text-content-dark font-extrabold mt-md">{{ term.name }}</h3>
-              <span class="text-sm font-bold text-content-muted mt-1"
-                >{{ term.totalSessions }} Weekly Sessions</span
-              >
+              <span class="text-sm font-bold text-content-muted mt-1">{{ term.totalSessions }} Weekly Sessions</span>
             </div>
           </section>
 
           <!-- Parameters Card -->
           <section class="ui-detail-card !py-8">
             <div class="flex flex-col items-center gap-6">
-              <div
-                v-if="activeBranch"
-                class="flex flex-col items-center gap-2 w-full pb-6 border-b border-outline-std/50"
-              >
+              <div v-if="activeBranch"
+                class="flex flex-col items-center gap-2 w-full pb-6 border-b border-outline-std/50">
                 <span class="text-sm font-bold text-content-muted">Selected Branch</span>
-                <AppBadge
-                  :status="activeBranch.name"
-                  :type="activeBranch.color"
-                  class="px-6 py-1.5 text-sm"
-                />
+                <AppBadge :status="activeBranch.name" :type="activeBranch.color" class="px-6 py-1.5 text-sm" />
               </div>
 
               <div class="grid grid-cols-2 gap-x-12 gap-y-8 w-full" v-if="branchDisplayData">
@@ -777,21 +767,15 @@ const handleActionSubmit = async (payload) => {
                 </div>
                 <div class="flex flex-col items-center gap-2">
                   <span class="text-sm font-bold text-content-muted">Locations</span>
-                  <span class="text-lg font-bold text-content-dark"
-                    >{{ term.branchIds.length }} Branches</span
-                  >
+                  <span class="text-lg font-bold text-content-dark">{{ term.branchIds.length }} Branches</span>
                 </div>
                 <div class="flex flex-col items-center gap-2">
                   <span class="text-sm font-bold text-content-muted">Duration</span>
-                  <span class="text-lg font-bold text-content-dark"
-                    >{{ term.totalSessions }} Weeks</span
-                  >
+                  <span class="text-lg font-bold text-content-dark">{{ term.totalSessions }} Weeks</span>
                 </div>
                 <div class="flex flex-col items-center gap-2">
                   <span class="text-sm font-bold text-content-muted">Sessions</span>
-                  <span class="text-lg font-bold text-content-dark"
-                    >{{ term.totalSessions }} Total</span
-                  >
+                  <span class="text-lg font-bold text-content-dark">{{ term.totalSessions }} Total</span>
                 </div>
                 <div class="flex flex-col items-center gap-2">
                   <span class="text-sm font-bold text-content-muted">Start Date</span>
@@ -808,28 +792,150 @@ const handleActionSubmit = async (payload) => {
       </template>
     </DetailPageLayout>
 
-    <TermActionModal
-      :isOpen="modal.isOpen"
-      :type="modal.type"
-      :term="term"
-      :branches="branches"
-      :loading="modal.loading"
-      :error="modal.error"
-      :success="modal.success"
-      @close="modal.isOpen = false"
-      @submit="handleActionSubmit"
-    />
+    <TermActionModal :isOpen="modal.isOpen" :type="modal.type" :term="term" :branches="branches"
+      :loading="modal.loading" :error="modal.error" :success="modal.success" @close="modal.isOpen = false"
+      @submit="handleActionSubmit" />
 
-    <TermOfferingActionModal
-      :isOpen="addClassModal.isOpen"
-      :term="term"
-      :initialBranchId="activeBranchId"
-      :loading="addClassModal.loading"
-      :error="addClassModal.error"
-      :success="addClassModal.success"
-      @close="addClassModal.isOpen = false"
-      @submit="handleAddClass"
-    />
+    <ClassActionModal :isOpen="addClassModal.isOpen" @close="addClassModal.isOpen = false" @submit="handleAddClass"
+      :loading="addClassModal.loading" :error="addClassModal.error" :success="addClassModal.success" />
+
+    <!-- Weekly Session Management Modal -->
+    <AppModal :show="sessionModal.isOpen" :title="`Session Management: ${sessionModal.programName}`" maxWidth="1000px"
+      @close="sessionModal.isOpen = false">
+      <template #header>
+        <div class="flex flex-col">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-primary-soft flex items-center justify-center text-primary shadow-sm border border-primary/10">
+              <span class="text-2xl">📅</span>
+            </div>
+            <div class="flex flex-col">
+              <h3 class="text-xl font-black text-content-dark leading-tight uppercase tracking-tight">
+                Weekly Faculty Assignment
+              </h3>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-sm font-bold text-primary">{{ sessionModal.programName }}</span>
+                <span class="text-xs font-bold text-content-muted/40">•</span>
+                <span class="text-xs font-bold text-content-muted">
+                  {{ sessionModal.schedule?.day }} {{ sessionModal.schedule?.time }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <div class="flex flex-col gap-10 py-6">
+        <!-- Info Banner -->
+        <div class="flex items-center justify-between p-8 bg-surface-subtle/40 rounded-[2rem] border border-outline-std shadow-sm">
+          <div class="flex items-center gap-6">
+            <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-inner border border-outline-std">
+               <img :src="getActionIcon('info')" class="w-8 h-8 opacity-40" />
+            </div>
+            <div class="flex flex-col">
+              <span class="text-xs font-black text-primary uppercase tracking-[0.2em] mb-1">Assignment Controls</span>
+              <h4 class="text-lg font-bold text-content-dark">Fine-tune the instructors for every session.</h4>
+              <p class="text-sm font-bold text-content-muted/70 mt-1 max-w-[500px]">
+                Showing only teachers specialized in <span class="text-primary">{{ sessionModal.programName }}</span>. 
+                Changes are saved automatically to the master schedule.
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-6 pr-4">
+            <div class="flex flex-col items-end">
+              <span class="text-[10px] font-black text-content-muted/50 uppercase tracking-widest mb-2">Term Progress</span>
+              <div class="flex gap-1.5">
+                <div v-for="i in term.totalSessions" :key="i" class="w-4 h-2 rounded-full transition-all duration-500"
+                  :class="i <= 3 ? 'bg-primary shadow-[0_0_8px_rgba(var(--color-primary-rgb),0.4)]' : 'bg-outline-std/60'"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sessions Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div v-for="i in term.totalSessions" :key="i"
+            class="flex flex-col gap-4 p-6 bg-white rounded-[1.5rem] border border-outline-std shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group/session relative overflow-hidden">
+            
+            <!-- Subtle background week number -->
+            <div class="absolute -top-2 -right-2 text-6xl font-black text-surface-subtle/5 select-none transition-all group-hover/session:text-primary/5">
+               {{ i }}
+            </div>
+
+            <div class="flex items-center justify-between relative z-10">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full bg-primary animate-pulse" v-if="i === 1"></span>
+                <span class="text-[11px] font-black text-primary bg-primary-soft px-3.5 py-1.5 rounded-lg uppercase tracking-wider shadow-sm">
+                  Week {{ i }}
+                </span>
+              </div>
+              <span class="text-[10px] font-black text-content-muted/40 uppercase tracking-widest">
+                Session {{ i }}
+              </span>
+            </div>
+
+            <div class="flex flex-col gap-3 mt-2 relative z-10">
+              <div class="flex items-center justify-between ml-1">
+                <span class="text-[10px] font-black text-content-muted uppercase tracking-[0.15em]">Assign Faculty</span>
+                <span v-if="(term.offerings.find(o => o.offeringId === sessionModal.offeringId)?.sessionTeachers || [])[i - 1]" 
+                      class="text-[9px] font-black text-green-500 uppercase">Assigned</span>
+              </div>
+              
+              <AppSelect
+                :modelValue="(term.offerings.find(o => o.offeringId === sessionModal.offeringId)?.sessionTeachers || [])[i - 1]?.id"
+                :items="filteredTeachers" placeholder="Select Specialist..." size="lg" class="!bg-surface-subtle/30 !rounded-xl border-outline-std group-hover/session:border-primary/30 transition-colors"
+                @change="(val) => updateSessionTeacher(sessionModal.offeringId, i - 1, val)">
+                <template #selected="{ item: t }">
+                  <div v-if="t" class="flex items-center gap-3 py-1">
+                    <div class="relative">
+                      <img :src="t.profileURL || getImageUrl('profiles/avatar-teacher-man')" class="w-7 h-7 rounded-full border-2 border-white shadow-sm" />
+                      <div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-xs font-black text-content-dark truncate max-w-[140px] leading-tight">{{ t.name }}</span>
+                      <span class="text-[9px] font-bold text-primary uppercase tracking-tighter">{{ t.branchAbbr || 'HQ' }} Specialist</span>
+                    </div>
+                  </div>
+                  <div v-else class="flex items-center gap-2 py-1 opacity-60 italic">
+                    <span class="text-xs font-bold text-content-muted">No instructor assigned</span>
+                  </div>
+                </template>
+                <template #item="{ item: t }">
+                  <div class="flex items-center gap-4 py-1">
+                    <div class="relative">
+                      <img :src="t.profileURL || getImageUrl('profiles/avatar-teacher-man')" class="w-10 h-10 rounded-xl shadow-sm" />
+                      <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
+                    </div>
+                    <div class="flex flex-col">
+                      <span class="text-sm font-black text-content-dark">{{ t.name }}</span>
+                      <div class="flex items-center gap-1.5 mt-0.5">
+                         <span class="text-[10px] font-bold text-content-muted uppercase tracking-wider bg-surface-subtle px-2 py-0.5 rounded">{{ t.branchAbbr || 'HQ' }}</span>
+                         <span class="text-[10px] font-bold text-primary italic">Expert</span>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+              </AppSelect>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex items-center justify-between w-full px-2">
+          <div class="flex items-center gap-2 text-content-muted">
+             <span class="text-xs font-bold italic">Note: Only specialists for {{ sessionModal.programName }} are shown above.</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <AppButton variant="ghost" size="md" class="font-bold" @click="sessionModal.isOpen = false">
+              Cancel
+            </AppButton>
+            <AppButton variant="primary" size="md" class="px-8 font-black shadow-lg shadow-primary/20" @click="sessionModal.isOpen = false">
+              Finish Assignment
+            </AppButton>
+          </div>
+        </div>
+      </template>
+    </AppModal>
   </DashboardLayout>
 </template>
 

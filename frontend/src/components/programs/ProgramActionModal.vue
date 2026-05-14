@@ -50,6 +50,7 @@ const { localData, originalData, isDirty, errors, shaking, validate, clearError,
     getInitialData,
     mapSourceToForm,
     sourceKey: 'program',
+    autoClear: 3000,
   })
 
 // Lookup Management State
@@ -758,16 +759,12 @@ watch(
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
-        <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
-          <div class="flex items-center gap-sm">
-            <span class="text-lg">ℹ️</span>
-            <div class="flex flex-col">
-              <span class="text-xs font-semibold tracking-tight">No Changes Detected</span>
-              <span class="text-3xs opacity-80"
-                >Please modify at least one field to enable the update button.</span
-              >
-            </div>
-          </div>
+        <AppAlert
+          v-if="type === 'edit' && !isDirty"
+          type="info"
+          class="w-full"
+        >
+          No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
 
         <div class="flex items-center justify-end w-full gap-md">
@@ -777,7 +774,7 @@ watch(
             type="button"
             @click="requestConfirm"
             :loading="loading"
-            :disabled="loading"
+            :disabled="loading || (type === 'edit' && !isDirty)"
             :class="{ 'opacity-50 pointer-events-none': type === 'edit' && !isDirty }"
           >
             {{ submitLabel }}

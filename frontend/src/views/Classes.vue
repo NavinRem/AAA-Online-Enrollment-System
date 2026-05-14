@@ -118,6 +118,7 @@ const classHeaders = [
   { label: 'Class Identity', width: '200px' },
   { label: 'Branch', width: '150px', align: 'center' },
   { label: 'Schedule', width: '180px', align: 'center' },
+  { label: 'Teachers', width: '120px', align: 'center' },
   { label: 'Enrolled', width: '100px', align: 'center' },
   { label: 'Status', width: '110px', align: 'center' },
   { label: 'Action', width: '80px', align: 'center' },
@@ -166,12 +167,12 @@ const activeOfferings = computed(() => {
 
     const program = liveProgram
       ? {
-          ...liveProgram,
-          category: {
-            name: category?.name,
-            profileURL: category?.profileURL,
-          },
-        }
+        ...liveProgram,
+        category: {
+          name: category?.name,
+          profileURL: category?.profileURL,
+        },
+      }
       : product.program
 
     const termGroups = new Map()
@@ -220,7 +221,6 @@ const activeOfferings = computed(() => {
             )
             const globalSchedule = dataStore.schedules.find((x) => String(x.id) === String(schedId))
 
-            // Prioritize the master capacity from the Class Product over the stale offering snapshot
             const capacity =
               Number(productSchedule?.capacity) ||
               Number(off.capacity) ||
@@ -228,12 +228,27 @@ const activeOfferings = computed(() => {
               Number(program?.capacity) ||
               DEFAULT_CAPACITY
 
+            const existing = schedulesMap.get(schedId)
+            const newTeachers = off.teachers || []
+            
+            // Merge teachers correctly: Add only if not already present
+            const mergedTeachers = existing 
+              ? [...existing.teachers, ...newTeachers.filter(nt => !existing.teachers.some(et => et.id === nt.id))]
+              : [...newTeachers]
+
             const schedData = {
-              ...(off.schedule || globalSchedule || {}),
-              status: getOfferingStatus(off),
-              currentCount: off.currentCount || 0,
-              capacity: capacity,
+              ...(off.schedule || globalSchedule || existing || {}),
+              status: existing?.status === 'active' || getOfferingStatus(off) === 'active' ? 'active' : getOfferingStatus(off),
+              currentCount: (existing?.currentCount || 0) + (off.currentCount || 0),
+              capacity: existing ? existing.capacity : capacity,
+              teachers: mergedTeachers
             }
+            
+            // If merging all branches, we sum the capacity for the global overview
+            if (existing && branchFilter.value === 'all') {
+               schedData.capacity = existing.capacity + capacity
+            }
+
             schedulesMap.set(schedId, schedData)
           }
           totalEnrolled += off.currentCount || 0
@@ -529,73 +544,36 @@ const navigateToDetail = (item) => {
     <DataPageLayout overviewTitle="Class Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DataMetricCard
-            v-for="stat in statsCards"
-            :key="stat.label"
-            v-bind="stat"
-            :loading="loading"
-          />
+          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" :loading="loading" />
         </div>
       </template>
 
       <template #table>
-        <DataTable
-          title="Class List"
-          :headers="classHeaders"
-          :items="paginatedResults"
-          :loading="loading"
-          entityName="class"
-          :flexible="true"
-          v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search class..."
-          :hasPagination="true"
-          :currentPage="currentPage"
-          :pageSize="pageSize"
-          :totalItems="totalItems"
-          @update:currentPage="currentPage = $event"
-          @row-click="navigateToDetail"
-        >
+        <DataTable title="Class List" :headers="classHeaders" :items="paginatedResults" :loading="loading"
+          entityName="class" :flexible="true" v-model:searchQuery="searchQuery" searchPlaceholder="Search class..."
+          :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
+          @update:currentPage="currentPage = $event" @row-click="navigateToDetail">
           <template #toolbar-actions>
             <div class="flex items-center gap-3">
               <!-- Term Filter -->
               <div class="relative" id="term-filter-btn">
-                <AppButton
-                  variant="secondary"
-                  size="md"
-                  @click="toggleDropdown('term', $event)"
-                  class="!bg-magenta"
-                >
-                  <img
-                    :src="getActionIcon('filter')"
-                    class="w-4 h-4 brightness-0 invert opacity-80 group-hover:opacity-100"
-                  />
+                <AppButton variant="secondary" size="md" @click="toggleDropdown('term', $event)" class="!bg-magenta">
+                  <img :src="getActionIcon('filter')"
+                    class="w-4 h-4 brightness-0 invert opacity-80 group-hover:opacity-100" />
                   <span class="text-white font-bold tracking-tight">{{
                     getActiveLabel('term').label
                   }}</span>
                   <span class="text-white ml-2 text-xs opacity-60 group-hover:opacity-100">▼</span>
                 </AppButton>
                 <Teleport to="body">
-                  <transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0"
-                    enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                  >
-                    <div
-                      v-if="dropdowns.term"
-                      class="toolbar-filter-menu"
-                      :style="filterMenuStyles"
-                      @mousedown.stop
-                    >
-                      <div
-                        v-for="opt in termOptions"
-                        :key="opt.value"
-                        class="toolbar-filter-option"
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="dropdowns.term" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
+                      <div v-for="opt in termOptions" :key="opt.value" class="toolbar-filter-option"
                         :class="{ 'active-filter-item': String(termFilter) === String(opt.value) }"
-                        @click="selectFilter('term', opt.value)"
-                      >
+                        @click="selectFilter('term', opt.value)">
                         {{ opt.label }}
                       </div>
                     </div>
@@ -605,113 +583,69 @@ const navigateToDetail = (item) => {
 
               <!-- Branch Filter -->
               <div class="relative" id="branch-filter-btn">
-                <AppButton
-                  :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"
-                  size="md"
-                  @click="toggleDropdown('branch', $event)"
-                  class="rounded-xl transition-all duration-300 group"
-                  :class="{
+                <AppButton :variant="branchFilter === 'all' ? 'secondary' : 'ghost'" size="md"
+                  @click="toggleDropdown('branch', $event)" class="rounded-xl transition-all duration-300 group" :class="{
                     '!text-white shadow-md': branchFilter !== 'all',
-                    'shadow-sm': branchFilter === 'all',
-                  }"
-                  :style="
-                    branchFilter !== 'all'
-                      ? { backgroundColor: `var(--color-${getActiveLabel('branch').color})` }
-                      : {}
-                  "
-                >
-                  <img
-                    :src="getActionIcon('branch')"
+                    '!text-content-dark bg-primary-light shadow-sm': branchFilter === 'all',
+                  }" :style="branchFilter !== 'all'
+                    ? { backgroundColor: `var(--color-${getActiveLabel('branch').color})` }
+                    : {}
+                    ">
+                  <img :src="getActionIcon('branch')"
                     class="w-4 h-4 brightness-0 transition-all opacity-80 group-hover:opacity-100"
-                    :class="{ invert: branchFilter !== 'all' }"
-                  />
-                  <span
-                    class="text-white font-bold tracking-tight"
-                    :class="{ 'text-white': branchFilter !== 'all' }"
-                    >{{ getActiveLabel('branch').label }}</span
-                  >
-                  <span
-                    class="text-white ml-2 text-xs opacity-60 group-hover:opacity-100"
-                    :class="{ 'text-white': branchFilter !== 'all' }"
-                    >▼</span
-                  >
+                    :class="{ invert: branchFilter !== 'all' }" />
+                  <span class="font-bold tracking-tight" :class="{ 'text-white': branchFilter !== 'all' }">{{
+                    getActiveLabel('branch').label }}</span>
+                  <span class="ml-2 text-xs opacity-60 group-hover:opacity-100"
+                    :class="{ 'text-white': branchFilter !== 'all' }">▼</span>
                 </AppButton>
                 <Teleport to="body">
-                  <transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0"
-                    enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                  >
-                    <div
-                      v-if="dropdowns.branch"
-                      class="toolbar-filter-menu"
-                      :style="filterMenuStyles"
-                      @mousedown.stop
-                    >
-                      <div
-                        class="toolbar-filter-option flex items-center justify-between gap-4"
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="dropdowns.branch" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
+                      <div class="toolbar-filter-option flex items-center justify-between gap-4"
                         :class="{ 'active-filter-item': branchFilter === 'all' }"
-                        @click="selectFilter('branch', 'all')"
-                      >
+                        @click="selectFilter('branch', 'all')">
                         <div class="flex items-center gap-3">
                           <AppBadge status="ALL" type="gray" size="sm" class="w-12 text-center" />
                           <span>All Branches</span>
                         </div>
                       </div>
-                      <div
-                        v-for="opt in branchOptions"
-                        :key="opt.value"
-                        class="toolbar-filter-option flex items-center justify-between gap-4"
-                        :class="{
+                      <div v-for="opt in branchOptions" :key="opt.value"
+                        class="toolbar-filter-option flex items-center justify-between gap-4" :class="{
                           'active-filter-item': String(branchFilter) === String(opt.value),
-                        }"
-                        @click="selectFilter('branch', opt.value)"
-                      >
+                        }" @click="selectFilter('branch', opt.value)">
                         <div class="flex items-center gap-3">
-                          <AppBadge
-                            :status="opt.abbr"
-                            :type="opt.color"
-                            size="sm"
-                            class="w-12 text-center"
-                          />
+                          <AppBadge :status="opt.abbr" :type="opt.color" size="sm" class="w-12 text-center" />
                           <span class="truncate">{{ opt.label }}</span>
                         </div>
-                        <span v-if="String(branchFilter) === String(opt.value)" class="text-xs"
-                          >✓</span
-                        >
+                        <span v-if="String(branchFilter) === String(opt.value)" class="text-xs">✓</span>
                       </div>
                     </div>
                   </transition>
                 </Teleport>
               </div>
 
-              <AppButton
-                variant="primary"
-                size="md"
-                class="rounded-xl shadow-lg shadow-primary/20"
-                @click="openAddModal"
-              >
+              <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
+                @click="openAddModal">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold tracking-tight">Add Class</span>
               </AppButton>
             </div>
           </template>
 
-          <template
-            #row="{
-              item,
-              index,
-              headers,
-              toggleMenu,
-              activeMenuId,
-              isMenuAbove,
-              menuStyles,
-              closeMenu,
-            }"
-          >
+          <template #row="{
+            item,
+            index,
+            headers,
+            toggleMenu,
+            activeMenuId,
+            isMenuAbove,
+            menuStyles,
+            closeMenu,
+          }">
             <td class="ui-cell text-center" :style="{ width: headers[0].width }">
               {{ index + 1 }}
             </td>
@@ -719,18 +653,13 @@ const navigateToDetail = (item) => {
             <td class="ui-cell" :style="{ width: headers[1].width }">
               <div class="flex items-center gap-4">
                 <div
-                  class="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/80 shadow-sm bg-surface-subtle p-1.5"
-                >
-                  <img
-                    :src="
-                      getProgramProfileURL(
-                        item.program?.profileURL,
-                        item.program?.category?.name || item.program?.category,
-                        item.program?.category?.profileURL,
-                      )
-                    "
-                    class="w-full h-full object-contain"
-                  />
+                  class="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/80 shadow-sm bg-surface-subtle p-1.5">
+                  <img :src="getProgramProfileURL(
+                    item.program?.profileURL,
+                    item.program?.category?.name || item.program?.category,
+                    item.program?.category?.profileURL,
+                  )
+                    " class="w-full h-full object-contain" />
                 </div>
                 <div class="flex flex-col">
                   <span class="leading-tight">{{ item.program?.name }}</span>
@@ -743,16 +672,10 @@ const navigateToDetail = (item) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
               <div class="flex flex-col items-center justify-center py-6">
-                <div
-                  v-if="item.branches && item.branches.length > 0"
-                  class="flex flex-wrap gap-lg justify-center items-center"
-                >
-                  <AppBadge
-                    v-for="b in item.branches"
-                    :key="b.id || b.abbr"
-                    :status="b.abbr"
-                    :type="b.color || 'neutral'"
-                  />
+                <div v-if="item.branches && item.branches.length > 0"
+                  class="flex flex-wrap gap-lg justify-center items-center">
+                  <AppBadge v-for="b in item.branches" :key="b.id || b.abbr" :status="b.abbr"
+                    :type="b.color || 'neutral'" />
                 </div>
                 <div v-else class="flex flex-col items-center justify-center h-8">
                   <span class="text-content-muted text-xs font-bold italic">Empty</span>
@@ -762,17 +685,12 @@ const navigateToDetail = (item) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[3].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
-                <div
-                  v-for="(sched, idx) in getSchedules(item)"
-                  :key="idx"
-                  class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm"
-                >
+                <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
+                  class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm">
                   <div class="flex flex-col items-center">
                     <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
-                    <span
-                      class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums"
-                      >{{ sched.time }}</span
-                    >
+                    <span class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums">{{ sched.time
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -780,105 +698,91 @@ const navigateToDetail = (item) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
-                <div
-                  v-for="(sched, idx) in getSchedules(item)"
-                  :key="idx"
-                  class="flex flex-col items-center justify-center h-10"
-                >
-                  <AppBadge
-                    :status="`${sched.currentCount || 0} / ${sched.capacity || 5}`"
-                    type="blue"
-                  />
+                <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
+                  class="h-10 flex items-center justify-center">
+                  <!-- Teacher Avatar Stack -->
+                  <div v-if="sched.teachers && sched.teachers.length > 0" class="flex -space-x-2">
+                    <div v-for="teacher in sched.teachers.slice(0, 3)" :key="teacher.id"
+                      class="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm bg-surface-subtle group-hover:scale-110 transition-transform"
+                      :title="teacher.name">
+                      <img :src="teacher.profileURL || getImageUrl('profiles/avatar-teacher-man')"
+                        class="w-full h-full object-cover" />
+                    </div>
+                    <div v-if="sched.teachers.length > 3"
+                      class="w-8 h-8 rounded-full border-2 border-white bg-primary-soft flex items-center justify-center text-[10px] font-black text-primary shadow-sm">
+                      +{{ sched.teachers.length - 3 }}
+                    </div>
+                  </div>
+                  <span v-else class="text-[10px] font-bold text-content-muted/30 italic">No teacher</span>
                 </div>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
-                <div
-                  v-for="(sched, idx) in getSchedules(item)"
-                  :key="idx"
-                  class="flex items-center justify-center h-10"
-                >
-                  <AppBadge :status="sched.status || 'upcoming'" />
+                <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
+                  class="flex flex-col items-center justify-center h-10">
+                  <AppBadge :status="`${sched.currentCount || 0} / ${sched.capacity || 5}`" type="blue" />
                 </div>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+              <div class="flex flex-col items-center justify-center gap-4 py-6">
+                <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
+                  class="flex items-center justify-center h-10">
+                  <AppBadge :status="sched.status || 'upcoming'" />
+                </div>
+              </div>
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
-                  @click.stop="toggleMenu($event, item.id)"
-                >
+                  @click.stop="toggleMenu($event, item.id)">
                   <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
 
                 <Teleport to="body">
-                  <transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0"
-                    enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                  >
-                    <div
-                      v-if="activeMenuId === item.id"
-                      class="ui-dropdown-menu"
-                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
-                      :style="menuStyles"
-                      @click.stop
-                    >
-                      <button
-                        class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="
-                          () => {
-                            handleAction('edit', item.classProduct, {
-                              termId: item.termId,
-                              offeringId: item.offeringId,
-                              termName: item.termName,
-                              offeringIds: item.offeringIds,
-                            })
-                            closeMenu()
-                          }
-                        "
-                      >
-                        <img
-                          :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
-                        />
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
+                      @click.stop>
+                      <button class="ui-dropdown-item ui-dropdown-item-info group" @click="
+                        () => {
+                          handleAction('edit', item.classProduct, {
+                            termId: item.termId,
+                            offeringId: item.offeringId,
+                            termName: item.termName,
+                            offeringIds: item.offeringIds,
+                          })
+                          closeMenu()
+                        }
+                      ">
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         <span>Edit Current Term</span>
                       </button>
-                      <button
-                        class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="
-                          () => {
-                            handleAction('edit', item.classProduct)
-                            closeMenu()
-                          }
-                        "
-                      >
-                        <img
-                          :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
-                        />
+                      <button class="ui-dropdown-item ui-dropdown-item-info group" @click="
+                        () => {
+                          handleAction('edit', item.classProduct)
+                          closeMenu()
+                        }
+                      ">
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         <span>Edit Master Settings</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button
-                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
-                        @click="
-                          () => {
-                            handleAction('delete', item.classProduct)
-                            closeMenu()
-                          }
-                        "
-                      >
-                        <img
-                          :src="getActionIcon('delete')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
-                        />
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter" @click="
+                        () => {
+                          handleAction('delete', item.classProduct)
+                          closeMenu()
+                        }
+                      ">
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete
                       </button>
                     </div>
@@ -892,18 +796,9 @@ const navigateToDetail = (item) => {
     </DataPageLayout>
   </DashboardLayout>
 
-  <ClassActionModal
-    :isOpen="modal.isOpen"
-    :type="modal.type"
-    :classInstance="modal.classItem"
-    :loading="modal.loading"
-    :error="modal.error"
-    :success="modal.success"
-    @close="closeModal"
-    @submit="handleModalSubmit"
-    @clear-error="modal.error = ''"
-    @clear-success="modal.success = ''"
-  />
+  <ClassActionModal :isOpen="modal.isOpen" :type="modal.type" :classInstance="modal.classItem" :loading="modal.loading"
+    :error="modal.error" :success="modal.success" @close="closeModal" @submit="handleModalSubmit"
+    @clear-error="modal.error = ''" @clear-success="modal.success = ''" />
 </template>
 
 <style scoped>

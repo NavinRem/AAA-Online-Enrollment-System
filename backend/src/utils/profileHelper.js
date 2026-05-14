@@ -35,7 +35,13 @@ class ProfileHelper {
   }
 
   getTeacherSnapshot(teacherId, teacherData) {
-    return this.getUserSnapshot(teacherId, teacherData)
+    const base = this.getUserSnapshot(teacherId, teacherData)
+    if (!base) return null
+    return {
+      ...base,
+      email: teacherData.email || '',
+      phone: teacherData.phone || '',
+    }
   }
 
   getProgramSnapshot(programId, programData) {

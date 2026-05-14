@@ -61,6 +61,7 @@ const { localData, shaking, errors, validate, clearError, triggerShake, resetFor
     getInitialData,
     mapSourceToForm,
     sourceKey: 'term',
+    autoClear: 3000,
   })
 
 const showConfirm = ref(false)
@@ -115,7 +116,7 @@ const requestConfirm = () => {
   if (props.type === 'edit' && !isDirty.value) return
 
   const rules = {
-    required: props.type === 'delete' ? ['deleteConfirm'] : ['name', 'startDate', 'totalSessions'],
+    required: props.type === 'delete' ? ['deleteConfirm'] : ['name', 'startDate', 'totalSessions', 'branchIds'],
     custom: {},
   }
 
@@ -124,10 +125,6 @@ const requestConfirm = () => {
   }
 
   if (!validate(rules)) {
-    if (props.type !== 'delete') {
-      const firstError = Object.keys(errors).find((k) => errors[k])
-      if (firstError) triggerShake(firstError)
-    }
     return
   }
 
@@ -380,7 +377,7 @@ watch(
               </button>
             </label>
 
-            <div class="relative group" ref="dropdownContainer">
+            <div class="relative group" ref="dropdownContainer" :class="{ 'animate-shake': shaking.branchIds }">
               <div
                 @click="isBranchDropdownOpen = !isBranchDropdownOpen"
                 class="w-full px-4 py-3 border-2 border-outline-std rounded-sm bg-white text-base outline-none transition-all hover:border-primary/50 cursor-pointer flex items-center justify-between min-h-[50px]"
@@ -634,8 +631,12 @@ watch(
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
-        <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
-          <span class="text-sm font-semibold tracking-tight">No Changes Detected</span>
+        <AppAlert
+          v-if="type === 'edit' && !isDirty"
+          type="info"
+          class="w-full"
+        >
+          No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
 
         <div class="flex items-center justify-end w-full gap-md">
@@ -646,6 +647,7 @@ watch(
             @click="requestConfirm"
             :loading="loading"
             :disabled="loading || (type === 'edit' && !isDirty)"
+            :class="{ 'opacity-50 pointer-events-none': type === 'edit' && !isDirty }"
           >
             {{
               type === 'delete' ? 'Delete Term' : type === 'edit' ? 'Save Changes' : 'Create Term'

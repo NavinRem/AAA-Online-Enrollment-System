@@ -162,55 +162,34 @@ const handleFileUpload = async (event) => {
 </script>
 
 <template>
-  <div
-    class="avatar-selector-root flex flex-col gap-xs text-left"
-    :class="{ 'animate-shake': shake }"
-  >
+  <div class="avatar-selector-root flex flex-col gap-xs text-left" :class="{ 'animate-shake': shake }">
     <label v-if="label" class="text-sm font-semibold text-content-dark flex items-center gap-1">
       {{ label }}
       <span v-if="required" class="text-error font-bold leading-none">*</span>
     </label>
 
-    <div
-      class="avatar-selector-container"
-      :class="error ? 'border-error bg-error-soft' : 'border-outline-std'"
-    >
+    <div class="avatar-selector-container" :class="error ? 'border-error bg-error-soft' : 'border-outline-std'">
       <div class="avatar-gallery flex gap-4">
-        <div
-          v-for="avatar in availableAvatars"
-          :key="avatar.id + avatar.url"
-          class="avatar-item"
+        <div v-for="avatar in availableAvatars" :key="avatar.id + avatar.url" class="avatar-item"
           :class="isSelected(avatar.url) ? 'avatar-item--active' : 'avatar-item--inactive'"
-          @click="selectAvatar(avatar.url)"
-        >
-          <img
-            :src="avatar.url"
-            :alt="avatar.name"
-            class="w-full h-full rounded-full object-cover"
-          />
+          @click="selectAvatar(avatar.url)">
+          <img :src="avatar.url" :alt="avatar.name" class="w-full h-full rounded-full object-cover" />
           <div
             class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-3xs border-2 border-white shadow-sm"
-            v-if="isSelected(avatar.url)"
-          >
+            v-if="isSelected(avatar.url)">
             <i class="fas fa-check"></i>
           </div>
         </div>
 
         <!-- Custom Slot -->
-        <div
-          v-if="customAvatar"
-          class="avatar-item avatar-item--custom"
-          :class="{
-            'opacity-100': isSelected(customAvatar),
-            'opacity-60': !isSelected(customAvatar),
-          }"
-          @click="selectAvatar(customAvatar)"
-        >
+        <div v-if="customAvatar" class="avatar-item avatar-item--custom" :class="{
+          'opacity-100': isSelected(customAvatar),
+          'opacity-60': !isSelected(customAvatar),
+        }" @click="selectAvatar(customAvatar)">
           <img :src="customAvatar" alt="Custom" class="w-full h-full rounded-full object-cover" />
           <div
             class="check-badge absolute -top-1 -right-1 bg-primary text-white w-5 h-5 rounded-full flex items-center justify-center text-3xs border-2 border-white shadow-sm"
-            v-if="isSelected(customAvatar)"
-          >
+            v-if="isSelected(customAvatar)">
             <i class="fas fa-check"></i>
           </div>
           <button class="avatar-remove-btn" @click.stop="removeCustomAvatar">
@@ -222,18 +201,10 @@ const handleFileUpload = async (event) => {
       <div class="vertical-divider w-px h-10 bg-outline-std mx-2"></div>
 
       <div class="upload-area">
-        <input
-          type="file"
-          ref="fileInput"
-          accept="image/*"
-          class="hidden"
-          @change="handleFileUpload"
-        />
+        <input type="file" ref="fileInput" accept="image/*" class="hidden" @change="handleFileUpload" />
         <div class="avatar-upload-btn" @click="fileInput?.click()">
-          <div
-            v-if="uploading"
-            class="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin"
-          ></div>
+          <div v-if="uploading" class="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin">
+          </div>
           <template v-else>
             <i class="fas fa-plus text-sm mb-0.5"></i>
             <span class="text-3xs font-semibold tracking-tighter">Upload</span>
@@ -243,14 +214,9 @@ const handleFileUpload = async (event) => {
     </div>
 
     <!-- Feedback States -->
-    <transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 -translate-y-1"
-      enter-to-class="opacity-100 translate-y-0"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 translate-y-0"
-      leave-to-class="opacity-0 -translate-y-1"
-    >
+    <transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1"
+      enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0" leave-to-class="opacity-0 -translate-y-1">
       <div v-if="error || props.error" class="avatar-feedback-err">
         {{ error || props.error }}
       </div>
@@ -295,10 +261,10 @@ const handleFileUpload = async (event) => {
 }
 
 .avatar-feedback-err {
-  @apply text-3xs font-semibold text-error pl-1;
+  @apply text-sm font-semibold text-error pl-1;
 }
 
 .avatar-feedback-success {
-  @apply text-3xs font-semibold text-success pl-1 flex items-center gap-1;
+  @apply text-sm font-semibold text-success pl-1 flex items-center gap-1;
 }
 </style>

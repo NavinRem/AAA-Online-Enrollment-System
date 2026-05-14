@@ -32,4 +32,24 @@ export const teacherService = {
       method: 'DELETE',
     })
   },
+ 
+  getAssignments(id) {
+    return request(`/teachers/${id}/assignments`, {
+      method: 'GET',
+    })
+  },
+ 
+  assignToClass(id, termId, offeringId) {
+    return request(`/teachers/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ termId, offeringId }),
+    })
+  },
+ 
+  unassignFromClass(id, termId, offeringId) {
+    return request(`/teachers/${id}/unassign`, {
+      method: 'POST',
+      body: JSON.stringify({ termId, offeringId }),
+    })
+  },
 }

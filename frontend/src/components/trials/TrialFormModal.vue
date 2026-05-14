@@ -46,7 +46,7 @@ const { form, errors, shaking, validate, clearError, triggerShake, resetForm } =
   guestStudentDOB: '',
   guestStudentAge: '',
   guestStudentAvatar: '',
-})
+}, { autoClear: 3000 })
 
 const showConfirm = ref(false)
 
@@ -577,15 +577,15 @@ watch(
           </div>
           <!-- Administrative Remarks -->
           <div class="enroll-twin-card">
-            <span class="enroll-section-label">Administrative Remarks</span>
-            <div class="flex flex-col gap-2 mt-2">
-              <textarea
-                v-model="form.remark"
-                placeholder="Input specific trial notes or feedback here..."
-                rows="4"
-                class="ui-textarea-standard bg-white/50 w-full min-h-[120px]"
-              ></textarea>
-            </div>
+            <AppInput
+              v-model="form.remark"
+              type="textarea"
+              label="Administrative Remarks"
+              placeholder="Input specific trial notes or feedback here..."
+              :error="errors.remark"
+              :shake="shaking.remark"
+              @input="clearError('remark')"
+            />
           </div>
         </div>
       </transition>
@@ -605,25 +605,35 @@ watch(
     </form>
 
     <template #footer>
-      <div class="flex items-center justify-between w-full">
-        <div>
-          <div v-if="hasAnyError" class="text-error font-semibold text-sm flex items-center gap-2">
-            <span>⚠</span> Please resolve highlighted issues.
+      <div class="flex flex-col justify-end w-full gap-md">
+        <AppAlert
+          v-if="isEditMode && !isChanged"
+          type="info"
+          class="w-full"
+        >
+          No modifications detected. Please update at least one field to enable saving.
+        </AppAlert>
+
+        <div class="flex items-center justify-between w-full">
+          <div>
+            <div v-if="hasAnyError" class="text-error font-semibold text-sm flex items-center gap-2">
+              <span>⚠</span> Please resolve highlighted issues.
+            </div>
           </div>
-        </div>
-        <div class="flex items-center gap-3">
-          <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
-          <AppButton
-            type="button"
-            variant="primary"
-            :loading="loading"
-            class="ui-btn-premium"
-            :disabled="loading"
-            :class="{ 'opacity-50 grayscale-[0.3]': !isSubmittable || (isEditMode && !isChanged) }"
-            @click="handleSubmit"
-          >
-            {{ isEditMode ? 'Update' : 'Add' }}
-          </AppButton>
+          <div class="flex items-center gap-3">
+            <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
+            <AppButton
+              type="button"
+              variant="primary"
+              :loading="loading"
+              class="ui-btn-premium"
+              :disabled="loading || (isEditMode && !isChanged)"
+              :class="{ 'opacity-50 pointer-events-none': isEditMode && !isChanged }"
+              @click="handleSubmit"
+            >
+              {{ isEditMode ? 'Update' : 'Add' }}
+            </AppButton>
+          </div>
         </div>
       </div>
     </template>

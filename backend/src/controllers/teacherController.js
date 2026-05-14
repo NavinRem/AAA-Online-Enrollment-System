@@ -47,3 +47,32 @@ exports.deleteTeacher = async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 }
+
+exports.getAssignments = async (req, res) => {
+  try {
+    const assignments = await teacherService.getAssignments(req.params.id)
+    res.status(200).json(assignments)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+exports.assignToClass = async (req, res) => {
+  try {
+    const { termId, offeringId } = req.body
+    const result = await teacherService.assignToClass(req.params.id, termId, offeringId)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+}
+
+exports.unassignFromClass = async (req, res) => {
+  try {
+    const { termId, offeringId } = req.body
+    const result = await teacherService.unassignFromClass(req.params.id, termId, offeringId)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+}

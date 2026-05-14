@@ -9,21 +9,19 @@ const {
 
 class TeacherService {
   async createTeacher(teacherData) {
-    const { name, email, status, profileURL, password, category } = teacherData
-    const validatedProfile = validateTeacher({ name, email, status, profileURL, category })
+    const validatedProfile = validateTeacher(teacherData)
     
     // Contact Uniqueness Check (Phone)
-    if (teacherData.phone) {
+    if (validatedProfile.phone) {
       const phoneSnap = await db.collection(COLLECTIONS.TEACHER)
-        .where('phone', '==', teacherData.phone)
+        .where('phone', '==', validatedProfile.phone)
         .get()
       const exists = phoneSnap.docs.some(d => d.data().isDeleted !== true)
       if (exists) {
-        throw new Error(`A teacher with phone number "${teacherData.phone}" already exists.`)
+        throw new Error(`A teacher with phone number "${validatedProfile.phone}" already exists.`)
       }
-      validatedProfile.phone = teacherData.phone
     }
-    const finalPassword = password || 'Temporary123'
+    const finalPassword = teacherData.password || 'Temporary123'
     return authService.registerAccount(
       { ...validatedProfile, password: finalPassword },
       'teacher',
@@ -69,7 +67,9 @@ class TeacherService {
         validatedData.profileURL !== undefined ||
         validatedData.email !== undefined ||
         validatedData.status !== undefined ||
-        validatedData.category !== undefined
+        validatedData.category !== undefined ||
+        validatedData.phone !== undefined ||
+        validatedData.programIds !== undefined
       ) {
         const newData = { ...doc.data(), ...validatedData }
         const snapshot = profileHelper.getTeacherSnapshot(id, newData)
@@ -94,6 +94,106 @@ class TeacherService {
     })
 
     return { message: 'Teacher deleted successfully (Soft delete)' }
+  }
+
+  async getAssignments(teacherId) {
+    if (!teacherId) throw new Error('Teacher ID is required')
+
+    const termsSnap = await db.collection(COLLECTIONS.TERM).where('isDeleted', '==', false).get()
+    const assignments = []
+
+    termsSnap.forEach((doc) => {
+      const termData = doc.data()
+      const termOfferings = termData.offerings || []
+      
+      termOfferings.forEach((offering) => {
+        const teachers = offering.teachers || []
+        const isAssigned = teachers.some(t => t.id === teacherId)
+        
+        if (isAssigned) {
+          assignments.push({
+            termId: doc.id,
+            termName: termData.name,
+            ...offering
+          })
+        }
+      })
+    })
+
+    return assignments
+  }
+
+  async assignToClass(teacherId, termId, offeringId) {
+    if (!teacherId || !termId || !offeringId) throw new Error('All parameters are required')
+
+    const [teacherDoc, termRef] = await Promise.all([
+      db.collection(COLLECTIONS.TEACHER).doc(teacherId).get(),
+      db.collection(COLLECTIONS.TERM).doc(termId)
+    ])
+
+    if (!teacherDoc.exists) throw new Error('Teacher not found')
+    const teacherData = teacherDoc.data()
+    const teacherSnapshot = profileHelper.getTeacherSnapshot(teacherId, teacherData)
+
+    await db.runTransaction(async (transaction) => {
+      const termDoc = await transaction.get(termRef)
+      if (!termDoc.exists) throw new Error('Term not found')
+
+      const termData = termDoc.data()
+      const offerings = [...(termData.offerings || [])]
+      const idx = offerings.findIndex(o => String(o.offeringId) === String(offeringId))
+
+      if (idx === -1) throw new Error('Offering not found in this term')
+
+      const offering = offerings[idx]
+      const currentTeachers = offering.teachers || []
+      
+      if (currentTeachers.some(t => t.id === teacherId)) {
+        throw new Error('Teacher is already assigned to this class')
+      }
+
+      // TODO: Add schedule conflict detection logic here if needed
+
+      offerings[idx] = {
+        ...offering,
+        teachers: [...currentTeachers, teacherSnapshot],
+        updatedAt: new Date().toISOString()
+      }
+
+      transaction.update(termRef, { offerings, updatedAt: new Date().toISOString() })
+    })
+
+    return { message: 'Teacher assigned successfully' }
+  }
+
+  async unassignFromClass(teacherId, termId, offeringId) {
+    if (!teacherId || !termId || !offeringId) throw new Error('All parameters are required')
+
+    const termRef = db.collection(COLLECTIONS.TERM).doc(termId)
+
+    await db.runTransaction(async (transaction) => {
+      const termDoc = await transaction.get(termRef)
+      if (!termDoc.exists) throw new Error('Term not found')
+
+      const termData = termDoc.data()
+      const offerings = [...(termData.offerings || [])]
+      const idx = offerings.findIndex(o => String(o.offeringId) === String(offeringId))
+
+      if (idx === -1) throw new Error('Offering not found in this term')
+
+      const offering = offerings[idx]
+      const currentTeachers = offering.teachers || []
+      
+      offerings[idx] = {
+        ...offering,
+        teachers: currentTeachers.filter(t => t.id !== teacherId),
+        updatedAt: new Date().toISOString()
+      }
+
+      transaction.update(termRef, { offerings, updatedAt: new Date().toISOString() })
+    })
+
+    return { message: 'Teacher unassigned successfully' }
   }
 
   async syncClassesWithTeacher(teacherId, teacherSnapshot) {

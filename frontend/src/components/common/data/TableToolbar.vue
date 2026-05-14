@@ -130,14 +130,14 @@ const selectFilter = (val) => {
           <img
             v-if="activeOption?.image || activeOption?.profileURL"
             :src="activeOption.image || activeOption.profileURL"
-            class="w-4 h-4 transition-all brightness-0 invert"
+            class="w-4 h-4 transition-all"
+            :style="isActiveFilter ? { filter: getStatusFilter(currentFilter, activeOption?.color) } : {}"
           />
           <img
             v-else
             :src="getActionIcon('filter')"
             class="w-4 h-4 transition-all"
-            :class="{ 'brightness-0 invert': isActiveFilter }"
-            :style="!isActiveFilter ? { filter: getStatusFilter('filter') } : {}"
+            :style="{ filter: getStatusFilter(isActiveFilter ? currentFilter : 'filter', activeOption?.color) }"
           />
           <span class="font-bold tracking-tight">{{ activeFilterLabel }}</span>
         </AppButton>
@@ -262,7 +262,7 @@ const selectFilter = (val) => {
 }
 
 .toolbar-filter-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[240px] max-h-[300px] overflow-y-auto;
+  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[240px] max-h-[300px] overflow-y-auto flex flex-col gap-1;
 }
 
 .toolbar-filter-option {

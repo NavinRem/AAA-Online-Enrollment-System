@@ -47,12 +47,13 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, originalData, isDirty, errors, shaking, clearError, validate } = useActionModal(
+const { localData, isDirty, errors, shaking, clearError, validate, triggerShake } = useActionModal(
   props,
   emit,
   {
     getInitialData,
     mapSourceToForm,
+    autoClear: 3000,
   },
 )
 
@@ -243,39 +244,31 @@ watch(
           @change="clearError('status')"
         />
 
-        <div
-          class="flex flex-col gap-xs mb-md col-span-2"
+        <AppInput
           v-if="['hold', 'inactive'].includes(localData.status.toLowerCase())"
-        >
-          <label class="text-sm font-semibold text-content-dark"
-            >Administrative Remarks <span class="text-error">*</span></label
-          >
-          <textarea
-            v-model="localData.overrideRemark"
-            placeholder="Document reason for status change..."
-            rows="3"
-            class="ui-remark-textarea"
-            :class="{
-              'border-error bg-error-soft ring-error/10': errors.overrideRemark,
-              'animate-shake': shaking.overrideRemark,
-            }"
-          ></textarea>
-          <div v-if="errors.overrideRemark" class="text-error text-3xs font-semibold px-1 mt-0.5">
-            {{ errors.overrideRemark }}
-          </div>
-        </div>
+          v-model="localData.overrideRemark"
+          type="textarea"
+          label="Administrative Remarks"
+          placeholder="Document reason for status change..."
+          required
+          :error="errors.overrideRemark"
+          :shake="shaking.overrideRemark"
+          class="col-span-2"
+          @input="clearError('overrideRemark')"
+        />
 
-        <div class="flex flex-col gap-xs mb-md col-span-2" v-if="type === 'edit'">
-          <label class="text-sm font-semibold text-content-dark">Student Profile Avatar</label>
-          <AvatarSelector
-            v-model="localData.profileURL"
-            role="student"
-            :uid="student?.id || enrollment?.studentId"
-            :customFileName="`${localData.name}_student`"
-            :error="errors.profileURL"
-            :shake="shaking.profileURL"
-          />
-        </div>
+        <AvatarSelector
+          v-if="type === 'edit'"
+          v-model="localData.profileURL"
+          label="Student Profile Avatar"
+          role="student"
+          :uid="student?.id || enrollment?.studentId"
+          :customFileName="`${localData.name}_student`"
+          :error="errors.profileURL"
+          :shake="shaking.profileURL"
+          class="col-span-2"
+          @update:modelValue="clearError('profileURL')"
+        />
       </div>
 
       <!-- Delete Panel -->
@@ -327,7 +320,7 @@ watch(
     </form>
 
     <template #footer>
-      <div class="flex flex-col justify-end w-full gap-sm">
+      <div class="flex flex-col justify-end w-full gap-md">
         <AppAlert
           v-if="error"
           :show="!!error"
@@ -337,15 +330,22 @@ watch(
         >
           {{ error }}
         </AppAlert>
+        <AppAlert
+          v-if="type === 'edit' && !isDirty"
+          type="info"
+          class="w-full"
+        >
+          No modifications detected. Please update at least one field to enable saving.
+        </AppAlert>
 
-        <div class="flex items-center justify-end w-full gap-sm">
+        <div class="flex items-center justify-end w-full gap-md">
           <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton
             :variant="type?.includes('delete') ? 'danger' : 'primary'"
             type="button"
             @click="requestConfirm"
             :loading="loading"
-            :disabled="loading"
+            :disabled="loading || (type === 'edit' && !isDirty)"
             :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
           >
             {{ submitLabel }}

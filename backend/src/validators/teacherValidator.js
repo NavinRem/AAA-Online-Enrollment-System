@@ -1,5 +1,5 @@
 function validateTeacher(teacherData) {
-  const teacherFields = ['name', 'profileURL', 'email', 'status', 'category']
+  const teacherFields = ['name', 'profileURL', 'email', 'status', 'category', 'phone', 'programIds']
   Object.keys(teacherData).forEach((key) => {
     if (!teacherFields.includes(key)) {
       throw new Error(`Invalid field: ${key}`)
@@ -23,6 +23,7 @@ function validateTeacher(teacherData) {
   if (
     profileURL &&
     typeof profileURL === 'string' &&
+    !profileURL.startsWith('/') &&
     !profileURL.match(/^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/)
   ) {
     throw new Error('Invalid profileURL format')
@@ -42,11 +43,13 @@ function validateTeacher(teacherData) {
     email,
     status,
     category,
+    phone: teacherData.phone || '',
+    programIds: teacherData.programIds || [],
   }
 }
 
 function validateUpdateTeacher(updateData) {
-  const allowedFields = ['name', 'profileURL', 'email', 'status', 'updatedAt', 'category']
+  const allowedFields = ['name', 'profileURL', 'email', 'status', 'updatedAt', 'category', 'phone', 'programIds']
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
@@ -62,6 +65,8 @@ function validateUpdateTeacher(updateData) {
   if (updateData.email !== undefined) cleanData.email = updateData.email.trim()
   if (updateData.status !== undefined) cleanData.status = updateData.status
   if (updateData.category !== undefined) cleanData.category = updateData.category
+  if (updateData.phone !== undefined) cleanData.phone = updateData.phone
+  if (updateData.programIds !== undefined) cleanData.programIds = updateData.programIds
   if (updateData.updatedAt !== undefined) cleanData.updatedAt = updateData.updatedAt
 
   if (Object.keys(cleanData).length === 0) {

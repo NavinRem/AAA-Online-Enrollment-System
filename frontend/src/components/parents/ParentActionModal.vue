@@ -74,23 +74,23 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, originalData, isDirty, errors, shaking, clearError, triggerShake, validate } =
-  useActionModal(props, emit, {
+const { localData, isDirty, errors, shaking, clearError, validate, triggerShake } = useActionModal(
+  props,
+  emit,
+  {
     getInitialData,
     mapSourceToForm,
-  })
+    autoClear: 3000,
+  },
+)
 
 const showConfirm = ref(false)
 
 const requestConfirm = () => {
   if (props.type === 'reset-password') {
     if (!selectedResetMode.value) {
-      errors.value.resetMode = 'Selection required'
-      shaking.value.resetMode = true
-      setTimeout(() => {
-        delete errors.value.resetMode
-        shaking.value.resetMode = false
-      }, 2000)
+      errors.resetMode = 'Selection required'
+      triggerShake('resetMode')
       return
     }
     showConfirm.value = true
@@ -116,23 +116,6 @@ const requestConfirm = () => {
   if (!validate(rules)) return
   showConfirm.value = true
 }
-
-const isChanged = computed(() => {
-  if (props.type !== 'edit') return true
-
-  const d = localData
-  const o = originalData
-
-  const hasProfileChanged = !isSameProfileAsset(d.profileURL, o.profileURL)
-  const hasNameChanged = d.name !== o.name
-  const hasEmailChanged = d.email !== o.email
-  const hasPhoneChanged = d.phone !== o.phone
-  const hasStatusChanged = d.status !== o.status
-
-  return (
-    hasProfileChanged || hasNameChanged || hasEmailChanged || hasPhoneChanged || hasStatusChanged
-  )
-})
 
 const handleActionSubmit = () => {
   if (props.loading) return // Prevent double-submit
@@ -385,19 +368,17 @@ watch(
           @input="clearError('phone')"
         />
 
-        <div class="flex flex-col gap-xs col-span-2 sm:col-span-1">
-          <label class="text-xs font-semibold text-content-muted"
-            >Avatar Signature <span class="text-error">*</span></label
-          >
-          <AvatarSelector
-            v-model="localData.profileURL"
-            :role="localData.role"
-            :uid="user?.id"
-            :customFileName="`${localData.name}_${localData.role}`"
-            :error="errors.profileURL"
-            :shake="shaking.profileURL"
-          />
-        </div>
+        <AvatarSelector
+          v-model="localData.profileURL"
+          label="Avatar Signature"
+          required
+          :role="localData.role"
+          :uid="user?.id"
+          :customFileName="`${localData.name}_${localData.role}`"
+          :error="errors.profileURL"
+          :shake="shaking.profileURL"
+          @update:modelValue="clearError('profileURL')"
+        />
       </div>
 
       <!-- Register Child Form -->
@@ -451,20 +432,18 @@ watch(
             @click-disabled="handleDisabledClick('childInfo')"
           />
 
-          <div class="flex flex-col gap-xs col-span-2">
-            <label class="text-xs font-semibold text-content-muted"
-              >Student Avatar <span class="text-error">*</span></label
-            >
-            <AvatarSelector
-              v-model="localData.profileURL"
-              role="student"
-              :customFileName="`${localData.name}_student` || ''"
-              :disabled="!user && !localData.parentId"
-              :error="errors.profileURL"
-              :shake="shaking.profileURL"
-              @click-disabled="handleDisabledClick('childInfo')"
-            />
-          </div>
+          <AvatarSelector
+            v-model="localData.profileURL"
+            label="Student Avatar"
+            required
+            role="student"
+            :customFileName="`${localData.name}_student` || ''"
+            :disabled="!user && !localData.parentId"
+            :error="errors.profileURL"
+            :shake="shaking.profileURL"
+            @update:modelValue="clearError('profileURL')"
+            @click-disabled="handleDisabledClick('childInfo')"
+          />
         </div>
       </div>
     </form>
@@ -532,7 +511,7 @@ watch(
         </p>
       </div>
 
-      <div class="grid grid-cols-2 gap-md">
+      <div class="grid grid-cols-2 gap-md" :class="{ 'animate-shake': shaking.resetMode }">
         <div
           class="parent-reset-card group"
           :class="
@@ -618,19 +597,23 @@ watch(
     <!-- Footer -->
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
+        <AppAlert
+          v-if="type === 'edit' && !isDirty"
+          type="info"
+          class="w-full"
+        >
+          No modifications detected. Please update at least one field to enable saving.
+        </AppAlert>
+
         <div class="flex items-center justify-end w-full gap-md">
-          <AppButton variant="cancel" @click="$emit('close')" :disabled="loading || !!success"
-            >Cancel</AppButton
-          >
+          <AppButton variant="cancel" @click="$emit('close')">Cancel</AppButton>
           <AppButton
-            :variant="type === 'delete' || type === 'deactivate' ? 'danger' : 'primary'"
+            :variant="type === 'delete' ? 'danger' : 'primary'"
             type="button"
             @click="requestConfirm"
             :loading="loading"
-            :disabled="loading || !!success"
-            :class="{
-              'button-disabled-visual': (type === 'edit' && !isDirty) || !!success,
-            }"
+            :disabled="loading || (type === 'edit' && !isDirty)"
+            :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
           >
             {{ submitLabel }}
           </AppButton>

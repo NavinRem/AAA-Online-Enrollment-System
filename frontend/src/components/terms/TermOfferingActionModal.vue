@@ -18,14 +18,13 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
+import { useForm } from '@/composables/useForm'
 const dataStore = useDataStore()
 
-const form = ref({
+const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm({
   branchIds: [],
   programIds: [],
-})
-
-const errors = ref({})
+}, { autoClear: 3000 })
 
 const programs = computed(() => dataStore.programs)
 const branches = computed(() => {
@@ -47,41 +46,39 @@ watch(
   () => props.isOpen,
   (val) => {
     if (val) {
-      form.value = {
+      resetForm({
         branchIds: props.initialBranchId ? [props.initialBranchId] : [],
         programIds: [],
-      }
-      errors.value = {}
+      })
     }
   },
 )
 
-const validate = () => {
-  const newErrors = {}
-  if (!form.value.branchIds || form.value.branchIds.length === 0)
-    newErrors.branchIds = 'At least one branch is required'
-  if (!form.value.programIds || form.value.programIds.length === 0)
-    newErrors.programIds = 'At least one class is required'
-
-  errors.value = newErrors
-  return Object.keys(newErrors).length === 0
-}
-
 const handleSubmit = () => {
-  if (!validate()) return
+  const isValid = validate({
+    required: ['branchIds', 'programIds'],
+  })
+
+  if (!isValid) {
+    if (errors.branchIds) triggerShake('branchIds')
+    if (errors.programIds) triggerShake('programIds')
+    return
+  }
 
   emit('submit', {
-    branchIds: form.value.branchIds,
-    programIds: form.value.programIds,
+    branchIds: form.branchIds,
+    programIds: form.programIds,
   })
 }
 
 const selectAllBranches = () => {
-  form.value.branchIds = branches.value.filter((b) => b.id !== 'none').map((b) => b.id)
+  form.branchIds = branches.value.filter((b) => b.id !== 'none').map((b) => b.id)
+  clearError('branchIds')
 }
 
 const selectAllPrograms = () => {
-  form.value.programIds = programs.value.map((p) => p.id)
+  form.programIds = programs.value.map((p) => p.id)
+  clearError('programIds')
 }
 </script>
 
@@ -130,6 +127,7 @@ const selectAllPrograms = () => {
           required
           multiple
           :error="errors.branchIds"
+          :shake="shaking.branchIds"
           class="mb-4"
         >
           <template #selected="{ items }">
@@ -174,6 +172,7 @@ const selectAllPrograms = () => {
           required
           multiple
           :error="errors.programIds"
+          :shake="shaking.programIds"
         >
           <template #selected="{ items }">
             <div v-if="!items?.length" class="text-content-muted/50 italic">

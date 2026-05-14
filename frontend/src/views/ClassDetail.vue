@@ -159,6 +159,28 @@ const selectedTermOfferings = computed(() => {
   return allOfferings.value.filter((o) => String(o.termId) === String(termFilter.value))
 })
 
+const groupedTeachers = computed(() => {
+  const teacherMap = {}
+  selectedTermOfferings.value.forEach((offering) => {
+    ; (offering.teachers || []).forEach((teacher) => {
+      const id = teacher.id || teacher._id
+      if (!teacherMap[id]) {
+        teacherMap[id] = {
+          ...teacher,
+          branches: new Map(), // Use Map to ensure unique branches by ID/Abbr
+        }
+      }
+      if (offering.branch) {
+        teacherMap[id].branches.set(offering.branch.id || offering.branch.abbr, offering.branch)
+      }
+    })
+  })
+  return Object.values(teacherMap).map((t) => ({
+    ...t,
+    branches: Array.from(t.branches.values()),
+  }))
+})
+
 const primarySchedule = computed(() => {
   if (classData.value?.schedule?.day || classData.value?.schedule?.time)
     return classData.value.schedule
@@ -606,28 +628,18 @@ watch(branchFilter, (newBranchId) => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout
-      :loading="loading"
-      :errorMessage="errorMessage"
-      backRoute="/classes"
-      title="Class Analytics"
-      sidebarWidth="md"
-      :scrollable="false"
-    >
+    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/classes" title="Class Analytics"
+      sidebarWidth="md" :scrollable="false">
       <template #header-actions v-if="classData">
         <div class="flex items-center gap-3">
           <button
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-primary-soft transition-all duration-300 hover:bg-primary hover:border-primary group"
-            title="Edit Class"
-            @click="openActionModal('edit')"
-          >
+            title="Edit Class" @click="openActionModal('edit')">
             <img :src="getActionIcon('edit')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
           <button
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-error-soft transition-all duration-300 hover:bg-error hover:border-error group"
-            title="Delete Class"
-            @click="openActionModal('delete')"
-          >
+            title="Delete Class" @click="openActionModal('delete')">
             <img :src="getActionIcon('delete')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
         </div>
@@ -637,60 +649,29 @@ watch(branchFilter, (newBranchId) => {
         <!-- Table Content -->
 
         <section
-          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col min-h-0 mb-6"
-        >
-          <DataTable
-            :title="currentTableTitle"
-            :headers="attendanceHeaders"
-            :items="paginatedItems"
-            :loading="loading"
-            :entityName="currentEntityName"
-            :flexible="false"
-            :hasSearch="false"
-            :hasPagination="true"
-            v-model:currentPage="currentPage"
-            :pageSize="pageSize"
-            :totalItems="searchResults.length"
-            :hasFilter="false"
-            class="flex-1 min-h-0"
-          >
+          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col min-h-0 mb-6">
+          <DataTable :title="currentTableTitle" :headers="attendanceHeaders" :items="paginatedItems" :loading="loading"
+            :entityName="currentEntityName" :flexible="false" :hasSearch="false" :hasPagination="true"
+            v-model:currentPage="currentPage" :pageSize="pageSize" :totalItems="searchResults.length" :hasFilter="false"
+            class="flex-1 min-h-0">
             <template #toolbar-actions>
               <div class="flex items-center gap-3">
                 <!-- Term Filter -->
                 <div class="relative" id="term-filter-btn">
-                  <AppButton
-                    variant="secondary"
-                    size="md"
-                    @click="toggleDropdown('term', $event)"
-                    class="!bg-primary !text-white"
-                  >
+                  <AppButton variant="secondary" size="md" @click="toggleDropdown('term', $event)"
+                    class="!bg-primary !text-white">
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
                     <span class="font-bold">{{ getActiveLabel('term') }}</span>
                   </AppButton>
                   <Teleport to="body">
-                    <transition
-                      enter-active-class="transition duration-200 ease-out"
-                      enter-from-class="transform scale-95 opacity-0"
-                      enter-to-class="transform scale-100 opacity-100"
-                      leave-active-class="transition duration-150 ease-in"
-                      leave-from-class="opacity-100"
-                      leave-to-class="opacity-0"
-                    >
-                      <div
-                        v-if="dropdowns.term"
-                        class="toolbar-filter-menu"
-                        :style="filterMenuStyles"
-                        @mousedown.stop
-                      >
-                        <div
-                          v-for="opt in termOptions"
-                          :key="opt.value"
-                          class="toolbar-filter-option"
-                          :class="{
-                            'active-filter-item': String(termFilter) === String(opt.value),
-                          }"
-                          @click="selectFilter('term', opt.value)"
-                        >
+                    <transition enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                      leave-to-class="opacity-0">
+                      <div v-if="dropdowns.term" class="toolbar-filter-menu" :style="filterMenuStyles" @mousedown.stop>
+                        <div v-for="opt in termOptions" :key="opt.value" class="toolbar-filter-option" :class="{
+                          'active-filter-item': String(termFilter) === String(opt.value),
+                        }" @click="selectFilter('term', opt.value)">
                           {{ opt.label }}
                         </div>
                       </div>
@@ -700,56 +681,31 @@ watch(branchFilter, (newBranchId) => {
 
                 <!-- Branch Filter -->
                 <div class="relative" id="branch-filter-btn">
-                  <AppButton
-                    variant="secondary"
-                    size="md"
-                    @click="toggleDropdown('branch', $event)"
-                    class="!text-white"
+                  <AppButton variant="secondary" size="md" @click="toggleDropdown('branch', $event)" class="!text-white"
                     :style="{
                       backgroundColor: getActiveLabel('branch').color
                         ? `var(--color-${getActiveLabel('branch').color})`
                         : '#3b82f6',
-                    }"
-                  >
+                    }">
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
                     <span class="font-bold">{{ getActiveLabel('branch').label }}</span>
                   </AppButton>
                   <Teleport to="body">
-                    <transition
-                      enter-active-class="transition duration-200 ease-out"
-                      enter-from-class="transform scale-95 opacity-0"
-                      enter-to-class="transform scale-100 opacity-100"
-                      leave-active-class="transition duration-150 ease-in"
-                      leave-from-class="opacity-100"
-                      leave-to-class="opacity-0"
-                    >
-                      <div
-                        v-if="dropdowns.branch"
-                        class="toolbar-filter-menu"
-                        :style="filterMenuStyles"
-                        @mousedown.stop
-                      >
-                        <div
-                          v-for="opt in branchFilterOptions"
-                          :key="opt.value"
-                          class="toolbar-filter-option"
-                          :class="{
-                            'active-filter-item': String(branchFilter) === String(opt.value),
-                          }"
-                          @click="selectFilter('branch', opt.value)"
-                        >
+                    <transition enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                      leave-to-class="opacity-0">
+                      <div v-if="dropdowns.branch" class="toolbar-filter-menu" :style="filterMenuStyles"
+                        @mousedown.stop>
+                        <div v-for="opt in branchFilterOptions" :key="opt.value" class="toolbar-filter-option" :class="{
+                          'active-filter-item': String(branchFilter) === String(opt.value),
+                        }" @click="selectFilter('branch', opt.value)">
                           <div class="flex items-center justify-between gap-3">
-                            <div
-                              v-if="opt.badge"
-                              class="shrink-0 flex items-center justify-center min-w-[40px]"
-                            >
+                            <div v-if="opt.badge" class="shrink-0 flex items-center justify-center min-w-[40px]">
                               <AppBadge :status="opt.badge.status" :type="opt.badge.type" />
                             </div>
-                            <div
-                              v-else-if="opt.color"
-                              class="w-2 h-2 rounded-full mx-1"
-                              :style="{ backgroundColor: `var(--color-${opt.color})` }"
-                            ></div>
+                            <div v-else-if="opt.color" class="w-2 h-2 rounded-full mx-1"
+                              :style="{ backgroundColor: `var(--color-${opt.color})` }"></div>
                             <span class="truncate">{{ opt.label }}</span>
                           </div>
                         </div>
@@ -760,40 +716,21 @@ watch(branchFilter, (newBranchId) => {
 
                 <!-- Schedule Filter -->
                 <div class="relative" id="schedule-filter-btn" v-if="scheduleOptions.length > 1">
-                  <AppButton
-                    variant="secondary"
-                    size="md"
-                    @click="toggleDropdown('schedule', $event)"
-                    class="!text-white"
-                    style="background-color: #e91e8c"
-                  >
+                  <AppButton variant="secondary" size="md" @click="toggleDropdown('schedule', $event)"
+                    class="!text-white" style="background-color: #e91e8c">
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
                     <span class="font-bold">{{ getActiveLabel('schedule') }}</span>
                   </AppButton>
                   <Teleport to="body">
-                    <transition
-                      enter-active-class="transition duration-200 ease-out"
-                      enter-from-class="transform scale-95 opacity-0"
-                      enter-to-class="transform scale-100 opacity-100"
-                      leave-active-class="transition duration-150 ease-in"
-                      leave-from-class="opacity-100"
-                      leave-to-class="opacity-0"
-                    >
-                      <div
-                        v-if="dropdowns.schedule"
-                        class="toolbar-filter-menu"
-                        :style="filterMenuStyles"
-                        @mousedown.stop
-                      >
-                        <div
-                          v-for="opt in scheduleOptions"
-                          :key="opt.id"
-                          class="toolbar-filter-option"
-                          :class="{
-                            'active-filter-item': String(scheduleFilter) === String(opt.id),
-                          }"
-                          @click="selectFilter('schedule', opt.id)"
-                        >
+                    <transition enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                      leave-to-class="opacity-0">
+                      <div v-if="dropdowns.schedule" class="toolbar-filter-menu" :style="filterMenuStyles"
+                        @mousedown.stop>
+                        <div v-for="opt in scheduleOptions" :key="opt.id" class="toolbar-filter-option" :class="{
+                          'active-filter-item': String(scheduleFilter) === String(opt.id),
+                        }" @click="selectFilter('schedule', opt.id)">
                           {{ opt.name }}
                         </div>
                       </div>
@@ -833,14 +770,10 @@ watch(branchFilter, (newBranchId) => {
                 <div class="flex flex-col items-center gap-1 relative group/cell">
                   <!-- Attendance Select Dropdown -->
                   <div class="relative w-10 h-10">
-                    <select
-                      :value="getAttendanceStatus(session.id, item.studentId)"
-                      @change="
-                        updateAttendanceStatus(session.id, item.studentId, $event.target.value)
-                      "
-                      class="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
-                      :disabled="session.date > new Date()"
-                    >
+                    <select :value="getAttendanceStatus(session.id, item.studentId)" @change="
+                      updateAttendanceStatus(session.id, item.studentId, $event.target.value)
+                      " class="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
+                      :disabled="session.date > new Date()">
                       <option v-for="(cfg, key) in ATTENDANCE_STATUS" :key="key" :value="key">
                         {{ cfg.label }} -
                         {{
@@ -863,8 +796,7 @@ watch(branchFilter, (newBranchId) => {
                         session.date > new Date()
                           ? 'opacity-20 grayscale cursor-not-allowed'
                           : 'cursor-pointer hover:shadow-md',
-                      ]"
-                    >
+                      ]">
                       {{ ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)].label }}
                     </div>
                   </div>
@@ -873,19 +805,13 @@ watch(branchFilter, (newBranchId) => {
 
               <!-- Special Columns -->
               <td class="ui-cell text-center">
-                <div
-                  class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"
-                ></div>
+                <div class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"></div>
               </td>
               <td class="ui-cell text-center">
-                <div
-                  class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"
-                ></div>
+                <div class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"></div>
               </td>
               <td class="ui-cell text-center">
-                <div
-                  class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"
-                ></div>
+                <div class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"></div>
               </td>
               <td class="ui-cell">
                 <span class="italic">New Student</span>
@@ -902,20 +828,14 @@ watch(branchFilter, (newBranchId) => {
             <h2 class="w-full font-bold text-content-dark text-center">Basic Information</h2>
             <div class="relative group">
               <div
-                class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle p-6"
-              >
-                <img
-                  :src="
-                    getProgramProfileURL(
-                      programData?.profileURL || classData.program?.profileURL,
-                      programData?.category || classData.program?.category,
-                      programData?.categorySnapshot?.profileURL ||
-                        classData.program?.categorySnapshot?.profileURL,
-                    )
-                  "
-                  alt="Program Logo"
-                  class="w-full h-full object-contain"
-                />
+                class="w-40 h-40 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle p-6">
+                <img :src="getProgramProfileURL(
+                  programData?.profileURL || classData.program?.profileURL,
+                  programData?.category || classData.program?.category,
+                  programData?.categorySnapshot?.profileURL ||
+                  classData.program?.categorySnapshot?.profileURL,
+                )
+                  " alt="Program Logo" class="w-full h-full object-contain" />
               </div>
             </div>
           </section>
@@ -944,16 +864,12 @@ watch(branchFilter, (newBranchId) => {
               <div class="flex flex-col gap-3 pt-2">
                 <span class="text-base font-bold text-content-dark">Schedules</span>
                 <div class="space-y-2.5">
-                  <div
-                    v-for="schedule in classData.schedules || []"
+                  <div v-for="schedule in classData.schedules || []"
                     :key="schedule.id || `${schedule.day}-${schedule.time}`"
-                    class="flex items-center justify-between bg-primary-soft px-4 py-3 rounded-sm border border-outline-std transition-all group"
-                  >
+                    class="flex items-center justify-between bg-primary-soft px-4 py-3 rounded-sm border border-outline-std transition-all group">
                     <div class="flex flex-col gap-0.5">
-                      <span
-                        class="text-sm font-bold text-content-dark group-hover:text-primary transition-colors"
-                        >{{ schedule.day }}</span
-                      >
+                      <span class="text-sm font-bold text-content-dark group-hover:text-primary transition-colors">{{
+                        schedule.day }}</span>
                       <span class="text-xs font-semibold text-primary/80">{{ schedule.time }}</span>
                     </div>
 
@@ -961,19 +877,14 @@ watch(branchFilter, (newBranchId) => {
                       <div class="w-px h-6 bg-outline-std/50"></div>
                       <div class="flex flex-col items-center shrink-0">
                         <span
-                          class="text-xs font-black text-content-muted tracking-tighter leading-none mb-1"
-                          >Seats</span
-                        >
+                          class="text-xs font-black text-content-muted tracking-tighter leading-none mb-1">Seats</span>
                         <span class="text-sm font-black text-content-dark leading-none">{{
                           getScheduleCapacity(schedule)
                         }}</span>
                       </div>
                       <div class="w-px h-6 bg-outline-std/50"></div>
-                      <AppBadge
-                        v-bind="getScheduleStatus(schedule)"
-                        size="sm"
-                        class="min-w-[80px] justify-center shadow-sm"
-                      />
+                      <AppBadge v-bind="getScheduleStatus(schedule)" size="sm"
+                        class="min-w-[80px] justify-center shadow-sm" />
                     </div>
                   </div>
                 </div>
@@ -983,35 +894,42 @@ watch(branchFilter, (newBranchId) => {
               <div class="flex flex-col gap-3 pt-4 border-t border-outline-std/40">
                 <span class="text-base font-bold text-content-dark">Branches</span>
                 <div class="grid grid-cols-1 gap-2.5">
-                  <div
-                    v-for="branch in uniqueBranches"
-                    :key="branch.id"
-                    class="flex items-center justify-between bg-primary-soft p-2.5 pl-4 rounded-sm border border-outline-std transition-all group"
-                  >
-                    <span
-                      class="text-sm font-bold text-content-dark group-hover:text-primary transition-colors"
-                      >{{ branch.name || branch.abbr }}</span
-                    >
+                  <div v-for="branch in uniqueBranches" :key="branch.id"
+                    class="flex items-center justify-between bg-primary-soft p-2.5 pl-4 rounded-sm border border-outline-std transition-all group">
+                    <span class="text-sm font-bold text-content-dark group-hover:text-primary transition-colors">{{
+                      branch.name || branch.abbr }}</span>
                     <div class="flex items-center gap-2">
-                      <AppBadge
-                        :status="branch.abbr"
-                        :type="branch.color"
-                        size="sm"
-                        class="min-w-[60px] shadow-sm"
-                      />
-                      <AppBadge
-                        :status="`${branch.studentCount} Students`"
-                        type="gray"
-                        size="sm"
-                        class="!bg-transparent !border-none font-bold text-content-muted"
-                      />
+                      <AppBadge :status="branch.abbr" :type="branch.color" size="sm" class="min-w-[60px] shadow-sm" />
+                      <AppBadge :status="`${branch.studentCount} Students`" type="gray" size="sm"
+                        class="!bg-transparent !border-none font-bold text-content-muted" />
                     </div>
                   </div>
-                  <span
-                    v-if="uniqueBranches.length === 0"
-                    class="text-sm font-bold text-content-muted italic p-4 text-center bg-primary-soft border border-outline-std rounded-sm"
-                    >No active offerings for this term</span
-                  >
+                  <span v-if="uniqueBranches.length === 0"
+                    class="text-sm font-bold text-content-muted italic p-4 text-center bg-primary-soft border border-outline-std rounded-sm">No
+                    active offerings for this term</span>
+                </div>
+              </div>
+
+              <!-- Teachers Section -->
+              <div class="flex flex-col gap-3 pt-4 border-t border-outline-std/40"
+                v-if="selectedTermOfferings.length > 0">
+                <span class="text-base font-bold text-content-dark">Teachers</span>
+                <div class="grid grid-cols-1 gap-2.5">
+                  <div v-for="teacher in groupedTeachers" :key="teacher.id"
+                    class="flex items-center justify-between bg-surface-subtle/50 p-2.5 pl-4 rounded-sm border border-outline-std transition-all group hover:bg-white">
+                    <div class="flex items-center gap-3">
+                      <img :src="teacher.profileURL || getImageUrl('profiles/avatar-teacher-man')"
+                        class="w-8 h-8 rounded-full border border-white shadow-sm shrink-0" />
+                      <span class="text-sm font-black text-content-dark truncate max-w-[120px]">{{ teacher.name }}</span>
+                    </div>
+                    <div class="flex items-center gap-1 flex-wrap justify-end">
+                      <AppBadge v-for="branch in teacher.branches" :key="branch.id || branch.abbr"
+                        :status="branch.abbr || 'HQ'" :type="branch.color || 'blue'" size="xs" />
+                    </div>
+                  </div>
+                  <span v-if="groupedTeachers.length === 0"
+                    class="text-xs font-bold text-content-muted italic p-4 text-center bg-primary-soft border border-outline-std rounded-sm">No
+                    teachers assigned to this term's sessions</span>
                 </div>
               </div>
             </div>
@@ -1020,16 +938,9 @@ watch(branchFilter, (newBranchId) => {
       </template>
     </DetailPageLayout>
 
-    <ClassActionModal
-      :isOpen="actionModal.isOpen"
-      :type="actionModal.type"
-      :classInstance="classData"
-      :loading="actionModal.loading"
-      v-model:error="actionModal.error"
-      v-model:success="actionModal.success"
-      @close="actionModal.isOpen = false"
-      @submit="handleModalSubmit"
-    />
+    <ClassActionModal :isOpen="actionModal.isOpen" :type="actionModal.type" :classInstance="classData"
+      :loading="actionModal.loading" v-model:error="actionModal.error" v-model:success="actionModal.success"
+      @close="actionModal.isOpen = false" @submit="handleModalSubmit" />
   </DashboardLayout>
 </template>
 

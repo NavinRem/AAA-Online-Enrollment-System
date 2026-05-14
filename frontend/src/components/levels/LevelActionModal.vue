@@ -1,9 +1,12 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import AppModal from '../common/ui/AppModal.vue'
 import AppButton from '../common/ui/AppButton.vue'
 import AppInput from '../common/ui/AppInput.vue'
+import AppAlert from '../common/ui/AppAlert.vue'
 import AppConfirmOverlay from '../common/ui/AppConfirmOverlay.vue'
+import { getActionIcon } from '@/utils/assetHelper'
+import { useForm } from '@/composables/useForm'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -19,85 +22,95 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const formData = ref({
+const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm({
   name: '',
   description: '',
-})
+}, { autoClear: 3000 })
 
 watch(
-  () => props.level,
-  (newLvl) => {
-    if (newLvl) {
-      formData.value = {
-        name: newLvl.name || '',
-        description: newLvl.description || '',
-      }
-    } else {
-      formData.value = {
-        name: '',
-        description: '',
-      }
+  () => props.isOpen,
+  (val) => {
+    if (val) {
+      resetForm({
+        name: props.level?.name || '',
+        description: props.level?.description || '',
+      })
     }
   },
-  { immediate: true },
 )
 
 const handleSubmit = () => {
-  emit('submit', formData.value)
+  if (props.type === 'delete') {
+    emit('submit', { id: props.level?.id })
+    return
+  }
+
+  const isValid = validate({
+    required: ['name'],
+  })
+
+  if (!isValid) {
+    if (errors.name) triggerShake('name')
+    return
+  }
+
+  emit('submit', { ...form })
 }
+
+const modalTitle = computed(() => {
+  if (props.type === 'edit') return 'Edit Difficulty Level'
+  if (props.type === 'delete') return 'Delete Level'
+  return 'New Difficulty Level'
+})
 </script>
 
 <template>
   <AppModal
-    :isOpen="isOpen"
-    :title="
-      type === 'add' ? 'New Difficulty Level' : type === 'edit' ? 'Edit Level' : 'Delete Level'
-    "
+    :show="isOpen"
+    :title="modalTitle"
+    :icon="getActionIcon(type === 'delete' ? 'delete' : 'plus')"
+    :error="error"
+    :success="success"
+    maxWidth="500px"
     @close="emit('close')"
   >
-    <div v-if="type === 'delete'" class="p-6">
-      <AppConfirmOverlay
-        :isOpen="true"
-        title="Confirm Deletion"
-        :message="`Are you sure you want to delete the level '${level?.name}'? This will disconnect all programs currently using this level.`"
-        :confirmText="`Delete ${level?.name}`"
-        :loading="loading"
-        :error="error"
-        :success="success"
-        @close="emit('close')"
-        @confirm="handleSubmit"
-      />
+    <div v-if="type === 'delete'" class="p-2">
+      <AppAlert type="error" class="mb-6">
+        <div class="flex flex-col gap-1">
+          <strong class="text-sm font-bold">Confirm Deletion</strong>
+          <p class="text-xs opacity-90">
+            Are you sure you want to delete the level '{{ level?.name }}'? This will disconnect all programs currently using this level.
+          </p>
+        </div>
+      </AppAlert>
+
+      <div class="flex justify-end gap-3">
+        <AppButton variant="cancel" @click="emit('close')">Cancel</AppButton>
+        <AppButton variant="danger" :loading="loading" @click="handleSubmit">
+          Delete Level
+        </AppButton>
+      </div>
     </div>
 
-    <form v-else @submit.prevent="handleSubmit" class="p-6 space-y-4">
+    <form v-else @submit.prevent="handleSubmit" class="flex flex-col gap-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
       <AppInput
+        v-model="form.name"
         label="Level Name"
-        v-model="formData.name"
         placeholder="e.g. Beginner, Advanced"
         required
+        :error="errors.name"
+        :shake="shaking.name"
+        @input="clearError('name')"
       />
       <AppInput
+        v-model="form.description"
         label="Description"
-        v-model="formData.description"
         placeholder="Briefly describe this level..."
+        @input="clearError('description')"
       />
 
-      <div
-        v-if="error"
-        class="p-3 bg-error-soft text-error text-xs font-semibold rounded-lg border border-error/10"
-      >
-        {{ error }}
-      </div>
-
-      <div
-        v-if="success"
-        class="p-3 bg-success-soft text-success text-xs font-semibold rounded-lg border border-success/10"
-      >
-        {{ success }}
-      </div>
-
       <div class="flex justify-end gap-3 pt-4">
-        <AppButton variant="ghost" type="button" @click="emit('close')">Cancel</AppButton>
+        <AppButton variant="cancel" @click="emit('close')">Cancel</AppButton>
         <AppButton variant="primary" type="submit" :loading="loading">
           {{ type === 'add' ? 'Create Level' : 'Save Changes' }}
         </AppButton>

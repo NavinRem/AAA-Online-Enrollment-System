@@ -12,6 +12,7 @@ import { getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { programService } from '@/services/programService'
 import { categoryService } from '@/services/categoryService'
 import { scheduleService } from '@/services/scheduleService'
+import { teacherService } from '@/services/teacherService'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -29,8 +30,12 @@ const { form, errors, shaking, validate, clearError, triggerShake, resetForm } =
   programId: '',
   scheduleIds: [],
   scheduleCapacities: {},
+  scheduleTeachers: {}, // { scheduleId: teacherId }
+  deleteConfirm: '',
   status: 'active',
-})
+}, { autoClear: 3000 })
+
+const teachers = ref([])
 
 const programs = ref([])
 const schedules = ref([])
@@ -136,11 +141,15 @@ const isDirty = computed(() => {
 
   if (initialProg !== currentProg || initialScheds !== currentScheds) return true
 
-  // Compare capacities for currently selected schedules
+  // Compare capacities and teachers for currently selected schedules
   for (const id of form.scheduleIds) {
     const initialCap = props.classInstance.schedules?.find((s) => s.id === id)?.capacity || 20
     const currentCap = form.scheduleCapacities[id] || 20
     if (Number(initialCap) !== Number(currentCap)) return true
+
+    const initialTeacher = props.classInstance.schedules?.find((s) => s.id === id)?.teacherId || ''
+    const currentTeacher = form.scheduleTeachers[id] || ''
+    if (initialTeacher !== currentTeacher) return true
   }
 
   return false
@@ -164,10 +173,11 @@ const confirmRows = computed(() => {
 })
 
 const loadOptions = async (skipCache = false) => {
-  const [programData, categoryData, scheduleData] = await Promise.all([
+  const [programData, categoryData, scheduleData, teacherData] = await Promise.all([
     programService.getAllPrograms(),
     categoryService.getAllCategories(),
     scheduleService.getAllSchedules({}, { skipCache }),
+    teacherService.getAllTeachers(),
   ])
 
   const categories = Array.isArray(categoryData) ? categoryData : categoryData?.data || []
@@ -185,6 +195,13 @@ const loadOptions = async (skipCache = false) => {
   schedules.value = schedulesList.map((schedule) => ({
     ...schedule,
     name: `${schedule.day} (${schedule.time})`,
+  }))
+
+  teachers.value = (Array.isArray(teacherData) ? teacherData : teacherData?.data || []).map(t => ({
+    id: t.id,
+    name: t.name,
+    profileURL: t.profileURL,
+    branchAbbr: t.branchAbbr
   }))
 }
 
@@ -296,9 +313,11 @@ watch(
     newSchedule.value = { day: 'Saturday', startTime: '09:00' }
 
     const initialCapacities = {}
+    const initialTeachers = {}
     if (props.classInstance?.schedules) {
       props.classInstance.schedules.forEach((s) => {
         if (s.capacity) initialCapacities[s.id] = s.capacity
+        if (s.teacherId) initialTeachers[s.id] = s.teacherId
       })
     }
 
@@ -312,6 +331,7 @@ watch(
         ]),
       ),
       scheduleCapacities: initialCapacities,
+      scheduleTeachers: initialTeachers,
       status: props.classInstance?.status || 'active',
     })
   },
@@ -351,7 +371,12 @@ const handleSubmit = () => {
   if (!isDirty.value && props.type === 'edit') return
 
   if (props.type === 'delete') {
-    emit('submit', { id: props.classInstance?.id })
+    if (form.deleteConfirm !== 'DELETE') {
+      errors.deleteConfirm = 'Please type DELETE to authorize'
+      triggerShake('deleteConfirm')
+      return
+    }
+    showConfirm.value = true
     return
   }
 
@@ -367,11 +392,13 @@ const handleSubmit = () => {
 const confirmSubmit = () => {
   showConfirm.value = false
 
-  // Deduplicate and attach capacities to schedules
+  // Deduplicate and attach capacities and teachers to schedules
   const uniqueIds = Array.from(new Set(form.scheduleIds))
   const enrichedSchedules = uniqueIds.map((id) => ({
     id,
     capacity: form.scheduleCapacities[id] || 20,
+    teacherId: form.scheduleTeachers[id] || '',
+    teacher: teachers.value.find(t => t.id === form.scheduleTeachers[id]) || null
   }))
 
   emit('submit', {
@@ -461,11 +488,11 @@ const confirmSubmit = () => {
             </AppSelect>
           </div>
 
-          <div v-if="!context" class="flex flex-col gap-xs">
+          <div v-if="!context" class="flex flex-col gap-xs col-span-2">
             <AppSelect
               v-model="form.scheduleIds"
               :items="filteredSchedules"
-              label="Schedule"
+              label="Schedule Selection (Master Catalog)"
               placeholder="Select schedules..."
               required
               multiple
@@ -556,8 +583,40 @@ const confirmSubmit = () => {
               </div>
 
               <div class="flex items-center gap-6 ml-4">
+                <div class="flex flex-col gap-1.5 min-w-[200px]">
+                  <label class="text-[10px] font-black uppercase text-content-muted/60 tracking-wider">
+                    Responsible Teacher
+                  </label>
+                  <AppSelect
+                    v-model="form.scheduleTeachers[id]"
+                    :items="teachers"
+                    placeholder="Assign Teacher..."
+                    size="sm"
+                    :searchable="true"
+                    class="!bg-surface-subtle/50"
+                  >
+                    <template #selected="{ item }">
+                      <div v-if="item" class="flex items-center gap-2">
+                        <img :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')" class="w-5 h-5 rounded-full border border-outline-std" />
+                        <span class="text-xs font-bold truncate max-w-[100px]">{{ item.name }}</span>
+                      </div>
+                    </template>
+                    <template #item="{ item }">
+                      <div class="flex items-center gap-2 w-full">
+                        <img :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')" class="w-6 h-6 rounded-lg border border-outline-std" />
+                        <div class="flex flex-col overflow-hidden">
+                           <span class="text-xs font-bold text-content-dark truncate">{{ item.name }}</span>
+                           <span class="text-[10px] text-content-muted font-semibold">{{ item.branchAbbr || 'Cross-Branch' }}</span>
+                        </div>
+                      </div>
+                    </template>
+                  </AppSelect>
+                </div>
+
                 <div class="flex flex-col items-center gap-1.5">
-                  <label class="text-xs font-bold text-content-muted mr-1">Session Capacity</label>
+                  <label class="text-[10px] font-black uppercase text-content-muted/60 tracking-wider">
+                    Capacity
+                  </label>
                   <div
                     class="flex items-center gap-3 bg-surface-subtle/80 px-4 py-2.5 rounded-xl border border-outline-std focus-within:border-primary/40 focus-within:bg-white transition-all"
                   >
@@ -566,6 +625,7 @@ const confirmSubmit = () => {
                       v-model.number="form.scheduleCapacities[id]"
                       class="w-14 h-6 text-base font-black text-center bg-transparent text-content-dark outline-none focus:text-primary transition-colors"
                       min="1"
+                      required
                     />
                     <span class="text-xs font-bold text-content-muted">Seats</span>
                   </div>
@@ -612,6 +672,7 @@ const confirmSubmit = () => {
                   v-model="newSchedule.day"
                   :items="dayOptions"
                   label="Day"
+                  required
                   :searchable="false"
                 >
                   <template #selected="{ item }">
@@ -623,7 +684,7 @@ const confirmSubmit = () => {
                     <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
                   </template>
                 </AppSelect>
-                <AppInput v-model="newSchedule.startTime" type="time" label="Start Time" />
+                <AppInput v-model="newSchedule.startTime" type="time" label="Start Time" required />
                 <AppInput :modelValue="calculatedEndTime" label="End Time" disabled />
               </div>
 
@@ -699,24 +760,51 @@ const confirmSubmit = () => {
         </div>
       </template>
 
-      <AppAlert v-else type="error">
-        Delete class product {{ props.classInstance?.program?.name || 'this class' }}? Existing term
-        offerings and enrollments keep their historical snapshots.
-      </AppAlert>
+      <div v-else class="flex flex-col gap-6">
+        <AppAlert type="error">
+          <div class="flex flex-col gap-0.5">
+            <strong class="text-sm font-semibold tracking-tight">⚠ Permanent Catalog Removal</strong>
+            <span class="text-xs opacity-90 font-medium leading-relaxed">
+              Delete class product {{ props.classInstance?.program?.name || 'this class' }}?
+              Existing term offerings and enrollments keep their historical snapshots, but this master catalog entry will be permanently erased.
+            </span>
+          </div>
+        </AppAlert>
+
+        <AppInput v-model="form.deleteConfirm" label="Authorization Confirmation" placeholder="DELETE" required
+          :shake="shaking.deleteConfirm" :error="errors.deleteConfirm" @input="clearError('deleteConfirm')">
+          <template #label-extra>
+            <span class="block text-2xs font-semibold mt-0.5">
+              Type <span class="text-error px-1 font-bold">DELETE</span> to authorize removal
+            </span>
+          </template>
+        </AppInput>
+      </div>
     </form>
 
     <template #footer>
-      <div class="flex items-center justify-end gap-3 w-full">
-        <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
-        <AppButton
-          type="button"
-          :variant="type === 'delete' ? 'danger' : 'primary'"
-          :loading="loading"
-          :disabled="!isDirty"
-          @click="handleSubmit"
+      <div class="flex flex-col justify-end w-full gap-md">
+        <AppAlert
+          v-if="type === 'edit' && !isDirty"
+          type="info"
+          class="w-full"
         >
-          {{ submitLabel }}
-        </AppButton>
+          No modifications detected. Please update at least one field to enable saving.
+        </AppAlert>
+
+        <div class="flex items-center justify-end gap-3 w-full">
+          <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
+          <AppButton
+            type="button"
+            :variant="type === 'delete' ? 'danger' : 'primary'"
+            :loading="loading"
+            :disabled="loading || (type === 'edit' && !isDirty)"
+            :class="{ 'button-disabled-visual': (type === 'edit' && !isDirty) }"
+            @click="handleSubmit"
+          >
+            {{ submitLabel }}
+          </AppButton>
+        </div>
       </div>
     </template>
   </AppModal>

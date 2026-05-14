@@ -13,4 +13,9 @@ router.get('/:id', teacherController.getTeacher)
 router.patch('/:id', teacherController.updateTeacher)
 router.delete('/:id', teacherController.deleteTeacher)
 
+// Assignments
+router.get('/:id/assignments', teacherController.getAssignments)
+router.post('/:id/assign', teacherController.assignToClass)
+router.post('/:id/unassign', teacherController.unassignFromClass)
+
 module.exports = router

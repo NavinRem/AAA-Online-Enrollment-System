@@ -35,6 +35,8 @@ const { form, errors, shaking, validate, clearError, triggerShake, resetForm } =
   classId: '',
   termId: '',
   termOfferingId: '',
+  branchId: '',
+  scheduleId: '',
   enrollAt: new Date().toISOString(),
   isProrated: false,
   isSponsorship: false,
@@ -46,7 +48,7 @@ const { form, errors, shaking, validate, clearError, triggerShake, resetForm } =
   enrolledSessions: 0,
   amount: 0,
   remark: '',
-})
+}, { autoClear: 3000 })
 
 const showConfirm = ref(false)
 const initialDataString = ref('')
@@ -103,6 +105,35 @@ const availableOfferings = computed(() => {
         totalSessions: term.totalSessions || 0,
       })),
   )
+})
+
+const availableBranches = computed(() => {
+  if (!form.classId) return []
+  const branchMap = new Map()
+  availableOfferings.value.forEach((off) => {
+    if (off.branch && !branchMap.has(off.branch.id)) {
+      branchMap.set(off.branch.id, off.branch)
+    }
+  })
+  return Array.from(branchMap.values()).map((b) => ({
+    id: b.id,
+    name: b.name,
+    abbr: b.abbr,
+    profileURL: b.profileURL,
+  }))
+})
+
+const availableSchedulesForBranch = computed(() => {
+  if (!form.classId || !form.branchId) return []
+  return availableOfferings.value
+    .filter((off) => off.branch?.id === form.branchId)
+    .map((off) => ({
+      id: off.id,
+      name: `${off.schedule?.day} (${off.schedule?.time})`,
+      day: off.schedule?.day,
+      time: off.schedule?.time,
+      studentCount: off.studentCount,
+    }))
 })
 
 const selectedProgram = computed(() => props.programs.find((item) => item.id === form.programId))
@@ -194,18 +225,20 @@ const classProductItems = computed(() =>
   })),
 )
 
-const offeringItems = computed(() =>
-  availableOfferings.value.map((offering) => ({
-    id: offering.id,
-    name: offering.name,
-    profileURL: selectedProgram.value
-      ? getProgramProfileURL(
-          selectedProgram.value.profileURL,
-          selectedProgram.value.category,
-          selectedProgram.value.categoryProfileURL,
-        )
-      : '',
-    meta: `${offering.termName} | ${offering.studentCount} students`,
+const branchItems = computed(() =>
+  availableBranches.value.map((b) => ({
+    id: b.id,
+    name: b.name,
+    abbr: b.abbr,
+    profileURL: b.profileURL,
+  })),
+)
+
+const scheduleItems = computed(() =>
+  availableSchedulesForBranch.value.map((s) => ({
+    id: s.id,
+    name: s.name,
+    meta: `${s.studentCount} enrolled`,
   })),
 )
 
@@ -234,7 +267,11 @@ const handleFinalSubmit = () => {
 
 const requestConfirm = () => {
   const isValid = validate({
-    required: ['parentId', 'studentId', 'programId', 'classId', 'termOfferingId'],
+    required: ['parentId', 'studentId', 'programId', 'classId', 'termOfferingId', 'enrollAt'],
+    custom: {
+      discountAmount: (val) => val >= 0 || 'Discount cannot be negative',
+      customPrice: (val) => (form.isCustomPrice ? val >= 0 || 'Price cannot be negative' : true),
+    },
   })
 
   if (!isValid) {
@@ -286,7 +323,14 @@ const handleClassChange = (classId) => {
   clearError('classId')
 }
 
-const handleOfferingChange = (offeringId) => {
+const handleBranchChange = (branchId) => {
+  form.branchId = branchId
+  form.termOfferingId = ''
+  form.termId = ''
+  clearError('branchId')
+}
+
+const handleScheduleChange = (offeringId) => {
   const offering = availableOfferings.value.find((item) => item.id === offeringId)
   form.termOfferingId = offeringId
   form.termId = offering?.termId || ''
@@ -314,6 +358,8 @@ watch(
           termId: props.enrollment.termId || props.enrollment.term?.id || '',
           termOfferingId:
             props.enrollment.termOfferingId || props.enrollment.term?.offeringId || '',
+          branchId: props.enrollment.class?.branch?.id || props.enrollment.branchId || '',
+          scheduleId: props.enrollment.termOfferingId || '',
           enrollAt:
             props.enrollment.enrollAt ||
             props.enrollment.enrollmentDate ||
@@ -338,6 +384,8 @@ watch(
           classId: '',
           termId: '',
           termOfferingId: '',
+          branchId: '',
+          scheduleId: '',
           enrollAt: new Date().toISOString(),
           isProrated: false,
           isSponsorship: false,
@@ -383,6 +431,8 @@ defineExpose({ setStudent })
           label="Parent Name"
           placeholder="Search Active Parent..."
           required
+          :error="errors.parentId"
+          :shake="shaking.parentId"
           @change="selectParent"
         />
 
@@ -392,6 +442,8 @@ defineExpose({ setStudent })
           label="Student Name"
           placeholder="Search Active Student..."
           required
+          :error="errors.studentId"
+          :shake="shaking.studentId"
           :disabled="!form.parentId"
           @change="handleStudentChange"
         >
@@ -400,12 +452,19 @@ defineExpose({ setStudent })
           </template>
         </AppSelect>
 
+        <div v-if="form.parentId && availableStudents.length === 0" class="col-span-2 p-4 bg-warning-soft border border-warning/20 rounded-xl flex items-center gap-3 animate-fade-in">
+          <img :src="getActionIcon('cancel')" class="w-5 h-5 brightness-0 grayscale opacity-60" />
+          <span class="text-xs font-bold text-content-dark opacity-70">This parent has no children registered. Add a child in the Students module first.</span>
+        </div>
+
         <AppSelect
           v-model="form.programId"
           :items="programSelectItems"
           label="Program"
           placeholder="Select Program..."
           required
+          :error="errors.programId"
+          :shake="shaking.programId"
           :disabled="!form.studentId"
           @change="handleProgramChange"
         >
@@ -420,6 +479,8 @@ defineExpose({ setStudent })
           label="Class Product"
           placeholder="Select Class Product..."
           required
+          :error="errors.classId"
+          :shake="shaking.classId"
           :disabled="!form.programId"
           @change="handleClassChange"
         >
@@ -429,19 +490,50 @@ defineExpose({ setStudent })
         </AppSelect>
 
         <AppSelect
-          v-model="form.termOfferingId"
-          :items="offeringItems"
-          label="Branch And Schedule"
-          placeholder="Select Active/Upcoming Offering..."
+          v-model="form.branchId"
+          :items="branchItems"
+          label="Branch"
+          placeholder="Select Branch..."
           required
-          class="col-span-2"
+          :error="errors.branchId"
+          :shake="shaking.branchId"
           :disabled="!form.classId"
-          @change="handleOfferingChange"
+          @change="handleBranchChange"
+        >
+          <template #item-badge="{ item }">
+            <AppBadge v-if="item.abbr" :status="item.abbr" type="blue" />
+          </template>
+        </AppSelect>
+
+        <AppSelect
+          v-model="form.termOfferingId"
+          :items="scheduleItems"
+          label="Schedule"
+          placeholder="Select Schedule..."
+          required
+          :error="errors.termOfferingId"
+          :shake="shaking.termOfferingId"
+          :disabled="!form.branchId"
+          @change="handleScheduleChange"
         >
           <template #item-badge="{ item }">
             <AppBadge v-if="item.meta" :status="item.meta" type="green" />
           </template>
         </AppSelect>
+
+        <AppInput
+          v-model="form.enrollAt"
+          type="date"
+          label="Enrollment Date"
+          required
+          :error="errors.enrollAt"
+          :shake="shaking.enrollAt"
+        />
+
+        <div v-if="form.classId && availableOfferings.length === 0" class="col-span-2 p-4 bg-error-soft border border-error/10 rounded-xl flex items-center gap-3 animate-fade-in">
+          <img :src="getActionIcon('cancel')" class="w-5 h-5" />
+          <span class="text-xs font-bold text-error">No active or upcoming terms offer this class yet.</span>
+        </div>
       </div>
 
       <transition
@@ -530,6 +622,8 @@ defineExpose({ setStudent })
                   v-model="form.sponsorName"
                   label="Sponsor Name"
                   placeholder="e.g. Corporate Partner"
+                  :error="errors.sponsorName"
+                  :shake="shaking.sponsorName"
                 />
               </div>
               <div class="enroll-info-item">
@@ -538,6 +632,8 @@ defineExpose({ setStudent })
                   type="number"
                   label="Discount"
                   placeholder="0"
+                  :error="errors.discountAmount"
+                  :shake="shaking.discountAmount"
                 />
               </div>
               <div class="enroll-info-item">
@@ -589,13 +685,19 @@ defineExpose({ setStudent })
                   type="number"
                   label="Override Price"
                   placeholder="0"
+                  :error="errors.customPrice"
+                  :shake="shaking.customPrice"
                 />
               </div>
               <div class="enroll-info-item col-span-2">
                 <AppInput
                   v-model="form.remark"
+                  type="textarea"
                   label="Administrative Remark"
                   placeholder="Optional note"
+                  :error="errors.remark"
+                  :shake="shaking.remark"
+                  @input="clearError('remark')"
                 />
               </div>
               <div class="enroll-info-item col-span-2 mt-2">
@@ -632,21 +734,33 @@ defineExpose({ setStudent })
     </form>
 
     <template #footer>
-      <div class="flex items-center justify-between w-full">
-        <div v-if="hasAnyError" class="text-error font-semibold text-sm flex items-center gap-2">
-          <span>Resolve highlighted issues.</span>
-        </div>
-        <div class="flex items-center gap-3">
-          <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
-          <AppButton
-            type="button"
-            variant="primary"
-            :loading="loading"
-            class="ui-btn-premium"
-            @click="requestConfirm"
-          >
-            {{ isEditMode ? 'Update' : 'Add' }}
-          </AppButton>
+      <div class="flex flex-col justify-end w-full gap-md">
+        <AppAlert
+          v-if="isEditMode && !isChanged"
+          type="info"
+          class="w-full"
+        >
+          No modifications detected. Please update at least one field to enable saving.
+        </AppAlert>
+        <div class="flex items-center justify-between w-full">
+          <div v-if="hasAnyError" class="text-error font-bold text-sm flex items-center gap-2 animate-bounce">
+            <img :src="getActionIcon('cancel')" class="w-4 h-4" />
+            <span>Please fill in all required fields and correct errors.</span>
+          </div>
+          <div class="flex items-center gap-3 ml-auto">
+            <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
+            <AppButton
+              type="button"
+              variant="primary"
+              :loading="loading"
+              class="ui-btn-premium"
+              :disabled="loading || (isEditMode && !isChanged)"
+              :class="{ 'opacity-50 pointer-events-none': isEditMode && !isChanged }"
+              @click="requestConfirm"
+            >
+              {{ isEditMode ? 'Update' : 'Add' }}
+            </AppButton>
+          </div>
         </div>
       </div>
     </template>
