@@ -15,8 +15,12 @@ import TermOfferingActionModal from '@/components/terms/TermOfferingActionModal.
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
+import TermSessionModal from '@/components/terms/TermSessionModal.vue'
+import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { teacherService } from '@/services/teacherService'
+import { classService } from '@/services/classService'
 import { useSearch, classSearchMapper, studentSearchMapper } from '@/composables/useSearch'
+import { useTableActions } from '@/composables/useTableActions'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,6 +32,16 @@ const term = ref(null)
 const branches = ref([])
 const activeBranchId = ref(null)
 const activeSubTab = ref('classes') // 'classes' or 'students'
+
+const { activeMenuId, isMenuAbove, menuStyles, toggleMenu, closeMenu } = useTableActions()
+
+const deleteClassModal = ref({
+  isOpen: false,
+  classGroup: null,
+  loading: false,
+  error: '',
+  success: '',
+})
 
 const initData = async () => {
   const id = route.params.id
@@ -114,10 +128,16 @@ const rawBranchOfferings = computed(() => {
       })
       .filter(Boolean)
 
+    // Map teacher IDs to teacher objects
+    const responsibleTeachers = (off.teacherIds || []).map(tid => {
+      return teachers.value.find(t => String(t.id) === String(tid))
+    }).filter(Boolean)
+
     return {
       ...off,
       program,
       students,
+      responsibleTeachers,
       currentCount: students.length,
       revenue: students.reduce((sum, s) => sum + (s.revenue || 0), 0),
     }
@@ -377,7 +397,6 @@ const classHeaders = [
   { label: 'Class Identity' },
   { label: 'Schedule', width: '200px', align: 'center' },
   { label: 'Enrolled', align: 'center', width: '100px' },
-  { label: 'Weekly Schedule', align: 'center', width: '180px' }, // New Column
   { label: 'Revenue', align: 'center', width: '130px' },
   { label: 'Status', align: 'center', width: '110px' },
   { label: 'Action', align: 'center', width: '80px' },
@@ -391,7 +410,68 @@ const sessionModal = ref({
   schedule: null,
 })
 
-const openSessionModal = (sched, item) => {
+const openSessionModal = async (item) => {
+  if (!item || !item.schedules || item.schedules.length === 0) return
+  
+  const sched = item.schedules[0]
+  const offering = (term.value.offerings || []).find(o => o.offeringId === sched.offeringId)
+  
+  if (offering) {
+    // Check if sessionTeachers needs initialization (if all slots are empty/null)
+    const currentSessions = offering.sessionTeachers || []
+    const needsInit = currentSessions.length === 0 || 
+                      currentSessions.every(t => t === null)
+
+    // If we have responsible teachers assigned to the offering, use them
+    const responsibleTeachers = (offering.teacherIds || []).map(tid => {
+      return teachers.value.find(t => String(t.id) === String(tid))
+    }).filter(Boolean)
+    
+    if (needsInit && responsibleTeachers.length > 0) {
+      const primaryTeacher = responsibleTeachers[0]
+      const defaultTeacherData = {
+        id: primaryTeacher.id,
+        name: primaryTeacher.name,
+        profileURL: primaryTeacher.profileURL
+      }
+      
+      const newSessionTeachers = Array(term.value.totalSessions).fill(defaultTeacherData)
+      
+      try {
+        // Sync to all affected offerings (same day logic)
+        const affectedOfferings = (term.value.offerings || []).filter(o => 
+          String(o.branchId) === String(activeBranchId.value) &&
+          (o.classId === offering.classId || o.programId === offering.programId) &&
+          o.schedule?.day === offering.schedule?.day
+        )
+        
+        await Promise.all(affectedOfferings.map(async (off) => {
+          await termService.updateTermOffering(term.value.id, off.offeringId, { 
+            sessionTeachers: newSessionTeachers 
+          })
+          off.sessionTeachers = [...newSessionTeachers]
+        }))
+
+        // Also update the global class blueprint with these teacher IDs
+        // to ensure "responsible teachers" are synchronized as requested
+        const classId = offering.classId || offering.programId
+        if (classId) {
+          const currentTeacherIds = offering.teacherIds || []
+          if (!currentTeacherIds.includes(primaryTeacher.id)) {
+            const updatedTeacherIds = [...new Set([...currentTeacherIds, primaryTeacher.id])]
+            await classService.updateClass(classId, { teacherIds: updatedTeacherIds })
+            await dataStore.fetchClasses(true) // Refresh global store
+          }
+        }
+
+        // Trigger reactivity for term object
+        term.value = { ...term.value }
+      } catch (err) {
+        console.error('Failed to auto-initialize session teachers:', err)
+      }
+    }
+  }
+
   sessionModal.value = {
     isOpen: true,
     offeringId: sched.offeringId,
@@ -402,14 +482,6 @@ const openSessionModal = (sched, item) => {
 }
 
 const teachers = ref([])
-const filteredTeachers = computed(() => {
-  if (!sessionModal.value.isOpen || !sessionModal.value.programId) return teachers.value
-  
-  // Filter teachers who have this programId in their programIds array
-  return teachers.value.filter(t => 
-    (t.programIds || []).some(pid => String(pid) === String(sessionModal.value.programId))
-  )
-})
 
 const loadTeachers = async () => {
   try {
@@ -448,28 +520,46 @@ const openModal = (type) => {
 
 const updateSessionTeacher = async (offeringId, weekIndex, teacherId) => {
   try {
-    const offering = (term.value.offerings || []).find(o => o.offeringId === offeringId)
-    if (!offering) return
-
-    const sessionTeachers = [...(offering.sessionTeachers || [])]
-    // Ensure array is padded to totalSessions
-    while (sessionTeachers.length < term.value.totalSessions) {
-      sessionTeachers.push(null)
-    }
+    const sourceOffering = (term.value.offerings || []).find(o => o.offeringId === offeringId)
+    if (!sourceOffering) return
 
     const teacher = teachers.value.find(t => t.id === teacherId)
-    sessionTeachers[weekIndex] = teacher ? {
+    const teacherData = teacher ? {
       id: teacher.id,
       name: teacher.name,
       profileURL: teacher.profileURL
     } : null
 
-    await termService.updateTermOffering(term.value.id, offeringId, { sessionTeachers })
-    // Update local state
-    offering.sessionTeachers = sessionTeachers
+    // Find all offerings for the same program/class and day in this branch
+    // This allows assigning a teacher once for the whole day at this branch
+    const affectedOfferings = (term.value.offerings || []).filter(o => 
+      String(o.branchId) === String(activeBranchId.value) &&
+      (o.classId === sourceOffering.classId || o.programId === sourceOffering.programId) &&
+      o.schedule?.day === sourceOffering.schedule?.day
+    )
+
+    // Update all affected offerings in parallel
+    await Promise.all(affectedOfferings.map(async (off) => {
+      const sessionTeachers = [...(off.sessionTeachers || [])]
+      while (sessionTeachers.length < term.value.totalSessions) {
+        sessionTeachers.push(null)
+      }
+      
+      sessionTeachers[weekIndex] = teacherData
+      
+      await termService.updateTermOffering(term.value.id, off.offeringId, { 
+        sessionTeachers: sessionTeachers 
+      })
+      // Update local state for reactivity
+      off.sessionTeachers = [...sessionTeachers]
+    }))
+
+    // Trigger reactivity for term object
+    term.value = { ...term.value }
+
   } catch (err) {
-    console.error('Failed to update session teacher', err)
-    errorMessage.value = 'Failed to update session teacher'
+    console.error('Failed to update session teachers:', err)
+    errorMessage.value = 'Failed to update session faculty'
   }
 }
 
@@ -500,12 +590,19 @@ const handleAddClass = async (payload) => {
   }
 }
 
-const handleRemoveClass = async (classGroup) => {
-  if (!confirm(`Are you sure you want to remove ${classGroup.program?.name} from this branch?`))
-    return
+const confirmRemoveClass = (classGroup) => {
+  deleteClassModal.value.classGroup = classGroup
+  deleteClassModal.value.isOpen = true
+  deleteClassModal.value.error = ''
+  deleteClassModal.value.success = ''
+}
 
-  modal.value.loading = true
-  modal.value.error = ''
+const handleRemoveClass = async () => {
+  const classGroup = deleteClassModal.value.classGroup
+  if (!classGroup) return
+
+  deleteClassModal.value.loading = true
+  deleteClassModal.value.error = ''
   try {
     const payload = {
       deleteOfferingsRequest: {
@@ -514,16 +611,16 @@ const handleRemoveClass = async (classGroup) => {
       },
     }
     await termService.updateTerm(term.value.id, payload)
-    modal.value.success = 'Class removed from branch'
+    deleteClassModal.value.success = 'Class removed from branch'
     setTimeout(() => {
-      modal.value.isOpen = false
-      modal.value.success = ''
+      deleteClassModal.value.isOpen = false
+      deleteClassModal.value.success = ''
       initData()
     }, 1500)
   } catch (err) {
-    modal.value.error = err.message || 'Failed to remove class'
+    deleteClassModal.value.error = err.message || 'Failed to remove class'
   } finally {
-    modal.value.loading = false
+    deleteClassModal.value.loading = false
   }
 }
 
@@ -661,35 +758,48 @@ const handleActionSubmit = async (payload) => {
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[4].width }">
-                <div class="flex flex-col items-center justify-center gap-4 py-6">
-                  <div v-for="(sched, idx) in item.schedules" :key="idx" class="flex items-center justify-center h-10">
-                    <button
-                      class="px-3 py-1.5 rounded-lg border border-outline-std bg-surface-subtle hover:bg-white transition-all text-[10px] font-bold text-primary flex items-center gap-2 shadow-sm"
-                      @click="openSessionModal(sched, item)">
-                      <span class="opacity-70">📋</span>
-                      Manage Sessions
-                    </button>
-                  </div>
-                </div>
-              </td>
-              <td class="ui-cell text-center" :style="{ width: headers[5].width }">
                 <span class="text-sm font-bold text-primary tabular-nums">${{ formatPrice(item.totalRevenue) }}</span>
               </td>
-              <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+              <td class="ui-cell text-center" :style="{ width: headers[5].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
                   <div v-for="(sched, idx) in item.schedules" :key="idx" class="flex items-center justify-center h-10">
                     <AppBadge :status="sched.status || 'Active'" />
                   </div>
                 </div>
               </td>
-              <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-                <div class="flex items-center justify-center py-6 h-full">
+              <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+                <div class="flex items-center justify-center py-6 h-full relative">
                   <button
-                    class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-error-soft text-error transition-all group"
-                    title="Remove Class from Branch" @click="handleRemoveClass(item)">
-                    <img :src="getActionIcon('delete')"
-                      class="w-5 h-5 icon-danger group-hover:scale-110 transition-transform" />
+                    class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-subtle text-content-muted hover:text-content-dark transition-all"
+                    @click.stop="toggleMenu($event, item.id)">
+                    <span class="font-bold text-xl leading-none mb-1">⋮</span>
                   </button>
+
+                  <Teleport to="body">
+                    <transition enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                      leave-to-class="opacity-0">
+                      <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
+                        :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
+                        @click.stop>
+                        <button class="ui-dropdown-item ui-dropdown-item-info group"
+                          @click="() => { openSessionModal(item); closeMenu(); }">
+                          <span class="opacity-70 group-hover:opacity-100 transition-opacity">📋</span>
+                          <span class="font-semibold">Manage Faculty</span>
+                        </button>
+
+                        <div class="h-px bg-surface-light mx-1 my-1"></div>
+
+                        <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
+                          @click="() => { confirmRemoveClass(item); closeMenu(); }">
+                          <img :src="getActionIcon('delete')"
+                            class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity icon-danger" />
+                          Remove Class
+                        </button>
+                      </div>
+                    </transition>
+                  </Teleport>
                 </div>
               </td>
             </template>
@@ -796,146 +906,42 @@ const handleActionSubmit = async (payload) => {
       :loading="modal.loading" :error="modal.error" :success="modal.success" @close="modal.isOpen = false"
       @submit="handleActionSubmit" />
 
-    <ClassActionModal :isOpen="addClassModal.isOpen" @close="addClassModal.isOpen = false" @submit="handleAddClass"
-      :loading="addClassModal.loading" :error="addClassModal.error" :success="addClassModal.success" />
+    <ClassActionModal 
+      :isOpen="addClassModal.isOpen" 
+      @close="addClassModal.isOpen = false" 
+      @submit="handleAddClass"
+      :loading="addClassModal.loading" 
+      :error="addClassModal.error" 
+      :success="addClassModal.success" 
+    />
 
     <!-- Weekly Session Management Modal -->
-    <AppModal :show="sessionModal.isOpen" :title="`Session Management: ${sessionModal.programName}`" maxWidth="1000px"
-      @close="sessionModal.isOpen = false">
-      <template #header>
-        <div class="flex flex-col">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-primary-soft flex items-center justify-center text-primary shadow-sm border border-primary/10">
-              <span class="text-2xl">📅</span>
-            </div>
-            <div class="flex flex-col">
-              <h3 class="text-xl font-black text-content-dark leading-tight uppercase tracking-tight">
-                Weekly Faculty Assignment
-              </h3>
-              <div class="flex items-center gap-2 mt-1">
-                <span class="text-sm font-bold text-primary">{{ sessionModal.programName }}</span>
-                <span class="text-xs font-bold text-content-muted/40">•</span>
-                <span class="text-xs font-bold text-content-muted">
-                  {{ sessionModal.schedule?.day }} {{ sessionModal.schedule?.time }}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </template>
+    <TermSessionModal
+      :isOpen="sessionModal.isOpen"
+      :term="term"
+      :offeringId="sessionModal.offeringId"
+      :programId="sessionModal.programId"
+      :programName="sessionModal.programName"
+      :schedule="sessionModal.schedule"
+      :teachers="teachers"
+      :activeBranch="activeBranch"
+      @close="sessionModal.isOpen = false"
+      @update-teacher="({ offeringId, weekIndex, teacherId }) => updateSessionTeacher(offeringId, weekIndex, teacherId)"
+    />
 
-      <div class="flex flex-col gap-10 py-6">
-        <!-- Info Banner -->
-        <div class="flex items-center justify-between p-8 bg-surface-subtle/40 rounded-[2rem] border border-outline-std shadow-sm">
-          <div class="flex items-center gap-6">
-            <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-inner border border-outline-std">
-               <img :src="getActionIcon('info')" class="w-8 h-8 opacity-40" />
-            </div>
-            <div class="flex flex-col">
-              <span class="text-xs font-black text-primary uppercase tracking-[0.2em] mb-1">Assignment Controls</span>
-              <h4 class="text-lg font-bold text-content-dark">Fine-tune the instructors for every session.</h4>
-              <p class="text-sm font-bold text-content-muted/70 mt-1 max-w-[500px]">
-                Showing only teachers specialized in <span class="text-primary">{{ sessionModal.programName }}</span>. 
-                Changes are saved automatically to the master schedule.
-              </p>
-            </div>
-          </div>
-          <div class="flex items-center gap-6 pr-4">
-            <div class="flex flex-col items-end">
-              <span class="text-[10px] font-black text-content-muted/50 uppercase tracking-widest mb-2">Term Progress</span>
-              <div class="flex gap-1.5">
-                <div v-for="i in term.totalSessions" :key="i" class="w-4 h-2 rounded-full transition-all duration-500"
-                  :class="i <= 3 ? 'bg-primary shadow-[0_0_8px_rgba(var(--color-primary-rgb),0.4)]' : 'bg-outline-std/60'"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sessions Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <div v-for="i in term.totalSessions" :key="i"
-            class="flex flex-col gap-4 p-6 bg-white rounded-[1.5rem] border border-outline-std shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group/session relative overflow-hidden">
-            
-            <!-- Subtle background week number -->
-            <div class="absolute -top-2 -right-2 text-6xl font-black text-surface-subtle/5 select-none transition-all group-hover/session:text-primary/5">
-               {{ i }}
-            </div>
-
-            <div class="flex items-center justify-between relative z-10">
-              <div class="flex items-center gap-2.5">
-                <span class="w-2 h-2 rounded-full bg-primary animate-pulse" v-if="i === 1"></span>
-                <span class="text-[11px] font-black text-primary bg-primary-soft px-3.5 py-1.5 rounded-lg uppercase tracking-wider shadow-sm">
-                  Week {{ i }}
-                </span>
-              </div>
-              <span class="text-[10px] font-black text-content-muted/40 uppercase tracking-widest">
-                Session {{ i }}
-              </span>
-            </div>
-
-            <div class="flex flex-col gap-3 mt-2 relative z-10">
-              <div class="flex items-center justify-between ml-1">
-                <span class="text-[10px] font-black text-content-muted uppercase tracking-[0.15em]">Assign Faculty</span>
-                <span v-if="(term.offerings.find(o => o.offeringId === sessionModal.offeringId)?.sessionTeachers || [])[i - 1]" 
-                      class="text-[9px] font-black text-green-500 uppercase">Assigned</span>
-              </div>
-              
-              <AppSelect
-                :modelValue="(term.offerings.find(o => o.offeringId === sessionModal.offeringId)?.sessionTeachers || [])[i - 1]?.id"
-                :items="filteredTeachers" placeholder="Select Specialist..." size="lg" class="!bg-surface-subtle/30 !rounded-xl border-outline-std group-hover/session:border-primary/30 transition-colors"
-                @change="(val) => updateSessionTeacher(sessionModal.offeringId, i - 1, val)">
-                <template #selected="{ item: t }">
-                  <div v-if="t" class="flex items-center gap-3 py-1">
-                    <div class="relative">
-                      <img :src="t.profileURL || getImageUrl('profiles/avatar-teacher-man')" class="w-7 h-7 rounded-full border-2 border-white shadow-sm" />
-                      <div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="text-xs font-black text-content-dark truncate max-w-[140px] leading-tight">{{ t.name }}</span>
-                      <span class="text-[9px] font-bold text-primary uppercase tracking-tighter">{{ t.branchAbbr || 'HQ' }} Specialist</span>
-                    </div>
-                  </div>
-                  <div v-else class="flex items-center gap-2 py-1 opacity-60 italic">
-                    <span class="text-xs font-bold text-content-muted">No instructor assigned</span>
-                  </div>
-                </template>
-                <template #item="{ item: t }">
-                  <div class="flex items-center gap-4 py-1">
-                    <div class="relative">
-                      <img :src="t.profileURL || getImageUrl('profiles/avatar-teacher-man')" class="w-10 h-10 rounded-xl shadow-sm" />
-                      <div class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
-                    </div>
-                    <div class="flex flex-col">
-                      <span class="text-sm font-black text-content-dark">{{ t.name }}</span>
-                      <div class="flex items-center gap-1.5 mt-0.5">
-                         <span class="text-[10px] font-bold text-content-muted uppercase tracking-wider bg-surface-subtle px-2 py-0.5 rounded">{{ t.branchAbbr || 'HQ' }}</span>
-                         <span class="text-[10px] font-bold text-primary italic">Expert</span>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-              </AppSelect>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex items-center justify-between w-full px-2">
-          <div class="flex items-center gap-2 text-content-muted">
-             <span class="text-xs font-bold italic">Note: Only specialists for {{ sessionModal.programName }} are shown above.</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <AppButton variant="ghost" size="md" class="font-bold" @click="sessionModal.isOpen = false">
-              Cancel
-            </AppButton>
-            <AppButton variant="primary" size="md" class="px-8 font-black shadow-lg shadow-primary/20" @click="sessionModal.isOpen = false">
-              Finish Assignment
-            </AppButton>
-          </div>
-        </div>
-      </template>
-    </AppModal>
+    <!-- Removal Confirmation Overlay -->
+    <AppConfirmOverlay
+      :isOpen="deleteClassModal.isOpen"
+      title="Remove Class from Term"
+      :message="`Are you sure you want to remove ${deleteClassModal.classGroup?.program?.name} and all its schedules from this branch?`"
+      confirmText="Remove Class"
+      variant="danger"
+      :loading="deleteClassModal.loading"
+      :error="deleteClassModal.error"
+      :success="deleteClassModal.success"
+      @close="deleteClassModal.isOpen = false"
+      @confirm="handleRemoveClass"
+    />
   </DashboardLayout>
 </template>
 
