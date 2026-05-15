@@ -118,3 +118,10 @@ doc/_build/
 doc/api/
 doc/archives/
 # doc/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/

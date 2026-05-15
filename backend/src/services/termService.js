@@ -10,7 +10,7 @@ class TermService {
     await this.ensureUniqueTermName(name, branchIds)
 
     const offerings = duplicateFromTermId
-      ? await this.duplicateOfferings(duplicateFromTermId)
+      ? await this.duplicateOfferings(duplicateFromTermId, branchIds)
       : await this.buildOfferingsForBranches(branchIds, branchSettings)
 
     const cleanTerm = {
@@ -227,11 +227,18 @@ class TermService {
     }
   }
 
-  async duplicateOfferings(sourceTermId) {
+  async duplicateOfferings(sourceTermId, targetBranchIds = []) {
     const sourceDoc = await db.collection(COLLECTIONS.TERM).doc(sourceTermId).get()
     if (!sourceDoc.exists || sourceDoc.data().isDeleted) throw new Error('Source term not found')
 
-    return (sourceDoc.data().offerings || []).map((offering) => ({
+    let offerings = sourceDoc.data().offerings || []
+
+    // If the new term has a specific branch scope, only duplicate offerings for those branches
+    if (targetBranchIds.length > 0) {
+      offerings = offerings.filter((off) => targetBranchIds.includes(off.branchId))
+    }
+
+    return offerings.map((offering) => ({
       ...offering,
       offeringId: db.collection(COLLECTIONS.TERM).doc().id,
       sourceOfferingId: offering.offeringId || '',

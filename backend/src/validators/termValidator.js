@@ -1,7 +1,12 @@
 const dateHelper = require('../utils/dateHelper')
 
 function validateTerm(termData) {
-  const fields = ['name', 'startDate', 'endDate', 'status', 'totalSessions', 'branchId', 'branchIds', 'offerings', 'duplicateFromTermId', 'branchSettings']
+  const fields = [
+    'id', 'name', 'startDate', 'endDate', 'status', 'totalSessions', 
+    'branchId', 'branchIds', 'offerings', 'duplicateFromTermId', 
+    'branchSettings', 'isDeleted', 'createdAt', 'updatedAt',
+    'revenue', 'totalStudents'
+  ]
   Object.keys(termData).forEach((key) => {
     if (!fields.includes(key)) throw new Error(`Invalid field: ${key}`)
   })
@@ -23,20 +28,9 @@ function validateTerm(termData) {
   } else if (startDate) {
     dateHelper.validateAndParseDate(startDate, 'Start Date', { allowFuture: true })
     const expectedEndDate = dateHelper.calculateEndDate(startDate, totalSessions)
-    if (endDate && endDate !== expectedEndDate) {
-      throw new Error(`End Date "${endDate}" does not match the calculated end date "${expectedEndDate}" for ${totalSessions} sessions.`)
-    }
-    endDate = endDate || expectedEndDate
+    // We prioritize the calculated end date to ensure session count consistency
+    endDate = expectedEndDate
   }
-
-  const forbiddenKeywords = ['category', 'level', 'program', 'course']
-  const lowerName = termData.name.toLowerCase()
-  const foundKeyword = forbiddenKeywords.find((k) => {
-    const regex = new RegExp(`\\b${k}\\b`, 'i')
-    return regex.test(lowerName)
-  })
-  if (foundKeyword)
-    throw new Error(`Term name cannot contain "${foundKeyword}"`)
 
   return {
     name: termData.name.trim(),
@@ -48,11 +42,10 @@ function validateTerm(termData) {
     offerings: Array.isArray(termData.offerings) ? termData.offerings : [],
     duplicateFromTermId: termData.duplicateFromTermId || '',
     status: startDate && endDate ? dateHelper.calculateStatus(startDate, endDate) : 'upcoming',
-    createdAt: new Date().toISOString(),
+    createdAt: termData.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
 }
-
 function validateUpdateTerm(updateData) {
   const allowedFields = ['name', 'startDate', 'endDate', 'status', 'totalSessions', 'branchIds', 'offerings', 'branchSettings', 'newOfferingsRequest', 'deleteOfferingsRequest']
   const cleanData = {}

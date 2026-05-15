@@ -26,7 +26,7 @@
   }
 
   .enroll-section-label {
-    @apply text-3xs font-semibold text-content-muted/60  border-b border-outline-std pb-1 mb-1;
+    @apply text-xs font-semibold text-content-muted border-b border-outline-std pb-1 mb-1 uppercase tracking-wider;
   }
 
   .enroll-remarks-card {
@@ -43,7 +43,7 @@
   }
 
   .enroll-info-key {
-    @apply text-3xs font-semibold text-content-muted/60;
+    @apply text-xs font-semibold text-content-muted;
   }
 
   .enroll-info-val {
@@ -56,7 +56,7 @@
   }
 
   .enroll-info-sub {
-    @apply text-3xs text-content-muted ml-1;
+    @apply text-xs text-content-muted ml-1;
   }
 
   /* ── Specialized Inputs ────────────────────────────────────────────────── */

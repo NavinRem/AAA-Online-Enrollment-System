@@ -1,4 +1,5 @@
 const { db, COLLECTIONS } = require('../config/database')
+const { FieldValue } = require('firebase-admin/firestore')
 const profileHelper = require('../utils/profileHelper')
 const {
   validateEnrollment,
@@ -135,7 +136,6 @@ class EnrollmentService {
     }
 
     await db.runTransaction(async (transaction) => {
-      const admin = require('firebase-admin')
       transaction.set(
         db.collection(COLLECTIONS.ENROLLMENT).doc(enrollmentId),
         newEnrollment,
@@ -143,7 +143,7 @@ class EnrollmentService {
 
       if (isSeatTaking(newEnrollment.status)) {
         transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(programId), {
-          totalEnrolledCount: admin.firestore.FieldValue.increment(1),
+          totalEnrolledCount: FieldValue.increment(1),
         })
 
         // Save enrolled branch to student detail
@@ -286,7 +286,6 @@ class EnrollmentService {
     const beforeData = beforeDoc.data()
 
     const result = await db.runTransaction(async (transaction) => {
-      const admin = require('firebase-admin')
       const validated = validateUpdateEnrollment(updateData)
       const doc = await transaction.get(ref)
       if (!doc.exists) throw new Error('Enrollment not found')
@@ -381,7 +380,7 @@ class EnrollmentService {
       ]
       redundantFields.forEach((f) => {
         if (currentData[f] !== undefined)
-          updates[f] = admin.firestore.FieldValue.delete()
+          updates[f] = FieldValue.delete()
       })
 
       // Sync status with paymentStatus if updated
@@ -433,7 +432,7 @@ class EnrollmentService {
           transaction.update(
             db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId),
             {
-              totalEnrolledCount: admin.firestore.FieldValue.increment(1),
+              totalEnrolledCount: FieldValue.increment(1),
             },
           )
         } else if (
@@ -443,7 +442,7 @@ class EnrollmentService {
           transaction.update(
             db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId),
             {
-              totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
+              totalEnrolledCount: FieldValue.increment(-1),
             },
           )
         }
@@ -502,11 +501,10 @@ class EnrollmentService {
         updatedAt: new Date().toISOString(),
       })
       if (isSeatTaking(status) && enrollmentData.programId) {
-        const admin = require('firebase-admin')
-        transaction.update(
+          transaction.update(
           db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId),
           {
-            totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
+            totalEnrolledCount: FieldValue.increment(-1),
           },
         )
       }
@@ -546,11 +544,10 @@ class EnrollmentService {
         cancelledAt: new Date().toISOString(),
       })
       if (isSeatTaking(status)) {
-        const admin = require('firebase-admin')
-        transaction.update(
+          transaction.update(
           db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId),
           {
-            totalEnrolledCount: admin.firestore.FieldValue.increment(-1),
+            totalEnrolledCount: FieldValue.increment(-1),
           },
         )
       }
