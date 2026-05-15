@@ -9,6 +9,7 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import TermActionModal from '@/components/terms/TermActionModal.vue'
 import TermOfferingActionModal from '@/components/terms/TermOfferingActionModal.vue'
+import AppSelect from '@/components/common/ui/AppSelect.vue'
 import { useDataStore } from '@/stores/dataStore'
 
 import { termService } from '@/services/termService'
@@ -21,6 +22,7 @@ const items = ref([])
 const branches = ref([])
 const statusFilter = ref('all')
 const dataStore = useDataStore()
+const sortMode = ref('newest')
 
 const router = useRouter()
 
@@ -32,7 +34,8 @@ const headers = [
   { label: 'End Date', width: '140px', align: 'center' },
   { label: 'Status', width: '110px', align: 'center' },
   { label: 'Progress', width: '160px', align: 'center' },
-  { label: 'Enrolled Students', width: '100px', align: 'center' },
+  { label: 'Enrolled', width: '100px', align: 'center' },
+  { label: 'Trials', width: '100px', align: 'center' },
   { label: 'Revenue', width: '100px', align: 'center' },
   { label: 'Action', width: '50px', align: 'center' },
 ]
@@ -48,6 +51,8 @@ const fetchData = async () => {
         'categories',
         'schedules',
         'branches',
+        'enrollments',
+        'trials',
       ]),
     ])
 
@@ -70,12 +75,54 @@ const fetchData = async () => {
         (a, b) => new Date(a.endDate || a.startDate) - new Date(b.endDate || b.startDate),
       )
 
+      // Dynamic Metrics Computation
+      const branchIds = term.branchIds || (term.branchId ? [term.branchId] : [])
+      const studentIds = new Set()
+      let totalRevenue = 0
+      let trialCount = 0
+
+      branchIds.forEach((bId) => {
+        const setting = sortedSettings.find((s) => String(s.branchId) === String(bId))
+        const startDate = new Date(setting?.startDate || term.startDate)
+        const endDate = new Date(setting?.endDate || term.endDate)
+        startDate.setHours(0, 0, 0, 0)
+        endDate.setHours(23, 59, 59, 999)
+
+        // Filter enrollments for this branch in this term period
+        const branchEnrollments = dataStore.enrollments.filter((e) => {
+          const isSameBranch = String(e.branchId) === String(bId)
+          const isSameTerm = String(e.termId) === String(term.id)
+          if (isSameTerm && isSameBranch) return true
+          if (isSameBranch) {
+            const enrollDate = new Date(e.enrollAt || e.createdAt)
+            return enrollDate >= startDate && enrollDate <= endDate
+          }
+          return false
+        })
+
+        branchEnrollments.forEach((e) => {
+          studentIds.add(e.studentId)
+          totalRevenue += e.finalPrice || e.totalPrice || 0
+        })
+
+        // Filter trials for this branch in this term period
+        const branchTrials = dataStore.trials.filter((t) => {
+          const isSameBranch = String(t.branchId) === String(bId)
+          const trialDate = new Date(t.trialDate)
+          return isSameBranch && trialDate >= startDate && trialDate <= endDate
+        })
+        trialCount += branchTrials.length
+      })
+
       return {
         ...term,
-        status: calculatedStatus, // Prioritize computed status for UI accuracy
-        branchIds: term.branchIds || (term.branchId ? [term.branchId] : []),
+        status: calculatedStatus,
+        branchIds,
         totalSessions: term.totalSessions || 11,
         branchSettings: sortedSettings,
+        enrollmentCount: studentIds.size,
+        totalRevenue,
+        trialCount,
       }
     })
 
@@ -119,6 +166,9 @@ watch([searchQuery, statusFilter], () => {
 // Metrics logic
 const statsCards = computed(() => {
   const stats = items.value.map((item) => calculateClassProgress(item.startDate, item.endDate))
+  const mostEnrolledTerm = [...items.value].sort((a, b) => b.enrollmentCount - a.enrollmentCount)[0]
+  const mostTrialsTerm = [...items.value].sort((a, b) => b.trialCount - a.trialCount)[0]
+
   return [
     {
       label: 'Total Terms',
@@ -126,19 +176,21 @@ const statsCards = computed(() => {
       image: getImageUrl('enrollment/total-enrollment'),
     },
     {
-      label: 'Active Terms',
-      value: stats.filter((s) => ['active', 'ongoing', 'full'].includes(s.status)).length,
+      label: 'Most Popular',
+      value: mostEnrolledTerm ? `${mostEnrolledTerm.enrollmentCount} Enrolled` : '0 Enrolled',
+      subtitle: mostEnrolledTerm?.name,
       image: getImageUrl('programs/active-program'),
     },
     {
-      label: 'Upcoming Terms',
-      value: stats.filter((s) => s.status === 'upcoming').length,
-      image: getImageUrl('programs/upcoming-program'),
+      label: 'Highest Interest',
+      value: mostTrialsTerm ? `${mostTrialsTerm.trialCount} Trials` : '0 Trials',
+      subtitle: mostTrialsTerm?.name,
+      image: getImageUrl('enrollment/total-paid-enrollment'),
     },
     {
-      label: 'Archived Terms',
-      value: stats.filter((s) => s.status === 'archived').length,
-      image: getImageUrl('programs/archived-program'),
+      label: 'Active Terms',
+      value: stats.filter((s) => ['active', 'ongoing', 'full'].includes(s.status)).length,
+      image: getImageUrl('programs/upcoming-program'),
     },
   ]
 })
@@ -239,7 +291,9 @@ const handleActionSubmit = async (payload) => {
 
 const sortedItems = computed(() => {
   return [...searchResults.value].sort((a, b) => {
-    // Primary sort: Newest created first
+    if (sortMode.value === 'enrollments') return b.enrollmentCount - a.enrollmentCount
+    if (sortMode.value === 'trials') return b.trialCount - a.trialCount
+    if (sortMode.value === 'revenue') return b.totalRevenue - a.totalRevenue
     return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
   })
 })
@@ -261,6 +315,13 @@ const filterOptions = [
   { label: 'Upcoming', value: 'upcoming', color: 'blue' },
   { label: 'Active', value: 'active', color: 'success' },
   { label: 'Archived', value: 'archived', color: 'neutral' },
+]
+
+const sortOptions = [
+  { label: 'Newest First', value: 'newest', image: getActionIcon('filter') },
+  { label: 'Most Enrolled', value: 'enrollments', image: getImageUrl('data-metric-card/total-enrolled') },
+  { label: 'Highest Trials', value: 'trials', image: getImageUrl('enrollment/total-enrollment') },
+  { label: 'Top Revenue', value: 'revenue', image: getImageUrl('data-metric-card/program-revenue') },
 ]
 
 const getTermBranches = (branchIds) => {
@@ -339,15 +400,23 @@ const getGroupedSettings = (item) => {
           @row-click="goToDetail"
         >
           <template #toolbar-actions>
-            <AppButton
-              variant="primary"
-              size="md"
-              class="rounded-xl shadow-lg shadow-primary/20"
-              @click="openModal('add')"
-            >
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold">Add Term</span>
-            </AppButton>
+            <div class="flex items-center gap-3">
+              <AppSelect
+                v-model="sortMode"
+                :options="sortOptions"
+                placeholder="Sort By"
+                class="min-w-[180px]"
+              />
+              <AppButton
+                variant="primary"
+                size="md"
+                class="rounded-xl shadow-lg shadow-primary/20"
+                @click="openModal('add')"
+              >
+                <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
+                <span class="font-bold">Add Term</span>
+              </AppButton>
+            </div>
           </template>
 
           <template
@@ -540,6 +609,12 @@ const getGroupedSettings = (item) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[8].width }">
               <div class="flex flex-col items-center justify-center gap-1">
+                <AppBadge :status="item.trialCount || 0" type="purple" />
+              </div>
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[9].width }">
+              <div class="flex flex-col items-center justify-center gap-1">
                 <AppBadge :status="`$${formatPrice(item.totalRevenue || 0)}`" type="green" />
               </div>
             </td>
@@ -632,6 +707,7 @@ const getGroupedSettings = (item) => {
     </DataPageLayout>
 
     <TermActionModal
+      v-if="modal.isOpen"
       :isOpen="modal.isOpen"
       :type="modal.type"
       :loading="modal.submitting"
@@ -648,8 +724,9 @@ const getGroupedSettings = (item) => {
       "
       @submit="handleActionSubmit"
     />
-
+  
     <TermOfferingActionModal
+      v-if="addClassModal.isOpen"
       :isOpen="addClassModal.isOpen"
       :term="addClassModal.selectedTerm"
       :loading="addClassModal.loading"

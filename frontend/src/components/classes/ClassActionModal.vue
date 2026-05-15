@@ -111,6 +111,7 @@ const filteredSchedules = computed(() => {
 
 const modalTitle = computed(() => {
   if (props.type === 'delete') return 'Remove from Catalog'
+  if (props.type === 'remove') return `Remove from ${props.context?.termName || 'Term'}`
   if (props.type === 'edit') {
     if (props.context?.termName)
       return `Edit Current Term: ${props.classInstance?.program?.name || 'Class'}`
@@ -121,6 +122,7 @@ const modalTitle = computed(() => {
 
 const submitLabel = computed(() => {
   if (props.type === 'delete') return 'Delete'
+  if (props.type === 'remove') return 'Remove Class'
   if (props.type === 'edit') return 'Save Changes'
   return 'Create Class'
 })
@@ -160,7 +162,9 @@ const confirmRows = computed(() => {
     return [
       {
         key: 'Warning',
-        value: 'This will permanently remove this class product from the catalog.',
+        value: props.type === 'remove' 
+          ? 'This will remove the class and all its schedules from this specific branch for this term.' 
+          : 'This will permanently remove this class product from the catalog.',
         valueClass: 'text-error',
       },
     ]
@@ -370,7 +374,7 @@ const handleDisabledClick = (field) => {
 const handleSubmit = () => {
   if (!isDirty.value && props.type === 'edit') return
 
-  if (props.type === 'delete') {
+  if (props.type === 'delete' || props.type === 'remove') {
     if (form.deleteConfirm !== 'DELETE') {
       errors.deleteConfirm = 'Please type DELETE to authorize'
       triggerShake('deleteConfirm')
@@ -423,7 +427,7 @@ const confirmSubmit = () => {
     @clear-success="$emit('clear-success')"
   >
     <form class="flex flex-col gap-5" @submit.prevent="handleSubmit">
-      <AppAlert v-if="context?.termName" type="info" class="mb-2">
+      <AppAlert v-if="context?.termName && type !== 'remove'" type="info" class="mb-2">
         <span class="font-bold text-lg">⚠️ This Term Only</span><br />
         You are editing settings for
         <span class="font-bold text-primary">{{ context.termName }}</span
@@ -431,7 +435,7 @@ const confirmSubmit = () => {
         terms.
       </AppAlert>
 
-      <template v-if="type !== 'delete'">
+      <template v-if="type !== 'delete' && type !== 'remove'">
         <div class="grid grid-cols-2 gap-x-8 gap-y-10 items-start">
           <AppSelect
             v-model="form.programId"
@@ -763,10 +767,20 @@ const confirmSubmit = () => {
       <div v-else class="flex flex-col gap-6">
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-semibold tracking-tight">⚠ Permanent Catalog Removal</strong>
+            <strong class="text-sm font-semibold tracking-tight">
+              {{ type === 'remove' ? '⚠ Branch Removal' : '⚠ Permanent Catalog Removal' }}
+            </strong>
             <span class="text-xs opacity-90 font-medium leading-relaxed">
-              Delete class product {{ props.classInstance?.program?.name || 'this class' }}?
-              Existing term offerings and enrollments keep their historical snapshots, but this master catalog entry will be permanently erased.
+              <template v-if="type === 'remove'">
+                Remove {{ props.classInstance?.program?.name || 'this class' }} from 
+                <span class="font-bold">{{ context?.termName || 'this term' }}</span> at 
+                <span class="font-bold">{{ context?.branchName || 'this branch' }}</span>?
+                This will unenroll all students and delete all schedules for this specific term offering.
+              </template>
+              <template v-else>
+                Delete class product {{ props.classInstance?.program?.name || 'this class' }}?
+                Existing term offerings and enrollments keep their historical snapshots, but this master catalog entry will be permanently erased.
+              </template>
             </span>
           </div>
         </AppAlert>
@@ -775,7 +789,7 @@ const confirmSubmit = () => {
           :shake="shaking.deleteConfirm" :error="errors.deleteConfirm" @input="clearError('deleteConfirm')">
           <template #label-extra>
             <span class="block text-2xs font-semibold mt-0.5">
-              Type <span class="text-error px-1 font-bold">DELETE</span> to authorize removal
+              Type <span class="text-error px-1 font-bold">DELETE</span> to authorize {{ type === 'remove' ? 'removal' : 'deletion' }}
             </span>
           </template>
         </AppInput>
@@ -796,7 +810,7 @@ const confirmSubmit = () => {
           <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
           <AppButton
             type="button"
-            :variant="type === 'delete' ? 'danger' : 'primary'"
+            :variant="(type === 'delete' || type === 'remove') ? 'danger' : 'primary'"
             :loading="loading"
             :disabled="loading || (type === 'edit' && !isDirty)"
             :class="{ 'button-disabled-visual': (type === 'edit' && !isDirty) }"

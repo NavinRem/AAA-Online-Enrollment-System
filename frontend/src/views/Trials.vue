@@ -12,7 +12,7 @@ import TrialFormModal from '../components/trials/TrialFormModal.vue'
 
 import { trialService } from '@/services/trialService'
 import { useSearch, trialSearchMapper } from '../composables/useSearch'
-import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { formatDate } from '@/utils/formatUtils'
 
 const dataStore = useDataStore()
@@ -93,7 +93,26 @@ const trialHeaders = [
 ]
 
 const statusFilteredTrials = computed(() => {
-  let filtered = [...dataStore.trials]
+  // Enrich trials with full program details from the store
+  const trials = dataStore.trials.map((trial) => {
+    const programId = trial.programId || trial.program?.id
+    const program = dataStore.programs.find((p) => p.id === programId)
+    const category = program
+      ? dataStore.categories.find((c) => c.id === program.categoryId || c.name === program.category)
+      : null
+
+    return {
+      ...trial,
+      program: {
+        ...trial.program,
+        ...(program || {}),
+        category: category?.name || program?.category || trial.program?.category,
+        categoryProfileURL: category?.profileURL || '',
+      },
+    }
+  })
+
+  let filtered = [...trials]
 
   if (currentFilter.value === 'booked') filtered = filtered.filter((t) => t.trialType === 'booked')
   else if (currentFilter.value === 'walk-in')
@@ -211,59 +230,36 @@ const confirmRows = computed(() => {
       </template>
 
       <template #table>
-        <DataTable
-          title="Trial Lists"
-          :headers="trialHeaders"
-          :items="paginatedTrials"
-          entityName="trial"
-          :loading="loading"
-          :hasPagination="true"
-          :flexible="true"
-          :pageSize="pageSize"
-          :totalItems="totalItems"
-          v-model:currentPage="currentPage"
-          v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search by name, program or guest..."
-          :hasFilter="true"
-          v-model:currentFilter="currentFilter"
-          :filterOptions="[
+        <DataTable title="Trial Lists" :headers="trialHeaders" :items="paginatedTrials" entityName="trial"
+          :loading="loading" :hasPagination="true" :flexible="true" :pageSize="pageSize" :totalItems="totalItems"
+          v-model:currentPage="currentPage" v-model:searchQuery="searchQuery"
+          searchPlaceholder="Search by name, program or guest..." :hasFilter="true"
+          v-model:currentFilter="currentFilter" :filterOptions="[
             { label: 'All Trials', value: 'all' },
             { label: 'Booked', value: 'booked' },
             { label: 'Walk-in', value: 'walk-in' },
             { label: 'Successful', value: 'successful' },
-          ]"
-          :rowClass="getRowClass"
-          @action="handleTableAction"
-        >
+          ]" :rowClass="getRowClass" @action="handleTableAction">
           <template #toolbar-actions>
-            <AppButton
-              variant="primary"
-              size="md"
-              class="rounded-xl shadow-lg shadow-primary/20"
-              @click="showModal = true"
-            >
+            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
+              @click="showModal = true">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-bold tracking-tight">New Trial</span>
             </AppButton>
           </template>
 
-          <template
-            #row="{
-              item,
-              index,
-              toggleMenu,
-              activeMenuId,
-              isMenuAbove,
-              menuStyles,
-              handleAction,
-              closeMenu,
-              headers,
-            }"
-          >
-            <td
-              class="ui-cell text-center hidden md:table-cell"
-              :style="{ width: headers[0].width }"
-            >
+          <template #row="{
+            item,
+            index,
+            toggleMenu,
+            activeMenuId,
+            isMenuAbove,
+            menuStyles,
+            handleAction,
+            closeMenu,
+            headers,
+          }">
+            <td class="ui-cell text-center hidden md:table-cell" :style="{ width: headers[0].width }">
               {{ (currentPage - 1) * pageSize + index + 1 }}
             </td>
 
@@ -271,15 +267,12 @@ const confirmRows = computed(() => {
             <td class="ui-cell">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
-                  <img
-                    :src="item.parent?.profileURL || getImageUrl('avatar-parent')"
-                    alt="parent"
-                  />
+                  <img :src="item.parent?.profileURL || getImageUrl('avatar-parent')" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
                   <span class="truncate block">{{
                     item.parent?.name || item.guestParentName || 'Guest Parent'
-                  }}</span>
+                    }}</span>
                 </div>
               </div>
             </td>
@@ -288,16 +281,12 @@ const confirmRows = computed(() => {
             <td class="ui-cell">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
-                  <img
-                    :src="item.student?.profileURL || getImageUrl('avatar-student')"
-                    alt="student"
-                  />
+                  <img :src="item.student?.profileURL || getImageUrl('avatar-student')" alt="student" />
                 </div>
                 <div class="ui-identity-info">
                   <span class="truncate block">{{
                     item.student?.name || item.guestStudentName
-                  }}</span>
-                  <span class="">{{ item.isGuest ? 'Guest Prospect' : 'Registered Student' }}</span>
+                    }}</span>
                 </div>
               </div>
             </td>
@@ -306,21 +295,21 @@ const confirmRows = computed(() => {
             <td class="ui-cell">
               <div class="ui-identity-cell">
                 <div class="ui-avatar bg-white p-1">
-                  <img
-                    :src="item.program?.profileURL || getImageUrl('program-default')"
-                    alt="program"
-                    class="object-contain"
-                  />
+                  <img :src="getProgramProfileURL(
+                    item.program?.profileURL,
+                    item.program?.category,
+                    item.program?.categoryProfileURL,
+                  )
+                    " alt="program" class="object-contain" />
                 </div>
                 <div class="ui-identity-info">
                   <span class="truncate block">{{ item.program?.name }}</span>
-                  <span class="">Trial Unit</span>
                 </div>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">
-              <AppBadge :status="item.branch?.abbr || 'HQ'" type="blue" />
+              <AppBadge :status="item.branch?.abbr" :type="item.branch?.color" />
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
@@ -331,7 +320,7 @@ const confirmRows = computed(() => {
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
-              <div class="flex flex-col items-center">
+              <div class="flex flex-col text-content-muted items-center">
                 <span class="tabular-nums tracking-tight">{{ formatDate(item.trialDate) }}</span>
               </div>
             </td>
@@ -340,55 +329,34 @@ const confirmRows = computed(() => {
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
-                  @click.stop="toggleMenu($event, item.id)"
-                >
+                  @click.stop="toggleMenu($event, item.id)">
                   <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
-                  <transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0"
-                    enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                  >
-                    <div
-                      v-if="activeMenuId === item.id"
-                      class="ui-dropdown-menu"
-                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
-                      :style="menuStyles"
-                      @click.stop
-                    >
-                      <button
-                        class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="
-                          () => {
-                            handleAction('edit', item)
-                            closeMenu()
-                          }
-                        "
-                      >
-                        <img
-                          :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
-                        />
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
+                      @click.stop>
+                      <button class="ui-dropdown-item ui-dropdown-item-info group" @click="
+                        () => {
+                          handleAction('edit', item)
+                          closeMenu()
+                        }
+                      ">
+                        <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         <span class="font-bold">Edit</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
-                      <button
-                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
-                        @click="
-                          () => {
-                            handleAction('delete', item)
-                            closeMenu()
-                          }
-                        "
-                      >
-                        <img
-                          :src="getActionIcon('delete')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
-                        />
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold" @click="
+                        () => {
+                          handleAction('delete', item)
+                          closeMenu()
+                        }
+                      ">
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete
                       </button>
                     </div>
@@ -401,37 +369,20 @@ const confirmRows = computed(() => {
       </template>
     </DataPageLayout>
 
-    <TrialFormModal
-      :isOpen="showModal"
-      :loading="submitting"
-      :trial="selectedTrial"
-      :parents="dataStore.parents"
-      :students="dataStore.students"
-      :programs="dataStore.programs"
-      :branches="dataStore.branches"
-      :error="errorMessage"
-      :success="successMessage"
-      @close="
+    <TrialFormModal v-if="showModal" :isOpen="showModal" :loading="submitting" :trial="selectedTrial"
+      :parents="dataStore.parents" :students="dataStore.students" :programs="dataStore.getProgramWithCategory"
+      :branches="dataStore.branches" :error="errorMessage" :success="successMessage" @close="
         () => {
           showModal = false
           selectedTrial = null
           errorMessage = ''
           successMessage = ''
         }
-      "
-      @submit="handleSaveTrial"
-    />
+      " @submit="handleSaveTrial" />
 
-    <AppConfirmOverlay
-      :show="actionState.isOpen && actionState.type === 'delete'"
-      title="Delete Trial Record"
+    <AppConfirmOverlay :show="actionState.isOpen && actionState.type === 'delete'" title="Delete Trial Record"
       subtitle="Are you sure you want to permanently delete this trial engagement? This action will remove the record from all dashboard metrics."
-      :icon="getImageUrl('enrollment/total-enrollment')"
-      :rows="confirmRows"
-      confirmLabel="Delete Record"
-      :loading="submitting"
-      @back="actionState.isOpen = false"
-      @confirm="confirmDeleteTrial"
-    />
+      :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows" confirmLabel="Delete Record"
+      :loading="submitting" @back="actionState.isOpen = false" @confirm="confirmDeleteTrial" />
   </DashboardLayout>
 </template>

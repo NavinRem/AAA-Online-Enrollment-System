@@ -609,6 +609,7 @@ const handleRegisterStudent = async (formData) => {
     </DataPageLayout>
 
     <EnrollmentFormModal
+      v-if="showModal"
       ref="enrollmentForm"
       :isOpen="showModal"
       :loading="submitting"

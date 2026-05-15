@@ -459,7 +459,12 @@ const handleAction = (type, item, closeMenu) => {
       </template>
     </DataPageLayout>
 
-    <TeacherActionModal :isOpen="isModalOpen" :type="modalType" :teacher="selectedTeacher" :loading="submitting"
+    <TeacherActionModal
+      v-if="isModalOpen"
+      :isOpen="isModalOpen"
+      :type="modalType"
+      :teacher="selectedTeacher"
+      :loading="submitting"
       :error="error" :success="success" @close="isModalOpen = false" @submit="handleSubmit" @refresh="fetchData" />
   </DashboardLayout>
 </template>

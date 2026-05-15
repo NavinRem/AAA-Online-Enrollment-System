@@ -630,6 +630,7 @@ const handleRowAction = (type, item, closeMenu) => {
     </DataPageLayout>
 
     <ParentActionModal
+      v-if="isActionModalOpen"
       :isOpen="isActionModalOpen"
       :type="actionModalType"
       :user="actionModalParent"
@@ -639,7 +640,7 @@ const handleRowAction = (type, item, closeMenu) => {
       @close="closeActionModal"
       @submit="submitActionModal"
     />
-
+  
     <!-- Teleported Dropdowns -->
     <Teleport to="body">
       <transition name="fade-slide">
@@ -673,8 +674,9 @@ const handleRowAction = (type, item, closeMenu) => {
         </div>
       </transition>
     </Teleport>
-
+  
     <ParentFormModal
+      v-if="showNewParentModal"
       :isOpen="showNewParentModal"
       :loading="submitting"
       :error="errorMessage"

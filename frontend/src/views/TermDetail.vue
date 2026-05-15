@@ -11,7 +11,7 @@ import { termService } from '@/services/termService'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { formatPrice, formatShortDate, calculateClassProgress } from '@/utils/formatUtils'
 import TermActionModal from '@/components/terms/TermActionModal.vue'
-import TermOfferingActionModal from '@/components/terms/TermOfferingActionModal.vue'
+import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
@@ -35,9 +35,11 @@ const activeSubTab = ref('classes') // 'classes' or 'students'
 
 const { activeMenuId, isMenuAbove, menuStyles, toggleMenu, closeMenu } = useTableActions()
 
-const deleteClassModal = ref({
+const classActionModal = ref({
   isOpen: false,
-  classGroup: null,
+  type: 'add',
+  classItem: null,
+  context: null,
   loading: false,
   error: '',
   success: '',
@@ -91,47 +93,66 @@ const activeBranchSetting = computed(() => {
 const rawBranchOfferings = computed(() => {
   if (!term.value || !activeBranchId.value) return []
 
+  const setting = activeBranchSetting.value || term.value
+  const startDate = new Date(setting.startDate)
+  const endDate = new Date(setting.endDate)
+  startDate.setHours(0, 0, 0, 0)
+  endDate.setHours(23, 59, 59, 999)
+
   // Filter offerings belonging to the active branch
   const rawOfferings = (term.value.offerings || []).filter(
     (o) => String(o.branchId) === String(activeBranchId.value),
   )
 
   return rawOfferings.map((off) => {
-    // Enrich with latest program data from store if available
+    // Enrich with latest program data from store
     const liveProgram = dataStore.programs.find(
-      (p) => p.id === off.program?.id || p.id === off.classId,
+      (p) => p.id === off.program?.id || p.id === off.classId || p.id === off.programId,
     )
     const program = liveProgram || off.program
 
-    // Map student IDs to student objects from store
-    const students = (off.studentIds || [])
-      .map((sid) => {
-        const student = dataStore.students.find((s) => String(s.id) === String(sid))
-        if (!student) return null
+    // Find enrollments for this specific offering from the store
+    const offeringEnrollments = dataStore.enrollments.filter((e) => {
+      const isSameTerm = String(e.termId) === String(term.value.id)
+      const isSameOffering =
+        String(e.termOfferingId) === String(off.offeringId) ||
+        String(e.classId) === String(off.classId)
 
-        // Find the specific enrollment for metadata (payment status, etc.)
-        const enrollment = dataStore.enrollments.find(
-          (e) =>
-            String(e.studentId) === String(sid) &&
-            String(e.termId) === String(term.value.id) &&
-            (String(e.termOfferingId) === String(off.offeringId) ||
-              String(e.classId) === String(off.classId)),
-        )
+      // Fallback: If not explicitly linked, check if it matches branch and date range
+      if (isSameTerm && isSameOffering) return true
+
+      const enrollDate = new Date(e.enrollAt || e.createdAt)
+      const matchesBranchAndDate =
+        String(e.branchId) === String(activeBranchId.value) &&
+        enrollDate >= startDate &&
+        enrollDate <= endDate
+
+      // We only count it in this offering if the program matches too
+      const matchesProgram = String(e.programId) === String(program?.id)
+
+      return matchesBranchAndDate && matchesProgram
+    })
+
+    const students = offeringEnrollments
+      .map((e) => {
+        const student = dataStore.students.find((s) => String(s.id) === String(e.studentId))
+        if (!student) return null
 
         return {
           ...student,
-          paymentStatus: enrollment?.paymentStatus || 'unpaid',
-          status: enrollment?.status || 'active',
-          enrollmentId: enrollment?.id,
-          revenue: enrollment?.finalPrice || enrollment?.totalPrice || 0,
+          paymentStatus: e.paymentStatus || 'unpaid',
+          status: e.status || 'active',
+          enrollmentId: e.id,
+          revenue: e.finalPrice || e.totalPrice || 0,
         }
       })
       .filter(Boolean)
 
-    // Map teacher IDs to teacher objects
-    const responsibleTeachers = (off.teacherIds || []).map(tid => {
-      return teachers.value.find(t => String(t.id) === String(tid))
-    }).filter(Boolean)
+    const responsibleTeachers = (off.teacherIds || [])
+      .map((tid) => {
+        return (teachers.value || []).find((t) => String(t.id) === String(tid))
+      })
+      .filter(Boolean)
 
     return {
       ...off,
@@ -213,12 +234,38 @@ const branchTrials = computed(() => {
   const setting = activeBranchSetting.value || term.value
   const startDate = new Date(setting.startDate)
   const endDate = new Date(setting.endDate)
+  startDate.setHours(0, 0, 0, 0)
+  endDate.setHours(23, 59, 59, 999)
 
   // Trials that belong to this branch and fall within the term's date range
   return dataStore.trials.filter((t) => {
-    const isSameBranch = t.branchId === activeBranchId.value
+    const isSameBranch = String(t.branchId) === String(activeBranchId.value)
     const trialDate = new Date(t.trialDate)
     return isSameBranch && trialDate >= startDate && trialDate <= endDate
+  })
+})
+
+const branchEnrollments = computed(() => {
+  if (!term.value || !activeBranchId.value) return []
+
+  const setting = activeBranchSetting.value || term.value
+  const startDate = new Date(setting.startDate)
+  const endDate = new Date(setting.endDate)
+  startDate.setHours(0, 0, 0, 0)
+  endDate.setHours(23, 59, 59, 999)
+
+  return dataStore.enrollments.filter((e) => {
+    const isSameBranch = String(e.branchId) === String(activeBranchId.value)
+    const isSameTerm = String(e.termId) === String(term.value.id)
+
+    if (isSameTerm && isSameBranch) return true
+
+    // Fallback: matches branch and date range
+    if (isSameBranch) {
+      const enrollDate = new Date(e.enrollAt || e.createdAt)
+      return enrollDate >= startDate && enrollDate <= endDate
+    }
+    return false
   })
 })
 
@@ -365,8 +412,10 @@ const statsCards = computed(() => {
   if (!term.value) return []
 
   const offerings = rawBranchOfferings.value
-  const students = branchStudents.value
-  const revenue = offerings.reduce((sum, o) => sum + (o.revenue || 0), 0)
+  const trials = branchTrials.value
+  const enrollments = branchEnrollments.value
+  const revenue = enrollments.reduce((sum, e) => sum + (e.finalPrice || e.totalPrice || 0), 0)
+  const uniqueStudents = new Set(enrollments.map((e) => e.studentId)).size
 
   return [
     {
@@ -376,7 +425,7 @@ const statsCards = computed(() => {
     },
     {
       label: 'Enrolled Students',
-      value: students.length,
+      value: uniqueStudents,
       image: getImageUrl('data-metric-card/total-enrolled'),
     },
     {
@@ -386,7 +435,7 @@ const statsCards = computed(() => {
     },
     {
       label: 'Total Trials',
-      value: branchTrials.value.length,
+      value: trials.length,
       image: getImageUrl('enrollment/total-enrollment'),
     },
   ]
@@ -563,64 +612,64 @@ const updateSessionTeacher = async (offeringId, weekIndex, teacherId) => {
   }
 }
 
-const addClassModal = ref({
-  isOpen: false,
-  loading: false,
-  error: '',
-  success: '',
-})
+const openAddClassModal = () => {
+  classActionModal.value = {
+    isOpen: true,
+    type: 'add',
+    classItem: null,
+    context: null,
+    loading: false,
+    error: '',
+    success: '',
+  }
+}
 
-const handleAddClass = async (payload) => {
-  addClassModal.value.loading = true
-  addClassModal.value.error = ''
+const handleClassActionSubmit = async (payload) => {
+  classActionModal.value.loading = true
+  classActionModal.value.error = ''
   try {
-    await termService.updateTerm(term.value.id, { newOfferingsRequest: payload })
-    addClassModal.value.success = 'Classes added successfully'
-    // Force global store to sync with new term offerings so Classes.vue is up-to-date
+    if (classActionModal.value.type === 'remove') {
+      const classGroup = classActionModal.value.classItem
+      const apiPayload = {
+        deleteOfferingsRequest: {
+          branchId: activeBranchId.value,
+          programId: classGroup.classId,
+        },
+      }
+      await termService.updateTerm(term.value.id, apiPayload)
+      classActionModal.value.success = 'Class removed from branch'
+    } else {
+      // Add mode
+      await termService.updateTerm(term.value.id, { newOfferingsRequest: payload })
+      classActionModal.value.success = 'Classes added successfully'
+    }
+
+    // Force global store to sync
     await dataStore.fetchTerms(true)
     setTimeout(() => {
-      addClassModal.value.isOpen = false
-      addClassModal.value.success = ''
+      classActionModal.value.isOpen = false
+      classActionModal.value.success = ''
       initData()
     }, 1500)
   } catch (err) {
-    addClassModal.value.error = err.message || 'Failed to add classes'
+    classActionModal.value.error = err.message || 'Action failed'
   } finally {
-    addClassModal.value.loading = false
+    classActionModal.value.loading = false
   }
 }
 
 const confirmRemoveClass = (classGroup) => {
-  deleteClassModal.value.classGroup = classGroup
-  deleteClassModal.value.isOpen = true
-  deleteClassModal.value.error = ''
-  deleteClassModal.value.success = ''
-}
-
-const handleRemoveClass = async () => {
-  const classGroup = deleteClassModal.value.classGroup
-  if (!classGroup) return
-
-  deleteClassModal.value.loading = true
-  deleteClassModal.value.error = ''
-  try {
-    const payload = {
-      deleteOfferingsRequest: {
-        branchId: activeBranchId.value,
-        programId: classGroup.classId,
-      },
-    }
-    await termService.updateTerm(term.value.id, payload)
-    deleteClassModal.value.success = 'Class removed from branch'
-    setTimeout(() => {
-      deleteClassModal.value.isOpen = false
-      deleteClassModal.value.success = ''
-      initData()
-    }, 1500)
-  } catch (err) {
-    deleteClassModal.value.error = err.message || 'Failed to remove class'
-  } finally {
-    deleteClassModal.value.loading = false
+  classActionModal.value = {
+    isOpen: true,
+    type: 'remove',
+    classItem: classGroup,
+    context: {
+      termName: term.value.name,
+      branchName: activeBranch.value?.name,
+    },
+    loading: false,
+    error: '',
+    success: '',
   }
 }
 
@@ -712,7 +761,7 @@ const handleActionSubmit = async (payload) => {
             v-model:currentPage="classCurrentPage" :pageSize="classPageSize" :totalItems="filteredClasses.length">
             <template #toolbar-actions>
               <AppButton v-if="branchDisplayData?.status === 'upcoming'" variant="primary" size="md"
-                class="rounded-xl shadow-lg shadow-primary/20" @click="addClassModal.isOpen = true">
+                class="rounded-xl shadow-lg shadow-primary/20" @click="openAddClassModal">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold tracking-tight">Add Class</span>
               </AppButton>
@@ -902,21 +951,35 @@ const handleActionSubmit = async (payload) => {
       </template>
     </DetailPageLayout>
 
-    <TermActionModal :isOpen="modal.isOpen" :type="modal.type" :term="term" :branches="branches"
-      :loading="modal.loading" :error="modal.error" :success="modal.success" @close="modal.isOpen = false"
-      @submit="handleActionSubmit" />
+    <TermActionModal
+      v-if="modal.isOpen"
+      :isOpen="modal.isOpen"
+      :type="modal.type"
+      :term="term"
+      :branches="branches"
+      :loading="modal.loading"
+      :error="modal.error"
+      :success="modal.success"
+      @close="modal.isOpen = false"
+      @submit="handleActionSubmit"
+    />
 
-    <ClassActionModal 
-      :isOpen="addClassModal.isOpen" 
-      @close="addClassModal.isOpen = false" 
-      @submit="handleAddClass"
-      :loading="addClassModal.loading" 
-      :error="addClassModal.error" 
-      :success="addClassModal.success" 
+    <ClassActionModal
+      v-if="classActionModal.isOpen"
+      :isOpen="classActionModal.isOpen"
+      :type="classActionModal.type"
+      :classInstance="classActionModal.classItem"
+      :context="classActionModal.context"
+      @close="classActionModal.isOpen = false"
+      @submit="handleClassActionSubmit"
+      :loading="classActionModal.loading"
+      :error="classActionModal.error"
+      :success="classActionModal.success"
     />
 
     <!-- Weekly Session Management Modal -->
     <TermSessionModal
+      v-if="sessionModal.isOpen"
       :isOpen="sessionModal.isOpen"
       :term="term"
       :offeringId="sessionModal.offeringId"
@@ -926,22 +989,11 @@ const handleActionSubmit = async (payload) => {
       :teachers="teachers"
       :activeBranch="activeBranch"
       @close="sessionModal.isOpen = false"
-      @update-teacher="({ offeringId, weekIndex, teacherId }) => updateSessionTeacher(offeringId, weekIndex, teacherId)"
+      @update-teacher="
+        ({ offeringId, weekIndex, teacherId }) => updateSessionTeacher(offeringId, weekIndex, teacherId)
+      "
     />
 
-    <!-- Removal Confirmation Overlay -->
-    <AppConfirmOverlay
-      :isOpen="deleteClassModal.isOpen"
-      title="Remove Class from Term"
-      :message="`Are you sure you want to remove ${deleteClassModal.classGroup?.program?.name} and all its schedules from this branch?`"
-      confirmText="Remove Class"
-      variant="danger"
-      :loading="deleteClassModal.loading"
-      :error="deleteClassModal.error"
-      :success="deleteClassModal.success"
-      @close="deleteClassModal.isOpen = false"
-      @confirm="handleRemoveClass"
-    />
   </DashboardLayout>
 </template>
 

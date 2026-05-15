@@ -592,6 +592,7 @@ const handleActionSubmit = async (formData) => {
     </DataPageLayout>
 
     <ProgramActionModal
+      v-if="actionModal.isOpen"
       :isOpen="actionModal.isOpen"
       :type="actionModal.type"
       :program="actionModal.program"

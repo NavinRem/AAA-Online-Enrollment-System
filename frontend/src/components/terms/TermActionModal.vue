@@ -115,9 +115,24 @@ const submitLabel = computed(() => {
 const requestConfirm = () => {
   if (props.type === 'edit' && !isDirty.value) return
 
+  // Sync representative dates from first branch if in branch-specific mode
+  if (localData.branchIds.length > 0 && localData.branchSettings?.length > 0) {
+    const firstSetting = localData.branchSettings[0]
+    if (firstSetting.startDate) {
+      localData.startDate = firstSetting.startDate
+      localData.endDate = firstSetting.endDate
+    }
+  }
+
   const rules = {
-    required: props.type === 'delete' ? ['deleteConfirm'] : ['name', 'startDate', 'totalSessions', 'branchIds'],
-    custom: {},
+    required: props.type === 'delete' ? ['deleteConfirm'] : ['name', 'totalSessions'],
+    custom: {
+      startDate: (val) => {
+        if (props.type === 'delete') return true
+        if (val) return true
+        return 'Start Date is required'
+      }
+    },
   }
 
   if (props.type === 'delete') {
@@ -366,7 +381,7 @@ watch(
               class="text-sm font-semibold text-content-dark flex items-center justify-between gap-1"
             >
               <div class="flex items-center gap-1">
-                Branch Scope <span class="text-error font-bold leading-none">*</span>
+                Branch Scope
               </div>
               <button
                 type="button"

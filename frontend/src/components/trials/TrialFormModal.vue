@@ -8,7 +8,8 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
-import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
+import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { formatDateOnly } from '@/utils/formatUtils'
 
 const props = defineProps({
@@ -91,7 +92,7 @@ const programSelectItems = computed(() =>
   props.programs.map((p) => ({
     id: p.id,
     name: p.name,
-    profileURL: p.profileURL,
+    profileURL: getProgramProfileURL(p.profileURL, p.category, p.categoryProfileURL),
     type: p.type,
   })),
 )
@@ -101,7 +102,7 @@ const branchSelectItems = computed(() =>
     id: b.id,
     name: b.name,
     abbr: b.abbr,
-    profileURL: getImageUrl('branch-default'),
+    color: b.color,
   })),
 )
 
@@ -283,52 +284,29 @@ watch(
 </script>
 
 <template>
-  <AppModal
-    :show="isOpen"
-    @close="$emit('close')"
+  <AppModal :show="isOpen" @close="$emit('close')"
     :title="isEditMode ? 'Modify Trial Engagement' : 'Book New Trial Session'"
-    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')"
-    :error="error"
-    :success="success"
-  >
+    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')" :error="error" :success="success">
     <form @submit.prevent="handleSubmit" class="enroll-form-root">
       <!-- Engagement Mode Toggle -->
       <div
-        class="bg-surface-light/50 p-4 rounded-std border-2 border-dashed border-outline-std flex items-center justify-between"
-      >
+        class="bg-surface-light/50 p-4 rounded-std border-2 border-dashed border-outline-std flex items-center justify-between">
         <div class="flex flex-col">
-          <span class="text-xs font-semibold text-content-dark tracking-tighter"
-            >Engagement Strategy</span
-          >
-          <span class="text-3xs font-semibold text-content-muted mt-0.5"
-            >Choose between registered accounts or guest walk-ins</span
-          >
+          <span class="text-sm font-bold text-content-dark tracking-tight">Engagement Strategy</span>
+          <span class="text-xs font-semibold text-content-muted mt-0.5">Choose between registered accounts or guest
+            walk-ins</span>
         </div>
-        <div
-          class="flex bg-white p-1 rounded-lg border border-outline-std shadow-sm overflow-hidden"
-        >
-          <button
-            type="button"
-            class="px-4 py-1.5 rounded-md text-3xs font-semibold transition-all"
-            :class="
-              !form.isGuest
-                ? 'bg-primary text-white shadow-md font-bold'
-                : 'text-content-muted hover:bg-surface-light'
-            "
-            @click="form.isGuest = false"
-          >
+        <div class="flex bg-white p-1 rounded-lg border border-outline-std shadow-sm overflow-hidden">
+          <button type="button" class="px-4 py-1.5 rounded-md text-sm font-bold transition-all" :class="!form.isGuest
+              ? 'bg-primary text-white shadow-md font-bold'
+              : 'text-content-muted hover:bg-surface-light'
+            " @click="form.isGuest = false">
             Registered
           </button>
-          <button
-            type="button"
-            class="px-4 py-1.5 rounded-md text-3xs font-semibold transition-all"
-            :class="
-              form.isGuest
-                ? 'bg-primary text-white shadow-md font-bold'
-                : 'text-content-muted hover:bg-surface-light'
-            "
-            @click="form.isGuest = true"
-          >
+          <button type="button" class="px-4 py-1.5 rounded-md text-sm font-bold transition-all" :class="form.isGuest
+              ? 'bg-primary text-white shadow-md font-bold'
+              : 'text-content-muted hover:bg-surface-light'
+            " @click="form.isGuest = true">
             Guest/Walk-in
           </button>
         </div>
@@ -337,29 +315,13 @@ watch(
       <div class="ui-form-grid">
         <template v-if="!form.isGuest">
           <!-- Registered Flow -->
-          <AppSelect
-            v-model="form.parentId"
-            :items="parentSelectItems"
-            label="Parent Name"
-            placeholder="Search Active Parent..."
-            required
-            :error="errors.parentId"
-            :shake="shaking.parentId"
-            @change="handleParentChange"
-          />
+          <AppSelect v-model="form.parentId" :items="parentSelectItems" label="Parent Name"
+            placeholder="Search Active Parent..." required :error="errors.parentId" :shake="shaking.parentId"
+            @change="handleParentChange" />
 
-          <AppSelect
-            v-model="form.studentId"
-            :items="studentSelectItems"
-            label="Student Name"
-            placeholder="Search Active Student..."
-            required
-            :disabled="!form.parentId"
-            :error="errors.studentId"
-            :shake="shaking.studentId"
-            @change="handleStudentChange"
-            @click-disabled="handleDisabledClick('studentId')"
-          >
+          <AppSelect v-model="form.studentId" :items="studentSelectItems" label="Student Name"
+            placeholder="Search Active Student..." required :disabled="!form.parentId" :error="errors.studentId"
+            :shake="shaking.studentId" @change="handleStudentChange" @click-disabled="handleDisabledClick('studentId')">
             <template #selected-badge="{ item }">
               <AppBadge v-if="item.age" status="student"> {{ item.age }} years old </AppBadge>
             </template>
@@ -372,153 +334,89 @@ watch(
         <template v-else>
           <!-- Guest Flow -->
           <div
-            class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-surface-subtle/30 p-4 rounded-md border border-outline-std"
-          >
+            class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-surface-subtle/30 p-4 rounded-md border border-outline-std">
             <!-- Parent Profile Section -->
             <div class="col-span-2 flex items-center gap-2 border-b border-outline-std pb-2">
               <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              <span class="text-3xs font-semibold text-content-muted">Guest Parent Profile</span>
+              <span class="text-sm font-bold text-content-muted">Guest Parent Profile</span>
             </div>
 
-            <AppInput
-              v-model="form.guestParentName"
-              label="Full Name"
-              required
-              placeholder="Parent full name..."
-              :error="errors.guestParentName"
-              :shake="shaking.guestParentName"
-              @input="clearError('guestParentName')"
-            />
+            <AppInput v-model="form.guestParentName" label="Full Name" required placeholder="Parent full name..."
+              :error="errors.guestParentName" :shake="shaking.guestParentName" @input="clearError('guestParentName')" />
 
-            <AppInput
-              v-model="form.guestParentPhone"
-              label="Contact Phone"
-              required
-              placeholder="Primary phone number..."
-              :error="errors.guestParentPhone"
-              :shake="shaking.guestParentPhone"
-              @input="clearError('guestParentPhone')"
-            />
+            <AppInput v-model="form.guestParentPhone" label="Contact Phone" required
+              placeholder="Primary phone number..." :error="errors.guestParentPhone" :shake="shaking.guestParentPhone"
+              @input="clearError('guestParentPhone')" />
 
-            <AppInput
-              v-model="form.guestParentEmail"
-              label="Email Address (Optional)"
-              placeholder="e.g. parent@example.com"
-            />
+            <AppInput v-model="form.guestParentEmail" label="Email Address (Optional)"
+              placeholder="e.g. parent@example.com" />
 
-            <AvatarSelector
-              v-model="form.guestParentAvatar"
-              label="Choose Parent Avatar"
-              required
-              :error="errors.guestParentAvatar"
-              :shake="shaking.guestParentAvatar"
-              @update:modelValue="clearError('guestParentAvatar')"
-            />
+            <AvatarSelector v-model="form.guestParentAvatar" label="Choose Parent Avatar" required
+              :error="errors.guestParentAvatar" :shake="shaking.guestParentAvatar"
+              @update:modelValue="clearError('guestParentAvatar')" />
 
             <!-- Student Profile Section -->
             <div class="col-span-2 flex items-center gap-2 border-b border-outline-std pb-2 mt-4">
               <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
-              <span class="text-3xs font-semibold text-content-muted">Guest Student Profile</span>
+              <span class="text-sm font-bold text-content-muted">Guest Student Profile</span>
             </div>
 
-            <AppInput
-              v-model="form.guestStudentName"
-              label="Student Name"
-              required
-              placeholder="Student full name..."
-              :error="errors.guestStudentName"
-              :shake="shaking.guestStudentName"
-              @input="clearError('guestStudentName')"
-            />
+            <AppInput v-model="form.guestStudentName" label="Student Name" required placeholder="Student full name..."
+              :error="errors.guestStudentName" :shake="shaking.guestStudentName"
+              @input="clearError('guestStudentName')" />
 
-            <AppInput
-              v-model="form.guestStudentDOB"
-              type="date"
-              label="Date of Birth"
-              placeholder="Select DOB..."
-            />
+            <AppInput v-model="form.guestStudentDOB" type="date" label="Date of Birth" placeholder="Select DOB..." />
 
-            <AppInput
-              v-model.number="form.guestStudentAge"
-              type="number"
-              label="Age"
-              placeholder="Calculated automatically..."
-              readonly
-            />
+            <AppInput v-model.number="form.guestStudentAge" type="number" label="Age"
+              placeholder="Calculated automatically..." readonly />
 
-            <AvatarSelector
-              v-model="form.guestStudentAvatar"
-              label="Choose Student Avatar"
-              required
-              role="student"
-              :error="errors.guestStudentAvatar"
-              :shake="shaking.guestStudentAvatar"
-              @update:modelValue="clearError('guestStudentAvatar')"
-            />
+            <AvatarSelector v-model="form.guestStudentAvatar" label="Choose Student Avatar" required role="student"
+              :error="errors.guestStudentAvatar" :shake="shaking.guestStudentAvatar"
+              @update:modelValue="clearError('guestStudentAvatar')" />
           </div>
         </template>
 
         <!-- Session Selection -->
         <div class="col-span-2 grid grid-cols-2 gap-4">
-          <AppSelect
-            v-model="form.programId"
-            :items="programSelectItems"
-            label="Trial Program"
-            placeholder="Select Program..."
-            required
-            :error="errors.programId"
-            :shake="shaking.programId"
-            @change="handleProgramChange"
-          >
+          <AppSelect v-model="form.programId" :items="programSelectItems" label="Trial Program"
+            placeholder="Select Program..." required :error="errors.programId" :shake="shaking.programId"
+            @change="handleProgramChange">
             <template #selected-badge="{ item }">
               <AppBadge :status="item.type" />
             </template>
           </AppSelect>
 
-          <AppSelect
-            v-model="form.branchId"
-            :items="branchSelectItems"
-            label="Trial Branch"
-            placeholder="Select Branch..."
-            required
-            :error="errors.branchId"
-            :shake="shaking.branchId"
-            @change="handleBranchChange"
-          >
-            <template #selected-badge="{ item }">
-              <AppBadge v-if="item.abbr" :status="item.abbr" />
+          <AppSelect v-model="form.branchId" :items="branchSelectItems" label="Trial Branch"
+            placeholder="Select Branch..." required :error="errors.branchId" :shake="shaking.branchId"
+            @change="handleBranchChange">
+            <template #selected="{ item }">
+              <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
+                <span class="text-sm font-semibold text-content-dark truncate flex-1">{{
+                  item.name
+                  }}</span>
+                <AppBadge v-if="item.abbr" :status="item.abbr" :type="item.color" />
+              </div>
+            </template>
+            <template #item="{ item }">
+              <div class="flex items-center justify-between w-full gap-2">
+                <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+                <AppBadge v-if="item.abbr" :status="item.abbr" :type="item.color" />
+              </div>
             </template>
           </AppSelect>
         </div>
 
         <div class="col-span-2 grid grid-cols-2 gap-4">
-          <AppInput
-            v-model="form.trialDate"
-            type="date"
-            label="Trial Date"
-            required
-            :error="errors.trialDate"
-            :shake="shaking.trialDate"
-            @input="clearError('trialDate')"
-          />
-          <AppInput
-            v-model="form.trialTime"
-            type="time"
-            label="Trial Time"
-            required
-            :error="errors.trialTime"
-            :shake="shaking.trialTime"
-            @input="clearError('trialTime')"
-          />
+          <AppInput v-model="form.trialDate" type="date" label="Trial Date" required :error="errors.trialDate"
+            :shake="shaking.trialDate" @input="clearError('trialDate')" />
+          <AppInput v-model="form.trialTime" type="time" label="Trial Time" required :error="errors.trialTime"
+            :shake="shaking.trialTime" @input="clearError('trialTime')" />
         </div>
       </div>
 
       <!-- Detail Panel -->
-      <transition
-        enter-active-class="transition duration-500 ease-out"
-        enter-from-class="opacity-0 translate-y-4"
-        enter-to-class="opacity-100 translate-y-0"
-      >
+      <transition enter-active-class="transition duration-500 ease-out" enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0">
         <div v-if="form.programId && form.branchId" class="enrollment-detail-panel">
           <div class="enroll-twin-card">
             <span class="enroll-section-label">Trial Context Overview</span>
@@ -534,7 +432,7 @@ watch(
               <div class="enroll-info-item col-span-2">
                 <span class="enroll-info-key">Branch</span>
                 <div class="flex items-center gap-2">
-                  <AppBadge :status="selectedBranch?.abbr" />
+                  <AppBadge :status="selectedBranch?.abbr" :type="selectedBranch?.color" />
                 </div>
               </div>
               <div class="enroll-info-item">
@@ -545,30 +443,19 @@ watch(
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Registry</span>
-                <AppBadge
-                  :status="form.isGuest ? 'Walk-in' : 'Booked'"
-                  :type="form.isGuest ? 'magenta' : 'purple'"
-                />
+                <AppBadge :status="form.isGuest ? 'Walk-in' : 'Booked'" :type="form.isGuest ? 'magenta' : 'purple'" />
               </div>
-              <div
-                v-if="isEditMode"
-                class="enroll-info-item col-span-2 mt-2 pt-2 border-t border-outline-std/50"
-              >
+              <div v-if="isEditMode" class="enroll-info-item col-span-2 mt-2 pt-2 border-t border-outline-std/50">
                 <span class="enroll-info-key">Conversion Success</span>
                 <div class="flex items-center gap-4 mt-1">
-                  <div
-                    class="ui-box-toggle"
-                    :class="{ 'ui-box-toggle--active': form.isSuccessful }"
-                    @click="form.isSuccessful = !form.isSuccessful"
-                  >
-                    <span
-                      class="text-3xs font-semibold"
-                      :class="form.isSuccessful ? 'text-success' : 'text-content-muted'"
-                    >
+                  <div class="ui-box-toggle" :class="{ 'ui-box-toggle--active': form.isSuccessful }"
+                    @click="form.isSuccessful = !form.isSuccessful">
+                    <span class="text-sm font-semibold"
+                      :class="form.isSuccessful ? 'text-success' : 'text-content-muted'">
                       {{ form.isSuccessful ? 'Converted / Successful' : 'Pending / No Enrollment' }}
                     </span>
                   </div>
-                  <span class="text-3xs text-content-muted leading-tight italic">
+                  <span class="text-xs text-content-muted leading-tight italic">
                     Marking this as successful indicates the student has decided to enroll.
                   </span>
                 </div>
@@ -577,40 +464,24 @@ watch(
           </div>
           <!-- Administrative Remarks -->
           <div class="enroll-twin-card">
-            <AppInput
-              v-model="form.remark"
-              type="textarea"
-              label="Administrative Remarks"
-              placeholder="Input specific trial notes or feedback here..."
-              :error="errors.remark"
-              :shake="shaking.remark"
-              @input="clearError('remark')"
-            />
+            <AppInput v-model="form.remark" type="textarea" label="Administrative Remarks"
+              placeholder="Input specific trial notes or feedback here..." :error="errors.remark"
+              :shake="shaking.remark" @input="clearError('remark')" />
           </div>
         </div>
       </transition>
 
       <!-- Confirmation Overlay -->
-      <AppConfirmOverlay
-        :show="showConfirm"
-        :title="isEditMode ? 'Confirm Trial Changes' : 'Confirm Trial Booking'"
+      <AppConfirmOverlay :show="showConfirm" :title="isEditMode ? 'Confirm Trial Changes' : 'Confirm Trial Booking'"
         subtitle="Please review trial details carefully before confirming."
-        :icon="getImageUrl('enrollment/total-enrollment')"
-        :rows="confirmRows"
-        :confirmLabel="isEditMode ? 'Update' : 'Add'"
-        :loading="loading"
-        @back="showConfirm = false"
-        @confirm="handleFinalSubmit"
-      />
+        :icon="getImageUrl('enrollment/total-enrollment')" :rows="confirmRows"
+        :confirmLabel="isEditMode ? 'Update' : 'Add'" :loading="loading" @back="showConfirm = false"
+        @confirm="handleFinalSubmit" />
     </form>
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
-        <AppAlert
-          v-if="isEditMode && !isChanged"
-          type="info"
-          class="w-full"
-        >
+        <AppAlert v-if="isEditMode && !isChanged" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
 
@@ -622,15 +493,9 @@ watch(
           </div>
           <div class="flex items-center gap-3">
             <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
-            <AppButton
-              type="button"
-              variant="primary"
-              :loading="loading"
-              class="ui-btn-premium"
+            <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium"
               :disabled="loading || (isEditMode && !isChanged)"
-              :class="{ 'opacity-50 pointer-events-none': isEditMode && !isChanged }"
-              @click="handleSubmit"
-            >
+              :class="{ 'opacity-50 pointer-events-none': isEditMode && !isChanged }" @click="handleSubmit">
               {{ isEditMode ? 'Update' : 'Add' }}
             </AppButton>
           </div>

@@ -796,9 +796,19 @@ const navigateToDetail = (item) => {
     </DataPageLayout>
   </DashboardLayout>
 
-  <ClassActionModal :isOpen="modal.isOpen" :type="modal.type" :classInstance="modal.classItem" :loading="modal.loading"
-    :error="modal.error" :success="modal.success" @close="closeModal" @submit="handleModalSubmit"
-    @clear-error="modal.error = ''" @clear-success="modal.success = ''" />
+  <ClassActionModal
+    v-if="modal.isOpen"
+    :isOpen="modal.isOpen"
+    :type="modal.type"
+    :classInstance="modal.classItem"
+    :loading="modal.loading"
+    :error="modal.error"
+    :success="modal.success"
+    @close="closeModal"
+    @submit="handleModalSubmit"
+    @clear-error="modal.error = ''"
+    @clear-success="modal.success = ''"
+  />
 </template>
 
 <style scoped>
