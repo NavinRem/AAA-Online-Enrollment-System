@@ -38,7 +38,7 @@ export const authService = {
 
   getCurrentUser() {
     return new Promise((resolve) => {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const unsubscribe = this.onAuthStateChanged((user) => {
         unsubscribe()
         resolve(user)
       })

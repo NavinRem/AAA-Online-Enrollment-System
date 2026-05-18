@@ -13,10 +13,7 @@ import { formatPrice, formatShortDate, calculateClassProgress } from '@/utils/fo
 import TermActionModal from '@/components/terms/TermActionModal.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import AppSelect from '@/components/common/ui/AppSelect.vue'
-import AppModal from '@/components/common/ui/AppModal.vue'
 import TermSessionModal from '@/components/terms/TermSessionModal.vue'
-import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { teacherService } from '@/services/teacherService'
 import { classService } from '@/services/classService'
 import { useSearch, classSearchMapper, studentSearchMapper } from '@/composables/useSearch'
@@ -78,16 +75,16 @@ onMounted(initData)
 
 const termBranches = computed(() => {
   if (!term.value || !branches.value.length) return []
-  return term.value.branchIds.map((id) => branches.value.find((b) => b.id === id)).filter(Boolean)
+  return term.value.branchIds.map((id) => branches.value.find((b) => String(b.id) === String(id))).filter(Boolean)
 })
 
 const activeBranch = computed(() => {
-  return branches.value.find((b) => b.id === activeBranchId.value)
+  return branches.value.find((b) => String(b.id) === String(activeBranchId.value))
 })
 
 const activeBranchSetting = computed(() => {
   if (!term.value || !activeBranchId.value || !term.value.branchSettings) return null
-  return term.value.branchSettings.find((s) => s.branchId === activeBranchId.value)
+  return term.value.branchSettings.find((s) => String(s.branchId) === String(activeBranchId.value))
 })
 
 const rawBranchOfferings = computed(() => {
@@ -114,7 +111,7 @@ const rawBranchOfferings = computed(() => {
     // Find enrollments for this specific offering from the branch-pre-filtered list
     const offeringEnrollments = branchEnrollments.value.filter((e) => {
       const isSameTerm = String(e.termId) === String(term.value.id)
-      
+
       // Strict matching: If termOfferingId is provided, it MUST match
       if (e.termOfferingId) {
         return String(e.termOfferingId) === String(off.offeringId)
@@ -133,11 +130,11 @@ const rawBranchOfferings = computed(() => {
       // If we match by class and branch/date, but have no offeringId, 
       // we only count it in the FIRST offering of this class to avoid double counting
       // Note: This is a simple heuristic. Better would be to fix the data at source.
-      const firstOfferingOfClass = term.value.offerings.find(o => 
-        String(o.branchId) === String(activeBranchId.value) && 
+      const firstOfferingOfClass = term.value.offerings.find(o =>
+        String(o.branchId) === String(activeBranchId.value) &&
         (String(o.classId) === String(off.classId) || String(o.programId) === String(off.programId))
       )
-      
+
       const isFirstOffering = String(firstOfferingOfClass?.offeringId) === String(off.offeringId)
 
       return matchesBranchAndDate && isFirstOffering
@@ -489,21 +486,21 @@ const sessionModal = ref({
 
 const openSessionModal = async (item) => {
   if (!item || !item.schedules || item.schedules.length === 0) return
-  
+
   const sched = item.schedules[0]
-  const offering = (term.value.offerings || []).find(o => o.offeringId === sched.offeringId)
-  
+  const offering = (term.value?.offerings || []).find(o => o.offeringId === sched.offeringId)
+
   if (offering) {
     // Check if sessionTeachers needs initialization (if all slots are empty/null)
     const currentSessions = offering.sessionTeachers || []
-    const needsInit = currentSessions.length === 0 || 
-                      currentSessions.every(t => t === null)
+    const needsInit = currentSessions.length === 0 ||
+      currentSessions.every(t => t === null)
 
     // If we have responsible teachers assigned to the offering, use them
     const responsibleTeachers = (offering.teacherIds || []).map(tid => {
       return teachers.value.find(t => String(t.id) === String(tid))
     }).filter(Boolean)
-    
+
     if (needsInit && responsibleTeachers.length > 0) {
       const primaryTeacher = responsibleTeachers[0]
       const defaultTeacherData = {
@@ -511,20 +508,20 @@ const openSessionModal = async (item) => {
         name: primaryTeacher.name,
         profileURL: primaryTeacher.profileURL
       }
-      
+
       const newSessionTeachers = Array(term.value.totalSessions).fill(defaultTeacherData)
-      
+
       try {
         // Sync to all affected offerings (same day logic)
-        const affectedOfferings = (term.value.offerings || []).filter(o => 
+        const affectedOfferings = (term.value.offerings || []).filter(o =>
           String(o.branchId) === String(activeBranchId.value) &&
           (o.classId === offering.classId || o.programId === offering.programId) &&
           o.schedule?.day === offering.schedule?.day
         )
-        
+
         await Promise.all(affectedOfferings.map(async (off) => {
-          await termService.updateTermOffering(term.value.id, off.offeringId, { 
-            sessionTeachers: newSessionTeachers 
+          await termService.updateTermOffering(term.value.id, off.offeringId, {
+            sessionTeachers: newSessionTeachers
           })
           off.sessionTeachers = [...newSessionTeachers]
         }))
@@ -609,7 +606,7 @@ const updateSessionTeacher = async (offeringId, weekIndex, teacherId) => {
 
     // Find all offerings for the same program/class and day in this branch
     // This allows assigning a teacher once for the whole day at this branch
-    const affectedOfferings = (term.value.offerings || []).filter(o => 
+    const affectedOfferings = (term.value.offerings || []).filter(o =>
       String(o.branchId) === String(activeBranchId.value) &&
       (o.classId === sourceOffering.classId || o.programId === sourceOffering.programId) &&
       o.schedule?.day === sourceOffering.schedule?.day
@@ -621,11 +618,11 @@ const updateSessionTeacher = async (offeringId, weekIndex, teacherId) => {
       while (sessionTeachers.length < term.value.totalSessions) {
         sessionTeachers.push(null)
       }
-      
+
       sessionTeachers[weekIndex] = teacherData
-      
-      await termService.updateTermOffering(term.value.id, off.offeringId, { 
-        sessionTeachers: sessionTeachers 
+
+      await termService.updateTermOffering(term.value.id, off.offeringId, {
+        sessionTeachers: sessionTeachers
       })
       // Update local state for reactivity
       off.sessionTeachers = [...sessionTeachers]
@@ -813,23 +810,23 @@ const handleActionSubmit = async (payload) => {
                     <span class="leading-tight">{{ item.program?.name || 'Program' }}</span>
                     <span class="mt-0.5 text-xs font-semibold text-content-muted">{{
                       item.program?.category?.name || item.program?.category || 'Uncategorized'
-                      }}</span>
+                    }}</span>
                   </div>
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[2].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
-                  <div v-for="(sched, idx) in item.schedules" :key="idx"
+                  <div v-for="(sched, idx) in item.schedules" :key="sched.offeringId || idx"
                     class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm min-w-[120px]">
                     <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
                     <span class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums">{{ sched.time
-                      }}</span>
+                    }}</span>
                   </div>
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[3].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
-                  <div v-for="(sched, idx) in item.schedules" :key="idx" class="flex items-center justify-center h-10">
+                  <div v-for="(sched, idx) in item.schedules" :key="sched.offeringId || idx" class="flex items-center justify-center h-10">
                     <AppBadge :status="sched.currentCount || 0" type="blue" />
                   </div>
                 </div>
@@ -839,7 +836,7 @@ const handleActionSubmit = async (payload) => {
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[5].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
-                  <div v-for="(sched, idx) in item.schedules" :key="idx" class="flex items-center justify-center h-10">
+                  <div v-for="(sched, idx) in item.schedules" :key="sched.offeringId || idx" class="flex items-center justify-center h-10">
                     <AppBadge :status="sched.status || 'Active'" />
                   </div>
                 </div>
@@ -902,7 +899,7 @@ const handleActionSubmit = async (payload) => {
                     <span class="font-bold text-content-dark text-sm">{{ item.name }}</span>
                     <span class="text-3xs text-content-muted font-bold tracking-tighter">{{
                       item.studentId
-                      }}</span>
+                    }}</span>
                   </div>
                 </div>
               </td>
@@ -979,48 +976,22 @@ const handleActionSubmit = async (payload) => {
       </template>
     </DetailPageLayout>
 
-    <TermActionModal
-      v-if="modal.isOpen"
-      :isOpen="modal.isOpen"
-      :type="modal.type"
-      :term="term"
-      :branches="branches"
-      :loading="modal.loading"
-      :error="modal.error"
-      :success="modal.success"
-      @close="modal.isOpen = false"
-      @submit="handleActionSubmit"
-    />
+    <TermActionModal v-if="modal.isOpen" :isOpen="modal.isOpen" :type="modal.type" :term="term" :branches="branches"
+      :loading="modal.loading" :error="modal.error" :success="modal.success" @close="modal.isOpen = false"
+      @submit="handleActionSubmit" />
 
-    <ClassActionModal
-      v-if="classActionModal.isOpen"
-      :isOpen="classActionModal.isOpen"
-      :type="classActionModal.type"
-      :classInstance="classActionModal.classItem"
-      :context="classActionModal.context"
-      @close="classActionModal.isOpen = false"
-      @submit="handleClassActionSubmit"
-      :loading="classActionModal.loading"
-      :error="classActionModal.error"
-      :success="classActionModal.success"
-    />
+    <ClassActionModal v-if="classActionModal.isOpen" :isOpen="classActionModal.isOpen" :type="classActionModal.type"
+      :classInstance="classActionModal.classItem" :context="classActionModal.context"
+      @close="classActionModal.isOpen = false" @submit="handleClassActionSubmit" :loading="classActionModal.loading"
+      :error="classActionModal.error" :success="classActionModal.success" />
 
     <!-- Weekly Session Management Modal -->
-    <TermSessionModal
-      v-if="sessionModal.isOpen"
-      :isOpen="sessionModal.isOpen"
-      :term="term"
-      :offeringId="sessionModal.offeringId"
-      :programId="sessionModal.programId"
-      :programName="sessionModal.programName"
-      :schedule="sessionModal.schedule"
-      :teachers="teachers"
-      :activeBranch="activeBranch"
-      @close="sessionModal.isOpen = false"
-      @update-teacher="
+    <TermSessionModal v-if="sessionModal.isOpen" :isOpen="sessionModal.isOpen" :term="term"
+      :offeringId="sessionModal.offeringId" :programId="sessionModal.programId" :programName="sessionModal.programName"
+      :schedule="sessionModal.schedule" :teachers="teachers" :activeBranch="activeBranch"
+      @close="sessionModal.isOpen = false" @update-teacher="
         ({ offeringId, weekIndex, teacherId }) => updateSessionTeacher(offeringId, weekIndex, teacherId)
-      "
-    />
+      " />
 
   </DashboardLayout>
 </template>

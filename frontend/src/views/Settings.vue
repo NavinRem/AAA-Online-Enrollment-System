@@ -20,6 +20,7 @@ const items = ref([])
 const tabs = [
   { id: 'levels', label: 'Curriculum Levels', icon: 'navigation/student.svg' },
   { id: 'categories', label: 'Program Categories', icon: 'navigation/enrollment.svg' },
+  { id: 'general', label: 'General & Theme Settings', icon: 'navigation/setting.svg' },
 ]
 
 const headersMap = {
@@ -37,7 +38,106 @@ const headersMap = {
   ],
 }
 
+// General System & Theme Settings State
+const generalSettings = ref({
+  academyName: 'Authentic Advanced Academy',
+  supportEmail: 'support@aaa.edu.kh',
+  supportPhone: '+855 23 888 999',
+  currency: '$',
+  allowParentRegistration: true,
+  defaultTrialStatus: 'pending',
+  maxWeeklySessions: 12,
+  themeAccent: 'sky',
+})
+
+const themePresets = [
+  {
+    id: 'sky',
+    name: 'Sky Blue (Classic)',
+    primary: '#38bdf8',
+    dark: '#0ea5e9',
+    light: '#e0f2fe',
+    deep: '#0284c7',
+  },
+  {
+    id: 'emerald',
+    name: 'Emerald Green (Fresh)',
+    primary: '#10b981',
+    dark: '#059669',
+    light: '#d1fae5',
+    deep: '#047857',
+  },
+  {
+    id: 'indigo',
+    name: 'Indigo Purple (Premium)',
+    primary: '#6366f1',
+    dark: '#4f46e5',
+    light: '#e0e7ff',
+    deep: '#4338ca',
+  },
+  {
+    id: 'rose',
+    name: 'Rose Pink (Vibrant)',
+    primary: '#f43f5e',
+    dark: '#e11d48',
+    light: '#ffe4e6',
+    deep: '#be123c',
+  },
+  {
+    id: 'amber',
+    name: 'Amber Gold (Prestige)',
+    primary: '#f59e0b',
+    dark: '#d97706',
+    light: '#fef3c7',
+    deep: '#b45309',
+  },
+]
+
+const loadGeneralSettings = () => {
+  const savedName = localStorage.getItem('aaa-academy-name')
+  if (savedName) generalSettings.value.academyName = savedName
+
+  const savedSettings = localStorage.getItem('aaa-general-settings')
+  if (savedSettings) {
+    try {
+      generalSettings.value = { ...generalSettings.value, ...JSON.parse(savedSettings) }
+    } catch (e) {
+      console.error('Failed to parse general settings', e)
+    }
+  }
+}
+
+const saveSuccess = ref(false)
+const saveGeneralSettings = () => {
+  localStorage.setItem('aaa-academy-name', generalSettings.value.academyName)
+  localStorage.setItem('aaa-general-settings', JSON.stringify(generalSettings.value))
+
+  // Dispatch custom same-page event for instantaneous Sidebar brand update
+  window.dispatchEvent(new Event('academy-name-changed'))
+
+  // Dynamically apply selected Accent Preset colors to :root CSS properties
+  const theme = themePresets.find((t) => t.id === generalSettings.value.themeAccent)
+  if (theme) {
+    localStorage.setItem('aaa-app-theme', JSON.stringify(theme))
+    const root = document.documentElement
+    root.style.setProperty('--color-primary', theme.primary)
+    root.style.setProperty('--color-primary-dark', theme.dark)
+    root.style.setProperty('--color-primary-light', theme.light)
+    root.style.setProperty('--color-primary-soft', theme.light)
+    root.style.setProperty('--color-primary-deep', theme.deep)
+  }
+
+  saveSuccess.value = true
+  setTimeout(() => {
+    saveSuccess.value = false
+  }, 3000)
+}
+
 const fetchData = async () => {
+  if (activeTab.value === 'general') {
+    items.value = []
+    return
+  }
   loading.value = true
   try {
     if (activeTab.value === 'levels') items.value = await levelService.getAllLevels()
@@ -50,7 +150,10 @@ const fetchData = async () => {
   }
 }
 
-onMounted(fetchData)
+onMounted(() => {
+  fetchData()
+  loadGeneralSettings()
+})
 
 const handleTabChange = (tabId) => {
   activeTab.value = tabId
@@ -147,7 +250,152 @@ const handleDelete = async (item) => {
       </template>
 
       <template #table>
+        <!-- GENERAL SYSTEM & THEME SETTINGS -->
+        <div v-if="activeTab === 'general'" class="p-xl flex flex-col gap-xl">
+          <div class="flex flex-col gap-xs border-b border-surface-light pb-md">
+            <h3 class="text-xl font-bold text-content-dark">General Customization & Theme Adjustments</h3>
+            <p class="text-sm text-content-muted">Fine-tune the brand identity, default operational settings, and system-wide appearance presets.</p>
+          </div>
+
+          <form @submit.prevent="saveGeneralSettings" class="flex flex-col gap-xl">
+            <!-- 2 Column Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-xl">
+              
+              <!-- Left Column: Academy Brand Profile -->
+              <div class="flex flex-col gap-md bg-surface-subtle p-xl rounded-2xl border border-black/5">
+                <h4 class="text-md font-bold text-content-dark flex items-center gap-sm">
+                  <span class="w-2 h-5 rounded bg-primary"></span>
+                  Academy Brand Profile
+                </h4>
+                <div class="flex flex-col gap-sm mt-xs">
+                  <AppInput
+                    v-model="generalSettings.academyName"
+                    label="Academy Display Name"
+                    placeholder="Enter brand name..."
+                    required
+                  />
+                  <AppInput
+                    v-model="generalSettings.supportEmail"
+                    type="email"
+                    label="Support / Contact Email"
+                    placeholder="support@academy.com"
+                    required
+                  />
+                  <AppInput
+                    v-model="generalSettings.supportPhone"
+                    label="Contact Telephone Number"
+                    placeholder="+855 23 888 999"
+                  />
+                  <AppSelect
+                    v-model="generalSettings.currency"
+                    label="System Currency Symbol"
+                    :items="[
+                      { id: '$', name: 'US Dollar ($)' },
+                      { id: '៛', name: 'Cambodian Riel (៛)' },
+                      { id: '€', name: 'Euro (€)' },
+                      { id: '£', name: 'British Pound (£)' },
+                    ]"
+                  />
+                </div>
+              </div>
+
+              <!-- Right Column: Operational Parameters -->
+              <div class="flex flex-col gap-md bg-surface-subtle p-xl rounded-2xl border border-black/5">
+                <h4 class="text-md font-bold text-content-dark flex items-center gap-sm">
+                  <span class="w-2 h-5 rounded bg-primary"></span>
+                  Operational Parameters
+                </h4>
+                <div class="flex flex-col gap-sm mt-xs">
+                  <AppSelect
+                    v-model="generalSettings.defaultTrialStatus"
+                    label="Default Status for New Trials"
+                    :items="[
+                      { id: 'pending', name: 'Pending / Unscheduled' },
+                      { id: 'scheduled', name: 'Scheduled / Upcoming' },
+                      { id: 'completed', name: 'Completed / Handled' },
+                    ]"
+                  />
+                  
+                  <AppInput
+                    v-model.number="generalSettings.maxWeeklySessions"
+                    type="number"
+                    label="Maximum Weekly Course Sessions"
+                    placeholder="12"
+                    required
+                  />
+
+                  <!-- Switch Toggle -->
+                  <div class="flex items-center justify-between p-4 rounded-xl bg-white border border-outline-std shadow-sm mt-sm">
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-sm font-semibold text-content-dark">Parent Self-Registration</span>
+                      <span class="text-xs text-content-muted">Allow parents to create accounts and enroll students online.</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" v-model="generalSettings.allowParentRegistration" class="sr-only peer" />
+                      <div class="w-11 h-6 bg-content-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-std after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Theme Accent Palette Picker -->
+            <div class="flex flex-col gap-md bg-surface-subtle p-xl rounded-2xl border border-black/5">
+              <h4 class="text-md font-bold text-content-dark flex items-center gap-sm">
+                <span class="w-2 h-5 rounded bg-primary"></span>
+                System Accent Color & Theme Customization
+              </h4>
+              <p class="text-xs text-content-muted -mt-xs">Select your preferred highlight color to customize the entire administrative interface dynamically.</p>
+              
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-sm mt-xs">
+                <button
+                  v-for="preset in themePresets"
+                  :key="preset.id"
+                  type="button"
+                  @click="generalSettings.themeAccent = preset.id"
+                  class="p-md rounded-xl border-2 text-left transition-all duration-300 hover:scale-[1.03] flex flex-col gap-2 relative group"
+                  :style="generalSettings.themeAccent === preset.id ? { borderColor: preset.primary, backgroundColor: preset.primary + '10' } : {}"
+                  :class="generalSettings.themeAccent === preset.id ? 'shadow-md shadow-primary/10' : 'border-outline-std bg-white hover:border-content-light'"
+                >
+                  <div class="flex items-center justify-between">
+                    <div class="w-6 h-6 rounded-full border border-black/10 shadow-sm" :style="{ backgroundColor: preset.primary }"></div>
+                    <span v-if="generalSettings.themeAccent === preset.id" class="text-2xs font-bold text-primary animate-in zoom-in-50">Active</span>
+                  </div>
+                  <span class="text-xs font-bold text-content-dark mt-1 leading-tight">{{ preset.name }}</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Form Action Footer -->
+            <div class="flex items-center justify-between border-t border-surface-light pt-lg mt-md">
+              <div>
+                <transition
+                  enter-active-class="transition duration-300 ease-out"
+                  enter-from-class="opacity-0 translate-y-2"
+                  enter-to-class="opacity-100 translate-y-0"
+                  leave-active-class="transition duration-200 ease-in"
+                  leave-from-class="opacity-100"
+                  leave-to-class="opacity-0"
+                >
+                  <div v-if="saveSuccess" class="flex items-center gap-2 text-success font-bold text-sm">
+                    <span class="inline-flex w-5 h-5 items-center justify-center rounded-full bg-success-soft text-success text-xs">✓</span>
+                    System settings saved and applied successfully!
+                  </div>
+                </transition>
+              </div>
+              <AppButton type="submit" variant="primary" class="px-md py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-xs font-bold">
+                <img :src="getActionIcon('save')" class="w-4 h-4 brightness-0 invert" />
+                Save Preferences
+              </AppButton>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- ORIGINAL DATATABLE REGISTRIES (LEVELS & CATEGORIES) -->
         <DataTable
+          v-else
           :title="tabs.find((t) => t.id === activeTab).label + ' Registry'"
           :headers="headersMap[activeTab]"
           :items="items"
@@ -169,37 +417,29 @@ const handleDelete = async (item) => {
           <template
             #row="{ item, headers: _headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }"
           >
-            <!-- LEVELS ROW -->
-            <template v-if="activeTab === 'levels'">
-              <td class="ui-cell">
-                <div class="flex flex-col">
-                  <span class="tracking-tighter leading-tight">{{ item.name }}</span>
-                  <span class="mt-1">Curriculum Grade</span>
-                </div>
-              </td>
-              <td class="ui-cell text-center">
-                <span
-                  class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-primary/5 text-primary border border-primary/10"
-                >
-                  {{ item.order || 0 }}
+            <!-- Identity Column -->
+            <td class="ui-cell">
+              <div class="flex flex-col">
+                <span class="tracking-tighter leading-tight">{{ item.name }}</span>
+                <span class="mt-1">
+                  {{ activeTab === 'levels' ? 'Curriculum Grade' : 'Subject Domain' }}
                 </span>
-              </td>
-            </template>
+              </div>
+            </td>
 
-            <!-- CATEGORIES ROW -->
-            <template v-else-if="activeTab === 'categories'">
-              <td class="ui-cell">
-                <div class="flex flex-col">
-                  <span class="tracking-tighter leading-tight">{{ item.name }}</span>
-                  <span class="mt-1">Subject Domain</span>
-                </div>
-              </td>
-              <td class="ui-cell">
-                <span class="px-2 py-1 rounded-md bg-surface-subtle border border-black/5">
-                  {{ item.code || 'N/A' }}
-                </span>
-              </td>
-            </template>
+            <!-- Sequence / Code Column -->
+            <td v-if="activeTab === 'levels'" class="ui-cell text-center">
+              <span
+                class="inline-flex w-8 h-8 items-center justify-center rounded-lg bg-primary/5 text-primary border border-primary/10"
+              >
+                {{ item.order || 0 }}
+              </span>
+            </td>
+            <td v-else-if="activeTab === 'categories'" class="ui-cell">
+              <span class="px-2 py-1 rounded-md bg-surface-subtle border border-black/5">
+                {{ item.code || 'N/A' }}
+              </span>
+            </td>
 
             <td class="ui-cell text-center">
               <AppBadge :status="item.status || 'Active'" />
@@ -231,10 +471,7 @@ const handleDelete = async (item) => {
                     >
                       <button
                         class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="
-                          openModal('edit', item)
-                          closeMenu()
-                        "
+                        @click="openModal('edit', item); closeMenu()"
                       >
                         <img
                           :src="getActionIcon('edit')"
@@ -247,10 +484,7 @@ const handleDelete = async (item) => {
 
                       <button
                         class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
-                        @click="
-                          handleDelete(item)
-                          closeMenu()
-                        "
+                        @click="handleDelete(item); closeMenu()"
                       >
                         <img
                           :src="getActionIcon('delete')"

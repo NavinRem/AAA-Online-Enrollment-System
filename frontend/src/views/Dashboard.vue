@@ -69,7 +69,7 @@ const activeTerms = computed(() => {
       const branchIds = t.branchIds || (t.branchId ? [t.branchId] : [])
       const enrichedBranches = branchIds
         .map((bId) => {
-          const branch = branches.find((b) => b.id === bId)
+          const branch = branches.find((b) => String(b.id) === String(bId))
           return branch ? { abbr: branch.abbr, color: branch.color } : null
         })
         .filter(Boolean)
@@ -248,19 +248,11 @@ const mappedEnrollments = computed(() => {
 
 <template>
   <DashboardLayout>
-    <div
-      v-if="loading"
-      class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted"
-    >
-      <div
-        class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"
-      ></div>
+    <div v-if="loading" class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted">
+      <div class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"></div>
       <p class="font-semibold text-sm opacity-70">Loading Dashboard Data...</p>
     </div>
-    <div
-      v-else
-      class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full h-[calc(100vh - 100px)] overflow-hidden"
-    >
+    <div v-else class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full h-[calc(100vh - 100px)] overflow-hidden">
       <div class="flex flex-col flex-1 min-w-0 h-full gap-lg overflow-y-auto pr-md scrollable-v">
         <section class="ui-detail-card">
           <div class="ui-section-header border-none flex items-center gap-md">
@@ -283,12 +275,8 @@ const mappedEnrollments = computed(() => {
 
       <div class="hidden lg:block lg:min-w-[300px] h-full min-h-0 max-w-[320px] flex-shrink-0">
         <div class="ui-detail-card h-full flex flex-col min-h-0 gap-md !p-lg">
-          <div
-            class="border-b-[1px] border-gray-200 pb-lg flex flex-col items-center text-center gap-2"
-          >
-            <div
-              class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2"
-            >
+          <div class="border-b-[1px] border-gray-200 pb-lg flex flex-col items-center text-center gap-2">
+            <div class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2">
               <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
             </div>
             <div class="flex flex-col items-center">
@@ -303,69 +291,48 @@ const mappedEnrollments = computed(() => {
 
           <div class="relative overflow-hidden min-h-[140px] flex flex-col">
             <Transition name="fade" mode="out-in">
-              <div
-                v-if="currentTerm"
-                :key="currentTerm.id"
-                class="px-md py-4 rounded-md bg-primary-soft border border-outline-std flex flex-col items-center flex-1"
-              >
-                <span class="text-md font-semibold text-primary-dark mb-1"
-                  >Active Academic Term</span
-                >
+              <div v-if="currentTerm" :key="currentTerm.id"
+                class="px-md py-4 rounded-md bg-primary-soft border border-outline-std flex flex-col items-center flex-1">
+                <span class="text-md font-semibold text-primary-dark mb-1">Active Academic Term</span>
 
-                <span
-                  class="text-lg font-bold text-content-dark tracking-tighter leading-tight mb-2 text-center"
-                >
+                <span class="text-lg font-bold text-content-dark tracking-tighter leading-tight mb-2 text-center">
                   {{ currentTerm.name }}
                 </span>
 
                 <div class="w-full flex flex-col gap-3 mt-2">
                   <template v-if="currentTerm.groupedSettings?.length">
-                    <div
-                      v-for="group in currentTerm.groupedSettings"
-                      :key="group.key"
-                      class="flex flex-col items-center gap-1.5 border-b border-primary/10 last:border-0 pb-3 last:pb-0"
-                    >
+                    <div v-for="group in currentTerm.groupedSettings" :key="group.key"
+                      class="flex flex-col items-center gap-1.5 border-b border-primary/10 last:border-0 pb-3 last:pb-0">
                       <div class="flex justify-center gap-1">
-                        <AppBadge
-                          v-for="bId in group.branchIds"
-                          :key="bId"
-                          :status="dataStore.branches.find((b) => b.id === bId)?.abbr"
-                          :type="dataStore.branches.find((b) => b.id === bId)?.color || 'neutral'"
-                        />
+                        <AppBadge v-for="bId in group.branchIds" :key="bId"
+                          :status="dataStore.branches.find((b) => String(b.id) === String(bId))?.abbr"
+                          :type="dataStore.branches.find((b) => String(b.id) === String(bId))?.color || 'neutral'" />
                       </div>
                       <div
-                        class="flex w-full justify-center items-center gap-2 px-3 py-1 bg-white rounded-full border border-primary/5"
-                      >
+                        class="flex w-full justify-center items-center gap-2 px-3 py-1 bg-white rounded-full border border-primary/5">
                         <span class="text-xs font-bold text-content-muted tabular-nums">{{
                           formatDateOnly(group.startDate)
-                        }}</span>
+                          }}</span>
                         <span class="text-content-muted font-black text-xs">→</span>
                         <span class="text-xs font-bold text-content-muted tabular-nums">{{
                           formatDateOnly(group.endDate)
-                        }}</span>
+                          }}</span>
                       </div>
                     </div>
                   </template>
                   <template v-else>
                     <div class="flex flex-col items-center gap-1.5">
                       <div class="flex flex-wrap justify-center gap-1">
-                        <AppBadge
-                          v-for="b in currentTerm.branches"
-                          :key="b.abbr"
-                          :status="b.abbr"
-                          :type="b.color"
-                        />
+                        <AppBadge v-for="b in currentTerm.branches" :key="b.abbr" :status="b.abbr" :type="b.color" />
                       </div>
-                      <div
-                        class="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-primary/5"
-                      >
+                      <div class="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-primary/5">
                         <span class="text-xs font-bold text-content-muted tabular-nums">{{
                           formatDateOnly(currentTerm.startDate)
-                        }}</span>
+                          }}</span>
                         <span class="text-content-muted/30 font-black text-xs">→</span>
                         <span class="text-xs font-bold text-content-muted tabular-nums">{{
                           formatDateOnly(currentTerm.endDate)
-                        }}</span>
+                          }}</span>
                       </div>
                     </div>
                   </template>
@@ -374,12 +341,8 @@ const mappedEnrollments = computed(() => {
             </Transition>
 
             <div v-if="activeTerms.length > 1" class="flex justify-center gap-1 mt-2">
-              <div
-                v-for="(_, idx) in activeTerms"
-                :key="idx"
-                class="w-1 h-1 rounded-full transition-all duration-300"
-                :class="idx === currentTermIndex ? 'bg-primary w-3' : 'bg-surface-light'"
-              ></div>
+              <div v-for="(term, idx) in activeTerms" :key="term.id || idx" class="w-1 h-1 rounded-full transition-all duration-300"
+                :class="idx === currentTermIndex ? 'bg-primary w-3' : 'bg-surface-light'"></div>
             </div>
           </div>
 

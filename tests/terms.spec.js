@@ -154,4 +154,47 @@ test.describe('Terms Management & Metrics View', () => {
     // Check Revenue column
     await expect(termRow.locator('td').nth(9)).toContainText('$150');
   });
+
+  test('should create a new academic term successfully', async ({ page }) => {
+    let interceptedRequest = null;
+
+    // Intercept POST request to /api/terms
+    await page.route('**/api/terms', async (route) => {
+      if (route.request().method() === 'POST') {
+        interceptedRequest = route.request().postDataJSON();
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: 'term-new-autumn', success: true })
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // Click Add Term button
+    await page.click('button:has-text("Add Term")');
+    await expect(page.locator('text=Add Term').first()).toBeVisible();
+
+    // Fill the Term form
+    await page.fill('input[placeholder*="T1-2026-Saturday"]', 'Autumn Semester 2026');
+    await page.fill('input[type="number"]', '12');
+    await page.fill('input[type="date"]', '2026-09-01');
+
+    // Click Create Term to open confirmation overlay
+    await page.click('button:has-text("Create Term")');
+    await expect(page.locator('text=Please verify the academic schedule and parameters before proceeding.')).toBeVisible();
+
+    // Click Add in the confirmation overlay and wait for POST response to be fired
+    await Promise.all([
+      page.waitForResponse(res => res.url().includes('/terms') && res.request().method() === 'POST'),
+      page.click('.app-confirm-overlay button:has-text("Add")')
+    ]);
+
+    // Assert that request payload is correct
+    expect(interceptedRequest).not.toBeNull();
+    expect(interceptedRequest.name).toBe('Autumn Semester 2026');
+    expect(interceptedRequest.totalSessions).toBe(12);
+    expect(interceptedRequest.startDate).toBe('2026-09-01');
+  });
 });

@@ -62,11 +62,11 @@ const hasAnyError = computed(() => Object.values(errors).some((e) => !!e))
 const resolveId = (val) => (val && typeof val === 'object' ? val.id : val)
 
 const selectedProgram = computed(() =>
-  props.programs.find((p) => p.id === resolveId(form.programId)),
+  props.programs.find((p) => String(p.id) === String(resolveId(form.programId))),
 )
-const selectedBranch = computed(() => props.branches.find((b) => b.id === resolveId(form.branchId)))
+const selectedBranch = computed(() => props.branches.find((b) => String(b.id) === String(resolveId(form.branchId))))
 const selectedStudent = computed(() =>
-  props.students.find((s) => s.id === resolveId(form.studentId)),
+  props.students.find((s) => String(s.id) === String(resolveId(form.studentId))),
 )
 
 const parentSelectItems = computed(() =>
@@ -79,7 +79,7 @@ const parentSelectItems = computed(() =>
 
 const studentSelectItems = computed(() =>
   props.students
-    .filter((s) => s.parentId === form.parentId)
+    .filter((s) => String(s.parentId) === String(form.parentId))
     .map((s) => ({
       id: s.id,
       name: s.name,

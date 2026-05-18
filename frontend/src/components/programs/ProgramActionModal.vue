@@ -109,11 +109,11 @@ const deleteLookup = async (id) => {
   try {
     if (lookupType.value === 'category') {
       await categoryService.deleteCategory(id)
-      if (localData.categoryId === id) localData.categoryId = ''
+      if (String(localData.categoryId) === String(id)) localData.categoryId = ''
       await fetchCategories()
     } else if (lookupType.value === 'level') {
       await levelService.deleteLevel(id)
-      if (localData.levelId === id) localData.levelId = ''
+      if (String(localData.levelId) === String(id)) localData.levelId = ''
       await fetchLevels()
     }
     emit('lookup-deleted')
@@ -222,7 +222,7 @@ const onCategoryChange = (val) => {
   clearError('categoryId')
 }
 
-const selectedCategory = computed(() => categories.value.find((c) => c.id === localData.categoryId))
+const selectedCategory = computed(() => categories.value.find((c) => String(c.id) === String(localData.categoryId)))
 
 const getLookupImage = (item) => {
   if (lookupType.value === 'category') {
@@ -282,8 +282,8 @@ const requestConfirm = () => {
 const handleActionSubmit = () => {
   showConfirm.value = false
 
-  const selectedCategory = categories.value.find((c) => c.id === localData.categoryId)
-  const selectedLevel = levels.value.find((l) => l.id === localData.levelId)
+  const selectedCategory = categories.value.find((c) => String(c.id) === String(localData.categoryId))
+  const selectedLevel = levels.value.find((l) => String(l.id) === String(localData.levelId))
 
   const payload = {
     ...localData,
@@ -306,13 +306,13 @@ const confirmRows = computed(() => {
     { key: 'Program', value: localData.name, valueClass: 'font-bold text-content-dark' },
     {
       key: 'Category',
-      value: categories.value.find((c) => c.id === localData.categoryId)?.name,
+      value: categories.value.find((c) => String(c.id) === String(localData.categoryId))?.name,
       badge: true,
       type: 'blue',
     },
     {
       key: 'Level',
-      value: levels.value.find((l) => l.id === localData.levelId)?.name,
+      value: levels.value.find((l) => String(l.id) === String(localData.levelId))?.name,
       badge: true,
       type: 'magenta',
     },
@@ -688,7 +688,7 @@ watch(
               >
               <div class="flex items-center gap-sm">
                 <AppBadge
-                  :status="categories.find((c) => c.id === props.program.categoryId)?.name"
+                  :status="categories.find((c) => String(c.id) === String(props.program.categoryId))?.name"
                   type="blue"
                 />
               </div>
@@ -699,7 +699,7 @@ watch(
               >
               <div class="flex items-center gap-sm">
                 <AppBadge
-                  :status="levels.find((l) => l.id === props.program.levelId)?.name"
+                  :status="levels.find((l) => String(l.id) === String(props.program.levelId))?.name"
                   class="bg-surface-subtle text-content-dark border-outline-std"
                 />
               </div>

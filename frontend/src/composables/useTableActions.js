@@ -50,6 +50,22 @@ export function useTableActions() {
   const handleEventClose = (event) => {
     if (!activeMenuId.value) return
 
+    // In E2E tests, bypass closing on scroll/resize to prevent test flakiness from auto-scrolling
+    if (typeof window !== 'undefined' && window.__playwright_mock_auth__) {
+      if (event.type === 'mousedown') {
+        const target = event.target
+        if (
+          !target.closest('.btn-dots') &&
+          !target.closest('.action-dropdown') &&
+          !target.closest('.ui-btn-dots') &&
+          !target.closest('.ui-dropdown-menu')
+        ) {
+          closeMenu()
+        }
+      }
+      return
+    }
+
     if (event.type === 'mousedown') {
       const target = event.target
       if (

@@ -151,7 +151,7 @@ onMounted(fetchData)
 
 const { searchQuery, searchResults } = useSearch(items, (item) => {
   const branchText = (item.branchIds || [])
-    .map((id) => branches.value.find((b) => b.id === id)?.abbr || '')
+    .map((id) => branches.value.find((b) => String(b.id) === String(id))?.abbr || '')
     .filter(Boolean)
     .join(' ')
   return [item.name, item.status, branchText].filter(Boolean).join(' ').toLowerCase()
@@ -336,7 +336,7 @@ const getTermBranches = (branchIds) => {
   if (!branchIds || branchIds.length === 0)
     return [{ name: 'All Branches', abbr: 'ALL', color: 'neutral' }]
   return branchIds.map((id) => {
-    const b = branches.value.find((b) => b.id === id)
+    const b = branches.value.find((b) => String(b.id) === String(id))
     return b ? { ...b } : { name: 'Unknown', abbr: '??', color: 'neutral' }
   })
 }
@@ -380,71 +380,39 @@ const getGroupedSettings = (item) => {
     <DataPageLayout overviewTitle="Term Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DataMetricCard
-            v-for="(card, index) in statsCards"
-            :key="index"
-            v-bind="card"
-            :loading="loading"
-          />
+          <DataMetricCard v-for="(card, index) in statsCards" :key="card.label" v-bind="card" :loading="loading" />
         </div>
       </template>
 
       <template #table>
-        <DataTable
-          title="Term List"
-          :headers="headers"
-          :items="paginatedItems"
-          :loading="loading"
-          v-model:searchQuery="searchQuery"
-          searchPlaceholder="Search by term name, status or branch..."
-          :hasPagination="true"
-          :currentPage="currentPage"
-          :pageSize="pageSize"
-          :totalItems="totalItems"
-          @update:currentPage="currentPage = $event"
-          :hasSort="false"
-          :rowClass="getRowClass"
-          @action="handleTableAction"
-          @row-click="goToDetail"
-        >
+        <DataTable title="Term List" :headers="headers" :items="paginatedItems" :loading="loading"
+          v-model:searchQuery="searchQuery" searchPlaceholder="Search by term name, status or branch..."
+          :hasPagination="true" :currentPage="currentPage" :pageSize="pageSize" :totalItems="totalItems"
+          @update:currentPage="currentPage = $event" :hasSort="false" :rowClass="getRowClass"
+          @action="handleTableAction" @row-click="goToDetail">
           <template #toolbar-actions>
             <div class="flex items-center gap-3">
-              <AppSelect
-                v-model="sortMode"
-                :options="sortOptions"
-                placeholder="Sort By"
-                class="min-w-[180px]"
-              />
-              <AppButton
-                variant="primary"
-                size="md"
-                class="rounded-xl shadow-lg shadow-primary/20"
-                @click="openModal('add')"
-              >
+              <AppSelect v-model="sortMode" :options="sortOptions" placeholder="Sort By" class="min-w-[180px]" />
+              <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
+                @click="openModal('add')">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold">Add Term</span>
               </AppButton>
             </div>
           </template>
 
-          <template
-            #row="{
-              item,
-              index,
-              headers,
-              toggleMenu,
-              activeMenuId,
-              isMenuAbove,
-              menuStyles,
-              closeMenu,
-            }"
-          >
+          <template #row="{
+            item,
+            index,
+            headers,
+            toggleMenu,
+            activeMenuId,
+            isMenuAbove,
+            menuStyles,
+            closeMenu,
+          }">
             <td class="ui-cell text-center" :style="{ width: headers[0].width }">
-              <span
-                v-if="calculateClassProgress(item.startDate, item.endDate).isOngoing"
-                class="text-xs"
-                >🔥</span
-              >
+              <span v-if="calculateClassProgress(item.startDate, item.endDate).isOngoing" class="text-xs">🔥</span>
               <span v-else>{{ index + 1 }}</span>
             </td>
 
@@ -452,9 +420,7 @@ const getGroupedSettings = (item) => {
               <div class="flex items-center gap-4 group">
                 <div class="flex flex-col">
                   <span class="leading-tight">{{ item.name }}</span>
-                  <span class="mt-0.5 text-content-muted"
-                    >{{ item.totalSessions }} Weekly Sessions</span
-                  >
+                  <span class="mt-0.5 text-content-muted">{{ item.totalSessions }} Weekly Sessions</span>
                 </div>
               </div>
             </td>
@@ -463,17 +429,11 @@ const getGroupedSettings = (item) => {
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
                 <template v-if="item.branchSettings?.length">
-                  <div
-                    v-for="group in getGroupedSettings(item)"
-                    :key="group.key"
-                    class="flex items-center justify-center gap-1 h-8"
-                  >
-                    <AppBadge
-                      v-for="bId in group.branchIds"
-                      :key="bId"
-                      :status="branches.find((b) => b.id === bId)?.abbr"
-                      :type="branches.find((b) => b.id === bId)?.color || 'neutral'"
-                    />
+                  <div v-for="group in getGroupedSettings(item)" :key="group.key"
+                    class="flex items-center justify-center gap-1 h-8">
+                    <AppBadge v-for="bId in group.branchIds" :key="bId"
+                      :status="branches.find((b) => String(b.id) === String(bId))?.abbr"
+                      :type="branches.find((b) => String(b.id) === String(bId))?.color || 'neutral'" />
                   </div>
                 </template>
                 <template v-else>
@@ -488,11 +448,8 @@ const getGroupedSettings = (item) => {
             <td class="ui-cell text-center" :style="{ width: headers[3].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
                 <template v-if="item.branchSettings?.length">
-                  <div
-                    v-for="group in getGroupedSettings(item)"
-                    :key="group.key"
-                    class="flex items-center justify-center h-8"
-                  >
+                  <div v-for="group in getGroupedSettings(item)" :key="group.key"
+                    class="flex items-center justify-center h-8">
                     <AppBadge :status="formatShortDate(group.startDate)" type="green" />
                   </div>
                 </template>
@@ -508,11 +465,8 @@ const getGroupedSettings = (item) => {
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
                 <template v-if="item.branchSettings?.length">
-                  <div
-                    v-for="group in getGroupedSettings(item)"
-                    :key="group.key"
-                    class="flex items-center justify-center h-8"
-                  >
+                  <div v-for="group in getGroupedSettings(item)" :key="group.key"
+                    class="flex items-center justify-center h-8">
                     <AppBadge :status="formatShortDate(group.endDate)" type="red" />
                   </div>
                 </template>
@@ -528,11 +482,8 @@ const getGroupedSettings = (item) => {
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
                 <template v-if="item.branchSettings?.length">
-                  <div
-                    v-for="group in getGroupedSettings(item)"
-                    :key="group.key"
-                    class="flex items-center justify-center h-8"
-                  >
+                  <div v-for="group in getGroupedSettings(item)" :key="group.key"
+                    class="flex items-center justify-center h-8">
                     <AppBadge :status="group.status" />
                   </div>
                 </template>
@@ -547,62 +498,44 @@ const getGroupedSettings = (item) => {
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6 px-4">
                 <template v-if="item.branchSettings?.length">
-                  <div
-                    v-for="group in getGroupedSettings(item)"
-                    :key="group.key"
-                    class="w-full max-w-[150px] flex items-center gap-3 h-8 justify-center"
-                  >
+                  <div v-for="group in getGroupedSettings(item)" :key="group.key"
+                    class="w-full max-w-[150px] flex items-center gap-3 h-8 justify-center">
                     <div class="flex items-center min-w-[40px] leading-none gap-1">
                       <span class="text-sm font-bold text-content-dark">{{
                         calculateClassProgress(group.startDate, group.endDate).remainingSessions
-                      }}</span>
+                        }}</span>
                       <span class="text-xs font-bold text-content-dark/60">Left</span>
                     </div>
                     <div
-                      class="flex-1 h-1.5 rounded-full overflow-hidden flex border border-outline-std/5 bg-surface-dark/20"
-                    >
-                      <div
-                        class="h-full bg-primary transition-all duration-700"
-                        :style="{
-                          width:
-                            calculateClassProgress(group.startDate, group.endDate).percentage + '%',
-                        }"
-                      ></div>
-                      <div
-                        class="h-full bg-content-light/30 transition-all duration-700"
-                        :style="{
-                          width:
-                            100 -
-                            calculateClassProgress(group.startDate, group.endDate).percentage +
-                            '%',
-                        }"
-                      ></div>
+                      class="flex-1 h-1.5 rounded-full overflow-hidden flex border border-outline-std/5 bg-surface-dark/20">
+                      <div class="h-full bg-primary transition-all duration-700" :style="{
+                        width:
+                          calculateClassProgress(group.startDate, group.endDate).percentage + '%',
+                      }"></div>
+                      <div class="h-full bg-content-light/30 transition-all duration-700" :style="{
+                        width:
+                          100 -
+                          calculateClassProgress(group.startDate, group.endDate).percentage +
+                          '%',
+                      }"></div>
                     </div>
                   </div>
                 </template>
                 <template v-else>
-                  <div
-                    v-for="prog in [calculateClassProgress(item.startDate, item.endDate)]"
-                    :key="item.id"
-                    class="w-full max-w-[150px] flex items-center gap-3 h-8 justify-center"
-                  >
+                  <div v-for="prog in [calculateClassProgress(item.startDate, item.endDate)]" :key="item.id"
+                    class="w-full max-w-[150px] flex items-center gap-3 h-8 justify-center">
                     <div class="flex flex-col items-start min-w-[40px] leading-none gap-0.5">
                       <span class="text-sm font-bold text-content-dark">{{
                         prog.remainingSessions
-                      }}</span>
+                        }}</span>
                       <span class="text-xs font-bold text-content-dark/60">Left</span>
                     </div>
                     <div
-                      class="flex-1 h-1.5 rounded-full overflow-hidden flex border border-outline-std/5 bg-surface-dark/20"
-                    >
-                      <div
-                        class="h-full bg-primary transition-all duration-700"
-                        :style="{ width: prog.percentage + '%' }"
-                      ></div>
-                      <div
-                        class="h-full bg-surface-dark/10 transition-all duration-700"
-                        :style="{ width: 100 - prog.percentage + '%' }"
-                      ></div>
+                      class="flex-1 h-1.5 rounded-full overflow-hidden flex border border-outline-std/5 bg-surface-dark/20">
+                      <div class="h-full bg-primary transition-all duration-700"
+                        :style="{ width: prog.percentage + '%' }"></div>
+                      <div class="h-full bg-surface-dark/10 transition-all duration-700"
+                        :style="{ width: 100 - prog.percentage + '%' }"></div>
                     </div>
                   </div>
                 </template>
@@ -631,77 +564,49 @@ const getGroupedSettings = (item) => {
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
-                  @click.stop="toggleMenu($event, item.id)"
-                >
+                  @click.stop="toggleMenu($event, item.id)">
                   <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
 
                 <Teleport to="body">
-                  <transition
-                    enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0"
-                    enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in"
-                    leave-from-class="opacity-100"
-                    leave-to-class="opacity-0"
-                  >
-                    <div
-                      v-if="activeMenuId === item.id"
-                      class="ui-dropdown-menu"
-                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
-                      :style="menuStyles"
-                      @click.stop
-                    >
+                  <transition enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+                    leave-to-class="opacity-0">
+                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
+                      @click.stop>
                       <template v-if="!isTermReadOnly(item)">
-                        <button
-                          class="ui-dropdown-item ui-dropdown-item-info group"
-                          @click="
-                            () => {
-                              openModal('edit', item)
-                              closeMenu()
-                            }
-                          "
-                        >
-                          <img
-                            :src="getActionIcon('edit')"
-                            class="w-4 h-4 opacity-40 group-hover:opacity-100"
-                          />
+                        <button class="ui-dropdown-item ui-dropdown-item-info group" @click="
+                          () => {
+                            openModal('edit', item)
+                            closeMenu()
+                          }
+                        ">
+                          <img :src="getActionIcon('edit')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                           <span class="font-bold">Edit</span>
                         </button>
-                        <button
-                          v-if="
-                            calculateClassProgress(item.startDate, item.endDate).status ===
-                            'upcoming'
-                          "
-                          class="ui-dropdown-item ui-dropdown-item-info group"
-                          @click="
+                        <button v-if="
+                          calculateClassProgress(item.startDate, item.endDate).status ===
+                          'upcoming'
+                        " class="ui-dropdown-item ui-dropdown-item-info group" @click="
                             () => {
                               openAddClass(item)
                               closeMenu()
                             }
-                          "
-                        >
-                          <img
-                            :src="getActionIcon('plus')"
-                            class="w-4 h-4 opacity-40 group-hover:opacity-100"
-                          />
+                          ">
+                          <img :src="getActionIcon('plus')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                           <span class="font-bold">Add Class</span>
                         </button>
                         <div class="h-px bg-surface-light mx-1 my-1"></div>
                       </template>
-                      <button
-                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
-                        @click="
-                          () => {
-                            handleTableAction({ type: 'delete', item })
-                            closeMenu()
-                          }
-                        "
-                      >
-                        <img
-                          :src="getActionIcon('delete')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
-                        />
+                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold" @click="
+                        () => {
+                          handleTableAction({ type: 'delete', item })
+                          closeMenu()
+                        }
+                      ">
+                        <img :src="getActionIcon('delete')" class="w-4 h-4 opacity-40 group-hover:opacity-100" />
                         Delete
                       </button>
                     </div>
@@ -714,34 +619,17 @@ const getGroupedSettings = (item) => {
       </template>
     </DataPageLayout>
 
-    <TermActionModal
-      v-if="modal.isOpen"
-      :isOpen="modal.isOpen"
-      :type="modal.type"
-      :loading="modal.submitting"
-      :term="modal.selectedTerm"
-      :branches="branches"
-      :terms="items"
-      :error="modal.error"
-      :success="modal.success"
+    <TermActionModal v-if="modal.isOpen" :isOpen="modal.isOpen" :type="modal.type" :loading="modal.submitting"
+      :term="modal.selectedTerm" :branches="branches" :terms="items" :error="modal.error" :success="modal.success"
       @close="
         () => {
           modal.isOpen = false
           modal.selectedTerm = null
         }
-      "
-      @submit="handleActionSubmit"
-    />
-  
-    <TermOfferingActionModal
-      v-if="addClassModal.isOpen"
-      :isOpen="addClassModal.isOpen"
-      :term="addClassModal.selectedTerm"
-      :loading="addClassModal.loading"
-      :error="addClassModal.error"
-      :success="addClassModal.success"
-      @close="addClassModal.isOpen = false"
-      @submit="handleAddClass"
-    />
+      " @submit="handleActionSubmit" />
+
+    <TermOfferingActionModal v-if="addClassModal.isOpen" :isOpen="addClassModal.isOpen"
+      :term="addClassModal.selectedTerm" :loading="addClassModal.loading" :error="addClassModal.error"
+      :success="addClassModal.success" @close="addClassModal.isOpen = false" @submit="handleAddClass" />
   </DashboardLayout>
 </template>

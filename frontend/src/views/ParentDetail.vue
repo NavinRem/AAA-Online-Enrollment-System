@@ -656,7 +656,7 @@ onUnmounted(() => {
           <EntityProfileCard
             :profileURL="parent.profileURL"
             title="Basic Information"
-            fallbackImage="profiles/avatar-parent"
+            fallbackImage="profiles/avatar-man"
           />
           <EntityInfoCard title="Parent Contact" :fields="parentInfoFields" />
           <RelationshipsCard title="Children List" :items="childrenItems">

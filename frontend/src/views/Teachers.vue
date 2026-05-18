@@ -361,13 +361,13 @@ const handleAction = (type, item, closeMenu) => {
 
             <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[2].width }">
               <span class="font-bold text-content-dark tabular-nums tracking-tighter">{{ item.phone || '—'
-              }}</span>
+                }}</span>
             </td>
 
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex flex-wrap gap-1.5">
                 <template v-if="getTeacherAssignments(item.id).length > 0">
-                  <div v-for="(assign, idx) in getTeacherAssignments(item.id)" :key="idx"
+                  <div v-for="(assign, idx) in getTeacherAssignments(item.id)" :key="assign.offeringId || assign.id || idx"
                     class="group/assign relative flex items-center justify-between gap-10 px-2 py-1.5 rounded-sm bg-primary-soft border border-primary/10 group-hover:bg-white group-hover:border-primary transition-all cursor-default">
                     <div class="flex flex-col gap-0.5">
                       <span class="text-xs font-black text-content-dark truncate">
@@ -459,12 +459,8 @@ const handleAction = (type, item, closeMenu) => {
       </template>
     </DataPageLayout>
 
-    <TeacherActionModal
-      v-if="isModalOpen"
-      :isOpen="isModalOpen"
-      :type="modalType"
-      :teacher="selectedTeacher"
-      :loading="submitting"
-      :error="error" :success="success" @close="isModalOpen = false" @submit="handleSubmit" @refresh="fetchData" />
+    <TeacherActionModal v-if="isModalOpen" :isOpen="isModalOpen" :type="modalType" :teacher="selectedTeacher"
+      :loading="submitting" :error="error" :success="success" @close="isModalOpen = false" @submit="handleSubmit"
+      @refresh="fetchData" />
   </DashboardLayout>
 </template>

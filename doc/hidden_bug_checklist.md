@@ -2,6 +2,9 @@
 
 This document serves as an exhaustive audit checklist and diagnostic guide for both **frontend (Vue 3 / Pinia)** and **backend (Node.js / Express / Firestore Admin SDK)**. It outlines standard data-integrity checks alongside **specific, critical hidden bugs discovered in the current codebase** that have been resolved to ensure absolute data parity and perfect interface calculations.
 
+> [!IMPORTANT]
+> **Styling Non-Regression Guarantee**: To ensure maximum visual consistency and protect user-defined designs, all developers must adhere strictly to the rules defined in the [Styling Consistency & Styling Non-Regression Rules](file:///home/sonavin/Code/AAA-Online-Enrollment-System/doc/styling_consistency_rules.md) guide. All modifications must stick exactly to the original layouts and spacing designs.
+
 ---
 
 ## 1. Backend & Firebase Service Auditing (Critical Core)
@@ -115,6 +118,13 @@ Every single hidden bug, query discrepancy, and count drift is now **100% fixed,
 | **frontend/.../TableToolbar.vue** | Filter button renders dynamic label "Filter" by default instead of "All Faculty" when active filter is empty/all. | E2E Playwright selector `button:has-text("All Faculty")` fails to locate the trigger element, causing test timeouts. | Updated E2E test specs to click the semantic "Filter" text trigger button. | **RESOLVED 🟢** |
 | **tests/programs.spec.js** | Missing `**/api/auth/me` mock. | Router auth guard redirects Program Detail E2E test browser to `/`, causing tests to fail. | Added standard mock response for `**/api/auth/me` to beforeEach hook in programs spec. | **RESOLVED 🟢** |
 | **tests/dashboard.spec.js & terms.spec.js** | Hardcoded term start dates (`2026-06-01`) classified as future/upcoming. | Terms are filtered out of active sidebar carousels and lists under system date `2026-05-17`. | Aligned mock term start dates dynamically to `2026-05-01` to fall exactly within the active today-range. | **RESOLVED 🟢** |
+| **`frontend/.../Classes.vue`** | `totalCapacity` referenced but never defined. | Fatal `ReferenceError` crashes Vue reactive rendering when navigating to classes overview. | Computed `totalCapacity` dynamically inside `activeOfferings` using `schedules.reduce()`. | **RESOLVED 🟢** |
+| **`frontend/.../TermDetail.vue`** | Potential subproperty access on nullable `term.value` in `openSessionModal`. | Throws fatal `TypeError` if user triggers action before Term data hydrates. | Added defensive optional chaining `term.value?.offerings` wrapper. | **RESOLVED 🟢** |
+| **`frontend/.../Trials.vue`** | Manual fallback to non-existent `avatar-parent` and `avatar-student` assets. | Broken image placeholders and persistent 404 console errors. | Refactored to use standardized `getParentProfileURL` and `getStudentProfileURL` helpers. | **RESOLVED 🟢** |
+| **`frontend/.../StudentDetail.vue`** | Refers to broken fallback paths `profiles/avatar-parent` and `profiles/avatar-student`. | Causes 404 network fetch failures on parent cards. | Switched fallback cards to correct existing asset names (`profiles/avatar-boy` & `avatar-man`). | **RESOLVED 🟢** |
+| **`frontend/.../Settings.vue`** | Semicolon-less multi-line template `@click` event handlers. | Vite compiler fails during HMR / dev bundling, throwing `NS_ERROR_CORRUPTED_CONTENT` / disallowed MIME type in the browser. | Restructured inline handlers to single-line semicolon-separated statements. | **RESOLVED 🟢** |
+| **`frontend/.../statsHelper.js`** | `now.setHours(0,0,0,0)` mutates shared `now` Date reference in-place. | Today Payments widget constantly displays `$0` today payments, silently excluding all normal-hour today payments. | Safely cloned Date reference (`new Date(now)`) before modifying the time parts. | **RESOLVED 🟢** |
+| **`frontend/.../StudentDetail.vue`** | Missing optional chaining / default fallback mapping for `ATTENDANCE_STATUS[item.status]`. | Throws fatal `TypeError` and crashes interface if student database record has atypical/unrecognized status codes. | Implemented style-neutral, safe fallback map lookup: `(ATTENDANCE_STATUS[item.status] || ATTENDANCE_STATUS.N)`. | **RESOLVED 🟢** |
 
 ---
 *Keep this checklist updated as you resolve each audit item to achieve complete data parity and premium stability across the system.*

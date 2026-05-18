@@ -12,7 +12,7 @@ import TrialFormModal from '../components/trials/TrialFormModal.vue'
 
 import { trialService } from '@/services/trialService'
 import { useSearch, trialSearchMapper } from '../composables/useSearch'
-import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon, getProgramProfileURL, getParentProfileURL, getStudentProfileURL } from '@/utils/assetHelper'
 import { formatDate } from '@/utils/formatUtils'
 
 const dataStore = useDataStore()
@@ -96,9 +96,9 @@ const statusFilteredTrials = computed(() => {
   // Enrich trials with full program details from the store
   const trials = dataStore.trials.map((trial) => {
     const programId = trial.programId || trial.program?.id
-    const program = dataStore.programs.find((p) => p.id === programId)
+    const program = dataStore.programs.find((p) => String(p.id) === String(programId))
     const category = program
-      ? dataStore.categories.find((c) => c.id === program.categoryId || c.name === program.category)
+      ? dataStore.categories.find((c) => String(c.id) === String(program.categoryId) || c.name === program.category)
       : null
 
     return {
@@ -267,7 +267,7 @@ const confirmRows = computed(() => {
             <td class="ui-cell">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
-                  <img :src="item.parent?.profileURL || getImageUrl('avatar-parent')" alt="parent" />
+                  <img :src="getParentProfileURL(item.parent?.profileURL)" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
                   <span class="truncate block">{{
@@ -281,7 +281,7 @@ const confirmRows = computed(() => {
             <td class="ui-cell">
               <div class="ui-identity-cell">
                 <div class="ui-avatar">
-                  <img :src="item.student?.profileURL || getImageUrl('avatar-student')" alt="student" />
+                  <img :src="getStudentProfileURL(item.student?.profileURL)" alt="student" />
                 </div>
                 <div class="ui-identity-info">
                   <span class="truncate block">{{

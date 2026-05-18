@@ -128,7 +128,14 @@ test.describe('Dashboard Management & Analytics View', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { id: 't1', studentId: 's1', branchId: branchId1, status: 'active', trialDate: new Date().toISOString().split('T')[0] }
+          {
+            id: 't1',
+            studentId: 's1',
+            branchId: branchId1,
+            status: 'active',
+            trialDate: new Date().toISOString().split('T')[0],
+            createdAt: new Date().toISOString()
+          }
         ])
       });
     });
@@ -171,11 +178,11 @@ test.describe('Dashboard Management & Analytics View', () => {
     await expect(page.locator('h2:has-text("Today Summary")')).toBeVisible();
     await expect(page.locator('h2:has-text("This Week")')).toBeVisible();
 
-    // Verify metric cards exist
-    await expect(page.locator('text=Today New Accounts')).toBeVisible();
-    await expect(page.locator('text=Today Enrollments')).toBeVisible();
-    await expect(page.locator('text=Today Trial Class')).toBeVisible();
-    await expect(page.locator('text=Today Payments')).toBeVisible();
+    // Verify metric cards exist and contain correct aggregated values
+    await expect(page.locator('.ui-metric-card', { hasText: 'Today New Accounts' })).toContainText('2');
+    await expect(page.locator('.ui-metric-card', { hasText: 'Today Enrollments' })).toContainText('2');
+    await expect(page.locator('.ui-metric-card', { hasText: 'Today Trial Class' })).toContainText('1');
+    await expect(page.locator('.ui-metric-card', { hasText: 'Today Payments' })).toContainText('$550');
   });
 
   test('should calculate sidebar totals correctly', async ({ page }) => {

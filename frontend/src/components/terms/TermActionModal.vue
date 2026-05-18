@@ -179,6 +179,10 @@ const handleActionSubmit = () => {
     return
   }
 
+  if (payload.totalSessions !== undefined && payload.totalSessions !== null) {
+    payload.totalSessions = parseInt(payload.totalSessions, 10)
+  }
+
   // Remove UI-only fields
   delete payload.deleteConfirm
 

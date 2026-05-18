@@ -269,6 +269,8 @@ const activeOfferings = computed(() => {
           return (a.time || '').localeCompare(b.time || '')
         })
 
+        const totalCapacity = schedules.reduce((sum, s) => sum + (s.capacity || 0), 0)
+
         const branches = Array.from(branchesMap.values())
         const branchesText = branches.map((b) => `${b.abbr} ${b.name}`).join(' ')
         const schedulesText = schedules.map((s) => `${s.day} ${s.time}`).join(' ')

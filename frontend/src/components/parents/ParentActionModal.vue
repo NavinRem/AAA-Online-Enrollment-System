@@ -9,7 +9,7 @@ import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { useActionModal } from '@/composables/useActionModal'
-import { getActionIcon, isSameProfileAsset } from '@/utils/assetHelper'
+import { getActionIcon, isSameProfileAsset, getImageUrl } from '@/utils/assetHelper'
 import { calculateAge } from '@/utils/formatUtils'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 
@@ -26,6 +26,8 @@ const showNewParentSubModal = ref(false)
 const subModalLoading = ref(false)
 const subModalError = ref('')
 const subModalSuccess = ref('')
+
+const getImageUrlLocal = (category, path) => getImageUrl(category, path)
 
 const props = defineProps({
   isOpen: Boolean,
@@ -319,7 +321,7 @@ watch(
     <div v-if="selectedParent" class="ui-identity-banner mb-lg" :class="parentThemeClasses">
       <div class="ui-identity-avatar-round">
         <img
-          :src="selectedParent.profileURL || getImageUrl('profiles', 'avatar-guest')"
+          :src="selectedParent.profileURL || getImageUrlLocal('profiles', 'avatar-guest')"
           class="w-full h-full object-cover"
         />
       </div>
@@ -589,7 +591,7 @@ watch(
       :subtitle="
         type === 'delete'
           ? 'This action is irreversible. All data will be permanently erased.'
-          : 'Please verify the details before completing this action.'
+          : 'Please verify details before proceeding.'
       "
       :icon="getActionIcon(type)"
       :rows="confirmRows"

@@ -29,7 +29,7 @@ export const calculateDashboardStats = (
   trials = [],
 ) => {
   const now = new Date()
-  const today = new Date(now.setHours(0, 0, 0, 0)).getTime()
+  const today = new Date(now).setHours(0, 0, 0, 0)
   const weekly = today - 7 * 86400000
 
   /**

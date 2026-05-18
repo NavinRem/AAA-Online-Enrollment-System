@@ -1,3 +1,4 @@
+/* global console */
 import { test, expect } from '@playwright/test';
 
 test.describe('Students Management & Profiles View', () => {
@@ -6,7 +7,12 @@ test.describe('Students Management & Profiles View', () => {
   const parentId = 'parent-john';
   const termId = 'term-active';
 
+  let interceptedRequest = null;
+
   test.beforeEach(async ({ page }) => {
+    page.on('console', msg => console.log('STUDENT TEST BROWSER LOG:', msg.text()));
+    page.on('pageerror', err => console.error('STUDENT TEST BROWSER ERROR:', err.message));
+
     // Inject Playwright Authentication Mock Flag
     await page.addInitScript(() => {
       globalThis.__playwright_mock_auth__ = true;
@@ -32,32 +38,44 @@ test.describe('Students Management & Profiles View', () => {
       });
     });
 
-    // Mock Students
+    // Mock Students GET and POST
     await page.route('**/api/students**', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify([
-          {
-            id: studentId1,
-            name: 'Jimmy Doe',
-            parentId: parentId,
-            status: 'active',
-            gender: 'Male',
-            dob: '2015-05-10',
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: studentId2,
-            name: 'Janey Smith',
-            parentId: 'parent-unknown',
-            status: 'inactive',
-            gender: 'Female',
-            dob: '2016-08-15',
-            createdAt: new Date().toISOString()
-          }
-        ])
-      });
+      const method = route.request().method();
+      if (method === 'GET') {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([
+            {
+              id: studentId1,
+              name: 'Jimmy Doe',
+              parentId: parentId,
+              status: 'active',
+              gender: 'Male',
+              dob: '2015-05-10',
+              createdAt: new Date().toISOString()
+            },
+            {
+              id: studentId2,
+              name: 'Janey Smith',
+              parentId: 'parent-unknown',
+              status: 'inactive',
+              gender: 'Female',
+              dob: '2016-08-15',
+              createdAt: new Date().toISOString()
+            }
+          ])
+        });
+      } else if (method === 'POST') {
+        interceptedRequest = route.request().postDataJSON();
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: 'student-new-luke', success: true })
+        });
+      } else {
+        await route.continue();
+      }
     });
 
     // Mock Enrollments (Jimmy is enrolled, Janey is not)
@@ -135,5 +153,49 @@ test.describe('Students Management & Profiles View', () => {
 
     await expect(page.locator('text=Jimmy Doe')).toBeVisible();
     await expect(page.locator('text=Janey Smith')).not.toBeVisible();
+  });
+
+  test('should register a new child student linked to a parent successfully', async ({ page }) => {
+    // Reset intercepted request
+    interceptedRequest = null;
+
+    // Wait for the students overview list to load and display data
+    await expect(page.locator('text=Jimmy Doe')).toBeVisible();
+
+    // Click New Student button
+    await page.click('button:has-text("New Student")');
+    await expect(page.locator('text=Add Child').first()).toBeVisible();
+
+    // Select Parent from dropdown
+    await page.click('text=Search Parent');
+    await page.waitForTimeout(500); // Wait for transition and event listeners to attach
+    const parentOption = page.locator('.fixed.bg-white.border-2.border-primary li', { hasText: 'John Doe' }).first();
+    await parentOption.waitFor({ state: 'visible' });
+    await parentOption.click({ force: true });
+
+    // Fill Student details
+    await page.fill('input[placeholder*="Enter Student Name"]', 'Luke Skywalker');
+    await page.fill('input[type="date"]', '2018-05-04');
+
+    // Select Avatar from AvatarSelector
+    const avatarItem = page.locator('.avatar-item').first();
+    await avatarItem.waitFor({ state: 'visible' });
+    await avatarItem.click();
+
+    // Trigger confirmation overlay
+    await page.click('button:has-text("Add")');
+    await expect(page.locator('text=Please verify details before proceeding.')).toBeVisible();
+
+    // Confirm creation using the overlay's confirm button and wait for POST request to be fired
+    await Promise.all([
+      page.waitForResponse(res => res.url().includes('/students') && res.request().method() === 'POST'),
+      page.click('.app-confirm-overlay button:has-text("Add")')
+    ]);
+
+    // Validate request payload
+    expect(interceptedRequest).not.toBeNull();
+    expect(interceptedRequest.name).toBe('Luke Skywalker');
+    expect(interceptedRequest.parentId).toBe(parentId);
+    expect(interceptedRequest.dob).toBe('2018-05-04');
   });
 });

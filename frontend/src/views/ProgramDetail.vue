@@ -88,7 +88,7 @@ onMounted(() => {
 
 const resolvedCategory = computed(() => {
   if (!program.value?.categoryId || !categories.value.length) return null
-  return categories.value.find((c) => c.id === program.value.categoryId)
+  return categories.value.find((c) => String(c.id) === String(program.value.categoryId))
 })
 
 const programTeachers = computed(() => {

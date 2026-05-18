@@ -18,7 +18,7 @@ import { getAcademicStatus, enrichEnrollments } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 
-import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import { getImageUrl, getActionIcon, getParentProfileURL, getStudentProfileURL } from '@/utils/assetHelper'
 import { branchService } from '@/services/branchService'
 import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
 import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
@@ -86,7 +86,7 @@ const enrollmentOptions = computed(() => {
 })
 
 const selectedEnrollment = computed(() => {
-  return enrollments.value.find((e) => e.id === selectedEnrollmentId.value) || enrollments.value[0]
+  return enrollments.value.find((e) => String(e.id) === String(selectedEnrollmentId.value)) || enrollments.value[0]
 })
 
 const sessions = computed(() => {
@@ -159,7 +159,7 @@ const parentDetailFields = computed(() => [
   {
     label: 'Name',
     value: parent.value?.name,
-    image: parent.value?.profileURL || getImageUrl('profiles/avatar-parent'),
+    image: getParentProfileURL(parent.value?.profileURL),
   },
   { label: 'Phone', value: parent.value?.phone },
   { label: 'Email', value: parent.value?.email },
@@ -180,7 +180,7 @@ const toggleDropdown = (event) => {
 const selectEnrollment = (id) => {
   selectedEnrollmentId.value = id
   dropdownOpen.value = false
-  const enrollment = enrollments.value.find((e) => e.id === id)
+  const enrollment = enrollments.value.find((e) => String(e.id) === String(id))
   if (enrollment && !classAttendanceData.value[enrollment.classId]) {
     fetchClassAttendance(enrollment.classId)
   }
@@ -463,7 +463,7 @@ watch(
                   <div class="w-px h-8 bg-outline-std/50"></div>
                   <div class="flex flex-col">
                     <span
-                      class="text-3xs font-bold text-content-muted uppercase tracking-wider text-success"
+                      class="text-3xs font-bold text-content-muted uppercase tracking-wider"
                       >Passed</span
                     >
                     <span class="text-lg font-black text-success">{{
@@ -473,7 +473,7 @@ watch(
                   <div class="w-px h-8 bg-outline-std/50"></div>
                   <div class="flex flex-col">
                     <span
-                      class="text-3xs font-bold text-content-muted uppercase tracking-wider text-error"
+                      class="text-3xs font-bold text-content-muted uppercase tracking-wider"
                       >Absent</span
                     >
                     <span class="text-lg font-black text-error">{{ attendanceStats.absent }}</span>
@@ -546,9 +546,9 @@ watch(
                 <div class="flex justify-center">
                   <div
                     class="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-sm border border-outline-std select-none"
-                    :class="ATTENDANCE_STATUS[item.status].theme"
+                    :class="(ATTENDANCE_STATUS[item.status] || ATTENDANCE_STATUS.N).theme"
                   >
-                    {{ ATTENDANCE_STATUS[item.status].label }}
+                    {{ (ATTENDANCE_STATUS[item.status] || ATTENDANCE_STATUS.N).label }}
                   </div>
                 </div>
               </td>
@@ -568,7 +568,7 @@ watch(
           <EntityProfileCard
             :profileURL="student.profileURL"
             title="Basic Information"
-            fallbackImage="profiles/avatar-student"
+            fallbackImage="profiles/avatar-boy"
           />
           <EntityInfoCard title="Student Details" :fields="studentInfoFields" />
           <EntityInfoCard v-if="parent" title="Parent Details" :fields="parentDetailFields" />

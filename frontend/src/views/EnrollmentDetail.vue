@@ -246,8 +246,7 @@ onMounted(async () => {
             enrollment.status !== 'confirmed' &&
             enrollment.paymentStatus !== 'paid' &&
             enrollment.status !== 'cancelled'
-          "
-            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-success-soft transition-all duration-300 hover:bg-success hover:border-success group"
+          " class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-success-soft transition-all duration-300 hover:bg-success hover:border-success group"
             title="Pay Enrollment" @click="openActionModal('pay')">
             <img :src="getActionIcon('pay')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
@@ -285,7 +284,8 @@ onMounted(async () => {
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold text-content-muted">Phone</span>
-                <span class="text-sm font-bold text-content-dark tabular-nums">{{ enrollment.parent?.phone || 'N/A' }}</span>
+                <span class="text-sm font-bold text-content-dark tabular-nums">{{ enrollment.parent?.phone || 'N/A'
+                  }}</span>
               </div>
             </div>
           </section>
@@ -305,11 +305,13 @@ onMounted(async () => {
               </div>
               <div class="flex items-center justify-between border-b border-outline-std/50 pb-2">
                 <span class="text-xs font-semibold text-content-muted">Birth Date</span>
-                <span class="text-sm font-bold text-content-dark tabular-nums">{{ formatDateOnly(enrollment.student?.dob) }}</span>
+                <span class="text-sm font-bold text-content-dark tabular-nums">{{
+                  formatDateOnly(enrollment.student?.dob) }}</span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold text-content-muted">Current Age</span>
-                <span class="text-sm font-bold text-content-dark tabular-nums">{{ calculateAge(enrollment.student?.dob) }} yrs</span>
+                <span class="text-sm font-bold text-content-dark tabular-nums">{{ calculateAge(enrollment.student?.dob)
+                  }} yrs</span>
               </div>
             </div>
           </section>
@@ -333,9 +335,9 @@ onMounted(async () => {
                 <span class="text-xs font-semibold text-content-muted">Category</span>
                 <span class="text-sm font-bold text-content-dark">{{
                   typeof (enrollment.class?.program?.category || enrollment.program?.category) === 'object'
-                  ? (enrollment.class?.program?.category?.name || enrollment.program?.category?.name || 'N/A')
-                  : (enrollment.class?.program?.category || enrollment.program?.category || 'N/A')
-                  }}</span>
+                    ? (enrollment.class?.program?.category?.name || enrollment.program?.category?.name || 'N/A')
+                    : (enrollment.class?.program?.category || enrollment.program?.category || 'N/A')
+                }}</span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold text-content-muted">Type</span>
@@ -351,10 +353,10 @@ onMounted(async () => {
             <div class="flex justify-center mb-6">
               <div class="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md">
                 <img :src="getAvatarUrl(
-                    enrollment.class?.teachers?.[0]?.profileURL ||
-                    enrollment.class?.teacher?.profileURL ||
-                    enrollment.teacher?.profileURL
-                  )" class="w-full h-full object-cover bg-white" />
+                  enrollment.class?.teachers?.[0]?.profileURL ||
+                  enrollment.class?.teacher?.profileURL ||
+                  enrollment.teacher?.profileURL
+                )" class="w-full h-full object-cover bg-white" />
               </div>
             </div>
             <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
@@ -362,10 +364,11 @@ onMounted(async () => {
                 <span class="text-xs font-semibold text-content-muted">Faculty</span>
                 <span class="text-sm font-bold text-content-dark">
                   {{
-                  enrollment.class?.teachers?.length > 1
-                  ? enrollment.class.teachers.map(t => t.name).join(', ')
-                  : (enrollment.class?.teacher?.name || enrollment.class?.teachers?.[0]?.name || enrollment.teacher?.name ||
-                  'N/A')
+                    enrollment.class?.teachers?.length > 1
+                      ? enrollment.class?.teachers?.map(t => t.name).join(', ')
+                      : (enrollment.class?.teacher?.name || enrollment.class?.teachers?.[0]?.name ||
+                        enrollment.teacher?.name ||
+                        'N/A')
                   }}
                 </span>
               </div>

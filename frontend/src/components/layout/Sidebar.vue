@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authService } from '@/services/authService'
 import AppButton from '@/components/common/ui/AppButton.vue'
@@ -17,6 +17,23 @@ const emit = defineEmits(['close'])
 const router = useRouter()
 const route = useRoute()
 const logoutMessage = ref('')
+const academyName = ref('Authentic Advanced Academy')
+
+const updateAcademyName = () => {
+  const saved = localStorage.getItem('aaa-academy-name')
+  academyName.value = saved || 'Authentic Advanced Academy'
+}
+
+onMounted(() => {
+  updateAcademyName()
+  window.addEventListener('storage', updateAcademyName)
+  window.addEventListener('academy-name-changed', updateAcademyName)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('storage', updateAcademyName)
+  window.removeEventListener('academy-name-changed', updateAcademyName)
+})
 
 const menuItems = [
   { name: 'Dashboard', path: '/dashboard', icon: 'navigation/dashboard.svg' },
@@ -78,7 +95,7 @@ const handleNavClick = () => {
       </div>
       <div class="flex flex-col items-center text-center">
         <span class="text-sm font-bold text-content-dark leading-tight tracking-tighter"
-          >Authentic Advanced Academy</span
+          >{{ academyName }}</span
         >
       </div>
       <button
