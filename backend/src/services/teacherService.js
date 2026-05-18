@@ -104,9 +104,11 @@ class TeacherService {
 
     termsSnap.forEach((doc) => {
       const termData = doc.data()
-      const termOfferings = termData.offerings || []
+      const offeringsArray = Array.isArray(termData.offerings)
+        ? termData.offerings
+        : (termData.offerings && typeof termData.offerings === 'object' ? Object.values(termData.offerings) : []);
       
-      termOfferings.forEach((offering) => {
+      offeringsArray.forEach((offering) => {
         const teachers = offering.teachers || []
         const isAssigned = teachers.some(t => t.id === teacherId)
         
@@ -140,7 +142,9 @@ class TeacherService {
       if (!termDoc.exists) throw new Error('Term not found')
 
       const termData = termDoc.data()
-      const offerings = [...(termData.offerings || [])]
+      const offerings = Array.isArray(termData.offerings)
+        ? [...termData.offerings]
+        : (termData.offerings && typeof termData.offerings === 'object' ? Object.values(termData.offerings) : []);
       const idx = offerings.findIndex(o => String(o.offeringId) === String(offeringId))
 
       if (idx === -1) throw new Error('Offering not found in this term')
@@ -176,7 +180,9 @@ class TeacherService {
       if (!termDoc.exists) throw new Error('Term not found')
 
       const termData = termDoc.data()
-      const offerings = [...(termData.offerings || [])]
+      const offerings = Array.isArray(termData.offerings)
+        ? [...termData.offerings]
+        : (termData.offerings && typeof termData.offerings === 'object' ? Object.values(termData.offerings) : []);
       const idx = offerings.findIndex(o => String(o.offeringId) === String(offeringId))
 
       if (idx === -1) throw new Error('Offering not found in this term')

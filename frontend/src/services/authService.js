@@ -22,6 +22,17 @@ export const authService = {
   },
 
   onAuthStateChanged(callback) {
+    if (typeof window !== 'undefined' && window.__playwright_mock_auth__) {
+      setTimeout(() => {
+        callback({
+          uid: 'admin-1',
+          email: 'admin@aaa.com',
+          displayName: 'Admin User',
+          getIdToken: async () => 'mock-token'
+        })
+      }, 0)
+      return () => {}
+    }
     return onAuthStateChanged(auth, callback)
   },
 

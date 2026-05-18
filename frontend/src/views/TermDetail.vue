@@ -107,19 +107,22 @@ const rawBranchOfferings = computed(() => {
   return rawOfferings.map((off) => {
     // Enrich with latest program data from store
     const liveProgram = dataStore.programs.find(
-      (p) => p.id === off.program?.id || p.id === off.classId || p.id === off.programId,
+      (p) => String(p.id) === String(off.program?.id) || String(p.id) === String(off.classId) || String(p.id) === String(off.programId),
     )
     const program = liveProgram || off.program
 
-    // Find enrollments for this specific offering from the store
-    const offeringEnrollments = dataStore.enrollments.filter((e) => {
+    // Find enrollments for this specific offering from the branch-pre-filtered list
+    const offeringEnrollments = branchEnrollments.value.filter((e) => {
       const isSameTerm = String(e.termId) === String(term.value.id)
-      const isSameOffering =
-        String(e.termOfferingId) === String(off.offeringId) ||
-        String(e.classId) === String(off.classId)
+      
+      // Strict matching: If termOfferingId is provided, it MUST match
+      if (e.termOfferingId) {
+        return String(e.termOfferingId) === String(off.offeringId)
+      }
 
-      // Fallback: If not explicitly linked, check if it matches branch and date range
-      if (isSameTerm && isSameOffering) return true
+      // Fallback matching: If no termOfferingId, match by class and branch/date
+      const isSameClass = String(e.classId) === String(off.classId) || String(e.programId) === String(off.programId)
+      if (!isSameClass || !isSameTerm) return false
 
       const enrollDate = new Date(e.enrollAt || e.createdAt)
       const matchesBranchAndDate =
@@ -127,10 +130,17 @@ const rawBranchOfferings = computed(() => {
         enrollDate >= startDate &&
         enrollDate <= endDate
 
-      // We only count it in this offering if the program matches too
-      const matchesProgram = String(e.programId) === String(program?.id)
+      // If we match by class and branch/date, but have no offeringId, 
+      // we only count it in the FIRST offering of this class to avoid double counting
+      // Note: This is a simple heuristic. Better would be to fix the data at source.
+      const firstOfferingOfClass = term.value.offerings.find(o => 
+        String(o.branchId) === String(activeBranchId.value) && 
+        (String(o.classId) === String(off.classId) || String(o.programId) === String(off.programId))
+      )
+      
+      const isFirstOffering = String(firstOfferingOfClass?.offeringId) === String(off.offeringId)
 
-      return matchesBranchAndDate && matchesProgram
+      return matchesBranchAndDate && isFirstOffering
     })
 
     const students = offeringEnrollments
@@ -143,7 +153,7 @@ const rawBranchOfferings = computed(() => {
           paymentStatus: e.paymentStatus || 'unpaid',
           status: e.status || 'active',
           enrollmentId: e.id,
-          revenue: e.finalPrice || e.totalPrice || 0,
+          revenue: Number(e.finalPrice || e.totalPrice || 0),
         }
       })
       .filter(Boolean)
@@ -176,6 +186,7 @@ const groupedBranchOfferings = computed(() => {
         program: off.program,
         schedules: [],
         totalRevenue: 0,
+        uniqueStudentCount: 0,
         status: off.status || 'active',
       })
     }
@@ -187,7 +198,24 @@ const groupedBranchOfferings = computed(() => {
       offeringId: off.offeringId,
       revenue: off.revenue || 0,
     })
-    group.totalRevenue += off.revenue || 0
+  })
+
+  // Calculate REAL group metrics from the unique set of enrollments for this class group
+  const setting = activeBranchSetting.value || term.value
+  const startDate = new Date(setting.startDate)
+  const endDate = new Date(setting.endDate)
+  startDate.setHours(0, 0, 0, 0)
+  endDate.setHours(23, 59, 59, 999)
+
+  map.forEach((group, classId) => {
+    // Get all enrollments matching this class/program in this branch/term
+    const groupEnrollments = branchEnrollments.value.filter(e => {
+      const isSameClass = String(e.classId) === String(classId) || String(e.programId) === String(classId)
+      return isSameClass
+    })
+
+    group.totalRevenue = groupEnrollments.reduce((sum, e) => sum + Number(e.finalPrice || e.totalPrice || 0), 0)
+    group.uniqueStudentCount = new Set(groupEnrollments.map(e => e.studentId)).size
   })
 
   const dayOrder = {

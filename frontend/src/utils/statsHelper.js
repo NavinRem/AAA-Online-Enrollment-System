@@ -47,7 +47,7 @@ export const calculateDashboardStats = (
    */
   const inWindow = (r, s, e) => {
     const t = parseDate(r.enrollAt || r.createdAt).getTime()
-    const u = parseDate(r.updatedAt || r.paidAt).getTime()
+    const u = parseDate(r.paidAt).getTime()
     return (t >= s && t <= e) || (u >= s && u <= e)
   }
 

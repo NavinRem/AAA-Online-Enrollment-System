@@ -4,6 +4,20 @@ test.describe('Program Detail View', () => {
   const programId = 'test-program-123';
 
   test.beforeEach(async ({ page }) => {
+    // Inject Playwright Authentication Mock Flag
+    await page.addInitScript(() => {
+      globalThis.__playwright_mock_auth__ = true;
+    });
+
+    // Mock Authentication
+    await page.route('**/api/auth/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ uid: 'admin-1', role: 'admin', email: 'admin@aaa.com' })
+      });
+    });
+
     // Mock the Program Data API
     await page.route(`**/api/programs/${programId}`, async (route) => {
       await route.fulfill({
@@ -32,9 +46,9 @@ test.describe('Program Detail View', () => {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([
-          { id: 'e1', programId: programId, amount: 500, paymentStatus: 'paid', status: 'active', studentId: 's1' },
-          { id: 'e2', programId: programId, amount: 500, paymentStatus: 'paid', status: 'active', studentId: 's2' },
-          { id: 'e3', programId: 'other-id', amount: 999, paymentStatus: 'paid', status: 'active', studentId: 's3' }, // Should be filtered out
+          { id: 'e1', programId: programId, amount: 500, paymentStatus: 'paid', status: 'paid', studentId: 's1' },
+          { id: 'e2', programId: programId, amount: 500, paymentStatus: 'paid', status: 'paid', studentId: 's2' },
+          { id: 'e3', programId: 'other-id', amount: 999, paymentStatus: 'paid', status: 'paid', studentId: 's3' }, // Should be filtered out
         ]),
       });
     });

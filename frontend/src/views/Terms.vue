@@ -100,9 +100,17 @@ const fetchData = async () => {
           return false
         })
 
-        branchEnrollments.forEach((e) => {
+        const activeEnrollments = branchEnrollments.filter((e) => {
+          const status = String(e.status || '').toLowerCase()
+          return !['cancelled', 'deleted', 'failed'].includes(status)
+        })
+
+        activeEnrollments.forEach((e) => {
           studentIds.add(e.studentId)
-          totalRevenue += e.finalPrice || e.totalPrice || 0
+          const isPaid = ['paid', 'confirmed', 'success'].includes(String(e.paymentStatus || '').toLowerCase())
+          if (isPaid) {
+            totalRevenue += Number(e.amount || e.finalPrice || e.totalPrice || 0)
+          }
         })
 
         // Filter trials for this branch in this term period

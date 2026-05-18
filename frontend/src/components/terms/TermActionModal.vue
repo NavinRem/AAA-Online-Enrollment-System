@@ -244,7 +244,7 @@ const confirmRows = computed(() => {
 const duplicateTermOptions = computed(() => {
   if (!props.terms) return []
   return [...props.terms]
-    .filter((item) => item.id !== localData.id)
+    .filter((item) => String(item.id) !== String(localData.id))
     .sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0))
     .slice(0, 5)
     .map((item) => ({
@@ -298,7 +298,7 @@ watch(
 
 const getBranchSetting = (branchId) => {
   if (!localData.branchSettings) localData.branchSettings = []
-  let setting = localData.branchSettings.find((s) => s.branchId === branchId)
+  let setting = localData.branchSettings.find((s) => String(s.branchId) === String(branchId))
   if (!setting) {
     setting = {
       branchId,
@@ -306,7 +306,7 @@ const getBranchSetting = (branchId) => {
       endDate: localData.endDate,
       status: 'upcoming',
     }
-    localData.branchSettings.push(setting)
+    localData.branchSettings = [...localData.branchSettings, setting]
   }
   return setting
 }
@@ -411,8 +411,8 @@ watch(
                     <AppBadge
                       v-for="id in localData.branchIds"
                       :key="id"
-                      :status="branches.find((b) => b.id === id)?.abbr"
-                      :type="branches.find((b) => b.id === id)?.color || 'blue'"
+                      :status="branches.find((b) => String(b.id) === String(id))?.abbr"
+                      :type="branches.find((b) => String(b.id) === String(id))?.color || 'blue'"
                     />
                   </template>
                 </div>
@@ -442,7 +442,7 @@ watch(
                       v-for="branch in branches"
                       :key="branch.id"
                       class="flex items-center justify-between gap-3 p-3 rounded-lg cursor-pointer transition-all hover:bg-surface-subtle group"
-                      :class="{ 'bg-primary/5': localData.branchIds.includes(branch.id) }"
+                      :class="{ 'bg-primary/5': localData.branchIds.some(bid => String(bid) === String(branch.id)) }"
                     >
                       <span
                         class="text-sm font-semibold text-content-dark truncate tracking-tight"
@@ -509,11 +509,11 @@ watch(
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
                   <AppBadge
-                    :status="branches.find((b) => b.id === branchId)?.abbr"
-                    :type="branches.find((b) => b.id === branchId)?.color || 'blue'"
+                    :status="branches.find((b) => String(b.id) === String(branchId))?.abbr"
+                    :type="branches.find((b) => String(b.id) === String(branchId))?.color || 'blue'"
                   />
                   <span class="text-sm font-bold text-content-dark tracking-tight">{{
-                    branches.find((b) => b.id === branchId)?.name
+                    branches.find((b) => String(b.id) === String(branchId))?.name
                   }}</span>
                 </div>
               </div>
@@ -634,8 +634,8 @@ watch(
               <AppBadge
                 v-for="id in localData.branchIds"
                 :key="id"
-                :status="branches.find((b) => b.id === id)?.abbr"
-                :type="branches.find((b) => b.id === id)?.color || 'blue'"
+                :status="branches.find((b) => String(b.id) === String(id))?.abbr"
+                :type="branches.find((b) => String(b.id) === String(id))?.color || 'blue'"
               />
             </template>
             <AppBadge v-else status="Global" type="neutral" />

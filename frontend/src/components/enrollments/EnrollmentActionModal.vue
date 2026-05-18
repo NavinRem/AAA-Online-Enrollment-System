@@ -266,7 +266,7 @@ const modalIcon = computed(() => {
             <div class="flex flex-col gap-1">
               <span class="text-xs font-bold text-white/70 uppercase tracking-widest">Calculated Tuition Fee</span>
               <div class="flex gap-xs">
-                <AppBadge :status="displaySummary.mode || displaySummary.status" type="blue"
+                <AppBadge :status="displaySummary.mode || displaySummary.status"
                   class="bg-white/20 text-white border-none" />
               </div>
             </div>

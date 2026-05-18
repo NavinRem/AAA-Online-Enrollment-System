@@ -127,13 +127,13 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
 const allOfferings = computed(() =>
   terms.value.flatMap((term) =>
     (term.offerings || [])
-      .filter((offering) => offering.classId === classData.value?.id)
+      .filter((offering) => String(offering.classId) === String(classData.value?.id))
       .map((offering) => {
         // Resolve branch-specific dates from branchSettings
         let startDate = term.startDate
         let endDate = term.endDate
         if (offering.branchId && term.branchSettings) {
-          const setting = term.branchSettings.find((s) => s.branchId === offering.branchId)
+          const setting = term.branchSettings.find((s) => String(s.branchId) === String(offering.branchId))
           if (setting) {
             startDate = setting.startDate
             endDate = setting.endDate
@@ -149,6 +149,16 @@ const allOfferings = computed(() =>
       }),
   ),
 )
+
+// Audit: Use a lookup map for O(1) offering retrieval to avoid redundant .find() in loops
+const offeringsMap = computed(() => {
+  const map = new Map()
+  allOfferings.value.forEach((o) => {
+    const key = `${o.termId}_${o.branchId}_${o.scheduleId}`
+    map.set(key, o)
+  })
+  return map
+})
 
 // Scoped offerings for metrics based on selected term filter
 const selectedTermOfferings = computed(() => {
@@ -192,7 +202,7 @@ const uniqueBranches = computed(() => {
   selectedTermOfferings.value.forEach((offering) => {
     if (offering.branch?.id) {
       const branchId = offering.branch.id
-      const liveBranch = dataStore.branches.find((b) => b.id === branchId)
+      const liveBranch = dataStore.branches.find((b) => String(b.id) === String(branchId))
 
       if (!branchMap.has(branchId)) {
         branchMap.set(branchId, {
@@ -792,12 +802,12 @@ watch(branchFilter, (newBranchId) => {
                     <div
                       class="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all group-hover/cell:scale-110 shadow-sm border border-outline-std select-none"
                       :class="[
-                        ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)].theme,
+                        ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)]?.theme || ATTENDANCE_STATUS.N.theme,
                         session.date > new Date()
                           ? 'opacity-20 grayscale cursor-not-allowed'
                           : 'cursor-pointer hover:shadow-md',
                       ]">
-                      {{ ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)].label }}
+                      {{ ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)]?.label || 'N' }}
                     </div>
                   </div>
                 </div>

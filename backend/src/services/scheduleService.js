@@ -97,7 +97,11 @@ class ScheduleService {
     const termSnap = await db.collection(COLLECTIONS.TERM).get()
     termSnap.forEach((doc) => {
       const data = doc.data()
-      const offerings = (data.offerings || []).map((offering) =>
+      const offeringsArray = Array.isArray(data.offerings)
+        ? data.offerings
+        : (data.offerings && typeof data.offerings === 'object' ? Object.values(data.offerings) : []);
+
+      const offerings = offeringsArray.map((offering) =>
         offering.scheduleId === scheduleId ? { ...offering, schedule } : offering
       )
       if (JSON.stringify(offerings) !== JSON.stringify(data.offerings || [])) {

@@ -427,18 +427,41 @@ class EnrollmentService {
       }
 
       // Capacity & Student Seat tracking logic
-      if (updates.status && currentData.status !== updates.status) {
-        if (isSeatTaking(updates.status) && !isSeatTaking(currentData.status)) {
+      const isSeatTakingBefore = isSeatTaking(currentData.status)
+      const isSeatTakingAfter = isSeatTaking(updates.status || currentData.status)
+      
+      const prevProgramId = currentData.programId
+      const nextProgramId = validated.programId || currentData.programId
+
+      if (prevProgramId !== nextProgramId) {
+        // If it was seat-taking before, decrement old program
+        if (isSeatTakingBefore) {
+          transaction.update(
+            db.collection(COLLECTIONS.PROGRAM).doc(prevProgramId),
+            {
+              totalEnrolledCount: FieldValue.increment(-1),
+            },
+          )
+        }
+        // If it is seat-taking after, increment new program
+        if (isSeatTakingAfter) {
+          transaction.update(
+            db.collection(COLLECTIONS.PROGRAM).doc(nextProgramId),
+            {
+              totalEnrolledCount: FieldValue.increment(1),
+            },
+          )
+        }
+      } else if (updates.status && currentData.status !== updates.status) {
+        // Normal status transitions if program did not change
+        if (isSeatTakingAfter && !isSeatTakingBefore) {
           transaction.update(
             db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId),
             {
               totalEnrolledCount: FieldValue.increment(1),
             },
           )
-        } else if (
-          !isSeatTaking(updates.status) &&
-          isSeatTaking(currentData.status)
-        ) {
+        } else if (!isSeatTakingAfter && isSeatTakingBefore) {
           transaction.update(
             db.collection(COLLECTIONS.PROGRAM).doc(currentData.programId),
             {

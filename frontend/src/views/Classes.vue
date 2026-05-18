@@ -261,24 +261,31 @@ const activeOfferings = computed(() => {
           })
         }
 
-        const totalCapacity = Array.from(schedulesMap.values()).reduce(
-          (sum, s) => sum + (Number(s.capacity) || 0),
-          0,
-        )
+        const schedules = Array.from(schedulesMap.values()).sort((a, b) => {
+          const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 }
+          const dayA = dayOrder[a.day] || 99
+          const dayB = dayOrder[b.day] || 99
+          if (dayA !== dayB) return dayA - dayB
+          return (a.time || '').localeCompare(b.time || '')
+        })
+
+        const branches = Array.from(branchesMap.values())
+        const branchesText = branches.map((b) => `${b.abbr} ${b.name}`).join(' ')
+        const schedulesText = schedules.map((s) => `${s.day} ${s.time}`).join(' ')
 
         termGroups.set(term.id, {
           id: `group-${product.id}-${term.id}`,
           classProduct: product,
           program,
-          branches: Array.from(branchesMap.values()),
-          schedules: Array.from(schedulesMap.values()),
+          branches,
+          schedules,
           currentCount: totalEnrolled,
           capacity: totalCapacity,
           termStartDate: term.startDate,
           termEndDate: term.endDate,
           termName: term.name,
           termId: term.id,
-          offeringId: termOfferings[0]?.offeringId, // Primary offering ID
+          offeringId: termOfferings[0]?.offeringId,
           offeringIds: termOfferings.map((o) => o.offeringId),
           status: getOfferingStatus({
             termStartDate: term.startDate,
@@ -286,6 +293,8 @@ const activeOfferings = computed(() => {
             currentCount: totalEnrolled,
             capacity: totalCapacity || program?.capacity || DEFAULT_CAPACITY,
           }),
+          // Pre-calculate search text for performance
+          searchText: [product.program?.name, branchesText, schedulesText, term.name].filter(Boolean).join(' ').toLowerCase()
         })
       }
     })
@@ -388,11 +397,7 @@ const getScheduleStatus = (sched, item) => {
 }
 
 const { searchQuery, searchResults } = useSearch(activeOfferings, (o) => {
-  const scheds = getSchedules(o)
-    .map((s) => `${s.day} ${s.time}`)
-    .join(' ')
-  const branchesText = (o.branches || []).map((b) => `${b.abbr} ${b.name}`).join(' ')
-  return [o.program?.name, branchesText, scheds, o.termName].filter(Boolean).join(' ').toLowerCase()
+  return o.searchText || ''
 })
 
 const currentPage = ref(1)
@@ -685,7 +690,7 @@ const navigateToDetail = (item) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[3].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
-                <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
+                <div v-for="sched in getSchedules(item)" :key="sched.id || `${sched.day}-${sched.time}`"
                   class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm">
                   <div class="flex flex-col items-center">
                     <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
@@ -698,7 +703,7 @@ const navigateToDetail = (item) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
-                <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
+                <div v-for="sched in getSchedules(item)" :key="sched.id || `${sched.day}-${sched.time}`"
                   class="h-10 flex items-center justify-center">
                   <!-- Teacher Avatar Stack -->
                   <div v-if="sched.teachers && sched.teachers.length > 0" class="flex -space-x-2">
@@ -720,16 +725,16 @@ const navigateToDetail = (item) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
-                <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
+                <div v-for="sched in getSchedules(item)" :key="sched.id || `${sched.day}-${sched.time}`"
                   class="flex flex-col items-center justify-center h-10">
-                  <AppBadge :status="`${sched.currentCount || 0} / ${sched.capacity || 5}`" type="blue" />
+                  <AppBadge :status="`${sched.currentCount || 0} / ${sched.capacity}`" type="blue" />
                 </div>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
-                <div v-for="(sched, idx) in getSchedules(item)" :key="idx"
+                <div v-for="sched in getSchedules(item)" :key="sched.id || `${sched.day}-${sched.time}`"
                   class="flex items-center justify-center h-10">
                   <AppBadge :status="sched.status || 'upcoming'" />
                 </div>

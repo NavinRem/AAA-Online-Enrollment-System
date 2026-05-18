@@ -131,6 +131,11 @@ const handleActionSubmit = () => {
 
   const payload = JSON.parse(JSON.stringify(localData))
 
+  // Fix: Mapping profileURL to profile for registration handler
+  if (props.type === 'plus') {
+    payload.profile = payload.profileURL
+  }
+
   // Remove UI-only and system-managed fields from backend payload
   const forbidden = ['deleteConfirm', 'id', '_id', 'createdAt', 'updatedAt']
   if (props.type === 'edit') forbidden.push('parentId')
@@ -278,8 +283,8 @@ const { searchResults: filteredParents } = useSearch(activeParents, parentSearch
 
 const selectedParent = computed(() => {
   if (!localData.parentId) return null
-  if (props.user && props.user.id === localData.parentId) return props.user
-  return props.selectableParents?.find((p) => p.id === localData.parentId)
+  if (props.user && String(props.user.id) === String(localData.parentId)) return props.user
+  return props.selectableParents?.find((p) => String(p.id) === String(localData.parentId))
 })
 
 const handleDisabledClick = (field) => {
@@ -564,7 +569,7 @@ watch(
       <AppAlert type="info">
         <div class="flex flex-col gap-0.5">
           <strong class="text-xs font-semibold">Compliance Protocol</strong>
-          <p class="text-3xs opacity-90 font-bold tracking-tighter opacity-70">
+          <p class="text-3xs font-bold tracking-tighter opacity-70">
             User will be required to update credentials upon first session authorization.
           </p>
         </div>

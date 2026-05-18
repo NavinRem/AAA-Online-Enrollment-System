@@ -175,7 +175,11 @@ class ClassService {
 
     termSnap.forEach((termDoc) => {
       const termData = termDoc.data()
-      const offerings = (termData.offerings || []).map((offering) => {
+      const offeringsArray = Array.isArray(termData.offerings)
+        ? termData.offerings
+        : (termData.offerings && typeof termData.offerings === 'object' ? Object.values(termData.offerings) : []);
+
+      const offerings = offeringsArray.map((offering) => {
         if (offering.classId !== classId) return offering
         
         // Find matching schedule in classData to get updated capacity

@@ -17,7 +17,7 @@ defineProps({
 
 <template>
   <div
-    class="bg-white rounded-md p-6 border border-outline-std shadow-sm hover:shadow-md transition-all duration-300 group"
+    class="ui-metric-card bg-white rounded-md p-6 border border-outline-std shadow-sm hover:shadow-md transition-all duration-300 group"
   >
     <div class="flex items-center gap-4">
       <!-- Icon Container -->

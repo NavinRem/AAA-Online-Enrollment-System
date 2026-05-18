@@ -73,9 +73,26 @@ class TermService {
     const globalSeenStudents = new Set()
     const termStatsMap = {}
 
+    // Fetch paid enrollments to aggregate term revenue
+    const enrollmentsSnap = await db.collection(COLLECTIONS.ENROLLMENT)
+      .where('paymentStatus', 'in', ['paid', 'confirmed', 'success'])
+      .get()
+    const enrollments = enrollmentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    const revenueMap = {}
+    enrollments.forEach(e => {
+      const isCancelledOrDeleted = ['cancelled', 'deleted', 'failed'].includes(String(e.status || '').toLowerCase()) || e.isDeleted === true
+      if (e.termId && !isCancelledOrDeleted) {
+        revenueMap[e.termId] = (revenueMap[e.termId] || 0) + (Number(e.amount) || 0)
+      }
+    })
+
     chronTerms.forEach((term) => {
       const studentIds = new Set()
-      ;(term.offerings || []).forEach((offering) => {
+      const offeringsArray = Array.isArray(term.offerings)
+        ? term.offerings
+        : (term.offerings && typeof term.offerings === 'object' ? Object.values(term.offerings) : []);
+
+      offeringsArray.forEach((offering) => {
         ;(offering.students || []).forEach((student) => {
           if (student.id || student.studentId) studentIds.add(student.id || student.studentId)
         })
@@ -89,7 +106,7 @@ class TermService {
       termStatsMap[term.id] = {
         totalStudents: studentIds.size,
         newStudents: newCount,
-        revenue: 0,
+        revenue: revenueMap[term.id] || 0,
       }
 
       studentIds.forEach((studentId) => globalSeenStudents.add(studentId))
@@ -116,16 +133,29 @@ class TermService {
     if (termData.offerings && termData.offerings.length > 0) {
       const enrollmentsSnap = await db.collection('enrollments')
         .where('termId', '==', id)
-        .where('status', 'in', ['active', 'confirmed', 'trial'])
+        .where('status', 'in', ['active', 'confirmed', 'trial', 'paid', 'unpaid', 'success'])
         .get()
       
       const enrollments = enrollmentsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
       
       termData.offerings = termData.offerings.map(off => {
-        const offEnrollments = enrollments.filter(e => 
-          String(e.termOfferingId) === String(off.offeringId) || 
-          (String(e.classId) === String(off.classId) && String(e.branchId) === String(off.branchId))
-        )
+        const offEnrollments = enrollments.filter(e => {
+          // Strict matching: If termOfferingId is provided, it MUST match
+          if (e.termOfferingId) {
+            return String(e.termOfferingId) === String(off.offeringId)
+          }
+          
+          // Fallback matching: If no termOfferingId, match by class and branch
+          const matchesBase = String(e.classId) === String(off.classId) && String(e.branchId) === String(off.branchId)
+          if (!matchesBase) return false
+
+          // Heuristic: Assign unassigned students to the FIRST offering of that class in that branch 
+          // to avoid double counting across multiple schedules.
+          const firstOfferingOfClass = termData.offerings.find(o => 
+            String(o.classId) === String(off.classId) && String(o.branchId) === String(off.branchId)
+          )
+          return firstOfferingOfClass?.offeringId === off.offeringId
+        })
         
         return {
           ...off,
@@ -166,7 +196,7 @@ class TermService {
     }
 
     // 1. Handle Branch Expansion: If branches were added, add offerings for them
-    const addedBranchIds = newBranchIds.filter(bid => !oldBranchIds.includes(bid))
+    const addedBranchIds = newBranchIds.filter(bid => !oldBranchIds.some(oid => String(oid) === String(bid)))
     if (addedBranchIds.length > 0) {
       console.log(`Adding offerings for new branches: ${addedBranchIds.join(', ')}`)
       const newOfferings = await this.buildOfferingsForBranches(addedBranchIds, validatedData.branchSettings)
@@ -178,7 +208,7 @@ class TermService {
     if (removedBranchIds.length > 0) {
       console.log(`Removing offerings for branches: ${removedBranchIds.join(', ')}`)
       validatedData.offerings = (validatedData.offerings || existingTerm.offerings || [])
-        .filter(off => !removedBranchIds.includes(off.branchId))
+        .filter(off => !removedBranchIds.some(rbid => String(rbid) === String(off.branchId)))
     } else {
       validatedData.offerings = validatedData.offerings || existingTerm.offerings || []
     }
@@ -219,7 +249,7 @@ class TermService {
           throw new Error(`A global term named "${name}" already exists.`)
         }
 
-        const overlap = branchIds.find((branchId) => existingBranches.includes(branchId))
+        const overlap = branchIds.find((branchId) => existingBranches.some(ebid => String(ebid) === String(branchId)))
         if (overlap) {
           throw new Error(`Term "${name}" already exists for one of the selected branches.`)
         }
@@ -235,7 +265,7 @@ class TermService {
 
     // If the new term has a specific branch scope, only duplicate offerings for those branches
     if (targetBranchIds.length > 0) {
-      offerings = offerings.filter((off) => targetBranchIds.includes(off.branchId))
+      offerings = offerings.filter((off) => targetBranchIds.some(tbid => String(tbid) === String(off.branchId)))
     }
 
     return offerings.map((offering) => ({
@@ -249,7 +279,7 @@ class TermService {
     }))
   }
 
-  async buildOfferingsForBranches(branchIds, branchSettings = []) {
+  async buildOfferingsForBranches(branchIds) {
     const [classesSnap, branchesSnap] = await Promise.all([
       db.collection(COLLECTIONS.CLASS).get(),
       db.collection(COLLECTIONS.BRANCH).get(),
@@ -258,7 +288,7 @@ class TermService {
     const branches = branchesSnap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .filter((branch) => branch.isDeleted !== true)
-      .filter((branch) => branchIds.length === 0 || branchIds.includes(branch.id))
+      .filter((branch) => branchIds.length === 0 || branchIds.some(bid => String(bid) === String(branch.id)))
 
     const offerings = []
     classesSnap.docs.forEach((classDoc) => {
@@ -299,7 +329,7 @@ class TermService {
 
     const validBranches = branchesSnap.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(b => !b.isDeleted && ids.includes(b.id))
+      .filter(b => !b.isDeleted && ids.some(bid => String(bid) === String(b.id)))
 
     if (validBranches.length === 0) throw new Error('No valid branches found')
 
@@ -367,7 +397,9 @@ class TermService {
       if (!termDoc.exists) throw new Error('Term not found')
 
       const termData = termDoc.data()
-      const offerings = [...(termData.offerings || [])]
+      const offerings = Array.isArray(termData.offerings)
+        ? [...termData.offerings]
+        : (termData.offerings && typeof termData.offerings === 'object' ? Object.values(termData.offerings) : []);
       const index = offerings.findIndex((offering) => offering.offeringId === offeringId)
       if (index === -1) throw new Error('Term offering not found')
 
@@ -412,7 +444,10 @@ class TermService {
 
   async getOffering(termId, offeringId) {
     const term = await this.getTerm(termId)
-    const offering = (term.offerings || []).find((item) => item.offeringId === offeringId)
+    const offeringsArray = Array.isArray(term.offerings)
+      ? term.offerings
+      : (term.offerings && typeof term.offerings === 'object' ? Object.values(term.offerings) : []);
+    const offering = offeringsArray.find((item) => item.offeringId === offeringId)
     if (!offering) throw new Error('Term offering not found')
     return { term, offering }
   }
@@ -428,7 +463,10 @@ class TermService {
     const writes = []
     enrollSnap.forEach((doc) => {
       const enrollment = doc.data()
-      const offering = (termData.offerings || []).find((item) => item.offeringId === enrollment.termOfferingId)
+      const offeringsArray = Array.isArray(termData.offerings)
+        ? termData.offerings
+        : (termData.offerings && typeof termData.offerings === 'object' ? Object.values(termData.offerings) : []);
+      const offering = offeringsArray.find((item) => item.offeringId === enrollment.termOfferingId)
       if (!offering) return
 
       writes.push({

@@ -535,7 +535,7 @@ const confirmSubmit = () => {
               >
                 <img
                   :src="getActionIcon('plus')"
-                  class="w-3 h-3 brightness-0 saturate-100 invert-[30%] sepia-[100%] saturate-[500%] hue-rotate-[240deg]"
+                  class="w-3 h-3 brightness-0 invert-[30%] sepia-[100%] saturate-[500%] hue-rotate-[240deg]"
                 />
                 Manage Master Schedules Catalog
               </button>

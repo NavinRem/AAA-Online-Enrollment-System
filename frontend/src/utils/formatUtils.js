@@ -21,7 +21,11 @@ export const DEFAULT_CAPACITY = 5
  */
 export const parseDate = (val) => {
   if (!val) return new Date(0)
-  if (typeof val === 'object' && 'seconds' in val) return new Date(val.seconds * 1000)
+  if (typeof val === 'object') {
+    if ('seconds' in val) return new Date(val.seconds * 1000)
+    if ('_seconds' in val) return new Date(val._seconds * 1000)
+    if (typeof val.toDate === 'function') return val.toDate()
+  }
   return new Date(val)
 }
 
@@ -56,7 +60,11 @@ export const formatShortDate = (val) => {
   if (!val) return 'N/A'
   const date = parseDate(val)
   if (isNaN(date.getTime())) return 'N/A'
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' })
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = months[date.getMonth()]
+  const year = String(date.getFullYear()).slice(-2)
+  return `${day} ${month} ${year}`
 }
 
 /**
