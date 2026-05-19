@@ -204,4 +204,32 @@ test.describe('Dashboard Management & Analytics View', () => {
     await expect(page.locator('span:has-text("Active Academic Term")')).toBeVisible();
     await expect(page.locator('span:has-text("Active Summer Term")')).toBeVisible();
   });
+
+  test('should display global active academic term (without branch-specific settings) correctly in sidebar', async ({ page }) => {
+    // Override terms route to return a global active term without branchSettings
+    await page.route('**/api/terms**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'term-global-active',
+            name: 'Global Active Term',
+            status: 'active',
+            startDate: '2026-05-01',
+            endDate: '2026-08-31',
+            branchIds: [],
+            totalSessions: 12
+          }
+        ])
+      });
+    });
+
+    // Reload the page to apply the overridden mock
+    await page.goto('/dashboard');
+
+    // Verify it renders the global term panel successfully
+    await expect(page.locator('span:has-text("Active Academic Term")')).toBeVisible();
+    await expect(page.locator('span:has-text("Global Active Term")')).toBeVisible();
+  });
 });
