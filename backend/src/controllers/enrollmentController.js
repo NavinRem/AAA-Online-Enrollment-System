@@ -74,3 +74,22 @@ exports.processPayment = async (req, res) => {
     res.status(400).json({ error: error.message })
   }
 }
+
+exports.getEnrollmentsByParent = async (req, res) => {
+  try {
+    const result = await enrollmentService.getEnrollmentsByParent(req.params.parentId, req.user)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+}
+
+exports.getEnrollmentsByStudent = async (req, res) => {
+  try {
+    const result = await enrollmentService.getEnrollmentsByStudent(req.params.studentId, req.user)
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+}
+

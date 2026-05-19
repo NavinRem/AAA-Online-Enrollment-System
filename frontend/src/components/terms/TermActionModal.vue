@@ -315,14 +315,24 @@ const getBranchSetting = (branchId) => {
   return setting
 }
 
+// Auto-calculate end dates for branch settings reactively to avoid side-effects in render
+watch(
+  () => [localData.branchSettings, localData.totalSessions],
+  () => {
+    if (!localData.branchSettings || !localData.totalSessions) return
+    localData.branchSettings.forEach((setting) => {
+      if (!setting.startDate) return
+      const date = new Date(setting.startDate)
+      date.setDate(date.getDate() + (parseInt(localData.totalSessions) - 1) * 7)
+      setting.endDate = date.toISOString().split('T')[0]
+    })
+  },
+  { deep: true, immediate: true }
+)
+
 const calculateBranchEndDate = (branchId) => {
-  const setting = getBranchSetting(branchId)
-  if (!setting.startDate || !localData.totalSessions) return ''
-  const date = new Date(setting.startDate)
-  date.setDate(date.getDate() + (parseInt(localData.totalSessions) - 1) * 7)
-  const endDate = date.toISOString().split('T')[0]
-  setting.endDate = endDate
-  return endDate
+  const setting = localData.branchSettings?.find((s) => String(s.branchId) === String(branchId))
+  return setting?.endDate || ''
 }
 
 const updateBranchStartDate = (branchId, val) => {

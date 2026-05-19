@@ -8,6 +8,8 @@ router.use(verifyToken)
 // --- CRUD Operations ---
 router.post('/', enrollmentController.createEnrollment)
 router.get('/', isAdmin, enrollmentController.getAllEnrollments)
+router.get('/parent/:parentId', enrollmentController.getEnrollmentsByParent)
+router.get('/student/:studentId', enrollmentController.getEnrollmentsByStudent)
 router.get('/:id', enrollmentController.getEnrollment)
 router.patch('/:id', isAdmin, enrollmentController.updateEnrollment)
 router.delete('/:id', isAdmin, enrollmentController.deleteEnrollment)

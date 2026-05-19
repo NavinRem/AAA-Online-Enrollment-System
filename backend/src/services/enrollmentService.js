@@ -200,6 +200,8 @@ class EnrollmentService {
     // 1. Filtering (Only basic Firestore filters to avoid index issues)
     if (filters.studentId && filters.studentId !== 'undefined')
       query = query.where('studentId', '==', filters.studentId)
+    if (filters.parentId && filters.parentId !== 'undefined')
+      query = query.where('parentId', '==', filters.parentId)
     if (filters.classId && filters.classId !== 'undefined')
       query = query.where('classId', '==', filters.classId)
 
@@ -769,6 +771,32 @@ class EnrollmentService {
     if (!bookedQuery.empty || !walkinQuery.empty) {
       await batch.commit()
     }
+  }
+
+  async getEnrollmentsByParent(parentId, requestingUser = null) {
+    if (
+      requestingUser &&
+      requestingUser.role !== 'admin' &&
+      requestingUser.uid !== parentId
+    ) {
+      throw new Error('Access Denied: You can only view your own enrollments.')
+    }
+    return this.getAllEnrollments({ parentId })
+  }
+
+  async getEnrollmentsByStudent(studentId, requestingUser = null) {
+    const studentDoc = await db.collection(COLLECTIONS.STUDENT).doc(studentId).get()
+    if (!studentDoc.exists) throw new Error('Student not found')
+    const studentData = studentDoc.data()
+
+    if (
+      requestingUser &&
+      requestingUser.role !== 'admin' &&
+      requestingUser.uid !== studentData.parentId
+    ) {
+      throw new Error("Access Denied: You do not have permission to view this student's enrollments.")
+    }
+    return this.getAllEnrollments({ studentId })
   }
 }
 

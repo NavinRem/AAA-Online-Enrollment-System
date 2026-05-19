@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getActionIcon } from '@/utils/assetHelper'
 
@@ -26,7 +27,6 @@ const props = defineProps({
 const router = useRouter()
 const goBack = () => router.push(props.backRoute)
 
-import { computed } from 'vue'
 const flexWidths = computed(() => {
   if (props.sidebarWidth === 'sm') return { main: 'flex-1', side: 'w-full md:w-[320px]' }
   if (props.sidebarWidth === 'lg') return { main: 'flex-1', side: 'w-full md:w-[480px]' }

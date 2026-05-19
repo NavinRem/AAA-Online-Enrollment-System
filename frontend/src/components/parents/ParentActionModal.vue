@@ -27,7 +27,8 @@ const subModalLoading = ref(false)
 const subModalError = ref('')
 const subModalSuccess = ref('')
 
-const getImageUrlLocal = (category, path) => getImageUrl(category, path)
+
+
 
 const props = defineProps({
   isOpen: Boolean,
@@ -321,7 +322,7 @@ watch(
     <div v-if="selectedParent" class="ui-identity-banner mb-lg" :class="parentThemeClasses">
       <div class="ui-identity-avatar-round">
         <img
-          :src="selectedParent.profileURL || getImageUrlLocal('profiles', 'avatar-guest')"
+          :src="selectedParent.profileURL || getImageUrl('profiles', 'avatar-guest')"
           class="w-full h-full object-cover"
         />
       </div>
