@@ -59,5 +59,11 @@ This checklist records our proactive diagnostics and fixes for previously undete
   - *Vulnerability*: Firebase Auth operates in a clean browser context on test startup, meaning it initially yields `null` on `onAuthStateChanged`. This causes the front-end Vue Router navigation guards to instantly redirect `/dashboard`, `/programs/*`, `/terms/*` to the login screen `/`, causing all E2E specs to fail with elements not found.
   - *Resolution*: Implemented a clean mock hook checking for `window.__playwright_mock_auth__`. If set, it immediately triggers the callback with a simulated logged-in user, and mounts the dashboard and all details modules natively under full admin authentication.
 
+### 6. Frontend Term Service Payload Normalization
+- [x] **Audit**: Fetching terms and navigating into Term Detail / Session Management Panels.
+  - *Location*: [`frontend/src/services/termService.js`](file:///home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/services/termService.js)
+  - *Vulnerability*: The backend was hardened with Array conversions, but if the legacy Map schema was still directly emitted from the API, components like `TermDetail.vue`, `ClassDetail.vue`, and various Modal/Panels (e.g., `TermSessionModal.vue`) would crash with a `TypeError: (term.offerings || []).find is not a function` during rendering, completely preventing the UI panels from opening.
+  - *Resolution*: Implemented a `normalizeResponse` interceptor wrapper directly on `termService.js` `getTerm` and `getAllTerms` methods. This ensures any `offerings` property mapped as an object is universally converted to an array `Object.values()` before hitting the Pinia store, hardening all UI panels globally.
+
 ---
 *All audit checks are completed and verified! Every core business logic service is now completely hardened against offerings schema discrepancies.*

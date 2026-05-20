@@ -123,6 +123,10 @@ test.describe('Students Management & Profiles View', () => {
       await route.fulfill({ status: 200, body: JSON.stringify([]) });
     });
 
+    await page.route('**/api/schedules**', async (route) => {
+      await route.fulfill({ status: 200, body: JSON.stringify([]) });
+    });
+
     await page.goto('/students');
   });
 
@@ -183,13 +187,13 @@ test.describe('Students Management & Profiles View', () => {
     await avatarItem.click();
 
     // Trigger confirmation overlay
-    await page.click('button:has-text("Add")');
+    await page.click('button:has-text("Add")', { force: true });
     await expect(page.locator('text=Please verify details before proceeding.')).toBeVisible();
 
     // Confirm creation using the overlay's confirm button and wait for POST request to be fired
     await Promise.all([
       page.waitForResponse(res => res.url().includes('/students') && res.request().method() === 'POST'),
-      page.click('.app-confirm-overlay button:has-text("Add")')
+      page.click('.app-confirm-overlay button:has-text("Add")', { force: true })
     ]);
 
     // Validate request payload

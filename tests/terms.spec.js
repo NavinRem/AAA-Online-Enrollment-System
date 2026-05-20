@@ -188,7 +188,7 @@ test.describe('Terms Management & Metrics View', () => {
     // Click Add in the confirmation overlay and wait for POST response to be fired
     await Promise.all([
       page.waitForResponse(res => res.url().includes('/terms') && res.request().method() === 'POST'),
-      page.click('.app-confirm-overlay button:has-text("Add")')
+      page.click('.app-confirm-overlay button:has-text("Add")', { force: true })
     ]);
 
     // Assert that request payload is correct

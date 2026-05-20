@@ -170,7 +170,9 @@ test.describe('Dashboard Management & Analytics View', () => {
       await route.fulfill({ status: 200, body: JSON.stringify([]) });
     });
 
+    const termsPromise = page.waitForResponse('**/api/terms**');
     await page.goto('/dashboard');
+    await termsPromise;
   });
 
   test('should render the today summary and weekly metrics correctly', async ({ page }) => {
@@ -226,10 +228,109 @@ test.describe('Dashboard Management & Analytics View', () => {
     });
 
     // Reload the page to apply the overridden mock
+    const responsePromise = page.waitForResponse('**/api/terms**');
     await page.goto('/dashboard');
+    await responsePromise;
 
     // Verify it renders the global term panel successfully
     await expect(page.locator('span:has-text("Active Academic Term")')).toBeVisible();
     await expect(page.locator('span:has-text("Global Active Term")')).toBeVisible();
+  });
+
+  test('should display branch-specific archived and active terms with correct styles and handle upcoming terms', async ({ page }) => {
+    // Override terms route to return:
+    // 1. A partially archived active term (Main Campus MC is archived, West Campus WC is active)
+    // 2. An upcoming term starting in the future
+    await page.route('**/api/terms**', async (route) => {
+      const today = new Date();
+      
+      const archivedEndDate = new Date();
+      archivedEndDate.setDate(today.getDate() - 10); // 10 days ago
+      
+      const activeEndDate = new Date();
+      activeEndDate.setDate(today.getDate() + 30); // 30 days from now
+
+      const upcomingStartDate = new Date();
+      upcomingStartDate.setDate(today.getDate() + 60); // 60 days from now
+      const upcomingEndDate = new Date();
+      upcomingEndDate.setDate(today.getDate() + 90); // 90 days from now
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'term-partially-archived',
+            name: 'Term 1 - Partial',
+            status: 'active',
+            startDate: '2026-01-01',
+            endDate: activeEndDate.toISOString().split('T')[0],
+            branchIds: [branchId1, branchId2],
+            totalSessions: 12,
+            branchSettings: [
+              { 
+                branchId: branchId1, 
+                startDate: '2026-01-01', 
+                endDate: archivedEndDate.toISOString().split('T')[0] 
+              },
+              { 
+                branchId: branchId2, 
+                startDate: '2026-01-01', 
+                endDate: activeEndDate.toISOString().split('T')[0] 
+              }
+            ]
+          },
+          {
+            id: 'term-upcoming',
+            name: 'Term 2 - Future',
+            status: 'upcoming',
+            startDate: upcomingStartDate.toISOString().split('T')[0],
+            endDate: upcomingEndDate.toISOString().split('T')[0],
+            branchIds: [branchId1],
+            totalSessions: 12,
+            branchSettings: [
+              {
+                branchId: branchId1,
+                startDate: upcomingStartDate.toISOString().split('T')[0],
+                endDate: upcomingEndDate.toISOString().split('T')[0]
+              }
+            ]
+          }
+        ])
+      });
+    });
+
+    // Reload the page to apply the overridden mock
+    const responsePromise = page.waitForResponse('**/api/terms**');
+    await page.goto('/dashboard');
+    await responsePromise;
+
+    // 1. Verify Term 1 (Partial) renders first
+    await expect(page.locator('span:has-text("Active Academic Term")')).toBeVisible();
+    await expect(page.locator('span:has-text("Term 1 - Partial")')).toBeVisible();
+
+    // Scope to the specific Academic Term card container
+    const termCard = page.locator('.relative.overflow-hidden', { hasText: 'Academic Term' });
+
+    // 2. Verify archived vs active branch setting styles
+    // The group for branchId1 (Main Campus / MC) is archived, so it should have the 'bg-surface-subtle' and 'opacity-60' classes
+    const mcGroup = termCard.locator('div[class*="pb-3"], div[class*="last:pb-0"]', { has: page.locator('span', { hasText: 'MC' }) }).first();
+    const archivedGroup = mcGroup.locator('div.rounded-full');
+    await expect(archivedGroup).toHaveClass(/bg-surface-subtle/);
+    await expect(archivedGroup).toHaveClass(/opacity-60/);
+
+    // The group for branchId2 (West Campus / WC) is active, so it should not be muted/archived
+    const wcGroup = termCard.locator('div[class*="pb-3"], div[class*="last:pb-0"]', { has: page.locator('span', { hasText: 'WC' }) }).first();
+    const activeGroup = wcGroup.locator('div.rounded-full');
+    await expect(activeGroup).not.toHaveClass(/bg-surface-subtle/);
+    await expect(activeGroup).not.toHaveClass(/opacity-60/);
+
+    // 3. Verify cycling transition (runs every 5 seconds)
+    // Wait for the term to cycle to "Term 2 - Future"
+    await page.waitForTimeout(6000);
+
+    // 4. Verify Term 2 (Upcoming) is now displayed
+    await expect(page.locator('span:has-text("Upcoming Academic Term")')).toBeVisible();
+    await expect(page.locator('span:has-text("Term 2 - Future")')).toBeVisible();
   });
 });

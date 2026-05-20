@@ -7,10 +7,12 @@
   ],
   "scripts": {
     "lint": "eslint . --fix",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:components": "playwright test -c playwright-ct.config.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/experimental-ct-vue": "^1.49.1",
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.8.0",
     "eslint": "^10.2.0",

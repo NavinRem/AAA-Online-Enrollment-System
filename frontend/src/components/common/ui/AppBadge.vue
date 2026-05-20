@@ -24,7 +24,7 @@ const displayLabel = computed(() => {
   // Capitalize first letter of each word
   return val
     .split(' ')
-    .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(' ')
 })
 </script>

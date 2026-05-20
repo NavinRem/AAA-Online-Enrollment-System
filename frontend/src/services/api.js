@@ -31,7 +31,8 @@ export async function request(endpoint, options = {}) {
   }
 
   const cacheKey = url
-  if (method === 'GET' && !options.skipCache) {
+  const skipCache = options.skipCache || (typeof globalThis !== 'undefined' && globalThis.__playwright_mock_auth__)
+  if (method === 'GET' && !skipCache) {
     const cached = getCachedData(cacheKey)
     if (cached) return cached
   }
@@ -68,6 +69,7 @@ export async function request(endpoint, options = {}) {
   const fetchOptions = {
     ...options,
     headers,
+    ...(skipCache ? { cache: 'no-store' } : {}),
   }
 
   const response = await fetch(url, fetchOptions)
@@ -98,9 +100,9 @@ export async function request(endpoint, options = {}) {
     throw error
   }
 
-  if (method === 'GET') {
+  if (method === 'GET' && !skipCache) {
     setCachedData(cacheKey, responseData)
-  } else {
+  } else if (method !== 'GET') {
     const resourceBase = endpoint.split('/')[1]
     if (resourceBase) {
       clearCachePrefix(`/${resourceBase}`)

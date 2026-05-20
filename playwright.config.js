@@ -15,6 +15,8 @@ import process from 'node:process';
  */
 export default defineConfig({
   testDir: './tests',
+  /* Exclude component tests from E2E runs */
+  testIgnore: 'components/**',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

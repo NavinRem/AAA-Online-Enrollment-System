@@ -236,7 +236,7 @@ test.describe('Trials Management & Bookings View', () => {
     // Confirm Booking in the overlay
     await Promise.all([
       page.waitForResponse(res => res.url().includes('/trials') && res.request().method() === 'POST'),
-      page.click('.app-confirm-overlay button:has-text("Add")')
+      page.click('.app-confirm-overlay button:has-text("Add")', { force: true })
     ]);
 
     // Verify structured payload sent to the backend

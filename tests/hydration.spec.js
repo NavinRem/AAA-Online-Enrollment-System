@@ -87,12 +87,30 @@ test.describe('Component Hydration Resilience & Defensive Rendering Tests', () =
 
     // Mock Parents & Students
     await page.route('**/api/parents**', async (route) => {
+      const url = route.request().url();
+      if (url.endsWith('/api/parents') || url.includes('/api/parents?')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([
+            { id: parentId, name: 'John Smith', phone: '0123456789', email: 'john@smith.com', status: 'Active' }
+          ])
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: parentId, name: 'John Smith', phone: '0123456789', email: 'john@smith.com', status: 'Active' })
+        });
+      }
+    });
+
+    // Mock Tracking (Attendance History)
+    await page.route('**/api/tracking/**', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([
-          { id: parentId, name: 'John Smith', phone: '0123456789', email: 'john@smith.com', status: 'Active' }
-        ])
+        body: JSON.stringify([])
       });
     });
 

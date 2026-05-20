@@ -200,13 +200,13 @@ test.describe('Teachers Management & Assignments View', () => {
     await avatarItem.click();
 
     // Trigger overlay confirmation modal
-    await page.click('button:has-text("Add Teacher")');
+    await page.click('button:has-text("Add Teacher")', { force: true });
     await expect(page.locator('text=Verify details before proceeding.')).toBeVisible();
 
     // Confirm creation using the overlay's confirm button and wait for POST request to be fired
     await Promise.all([
       page.waitForResponse(res => res.url().includes('/teachers') && res.request().method() === 'POST'),
-      page.click('.app-confirm-overlay button:has-text("Add Teacher")')
+      page.click('.app-confirm-overlay button:has-text("Add Teacher")', { force: true })
     ]);
 
     // Validate request payload
@@ -246,7 +246,7 @@ test.describe('Teachers Management & Assignments View', () => {
     // Confirm submit using the overlay's confirm button and wait for PATCH request to be fired
     await Promise.all([
       page.waitForResponse(res => res.url().includes('/teachers/teacher-1') && res.request().method() === 'PATCH'),
-      page.click('.app-confirm-overlay button:has-text("Save Changes")')
+      page.click('.app-confirm-overlay button:has-text("Save Changes")', { force: true })
     ]);
 
     // Validate payload

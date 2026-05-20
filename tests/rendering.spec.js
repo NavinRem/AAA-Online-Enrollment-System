@@ -61,35 +61,17 @@ test.describe('Frontend Rendering Vulnerability & Type Coercion Safety', () => {
       })
     })
 
-    // Mock single program explicitly to guarantee match without glob conflicts
-    await page.route('**/api/programs/test-program-mixed', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          id: 'test-program-mixed',
-          name: 'Coerced AI Class',
-          categoryId: '101', // Stringified numeric ID matching category.id = 101
-          category: 'Robotics',
-          levelId: 201,
-          type: 'Group',
-          basePrice: 350,
-          totalSessions: 10,
-          duration: 90,
-          minAge: 8,
-          maxAge: 16,
-        }),
-      })
-    })
-
-    // Mock list of programs explicitly
-    await page.route('**/api/programs', async (route) => {
-      if (route.request().method() === 'GET') {
-        await route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify([
-            {
+    // Mock Programs (handles both list and detail precisely)
+    await page.route(url => url.pathname.includes('/api/programs'), async (route) => {
+      const urlStr = route.request().url()
+      const method = route.request().method()
+      
+      if (method === 'GET') {
+        if (urlStr.endsWith('/api/programs/test-program-mixed')) {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
               id: 'test-program-mixed',
               name: 'Coerced AI Class',
               categoryId: '101',
@@ -97,12 +79,41 @@ test.describe('Frontend Rendering Vulnerability & Type Coercion Safety', () => {
               levelId: 201,
               type: 'Group',
               basePrice: 350,
-            },
-          ]),
-        })
+              totalSessions: 10,
+              duration: 90,
+              minAge: 8,
+              maxAge: 16,
+            }),
+          })
+        } else {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify([
+              {
+                id: 'test-program-mixed',
+                name: 'Coerced AI Class',
+                categoryId: '101',
+                category: 'Robotics',
+                levelId: 201,
+                type: 'Group',
+                basePrice: 350,
+              },
+            ]),
+          })
+        }
       } else {
         await route.continue()
       }
+    })
+
+    // Mock Schedules
+    await page.route('**/api/schedules**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      })
     })
 
     // Mock Enrollments
