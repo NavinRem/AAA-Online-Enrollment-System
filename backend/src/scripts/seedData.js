@@ -12,6 +12,7 @@ const { validateEnrollment } = require('../validators/enrollmentValidator')
 const { validateAdmin } = require('../validators/adminValidator')
 const { validatePayment } = require('../validators/paymentValidator')
 const { validateTrial } = require('../validators/trialValidator')
+const { validateSchedule } = require('../validators/scheduleValidator')
 const profileHelper = require('../utils/profileHelper')
 
 /**
@@ -120,6 +121,8 @@ async function seedData() {
     console.log('Step 3: Industry Mentors')
     const teacherData = {
       name: 'Sarah Spark',
+      email: 'sarah.spark@example.com',
+      status: 'active',
       profileURL:
         'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1974',
     }
@@ -168,44 +171,40 @@ async function seedData() {
       progSnapshots.push(profileHelper.getProgramSnapshot(ref.id, validated))
     }
 
-    // 5. Term
-    console.log('Step 5: Academic Term')
-    const termSpec = {
-      name: 'Winter Quarter 2026',
-      startDate: '2026-01-05',
-      endDate: '2026-03-25',
-      status: 'active',
+    // 5. Schedules (Independent Module)
+    console.log('Step 5: Master Schedules')
+    const scheduleSpecs = [
+      { day: 'Tuesday', time: '18:00 - 20:30' },
+      { day: 'Thursday', time: '18:00 - 20:30' }
+    ]
+    const scheduleRefs = []
+    const scheduleSnapshots = []
+    for (const spec of scheduleSpecs) {
+      const validated = validateSchedule(spec)
+      const ref = await db.collection(COLLECTIONS.SCHEDULE).add(validated)
+      scheduleRefs.push(ref)
+      scheduleSnapshots.push({ id: ref.id, day: spec.day, time: spec.time, capacity: 20, status: 'active' })
     }
-    const termRef = await db
-      .collection(COLLECTIONS.TERM)
-      .add(validateTerm(termSpec))
-    const termSnapshot = profileHelper.getTermSnapshot(termRef.id, termSpec)
 
-    // 6. Classes (The Operational Units)
-    console.log('Step 6: Specialized Classes')
+    // 6. Classes (The Product Units)
+    console.log('Step 6: Specialized Classes (Products)')
     const classRefs = []
     const classSnapshots = []
 
     for (let i = 0; i < progSnapshots.length; i++) {
       const progSnap = progSnapshots[i]
+      const targetScheduleSnap = scheduleSnapshots[i]
       const classDataSpec = {
         programId: progSnap.id,
-        termId: termRef.id,
-        branchId: bRef.id,
-        teacherId: tRef.id,
-        schedules: [
-          { day: i === 0 ? 'Tuesday' : 'Thursday', timeslot: '18:00 - 20:30' },
-        ],
-        maxCapacity: 12,
-        enrolledCount: 0,
+        scheduleIds: [targetScheduleSnap.id],
+        schedulesData: [targetScheduleSnap],
+        status: 'active'
       }
       const validatedClassBase = validateClass(classDataSpec)
       const finalClassData = {
         ...validatedClassBase,
         program: progSnap,
-        term: termSnapshot,
-        branch: branchSnapshot,
-        teacher: teacherSnapshot,
+        schedules: [targetScheduleSnap]
       }
       const cRef = await db.collection(COLLECTIONS.CLASS).add(finalClassData)
       classRefs.push(cRef)
@@ -214,8 +213,58 @@ async function seedData() {
       )
     }
 
-    // 7. Enrollment Chain
-    console.log('Step 7: Enrollment Chain')
+    // 7. Term and Offerings
+    console.log('Step 7: Academic Term & Offerings')
+    const offerings = classRefs.map((cRef, idx) => {
+        const progSnap = progSnapshots[idx]
+        const schedSnap = scheduleSnapshots[idx]
+        
+        return {
+            offeringId: db.collection(COLLECTIONS.TERM).doc().id, // Generate random ID for offering
+            classId: cRef.id,
+            program: progSnap,
+            branchId: bRef.id,
+            branch: branchSnapshot,
+            scheduleId: schedSnap.id,
+            schedule: schedSnap,
+            teacherId: tRef.id,
+            teacher: teacherSnapshot,
+            capacity: 20,
+            currentCount: 0,
+            students: [],
+            status: 'active'
+        }
+    })
+
+    const termSpec = {
+      name: 'Winter Quarter 2026',
+      startDate: '2026-01-05',
+      endDate: '2026-03-25',
+      totalSessions: 11,
+      status: 'active',
+      branchIds: [bRef.id],
+      branchSettings: [{
+        branchId: bRef.id,
+        startDate: '2026-01-05',
+        endDate: '2026-03-25',
+        status: 'active'
+      }],
+      offerings
+    }
+    const validatedTerm = validateTerm(termSpec)
+    const termRef = await db
+      .collection(COLLECTIONS.TERM)
+      .add(validatedTerm)
+    const termSnapshot = {
+        id: termRef.id,
+        name: termSpec.name,
+        startDate: termSpec.startDate,
+        endDate: termSpec.endDate,
+        totalSessions: 11
+    }
+
+    // 8. Enrollment Chain
+    console.log('Step 8: Enrollment Chain')
     const parentData = {
       name: 'Alice Parent',
       email: 'alice@example.com',
@@ -241,38 +290,58 @@ async function seedData() {
       studentData,
     )
 
-    // Enroll Leo in ALL classes to verify deep cascading
-    for (let i = 0; i < classRefs.length; i++) {
+    // Enroll Leo in ALL offerings
+    for (let i = 0; i < offerings.length; i++) {
+      const currentOffering = offerings[i]
       const enrollmentData = {
         parentId: pRef.id,
         studentId: sRef.id,
-        classId: classRefs[i].id,
-        branchId: bRef.id,
-        enrolledSessions: 32,
+        programId: currentOffering.program.id,
+        classId: currentOffering.classId,
+        termId: termRef.id,
+        termOfferingId: currentOffering.offeringId,
+        enrolledSessions: 11,
         amount: 450,
         status: 'confirmed',
         paymentStatus: 'paid',
         enrollmentType: 'New',
-        parent: parentSnapshot,
-        student: studentSnapshot,
-        class: classSnapshots[i],
-        enrollAt: new Date().toISOString(),
+        enrollAt: new Date().toISOString().split('T')[0],
       }
+      
+      const specificTermSnapshot = { ...termSnapshot, offeringId: currentOffering.offeringId }
+      const specificClassSnapshot = profileHelper.getClassSnapshot(currentOffering.classId, {
+            program: currentOffering.program,
+            branch: currentOffering.branch,
+            schedule: currentOffering.schedule,
+            term: specificTermSnapshot,
+            status: 'active'
+      })
+
       const validatedEnroll = validateEnrollment(enrollmentData)
       const finalEnroll = {
         ...validatedEnroll,
         parent: parentSnapshot,
         student: studentSnapshot,
-        class: classSnapshots[i],
+        class: specificClassSnapshot,
+        term: specificTermSnapshot
       }
       const eRef = await db.collection(COLLECTIONS.ENROLLMENT).add(finalEnroll)
-      await db
-        .collection(COLLECTIONS.CLASS)
-        .doc(classRefs[i].id)
-        .update({ enrolledCount: 1 })
 
-      // 8. Payment (Linked to Enrollment)
-      console.log(`Step 8: Payment for Enrollment ${eRef.id}`)
+      // Add student to offering
+      currentOffering.students.push({
+          id: sRef.id,
+          studentId: sRef.id,
+          name: studentData.name,
+          profileURL: studentData.profileURL || '',
+          status: 'active',
+          paymentStatus: 'paid',
+          enrollmentId: eRef.id,
+          enrolledAt: finalEnroll.enrollAt
+      })
+      currentOffering.currentCount = 1
+
+      // 9. Payment (Linked to Enrollment)
+      console.log(`Step 9: Payment for Enrollment ${eRef.id}`)
       const paymentData = {
         enrollmentId: eRef.id,
         parentId: pRef.id,
@@ -284,12 +353,18 @@ async function seedData() {
       }
       await db.collection(COLLECTIONS.PAYMENT).add(validatePayment(paymentData))
     }
+    
+    // Update Term with the populated students
+    await db.collection(COLLECTIONS.TERM).doc(termRef.id).update({
+        offerings
+    })
 
-    // 9. Trial Request
-    console.log('Step 9: Trial Request')
+    // 10. Trial Request
+    console.log('Step 10: Trial Request')
     const trialData = {
       studentId: sRef.id,
       parentId: pRef.id,
+      programId: classSnapshots[0].program.id,
       classId: classRefs[0].id,
       trialDate: new Date(Date.now() + 86400000 * 2)
         .toISOString()
@@ -301,11 +376,11 @@ async function seedData() {
 
     console.log('\n✨ CASCADING PURE STATE ACHIEVED!')
     console.log(
-      'Logical Integrity: Category -> Program (String) -> Class (Snapshot) -> Enrollment (Snapshot).',
+      'Logical Integrity: Category -> Program (String) -> Class (Product) -> Term Offering -> Enrollment.',
     )
     process.exit(0)
   } catch (error) {
-    console.error('\n❌ Seeding Failed:', error.message)
+    console.error('\n❌ Seeding Failed:', error.stack || error.message)
     process.exit(1)
   }
 }
