@@ -629,9 +629,9 @@ watch(
     :error="subModalError"
     :success="subModalSuccess"
     @close="
-      showNewParentSubModal = false
-      subModalError = ''
-      subModalSuccess = ''
+      showNewParentSubModal = false;
+      subModalError = '';
+      subModalSuccess = '';
     "
     @submit="handleInlineParentSubmit"
   />

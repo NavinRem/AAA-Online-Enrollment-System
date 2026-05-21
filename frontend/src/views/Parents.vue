@@ -446,7 +446,6 @@ const handleRowAction = (type, item, closeMenu) => {
               activeMenuId,
               isMenuAbove,
               menuStyles,
-              handleAction,
               closeMenu,
             }"
           >
@@ -684,9 +683,9 @@ const handleRowAction = (type, item, closeMenu) => {
       :error="errorMessage"
       :success="successMessage"
       @close="
-        showNewParentModal = false
-        errorMessage = ''
-        successMessage = ''
+        showNewParentModal = false;
+        errorMessage = '';
+        successMessage = '';
       "
       @submit="submitNewParent"
     />

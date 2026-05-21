@@ -532,8 +532,8 @@ const handleDelete = async (item) => {
                       <button
                         class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="
-                          openModal('edit', item)
-                          closeMenu()
+                          openModal('edit', item);
+                          closeMenu();
                         "
                       >
                         <img
@@ -548,8 +548,8 @@ const handleDelete = async (item) => {
                       <button
                         class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="
-                          handleDelete(item)
-                          closeMenu()
+                          handleDelete(item);
+                          closeMenu();
                         "
                       >
                         <img

@@ -68,6 +68,14 @@ export default [
     },
   },
 
+  // Views Configuration (Allow single-word page components)
+  {
+    files: ['frontend/src/views/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
   // Node.js Configuration (Backend/Functions)
   {
     files: ['backend/**/*.js'],

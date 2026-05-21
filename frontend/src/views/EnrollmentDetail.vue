@@ -459,9 +459,9 @@ onMounted(async () => {
       :error="modalError"
       :success="modalSuccess"
       @close="
-        showFormModal = false
-        modalError = ''
-        modalSuccess = ''
+        showFormModal = false;
+        modalError = '';
+        modalSuccess = '';
       "
       @program-change="handleProgramChange"
       @submit="handleEditSubmit"

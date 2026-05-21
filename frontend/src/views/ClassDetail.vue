@@ -870,7 +870,7 @@ watch(branchFilter, (newBranchId) => {
                     <select
                       :value="getAttendanceStatus(session.id, item.studentId)"
                       @change="
-                        updateAttendanceStatus(session.id, item.studentId, $event.target.value)
+                        updateAttendanceStatus(session.id, item.studentId, $event.target.value);
                       "
                       class="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
                       :disabled="session.date > new Date()"

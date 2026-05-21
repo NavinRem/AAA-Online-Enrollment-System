@@ -37,7 +37,7 @@ const getInitialData = () => ({
   paymentStatus: 'paid',
 })
 
-const { localData, isDirty, errors, shaking, clearError, validate, submitForm } = useActionModal(
+const { localData, isDirty, errors, shaking, clearError, validate } = useActionModal(
   props,
   emit,
   {
@@ -71,18 +71,6 @@ const getValidationRules = () => {
   }
   return rules
 }
-
-const isSubmittable = computed(() => {
-  if (props.type === 'pay') {
-    const hasProof = !!localData.proof?.trim()
-    const hasBank =
-      props.type === 'pay' && localData.paymentMethod === 'online' ? !!localData.bankName : true
-    return hasProof && hasBank
-  }
-  if (props.type === 'cancel') return !!localData.reason?.trim()
-  if (props.type === 'delete') return localData.deleteConfirm === 'DELETE'
-  return isDirty.value
-})
 
 const requestConfirm = () => {
   const rules = getValidationRules()
@@ -438,8 +426,8 @@ const modalIcon = computed(() => {
             :shake="shaking.reason"
             placeholder="Provide a detailed cancel reason..."
             @input="
-              activePreset = ''
-              clearError('reason')
+              activePreset = '';
+              clearError('reason');
             "
           />
         </div>
