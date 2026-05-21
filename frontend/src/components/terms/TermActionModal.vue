@@ -131,7 +131,7 @@ const requestConfirm = () => {
         if (props.type === 'delete') return true
         if (val) return true
         return 'Start Date is required'
-      }
+      },
     },
   }
 
@@ -327,7 +327,7 @@ watch(
       setting.endDate = date.toISOString().split('T')[0]
     })
   },
-  { deep: true, immediate: true }
+  { deep: true, immediate: true },
 )
 
 const calculateBranchEndDate = (branchId) => {
@@ -394,9 +394,7 @@ watch(
             <label
               class="text-sm font-semibold text-content-dark flex items-center justify-between gap-1"
             >
-              <div class="flex items-center gap-1">
-                Branch Scope
-              </div>
+              <div class="flex items-center gap-1">Branch Scope</div>
               <button
                 type="button"
                 @click="toggleAllBranches"
@@ -406,7 +404,11 @@ watch(
               </button>
             </label>
 
-            <div class="relative group" ref="dropdownContainer" :class="{ 'animate-shake': shaking.branchIds }">
+            <div
+              class="relative group"
+              ref="dropdownContainer"
+              :class="{ 'animate-shake': shaking.branchIds }"
+            >
               <div
                 @click="isBranchDropdownOpen = !isBranchDropdownOpen"
                 class="w-full px-4 py-3 border-2 border-outline-std rounded-sm bg-white text-base outline-none transition-all hover:border-primary/50 cursor-pointer flex items-center justify-between min-h-[50px]"
@@ -449,14 +451,18 @@ watch(
               >
                 <div
                   v-if="isBranchDropdownOpen"
-                  class="absolute z-[100] mt-2 w-full bg-white border-2 border-outline-std rounded-sm shadow-2xl overflow-hidden max-h-[250px] flex flex-col"
+                  class="absolute z-50 mt-2 w-full bg-white border-2 border-outline-std rounded-sm shadow-2xl overflow-hidden max-h-[250px] flex flex-col"
                 >
                   <div class="flex flex-col overflow-y-auto scrollable-v p-2 gap-1">
                     <label
                       v-for="branch in branches"
                       :key="branch.id"
                       class="flex items-center justify-between gap-3 p-3 rounded-lg cursor-pointer transition-all hover:bg-surface-subtle group"
-                      :class="{ 'bg-primary/5': localData.branchIds.some(bid => String(bid) === String(branch.id)) }"
+                      :class="{
+                        'bg-primary/5': localData.branchIds.some(
+                          (bid) => String(bid) === String(branch.id),
+                        ),
+                      }"
                     >
                       <span
                         class="text-sm font-semibold text-content-dark truncate tracking-tight"
@@ -643,7 +649,7 @@ watch(
         @confirm="handleActionSubmit"
       >
         <template #row-Scope>
-          <div class="flex flex-wrap justify-end gap-1 max-w-[200px]">
+          <div class="flex flex-wrap justify-end gap-1 max-w-52">
             <template v-if="localData.branchIds.length > 0">
               <AppBadge
                 v-for="id in localData.branchIds"
@@ -660,11 +666,7 @@ watch(
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
-        <AppAlert
-          v-if="type === 'edit' && !isDirty"
-          type="info"
-          class="w-full"
-        >
+        <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
 

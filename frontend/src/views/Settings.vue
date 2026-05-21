@@ -253,16 +253,22 @@ const handleDelete = async (item) => {
         <!-- GENERAL SYSTEM & THEME SETTINGS -->
         <div v-if="activeTab === 'general'" class="p-xl flex flex-col gap-xl">
           <div class="flex flex-col gap-xs border-b border-surface-light pb-md">
-            <h3 class="text-xl font-bold text-content-dark">General Customization & Theme Adjustments</h3>
-            <p class="text-sm text-content-muted">Fine-tune the brand identity, default operational settings, and system-wide appearance presets.</p>
+            <h3 class="text-xl font-bold text-content-dark">
+              General Customization & Theme Adjustments
+            </h3>
+            <p class="text-sm text-content-muted">
+              Fine-tune the brand identity, default operational settings, and system-wide appearance
+              presets.
+            </p>
           </div>
 
           <form @submit.prevent="saveGeneralSettings" class="flex flex-col gap-xl">
             <!-- 2 Column Grid -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-xl">
-              
               <!-- Left Column: Academy Brand Profile -->
-              <div class="flex flex-col gap-md bg-surface-subtle p-xl rounded-2xl border border-black/5">
+              <div
+                class="flex flex-col gap-md bg-surface-subtle p-xl rounded-2xl border border-black/5"
+              >
                 <h4 class="text-md font-bold text-content-dark flex items-center gap-sm">
                   <span class="w-2 h-5 rounded bg-primary"></span>
                   Academy Brand Profile
@@ -300,7 +306,9 @@ const handleDelete = async (item) => {
               </div>
 
               <!-- Right Column: Operational Parameters -->
-              <div class="flex flex-col gap-md bg-surface-subtle p-xl rounded-2xl border border-black/5">
+              <div
+                class="flex flex-col gap-md bg-surface-subtle p-xl rounded-2xl border border-black/5"
+              >
                 <h4 class="text-md font-bold text-content-dark flex items-center gap-sm">
                   <span class="w-2 h-5 rounded bg-primary"></span>
                   Operational Parameters
@@ -315,7 +323,7 @@ const handleDelete = async (item) => {
                       { id: 'completed', name: 'Completed / Handled' },
                     ]"
                   />
-                  
+
                   <AppInput
                     v-model.number="generalSettings.maxWeeklySessions"
                     type="number"
@@ -325,29 +333,45 @@ const handleDelete = async (item) => {
                   />
 
                   <!-- Switch Toggle -->
-                  <div class="flex items-center justify-between p-4 rounded-xl bg-white border border-outline-std shadow-sm mt-sm">
+                  <div
+                    class="flex items-center justify-between p-4 rounded-xl bg-white border border-outline-std shadow-sm mt-sm"
+                  >
                     <div class="flex flex-col gap-0.5">
-                      <span class="text-sm font-semibold text-content-dark">Parent Self-Registration</span>
-                      <span class="text-xs text-content-muted">Allow parents to create accounts and enroll students online.</span>
+                      <span class="text-sm font-semibold text-content-dark"
+                        >Parent Self-Registration</span
+                      >
+                      <span class="text-xs text-content-muted"
+                        >Allow parents to create accounts and enroll students online.</span
+                      >
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" v-model="generalSettings.allowParentRegistration" class="sr-only peer" />
-                      <div class="w-11 h-6 bg-content-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-std after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                      <input
+                        type="checkbox"
+                        v-model="generalSettings.allowParentRegistration"
+                        class="sr-only peer"
+                      />
+                      <div
+                        class="w-11 h-6 bg-content-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-std after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
+                      ></div>
                     </label>
                   </div>
                 </div>
               </div>
-
             </div>
 
             <!-- Theme Accent Palette Picker -->
-            <div class="flex flex-col gap-md bg-surface-subtle p-xl rounded-2xl border border-black/5">
+            <div
+              class="flex flex-col gap-md bg-surface-subtle p-xl rounded-2xl border border-black/5"
+            >
               <h4 class="text-md font-bold text-content-dark flex items-center gap-sm">
                 <span class="w-2 h-5 rounded bg-primary"></span>
                 System Accent Color & Theme Customization
               </h4>
-              <p class="text-xs text-content-muted -mt-xs">Select your preferred highlight color to customize the entire administrative interface dynamically.</p>
-              
+              <p class="text-xs text-content-muted -mt-xs">
+                Select your preferred highlight color to customize the entire administrative
+                interface dynamically.
+              </p>
+
               <div class="grid grid-cols-2 sm:grid-cols-5 gap-sm mt-xs">
                 <button
                   v-for="preset in themePresets"
@@ -355,20 +379,39 @@ const handleDelete = async (item) => {
                   type="button"
                   @click="generalSettings.themeAccent = preset.id"
                   class="p-md rounded-xl border-2 text-left transition-all duration-300 hover:scale-[1.03] flex flex-col gap-2 relative group"
-                  :style="generalSettings.themeAccent === preset.id ? { borderColor: preset.primary, backgroundColor: preset.primary + '10' } : {}"
-                  :class="generalSettings.themeAccent === preset.id ? 'shadow-md shadow-primary/10' : 'border-outline-std bg-white hover:border-content-light'"
+                  :style="
+                    generalSettings.themeAccent === preset.id
+                      ? { borderColor: preset.primary, backgroundColor: preset.primary + '10' }
+                      : {}
+                  "
+                  :class="
+                    generalSettings.themeAccent === preset.id
+                      ? 'shadow-md shadow-primary/10'
+                      : 'border-outline-std bg-white hover:border-content-light'
+                  "
                 >
                   <div class="flex items-center justify-between">
-                    <div class="w-6 h-6 rounded-full border border-black/10 shadow-sm" :style="{ backgroundColor: preset.primary }"></div>
-                    <span v-if="generalSettings.themeAccent === preset.id" class="text-2xs font-bold text-primary animate-in zoom-in-50">Active</span>
+                    <div
+                      class="w-6 h-6 rounded-full border border-black/10 shadow-sm"
+                      :style="{ backgroundColor: preset.primary }"
+                    ></div>
+                    <span
+                      v-if="generalSettings.themeAccent === preset.id"
+                      class="text-2xs font-bold text-primary animate-in zoom-in-50"
+                      >Active</span
+                    >
                   </div>
-                  <span class="text-xs font-bold text-content-dark mt-1 leading-tight">{{ preset.name }}</span>
+                  <span class="text-xs font-bold text-content-dark mt-1 leading-tight">{{
+                    preset.name
+                  }}</span>
                 </button>
               </div>
             </div>
 
             <!-- Form Action Footer -->
-            <div class="flex items-center justify-between border-t border-surface-light pt-lg mt-md">
+            <div
+              class="flex items-center justify-between border-t border-surface-light pt-lg mt-md"
+            >
               <div>
                 <transition
                   enter-active-class="transition duration-300 ease-out"
@@ -378,18 +421,27 @@ const handleDelete = async (item) => {
                   leave-from-class="opacity-100"
                   leave-to-class="opacity-0"
                 >
-                  <div v-if="saveSuccess" class="flex items-center gap-2 text-success font-bold text-sm">
-                    <span class="inline-flex w-5 h-5 items-center justify-center rounded-full bg-success-soft text-success text-xs">✓</span>
+                  <div
+                    v-if="saveSuccess"
+                    class="flex items-center gap-2 text-success font-bold text-sm"
+                  >
+                    <span
+                      class="inline-flex w-5 h-5 items-center justify-center rounded-full bg-success-soft text-success text-xs"
+                      >✓</span
+                    >
                     System settings saved and applied successfully!
                   </div>
                 </transition>
               </div>
-              <AppButton type="submit" variant="primary" class="px-md py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-xs font-bold">
+              <AppButton
+                type="submit"
+                variant="primary"
+                class="px-md py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-xs font-bold"
+              >
                 <img :src="getActionIcon('save')" class="w-4 h-4 brightness-0 invert" />
                 Save Preferences
               </AppButton>
             </div>
-
           </form>
         </div>
 
@@ -415,7 +467,15 @@ const handleDelete = async (item) => {
           </template>
 
           <template
-            #row="{ item, headers: _headers, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }"
+            #row="{
+              item,
+              headers: _headers,
+              toggleMenu,
+              activeMenuId,
+              isMenuAbove,
+              menuStyles,
+              closeMenu,
+            }"
           >
             <!-- Identity Column -->
             <td class="ui-cell">
@@ -471,7 +531,10 @@ const handleDelete = async (item) => {
                     >
                       <button
                         class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="openModal('edit', item); closeMenu()"
+                        @click="
+                          openModal('edit', item)
+                          closeMenu()
+                        "
                       >
                         <img
                           :src="getActionIcon('edit')"
@@ -484,7 +547,10 @@ const handleDelete = async (item) => {
 
                       <button
                         class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
-                        @click="handleDelete(item); closeMenu()"
+                        @click="
+                          handleDelete(item)
+                          closeMenu()
+                        "
                       >
                         <img
                           :src="getActionIcon('delete')"

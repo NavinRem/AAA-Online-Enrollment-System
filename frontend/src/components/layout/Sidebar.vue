@@ -80,7 +80,7 @@ const handleNavClick = () => {
 
 <template>
   <aside
-    class="w-[260px] h-screen bg-white flex flex-col border-r border-surface-light fixed left-0 top-0 z-[100] transition-transform duration-300 lg:translate-x-0"
+    class="w-[260px] h-screen bg-white flex flex-col border-r border-surface-light fixed left-0 top-0 z-50 transition-transform duration-300 lg:translate-x-0"
     :class="isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'"
   >
     <div
@@ -94,9 +94,9 @@ const handleNavClick = () => {
         />
       </div>
       <div class="flex flex-col items-center text-center">
-        <span class="text-sm font-bold text-content-dark leading-tight tracking-tighter"
-          >{{ academyName }}</span
-        >
+        <span class="text-sm font-bold text-content-dark leading-tight tracking-tighter">{{
+          academyName
+        }}</span>
       </div>
       <button
         class="lg:hidden absolute right-4 top-4 bg-none border-none text-2xl text-content-light cursor-pointer p-1 leading-none hover:text-content-dark transition-all hover:rotate-90"

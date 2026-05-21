@@ -6,8 +6,8 @@ describe('AppBadge.vue', () => {
   it('renders default slot content', () => {
     const wrapper = mount(AppBadge, {
       slots: {
-        default: 'Custom Slot Badge'
-      }
+        default: 'Custom Slot Badge',
+      },
     })
     expect(wrapper.text()).toContain('Custom Slot Badge')
   })
@@ -15,8 +15,8 @@ describe('AppBadge.vue', () => {
   it('formats displayLabel from status prop correctly', () => {
     const wrapper = mount(AppBadge, {
       props: {
-        status: 'pending review'
-      }
+        status: 'pending review',
+      },
     })
     // Expect "Pending review" or "Pending Review" based on component logic
     expect(wrapper.text()).toBe('Pending Review')
@@ -25,8 +25,8 @@ describe('AppBadge.vue', () => {
   it('does not capitalize all uppercase acronyms', () => {
     const wrapper = mount(AppBadge, {
       props: {
-        status: 'USD'
-      }
+        status: 'USD',
+      },
     })
     expect(wrapper.text()).toBe('USD')
   })
@@ -34,8 +34,8 @@ describe('AppBadge.vue', () => {
   it('does not capitalize price strings', () => {
     const wrapper = mount(AppBadge, {
       props: {
-        status: '$100'
-      }
+        status: '$100',
+      },
     })
     expect(wrapper.text()).toBe('$100')
   })

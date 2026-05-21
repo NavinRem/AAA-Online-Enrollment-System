@@ -63,7 +63,7 @@
     gap: 0.375rem;
   }
   .ui-detail-card strong {
-    @apply font-bold text-lg min-w-[120px] whitespace-nowrap;
+    @apply font-bold text-lg min-w-32 whitespace-nowrap;
     color: var(--color-content-dark);
   }
 

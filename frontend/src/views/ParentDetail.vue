@@ -397,7 +397,7 @@ onUnmounted(() => {
         <!-- enrollment History Card -->
         <section
           v-if="activeTab === 'history'"
-          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col"
+          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-xl bg-white shadow-sm flex flex-col"
         >
           <DataTable
             title="Academic History"
@@ -519,7 +519,7 @@ onUnmounted(() => {
         <!-- Payment History Card -->
         <section
           v-else-if="activeTab === 'payments'"
-          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col"
+          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-xl bg-white shadow-sm flex flex-col"
         >
           <DataTable
             title="Financial Records"
@@ -705,7 +705,7 @@ onUnmounted(() => {
 }
 
 .toolbar-filter-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[240px] max-h-[300px] overflow-y-auto;
+  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-dropdown p-xs min-w-60 max-h-80 overflow-y-auto;
 }
 
 .toolbar-filter-option {

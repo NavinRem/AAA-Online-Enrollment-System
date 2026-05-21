@@ -16,6 +16,8 @@ import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 import { useSearch, teacherSearchMapper } from '@/composables/useSearch'
 import { calculateClassProgress } from '@/utils/formatUtils'
 
+defineOptions({ name: 'TeacherList' })
+
 const teachers = ref([])
 const loading = ref(true)
 const currentFilter = ref('all')
@@ -46,15 +48,13 @@ const fetchData = async () => {
 
 const getPrograms = (programIds) => {
   if (!programIds || !Array.isArray(programIds)) return []
-  return programIds
-    .map((id) => allPrograms.value.find((p) => p.id === id))
-    .filter(Boolean)
+  return programIds.map((id) => allPrograms.value.find((p) => p.id === id)).filter(Boolean)
 }
 
 const getTeacherAssignments = (teacherId) => {
   const assignments = []
   allTerms.value.forEach((term) => {
-    ; (term.offerings || []).forEach((offering) => {
+    ;(term.offerings || []).forEach((offering) => {
       const isAssigned = (offering.teachers || []).some((t) => t.id === teacherId)
       if (isAssigned) {
         assignments.push({
@@ -184,16 +184,16 @@ const openModal = (type, teacher = null) => {
   isModalOpen.value = true
 }
 
-const handleAssign = (offering) => {
-  confirmingOffering.value = offering
-}
-
 const confirmAssign = async () => {
   if (!confirmingOffering.value) return
   const offering = confirmingOffering.value
   actionLoading.value = offering.offeringId
   try {
-    await teacherService.assignToClass(selectedTeacher.value.id, offering.termId, offering.offeringId)
+    await teacherService.assignToClass(
+      selectedTeacher.value.id,
+      offering.termId,
+      offering.offeringId,
+    )
     confirmingOffering.value = null
     await fetchData()
   } catch (err) {
@@ -250,59 +250,98 @@ const handleAction = (type, item, closeMenu) => {
     <DataPageLayout overviewTitle="Teacher Overview">
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <DataMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" :loading="loading" />
+          <DataMetricCard
+            v-for="stat in statsCards"
+            :key="stat.label"
+            v-bind="stat"
+            :loading="loading"
+          />
         </div>
       </template>
 
       <!-- Assignment Confirmation Overlay -->
       <Teleport to="body">
-        <transition enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0"
-          enter-to-class="opacity-100" leave-active-class="transition duration-200 ease-in"
-          leave-from-class="opacity-100" leave-to-class="opacity-0">
-          <div v-if="confirmingOffering"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-content-dark/40 backdrop-blur-sm">
+        <transition
+          enter-active-class="transition duration-300 ease-out"
+          enter-from-class="opacity-0"
+          enter-to-class="opacity-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="opacity-100"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="confirmingOffering"
+            class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-content-dark/40 backdrop-blur-sm"
+          >
             <div
-              class="bg-white rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl animate-scale-in border border-outline-std">
+              class="bg-white rounded-2xl p-10 max-w-md w-full shadow-2xl animate-scale-in border border-outline-std"
+            >
               <div class="flex flex-col items-center text-center gap-6">
                 <div
-                  class="w-20 h-20 rounded-full bg-primary-soft flex items-center justify-center text-3xl shadow-inner">
+                  class="w-20 h-20 rounded-full bg-primary-soft flex items-center justify-center text-3xl shadow-inner"
+                >
                   🤝
                 </div>
                 <div class="flex flex-col gap-2">
-                  <h4 class="text-xl font-black text-content-dark tracking-tight">Confirm Assignment</h4>
+                  <h4 class="text-xl font-black text-content-dark tracking-tight">
+                    Confirm Assignment
+                  </h4>
                   <p class="text-xs font-bold text-content-muted px-4 leading-relaxed">
                     Are you sure you want to assign
                     <span class="text-primary font-black">{{ selectedTeacher?.name }}</span>
                     to teach
-                    <span class="text-content-dark font-black">{{ confirmingOffering.program?.name }}</span>?
+                    <span class="text-content-dark font-black">{{
+                      confirmingOffering.program?.name
+                    }}</span
+                    >?
                   </p>
                 </div>
 
                 <!-- Schedule Summary Card -->
-                <div class="w-full bg-surface-subtle/50 rounded-2xl p-5 border border-outline-std flex flex-col gap-3">
+                <div
+                  class="w-full bg-surface-subtle/50 rounded-2xl p-5 border border-outline-std flex flex-col gap-3"
+                >
                   <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-black text-content-muted uppercase tracking-widest">Schedule</span>
-                    <AppBadge :status="confirmingOffering.branch?.abbr || 'HQ'" size="xs"
-                      :type="confirmingOffering.branch?.color || 'blue'" />
+                    <span class="text-4xs font-black text-content-muted uppercase tracking-widest"
+                      >Schedule</span
+                    >
+                    <AppBadge
+                      :status="confirmingOffering.branch?.abbr || 'HQ'"
+                      size="xs"
+                      :type="confirmingOffering.branch?.color || 'blue'"
+                    />
                   </div>
                   <div class="flex items-center gap-3">
                     <div
-                      class="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-outline-std shadow-sm">
+                      class="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-outline-std shadow-sm"
+                    >
                       <span class="text-lg">📅</span>
                     </div>
                     <div class="flex flex-col text-left">
-                      <span class="text-sm font-black text-content-dark">{{ confirmingOffering.schedule?.day }}</span>
-                      <span class="text-[11px] font-bold text-primary">{{ confirmingOffering.schedule?.time }}</span>
+                      <span class="text-sm font-black text-content-dark">{{
+                        confirmingOffering.schedule?.day
+                      }}</span>
+                      <span class="text-4xs font-bold text-primary">{{
+                        confirmingOffering.schedule?.time
+                      }}</span>
                     </div>
                   </div>
                 </div>
 
                 <div class="flex items-center gap-3 w-full mt-2">
-                  <AppButton variant="cancel" class="flex-1 !py-4 !rounded-2xl" @click="confirmingOffering = null">
+                  <AppButton
+                    variant="cancel"
+                    class="flex-1 !py-4 !rounded-2xl"
+                    @click="confirmingOffering = null"
+                  >
                     Go Back
                   </AppButton>
-                  <AppButton variant="primary" class="flex-1 !py-4 !rounded-2xl shadow-lg shadow-primary/20"
-                    @click="confirmAssign" :loading="!!actionLoading">
+                  <AppButton
+                    variant="primary"
+                    class="flex-1 !py-4 !rounded-2xl shadow-lg shadow-primary/20"
+                    @click="confirmAssign"
+                    :loading="!!actionLoading"
+                  >
                     Confirm
                   </AppButton>
                 </div>
@@ -313,46 +352,68 @@ const handleAction = (type, item, closeMenu) => {
       </Teleport>
 
       <template #table>
-        <DataTable title="Teacher Lists" :headers="headers" :items="filteredTeachers" :loading="loading"
-          searchPlaceholder="Search by name, email or specialization..." :hasFilter="true"
-          v-model:searchQuery="searchQuery" v-model:currentFilter="currentFilter" :filterOptions="[
+        <DataTable
+          title="Teacher Lists"
+          :headers="headers"
+          :items="filteredTeachers"
+          :loading="loading"
+          searchPlaceholder="Search by name, email or specialization..."
+          :hasFilter="true"
+          v-model:searchQuery="searchQuery"
+          v-model:currentFilter="currentFilter"
+          :filterOptions="[
             { label: 'All Faculty', value: 'all' },
             { label: 'Active', value: 'active', color: 'green' },
             { label: 'Inactive', value: 'inactive', color: 'red' },
             { label: 'Working', value: 'working', color: 'magenta' },
             { label: 'New', value: 'new', color: 'purple' },
-          ]">
+          ]"
+        >
           <template #toolbar-actions>
-            <AppButton variant="primary" size="md" class="rounded-xl shadow-lg shadow-primary/20"
-              @click="openModal('plus')">
+            <AppButton
+              variant="primary"
+              size="md"
+              class="rounded-xl shadow-lg shadow-primary/20"
+              @click="openModal('plus')"
+            >
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-bold">New Teacher</span>
             </AppButton>
           </template>
 
-          <template #row="{
-            item,
-            index,
-            headers,
-            toggleMenu,
-            activeMenuId,
-            isMenuAbove,
-            menuStyles,
-            closeMenu,
-          }">
-            <td class="ui-cell text-center hidden md:table-cell" :style="{ width: headers[0].width }">
+          <template
+            #row="{
+              item,
+              index,
+              headers,
+              toggleMenu,
+              activeMenuId,
+              isMenuAbove,
+              menuStyles,
+              closeMenu,
+            }"
+          >
+            <td
+              class="ui-cell text-center hidden md:table-cell"
+              :style="{ width: headers[0].width }"
+            >
               <span class="font-bold text-content-dark">{{ index + 1 }}</span>
             </td>
 
             <td class="ui-cell" :style="{ width: headers[1].width }">
               <div class="ui-identity-cell">
                 <div
-                  class="ui-avatar ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm">
-                  <img :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')" alt="avatar" />
+                  class="ui-avatar ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm"
+                >
+                  <img
+                    :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')"
+                    alt="avatar"
+                  />
                 </div>
                 <div class="ui-identity-info">
                   <span
-                    class="font-bold text-content-dark group-hover:text-primary transition-colors tracking-tight leading-tight truncate">
+                    class="font-bold text-content-dark group-hover:text-primary transition-colors tracking-tight leading-tight truncate"
+                  >
                     {{ item.name }}
                   </span>
                 </div>
@@ -360,15 +421,19 @@ const handleAction = (type, item, closeMenu) => {
             </td>
 
             <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[2].width }">
-              <span class="font-bold text-content-dark tabular-nums tracking-tighter">{{ item.phone || '—'
-                }}</span>
+              <span class="font-bold text-content-dark tabular-nums tracking-tighter">{{
+                item.phone || '—'
+              }}</span>
             </td>
 
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex flex-wrap gap-1.5">
                 <template v-if="getTeacherAssignments(item.id).length > 0">
-                  <div v-for="(assign, idx) in getTeacherAssignments(item.id)" :key="assign.offeringId || assign.id || idx"
-                    class="group/assign relative flex items-center justify-between gap-10 px-2 py-1.5 rounded-sm bg-primary-soft border border-primary/10 group-hover:bg-white group-hover:border-primary transition-all cursor-default">
+                  <div
+                    v-for="(assign, idx) in getTeacherAssignments(item.id)"
+                    :key="assign.offeringId || assign.id || idx"
+                    class="group/assign relative flex items-center justify-between gap-10 px-2 py-1.5 rounded-sm bg-primary-soft border border-primary/10 group-hover:bg-white group-hover:border-primary transition-all cursor-default"
+                  >
                     <div class="flex flex-col gap-0.5">
                       <span class="text-xs font-black text-content-dark truncate">
                         {{ assign.schedule?.day || 'TBA' }}
@@ -377,27 +442,41 @@ const handleAction = (type, item, closeMenu) => {
                         {{ assign.schedule?.time || 'N/A' }}
                       </span>
                     </div>
-                    <AppBadge :status="assign.branch?.abbr || 'HQ'" size="xs" :type="assign.branch?.color || 'blue'" />
+                    <AppBadge
+                      :status="assign.branch?.abbr || 'HQ'"
+                      size="xs"
+                      :type="assign.branch?.color || 'blue'"
+                    />
                   </div>
                 </template>
-                <span v-else class="text-sm font-bold text-content-muted/40 italic">No Active Classes</span>
+                <span v-else class="text-sm font-bold text-content-muted/40 italic"
+                  >No Active Classes</span
+                >
               </div>
             </td>
 
             <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[4].width }">
               <div class="flex flex-wrap gap-2">
                 <template v-if="getPrograms(item.programIds).length > 0">
-                  <div v-for="prog in getPrograms(item.programIds)" :key="prog.id"
-                    class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-primary-soft border border-primary/10 group-hover:bg-white group-hover:border-primary transition-all duration-300">
+                  <div
+                    v-for="prog in getPrograms(item.programIds)"
+                    :key="prog.id"
+                    class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-primary-soft border border-primary/10 group-hover:bg-white group-hover:border-primary transition-all duration-300"
+                  >
                     <div
-                      class="w-8 h-8 rounded-lg overflow-hidden border bg-white shadow-sm border-primary/20 shrink-0">
-                      <img :src="prog.profileURL || getImageUrl('dashboard/card-top-program')"
-                        class="w-full h-full object-cover" />
+                      class="w-8 h-8 rounded-lg overflow-hidden border bg-white shadow-sm border-primary/20 shrink-0"
+                    >
+                      <img
+                        :src="prog.profileURL || getImageUrl('dashboard/card-top-program')"
+                        class="w-full h-full object-cover"
+                      />
                     </div>
                     <span class="font-bold text-primary truncate pr-5">{{ prog.name }}</span>
                   </div>
                 </template>
-                <span v-else class="font-bold text-content-muted italic opacity-40">No Program Assigned</span>
+                <span v-else class="font-bold text-content-muted italic opacity-40"
+                  >No Program Assigned</span
+                >
               </div>
             </td>
 
@@ -409,44 +488,70 @@ const handleAction = (type, item, closeMenu) => {
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
-                  @click.stop="toggleMenu($event, item.id)">
+                  @click.stop="toggleMenu($event, item.id)"
+                >
                   <span class="font-bold text-lg leading-none mb-1">⋮</span>
                 </button>
                 <Teleport to="body">
-                  <transition enter-active-class="transition duration-200 ease-out"
-                    enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                    leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                    leave-to-class="opacity-0">
-                    <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
-                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
-                      @click.stop>
-                      <button class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="handleAction('edit', item, closeMenu)">
-                        <img :src="getActionIcon('edit')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="activeMenuId === item.id"
+                      class="ui-dropdown-menu"
+                      :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
+                      :style="menuStyles"
+                      @click.stop
+                    >
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-info group"
+                        @click="handleAction('edit', item, closeMenu)"
+                      >
+                        <img
+                          :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold">Edit</span>
                       </button>
 
-                      <button v-if="(item.status || 'active').toLowerCase() === 'inactive'"
+                      <button
+                        v-if="(item.status || 'active').toLowerCase() === 'inactive'"
                         class="ui-dropdown-item ui-dropdown-item-success group"
-                        @click="handleAction('reactivate', item, closeMenu)">
-                        <img :src="getActionIcon('reactivate')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                        @click="handleAction('reactivate', item, closeMenu)"
+                      >
+                        <img
+                          :src="getActionIcon('reactivate')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold">Reactivate</span>
                       </button>
-                      <button v-else class="ui-dropdown-item ui-dropdown-item-danger group"
-                        @click="handleAction('deactivate', item, closeMenu)">
-                        <img :src="getActionIcon('cancel')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                      <button
+                        v-else
+                        class="ui-dropdown-item ui-dropdown-item-danger group"
+                        @click="handleAction('deactivate', item, closeMenu)"
+                      >
+                        <img
+                          :src="getActionIcon('cancel')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         <span class="font-semibold">Deactivate</span>
                       </button>
 
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
 
-                      <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
-                        @click="handleAction('delete', item, closeMenu)">
-                        <img :src="getActionIcon('delete')"
-                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity" />
+                      <button
+                        class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
+                        @click="handleAction('delete', item, closeMenu)"
+                      >
+                        <img
+                          :src="getActionIcon('delete')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                        />
                         Delete
                       </button>
                     </div>
@@ -459,8 +564,17 @@ const handleAction = (type, item, closeMenu) => {
       </template>
     </DataPageLayout>
 
-    <TeacherActionModal v-if="isModalOpen" :isOpen="isModalOpen" :type="modalType" :teacher="selectedTeacher"
-      :loading="submitting" :error="error" :success="success" @close="isModalOpen = false" @submit="handleSubmit"
-      @refresh="fetchData" />
+    <TeacherActionModal
+      v-if="isModalOpen"
+      :isOpen="isModalOpen"
+      :type="modalType"
+      :teacher="selectedTeacher"
+      :loading="submitting"
+      :error="error"
+      :success="success"
+      @close="isModalOpen = false"
+      @submit="handleSubmit"
+      @refresh="fetchData"
+    />
   </DashboardLayout>
 </template>

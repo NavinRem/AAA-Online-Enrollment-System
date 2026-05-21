@@ -393,13 +393,15 @@ const handleRowAction = (type, item, closeMenu) => {
                 <AppButton
                   :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"
                   size="md"
-                  class="rounded-xl transition-all duration-500 min-w-[140px]"
+                  class="rounded-xl transition-all duration-500 min-w-36"
                   :class="{
                     '!text-white shadow-md': branchFilter !== 'all',
                     'shadow-sm': branchFilter === 'all',
                   }"
                   :style="
-                    branchFilter !== 'all' ? { backgroundColor: getActiveLabel('branch').color } : {}
+                    branchFilter !== 'all'
+                      ? { backgroundColor: getActiveLabel('branch').color }
+                      : {}
                   "
                   @click="toggleDropdown('branch', $event)"
                 >
@@ -456,7 +458,7 @@ const handleRowAction = (type, item, closeMenu) => {
             </td>
 
             <!-- Identity -->
-            <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
+            <td class="ui-cell min-w-52" @click="navigateToDetail(item)">
               <div class="flex items-center gap-4 group cursor-pointer">
                 <div
                   class="w-8 h-8 rounded-2xl overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-500 shadow-sm"
@@ -504,7 +506,7 @@ const handleRowAction = (type, item, closeMenu) => {
             </td>
 
             <td class="ui-cell hidden lg:table-cell">
-              <div class="flex flex-col max-w-[160px]">
+              <div class="flex flex-col max-w-40">
                 <span class="truncate text-xs font-bold text-content-muted">{{ item.email }}</span>
               </div>
             </td>
@@ -640,7 +642,7 @@ const handleRowAction = (type, item, closeMenu) => {
       @close="closeActionModal"
       @submit="submitActionModal"
     />
-  
+
     <!-- Teleported Dropdowns -->
     <Teleport to="body">
       <transition name="fade-slide">
@@ -674,7 +676,7 @@ const handleRowAction = (type, item, closeMenu) => {
         </div>
       </transition>
     </Teleport>
-  
+
     <ParentFormModal
       v-if="showNewParentModal"
       :isOpen="showNewParentModal"
@@ -682,9 +684,9 @@ const handleRowAction = (type, item, closeMenu) => {
       :error="errorMessage"
       :success="successMessage"
       @close="
-        showNewParentModal = false;
-        errorMessage = '';
-        successMessage = '';
+        showNewParentModal = false
+        errorMessage = ''
+        successMessage = ''
       "
       @submit="submitNewParent"
     />
@@ -693,7 +695,7 @@ const handleRowAction = (type, item, closeMenu) => {
 
 <style scoped>
 .toolbar-filter-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[240px] max-h-[300px] overflow-y-auto;
+  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-dropdown p-xs min-w-60 max-h-80 overflow-y-auto;
 }
 
 .toolbar-filter-option {

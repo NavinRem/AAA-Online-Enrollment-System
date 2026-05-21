@@ -27,9 +27,6 @@ const subModalLoading = ref(false)
 const subModalError = ref('')
 const subModalSuccess = ref('')
 
-
-
-
 const props = defineProps({
   isOpen: Boolean,
   type: String, // 'edit', 'deactivate', 'activate', 'delete', 'plus', 'reset-password'
@@ -605,11 +602,7 @@ watch(
     <!-- Footer -->
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
-        <AppAlert
-          v-if="type === 'edit' && !isDirty"
-          type="info"
-          class="w-full"
-        >
+        <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
 
@@ -637,9 +630,9 @@ watch(
     :error="subModalError"
     :success="subModalSuccess"
     @close="
-      showNewParentSubModal = false;
-      subModalError = '';
-      subModalSuccess = '';
+      showNewParentSubModal = false
+      subModalError = ''
+      subModalSuccess = ''
     "
     @submit="handleInlineParentSubmit"
   />

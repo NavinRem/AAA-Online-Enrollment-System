@@ -1,8 +1,8 @@
 import '../frontend/src/assets/styles/main.css';
-
-// Apply any global Vue plugins here if needed
 import { beforeMount } from '@playwright/experimental-ct-vue/hooks';
+import { createPinia } from 'pinia';
 
-beforeMount(async () => {
-  // e.g. app.use(pinia)
+beforeMount(async ({ app }) => {
+  const pinia = createPinia();
+  app.use(pinia);
 });

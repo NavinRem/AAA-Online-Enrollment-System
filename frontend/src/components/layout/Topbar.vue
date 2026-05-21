@@ -61,7 +61,7 @@ onMounted(() => {
       </h1>
     </div>
 
-    <div class="hidden lg:flex flex-1 max-w-[500px] mx-12">
+    <div class="hidden lg:flex flex-1 max-w-lg mx-12">
       <SearchBox v-model="searchQuery" placeholder="Search something..." variant="white" />
     </div>
 

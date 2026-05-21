@@ -541,7 +541,7 @@ const closeModals = () => {
             </td>
 
             <!-- Identity -->
-            <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
+            <td class="ui-cell min-w-52" @click="navigateToDetail(item)">
               <div class="ui-identity-cell">
                 <div class="relative">
                   <div
@@ -729,7 +729,7 @@ const closeModals = () => {
       @close="closeModals"
       @submit="submitActionModal"
     />
-  
+
     <ParentActionModal
       v-if="parentActionModal.isOpen"
       :isOpen="parentActionModal.isOpen"
@@ -746,7 +746,7 @@ const closeModals = () => {
 
 <style scoped>
 .toolbar-filter-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[240px] max-h-[300px] overflow-y-auto;
+  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-dropdown p-xs min-w-60 max-h-80 overflow-y-auto;
 }
 
 .toolbar-filter-option {

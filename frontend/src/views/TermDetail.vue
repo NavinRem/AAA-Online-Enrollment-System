@@ -75,7 +75,9 @@ onMounted(initData)
 
 const termBranches = computed(() => {
   if (!term.value || !branches.value.length) return []
-  return term.value.branchIds.map((id) => branches.value.find((b) => String(b.id) === String(id))).filter(Boolean)
+  return term.value.branchIds
+    .map((id) => branches.value.find((b) => String(b.id) === String(id)))
+    .filter(Boolean)
 })
 
 const activeBranch = computed(() => {
@@ -104,7 +106,10 @@ const rawBranchOfferings = computed(() => {
   return rawOfferings.map((off) => {
     // Enrich with latest program data from store
     const liveProgram = dataStore.programs.find(
-      (p) => String(p.id) === String(off.program?.id) || String(p.id) === String(off.classId) || String(p.id) === String(off.programId),
+      (p) =>
+        String(p.id) === String(off.program?.id) ||
+        String(p.id) === String(off.classId) ||
+        String(p.id) === String(off.programId),
     )
     const program = liveProgram || off.program
 
@@ -118,7 +123,8 @@ const rawBranchOfferings = computed(() => {
       }
 
       // Fallback matching: If no termOfferingId, match by class and branch/date
-      const isSameClass = String(e.classId) === String(off.classId) || String(e.programId) === String(off.programId)
+      const isSameClass =
+        String(e.classId) === String(off.classId) || String(e.programId) === String(off.programId)
       if (!isSameClass || !isSameTerm) return false
 
       const enrollDate = new Date(e.enrollAt || e.createdAt)
@@ -127,12 +133,14 @@ const rawBranchOfferings = computed(() => {
         enrollDate >= startDate &&
         enrollDate <= endDate
 
-      // If we match by class and branch/date, but have no offeringId, 
+      // If we match by class and branch/date, but have no offeringId,
       // we only count it in the FIRST offering of this class to avoid double counting
       // Note: This is a simple heuristic. Better would be to fix the data at source.
-      const firstOfferingOfClass = term.value.offerings.find(o =>
-        String(o.branchId) === String(activeBranchId.value) &&
-        (String(o.classId) === String(off.classId) || String(o.programId) === String(off.programId))
+      const firstOfferingOfClass = term.value.offerings.find(
+        (o) =>
+          String(o.branchId) === String(activeBranchId.value) &&
+          (String(o.classId) === String(off.classId) ||
+            String(o.programId) === String(off.programId)),
       )
 
       const isFirstOffering = String(firstOfferingOfClass?.offeringId) === String(off.offeringId)
@@ -206,13 +214,17 @@ const groupedBranchOfferings = computed(() => {
 
   map.forEach((group, classId) => {
     // Get all enrollments matching this class/program in this branch/term
-    const groupEnrollments = branchEnrollments.value.filter(e => {
-      const isSameClass = String(e.classId) === String(classId) || String(e.programId) === String(classId)
+    const groupEnrollments = branchEnrollments.value.filter((e) => {
+      const isSameClass =
+        String(e.classId) === String(classId) || String(e.programId) === String(classId)
       return isSameClass
     })
 
-    group.totalRevenue = groupEnrollments.reduce((sum, e) => sum + Number(e.finalPrice || e.totalPrice || 0), 0)
-    group.uniqueStudentCount = new Set(groupEnrollments.map(e => e.studentId)).size
+    group.totalRevenue = groupEnrollments.reduce(
+      (sum, e) => sum + Number(e.finalPrice || e.totalPrice || 0),
+      0,
+    )
+    group.uniqueStudentCount = new Set(groupEnrollments.map((e) => e.studentId)).size
   })
 
   const dayOrder = {
@@ -241,7 +253,7 @@ const groupedBranchOfferings = computed(() => {
 const branchStudents = computed(() => {
   const studentMap = new Map()
   rawBranchOfferings.value.forEach((offering) => {
-    ; (offering.students || []).forEach((s) => {
+    ;(offering.students || []).forEach((s) => {
       if (!studentMap.has(s.id || s.studentId)) {
         studentMap.set(s.id || s.studentId, {
           ...s,
@@ -352,7 +364,7 @@ const classFilterOptions = computed(() => {
   }
   const daysInBranch = new Set()
   groupedBranchOfferings.value.forEach((g) => {
-    ; (g.schedules || []).forEach((s) => {
+    ;(g.schedules || []).forEach((s) => {
       if (s.day) daysInBranch.add(s.day)
     })
   })
@@ -488,43 +500,47 @@ const openSessionModal = async (item) => {
   if (!item || !item.schedules || item.schedules.length === 0) return
 
   const sched = item.schedules[0]
-  const offering = (term.value?.offerings || []).find(o => o.offeringId === sched.offeringId)
+  const offering = (term.value?.offerings || []).find((o) => o.offeringId === sched.offeringId)
 
   if (offering) {
     // Check if sessionTeachers needs initialization (if all slots are empty/null)
     const currentSessions = offering.sessionTeachers || []
-    const needsInit = currentSessions.length === 0 ||
-      currentSessions.every(t => t === null)
+    const needsInit = currentSessions.length === 0 || currentSessions.every((t) => t === null)
 
     // If we have responsible teachers assigned to the offering, use them
-    const responsibleTeachers = (offering.teacherIds || []).map(tid => {
-      return teachers.value.find(t => String(t.id) === String(tid))
-    }).filter(Boolean)
+    const responsibleTeachers = (offering.teacherIds || [])
+      .map((tid) => {
+        return teachers.value.find((t) => String(t.id) === String(tid))
+      })
+      .filter(Boolean)
 
     if (needsInit && responsibleTeachers.length > 0) {
       const primaryTeacher = responsibleTeachers[0]
       const defaultTeacherData = {
         id: primaryTeacher.id,
         name: primaryTeacher.name,
-        profileURL: primaryTeacher.profileURL
+        profileURL: primaryTeacher.profileURL,
       }
 
       const newSessionTeachers = Array(term.value.totalSessions).fill(defaultTeacherData)
 
       try {
         // Sync to all affected offerings (same day logic)
-        const affectedOfferings = (term.value.offerings || []).filter(o =>
-          String(o.branchId) === String(activeBranchId.value) &&
-          (o.classId === offering.classId || o.programId === offering.programId) &&
-          o.schedule?.day === offering.schedule?.day
+        const affectedOfferings = (term.value.offerings || []).filter(
+          (o) =>
+            String(o.branchId) === String(activeBranchId.value) &&
+            (o.classId === offering.classId || o.programId === offering.programId) &&
+            o.schedule?.day === offering.schedule?.day,
         )
 
-        await Promise.all(affectedOfferings.map(async (off) => {
-          await termService.updateTermOffering(term.value.id, off.offeringId, {
-            sessionTeachers: newSessionTeachers
-          })
-          off.sessionTeachers = [...newSessionTeachers]
-        }))
+        await Promise.all(
+          affectedOfferings.map(async (off) => {
+            await termService.updateTermOffering(term.value.id, off.offeringId, {
+              sessionTeachers: newSessionTeachers,
+            })
+            off.sessionTeachers = [...newSessionTeachers]
+          }),
+        )
 
         // Also update the global class blueprint with these teacher IDs
         // to ensure "responsible teachers" are synchronized as requested
@@ -594,43 +610,47 @@ const openModal = (type) => {
 
 const updateSessionTeacher = async (offeringId, weekIndex, teacherId) => {
   try {
-    const sourceOffering = (term.value.offerings || []).find(o => o.offeringId === offeringId)
+    const sourceOffering = (term.value.offerings || []).find((o) => o.offeringId === offeringId)
     if (!sourceOffering) return
 
-    const teacher = teachers.value.find(t => t.id === teacherId)
-    const teacherData = teacher ? {
-      id: teacher.id,
-      name: teacher.name,
-      profileURL: teacher.profileURL
-    } : null
+    const teacher = teachers.value.find((t) => t.id === teacherId)
+    const teacherData = teacher
+      ? {
+          id: teacher.id,
+          name: teacher.name,
+          profileURL: teacher.profileURL,
+        }
+      : null
 
     // Find all offerings for the same program/class and day in this branch
     // This allows assigning a teacher once for the whole day at this branch
-    const affectedOfferings = (term.value.offerings || []).filter(o =>
-      String(o.branchId) === String(activeBranchId.value) &&
-      (o.classId === sourceOffering.classId || o.programId === sourceOffering.programId) &&
-      o.schedule?.day === sourceOffering.schedule?.day
+    const affectedOfferings = (term.value.offerings || []).filter(
+      (o) =>
+        String(o.branchId) === String(activeBranchId.value) &&
+        (o.classId === sourceOffering.classId || o.programId === sourceOffering.programId) &&
+        o.schedule?.day === sourceOffering.schedule?.day,
     )
 
     // Update all affected offerings in parallel
-    await Promise.all(affectedOfferings.map(async (off) => {
-      const sessionTeachers = [...(off.sessionTeachers || [])]
-      while (sessionTeachers.length < term.value.totalSessions) {
-        sessionTeachers.push(null)
-      }
+    await Promise.all(
+      affectedOfferings.map(async (off) => {
+        const sessionTeachers = [...(off.sessionTeachers || [])]
+        while (sessionTeachers.length < term.value.totalSessions) {
+          sessionTeachers.push(null)
+        }
 
-      sessionTeachers[weekIndex] = teacherData
+        sessionTeachers[weekIndex] = teacherData
 
-      await termService.updateTermOffering(term.value.id, off.offeringId, {
-        sessionTeachers: sessionTeachers
-      })
-      // Update local state for reactivity
-      off.sessionTeachers = [...sessionTeachers]
-    }))
+        await termService.updateTermOffering(term.value.id, off.offeringId, {
+          sessionTeachers: sessionTeachers,
+        })
+        // Update local state for reactivity
+        off.sessionTeachers = [...sessionTeachers]
+      }),
+    )
 
     // Trigger reactivity for term object
     term.value = { ...term.value }
-
   } catch (err) {
     console.error('Failed to update session teachers:', err)
     errorMessage.value = 'Failed to update session faculty'
@@ -724,18 +744,27 @@ const handleActionSubmit = async (payload) => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/terms" title="Term Analytics"
-      sidebarWidth="sm">
+    <DetailPageLayout
+      :loading="loading"
+      :errorMessage="errorMessage"
+      backRoute="/terms"
+      title="Term Analytics"
+      sidebarWidth="sm"
+    >
       <template #header-actions v-if="term">
         <div class="flex items-center gap-3">
           <button
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-primary-soft transition-all duration-300 hover:bg-primary hover:border-primary group"
-            title="Edit Term" @click="openModal('edit')">
+            title="Edit Term"
+            @click="openModal('edit')"
+          >
             <img :src="getActionIcon('edit')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
           <button
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-error-soft transition-all duration-300 hover:bg-error hover:border-error group"
-            title="Delete Term" @click="openModal('delete')">
+            title="Delete Term"
+            @click="openModal('delete')"
+          >
             <img :src="getActionIcon('delete')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
         </div>
@@ -749,44 +778,79 @@ const handleActionSubmit = async (payload) => {
 
         <!-- Branch Selector & Sub Tabs -->
         <div class="flex flex-col gap-6">
-          <div class="flex flex-wrap items-center gap-2 p-2 bg-white rounded-2xl border border-outline-std w-fit">
-            <button v-for="branch in termBranches" :key="branch.id"
+          <div
+            class="flex flex-wrap items-center gap-2 p-2 bg-white rounded-2xl border border-outline-std w-fit"
+          >
+            <button
+              v-for="branch in termBranches"
+              :key="branch.id"
               class="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border border-transparent"
-              :class="activeBranchId === branch.id
-                ? 'shadow-md ring-1 ring-black/5'
-                : 'text-content-muted hover:text-content-dark hover:bg-surface-subtle/50'
-                " :style="activeBranchId === branch.id
+              :class="
+                activeBranchId === branch.id
+                  ? 'shadow-md ring-1 ring-black/5'
+                  : 'text-content-muted hover:text-content-dark hover:bg-surface-subtle/50'
+              "
+              :style="
+                activeBranchId === branch.id
                   ? {
-                    backgroundColor: `var(--color-${branch.color || 'blue'})`,
-                    color: 'white',
-                  }
+                      backgroundColor: `var(--color-${branch.color || 'blue'})`,
+                      color: 'white',
+                    }
                   : {}
-                  " @click="activeBranchId = branch.id">
+              "
+              @click="activeBranchId = branch.id"
+            >
               {{ branch.name }}
             </button>
           </div>
 
-          <div class="flex items-center gap-1 p-1 bg-white rounded-xl border border-outline-std w-fit">
-            <button v-for="tab in ['classes', 'students']" :key="tab"
-              class="px-8 py-2.5 rounded-lg text-xs font-bold transition-all duration-300" :class="activeSubTab === tab
-                ? 'bg-primary text-white shadow-md'
-                : 'text-content-muted hover:text-content-dark'
-                " @click="activeSubTab = tab">
+          <div
+            class="flex items-center gap-1 p-1 bg-white rounded-xl border border-outline-std w-fit"
+          >
+            <button
+              v-for="tab in ['classes', 'students']"
+              :key="tab"
+              class="px-8 py-2.5 rounded-lg text-xs font-bold transition-all duration-300"
+              :class="
+                activeSubTab === tab
+                  ? 'bg-primary text-white shadow-md'
+                  : 'text-content-muted hover:text-content-dark'
+              "
+              @click="activeSubTab = tab"
+            >
               {{ tab }}
             </button>
           </div>
         </div>
 
         <section
-          class="overflow-hidden animate-fade-in h-[650px] border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col">
-          <DataTable v-if="activeSubTab === 'classes'" title="Branch Classes" :headers="classHeaders"
-            :items="paginatedClasses" entityName="class" :flexible="false" :hasSearch="true"
-            v-model:searchQuery="classSearchQuery" v-model:currentFilter="classFilter"
-            :filterOptions="classFilterOptions" :hasFilter="true" :hasPagination="true"
-            v-model:currentPage="classCurrentPage" :pageSize="classPageSize" :totalItems="filteredClasses.length">
+          class="overflow-hidden animate-fade-in h-[650px] border border-outline-std rounded-xl bg-white shadow-sm flex flex-col"
+        >
+          <DataTable
+            v-if="activeSubTab === 'classes'"
+            title="Branch Classes"
+            :headers="classHeaders"
+            :items="paginatedClasses"
+            entityName="class"
+            :flexible="false"
+            :hasSearch="true"
+            v-model:searchQuery="classSearchQuery"
+            v-model:currentFilter="classFilter"
+            :filterOptions="classFilterOptions"
+            :hasFilter="true"
+            :hasPagination="true"
+            v-model:currentPage="classCurrentPage"
+            :pageSize="classPageSize"
+            :totalItems="filteredClasses.length"
+          >
             <template #toolbar-actions>
-              <AppButton v-if="branchDisplayData?.status === 'upcoming'" variant="primary" size="md"
-                class="rounded-xl shadow-lg shadow-primary/20" @click="openAddClassModal">
+              <AppButton
+                v-if="branchDisplayData?.status === 'upcoming'"
+                variant="primary"
+                size="md"
+                class="rounded-xl shadow-lg shadow-primary/20"
+                @click="openAddClassModal"
+              >
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold tracking-tight">Add Class</span>
               </AppButton>
@@ -798,13 +862,18 @@ const handleActionSubmit = async (payload) => {
               <td class="ui-cell" :style="{ width: headers[1].width }">
                 <div class="flex items-center gap-4">
                   <div
-                    class="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/80 shadow-sm bg-surface-subtle p-1.5">
-                    <img :src="getProgramProfileURL(
-                      item.program?.profileURL,
-                      item.program?.category?.name || item.program?.category,
-                      item.program?.category?.profileURL,
-                    )
-                      " class="w-full h-full object-contain" />
+                    class="w-9 h-9 rounded-full overflow-hidden ring-2 ring-white/80 shadow-sm bg-surface-subtle p-1.5"
+                  >
+                    <img
+                      :src="
+                        getProgramProfileURL(
+                          item.program?.profileURL,
+                          item.program?.category?.name || item.program?.category,
+                          item.program?.category?.profileURL,
+                        )
+                      "
+                      class="w-full h-full object-contain"
+                    />
                   </div>
                   <div class="flex flex-col">
                     <span class="leading-tight">{{ item.program?.name || 'Program' }}</span>
@@ -816,27 +885,42 @@ const handleActionSubmit = async (payload) => {
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[2].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
-                  <div v-for="(sched, idx) in item.schedules" :key="sched.offeringId || idx"
-                    class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm min-w-[120px]">
+                  <div
+                    v-for="(sched, idx) in item.schedules"
+                    :key="sched.offeringId || idx"
+                    class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm min-w-32"
+                  >
                     <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
-                    <span class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums">{{ sched.time
-                    }}</span>
+                    <span
+                      class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums"
+                      >{{ sched.time }}</span
+                    >
                   </div>
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[3].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
-                  <div v-for="(sched, idx) in item.schedules" :key="sched.offeringId || idx" class="flex items-center justify-center h-10">
+                  <div
+                    v-for="(sched, idx) in item.schedules"
+                    :key="sched.offeringId || idx"
+                    class="flex items-center justify-center h-10"
+                  >
                     <AppBadge :status="sched.currentCount || 0" type="blue" />
                   </div>
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[4].width }">
-                <span class="text-sm font-bold text-primary tabular-nums">${{ formatPrice(item.totalRevenue) }}</span>
+                <span class="text-sm font-bold text-primary tabular-nums"
+                  >${{ formatPrice(item.totalRevenue) }}</span
+                >
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[5].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
-                  <div v-for="(sched, idx) in item.schedules" :key="sched.offeringId || idx" class="flex items-center justify-center h-10">
+                  <div
+                    v-for="(sched, idx) in item.schedules"
+                    :key="sched.offeringId || idx"
+                    class="flex items-center justify-center h-10"
+                  >
                     <AppBadge :status="sched.status || 'Active'" />
                   </div>
                 </div>
@@ -845,30 +929,57 @@ const handleActionSubmit = async (payload) => {
                 <div class="flex items-center justify-center py-6 h-full relative">
                   <button
                     class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-subtle text-content-muted hover:text-content-dark transition-all"
-                    @click.stop="toggleMenu($event, item.id)">
+                    @click.stop="toggleMenu($event, item.id)"
+                  >
                     <span class="font-bold text-xl leading-none mb-1">⋮</span>
                   </button>
 
                   <Teleport to="body">
-                    <transition enter-active-class="transition duration-200 ease-out"
-                      enter-from-class="transform scale-95 opacity-0" enter-to-class="transform scale-100 opacity-100"
-                      leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
-                      leave-to-class="opacity-0">
-                      <div v-if="activeMenuId === item.id" class="ui-dropdown-menu"
-                        :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }" :style="menuStyles"
-                        @click.stop>
-                        <button class="ui-dropdown-item ui-dropdown-item-info group"
-                          @click="() => { openSessionModal(item); closeMenu(); }">
-                          <span class="opacity-70 group-hover:opacity-100 transition-opacity">📋</span>
+                    <transition
+                      enter-active-class="transition duration-200 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-150 ease-in"
+                      leave-from-class="opacity-100"
+                      leave-to-class="opacity-0"
+                    >
+                      <div
+                        v-if="activeMenuId === item.id"
+                        class="ui-dropdown-menu"
+                        :class="{ 'origin-bottom': isMenuAbove, 'origin-top': !isMenuAbove }"
+                        :style="menuStyles"
+                        @click.stop
+                      >
+                        <button
+                          class="ui-dropdown-item ui-dropdown-item-info group"
+                          @click="
+                            () => {
+                              openSessionModal(item)
+                              closeMenu()
+                            }
+                          "
+                        >
+                          <span class="opacity-70 group-hover:opacity-100 transition-opacity"
+                            >📋</span
+                          >
                           <span class="font-semibold">Manage Faculty</span>
                         </button>
 
                         <div class="h-px bg-surface-light mx-1 my-1"></div>
 
-                        <button class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
-                          @click="() => { confirmRemoveClass(item); closeMenu(); }">
-                          <img :src="getActionIcon('delete')"
-                            class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity icon-danger" />
+                        <button
+                          class="ui-dropdown-item ui-dropdown-item-danger group font-bold"
+                          @click="
+                            () => {
+                              confirmRemoveClass(item)
+                              closeMenu()
+                            }
+                          "
+                        >
+                          <img
+                            :src="getActionIcon('delete')"
+                            class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity icon-danger"
+                          />
                           Remove Class
                         </button>
                       </div>
@@ -877,23 +988,38 @@ const handleActionSubmit = async (payload) => {
                 </div>
               </td>
             </template>
-
           </DataTable>
 
-          <DataTable v-else-if="activeSubTab === 'students'" title="Enrolled Students" :headers="studentHeaders"
-            :items="paginatedStudents" entityName="student" :flexible="false" :hasSearch="true"
-            v-model:searchQuery="studentSearchQuery" v-model:currentFilter="studentFilter"
-            :filterOptions="studentFilterOptions" :hasFilter="true" :hasPagination="true"
-            v-model:currentPage="studentCurrentPage" :pageSize="studentPageSize" :totalItems="filteredStudents.length">
+          <DataTable
+            v-else-if="activeSubTab === 'students'"
+            title="Enrolled Students"
+            :headers="studentHeaders"
+            :items="paginatedStudents"
+            entityName="student"
+            :flexible="false"
+            :hasSearch="true"
+            v-model:searchQuery="studentSearchQuery"
+            v-model:currentFilter="studentFilter"
+            :filterOptions="studentFilterOptions"
+            :hasFilter="true"
+            :hasPagination="true"
+            v-model:currentPage="studentCurrentPage"
+            :pageSize="studentPageSize"
+            :totalItems="filteredStudents.length"
+          >
             <template #row="{ item, index, headers }">
               <td class="ui-cell text-center" :style="{ width: headers[0].width }">
                 {{ (studentCurrentPage - 1) * studentPageSize + index + 1 }}
               </td>
               <td class="ui-cell" :style="{ width: headers[1].width }">
                 <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full overflow-hidden bg-surface-subtle border border-outline-std">
-                    <img :src="item.profileURL || getImageUrl('common/default-avatar')"
-                      class="w-full h-full object-cover" />
+                  <div
+                    class="w-8 h-8 rounded-full overflow-hidden bg-surface-subtle border border-outline-std"
+                  >
+                    <img
+                      :src="item.profileURL || getImageUrl('common/default-avatar')"
+                      class="w-full h-full object-cover"
+                    />
                   </div>
                   <div class="flex flex-col">
                     <span class="font-bold text-content-dark text-sm">{{ item.name }}</span>
@@ -924,24 +1050,36 @@ const handleActionSubmit = async (payload) => {
             <h2 class="w-full font-bold text-content-dark text-center">Basic Information</h2>
             <div class="relative group">
               <div
-                class="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle flex items-center justify-center p-6">
-                <img :src="getImageUrl('enrollment/total-enrollment')" alt="Term Icon"
-                  class="w-full h-full object-contain" />
+                class="w-32 h-32 rounded-full overflow-hidden ring-4 ring-white shadow-2xl transition-transform duration-500 group-hover:scale-105 border-2 border-gray-100 bg-surface-subtle flex items-center justify-center p-6"
+              >
+                <img
+                  :src="getImageUrl('enrollment/total-enrollment')"
+                  alt="Term Icon"
+                  class="w-full h-full object-contain"
+                />
               </div>
             </div>
             <div class="text-center">
               <h3 class="text-lg text-content-dark font-extrabold mt-md">{{ term.name }}</h3>
-              <span class="text-sm font-bold text-content-muted mt-1">{{ term.totalSessions }} Weekly Sessions</span>
+              <span class="text-sm font-bold text-content-muted mt-1"
+                >{{ term.totalSessions }} Weekly Sessions</span
+              >
             </div>
           </section>
 
           <!-- Parameters Card -->
           <section class="ui-detail-card !py-8">
             <div class="flex flex-col items-center gap-6">
-              <div v-if="activeBranch"
-                class="flex flex-col items-center gap-2 w-full pb-6 border-b border-outline-std/50">
+              <div
+                v-if="activeBranch"
+                class="flex flex-col items-center gap-2 w-full pb-6 border-b border-outline-std/50"
+              >
                 <span class="text-sm font-bold text-content-muted">Selected Branch</span>
-                <AppBadge :status="activeBranch.name" :type="activeBranch.color" class="px-6 py-1.5 text-sm" />
+                <AppBadge
+                  :status="activeBranch.name"
+                  :type="activeBranch.color"
+                  class="px-6 py-1.5 text-sm"
+                />
               </div>
 
               <div class="grid grid-cols-2 gap-x-12 gap-y-8 w-full" v-if="branchDisplayData">
@@ -951,15 +1089,21 @@ const handleActionSubmit = async (payload) => {
                 </div>
                 <div class="flex flex-col items-center gap-2">
                   <span class="text-sm font-bold text-content-muted">Locations</span>
-                  <span class="text-lg font-bold text-content-dark">{{ term.branchIds.length }} Branches</span>
+                  <span class="text-lg font-bold text-content-dark"
+                    >{{ term.branchIds.length }} Branches</span
+                  >
                 </div>
                 <div class="flex flex-col items-center gap-2">
                   <span class="text-sm font-bold text-content-muted">Duration</span>
-                  <span class="text-lg font-bold text-content-dark">{{ term.totalSessions }} Weeks</span>
+                  <span class="text-lg font-bold text-content-dark"
+                    >{{ term.totalSessions }} Weeks</span
+                  >
                 </div>
                 <div class="flex flex-col items-center gap-2">
                   <span class="text-sm font-bold text-content-muted">Sessions</span>
-                  <span class="text-lg font-bold text-content-dark">{{ term.totalSessions }} Total</span>
+                  <span class="text-lg font-bold text-content-dark"
+                    >{{ term.totalSessions }} Total</span
+                  >
                 </div>
                 <div class="flex flex-col items-center gap-2">
                   <span class="text-sm font-bold text-content-muted">Start Date</span>
@@ -976,28 +1120,54 @@ const handleActionSubmit = async (payload) => {
       </template>
     </DetailPageLayout>
 
-    <TermActionModal v-if="modal.isOpen" :isOpen="modal.isOpen" :type="modal.type" :term="term" :branches="branches"
-      :loading="modal.loading" :error="modal.error" :success="modal.success" @close="modal.isOpen = false"
-      @submit="handleActionSubmit" />
+    <TermActionModal
+      v-if="modal.isOpen"
+      :isOpen="modal.isOpen"
+      :type="modal.type"
+      :term="term"
+      :branches="branches"
+      :loading="modal.loading"
+      :error="modal.error"
+      :success="modal.success"
+      @close="modal.isOpen = false"
+      @submit="handleActionSubmit"
+    />
 
-    <ClassActionModal v-if="classActionModal.isOpen" :isOpen="classActionModal.isOpen" :type="classActionModal.type"
-      :classInstance="classActionModal.classItem" :context="classActionModal.context"
-      @close="classActionModal.isOpen = false" @submit="handleClassActionSubmit" :loading="classActionModal.loading"
-      :error="classActionModal.error" :success="classActionModal.success" />
+    <ClassActionModal
+      v-if="classActionModal.isOpen"
+      :isOpen="classActionModal.isOpen"
+      :type="classActionModal.type"
+      :classInstance="classActionModal.classItem"
+      :context="classActionModal.context"
+      @close="classActionModal.isOpen = false"
+      @submit="handleClassActionSubmit"
+      :loading="classActionModal.loading"
+      :error="classActionModal.error"
+      :success="classActionModal.success"
+    />
 
     <!-- Weekly Session Management Modal -->
-    <TermSessionModal v-if="sessionModal.isOpen" :isOpen="sessionModal.isOpen" :term="term"
-      :offeringId="sessionModal.offeringId" :programId="sessionModal.programId" :programName="sessionModal.programName"
-      :schedule="sessionModal.schedule" :teachers="teachers" :activeBranch="activeBranch"
-      @close="sessionModal.isOpen = false" @update-teacher="
-        ({ offeringId, weekIndex, teacherId }) => updateSessionTeacher(offeringId, weekIndex, teacherId)
-      " />
-
+    <TermSessionModal
+      v-if="sessionModal.isOpen"
+      :isOpen="sessionModal.isOpen"
+      :term="term"
+      :offeringId="sessionModal.offeringId"
+      :programId="sessionModal.programId"
+      :programName="sessionModal.programName"
+      :schedule="sessionModal.schedule"
+      :teachers="teachers"
+      :activeBranch="activeBranch"
+      @close="sessionModal.isOpen = false"
+      @update-teacher="
+        ({ offeringId, weekIndex, teacherId }) =>
+          updateSessionTeacher(offeringId, weekIndex, teacherId)
+      "
+    />
   </DashboardLayout>
 </template>
 
 <style scoped>
 .ui-detail-card {
-  @apply bg-white rounded-[2rem] p-8 border border-outline-std shadow-sm transition-all duration-500 hover:shadow-xl hover:shadow-primary/5;
+  @apply bg-white rounded-xl p-8 border border-outline-std shadow-sm transition-all duration-500 hover:shadow-xl hover:shadow-primary/5;
 }
 </style>

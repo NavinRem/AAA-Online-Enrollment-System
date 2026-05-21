@@ -75,7 +75,7 @@ defineEmits(['confirm', 'back'])
 
 <style scoped>
 .app-confirm-overlay {
-  @apply fixed inset-0 z-[3000] bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-6;
+  @apply fixed inset-0 z-dropdown bg-slate-900/70 backdrop-blur-md flex items-center justify-center p-6;
 }
 
 .app-confirm-card {

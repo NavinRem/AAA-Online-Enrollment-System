@@ -29,27 +29,30 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm({
-  parentId: '',
-  studentId: '',
-  programId: '',
-  classId: '',
-  termId: '',
-  termOfferingId: '',
-  branchId: '',
-  scheduleId: '',
-  enrollAt: new Date().toISOString().split('T')[0],
-  isProrated: false,
-  isSponsorship: false,
-  sponsorName: '',
-  discountAmount: 0,
-  discountType: 'dollar',
-  isCustomPrice: false,
-  customPrice: 0,
-  enrolledSessions: 0,
-  amount: 0,
-  remark: '',
-}, { autoClear: 3000 })
+const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm(
+  {
+    parentId: '',
+    studentId: '',
+    programId: '',
+    classId: '',
+    termId: '',
+    termOfferingId: '',
+    branchId: '',
+    scheduleId: '',
+    enrollAt: new Date().toISOString().split('T')[0],
+    isProrated: false,
+    isSponsorship: false,
+    sponsorName: '',
+    discountAmount: 0,
+    discountType: 'dollar',
+    isCustomPrice: false,
+    customPrice: 0,
+    enrolledSessions: 0,
+    amount: 0,
+    remark: '',
+  },
+  { autoClear: 3000 },
+)
 
 const showConfirm = ref(false)
 const initialDataString = ref('')
@@ -88,7 +91,8 @@ const availableOfferings = computed(() => {
   return activeUpcomingTerms.value.flatMap((term) =>
     (term.offerings || [])
       .filter((offering) => {
-        const isMatch = offering.program?.id === form.programId || offering.class?.programId === form.programId
+        const isMatch =
+          offering.program?.id === form.programId || offering.class?.programId === form.programId
         if (!isMatch) return false
 
         const currentCount = offering.currentCount || (offering.students || []).length || 0
@@ -359,55 +363,98 @@ defineExpose({ setStudent })
 </script>
 
 <template>
-  <AppModal :show="isOpen" @close="$emit('close')"
+  <AppModal
+    :show="isOpen"
+    @close="$emit('close')"
     :title="isEditMode ? 'Edit Enrollment Record' : 'Create New Enrollment'"
-    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')" :error="error" :success="success">
+    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')"
+    :error="error"
+    :success="success"
+  >
     <form id="enrollmentForm" novalidate @submit.prevent="requestConfirm" class="enroll-form-root">
       <div class="ui-form-grid">
-        <AppSelect v-model="form.parentId" :items="parentSelectItems" label="Parent Name"
-          placeholder="Search Active Parent..." required :error="errors.parentId" :shake="shaking.parentId"
-          @change="selectParent">
+        <AppSelect
+          v-model="form.parentId"
+          :items="parentSelectItems"
+          label="Parent Name"
+          placeholder="Search Active Parent..."
+          required
+          :error="errors.parentId"
+          :shake="shaking.parentId"
+          @change="selectParent"
+        >
           <template #item="{ item }">
             <div class="flex items-center gap-3 w-full">
-              <div class="w-8 h-8 rounded-md border border-outline-std overflow-hidden bg-white shrink-0 shadow-sm">
-                <img :src="item.profileURL || getActionIcon('edit')" class="w-full h-full object-cover" />
+              <div
+                class="w-8 h-8 rounded-md border border-outline-std overflow-hidden bg-white shrink-0 shadow-sm"
+              >
+                <img
+                  :src="item.profileURL || getActionIcon('edit')"
+                  class="w-full h-full object-cover"
+                />
               </div>
               <div class="flex flex-col flex-1">
                 <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
               </div>
               <div v-if="item.children?.length" class="flex -space-x-2 ml-auto">
-                <div v-for="child in item.children" :key="child.id"
+                <div
+                  v-for="child in item.children"
+                  :key="child.id"
                   class="w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-subtle shadow-sm"
-                  :title="child.name">
-                  <img :src="child.profileURL || getActionIcon('student')" class="w-full h-full object-cover" />
+                  :title="child.name"
+                >
+                  <img
+                    :src="child.profileURL || getActionIcon('student')"
+                    class="w-full h-full object-cover"
+                  />
                 </div>
               </div>
             </div>
           </template>
         </AppSelect>
 
-        <AppSelect v-model="form.studentId" :items="studentSelectItems" label="Student Name"
-          placeholder="Search Active Student..." required :error="errors.studentId" :shake="shaking.studentId"
-          :disabled="!form.parentId" @change="handleStudentChange">
+        <AppSelect
+          v-model="form.studentId"
+          :items="studentSelectItems"
+          label="Student Name"
+          placeholder="Search Active Student..."
+          required
+          :error="errors.studentId"
+          :shake="shaking.studentId"
+          :disabled="!form.parentId"
+          @change="handleStudentChange"
+        >
           <template #item-badge="{ item }">
             <AppBadge v-if="item.age" status="student">{{ item.age }} years old</AppBadge>
           </template>
         </AppSelect>
 
-        <div v-if="form.parentId && availableStudents.length === 0"
-          class="col-span-2 p-4 bg-warning-soft border border-warning/20 rounded-xl flex items-center gap-3 animate-fade-in">
+        <div
+          v-if="form.parentId && availableStudents.length === 0"
+          class="col-span-2 p-4 bg-warning-soft border border-warning/20 rounded-xl flex items-center gap-3 animate-fade-in"
+        >
           <img :src="getActionIcon('cancel')" class="w-5 h-5 brightness-0 grayscale opacity-60" />
-          <span class="text-xs font-bold text-content-dark opacity-70">This parent has no children registered. Add a
-            child in
-            the Students module first.</span>
+          <span class="text-xs font-bold text-content-dark opacity-70"
+            >This parent has no children registered. Add a child in the Students module first.</span
+          >
         </div>
 
-        <AppSelect v-model="form.programId" :items="programSelectItems" label="Program" placeholder="Select Program..."
-          required :error="errors.programId" :shake="shaking.programId" :disabled="!form.studentId"
-          @change="handleProgramChange">
+        <AppSelect
+          v-model="form.programId"
+          :items="programSelectItems"
+          label="Program"
+          placeholder="Select Program..."
+          required
+          :error="errors.programId"
+          :shake="shaking.programId"
+          :disabled="!form.studentId"
+          @change="handleProgramChange"
+        >
           <template #selected="{ item }">
             <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
-              <span class="text-sm font-semibold text-content-dark truncate flex-1">{{ item.name }} </span>
+              <span class="text-sm font-semibold text-content-dark truncate flex-1"
+                >{{ item.name }}
+              </span>
               <AppBadge :status="item.type" :type="item.type" />
             </div>
           </template>
@@ -416,9 +463,17 @@ defineExpose({ setStudent })
           </template>
         </AppSelect>
 
-        <AppSelect v-model="form.termOfferingId" :items="offeringSelectItems" label="Class Product"
-          placeholder="Select Offering..." required :error="errors.termOfferingId" :shake="shaking.termOfferingId"
-          :disabled="!form.programId" @change="handleOfferingChange">
+        <AppSelect
+          v-model="form.termOfferingId"
+          :items="offeringSelectItems"
+          label="Class Product"
+          placeholder="Select Offering..."
+          required
+          :error="errors.termOfferingId"
+          :shake="shaking.termOfferingId"
+          :disabled="!form.programId"
+          @change="handleOfferingChange"
+        >
           <template #selected="{ item }">
             <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
               <AppBadge :status="item.scheduleDay" type="purple" />
@@ -435,9 +490,13 @@ defineExpose({ setStudent })
                 <AppBadge :status="item.branchName" :type="item.branchColor" />
               </div>
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold">{{ item.scheduleDay }} ({{ item.scheduleTime }})</span>
-                <span class="text-xs font-bold"
-                  :class="item.capacity - item.studentCount <= 3 ? 'text-error' : 'text-success'">
+                <span class="text-xs font-semibold"
+                  >{{ item.scheduleDay }} ({{ item.scheduleTime }})</span
+                >
+                <span
+                  class="text-xs font-bold"
+                  :class="item.capacity - item.studentCount <= 3 ? 'text-error' : 'text-success'"
+                >
                   {{ item.capacity - item.studentCount }} slots left
                 </span>
               </div>
@@ -445,15 +504,22 @@ defineExpose({ setStudent })
           </template>
         </AppSelect>
 
-        <div v-if="form.classId && availableOfferings.length === 0"
-          class="col-span-2 p-4 bg-error-soft border border-error/10 rounded-xl flex items-center gap-3 animate-fade-in">
+        <div
+          v-if="form.classId && availableOfferings.length === 0"
+          class="col-span-2 p-4 bg-error-soft border border-error/10 rounded-xl flex items-center gap-3 animate-fade-in"
+        >
           <img :src="getActionIcon('cancel')" class="w-5 h-5" />
-          <span class="text-xs font-bold text-error">No active or upcoming terms offer this class yet.</span>
+          <span class="text-xs font-bold text-error"
+            >No active or upcoming terms offer this class yet.</span
+          >
         </div>
       </div>
 
-      <transition enter-active-class="transition duration-500 ease-out" enter-from-class="opacity-0 translate-y-4"
-        enter-to-class="opacity-100 translate-y-0">
+      <transition
+        enter-active-class="transition duration-500 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+      >
         <div v-if="selectedOffering" class="enrollment-detail-panel">
           <div class="enroll-twin-card">
             <span class="enroll-section-label">Offering Overview</span>
@@ -474,8 +540,10 @@ defineExpose({ setStudent })
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Branch</span>
-                <AppBadge :status="selectedOffering.branch?.abbr || selectedOffering.branch?.name"
-                  :type="selectedOffering.branch?.color || 'blue'" />
+                <AppBadge
+                  :status="selectedOffering.branch?.abbr || selectedOffering.branch?.name"
+                  :type="selectedOffering.branch?.color || 'blue'"
+                />
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Students</span>
@@ -495,7 +563,10 @@ defineExpose({ setStudent })
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Base Price</span>
-                <AppBadge :status="'$' + formatPrice(selectedProgram?.basePrice || 0)" type="blue" />
+                <AppBadge
+                  :status="'$' + formatPrice(selectedProgram?.basePrice || 0)"
+                  type="blue"
+                />
               </div>
             </div>
           </div>
@@ -505,42 +576,69 @@ defineExpose({ setStudent })
             <div class="enroll-info-grid">
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Billing Mode</span>
-                <div class="ui-box-toggle" :class="{ 'ui-box-toggle--active': form.isProrated }"
-                  @click="form.isProrated = !form.isProrated">
+                <div
+                  class="ui-box-toggle"
+                  :class="{ 'ui-box-toggle--active': form.isProrated }"
+                  @click="form.isProrated = !form.isProrated"
+                >
                   <AppBadge :status="form.isProrated ? 'Partial' : 'Full'" />
                 </div>
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Sponsorship</span>
-                <div class="ui-box-toggle" :class="{ 'ui-box-toggle--active': form.isSponsorship }"
-                  @click="form.isSponsorship = !form.isSponsorship">
+                <div
+                  class="ui-box-toggle"
+                  :class="{ 'ui-box-toggle--active': form.isSponsorship }"
+                  @click="form.isSponsorship = !form.isSponsorship"
+                >
                   <AppBadge :status="form.isSponsorship ? 'Sponsored' : 'Parent Paid'" />
                 </div>
               </div>
               <div v-if="form.isSponsorship" class="enroll-info-item col-span-2">
-                <AppInput v-model="form.sponsorName" label="Sponsor Name" placeholder="e.g. Corporate Partner"
-                  :error="errors.sponsorName" :shake="shaking.sponsorName" />
+                <AppInput
+                  v-model="form.sponsorName"
+                  label="Sponsor Name"
+                  placeholder="e.g. Corporate Partner"
+                  :error="errors.sponsorName"
+                  :shake="shaking.sponsorName"
+                />
               </div>
               <div class="enroll-info-item">
-                <AppInput v-model.number="form.discountAmount" type="number" label="Discount" placeholder="0"
-                  :error="errors.discountAmount" :shake="shaking.discountAmount" />
+                <AppInput
+                  v-model.number="form.discountAmount"
+                  type="number"
+                  label="Discount"
+                  placeholder="0"
+                  :error="errors.discountAmount"
+                  :shake="shaking.discountAmount"
+                />
               </div>
               <div class="enroll-info-item">
                 <div class="flex flex-col gap-2">
                   <span class="enroll-info-key">Discount Type</span>
                   <div class="flex bg-surface-subtle border border-outline-std rounded-sm p-0.5">
-                    <button type="button" @click="form.discountType = 'dollar'"
-                      class="px-2 py-1 rounded-xs text-xs font-semibold transition-all" :class="form.discountType === 'dollar'
-                        ? 'bg-primary text-white shadow-sm rounded-sm'
-                        : 'text-content-muted hover:text-content-dark'
-                        ">
+                    <button
+                      type="button"
+                      @click="form.discountType = 'dollar'"
+                      class="px-2 py-1 rounded-xs text-xs font-semibold transition-all"
+                      :class="
+                        form.discountType === 'dollar'
+                          ? 'bg-primary text-white shadow-sm rounded-sm'
+                          : 'text-content-muted hover:text-content-dark'
+                      "
+                    >
                       $
                     </button>
-                    <button type="button" @click="form.discountType = 'percent'"
-                      class="px-2 py-1 rounded-xs text-xs font-semibold transition-all" :class="form.discountType === 'percent'
-                        ? 'bg-primary text-white shadow-sm rounded-sm'
-                        : 'text-content-muted hover:text-content-dark'
-                        ">
+                    <button
+                      type="button"
+                      @click="form.discountType = 'percent'"
+                      class="px-2 py-1 rounded-xs text-xs font-semibold transition-all"
+                      :class="
+                        form.discountType === 'percent'
+                          ? 'bg-primary text-white shadow-sm rounded-sm'
+                          : 'text-content-muted hover:text-content-dark'
+                      "
+                    >
                       %
                     </button>
                   </div>
@@ -548,21 +646,36 @@ defineExpose({ setStudent })
               </div>
               <div class="enroll-info-item">
                 <span class="enroll-info-key">Custom Price</span>
-                <div class="ui-box-toggle" :class="{ 'ui-box-toggle--danger': form.isCustomPrice }"
-                  @click="form.isCustomPrice = !form.isCustomPrice">
+                <div
+                  class="ui-box-toggle"
+                  :class="{ 'ui-box-toggle--danger': form.isCustomPrice }"
+                  @click="form.isCustomPrice = !form.isCustomPrice"
+                >
                   <span class="text-sm font-semibold" :class="{ 'text-error': form.isCustomPrice }">
                     {{ form.isCustomPrice ? 'Override' : 'Locked' }}
                   </span>
                 </div>
               </div>
               <div v-if="form.isCustomPrice" class="enroll-info-item">
-                <AppInput v-model.number="form.customPrice" type="number" label="Override Price" placeholder="0"
-                  :error="errors.customPrice" :shake="shaking.customPrice" />
+                <AppInput
+                  v-model.number="form.customPrice"
+                  type="number"
+                  label="Override Price"
+                  placeholder="0"
+                  :error="errors.customPrice"
+                  :shake="shaking.customPrice"
+                />
               </div>
               <div class="enroll-info-item col-span-2">
-                <AppInput v-model="form.remark" type="textarea" label="Administrative Remark"
-                  placeholder="Optional note" :error="errors.remark" :shake="shaking.remark"
-                  @input="clearError('remark')" />
+                <AppInput
+                  v-model="form.remark"
+                  type="textarea"
+                  label="Administrative Remark"
+                  placeholder="Optional note"
+                  :error="errors.remark"
+                  :shake="shaking.remark"
+                  @input="clearError('remark')"
+                />
               </div>
               <div class="enroll-info-item col-span-2 mt-2">
                 <div class="ui-summary-card">
@@ -582,12 +695,19 @@ defineExpose({ setStudent })
         </div>
       </transition>
 
-      <AppConfirmOverlay :show="showConfirm"
+      <AppConfirmOverlay
+        :show="showConfirm"
         :title="isEditMode ? 'Confirm Enrollment Changes' : 'Confirm Enrollment Details'"
-        subtitle="Please review carefully before submitting." :icon="getActionIcon(isEditMode ? 'edit' : 'plus')"
-        :rows="confirmRows" :totalAmount="finalAmount" totalLabel="Price to Pay"
-        :confirmLabel="isEditMode ? 'Update' : 'Add'" :loading="loading" @back="showConfirm = false"
-        @confirm="handleFinalSubmit" />
+        subtitle="Please review carefully before submitting."
+        :icon="getActionIcon(isEditMode ? 'edit' : 'plus')"
+        :rows="confirmRows"
+        :totalAmount="finalAmount"
+        totalLabel="Price to Pay"
+        :confirmLabel="isEditMode ? 'Update' : 'Add'"
+        :loading="loading"
+        @back="showConfirm = false"
+        @confirm="handleFinalSubmit"
+      />
     </form>
 
     <template #footer>
@@ -596,15 +716,24 @@ defineExpose({ setStudent })
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
         <div class="flex items-center justify-between w-full">
-          <div v-if="hasAnyError" class="text-error font-bold text-sm flex items-center gap-2 animate-bounce">
+          <div
+            v-if="hasAnyError"
+            class="text-error font-bold text-sm flex items-center gap-2 animate-bounce"
+          >
             <img :src="getActionIcon('cancel')" class="w-4 h-4" />
             <span>Please fill in all required fields and correct errors.</span>
           </div>
           <div class="flex items-center gap-3 ml-auto">
             <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
-            <AppButton type="button" variant="primary" :loading="loading" class="ui-btn-premium"
+            <AppButton
+              type="button"
+              variant="primary"
+              :loading="loading"
+              class="ui-btn-premium"
               :disabled="loading || (isEditMode && !isChanged)"
-              :class="{ 'opacity-50 pointer-events-none': isEditMode && !isChanged }" @click="requestConfirm">
+              :class="{ 'opacity-50 pointer-events-none': isEditMode && !isChanged }"
+              @click="requestConfirm"
+            >
               {{ isEditMode ? 'Update' : 'Add' }}
             </AppButton>
           </div>

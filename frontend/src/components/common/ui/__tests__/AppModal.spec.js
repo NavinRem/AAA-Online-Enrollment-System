@@ -5,9 +5,9 @@ import AppModal from '../AppModal.vue'
 describe('AppModal.vue', () => {
   it('does not render when show is false', () => {
     const wrapper = mount(AppModal, {
-      props: { show: false }
+      props: { show: false },
     })
-    
+
     // The outer div should not exist if show is false
     expect(wrapper.find('div.fixed.inset-0').exists()).toBe(false)
   })
@@ -16,13 +16,13 @@ describe('AppModal.vue', () => {
     const wrapper = mount(AppModal, {
       props: {
         show: true,
-        title: 'Test Modal'
+        title: 'Test Modal',
       },
       slots: {
-        default: '<div class="test-body">Body Content</div>'
-      }
+        default: '<div class="test-body">Body Content</div>',
+      },
     })
-    
+
     expect(wrapper.find('div.fixed.inset-0').exists()).toBe(true)
     expect(wrapper.text()).toContain('Test Modal')
     expect(wrapper.find('.test-body').exists()).toBe(true)
@@ -30,19 +30,19 @@ describe('AppModal.vue', () => {
 
   it('emits close event when backdrop or close button is clicked', async () => {
     const wrapper = mount(AppModal, {
-      props: { show: true }
+      props: { show: true },
     })
-    
+
     // Find the backdrop
     const backdrop = wrapper.find('div.fixed.inset-0')
     await backdrop.trigger('click')
-    
+
     expect(wrapper.emitted()).toHaveProperty('close')
-    
+
     // Find close button
     const closeBtn = wrapper.find('button.cursor-pointer')
     await closeBtn.trigger('click')
-    
+
     expect(wrapper.emitted().close).toHaveLength(2)
   })
 
@@ -50,10 +50,10 @@ describe('AppModal.vue', () => {
     const wrapper = mount(AppModal, {
       props: { show: true },
       slots: {
-        footer: '<button class="footer-btn">Action</button>'
-      }
+        footer: '<button class="footer-btn">Action</button>',
+      },
     })
-    
+
     expect(wrapper.find('.footer-btn').exists()).toBe(true)
   })
 
@@ -61,10 +61,10 @@ describe('AppModal.vue', () => {
     const wrapper = mount(AppModal, {
       props: {
         show: true,
-        error: 'Test Error Message'
-      }
+        error: 'Test Error Message',
+      },
     })
-    
+
     // AppAlert component renders the message inside a span or p, depending on implementation
     // We check if the text is present in the wrapper
     expect(wrapper.text()).toContain('Test Error Message')

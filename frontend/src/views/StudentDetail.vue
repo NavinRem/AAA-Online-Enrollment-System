@@ -9,16 +9,17 @@ import { parentService } from '@/services/parentService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { programService } from '@/services/programService'
 import { classService } from '@/services/classService'
-import {
-  formatDateOnly,
-  calculateAge,
-  generateClassSessions,
-} from '@/utils/formatUtils'
+import { formatDateOnly, calculateAge, generateClassSessions } from '@/utils/formatUtils'
 import { getAcademicStatus, enrichEnrollments } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 
-import { getImageUrl, getActionIcon, getParentProfileURL, getStudentProfileURL } from '@/utils/assetHelper'
+import {
+  getImageUrl,
+  getActionIcon,
+  getParentProfileURL,
+  getStudentProfileURL,
+} from '@/utils/assetHelper'
 import { branchService } from '@/services/branchService'
 import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
 import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
@@ -86,7 +87,10 @@ const enrollmentOptions = computed(() => {
 })
 
 const selectedEnrollment = computed(() => {
-  return enrollments.value.find((e) => String(e.id) === String(selectedEnrollmentId.value)) || enrollments.value[0]
+  return (
+    enrollments.value.find((e) => String(e.id) === String(selectedEnrollmentId.value)) ||
+    enrollments.value[0]
+  )
 })
 
 const sessions = computed(() => {
@@ -435,7 +439,7 @@ watch(
       <template #left-content v-if="student">
         <!-- Table Content Container -->
         <section
-          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-[2rem] bg-white shadow-sm flex flex-col min-h-0"
+          class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-xl bg-white shadow-sm flex flex-col min-h-0"
         >
           <DataTable
             title="Attendance Track"
@@ -462,8 +466,7 @@ watch(
                   </div>
                   <div class="w-px h-8 bg-outline-std/50"></div>
                   <div class="flex flex-col">
-                    <span
-                      class="text-3xs font-bold text-content-muted uppercase tracking-wider"
+                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider"
                       >Passed</span
                     >
                     <span class="text-lg font-black text-success">{{
@@ -472,8 +475,7 @@ watch(
                   </div>
                   <div class="w-px h-8 bg-outline-std/50"></div>
                   <div class="flex flex-col">
-                    <span
-                      class="text-3xs font-bold text-content-muted uppercase tracking-wider"
+                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider"
                       >Absent</span
                     >
                     <span class="text-lg font-black text-error">{{ attendanceStats.absent }}</span>
@@ -489,7 +491,7 @@ watch(
                     class="!bg-primary !text-white min-w-[240px]"
                   >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
-                    <span class="font-bold truncate max-w-[200px]">{{
+                    <span class="font-bold truncate max-w-52">{{
                       selectedEnrollment
                         ? `${selectedEnrollment.programName} (${selectedEnrollment.termName})`
                         : 'Select Enrollment'

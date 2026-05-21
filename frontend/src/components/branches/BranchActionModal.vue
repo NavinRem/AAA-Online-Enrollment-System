@@ -36,13 +36,21 @@ const mapSourceToForm = () => {
   return getInitialData()
 }
 
-const { localData, isDirty, errors, shaking, validate, clearError, triggerShake, resetForm: _resetForm } =
-  useActionModal(props, emit, {
-    getInitialData,
-    mapSourceToForm,
-    sourceKey: 'branch',
-    autoClear: 3000,
-  })
+const {
+  localData,
+  isDirty,
+  errors,
+  shaking,
+  validate,
+  clearError,
+  triggerShake,
+  resetForm: _resetForm,
+} = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm,
+  sourceKey: 'branch',
+  autoClear: 3000,
+})
 
 const showConfirm = ref(false)
 const colorOptions = [
@@ -307,11 +315,7 @@ watch(
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
-        <AppAlert
-          v-if="type === 'edit' && !isDirty"
-          type="info"
-          class="w-full"
-        >
+        <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
 

@@ -163,7 +163,7 @@ const changePage = (page) => {
 }
 
 .pagination-number-btn {
-  @apply min-w-[32px] h-8 px-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm border;
+  @apply min-w-8 h-8 px-2 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm border;
 }
 
 .pagination-number-btn--active {

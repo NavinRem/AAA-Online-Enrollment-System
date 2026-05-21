@@ -26,14 +26,17 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit', 'clear-error', 'clear-success'])
 
-const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm({
-  programId: '',
-  scheduleIds: [],
-  scheduleCapacities: {},
-  scheduleTeachers: {}, // { scheduleId: teacherId }
-  deleteConfirm: '',
-  status: 'active',
-}, { autoClear: 3000 })
+const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm(
+  {
+    programId: '',
+    scheduleIds: [],
+    scheduleCapacities: {},
+    scheduleTeachers: {}, // { scheduleId: teacherId }
+    deleteConfirm: '',
+    status: 'active',
+  },
+  { autoClear: 3000 },
+)
 
 const teachers = ref([])
 
@@ -162,9 +165,10 @@ const confirmRows = computed(() => {
     return [
       {
         key: 'Warning',
-        value: props.type === 'remove' 
-          ? 'This will remove the class and all its schedules from this specific branch for this term.' 
-          : 'This will permanently remove this class product from the catalog.',
+        value:
+          props.type === 'remove'
+            ? 'This will remove the class and all its schedules from this specific branch for this term.'
+            : 'This will permanently remove this class product from the catalog.',
         valueClass: 'text-error',
       },
     ]
@@ -201,12 +205,14 @@ const loadOptions = async (skipCache = false) => {
     name: `${schedule.day} (${schedule.time})`,
   }))
 
-  teachers.value = (Array.isArray(teacherData) ? teacherData : teacherData?.data || []).map(t => ({
-    id: t.id,
-    name: t.name,
-    profileURL: t.profileURL,
-    branchAbbr: t.branchAbbr
-  }))
+  teachers.value = (Array.isArray(teacherData) ? teacherData : teacherData?.data || []).map(
+    (t) => ({
+      id: t.id,
+      name: t.name,
+      profileURL: t.profileURL,
+      branchAbbr: t.branchAbbr,
+    }),
+  )
 }
 
 const toggleScheduleManage = () => {
@@ -402,7 +408,7 @@ const confirmSubmit = () => {
     id,
     capacity: form.scheduleCapacities[id] || 20,
     teacherId: form.scheduleTeachers[id] || '',
-    teacher: teachers.value.find(t => t.id === form.scheduleTeachers[id]) || null
+    teacher: teachers.value.find((t) => t.id === form.scheduleTeachers[id]) || null,
   }))
 
   emit('submit', {
@@ -587,8 +593,8 @@ const confirmSubmit = () => {
               </div>
 
               <div class="flex items-center gap-6 ml-4">
-                <div class="flex flex-col gap-1.5 min-w-[200px]">
-                  <label class="text-[10px] font-black uppercase text-content-muted/60 tracking-wider">
+                <div class="flex flex-col gap-1.5 min-w-52">
+                  <label class="text-4xs font-black uppercase text-content-muted/60 tracking-wider">
                     Responsible Teacher
                   </label>
                   <AppSelect
@@ -601,16 +607,26 @@ const confirmSubmit = () => {
                   >
                     <template #selected="{ item }">
                       <div v-if="item" class="flex items-center gap-2">
-                        <img :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')" class="w-5 h-5 rounded-full border border-outline-std" />
-                        <span class="text-xs font-bold truncate max-w-[100px]">{{ item.name }}</span>
+                        <img
+                          :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')"
+                          class="w-5 h-5 rounded-full border border-outline-std"
+                        />
+                        <span class="text-xs font-bold truncate max-w-24">{{ item.name }}</span>
                       </div>
                     </template>
                     <template #item="{ item }">
                       <div class="flex items-center gap-2 w-full">
-                        <img :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')" class="w-6 h-6 rounded-lg border border-outline-std" />
+                        <img
+                          :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')"
+                          class="w-6 h-6 rounded-lg border border-outline-std"
+                        />
                         <div class="flex flex-col overflow-hidden">
-                           <span class="text-xs font-bold text-content-dark truncate">{{ item.name }}</span>
-                           <span class="text-[10px] text-content-muted font-semibold">{{ item.branchAbbr || 'Cross-Branch' }}</span>
+                          <span class="text-xs font-bold text-content-dark truncate">{{
+                            item.name
+                          }}</span>
+                          <span class="text-4xs text-content-muted font-semibold">{{
+                            item.branchAbbr || 'Cross-Branch'
+                          }}</span>
                         </div>
                       </div>
                     </template>
@@ -618,7 +634,7 @@ const confirmSubmit = () => {
                 </div>
 
                 <div class="flex flex-col items-center gap-1.5">
-                  <label class="text-[10px] font-black uppercase text-content-muted/60 tracking-wider">
+                  <label class="text-4xs font-black uppercase text-content-muted/60 tracking-wider">
                     Capacity
                   </label>
                   <div
@@ -772,24 +788,34 @@ const confirmSubmit = () => {
             </strong>
             <span class="text-xs opacity-90 font-medium leading-relaxed">
               <template v-if="type === 'remove'">
-                Remove {{ props.classInstance?.program?.name || 'this class' }} from 
-                <span class="font-bold">{{ context?.termName || 'this term' }}</span> at 
-                <span class="font-bold">{{ context?.branchName || 'this branch' }}</span>?
-                This will unenroll all students and delete all schedules for this specific term offering.
+                Remove {{ props.classInstance?.program?.name || 'this class' }} from
+                <span class="font-bold">{{ context?.termName || 'this term' }}</span> at
+                <span class="font-bold">{{ context?.branchName || 'this branch' }}</span
+                >? This will unenroll all students and delete all schedules for this specific term
+                offering.
               </template>
               <template v-else>
                 Delete class product {{ props.classInstance?.program?.name || 'this class' }}?
-                Existing term offerings and enrollments keep their historical snapshots, but this master catalog entry will be permanently erased.
+                Existing term offerings and enrollments keep their historical snapshots, but this
+                master catalog entry will be permanently erased.
               </template>
             </span>
           </div>
         </AppAlert>
 
-        <AppInput v-model="form.deleteConfirm" label="Authorization Confirmation" placeholder="DELETE" required
-          :shake="shaking.deleteConfirm" :error="errors.deleteConfirm" @input="clearError('deleteConfirm')">
+        <AppInput
+          v-model="form.deleteConfirm"
+          label="Authorization Confirmation"
+          placeholder="DELETE"
+          required
+          :shake="shaking.deleteConfirm"
+          :error="errors.deleteConfirm"
+          @input="clearError('deleteConfirm')"
+        >
           <template #label-extra>
             <span class="block text-2xs font-semibold mt-0.5">
-              Type <span class="text-error px-1 font-bold">DELETE</span> to authorize {{ type === 'remove' ? 'removal' : 'deletion' }}
+              Type <span class="text-error px-1 font-bold">DELETE</span> to authorize
+              {{ type === 'remove' ? 'removal' : 'deletion' }}
             </span>
           </template>
         </AppInput>
@@ -798,11 +824,7 @@ const confirmSubmit = () => {
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
-        <AppAlert
-          v-if="type === 'edit' && !isDirty"
-          type="info"
-          class="w-full"
-        >
+        <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
 
@@ -810,10 +832,10 @@ const confirmSubmit = () => {
           <button type="button" class="ui-btn-cancel" @click="$emit('close')">Cancel</button>
           <AppButton
             type="button"
-            :variant="(type === 'delete' || type === 'remove') ? 'danger' : 'primary'"
+            :variant="type === 'delete' || type === 'remove' ? 'danger' : 'primary'"
             :loading="loading"
             :disabled="loading || (type === 'edit' && !isDirty)"
-            :class="{ 'button-disabled-visual': (type === 'edit' && !isDirty) }"
+            :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
             @click="handleSubmit"
           >
             {{ submitLabel }}

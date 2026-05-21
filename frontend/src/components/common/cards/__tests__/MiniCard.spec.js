@@ -8,10 +8,10 @@ describe('MiniCard.vue', () => {
       props: {
         title: 'Total Students',
         value: 150,
-        image: '/test-image.png'
-      }
+        image: '/test-image.png',
+      },
     })
-    
+
     expect(wrapper.find('h4').text()).toBe('Total Students')
     expect(wrapper.text()).toContain('150')
   })
@@ -21,10 +21,10 @@ describe('MiniCard.vue', () => {
       props: {
         title: 'Total Students',
         value: 150,
-        image: '/test-image.png'
-      }
+        image: '/test-image.png',
+      },
     })
-    
+
     const img = wrapper.find('img')
     expect(img.exists()).toBe(true)
     expect(img.attributes('src')).toBe('/test-image.png')
@@ -36,13 +36,13 @@ describe('MiniCard.vue', () => {
       props: {
         title: 'Total Students',
         value: 150,
-        image: '/test-image.png'
-      }
+        image: '/test-image.png',
+      },
     })
-    
+
     const img = wrapper.find('img')
     await img.trigger('error')
-    
+
     // Check if the inline style display: none was applied by the handler
     expect(img.element.style.display).toBe('none')
   })

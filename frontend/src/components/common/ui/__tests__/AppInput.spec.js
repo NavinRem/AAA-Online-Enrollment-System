@@ -9,10 +9,10 @@ describe('AppInput.vue', () => {
         label: 'Username',
         placeholder: 'Enter username',
         modelValue: 'JohnDoe',
-        type: 'text'
-      }
+        type: 'text',
+      },
     })
-    
+
     expect(wrapper.find('label').text()).toContain('Username')
     const input = wrapper.find('input')
     expect(input.exists()).toBe(true)
@@ -23,13 +23,13 @@ describe('AppInput.vue', () => {
   it('emits update:modelValue on input change', async () => {
     const wrapper = mount(AppInput, {
       props: {
-        modelValue: ''
-      }
+        modelValue: '',
+      },
     })
-    
+
     const input = wrapper.find('input')
     await input.setValue('JaneDoe')
-    
+
     expect(wrapper.emitted()).toHaveProperty('update:modelValue')
     expect(wrapper.emitted()['update:modelValue'][0]).toEqual(['JaneDoe'])
   })
@@ -37,10 +37,10 @@ describe('AppInput.vue', () => {
   it('renders error message when error prop is provided', () => {
     const wrapper = mount(AppInput, {
       props: {
-        error: 'This field is required'
-      }
+        error: 'This field is required',
+      },
     })
-    
+
     const errorMsg = wrapper.find('p.text-error')
     expect(errorMsg.exists()).toBe(true)
     expect(errorMsg.text()).toBe('This field is required')
@@ -51,10 +51,10 @@ describe('AppInput.vue', () => {
     const wrapper = mount(AppInput, {
       props: {
         type: 'textarea',
-        modelValue: 'Some long text'
-      }
+        modelValue: 'Some long text',
+      },
     })
-    
+
     expect(wrapper.find('textarea').exists()).toBe(true)
     expect(wrapper.find('input').exists()).toBe(false)
     expect(wrapper.find('textarea').element.value).toBe('Some long text')
@@ -64,19 +64,19 @@ describe('AppInput.vue', () => {
     const wrapper = mount(AppInput, {
       props: {
         type: 'password',
-        modelValue: 'secret'
-      }
+        modelValue: 'secret',
+      },
     })
-    
+
     const input = wrapper.find('input')
     const btn = wrapper.find('button')
-    
+
     expect(input.attributes('type')).toBe('password')
     expect(btn.exists()).toBe(true)
-    
+
     await btn.trigger('click')
     expect(input.attributes('type')).toBe('text')
-    
+
     await btn.trigger('click')
     expect(input.attributes('type')).toBe('password')
   })

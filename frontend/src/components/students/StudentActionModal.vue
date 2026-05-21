@@ -330,11 +330,7 @@ watch(
         >
           {{ error }}
         </AppAlert>
-        <AppAlert
-          v-if="type === 'edit' && !isDirty"
-          type="info"
-          class="w-full"
-        >
+        <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
 

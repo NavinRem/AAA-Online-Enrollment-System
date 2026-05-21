@@ -31,7 +31,8 @@ export async function request(endpoint, options = {}) {
   }
 
   const cacheKey = url
-  const skipCache = options.skipCache || (typeof globalThis !== 'undefined' && globalThis.__playwright_mock_auth__)
+  const skipCache =
+    options.skipCache || (typeof globalThis !== 'undefined' && globalThis.__playwright_mock_auth__)
   if (method === 'GET' && !skipCache) {
     const cached = getCachedData(cacheKey)
     if (cached) return cached

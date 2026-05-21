@@ -17,12 +17,15 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
 
-const { form, errors, shaking, validate, clearError, resetForm } = useForm({
-  name: '',
-  email: '',
-  phone: '',
-  profileURL: '',
-}, { autoClear: 3000 })
+const { form, errors, shaking, validate, clearError, resetForm } = useForm(
+  {
+    name: '',
+    email: '',
+    phone: '',
+    profileURL: '',
+  },
+  { autoClear: 3000 },
+)
 
 watch(
   () => props.isOpen,
@@ -155,7 +158,7 @@ const handleFinalSubmit = () => {
           v-if="row.value !== 'None Selected'"
           :href="row.value"
           target="_blank"
-          class="text-primary text-sm font-semibold hover:underline line-clamp-2 leading-tight max-w-[200px]"
+          class="text-primary text-sm font-semibold hover:underline line-clamp-2 leading-tight max-w-52"
           title="View Avatar URL"
         >
           {{ row.value }}

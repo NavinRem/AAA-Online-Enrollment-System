@@ -16,9 +16,7 @@ import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
 import TimestampCard from '@/components/common/detail/TimestampCard.vue'
 
-import {
-  getActionIcon,
-} from '@/utils/assetHelper'
+import { getActionIcon } from '@/utils/assetHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
 
 const route = useRoute()
@@ -60,11 +58,17 @@ const enrollmentProfileFields = computed(() => [
           : 'Unpaid',
     isBadge: true,
   },
-  { label: 'Enrolled', value: formatDate(enrollment.value?.enrollAt || enrollment.value?.createdAt) },
+  {
+    label: 'Enrolled',
+    value: formatDate(enrollment.value?.enrollAt || enrollment.value?.createdAt),
+  },
 ])
 
 const paymentSummaryFields = computed(() => [
-  { label: 'Tuition', value: '$' + formatPrice(enrollment.value?.finalPrice || enrollment.value?.totalPrice || 0) },
+  {
+    label: 'Tuition',
+    value: '$' + formatPrice(enrollment.value?.finalPrice || enrollment.value?.totalPrice || 0),
+  },
   { label: 'Settled', value: '$' + formatPrice(enrollment.value?.paidAmount || 0) },
   {
     label: 'Balance',
@@ -72,8 +76,6 @@ const paymentSummaryFields = computed(() => [
     isBadge: true,
   },
 ])
-
-
 
 const openActionModal = (type) => {
   modalError.value = ''
@@ -162,7 +164,8 @@ const fetchDependencyData = async () => {
     parents.value = Array.isArray(parentsRes) ? parentsRes : []
     programs.value = Array.isArray(programsRes) ? programsRes : []
     students.value = Array.isArray(studentsRes) ? studentsRes : []
-    enrollments.value = enrollmentsRes?.data || (Array.isArray(enrollmentsRes) ? enrollmentsRes : [])
+    enrollments.value =
+      enrollmentsRes?.data || (Array.isArray(enrollmentsRes) ? enrollmentsRes : [])
   } catch (err) {
     console.error('Failed to load dependency data for form', err)
   } finally {
@@ -234,30 +237,47 @@ onMounted(async () => {
 
 <template>
   <DashboardLayout>
-    <DetailPageLayout :loading="loading" :errorMessage="errorMessage" backRoute="/enrollments" sidebarWidth="sm">
+    <DetailPageLayout
+      :loading="loading"
+      :errorMessage="errorMessage"
+      backRoute="/enrollments"
+      sidebarWidth="sm"
+    >
       <template #header-actions v-if="enrollment">
         <div class="flex items-center gap-3">
-          <button v-if="enrollment.status !== 'cancelled'"
+          <button
+            v-if="enrollment.status !== 'cancelled'"
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-primary-soft transition-all duration-300 hover:bg-primary hover:border-primary group"
-            title="Edit Enrollment" @click="openActionModal('edit')">
+            title="Edit Enrollment"
+            @click="openActionModal('edit')"
+          >
             <img :src="getActionIcon('edit')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
-          <button v-if="
-            enrollment.status !== 'confirmed' &&
-            enrollment.paymentStatus !== 'paid' &&
-            enrollment.status !== 'cancelled'
-          " class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-success-soft transition-all duration-300 hover:bg-success hover:border-success group"
-            title="Pay Enrollment" @click="openActionModal('pay')">
+          <button
+            v-if="
+              enrollment.status !== 'confirmed' &&
+              enrollment.paymentStatus !== 'paid' &&
+              enrollment.status !== 'cancelled'
+            "
+            class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-success-soft transition-all duration-300 hover:bg-success hover:border-success group"
+            title="Pay Enrollment"
+            @click="openActionModal('pay')"
+          >
             <img :src="getActionIcon('pay')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
-          <button v-if="enrollment.status !== 'cancelled'"
+          <button
+            v-if="enrollment.status !== 'cancelled'"
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-warning-soft transition-all duration-300 hover:bg-warning hover:border-warning group"
-            title="Cancel Enrollment" @click="openActionModal('cancel')">
+            title="Cancel Enrollment"
+            @click="openActionModal('cancel')"
+          >
             <img :src="getActionIcon('cancel')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
           <button
             class="w-11 h-11 flex items-center justify-center rounded-full border border-outline-std bg-error-soft transition-all duration-300 hover:bg-error hover:border-error group"
-            title="Delete Enrollment" @click="openActionModal('delete')">
+            title="Delete Enrollment"
+            @click="openActionModal('delete')"
+          >
             <img :src="getActionIcon('delete')" class="w-5 h-5 brightness-0 transition-all" />
           </button>
         </div>
@@ -270,22 +290,30 @@ onMounted(async () => {
             <h3 class="ui-detail-card-title">Guardian Profile</h3>
             <div class="flex justify-center mb-6">
               <div class="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md">
-                <img :src="getAvatarUrl(enrollment.parent?.profileURL)" class="w-full h-full object-cover" />
+                <img
+                  :src="getAvatarUrl(enrollment.parent?.profileURL)"
+                  class="w-full h-full object-cover"
+                />
               </div>
             </div>
             <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
               <div class="flex items-center justify-between border-b border-outline-std/50 pb-2">
                 <span class="text-xs font-semibold text-content-muted">Full Name</span>
-                <span class="text-sm font-bold text-content-dark">{{ enrollment.parent?.name || 'N/A' }}</span>
+                <span class="text-sm font-bold text-content-dark">{{
+                  enrollment.parent?.name || 'N/A'
+                }}</span>
               </div>
               <div class="flex items-center justify-between border-b border-outline-std/50 pb-2">
                 <span class="text-xs font-semibold text-content-muted">Email</span>
-                <span class="text-sm font-bold text-content-dark">{{ enrollment.parent?.email || 'N/A' }}</span>
+                <span class="text-sm font-bold text-content-dark">{{
+                  enrollment.parent?.email || 'N/A'
+                }}</span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold text-content-muted">Phone</span>
-                <span class="text-sm font-bold text-content-dark tabular-nums">{{ enrollment.parent?.phone || 'N/A'
-                  }}</span>
+                <span class="text-sm font-bold text-content-dark tabular-nums">{{
+                  enrollment.parent?.phone || 'N/A'
+                }}</span>
               </div>
             </div>
           </section>
@@ -295,23 +323,30 @@ onMounted(async () => {
             <h3 class="ui-detail-card-title">Student Profile</h3>
             <div class="flex justify-center mb-6">
               <div class="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md">
-                <img :src="getAvatarUrl(enrollment.student?.profileURL)" class="w-full h-full object-cover" />
+                <img
+                  :src="getAvatarUrl(enrollment.student?.profileURL)"
+                  class="w-full h-full object-cover"
+                />
               </div>
             </div>
             <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
               <div class="flex items-center justify-between border-b border-outline-std/50 pb-2">
                 <span class="text-xs font-semibold text-content-muted">Full Name</span>
-                <span class="text-sm font-bold text-content-dark">{{ enrollment.student?.name || 'N/A' }}</span>
+                <span class="text-sm font-bold text-content-dark">{{
+                  enrollment.student?.name || 'N/A'
+                }}</span>
               </div>
               <div class="flex items-center justify-between border-b border-outline-std/50 pb-2">
                 <span class="text-xs font-semibold text-content-muted">Birth Date</span>
                 <span class="text-sm font-bold text-content-dark tabular-nums">{{
-                  formatDateOnly(enrollment.student?.dob) }}</span>
+                  formatDateOnly(enrollment.student?.dob)
+                }}</span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold text-content-muted">Current Age</span>
-                <span class="text-sm font-bold text-content-dark tabular-nums">{{ calculateAge(enrollment.student?.dob)
-                  }} yrs</span>
+                <span class="text-sm font-bold text-content-dark tabular-nums"
+                  >{{ calculateAge(enrollment.student?.dob) }} yrs</span
+                >
               </div>
             </div>
           </section>
@@ -321,28 +356,35 @@ onMounted(async () => {
             <h3 class="ui-detail-card-title">Program Selection</h3>
             <div class="flex justify-center mb-6">
               <div class="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md">
-                <img :src="enrollment.class?.program?.profileURL || enrollment.program?.profileURL"
-                  class="w-full h-full object-cover bg-white" />
+                <img
+                  :src="enrollment.class?.program?.profileURL || enrollment.program?.profileURL"
+                  class="w-full h-full object-cover bg-white"
+                />
               </div>
             </div>
             <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
               <div class="flex items-center justify-between border-b border-outline-std/50 pb-2">
                 <span class="text-xs font-semibold text-content-muted">Course</span>
-                <span class="text-sm font-bold text-content-dark">{{ enrollment.class?.program?.name ||
-                  enrollment.program?.name }}</span>
+                <span class="text-sm font-bold text-content-dark">{{
+                  enrollment.class?.program?.name || enrollment.program?.name
+                }}</span>
               </div>
               <div class="flex items-center justify-between border-b border-outline-std/50 pb-2">
                 <span class="text-xs font-semibold text-content-muted">Category</span>
                 <span class="text-sm font-bold text-content-dark">{{
-                  typeof (enrollment.class?.program?.category || enrollment.program?.category) === 'object'
-                    ? (enrollment.class?.program?.category?.name || enrollment.program?.category?.name || 'N/A')
-                    : (enrollment.class?.program?.category || enrollment.program?.category || 'N/A')
+                  typeof (enrollment.class?.program?.category || enrollment.program?.category) ===
+                  'object'
+                    ? enrollment.class?.program?.category?.name ||
+                      enrollment.program?.category?.name ||
+                      'N/A'
+                    : enrollment.class?.program?.category || enrollment.program?.category || 'N/A'
                 }}</span>
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold text-content-muted">Type</span>
-                <span class="text-sm font-bold text-content-dark capitalize">{{ enrollment.class?.program?.type ||
-                  enrollment.program?.type || 'N/A' }}</span>
+                <span class="text-sm font-bold text-content-dark capitalize">{{
+                  enrollment.class?.program?.type || enrollment.program?.type || 'N/A'
+                }}</span>
               </div>
             </div>
           </section>
@@ -352,11 +394,16 @@ onMounted(async () => {
             <h3 class="ui-detail-card-title">Academic Assignment</h3>
             <div class="flex justify-center mb-6">
               <div class="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md">
-                <img :src="getAvatarUrl(
-                  enrollment.class?.teachers?.[0]?.profileURL ||
-                  enrollment.class?.teacher?.profileURL ||
-                  enrollment.teacher?.profileURL
-                )" class="w-full h-full object-cover bg-white" />
+                <img
+                  :src="
+                    getAvatarUrl(
+                      enrollment.class?.teachers?.[0]?.profileURL ||
+                        enrollment.class?.teacher?.profileURL ||
+                        enrollment.teacher?.profileURL,
+                    )
+                  "
+                  class="w-full h-full object-cover bg-white"
+                />
               </div>
             </div>
             <div class="bg-primary-soft/30 rounded-xl p-6 flex flex-col gap-3">
@@ -365,10 +412,11 @@ onMounted(async () => {
                 <span class="text-sm font-bold text-content-dark">
                   {{
                     enrollment.class?.teachers?.length > 1
-                      ? enrollment.class?.teachers?.map(t => t.name).join(', ')
-                      : (enrollment.class?.teacher?.name || enrollment.class?.teachers?.[0]?.name ||
+                      ? enrollment.class?.teachers?.map((t) => t.name).join(', ')
+                      : enrollment.class?.teacher?.name ||
+                        enrollment.class?.teachers?.[0]?.name ||
                         enrollment.teacher?.name ||
-                        'N/A')
+                        'N/A'
                   }}
                 </span>
               </div>
@@ -381,8 +429,9 @@ onMounted(async () => {
               </div>
               <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold text-content-muted">Branch</span>
-                <span class="text-sm font-bold text-content-dark capitalize">{{ enrollment.class?.branch?.name ||
-                  enrollment.branch?.name || 'N/A' }}</span>
+                <span class="text-sm font-bold text-content-dark capitalize">{{
+                  enrollment.class?.branch?.name || enrollment.branch?.name || 'N/A'
+                }}</span>
               </div>
             </div>
           </section>
@@ -398,16 +447,34 @@ onMounted(async () => {
       </template>
     </DetailPageLayout>
 
-    <EnrollmentFormModal :isOpen="showFormModal" :loading="submitting" :parents="parents" :students="students"
-      :programs="programs" :classes="classes" :enrollments="enrollments" :enrollment="enrollment" :error="modalError"
-      :success="modalSuccess" @close="
-        showFormModal = false;
-      modalError = '';
-      modalSuccess = '';
-      " @program-change="handleProgramChange" @submit="handleEditSubmit" />
+    <EnrollmentFormModal
+      :isOpen="showFormModal"
+      :loading="submitting"
+      :parents="parents"
+      :students="students"
+      :programs="programs"
+      :classes="classes"
+      :enrollments="enrollments"
+      :enrollment="enrollment"
+      :error="modalError"
+      :success="modalSuccess"
+      @close="
+        showFormModal = false
+        modalError = ''
+        modalSuccess = ''
+      "
+      @program-change="handleProgramChange"
+      @submit="handleEditSubmit"
+    />
 
-    <EnrollmentActionModal v-bind="actionModal" :loading="submitting" v-model:error="modalError"
-      v-model:success="modalSuccess" @close="closeActionModal" @submit="handleActionSubmit" />
+    <EnrollmentActionModal
+      v-bind="actionModal"
+      :loading="submitting"
+      v-model:error="modalError"
+      v-model:success="modalSuccess"
+      @close="closeActionModal"
+      @submit="handleActionSubmit"
+    />
   </DashboardLayout>
 </template>
 

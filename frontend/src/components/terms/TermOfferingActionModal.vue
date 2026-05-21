@@ -21,10 +21,13 @@ const emit = defineEmits(['close', 'submit'])
 import { useForm } from '@/composables/useForm'
 const dataStore = useDataStore()
 
-const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm({
-  branchIds: [],
-  programIds: [],
-}, { autoClear: 3000 })
+const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm(
+  {
+    branchIds: [],
+    programIds: [],
+  },
+  { autoClear: 3000 },
+)
 
 const programs = computed(() => dataStore.programs)
 const branches = computed(() => {

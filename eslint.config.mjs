@@ -40,7 +40,7 @@ export default [
       'vue/first-attribute-linebreak': [
         'error',
         {
-          singleline: 'beside',
+          singleline: 'ignore',
           multiline: 'below',
         },
       ],

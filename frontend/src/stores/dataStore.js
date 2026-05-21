@@ -222,7 +222,7 @@ export const useDataStore = defineStore('data', {
       this.loading.enrollments = true
       this.activePromises.enrollments = (async () => {
         try {
-          // Increase limit to 100000 to ensure analytics (TermDetail, ProgramDetail) 
+          // Increase limit to 100000 to ensure analytics (TermDetail, ProgramDetail)
           // do not truncate data as the database scales past 5000.
           const response = await enrollmentService.getAllEnrollments({ limit: 100000 })
           this.enrollments = response.data || (Array.isArray(response) ? response : [])
@@ -282,7 +282,9 @@ export const useDataStore = defineStore('data', {
   getters: {
     getProgramWithCategory: (state) => {
       return state.programs.map((p) => {
-        const cat = state.categories.find((c) => String(c.id) === String(p.categoryId) || c.name === p.category)
+        const cat = state.categories.find(
+          (c) => String(c.id) === String(p.categoryId) || c.name === p.category,
+        )
         return {
           ...p,
           categoryProfileURL: cat?.profileURL || '',

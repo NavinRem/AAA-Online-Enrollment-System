@@ -470,7 +470,7 @@ const handleActionSubmit = async (formData) => {
               {{ index + 1 }}
             </td>
 
-            <td class="ui-cell min-w-[200px]" @click="navigateToDetail(item)">
+            <td class="ui-cell min-w-52" @click="navigateToDetail(item)">
               <div class="ui-identity-cell">
                 <div
                   class="ui-avatar bg-surface-subtle border border-outline-std flex items-center justify-center"

@@ -208,7 +208,9 @@ export default {
       // ================================================================
 
       fontSize: {
-        '3xs': ['0.75rem', { lineHeight: '1rem' }], // tiny badge label
+        '5xs': ['0.5rem', { lineHeight: '0.75rem' }], // 8px micro label
+        '4xs': ['0.625rem', { lineHeight: '0.8rem' }], // 10px tiny badge label
+        '3xs': ['0.75rem', { lineHeight: '1rem' }], // 12px small badge label
         '2xs': ['0.80rem', { lineHeight: '1.1rem' }], // micro label
         xs: ['0.85rem', { lineHeight: '1.2rem' }], // table header, tag
         sm: ['0.95rem', { lineHeight: '1.4rem' }], // label, caption

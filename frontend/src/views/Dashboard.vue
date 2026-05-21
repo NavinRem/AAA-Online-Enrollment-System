@@ -53,17 +53,17 @@ const getGroupedSettings = (item) => {
 const getTermPanelHeader = (term) => {
   if (!term) return 'Academic Term'
   const todayStr = new Date().toISOString().split('T')[0]
-  
+
   const allGroups = term.groupedSettings || getGroupedSettings(term)
-  const isAnyActive = allGroups.length > 0 
-    ? allGroups.some(g => g.startDate <= todayStr && g.endDate >= todayStr)
-    : (term.startDate <= todayStr && term.endDate >= todayStr)
+  const isAnyActive =
+    allGroups.length > 0
+      ? allGroups.some((g) => g.startDate <= todayStr && g.endDate >= todayStr)
+      : term.startDate <= todayStr && term.endDate >= todayStr
 
   if (isAnyActive) return 'Active Academic Term'
-  
-  const isAnyUpcoming = allGroups.length > 0
-    ? allGroups.some(g => g.startDate > todayStr)
-    : term.startDate > todayStr
+
+  const isAnyUpcoming =
+    allGroups.length > 0 ? allGroups.some((g) => g.startDate > todayStr) : term.startDate > todayStr
 
   if (isAnyUpcoming) return 'Upcoming Academic Term'
 
@@ -287,11 +287,19 @@ const mappedEnrollments = computed(() => {
 
 <template>
   <DashboardLayout>
-    <div v-if="loading" class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted">
-      <div class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"></div>
+    <div
+      v-if="loading"
+      class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted"
+    >
+      <div
+        class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"
+      ></div>
       <p class="font-semibold text-sm opacity-70">Loading Dashboard Data...</p>
     </div>
-    <div v-else class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full h-[calc(100vh - 100px)] overflow-hidden">
+    <div
+      v-else
+      class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full h-[calc(100vh - 100px)] overflow-hidden"
+    >
       <div class="flex flex-col flex-1 min-w-0 h-full gap-lg overflow-y-auto pr-md scrollable-v">
         <section class="ui-detail-card">
           <div class="ui-section-header border-none flex items-center gap-md">
@@ -312,10 +320,14 @@ const mappedEnrollments = computed(() => {
         <RecentEnrollmentTable :enrollments="mappedEnrollments" />
       </div>
 
-      <div class="hidden lg:block lg:min-w-[300px] h-full min-h-0 max-w-[320px] flex-shrink-0">
+      <div class="hidden lg:block lg:min-w-72 h-full min-h-0 max-w-80 flex-shrink-0">
         <div class="ui-detail-card h-full flex flex-col min-h-0 gap-md !p-lg">
-          <div class="border-b-[1px] border-gray-200 pb-lg flex flex-col items-center text-center gap-2">
-            <div class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2">
+          <div
+            class="border-b-[1px] border-gray-200 pb-lg flex flex-col items-center text-center gap-2"
+          >
+            <div
+              class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2"
+            >
               <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
             </div>
             <div class="flex flex-col items-center">
@@ -328,61 +340,129 @@ const mappedEnrollments = computed(() => {
             </div>
           </div>
 
-          <div class="relative overflow-hidden min-h-[140px] flex flex-col">
-            <div class="px-md py-4 rounded-md bg-primary-soft border border-outline-std flex flex-col items-center justify-center flex-1">
+          <div class="relative overflow-hidden min-h-36 flex flex-col">
+            <div
+              class="px-md py-4 rounded-md bg-primary-soft border border-outline-std flex flex-col items-center justify-center flex-1"
+            >
               <span class="text-md font-semibold text-primary-dark mb-1">
                 {{ getTermPanelHeader(currentTerm) }}
               </span>
 
               <Transition name="slide" mode="out-in">
-                <div v-if="currentTerm" :key="currentTerm.id" class="w-full flex flex-col items-center">
-                  <span class="text-lg font-bold text-content-dark tracking-tighter leading-tight mb-2 text-center">
+                <div
+                  v-if="currentTerm"
+                  :key="currentTerm.id"
+                  class="w-full flex flex-col items-center"
+                >
+                  <span
+                    class="text-lg font-bold text-content-dark tracking-tighter leading-tight mb-2 text-center"
+                  >
                     {{ currentTerm.name }}
                   </span>
 
                   <div class="w-full flex flex-col gap-3 mt-2">
                     <template v-if="currentTerm.groupedSettings?.length">
-                      <div v-for="group in currentTerm.groupedSettings" :key="group.key"
-                        class="flex flex-col items-center gap-1.5 border-b border-primary/10 last:border-0 pb-3 last:pb-0 w-full">
+                      <div
+                        v-for="group in currentTerm.groupedSettings"
+                        :key="group.key"
+                        class="flex flex-col items-center gap-1.5 border-b border-primary/10 last:border-0 pb-3 last:pb-0 w-full"
+                      >
                         <div class="flex justify-center gap-1">
-                          <AppBadge v-for="bId in group.branchIds" :key="bId"
-                            :status="dataStore.branches.find((b) => String(b.id) === String(bId))?.abbr"
-                            :type="dataStore.branches.find((b) => String(b.id) === String(bId))?.color || 'neutral'" />
+                          <AppBadge
+                            v-for="bId in group.branchIds"
+                            :key="bId"
+                            :status="
+                              dataStore.branches.find((b) => String(b.id) === String(bId))?.abbr
+                            "
+                            :type="
+                              dataStore.branches.find((b) => String(b.id) === String(bId))?.color ||
+                              'neutral'
+                            "
+                          />
                         </div>
                         <div
                           class="flex w-full justify-center items-center gap-2 px-3 py-1 rounded-full border transition-colors"
-                          :class="isArchived(group.endDate) ? 'bg-surface-subtle border-outline-std/5 opacity-60' : 'bg-white border-primary/5'">
-                          <span class="text-xs font-bold tabular-nums"
-                            :class="isArchived(group.endDate) ? 'text-content-muted/70' : 'text-content-muted'">{{
-                            formatDateOnly(group.startDate)
-                            }}</span>
-                          <span class="font-black text-xs"
-                            :class="isArchived(group.endDate) ? 'text-content-muted/30' : 'text-content-muted'">→</span>
-                          <span class="text-xs font-bold tabular-nums"
-                            :class="isArchived(group.endDate) ? 'text-content-muted/70' : 'text-content-muted'">{{
-                            formatDateOnly(group.endDate)
-                            }}</span>
+                          :class="
+                            isArchived(group.endDate)
+                              ? 'bg-surface-subtle border-outline-std/5 opacity-60'
+                              : 'bg-white border-primary/5'
+                          "
+                        >
+                          <span
+                            class="text-xs font-bold tabular-nums"
+                            :class="
+                              isArchived(group.endDate)
+                                ? 'text-content-muted/70'
+                                : 'text-content-muted'
+                            "
+                            >{{ formatDateOnly(group.startDate) }}</span
+                          >
+                          <span
+                            class="font-black text-xs"
+                            :class="
+                              isArchived(group.endDate)
+                                ? 'text-content-muted/30'
+                                : 'text-content-muted'
+                            "
+                            >→</span
+                          >
+                          <span
+                            class="text-xs font-bold tabular-nums"
+                            :class="
+                              isArchived(group.endDate)
+                                ? 'text-content-muted/70'
+                                : 'text-content-muted'
+                            "
+                            >{{ formatDateOnly(group.endDate) }}</span
+                          >
                         </div>
                       </div>
                     </template>
                     <template v-else>
                       <div class="flex flex-col items-center gap-1.5 w-full">
                         <div class="flex flex-wrap justify-center gap-1">
-                          <AppBadge v-for="b in currentTerm.branches" :key="b.abbr" :status="b.abbr" :type="b.color" />
+                          <AppBadge
+                            v-for="b in currentTerm.branches"
+                            :key="b.abbr"
+                            :status="b.abbr"
+                            :type="b.color"
+                          />
                         </div>
                         <div
                           class="flex items-center gap-2 px-3 py-1 rounded-full border transition-colors"
-                          :class="isArchived(currentTerm.endDate) ? 'bg-surface-subtle border-outline-std/5 opacity-60' : 'bg-white border-primary/5'">
-                          <span class="text-xs font-bold tabular-nums"
-                            :class="isArchived(currentTerm.endDate) ? 'text-content-muted/70' : 'text-content-muted'">{{
-                            formatDateOnly(currentTerm.startDate)
-                            }}</span>
-                          <span class="font-black text-xs"
-                            :class="isArchived(currentTerm.endDate) ? 'text-content-muted/30' : 'text-content-muted/30'">→</span>
-                          <span class="text-xs font-bold tabular-nums"
-                            :class="isArchived(currentTerm.endDate) ? 'text-content-muted/70' : 'text-content-muted'">{{
-                            formatDateOnly(currentTerm.endDate)
-                            }}</span>
+                          :class="
+                            isArchived(currentTerm.endDate)
+                              ? 'bg-surface-subtle border-outline-std/5 opacity-60'
+                              : 'bg-white border-primary/5'
+                          "
+                        >
+                          <span
+                            class="text-xs font-bold tabular-nums"
+                            :class="
+                              isArchived(currentTerm.endDate)
+                                ? 'text-content-muted/70'
+                                : 'text-content-muted'
+                            "
+                            >{{ formatDateOnly(currentTerm.startDate) }}</span
+                          >
+                          <span
+                            class="font-black text-xs"
+                            :class="
+                              isArchived(currentTerm.endDate)
+                                ? 'text-content-muted/30'
+                                : 'text-content-muted/30'
+                            "
+                            >→</span
+                          >
+                          <span
+                            class="text-xs font-bold tabular-nums"
+                            :class="
+                              isArchived(currentTerm.endDate)
+                                ? 'text-content-muted/70'
+                                : 'text-content-muted'
+                            "
+                            >{{ formatDateOnly(currentTerm.endDate) }}</span
+                          >
                         </div>
                       </div>
                     </template>
@@ -390,7 +470,10 @@ const mappedEnrollments = computed(() => {
                 </div>
                 <div v-else key="no-term" class="flex flex-col items-center justify-center py-2">
                   <span class="text-sm font-semibold text-content-muted">No terms defined</span>
-                  <router-link to="/terms" class="text-xs text-primary font-bold mt-2 hover:underline">
+                  <router-link
+                    to="/terms"
+                    class="text-xs text-primary font-bold mt-2 hover:underline"
+                  >
                     Create Term
                   </router-link>
                 </div>
@@ -398,8 +481,12 @@ const mappedEnrollments = computed(() => {
             </div>
 
             <div v-if="activeTerms.length > 1" class="flex justify-center gap-1 mt-2">
-              <div v-for="(term, idx) in activeTerms" :key="term.id || idx" class="w-1 h-1 rounded-full transition-all duration-300"
-                :class="idx === currentTermIndex ? 'bg-primary w-3' : 'bg-surface-light'"></div>
+              <div
+                v-for="(term, idx) in activeTerms"
+                :key="term.id || idx"
+                class="w-1 h-1 rounded-full transition-all duration-300"
+                :class="idx === currentTermIndex ? 'bg-primary w-3' : 'bg-surface-light'"
+              ></div>
             </div>
           </div>
 

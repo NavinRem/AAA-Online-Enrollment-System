@@ -28,7 +28,7 @@ export const authService = {
           uid: 'admin-1',
           email: 'admin@aaa.com',
           displayName: 'Admin User',
-          getIdToken: async () => 'mock-token'
+          getIdToken: async () => 'mock-token',
         })
       }, 0)
       return () => {}

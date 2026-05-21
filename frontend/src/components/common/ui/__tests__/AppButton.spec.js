@@ -6,8 +6,8 @@ describe('AppButton.vue', () => {
   it('renders default slot content', () => {
     const wrapper = mount(AppButton, {
       slots: {
-        default: 'Click Me'
-      }
+        default: 'Click Me',
+      },
     })
     expect(wrapper.text()).toContain('Click Me')
   })
@@ -21,7 +21,7 @@ describe('AppButton.vue', () => {
 
   it('does not emit click when disabled', async () => {
     const wrapper = mount(AppButton, {
-      props: { disabled: true }
+      props: { disabled: true },
     })
     await wrapper.trigger('click')
     expect(wrapper.emitted()).not.toHaveProperty('click')
@@ -31,7 +31,7 @@ describe('AppButton.vue', () => {
 
   it('shows loading spinner and disables click when loading is true', async () => {
     const wrapper = mount(AppButton, {
-      props: { loading: true }
+      props: { loading: true },
     })
     expect(wrapper.attributes('disabled')).toBeDefined()
     expect(wrapper.find('.animate-spin').exists()).toBe(true)
@@ -39,7 +39,7 @@ describe('AppButton.vue', () => {
 
   it('applies variant classes correctly', () => {
     const wrapper = mount(AppButton, {
-      props: { variant: 'danger' }
+      props: { variant: 'danger' },
     })
     // From variantClasses mapping in AppButton.vue
     expect(wrapper.classes()).toContain('bg-error')
@@ -48,7 +48,7 @@ describe('AppButton.vue', () => {
   it('hides default slot when iconOnly is true', () => {
     const wrapper = mount(AppButton, {
       props: { iconOnly: true },
-      slots: { default: 'Hidden Text' }
+      slots: { default: 'Hidden Text' },
     })
     expect(wrapper.text()).not.toContain('Hidden Text')
   })

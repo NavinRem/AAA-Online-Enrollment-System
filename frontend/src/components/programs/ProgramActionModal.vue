@@ -222,7 +222,9 @@ const onCategoryChange = (val) => {
   clearError('categoryId')
 }
 
-const selectedCategory = computed(() => categories.value.find((c) => String(c.id) === String(localData.categoryId)))
+const selectedCategory = computed(() =>
+  categories.value.find((c) => String(c.id) === String(localData.categoryId)),
+)
 
 const getLookupImage = (item) => {
   if (lookupType.value === 'category') {
@@ -282,7 +284,9 @@ const requestConfirm = () => {
 const handleActionSubmit = () => {
   showConfirm.value = false
 
-  const selectedCategory = categories.value.find((c) => String(c.id) === String(localData.categoryId))
+  const selectedCategory = categories.value.find(
+    (c) => String(c.id) === String(localData.categoryId),
+  )
   const selectedLevel = levels.value.find((l) => String(l.id) === String(localData.levelId))
 
   const payload = {
@@ -688,7 +692,9 @@ watch(
               >
               <div class="flex items-center gap-sm">
                 <AppBadge
-                  :status="categories.find((c) => String(c.id) === String(props.program.categoryId))?.name"
+                  :status="
+                    categories.find((c) => String(c.id) === String(props.program.categoryId))?.name
+                  "
                   type="blue"
                 />
               </div>
@@ -759,11 +765,7 @@ watch(
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
-        <AppAlert
-          v-if="type === 'edit' && !isDirty"
-          type="info"
-          class="w-full"
-        >
+        <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
 

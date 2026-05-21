@@ -47,8 +47,7 @@ export const enrichStudents = (
     })
 
     const p =
-      s.parentInfo ||
-      users.find((u) => u.uid === (s.parentId || '') || u.id === (s.parentId || ''))
+      s.parentInfo || users.find((u) => u.uid === (s.parentId || '') || u.id === (s.parentId || ''))
 
     return {
       ...s,

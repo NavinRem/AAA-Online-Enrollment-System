@@ -131,13 +131,20 @@ const selectFilter = (val) => {
             v-if="activeOption?.image || activeOption?.profileURL"
             :src="activeOption.image || activeOption.profileURL"
             class="w-4 h-4 transition-all"
-            :style="isActiveFilter ? { filter: getStatusFilter(currentFilter, activeOption?.color) } : {}"
+            :style="
+              isActiveFilter ? { filter: getStatusFilter(currentFilter, activeOption?.color) } : {}
+            "
           />
           <img
             v-else
             :src="getActionIcon('filter')"
             class="w-4 h-4 transition-all"
-            :style="{ filter: getStatusFilter(isActiveFilter ? currentFilter : 'filter', activeOption?.color) }"
+            :style="{
+              filter: getStatusFilter(
+                isActiveFilter ? currentFilter : 'filter',
+                activeOption?.color,
+              ),
+            }"
           />
           <span class="font-bold tracking-tight">{{ activeFilterLabel }}</span>
         </AppButton>
@@ -203,7 +210,7 @@ const selectFilter = (val) => {
                   <div class="flex items-center gap-3">
                     <div
                       v-if="option.badge"
-                      class="shrink-0 flex items-center justify-center min-w-[24px]"
+                      class="shrink-0 flex items-center justify-center min-w-6"
                     >
                       <AppBadge :status="option.badge.status" :type="option.badge.type" />
                     </div>
@@ -262,7 +269,7 @@ const selectFilter = (val) => {
 }
 
 .toolbar-filter-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-[10000] p-xs min-w-[240px] max-h-[300px] overflow-y-auto flex flex-col gap-1;
+  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-dropdown p-xs min-w-60 max-h-80 overflow-y-auto flex flex-col gap-1;
 }
 
 .toolbar-filter-option {

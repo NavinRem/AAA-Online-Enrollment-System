@@ -47,7 +47,7 @@ defineEmits(['close'])
   >
     <div
       v-if="show"
-      class="fixed inset-0 w-full h-screen bg-[#0a1e32]/50 backdrop-blur-md flex items-center justify-center z-[2000] p-4 sm:p-md"
+      class="fixed inset-0 w-full h-screen bg-slate-900/50 backdrop-blur-md flex items-center justify-center z-modal p-4 sm:p-md"
       @click.self="$emit('close')"
     >
       <transition
@@ -63,7 +63,7 @@ defineEmits(['close'])
           v-if="show"
           class="bg-white rounded-std overflow-hidden shadow-2xl flex flex-col relative border border-white/30 w-full max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)]"
           :class="[
-            variant === 'action' ? 'max-w-[95%] sm:max-w-[600px]' : 'max-w-full lg:max-w-[1000px]',
+            variant === 'action' ? 'max-w-[95%] sm:max-w-xl' : 'max-w-full lg:max-w-5xl',
             variant,
           ]"
           :style="maxWidth ? { maxWidth } : {}"

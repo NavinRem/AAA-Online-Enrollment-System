@@ -207,7 +207,7 @@ const handleSubmit = async () => {
 }
 
 .auth-logo {
-  @apply w-full max-w-[140px] h-auto mx-auto drop-shadow-sm;
+  @apply w-full max-w-36 h-auto mx-auto drop-shadow-sm;
 }
 
 .auth-title {

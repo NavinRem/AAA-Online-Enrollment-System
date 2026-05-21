@@ -27,7 +27,7 @@
   /* ── Table Row ───────────────────────────────────────────────────────────── */
   /* Use for: every data row in the table body                                 */
   .ui-row {
-    @apply transition-all duration-200 cursor-pointer w-full min-h-[52px];
+    @apply transition-all duration-200 cursor-pointer w-full min-h-14;
     background-color: var(--color-surface);
   }
   .ui-row:hover {
@@ -118,7 +118,7 @@
   /* ── Dropdown Menu ───────────────────────────────────────────────────────── */
   /* Use for: floating action menus that appear on row action click            */
   .ui-dropdown-menu {
-    @apply fixed rounded-md shadow-lg p-xs min-w-[160px] overflow-hidden z-dropdown;
+    @apply fixed rounded-md shadow-lg p-xs min-w-40 overflow-hidden z-dropdown;
     background-color: var(--color-surface);
     border: 1px solid var(--color-outline-std);
   }
