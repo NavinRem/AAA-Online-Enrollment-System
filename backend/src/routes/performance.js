@@ -8,7 +8,7 @@ const isStaff = (req, res, next) => {
   if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'teacher')) {
     return res.status(403).json({
       error: 'Forbidden',
-      message: 'Access Denied: Teacher or Administrative privileges required.'
+      message: 'Access Denied: Teacher or Administrative privileges required.',
     })
   }
   next()

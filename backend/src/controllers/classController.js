@@ -59,7 +59,6 @@ exports.deleteClass = async (req, res) => {
 
 // --- Specialized Actions ---
 
-
 exports.syncCount = async (req, res) => {
   try {
     const result = await classService.syncStudentCount(req.params.id)

@@ -1,11 +1,17 @@
 function normalizeIds(value) {
   if (!value) return []
   const ids = Array.isArray(value) ? value.filter(Boolean) : [value]
-  return Array.from(new Set(ids.map(id => String(id))))
+  return Array.from(new Set(ids.map((id) => String(id))))
 }
 
 function validateClass(classData) {
-  const classFields = ['programId', 'scheduleId', 'scheduleIds', 'schedulesData', 'status']
+  const classFields = [
+    'programId',
+    'scheduleId',
+    'scheduleIds',
+    'schedulesData',
+    'status',
+  ]
 
   Object.keys(classData).forEach((key) => {
     if (!classFields.includes(key)) {
@@ -13,7 +19,9 @@ function validateClass(classData) {
     }
   })
 
-  const scheduleIds = normalizeIds(classData.scheduleIds || classData.scheduleId)
+  const scheduleIds = normalizeIds(
+    classData.scheduleIds || classData.scheduleId,
+  )
 
   if (!classData.programId) throw new Error('Program is required')
   if (!scheduleIds.length) throw new Error('At least one schedule is required')
@@ -29,7 +37,13 @@ function validateClass(classData) {
 }
 
 function validateUpdateClass(updateData) {
-  const allowedFields = ['programId', 'scheduleId', 'scheduleIds', 'schedulesData', 'status']
+  const allowedFields = [
+    'programId',
+    'scheduleId',
+    'scheduleIds',
+    'schedulesData',
+    'status',
+  ]
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
@@ -41,9 +55,12 @@ function validateUpdateClass(updateData) {
   }
 
   if (cleanData.scheduleId || cleanData.scheduleIds) {
-    cleanData.scheduleIds = normalizeIds(cleanData.scheduleIds || cleanData.scheduleId)
+    cleanData.scheduleIds = normalizeIds(
+      cleanData.scheduleIds || cleanData.scheduleId,
+    )
     delete cleanData.scheduleId
-    if (!cleanData.scheduleIds.length) throw new Error('At least one schedule is required')
+    if (!cleanData.scheduleIds.length)
+      throw new Error('At least one schedule is required')
   }
 
   if (cleanData.status !== undefined) {

@@ -1,5 +1,8 @@
 const { db, COLLECTIONS } = require('../config/database')
-const { validateSchedule, validateUpdateSchedule } = require('../validators/scheduleValidator')
+const {
+  validateSchedule,
+  validateUpdateSchedule,
+} = require('../validators/scheduleValidator')
 
 class ScheduleService {
   async createSchedule(scheduleData) {
@@ -21,7 +24,8 @@ class ScheduleService {
   async getSchedule(id) {
     if (!id) throw new Error('Schedule ID is required')
     const doc = await db.collection(COLLECTIONS.SCHEDULE).doc(id).get()
-    if (!doc.exists || doc.data().isDeleted) throw new Error('Schedule not found')
+    if (!doc.exists || doc.data().isDeleted)
+      throw new Error('Schedule not found')
     return { id: doc.id, ...doc.data() }
   }
 
@@ -31,7 +35,8 @@ class ScheduleService {
     const ref = db.collection(COLLECTIONS.SCHEDULE).doc(id)
     const doc = await ref.get()
 
-    if (!doc.exists || doc.data().isDeleted) throw new Error('Schedule not found')
+    if (!doc.exists || doc.data().isDeleted)
+      throw new Error('Schedule not found')
 
     const next = { ...doc.data(), ...validatedData }
     if (validatedData.day || validatedData.time) {
@@ -72,9 +77,11 @@ class ScheduleService {
     const exists = snapshot.docs.some((doc) => {
       if (doc.id === ignoreId) return false
       const data = doc.data()
-      return data.isDeleted !== true &&
+      return (
+        data.isDeleted !== true &&
         String(data.day).toLowerCase() === String(day).toLowerCase() &&
         String(data.time).toLowerCase() === String(time).toLowerCase()
+      )
     })
 
     if (exists) throw new Error(`Schedule "${day} ${time}" already exists`)
@@ -90,8 +97,13 @@ class ScheduleService {
     const writes = []
     classSnap.forEach((doc) => {
       const data = doc.data()
-      const schedules = (data.schedules || []).map((s) => s.id === scheduleId ? schedule : s)
-      writes.push({ ref: doc.ref, data: { schedules, updatedAt: new Date().toISOString() } })
+      const schedules = (data.schedules || []).map((s) =>
+        s.id === scheduleId ? schedule : s,
+      )
+      writes.push({
+        ref: doc.ref,
+        data: { schedules, updatedAt: new Date().toISOString() },
+      })
     })
 
     const termSnap = await db.collection(COLLECTIONS.TERM).get()
@@ -99,13 +111,20 @@ class ScheduleService {
       const data = doc.data()
       const offeringsArray = Array.isArray(data.offerings)
         ? data.offerings
-        : (data.offerings && typeof data.offerings === 'object' ? Object.values(data.offerings) : []);
+        : data.offerings && typeof data.offerings === 'object'
+          ? Object.values(data.offerings)
+          : []
 
       const offerings = offeringsArray.map((offering) =>
-        offering.scheduleId === scheduleId ? { ...offering, schedule } : offering
+        offering.scheduleId === scheduleId
+          ? { ...offering, schedule }
+          : offering,
       )
       if (JSON.stringify(offerings) !== JSON.stringify(data.offerings || [])) {
-        writes.push({ ref: doc.ref, data: { offerings, updatedAt: new Date().toISOString() } })
+        writes.push({
+          ref: doc.ref,
+          data: { offerings, updatedAt: new Date().toISOString() },
+        })
       }
     })
 

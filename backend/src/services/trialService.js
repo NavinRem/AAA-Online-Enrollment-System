@@ -13,18 +13,21 @@ class TrialService {
 
     // Duplicate Prevention: Same student + program + trialDate (non-guest only)
     if (!isGuest && studentId && programId && validated.trialDate) {
-      const dupSnap = await db.collection(COLLECTIONS.TRIAL)
+      const dupSnap = await db
+        .collection(COLLECTIONS.TRIAL)
         .where('studentId', '==', studentId)
         .where('programId', '==', programId)
         .get()
 
-      const activeDups = dupSnap.docs.filter(doc => {
+      const activeDups = dupSnap.docs.filter((doc) => {
         const d = doc.data()
         return d.isDeleted !== true && d.trialDate === validated.trialDate
       })
 
       if (activeDups.length > 0) {
-        throw new Error('A trial for this student in this program on the same date already exists.')
+        throw new Error(
+          'A trial for this student in this program on the same date already exists.',
+        )
       }
     }
 
@@ -293,7 +296,10 @@ class TrialService {
       const studentRef = db.collection(COLLECTIONS.STUDENT).doc()
       studentId = studentRef.id
 
-      const parentDoc = await db.collection(COLLECTIONS.PARENT).doc(parentId).get()
+      const parentDoc = await db
+        .collection(COLLECTIONS.PARENT)
+        .doc(parentId)
+        .get()
       const parentInfo = parentDoc.exists
         ? [profileHelper.getParentSnapshot(parentId, parentDoc.data())]
         : []
@@ -318,10 +324,15 @@ class TrialService {
         profileURL: guestStudentAvatar || '',
         status: 'inactive',
       })
-      const existingChildren = parentDoc.exists ? (parentDoc.data().childrenInfo || []) : []
-      await db.collection(COLLECTIONS.PARENT).doc(parentId).update({
-        childrenInfo: [...existingChildren, studentSnapshot],
-      })
+      const existingChildren = parentDoc.exists
+        ? parentDoc.data().childrenInfo || []
+        : []
+      await db
+        .collection(COLLECTIONS.PARENT)
+        .doc(parentId)
+        .update({
+          childrenInfo: [...existingChildren, studentSnapshot],
+        })
     }
 
     return { parentId, studentId }

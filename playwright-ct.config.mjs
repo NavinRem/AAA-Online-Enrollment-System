@@ -1,6 +1,6 @@
-import { defineConfig, devices } from '@playwright/experimental-ct-vue';
-import { fileURLToPath, URL } from 'node:url';
-import process from 'node:process';
+import { defineConfig, devices } from '@playwright/experimental-ct-vue'
+import { fileURLToPath, URL } from 'node:url'
+import process from 'node:process'
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -31,4 +31,4 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-});
+})

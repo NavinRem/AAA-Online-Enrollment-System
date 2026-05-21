@@ -1,7 +1,11 @@
 const express = require('express')
 const router = express.Router()
 const parentController = require('../controllers/parentController')
-const { verifyToken, isAdmin, isOwnerOrAdmin } = require('../middleware/authMiddleware')
+const {
+  verifyToken,
+  isAdmin,
+  isOwnerOrAdmin,
+} = require('../middleware/authMiddleware')
 const { registrationLimiter } = require('../config/limiters')
 
 router.use(verifyToken)

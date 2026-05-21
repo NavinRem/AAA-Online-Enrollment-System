@@ -46,7 +46,7 @@ class ProfileHelper {
 
   getProgramSnapshot(programId, programData) {
     if (!programId || !programData) return null
-    
+
     // Normalize category to an object if it's just a string or missing
     let category = programData.category
     if (typeof category === 'string') {
@@ -154,14 +154,14 @@ class ProfileHelper {
     const dobStr = typeof dob === 'string' ? dob.split('T')[0] : dob
     const birthDate = new Date(dobStr)
     if (isNaN(birthDate)) return 0
-    
+
     const today = new Date()
     // Compare in UTC to avoid local timezone issues during the calculation
     const todayDate = today.toISOString().split('T')[0]
-    
+
     const [bYear, bMonth, bDay] = dobStr.split('-').map(Number)
     const [tYear, tMonth, tDay] = todayDate.split('-').map(Number)
-    
+
     let age = tYear - bYear
     if (tMonth < bMonth || (tMonth === bMonth && tDay < bDay)) {
       age--

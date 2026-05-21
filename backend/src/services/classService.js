@@ -28,10 +28,15 @@ class ClassService {
       throw new Error('A class product already exists for this program')
     }
 
-    const schedules = scheduleDocs.map((doc) => this.getScheduleSnapshot(doc.id, doc.data(), validated.schedulesData))
+    const schedules = scheduleDocs.map((doc) =>
+      this.getScheduleSnapshot(doc.id, doc.data(), validated.schedulesData),
+    )
     const newClass = {
       programId: validated.programId,
-      program: profileHelper.getProgramSnapshot(validated.programId, programDoc.data()),
+      program: profileHelper.getProgramSnapshot(
+        validated.programId,
+        programDoc.data(),
+      ),
       scheduleIds: validated.scheduleIds,
       schedules,
       isDeleted: false,
@@ -45,7 +50,8 @@ class ClassService {
 
   async getAllClasses(filters = {}) {
     let query = db.collection(COLLECTIONS.CLASS)
-    if (filters.programId) query = query.where('programId', '==', filters.programId)
+    if (filters.programId)
+      query = query.where('programId', '==', filters.programId)
     if (filters.status) query = query.where('status', '==', filters.status)
 
     const snapshot = await query.get()
@@ -81,9 +87,15 @@ class ClassService {
         throw new Error('A class product already exists for this program')
       }
 
-      const pDoc = await db.collection(COLLECTIONS.PROGRAM).doc(validated.programId).get()
+      const pDoc = await db
+        .collection(COLLECTIONS.PROGRAM)
+        .doc(validated.programId)
+        .get()
       if (!pDoc.exists) throw new Error('Program not found')
-      updates.program = profileHelper.getProgramSnapshot(validated.programId, pDoc.data())
+      updates.program = profileHelper.getProgramSnapshot(
+        validated.programId,
+        pDoc.data(),
+      )
     }
 
     if (validated.scheduleIds) {
@@ -92,12 +104,16 @@ class ClassService {
         throw new Error('One or more schedules not found')
       }
       updates.schedules = scheduleDocs.map((scheduleDoc) =>
-        this.getScheduleSnapshot(scheduleDoc.id, scheduleDoc.data(), validated.schedulesData || []),
+        this.getScheduleSnapshot(
+          scheduleDoc.id,
+          scheduleDoc.data(),
+          validated.schedulesData || [],
+        ),
       )
     }
 
     if (updates.status !== undefined) {
-       delete updates.status // Remove root-level status update
+      delete updates.status // Remove root-level status update
     }
 
     await ref.update(updates)
@@ -135,13 +151,14 @@ class ClassService {
   }
 
   getScheduleSnapshot(scheduleId, data, schedulesData = []) {
-    const sData = schedulesData.find(s => String(s.id) === String(scheduleId)) || {}
+    const sData =
+      schedulesData.find((s) => String(s.id) === String(scheduleId)) || {}
     return {
       id: scheduleId,
       day: data.day,
       time: data.time,
       capacity: sData.capacity || 20,
-      status: 'active'
+      status: 'active',
     }
   }
 
@@ -163,9 +180,19 @@ class ClassService {
     await firestoreHelper.chunkedUpdate(writes)
 
     for (const doc of snapshot.docs) {
-      await this.syncTermsWithClass(doc.id, { ...doc.data(), program: programSnapshot, id: doc.id })
-      const classSnapshot = profileHelper.getClassSnapshot(doc.id, { ...doc.data(), program: programSnapshot })
-      await require('./enrollmentService').syncEnrollmentsWithClass(doc.id, classSnapshot)
+      await this.syncTermsWithClass(doc.id, {
+        ...doc.data(),
+        program: programSnapshot,
+        id: doc.id,
+      })
+      const classSnapshot = profileHelper.getClassSnapshot(doc.id, {
+        ...doc.data(),
+        program: programSnapshot,
+      })
+      await require('./enrollmentService').syncEnrollmentsWithClass(
+        doc.id,
+        classSnapshot,
+      )
     }
   }
 
@@ -177,26 +204,33 @@ class ClassService {
       const termData = termDoc.data()
       const offeringsArray = Array.isArray(termData.offerings)
         ? termData.offerings
-        : (termData.offerings && typeof termData.offerings === 'object' ? Object.values(termData.offerings) : []);
+        : termData.offerings && typeof termData.offerings === 'object'
+          ? Object.values(termData.offerings)
+          : []
 
       const offerings = offeringsArray.map((offering) => {
         if (offering.classId !== classId) return offering
-        
+
         // Find matching schedule in classData to get updated capacity
         const scheduleSnapshot = (classData.schedules || []).find(
-          s => String(s.id) === String(offering.scheduleId)
+          (s) => String(s.id) === String(offering.scheduleId),
         )
-        
+
         return {
           ...offering,
           program: classData.program || offering.program,
           schedule: scheduleSnapshot || offering.schedule,
-          capacity: scheduleSnapshot?.capacity || offering.capacity || 20
+          capacity: scheduleSnapshot?.capacity || offering.capacity || 20,
         }
       })
 
-      if (JSON.stringify(offerings) !== JSON.stringify(termData.offerings || [])) {
-        writes.push({ ref: termDoc.ref, data: { offerings, updatedAt: new Date().toISOString() } })
+      if (
+        JSON.stringify(offerings) !== JSON.stringify(termData.offerings || [])
+      ) {
+        writes.push({
+          ref: termDoc.ref,
+          data: { offerings, updatedAt: new Date().toISOString() },
+        })
       }
     })
 
@@ -207,11 +241,17 @@ class ClassService {
   }
 
   async syncStudentCount() {
-    return { message: 'Class products do not store student counts. Counts are derived from term offerings.' }
+    return {
+      message:
+        'Class products do not store student counts. Counts are derived from term offerings.',
+    }
   }
 
   async syncAllClassCounts() {
-    return { message: 'Class products do not store student counts. Counts are derived from term offerings.' }
+    return {
+      message:
+        'Class products do not store student counts. Counts are derived from term offerings.',
+    }
   }
 
   async validateCapacity() {

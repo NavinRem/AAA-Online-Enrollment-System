@@ -1,5 +1,8 @@
 const { db, COLLECTIONS } = require('../config/database')
-const { validateLevel, validateUpdateLevel } = require('../validators/levelValidator')
+const {
+  validateLevel,
+  validateUpdateLevel,
+} = require('../validators/levelValidator')
 
 class LevelService {
   async createLevel(levelData) {
@@ -56,7 +59,10 @@ class LevelService {
       const profileHelper = require('../utils/profileHelper')
 
       programsSnap.forEach((pDoc) => {
-        const updatedSnapshot = profileHelper.getLevelSnapshot(id, validatedData)
+        const updatedSnapshot = profileHelper.getLevelSnapshot(
+          id,
+          validatedData,
+        )
         batch.update(pDoc.ref, {
           level: validatedData.name,
           levelInfo: updatedSnapshot,

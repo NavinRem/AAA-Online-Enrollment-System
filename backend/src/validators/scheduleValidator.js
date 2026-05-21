@@ -1,4 +1,12 @@
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+const DAYS = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+]
 
 function normalizeTime(time) {
   return String(time || '').trim()
@@ -34,7 +42,8 @@ function validateUpdateSchedule(updateData) {
   if (cleanData.day && !DAYS.includes(cleanData.day)) {
     throw new Error('Invalid schedule day')
   }
-  if (cleanData.time !== undefined) cleanData.time = normalizeTime(cleanData.time)
+  if (cleanData.time !== undefined)
+    cleanData.time = normalizeTime(cleanData.time)
 
   cleanData.updatedAt = new Date().toISOString()
   return cleanData

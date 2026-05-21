@@ -38,7 +38,9 @@ function validateEnrollment(enrollmentData) {
     !enrollmentData.termId ||
     !enrollmentData.termOfferingId
   ) {
-    throw new Error('parentId, studentId, programId, classId, termId, and termOfferingId are required')
+    throw new Error(
+      'parentId, studentId, programId, classId, termId, and termOfferingId are required',
+    )
   }
 
   if (enrollmentData.enrollAt) {
@@ -59,7 +61,9 @@ function validateEnrollment(enrollmentData) {
     enrollAt: enrollmentData.enrollAt || new Date().toISOString(),
     enrollmentType: enrollmentData.enrollmentType || '',
     status: String(enrollmentData.status || 'unpaid').toLowerCase(),
-    paymentStatus: String(enrollmentData.paymentStatus || 'unpaid').toLowerCase(),
+    paymentStatus: String(
+      enrollmentData.paymentStatus || 'unpaid',
+    ).toLowerCase(),
     isProrated: !!enrollmentData.isProrated,
     isSponsorship: !!enrollmentData.isSponsorship,
     sponsorName: enrollmentData.sponsorName || '',

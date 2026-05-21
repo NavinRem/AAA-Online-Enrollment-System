@@ -1,5 +1,8 @@
 const { db, COLLECTIONS } = require('../config/database')
-const { validateCategory, validateUpdateCategory } = require('../validators/categoryValidator')
+const {
+  validateCategory,
+  validateUpdateCategory,
+} = require('../validators/categoryValidator')
 
 class CategoryService {
   async createCategory(categoryData) {

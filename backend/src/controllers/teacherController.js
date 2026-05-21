@@ -60,7 +60,11 @@ exports.getAssignments = async (req, res) => {
 exports.assignToClass = async (req, res) => {
   try {
     const { termId, offeringId } = req.body
-    const result = await teacherService.assignToClass(req.params.id, termId, offeringId)
+    const result = await teacherService.assignToClass(
+      req.params.id,
+      termId,
+      offeringId,
+    )
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -70,7 +74,11 @@ exports.assignToClass = async (req, res) => {
 exports.unassignFromClass = async (req, res) => {
   try {
     const { termId, offeringId } = req.body
-    const result = await teacherService.unassignFromClass(req.params.id, termId, offeringId)
+    const result = await teacherService.unassignFromClass(
+      req.params.id,
+      termId,
+      offeringId,
+    )
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })

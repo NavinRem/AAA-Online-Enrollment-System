@@ -29,7 +29,10 @@ exports.getEnrollment = async (req, res) => {
 
 exports.updateEnrollment = async (req, res) => {
   try {
-    const result = await enrollmentService.updateEnrollment(req.params.id, req.body)
+    const result = await enrollmentService.updateEnrollment(
+      req.params.id,
+      req.body,
+    )
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -50,7 +53,10 @@ exports.deleteEnrollment = async (req, res) => {
 exports.getStudentEligibility = async (req, res) => {
   try {
     const { studentId, programId } = req.params
-    const result = await enrollmentService.getStudentEligibility(studentId, programId)
+    const result = await enrollmentService.getStudentEligibility(
+      studentId,
+      programId,
+    )
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -68,7 +74,10 @@ exports.cancelEnrollment = async (req, res) => {
 
 exports.processPayment = async (req, res) => {
   try {
-    const result = await enrollmentService.processPayment(req.params.id, req.body)
+    const result = await enrollmentService.processPayment(
+      req.params.id,
+      req.body,
+    )
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -77,7 +86,10 @@ exports.processPayment = async (req, res) => {
 
 exports.getEnrollmentsByParent = async (req, res) => {
   try {
-    const result = await enrollmentService.getEnrollmentsByParent(req.params.parentId, req.user)
+    const result = await enrollmentService.getEnrollmentsByParent(
+      req.params.parentId,
+      req.user,
+    )
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -86,10 +98,12 @@ exports.getEnrollmentsByParent = async (req, res) => {
 
 exports.getEnrollmentsByStudent = async (req, res) => {
   try {
-    const result = await enrollmentService.getEnrollmentsByStudent(req.params.studentId, req.user)
+    const result = await enrollmentService.getEnrollmentsByStudent(
+      req.params.studentId,
+      req.user,
+    )
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
   }
 }
-

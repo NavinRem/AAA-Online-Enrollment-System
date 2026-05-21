@@ -11,7 +11,8 @@ function validateLevel(levelData) {
     const regex = new RegExp(`\\b${k}\\b`, 'i')
     return regex.test(lowerName)
   })
-  if (foundKeyword) throw new Error(`Level name cannot contain "${foundKeyword}"`)
+  if (foundKeyword)
+    throw new Error(`Level name cannot contain "${foundKeyword}"`)
 
   return {
     name: levelData.name.trim(),

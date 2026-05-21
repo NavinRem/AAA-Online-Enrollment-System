@@ -54,7 +54,14 @@ function validateParent(parentData) {
 }
 
 function validateUpdateParent(updateData) {
-  const allowedFields = ['name', 'email', 'phone', 'profileURL', 'status', 'childrenInfo']
+  const allowedFields = [
+    'name',
+    'email',
+    'phone',
+    'profileURL',
+    'status',
+    'childrenInfo',
+  ]
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {

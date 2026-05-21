@@ -21,7 +21,7 @@ function validateStudent(studentData) {
   if (!parentId || typeof parentId !== 'string' || parentId.trim() === '') {
     throw new Error('Valid Parent ID is required')
   }
-  
+
   if (!name || typeof name !== 'string' || name.trim() === '') {
     throw new Error('Valid Student Name is required')
   }
@@ -41,7 +41,18 @@ function validateStudent(studentData) {
 }
 
 function validateUpdateStudent(updateData) {
-  const allowedFields = ['name', 'dob', 'age', 'profileURL', 'status', 'parentId', 'overrideReason', 'overrideRemark', 'manualStatus', 'archived']
+  const allowedFields = [
+    'name',
+    'dob',
+    'age',
+    'profileURL',
+    'status',
+    'parentId',
+    'overrideReason',
+    'overrideRemark',
+    'manualStatus',
+    'archived',
+  ]
 
   const cleanData = {}
 

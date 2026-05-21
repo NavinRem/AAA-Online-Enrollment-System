@@ -10,16 +10,23 @@ const {
 class ParentService {
   async createParent(parentData) {
     const { email, password, studentId, ...profileData } = parentData
-    const validatedProfile = validateParent({ email, studentId, ...profileData })
+    const validatedProfile = validateParent({
+      email,
+      studentId,
+      ...profileData,
+    })
 
     // Contact Uniqueness Check (Phone)
     if (validatedProfile.phone) {
-      const phoneSnap = await db.collection(COLLECTIONS.PARENT)
+      const phoneSnap = await db
+        .collection(COLLECTIONS.PARENT)
         .where('phone', '==', validatedProfile.phone)
         .limit(1)
         .get()
       if (!phoneSnap.empty) {
-        throw new Error(`A parent with phone number "${validatedProfile.phone}" is already registered.`)
+        throw new Error(
+          `A parent with phone number "${validatedProfile.phone}" is already registered.`,
+        )
       }
     }
 
@@ -38,7 +45,10 @@ class ParentService {
         const studentInfo = profileHelper.getStudentSnapshot(studentId, sData)
 
         const parentRef = db.collection(COLLECTIONS.PARENT).doc(authResult.id)
-        const snapshot = profileHelper.getParentSnapshot(authResult.id, validatedProfile)
+        const snapshot = profileHelper.getParentSnapshot(
+          authResult.id,
+          validatedProfile,
+        )
         const parentInfoList = [...(sData.parentInfo || []), snapshot]
 
         const batch = db.batch()
@@ -84,8 +94,8 @@ class ParentService {
 
     const cleanUpdate = {}
     const syncFields = ['name', 'email', 'phone', 'profileURL', 'status']
-    
-    syncFields.forEach(field => {
+
+    syncFields.forEach((field) => {
       if (validatedUpdate[field] !== undefined) {
         cleanUpdate[field] = validatedUpdate[field]
       }
@@ -107,7 +117,11 @@ class ParentService {
         ...currentParentData,
         ...cleanUpdate,
       })
-      const mirrorWrites = await this.getParentMirrorOperations(id, snapshot, childrenInfo)
+      const mirrorWrites = await this.getParentMirrorOperations(
+        id,
+        snapshot,
+        childrenInfo,
+      )
       writes.push(...mirrorWrites)
     }
 
@@ -128,7 +142,11 @@ class ParentService {
     const writes = []
     writes.push({
       ref: parentRef,
-      data: { isDeleted: true, status: 'deleted', updatedAt: new Date().toISOString() }
+      data: {
+        isDeleted: true,
+        status: 'deleted',
+        updatedAt: new Date().toISOString(),
+      },
     })
 
     if (childrenInfo && childrenInfo.length > 0) {
@@ -144,18 +162,22 @@ class ParentService {
       .collection(COLLECTIONS.ENROLLMENT)
       .where('parentId', '==', id)
       .get()
-    
+
     enrollmentsSnap.forEach((eDoc) => {
       writes.push({
         ref: eDoc.ref,
-        data: { isDeleted: true, status: 'cancelled', updatedAt: new Date().toISOString() }
+        data: {
+          isDeleted: true,
+          status: 'cancelled',
+          updatedAt: new Date().toISOString(),
+        },
       })
     })
 
     await firestoreHelper.chunkedUpdate(writes)
-    // Note: We keep the auth account but mark it as deleted in DB. 
+    // Note: We keep the auth account but mark it as deleted in DB.
     // In a real production app, you might want to disable the account in Firebase Auth.
-    
+
     return { id, message: 'Parent and related data soft-deleted successfully' }
   }
 
@@ -165,10 +187,12 @@ class ParentService {
     const writes = []
     if (childrenInfo && childrenInfo.length > 0) {
       // Parallelize student fetches
-      const studentRefs = childrenInfo.map(c => db.collection(COLLECTIONS.STUDENT).doc(c.id))
+      const studentRefs = childrenInfo.map((c) =>
+        db.collection(COLLECTIONS.STUDENT).doc(c.id),
+      )
       const studentDocs = await db.getAll(...studentRefs)
 
-      studentDocs.forEach(doc => {
+      studentDocs.forEach((doc) => {
         if (doc.exists) {
           let parentInfo = [...(doc.data().parentInfo || [])]
           const index = parentInfo.findIndex((p) => p.id === pid)
@@ -186,9 +210,9 @@ class ParentService {
       .collection(COLLECTIONS.ENROLLMENT)
       .where('parentId', '==', pid)
       .get()
-      
+
     enrollmentsSnap.forEach((eDoc) =>
-      writes.push({ ref: eDoc.ref, data: { parent: snapshot } })
+      writes.push({ ref: eDoc.ref, data: { parent: snapshot } }),
     )
 
     // 3. Sync with Trial records
@@ -196,11 +220,11 @@ class ParentService {
       .collection(COLLECTIONS.TRIAL)
       .where('parentId', '==', pid)
       .get()
-    
+
     trialsSnap.forEach((tDoc) =>
-      writes.push({ ref: tDoc.ref, data: { parent: snapshot } })
+      writes.push({ ref: tDoc.ref, data: { parent: snapshot } }),
     )
-    
+
     return writes
   }
 

@@ -3,18 +3,28 @@ const { db, COLLECTIONS } = require('../config/database')
 class PerformanceService {
   /**
    * Creates an academic performance evaluation record.
-   * @param {Object} data 
-   * @param {Object} requestingUser 
+   * @param {Object} data
+   * @param {Object} requestingUser
    */
   async createPerformance(data, requestingUser = null) {
-    const { studentId, classId, termId, skillsMastered, overallGrade, teacherRemarks } = data
+    const {
+      studentId,
+      classId,
+      termId,
+      skillsMastered,
+      overallGrade,
+      teacherRemarks,
+    } = data
 
     if (!studentId || !classId || !termId) {
       throw new Error('Student ID, Class ID, and Term ID are required')
     }
 
     // Verify student exists and get parentId
-    const studentDoc = await db.collection(COLLECTIONS.STUDENT).doc(studentId).get()
+    const studentDoc = await db
+      .collection(COLLECTIONS.STUDENT)
+      .doc(studentId)
+      .get()
     if (!studentDoc.exists) throw new Error('Student not found')
     const studentData = studentDoc.data()
     const parentId = studentData.parentId
@@ -44,22 +54,28 @@ class PerformanceService {
       evaluationDate: data.evaluationDate || now,
       createdAt: now,
       updatedAt: now,
-      isDeleted: false
+      isDeleted: false,
     }
 
-    await db.collection('academic_performances').doc(performanceId).set(performanceRecord)
+    await db
+      .collection('academic_performances')
+      .doc(performanceId)
+      .set(performanceRecord)
     return { id: performanceId, ...performanceRecord }
   }
 
   /**
    * Retrieves all academic performance records for a student with security checks.
-   * @param {string} studentId 
-   * @param {Object} requestingUser 
+   * @param {string} studentId
+   * @param {Object} requestingUser
    */
   async getPerformanceByStudent(studentId, requestingUser = null) {
     if (!studentId) throw new Error('Student ID is required')
 
-    const studentDoc = await db.collection(COLLECTIONS.STUDENT).doc(studentId).get()
+    const studentDoc = await db
+      .collection(COLLECTIONS.STUDENT)
+      .doc(studentId)
+      .get()
     if (!studentDoc.exists) throw new Error('Student not found')
     const studentData = studentDoc.data()
 
@@ -70,21 +86,24 @@ class PerformanceService {
       requestingUser.role !== 'teacher' &&
       requestingUser.uid !== studentData.parentId
     ) {
-      throw new Error('Access Denied: You do not have permission to view this academic performance.')
+      throw new Error(
+        'Access Denied: You do not have permission to view this academic performance.',
+      )
     }
 
-    const snapshot = await db.collection('academic_performances')
+    const snapshot = await db
+      .collection('academic_performances')
       .where('studentId', '==', studentId)
       .where('isDeleted', '==', false)
       .get()
 
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
   }
 
   /**
    * Retrieves a single academic performance evaluation.
-   * @param {string} id 
-   * @param {Object} requestingUser 
+   * @param {string} id
+   * @param {Object} requestingUser
    */
   async getPerformance(id, requestingUser = null) {
     if (!id) throw new Error('Performance record ID is required')
@@ -102,7 +121,9 @@ class PerformanceService {
       requestingUser.role !== 'teacher' &&
       requestingUser.uid !== record.parentId
     ) {
-      throw new Error('Access Denied: You do not have permission to view this performance record.')
+      throw new Error(
+        'Access Denied: You do not have permission to view this performance record.',
+      )
     }
 
     return { id: doc.id, ...record }
@@ -110,9 +131,9 @@ class PerformanceService {
 
   /**
    * Updates an academic performance record.
-   * @param {string} id 
-   * @param {Object} updateData 
-   * @param {Object} requestingUser 
+   * @param {string} id
+   * @param {Object} updateData
+   * @param {Object} requestingUser
    */
   async updatePerformance(id, updateData, requestingUser = null) {
     if (!id) throw new Error('Performance record ID is required for update')
@@ -122,14 +143,23 @@ class PerformanceService {
     if (!doc.exists) throw new Error('Performance record not found')
 
     const currentRecord = doc.data()
-    if (currentRecord.isDeleted) throw new Error('Cannot update deleted performance record')
+    if (currentRecord.isDeleted)
+      throw new Error('Cannot update deleted performance record')
 
     const cleanUpdate = {
-      ...(updateData.skillsMastered !== undefined && { skillsMastered: updateData.skillsMastered }),
-      ...(updateData.overallGrade !== undefined && { overallGrade: updateData.overallGrade }),
-      ...(updateData.teacherRemarks !== undefined && { teacherRemarks: updateData.teacherRemarks }),
-      ...(updateData.evaluationDate !== undefined && { evaluationDate: updateData.evaluationDate }),
-      updatedAt: new Date().toISOString()
+      ...(updateData.skillsMastered !== undefined && {
+        skillsMastered: updateData.skillsMastered,
+      }),
+      ...(updateData.overallGrade !== undefined && {
+        overallGrade: updateData.overallGrade,
+      }),
+      ...(updateData.teacherRemarks !== undefined && {
+        teacherRemarks: updateData.teacherRemarks,
+      }),
+      ...(updateData.evaluationDate !== undefined && {
+        evaluationDate: updateData.evaluationDate,
+      }),
+      updatedAt: new Date().toISOString(),
     }
 
     await ref.update(cleanUpdate)
@@ -138,8 +168,8 @@ class PerformanceService {
 
   /**
    * Soft deletes a performance record.
-   * @param {string} id 
-   * @param {Object} requestingUser 
+   * @param {string} id
+   * @param {Object} requestingUser
    */
   async deletePerformance(id, requestingUser = null) {
     if (!id) throw new Error('Performance record ID is required for deletion')
@@ -150,7 +180,7 @@ class PerformanceService {
 
     await ref.update({
       isDeleted: true,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     })
 
     return { message: 'Performance record soft-deleted successfully' }

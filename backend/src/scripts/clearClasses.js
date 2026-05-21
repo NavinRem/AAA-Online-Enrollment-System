@@ -37,7 +37,9 @@ async function main() {
   console.log('===========================================')
   console.log(' AAA Enrollment – Clear Class Data Script ')
   console.log('===========================================')
-  console.log(`Targeting Firestore Emulator: ${process.env.FIRESTORE_EMULATOR_HOST}`)
+  console.log(
+    `Targeting Firestore Emulator: ${process.env.FIRESTORE_EMULATOR_HOST}`,
+  )
   console.log(`Collection: ${COLLECTIONS.CLASS}`)
   console.log('-------------------------------------------')
 

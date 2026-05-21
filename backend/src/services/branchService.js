@@ -117,9 +117,7 @@ class BranchService {
       enrollments.map((e) => e.studentId).filter(Boolean),
     )
 
-    const programIds = new Set(
-      classes.map((c) => c.programId).filter(Boolean),
-    )
+    const programIds = new Set(classes.map((c) => c.programId).filter(Boolean))
 
     let newTodayCount = 0
     let totalRevenue = 0

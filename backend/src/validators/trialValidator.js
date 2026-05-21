@@ -42,7 +42,9 @@ function validateTrial(trialData) {
 
   if (
     trialData.isGuest &&
-    (!trialData.guestParentName || !trialData.guestStudentName || !trialData.guestParentPhone)
+    (!trialData.guestParentName ||
+      !trialData.guestStudentName ||
+      !trialData.guestParentPhone)
   ) {
     throw new Error(
       'Guest Parent Name, Phone, and Student Name are required for walk-ins',
@@ -61,7 +63,7 @@ function validateTrial(trialData) {
     guestParentEmail: trialData.guestParentEmail?.trim() || null,
     guestParentPhone: trialData.guestParentPhone?.trim() || null,
     guestParentAvatar: trialData.guestParentAvatar?.trim() || null,
-    
+
     guestStudentName: trialData.guestStudentName?.trim() || null,
     guestStudentDOB: trialData.guestStudentDOB || null,
     guestStudentAge: parseInt(trialData.guestStudentAge || 0),
@@ -70,7 +72,8 @@ function validateTrial(trialData) {
     trialDate: trialData.trialDate || new Date().toISOString(),
     trialTime: trialData.trialTime || null,
     status: trialData.status || 'pending',
-    trialType: trialData.trialType || (trialData.isGuest ? 'walk-in' : 'booked'),
+    trialType:
+      trialData.trialType || (trialData.isGuest ? 'walk-in' : 'booked'),
     isSuccessful: !!trialData.isSuccessful,
     remark: trialData.remark || '',
     createdAt: new Date().toISOString(),

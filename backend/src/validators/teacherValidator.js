@@ -1,5 +1,13 @@
 function validateTeacher(teacherData) {
-  const teacherFields = ['name', 'profileURL', 'email', 'status', 'category', 'phone', 'programIds']
+  const teacherFields = [
+    'name',
+    'profileURL',
+    'email',
+    'status',
+    'category',
+    'phone',
+    'programIds',
+  ]
   Object.keys(teacherData).forEach((key) => {
     if (!teacherFields.includes(key)) {
       throw new Error(`Invalid field: ${key}`)
@@ -49,7 +57,16 @@ function validateTeacher(teacherData) {
 }
 
 function validateUpdateTeacher(updateData) {
-  const allowedFields = ['name', 'profileURL', 'email', 'status', 'updatedAt', 'category', 'phone', 'programIds']
+  const allowedFields = [
+    'name',
+    'profileURL',
+    'email',
+    'status',
+    'updatedAt',
+    'category',
+    'phone',
+    'programIds',
+  ]
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {
@@ -64,10 +81,13 @@ function validateUpdateTeacher(updateData) {
   }
   if (updateData.email !== undefined) cleanData.email = updateData.email.trim()
   if (updateData.status !== undefined) cleanData.status = updateData.status
-  if (updateData.category !== undefined) cleanData.category = updateData.category
+  if (updateData.category !== undefined)
+    cleanData.category = updateData.category
   if (updateData.phone !== undefined) cleanData.phone = updateData.phone
-  if (updateData.programIds !== undefined) cleanData.programIds = updateData.programIds
-  if (updateData.updatedAt !== undefined) cleanData.updatedAt = updateData.updatedAt
+  if (updateData.programIds !== undefined)
+    cleanData.programIds = updateData.programIds
+  if (updateData.updatedAt !== undefined)
+    cleanData.updatedAt = updateData.updatedAt
 
   if (Object.keys(cleanData).length === 0) {
     throw new Error('No valid fields provided for update')

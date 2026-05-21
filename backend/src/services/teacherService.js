@@ -10,15 +10,18 @@ const {
 class TeacherService {
   async createTeacher(teacherData) {
     const validatedProfile = validateTeacher(teacherData)
-    
+
     // Contact Uniqueness Check (Phone)
     if (validatedProfile.phone) {
-      const phoneSnap = await db.collection(COLLECTIONS.TEACHER)
+      const phoneSnap = await db
+        .collection(COLLECTIONS.TEACHER)
         .where('phone', '==', validatedProfile.phone)
         .get()
-      const exists = phoneSnap.docs.some(d => d.data().isDeleted !== true)
+      const exists = phoneSnap.docs.some((d) => d.data().isDeleted !== true)
       if (exists) {
-        throw new Error(`A teacher with phone number "${validatedProfile.phone}" already exists.`)
+        throw new Error(
+          `A teacher with phone number "${validatedProfile.phone}" already exists.`,
+        )
       }
     }
     const finalPassword = teacherData.password || 'Temporary123'
@@ -99,24 +102,29 @@ class TeacherService {
   async getAssignments(teacherId) {
     if (!teacherId) throw new Error('Teacher ID is required')
 
-    const termsSnap = await db.collection(COLLECTIONS.TERM).where('isDeleted', '==', false).get()
+    const termsSnap = await db
+      .collection(COLLECTIONS.TERM)
+      .where('isDeleted', '==', false)
+      .get()
     const assignments = []
 
     termsSnap.forEach((doc) => {
       const termData = doc.data()
       const offeringsArray = Array.isArray(termData.offerings)
         ? termData.offerings
-        : (termData.offerings && typeof termData.offerings === 'object' ? Object.values(termData.offerings) : []);
-      
+        : termData.offerings && typeof termData.offerings === 'object'
+          ? Object.values(termData.offerings)
+          : []
+
       offeringsArray.forEach((offering) => {
         const teachers = offering.teachers || []
-        const isAssigned = teachers.some(t => t.id === teacherId)
-        
+        const isAssigned = teachers.some((t) => t.id === teacherId)
+
         if (isAssigned) {
           assignments.push({
             termId: doc.id,
             termName: termData.name,
-            ...offering
+            ...offering,
           })
         }
       })
@@ -126,16 +134,20 @@ class TeacherService {
   }
 
   async assignToClass(teacherId, termId, offeringId) {
-    if (!teacherId || !termId || !offeringId) throw new Error('All parameters are required')
+    if (!teacherId || !termId || !offeringId)
+      throw new Error('All parameters are required')
 
     const [teacherDoc, termRef] = await Promise.all([
       db.collection(COLLECTIONS.TEACHER).doc(teacherId).get(),
-      db.collection(COLLECTIONS.TERM).doc(termId)
+      db.collection(COLLECTIONS.TERM).doc(termId),
     ])
 
     if (!teacherDoc.exists) throw new Error('Teacher not found')
     const teacherData = teacherDoc.data()
-    const teacherSnapshot = profileHelper.getTeacherSnapshot(teacherId, teacherData)
+    const teacherSnapshot = profileHelper.getTeacherSnapshot(
+      teacherId,
+      teacherData,
+    )
 
     await db.runTransaction(async (transaction) => {
       const termDoc = await transaction.get(termRef)
@@ -144,15 +156,19 @@ class TeacherService {
       const termData = termDoc.data()
       const offerings = Array.isArray(termData.offerings)
         ? [...termData.offerings]
-        : (termData.offerings && typeof termData.offerings === 'object' ? Object.values(termData.offerings) : []);
-      const idx = offerings.findIndex(o => String(o.offeringId) === String(offeringId))
+        : termData.offerings && typeof termData.offerings === 'object'
+          ? Object.values(termData.offerings)
+          : []
+      const idx = offerings.findIndex(
+        (o) => String(o.offeringId) === String(offeringId),
+      )
 
       if (idx === -1) throw new Error('Offering not found in this term')
 
       const offering = offerings[idx]
       const currentTeachers = offering.teachers || []
-      
-      if (currentTeachers.some(t => t.id === teacherId)) {
+
+      if (currentTeachers.some((t) => t.id === teacherId)) {
         throw new Error('Teacher is already assigned to this class')
       }
 
@@ -161,17 +177,21 @@ class TeacherService {
       offerings[idx] = {
         ...offering,
         teachers: [...currentTeachers, teacherSnapshot],
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       }
 
-      transaction.update(termRef, { offerings, updatedAt: new Date().toISOString() })
+      transaction.update(termRef, {
+        offerings,
+        updatedAt: new Date().toISOString(),
+      })
     })
 
     return { message: 'Teacher assigned successfully' }
   }
 
   async unassignFromClass(teacherId, termId, offeringId) {
-    if (!teacherId || !termId || !offeringId) throw new Error('All parameters are required')
+    if (!teacherId || !termId || !offeringId)
+      throw new Error('All parameters are required')
 
     const termRef = db.collection(COLLECTIONS.TERM).doc(termId)
 
@@ -182,21 +202,28 @@ class TeacherService {
       const termData = termDoc.data()
       const offerings = Array.isArray(termData.offerings)
         ? [...termData.offerings]
-        : (termData.offerings && typeof termData.offerings === 'object' ? Object.values(termData.offerings) : []);
-      const idx = offerings.findIndex(o => String(o.offeringId) === String(offeringId))
+        : termData.offerings && typeof termData.offerings === 'object'
+          ? Object.values(termData.offerings)
+          : []
+      const idx = offerings.findIndex(
+        (o) => String(o.offeringId) === String(offeringId),
+      )
 
       if (idx === -1) throw new Error('Offering not found in this term')
 
       const offering = offerings[idx]
       const currentTeachers = offering.teachers || []
-      
+
       offerings[idx] = {
         ...offering,
-        teachers: currentTeachers.filter(t => t.id !== teacherId),
-        updatedAt: new Date().toISOString()
+        teachers: currentTeachers.filter((t) => t.id !== teacherId),
+        updatedAt: new Date().toISOString(),
       }
 
-      transaction.update(termRef, { offerings, updatedAt: new Date().toISOString() })
+      transaction.update(termRef, {
+        offerings,
+        updatedAt: new Date().toISOString(),
+      })
     })
 
     return { message: 'Teacher unassigned successfully' }

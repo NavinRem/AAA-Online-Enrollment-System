@@ -4,8 +4,12 @@ import { test, expect } from '@playwright/test'
 test.describe('Frontend Rendering Vulnerability & Type Coercion Safety', () => {
   test.beforeEach(async ({ page }) => {
     // Enable browser console & error mirroring
-    page.on('console', msg => console.log('RENDER TEST BROWSER LOG:', msg.text()))
-    page.on('pageerror', err => console.error('RENDER TEST BROWSER ERROR:', err.message))
+    page.on('console', (msg) =>
+      console.log('RENDER TEST BROWSER LOG:', msg.text()),
+    )
+    page.on('pageerror', (err) =>
+      console.error('RENDER TEST BROWSER ERROR:', err.message),
+    )
 
     // Inject Mock Auth bypass
     await page.addInitScript(() => {
@@ -62,35 +66,18 @@ test.describe('Frontend Rendering Vulnerability & Type Coercion Safety', () => {
     })
 
     // Mock Programs (handles both list and detail precisely)
-    await page.route(url => url.pathname.includes('/api/programs'), async (route) => {
-      const urlStr = route.request().url()
-      const method = route.request().method()
-      
-      if (method === 'GET') {
-        if (urlStr.endsWith('/api/programs/test-program-mixed')) {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-              id: 'test-program-mixed',
-              name: 'Coerced AI Class',
-              categoryId: '101',
-              category: 'Robotics',
-              levelId: 201,
-              type: 'Group',
-              basePrice: 350,
-              totalSessions: 10,
-              duration: 90,
-              minAge: 8,
-              maxAge: 16,
-            }),
-          })
-        } else {
-          await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify([
-              {
+    await page.route(
+      (url) => url.pathname.includes('/api/programs'),
+      async (route) => {
+        const urlStr = route.request().url()
+        const method = route.request().method()
+
+        if (method === 'GET') {
+          if (urlStr.endsWith('/api/programs/test-program-mixed')) {
+            await route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify({
                 id: 'test-program-mixed',
                 name: 'Coerced AI Class',
                 categoryId: '101',
@@ -98,14 +85,34 @@ test.describe('Frontend Rendering Vulnerability & Type Coercion Safety', () => {
                 levelId: 201,
                 type: 'Group',
                 basePrice: 350,
-              },
-            ]),
-          })
+                totalSessions: 10,
+                duration: 90,
+                minAge: 8,
+                maxAge: 16,
+              }),
+            })
+          } else {
+            await route.fulfill({
+              status: 200,
+              contentType: 'application/json',
+              body: JSON.stringify([
+                {
+                  id: 'test-program-mixed',
+                  name: 'Coerced AI Class',
+                  categoryId: '101',
+                  category: 'Robotics',
+                  levelId: 201,
+                  type: 'Group',
+                  basePrice: 350,
+                },
+              ]),
+            })
+          }
+        } else {
+          await route.continue()
         }
-      } else {
-        await route.continue()
-      }
-    })
+      },
+    )
 
     // Mock Schedules
     await page.route('**/api/schedules**', async (route) => {
@@ -205,7 +212,9 @@ test.describe('Frontend Rendering Vulnerability & Type Coercion Safety', () => {
     expect(errors).toHaveLength(0)
   })
 
-  test('should render ProgramActionModal with coerced categories and levels', async ({ page }) => {
+  test('should render ProgramActionModal with coerced categories and levels', async ({
+    page,
+  }) => {
     const errors = []
     page.on('pageerror', (err) => errors.push(err.message))
 
@@ -222,7 +231,9 @@ test.describe('Frontend Rendering Vulnerability & Type Coercion Safety', () => {
     expect(errors).toHaveLength(0)
   })
 
-  test('should handle TrialFormModal parent and student filtering with type coercion', async ({ page }) => {
+  test('should handle TrialFormModal parent and student filtering with type coercion', async ({
+    page,
+  }) => {
     const errors = []
     page.on('pageerror', (err) => errors.push(err.message))
 
@@ -231,7 +242,7 @@ test.describe('Frontend Rendering Vulnerability & Type Coercion Safety', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([{ id: 12345, name: 'Coerced Parent Doe' }])
+        body: JSON.stringify([{ id: 12345, name: 'Coerced Parent Doe' }]),
       })
     })
 
@@ -239,7 +250,9 @@ test.describe('Frontend Rendering Vulnerability & Type Coercion Safety', () => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify([{ id: 9876, name: 'Coerced Student Doe', parentId: '12345' }]) // parentId is stringified
+        body: JSON.stringify([
+          { id: 9876, name: 'Coerced Student Doe', parentId: '12345' },
+        ]), // parentId is stringified
       })
     })
 

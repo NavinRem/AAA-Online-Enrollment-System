@@ -17,32 +17,35 @@ class PaymentService {
   async getAllPayments() {
     const snapshot = await db.collection(COLLECTIONS.PAYMENT).get()
     const payments = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-    
+
     // To filter out deleted enrollments efficiently, we'd need a complex join or denormalization.
     // For now, we perform a post-query filter.
-    const enrollmentIds = [...new Set(payments.map(p => p.enrollmentId).filter(Boolean))]
-    
+    const enrollmentIds = [
+      ...new Set(payments.map((p) => p.enrollmentId).filter(Boolean)),
+    ]
+
     if (enrollmentIds.length === 0) return payments
 
     // Fetch all related enrollments in chunks (Firestore limit is 30 for 'in' queries)
     const enrollmentMap = {}
     for (let i = 0; i < enrollmentIds.length; i += 30) {
       const chunk = enrollmentIds.slice(i, i + 30)
-      const snap = await db.collection(COLLECTIONS.ENROLLMENT)
+      const snap = await db
+        .collection(COLLECTIONS.ENROLLMENT)
         .where('__name__', 'in', chunk)
         .get()
-      snap.forEach(doc => {
+      snap.forEach((doc) => {
         enrollmentMap[doc.id] = doc.data()
       })
     }
 
     return payments
-      .filter(p => {
+      .filter((p) => {
         if (!p.enrollmentId) return true
         const enrollment = enrollmentMap[p.enrollmentId]
         return enrollment && enrollment.isDeleted !== true
       })
-      .map(p => {
+      .map((p) => {
         const enrollment = enrollmentMap[p.enrollmentId] || {}
         return {
           ...p,
@@ -51,7 +54,10 @@ class PaymentService {
           parent: p.parent || enrollment.parent,
           program: p.program || enrollment.program,
           class: p.class || enrollment.class,
-          termStatus: p.class?.term?.status || enrollment.class?.term?.status || 'unknown'
+          termStatus:
+            p.class?.term?.status ||
+            enrollment.class?.term?.status ||
+            'unknown',
         }
       })
   }
@@ -63,18 +69,18 @@ class PaymentService {
 
     const [paymentsSnap, enrollmentsSnap] = await Promise.all([
       db.collection(COLLECTIONS.PAYMENT).where('parentId', '==', uid).get(),
-      db.collection(COLLECTIONS.ENROLLMENT).where('parentId', '==', uid).get()
+      db.collection(COLLECTIONS.ENROLLMENT).where('parentId', '==', uid).get(),
     ])
 
     const activeEnrollmentIds = new Set(
       enrollmentsSnap.docs
-        .filter(doc => doc.data().isDeleted !== true)
-        .map(doc => doc.id)
+        .filter((doc) => doc.data().isDeleted !== true)
+        .map((doc) => doc.id),
     )
 
     return paymentsSnap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .filter(p => !p.enrollmentId || activeEnrollmentIds.has(p.enrollmentId))
+      .filter((p) => !p.enrollmentId || activeEnrollmentIds.has(p.enrollmentId))
   }
 
   async verifyPayment(transactionId) {
@@ -94,32 +100,42 @@ class PaymentService {
         .collection(COLLECTIONS.ENROLLMENT)
         .doc(payment.enrollmentId)
       const enrollmentDoc = await enrollmentRef.get()
-      
+
       if (!enrollmentDoc.exists) {
         throw new Error('Linked enrollment not found')
       }
-      
+
       const enrollmentData = enrollmentDoc.data()
-      
+
       // Safety: Don't reactivate cancelled or deleted enrollments
       if (enrollmentData.status === 'cancelled' || enrollmentData.isDeleted) {
-        throw new Error('Cannot verify payment: enrollment has been cancelled or deleted. Please create a new enrollment.')
+        throw new Error(
+          'Cannot verify payment: enrollment has been cancelled or deleted. Please create a new enrollment.',
+        )
       }
-      
+
       // Safety: Check class capacity before re-activating
       if (enrollmentData.classId) {
-        const classRef = db.collection(COLLECTIONS.CLASS).doc(enrollmentData.classId)
+        const classRef = db
+          .collection(COLLECTIONS.CLASS)
+          .doc(enrollmentData.classId)
         const classDoc = await classRef.get()
         if (classDoc.exists) {
           const classData = classDoc.data()
-          const isSeatTaking = (s) => ['active', 'confirmed', 'paid', 'unpaid'].includes(s)
+          const isSeatTaking = (s) =>
+            ['active', 'confirmed', 'paid', 'unpaid'].includes(s)
           // Only check capacity if the enrollment wasn't already taking a seat
-          if (!isSeatTaking(enrollmentData.status) && classData.currentCount >= classData.capacity) {
-            throw new Error('Cannot verify payment: class is now full. Please contact admin.')
+          if (
+            !isSeatTaking(enrollmentData.status) &&
+            classData.currentCount >= classData.capacity
+          ) {
+            throw new Error(
+              'Cannot verify payment: class is now full. Please contact admin.',
+            )
           }
         }
       }
-      
+
       await enrollmentRef.update({
         paymentStatus: 'paid',
         status: 'paid',
@@ -137,26 +153,29 @@ class PaymentService {
 
   async getFinancialStats() {
     const [enrollSnap, paymentSnap, termSnap, classSnap] = await Promise.all([
-      db.collection(COLLECTIONS.ENROLLMENT).where('isDeleted', '!=', true).get(),
+      db
+        .collection(COLLECTIONS.ENROLLMENT)
+        .where('isDeleted', '!=', true)
+        .get(),
       db.collection(COLLECTIONS.PAYMENT).get(),
       db.collection(COLLECTIONS.TERM).where('status', '==', 'active').get(),
-      db.collection(COLLECTIONS.CLASS).get()
+      db.collection(COLLECTIONS.CLASS).get(),
     ])
 
-    const activeTermIds = new Set(termSnap.docs.map(doc => doc.id))
+    const activeTermIds = new Set(termSnap.docs.map((doc) => doc.id))
     const activeClassIds = new Set(
       classSnap.docs
-        .filter(doc => activeTermIds.has(doc.data().termId))
-        .map(doc => doc.id)
+        .filter((doc) => activeTermIds.has(doc.data().termId))
+        .map((doc) => doc.id),
     )
 
     const enrollmentToClassMap = {}
-    enrollSnap.forEach(doc => {
+    enrollSnap.forEach((doc) => {
       enrollmentToClassMap[doc.id] = doc.data().classId
     })
 
-    const enrollments = enrollSnap.docs.map(doc => doc.data())
-    const payments = paymentSnap.docs.map(doc => doc.data())
+    const enrollments = enrollSnap.docs.map((doc) => doc.data())
+    const payments = paymentSnap.docs.map((doc) => doc.data())
 
     // 1. Settled Stats (From Payments Collection, filtered by Active Term Classes)
     let totalPaidRevenue = 0
@@ -166,8 +185,10 @@ class PaymentService {
     let onlineRevenue = 0
     let onlineCount = 0
 
-    payments.forEach(p => {
-      const classId = p.classId || (p.enrollmentId ? enrollmentToClassMap[p.enrollmentId] : null)
+    payments.forEach((p) => {
+      const classId =
+        p.classId ||
+        (p.enrollmentId ? enrollmentToClassMap[p.enrollmentId] : null)
       if (!activeClassIds.has(classId)) return
 
       const amount = Number(p.amount) || 0
@@ -188,11 +209,13 @@ class PaymentService {
     let pendingCount = 0
     let totalEnrollments = 0
 
-    enrollments.forEach(e => {
+    enrollments.forEach((e) => {
       if (!activeClassIds.has(e.classId)) return
 
       totalEnrollments++
-      const status = String(e.paymentStatus || e.status || 'unpaid').toLowerCase()
+      const status = String(
+        e.paymentStatus || e.status || 'unpaid',
+      ).toLowerCase()
       if (['unpaid', 'pending'].includes(status)) {
         pendingRevenue += Number(e.amount) || 0
         pendingCount++
@@ -209,7 +232,10 @@ class PaymentService {
       pendingRevenue,
       pendingCount,
       totalEnrollments,
-      settledRatio: totalEnrollments > 0 ? Math.round((paidCount / totalEnrollments) * 100) : 0,
+      settledRatio:
+        totalEnrollments > 0
+          ? Math.round((paidCount / totalEnrollments) * 100)
+          : 0,
       updatedAt: new Date().toISOString(),
     }
   }

@@ -65,9 +65,15 @@ class EnrollmentService {
       throw new Error('Student already enrolled for this term offering')
     }
 
-    const scheduleCapacity = offering.schedule?.capacity || offering.capacity || classDoc.data().program?.capacity || 20
+    const scheduleCapacity =
+      offering.schedule?.capacity ||
+      offering.capacity ||
+      classDoc.data().program?.capacity ||
+      20
     if ((offering.currentCount || 0) >= scheduleCapacity) {
-      throw new Error(`This schedule is full. Maximum capacity of ${scheduleCapacity} reached.`)
+      throw new Error(
+        `This schedule is full. Maximum capacity of ${scheduleCapacity} reached.`,
+      )
     }
 
     const studentSnapshot = profileHelper.getStudentSnapshot(
@@ -132,7 +138,7 @@ class EnrollmentService {
       enrollmentDate: validated.enrollAt || new Date().toISOString(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      isDeleted: false
+      isDeleted: false,
     }
 
     await db.runTransaction(async (transaction) => {
@@ -148,11 +154,14 @@ class EnrollmentService {
 
         // Save enrolled branch to student detail
         if (offering.branchId) {
-          transaction.update(db.collection(COLLECTIONS.STUDENT).doc(studentId), {
-            branchId: offering.branchId,
-            branchInfo: offering.branch || null,
-            updatedAt: new Date().toISOString(),
-          })
+          transaction.update(
+            db.collection(COLLECTIONS.STUDENT).doc(studentId),
+            {
+              branchId: offering.branchId,
+              branchInfo: offering.branch || null,
+              updatedAt: new Date().toISOString(),
+            },
+          )
         }
       }
 
@@ -364,11 +373,14 @@ class EnrollmentService {
 
         // Sync student branch if it changed
         if (offering.branchId) {
-          transaction.update(db.collection(COLLECTIONS.STUDENT).doc(currentData.studentId), {
-            branchId: offering.branchId,
-            branchInfo: offering.branch || null,
-            updatedAt: new Date().toISOString(),
-          })
+          transaction.update(
+            db.collection(COLLECTIONS.STUDENT).doc(currentData.studentId),
+            {
+              branchId: offering.branchId,
+              branchInfo: offering.branch || null,
+              updatedAt: new Date().toISOString(),
+            },
+          )
         }
       }
 
@@ -381,8 +393,7 @@ class EnrollmentService {
         'termName',
       ]
       redundantFields.forEach((f) => {
-        if (currentData[f] !== undefined)
-          updates[f] = FieldValue.delete()
+        if (currentData[f] !== undefined) updates[f] = FieldValue.delete()
       })
 
       // Sync status with paymentStatus if updated
@@ -430,8 +441,10 @@ class EnrollmentService {
 
       // Capacity & Student Seat tracking logic
       const isSeatTakingBefore = isSeatTaking(currentData.status)
-      const isSeatTakingAfter = isSeatTaking(updates.status || currentData.status)
-      
+      const isSeatTakingAfter = isSeatTaking(
+        updates.status || currentData.status,
+      )
+
       const prevProgramId = currentData.programId
       const nextProgramId = validated.programId || currentData.programId
 
@@ -526,7 +539,7 @@ class EnrollmentService {
         updatedAt: new Date().toISOString(),
       })
       if (isSeatTaking(status) && enrollmentData.programId) {
-          transaction.update(
+        transaction.update(
           db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId),
           {
             totalEnrolledCount: FieldValue.increment(-1),
@@ -535,13 +548,21 @@ class EnrollmentService {
       }
     })
 
-    if (isSeatTaking(status) && enrollmentData.termId && enrollmentData.termOfferingId) {
-      await require('./termService').syncOfferingStudent(
-        enrollmentData.termId,
-        enrollmentData.termOfferingId,
-        { id, ...enrollmentData },
-        'remove',
-      ).catch(err => console.error('Failed to sync offering on delete:', err))
+    if (
+      isSeatTaking(status) &&
+      enrollmentData.termId &&
+      enrollmentData.termOfferingId
+    ) {
+      await require('./termService')
+        .syncOfferingStudent(
+          enrollmentData.termId,
+          enrollmentData.termOfferingId,
+          { id, ...enrollmentData },
+          'remove',
+        )
+        .catch((err) =>
+          console.error('Failed to sync offering on delete:', err),
+        )
     }
 
     return { message: 'Enrollment deleted successfully (Soft delete)' }
@@ -569,7 +590,7 @@ class EnrollmentService {
         cancelledAt: new Date().toISOString(),
       })
       if (isSeatTaking(status)) {
-          transaction.update(
+        transaction.update(
           db.collection(COLLECTIONS.PROGRAM).doc(enrollmentData.programId),
           {
             totalEnrolledCount: FieldValue.increment(-1),
@@ -625,24 +646,30 @@ class EnrollmentService {
     const firestoreHelper = require('../utils/firestoreHelper')
     const writes = snapshot.docs.map((doc) => {
       const enrollmentData = doc.data()
-      
+
       // Preserve the specific schedule assigned to this enrollment but update its snapshot if it exists in the new class data
-      const currentScheduleId = enrollmentData.class?.schedule?.id || enrollmentData.scheduleId
-      const updatedSchedule = (classSnapshot.schedules || []).find(
-        s => String(s.id) === String(currentScheduleId)
-      ) || enrollmentData.class?.schedule
+      const currentScheduleId =
+        enrollmentData.class?.schedule?.id || enrollmentData.scheduleId
+      const updatedSchedule =
+        (classSnapshot.schedules || []).find(
+          (s) => String(s.id) === String(currentScheduleId),
+        ) || enrollmentData.class?.schedule
 
       return {
         ref: doc.ref,
-        data: { 
+        data: {
           class: {
             ...classSnapshot,
             // Restore and update session-specific fields that get lost in the global snapshot
             schedule: updatedSchedule,
-            capacity: updatedSchedule?.capacity || enrollmentData.class?.capacity || classSnapshot.capacity || 20,
+            capacity:
+              updatedSchedule?.capacity ||
+              enrollmentData.class?.capacity ||
+              classSnapshot.capacity ||
+              20,
             term: enrollmentData.class?.term,
-            branch: enrollmentData.class?.branch
-          } 
+            branch: enrollmentData.class?.branch,
+          },
         },
       }
     })
@@ -785,7 +812,10 @@ class EnrollmentService {
   }
 
   async getEnrollmentsByStudent(studentId, requestingUser = null) {
-    const studentDoc = await db.collection(COLLECTIONS.STUDENT).doc(studentId).get()
+    const studentDoc = await db
+      .collection(COLLECTIONS.STUDENT)
+      .doc(studentId)
+      .get()
     if (!studentDoc.exists) throw new Error('Student not found')
     const studentData = studentDoc.data()
 
@@ -794,7 +824,9 @@ class EnrollmentService {
       requestingUser.role !== 'admin' &&
       requestingUser.uid !== studentData.parentId
     ) {
-      throw new Error("Access Denied: You do not have permission to view this student's enrollments.")
+      throw new Error(
+        "Access Denied: You do not have permission to view this student's enrollments.",
+      )
     }
     return this.getAllEnrollments({ studentId })
   }

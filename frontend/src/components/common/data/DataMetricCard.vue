@@ -42,7 +42,7 @@ defineProps({
     </template>
 
     <template v-else>
-      <span class="text-lg text-content-dark font-bold">{{ label }}</span>
+      <span class="text-md text-content-dark font-bold">{{ label }}</span>
 
       <div class="w-full h-16 flex items-center justify-center my-2 overflow-hidden">
         <img :src="image" :alt="label" class="h-full object-contain" />
@@ -52,9 +52,13 @@ defineProps({
         <span
           class="text-content-dark font-bold leading-tight line-clamp-2 max-w-full"
           :class="String(value).length > 8 ? 'text-2xl' : 'text-3xl'"
-          >{{ value }}</span
         >
-        <span v-if="subtitle" class="text-sm font-semibold text-content-light">{{ subtitle }}</span>
+          {{ value }}
+        </span>
+        <span
+          v-if="subtitle"
+          class="text-sm font-semibold text-content-light"
+        >{{ subtitle }}</span>
       </div>
     </template>
   </div>

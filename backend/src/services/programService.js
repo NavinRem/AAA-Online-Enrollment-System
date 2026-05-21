@@ -10,7 +10,8 @@ class ProgramService {
     const validated = validateProgram(programData)
 
     // Name Uniqueness Check
-    const nameSnap = await db.collection(COLLECTIONS.PROGRAM)
+    const nameSnap = await db
+      .collection(COLLECTIONS.PROGRAM)
       .where('name', '==', validated.name)
       .where('isDeleted', '==', false)
       .limit(1)
@@ -47,18 +48,20 @@ class ProgramService {
   async getProgram(id) {
     const doc = await db.collection(COLLECTIONS.PROGRAM).doc(id).get()
     if (!doc.exists) throw new Error('Program not found')
-    const enriched = await this._enrichWithCategoryInfo([{ id: doc.id, ...doc.data() }])
+    const enriched = await this._enrichWithCategoryInfo([
+      { id: doc.id, ...doc.data() },
+    ])
     return enriched[0]
   }
 
   async _enrichWithCategoryInfo(programs) {
     if (!programs || programs.length === 0) return []
-    
+
     const catSnap = await db.collection(COLLECTIONS.CATEGORY).get()
     const catMap = {}
-    catSnap.forEach(doc => catMap[doc.id] = doc.data())
+    catSnap.forEach((doc) => (catMap[doc.id] = doc.data()))
 
-    return programs.map(p => {
+    return programs.map((p) => {
       if (p.categoryId && catMap[p.categoryId]) {
         const cat = catMap[p.categoryId]
         p.categoryName = cat.name
@@ -126,7 +129,10 @@ class ProgramService {
 
       const writes = programsSnap.docs.map((pDoc) => {
         const programData = { ...pDoc.data(), category: categoryName }
-        const updatedSnapshot = profileHelper.getProgramSnapshot(pDoc.id, programData)
+        const updatedSnapshot = profileHelper.getProgramSnapshot(
+          pDoc.id,
+          programData,
+        )
         return {
           ref: pDoc.ref,
           data: {

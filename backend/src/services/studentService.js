@@ -13,23 +13,32 @@ class StudentService {
     const { parentId } = validated
 
     // Security: Only Admin or the Parent themselves can create a student for this parent
-    if (requestingUser && requestingUser.role !== 'admin' && requestingUser.uid !== parentId) {
-      throw new Error('Access Denied: You can only create students for your own account.')
+    if (
+      requestingUser &&
+      requestingUser.role !== 'admin' &&
+      requestingUser.uid !== parentId
+    ) {
+      throw new Error(
+        'Access Denied: You can only create students for your own account.',
+      )
     }
 
     // Duplicate Prevention: Same name + DOB under same parent
-    const duplicateSnap = await db.collection(COLLECTIONS.STUDENT)
+    const duplicateSnap = await db
+      .collection(COLLECTIONS.STUDENT)
       .where('parentId', '==', parentId)
       .where('name', '==', validated.name)
       .get()
 
-    const activeDuplicates = duplicateSnap.docs.filter(doc => {
+    const activeDuplicates = duplicateSnap.docs.filter((doc) => {
       const d = doc.data()
       return d.isDeleted !== true && d.dob === validated.dob
     })
 
     if (activeDuplicates.length > 0) {
-      throw new Error(`A student named "${validated.name}" with the same birthday already exists under this parent.`)
+      throw new Error(
+        `A student named "${validated.name}" with the same birthday already exists under this parent.`,
+      )
     }
 
     const parentRef = db.collection(COLLECTIONS.PARENT).doc(parentId)
@@ -113,7 +122,7 @@ class StudentService {
       .collection(COLLECTIONS.STUDENT)
       .where('parentId', '==', parentId)
       .get()
-      
+
     return snapshot.docs
       .map((doc) => profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }))
       .filter((s) => s.isDeleted !== true && s.name && s.name.trim() !== '')
@@ -121,7 +130,7 @@ class StudentService {
 
   async updateStudent(id, updateData, requestingUser = null) {
     if (!id) throw new Error('Student ID is required')
-    
+
     const studentRef = db.collection(COLLECTIONS.STUDENT).doc(id)
     const studentDoc = await studentRef.get()
 
@@ -131,8 +140,14 @@ class StudentService {
     const parentId = currentStudentData.parentId
 
     // Security: Only Admin or the Parent can update this student
-    if (requestingUser && requestingUser.role !== 'admin' && requestingUser.uid !== parentId) {
-      throw new Error('Access Denied: You do not have permission to update this student.')
+    if (
+      requestingUser &&
+      requestingUser.role !== 'admin' &&
+      requestingUser.uid !== parentId
+    ) {
+      throw new Error(
+        'Access Denied: You do not have permission to update this student.',
+      )
     }
 
     const validated = validateUpdateStudent(updateData)
@@ -158,9 +173,15 @@ class StudentService {
       }),
       ...(validated.status !== undefined && { status: validated.status }),
       ...(validated.parentId !== undefined && { parentId: validated.parentId }),
-      ...(validated.overrideReason !== undefined && { overrideReason: validated.overrideReason }),
-      ...(validated.overrideRemark !== undefined && { overrideRemark: validated.overrideRemark }),
-      ...(validated.manualStatus !== undefined && { manualStatus: validated.manualStatus }),
+      ...(validated.overrideReason !== undefined && {
+        overrideReason: validated.overrideReason,
+      }),
+      ...(validated.overrideRemark !== undefined && {
+        overrideRemark: validated.overrideRemark,
+      }),
+      ...(validated.manualStatus !== undefined && {
+        manualStatus: validated.manualStatus,
+      }),
       ...(validated.archived !== undefined && { archived: validated.archived }),
       updatedAt: new Date().toISOString(),
     }
@@ -185,7 +206,9 @@ class StudentService {
       }
 
       // Add to new parent's childrenInfo
-      const newParentRef = db.collection(COLLECTIONS.PARENT).doc(validated.parentId)
+      const newParentRef = db
+        .collection(COLLECTIONS.PARENT)
+        .doc(validated.parentId)
       const newParentDoc = await newParentRef.get()
       if (!newParentDoc.exists) throw new Error('New parent not found')
       let newChildren = [...(newParentDoc.data().childrenInfo || [])]
@@ -217,14 +240,20 @@ class StudentService {
     }
 
     const syncFields = ['name', 'dob', 'profileURL', 'age']
-    const shouldSync = Object.keys(cleanUpdate).some((k) => syncFields.includes(k))
+    const shouldSync = Object.keys(cleanUpdate).some((k) =>
+      syncFields.includes(k),
+    )
 
     if (shouldSync) {
       const snapshot = profileHelper.getStudentSnapshot(id, {
         ...currentStudentData,
         ...cleanUpdate,
       })
-      const mirrorWrites = await this.getStudentMirrorOperations(id, snapshot, effectiveParentId)
+      const mirrorWrites = await this.getStudentMirrorOperations(
+        id,
+        snapshot,
+        effectiveParentId,
+      )
       writes.push(...mirrorWrites)
     }
 
@@ -242,15 +271,21 @@ class StudentService {
     const parentId = currentStudentData.parentId
 
     // Security: Only Admin or the Parent can delete this student
-    if (requestingUser && requestingUser.role !== 'admin' && requestingUser.uid !== parentId) {
-      throw new Error('Access Denied: You do not have permission to delete this student.')
+    if (
+      requestingUser &&
+      requestingUser.role !== 'admin' &&
+      requestingUser.uid !== parentId
+    ) {
+      throw new Error(
+        'Access Denied: You do not have permission to delete this student.',
+      )
     }
 
     const batch = db.batch()
-    batch.update(studentRef, { 
-      isDeleted: true, 
+    batch.update(studentRef, {
+      isDeleted: true,
       status: 'deleted',
-      updatedAt: new Date().toISOString() 
+      updatedAt: new Date().toISOString(),
     })
 
     const parentRef = db.collection(COLLECTIONS.PARENT).doc(parentId)
@@ -266,21 +301,27 @@ class StudentService {
       .collection(COLLECTIONS.ENROLLMENT)
       .where('studentId', '==', id)
       .get()
-    
-    const affectedClassIds = [...new Set(enrollmentsSnap.docs.map(doc => doc.data().classId))]
-    
-    enrollmentsSnap.forEach((eDoc) => batch.update(eDoc.ref, { 
-      isDeleted: true,
-      status: 'cancelled',
-      updatedAt: new Date().toISOString()
-    }))
+
+    const affectedClassIds = [
+      ...new Set(enrollmentsSnap.docs.map((doc) => doc.data().classId)),
+    ]
+
+    enrollmentsSnap.forEach((eDoc) =>
+      batch.update(eDoc.ref, {
+        isDeleted: true,
+        status: 'cancelled',
+        updatedAt: new Date().toISOString(),
+      }),
+    )
 
     await batch.commit()
-    
+
     // Sync capacity for all affected classes
     if (affectedClassIds.length > 0) {
       const classService = require('./classService')
-      await Promise.all(affectedClassIds.map(cid => classService.syncStudentCount(cid)))
+      await Promise.all(
+        affectedClassIds.map((cid) => classService.syncStudentCount(cid)),
+      )
     }
 
     return { message: 'Student deleted successfully (Soft delete)' }
@@ -290,7 +331,7 @@ class StudentService {
 
   async getStudentMirrorOperations(sid, snapshot, parentId) {
     const writes = []
-    
+
     // 1. Sync with Parent record
     const parentRef = db.collection(COLLECTIONS.PARENT).doc(parentId)
     const parentDoc = await parentRef.get()
@@ -311,7 +352,7 @@ class StudentService {
       .collection(COLLECTIONS.ENROLLMENT)
       .where('studentId', '==', sid)
       .get()
-    
+
     enrollmentsSnap.forEach((eDoc) => {
       writes.push({ ref: eDoc.ref, data: { student: snapshot } })
     })
@@ -321,7 +362,7 @@ class StudentService {
       .collection(COLLECTIONS.TRIAL)
       .where('studentId', '==', sid)
       .get()
-    
+
     trialsSnap.forEach((tDoc) => {
       writes.push({ ref: tDoc.ref, data: { student: snapshot } })
     })

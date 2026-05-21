@@ -29,7 +29,10 @@ exports.getStudent = async (req, res) => {
 
 exports.getStudentsByParentID = async (req, res) => {
   try {
-    const students = await studentService.getStudentsByParentID(req.params.parentId, req.user)
+    const students = await studentService.getStudentsByParentID(
+      req.params.parentId,
+      req.user,
+    )
     res.status(200).json(students)
   } catch (error) {
     res.status(400).json({ error: error.message })
@@ -38,7 +41,11 @@ exports.getStudentsByParentID = async (req, res) => {
 
 exports.updateStudent = async (req, res) => {
   try {
-    const result = await studentService.updateStudent(req.params.id, req.body, req.user)
+    const result = await studentService.updateStudent(
+      req.params.id,
+      req.body,
+      req.user,
+    )
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })

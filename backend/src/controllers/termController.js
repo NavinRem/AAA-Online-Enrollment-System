@@ -39,7 +39,11 @@ exports.updateTerm = async (req, res) => {
 exports.updateTermOffering = async (req, res) => {
   try {
     const { id, offeringId } = req.params
-    const result = await termService.updateTermOffering(id, offeringId, req.body)
+    const result = await termService.updateTermOffering(
+      id,
+      offeringId,
+      req.body,
+    )
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })

@@ -62,10 +62,7 @@ const handleSubmit = async () => {
       }
 
       message.value = `Welcome back! Redirecting...`
-
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 500)
+      await router.push('/dashboard')
     } catch (profileError) {
       await authStore.logout()
       apiError.value = `Verification Failed: ${profileError.message || 'Unauthorized access.'}`

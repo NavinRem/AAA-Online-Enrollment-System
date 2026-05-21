@@ -16,21 +16,31 @@ export const useAuthStore = defineStore('auth', () => {
   const userRole = computed(() => profile.value?.role || 'guest')
   const userName = computed(() => profile.value?.name || user.value?.displayName || 'User')
 
+  let fetchProfilePromise = null
+
   async function fetchProfile() {
     if (!user.value) return null
-    try {
-      const data = await authService.getMe()
-      profile.value = data
-      return data
-    } catch (error) {
-      console.error('Failed to fetch user profile:', error)
-      if (error.status === 401) {
-        console.warn('Session invalid, logging out...')
-        await logout()
+    if (fetchProfilePromise) return fetchProfilePromise
+
+    fetchProfilePromise = (async () => {
+      try {
+        const data = await authService.getMe()
+        profile.value = data
+        return data
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error)
+        if (error.status === 401) {
+          console.warn('Session invalid, logging out...')
+          await logout()
+        }
+        profile.value = null
+        return null
+      } finally {
+        fetchProfilePromise = null
       }
-      profile.value = null
-      return null
-    }
+    })()
+
+    return fetchProfilePromise
   }
 
   function setUser(firebaseUser) {

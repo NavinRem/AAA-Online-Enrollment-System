@@ -22,7 +22,7 @@ const verifyToken = async (req, res, next) => {
     logger.error('Token verification failed:', {
       message: error.message,
       code: error.code,
-      stack: error.stack
+      stack: error.stack,
     })
     return res.status(401).json({
       error: 'Unauthorized',
@@ -48,9 +48,9 @@ const isAdmin = (req, res, next) => {
 const isOwnerOrAdmin = (req, res, next) => {
   const targetUid = req.params.uid
   if (!req.user) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: 'Unauthorized',
-      message: 'Authentication required.' 
+      message: 'Authentication required.',
     })
   }
 

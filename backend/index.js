@@ -97,17 +97,22 @@ exports.api = onRequest(app)
 // Automated Capacity Sync Trigger
 // This ensures that whenever an enrollment is created, updated, or deleted,
 // the corresponding class's currentCount is recalculated to maintain data integrity.
-exports.onEnrollmentWrite = onDocumentWritten('enrollments/{enrollmentId}', async (event) => {
-  const classIdBefore = event.data.before.data()?.classId
-  const classIdAfter = event.data.after.data()?.classId
-  
-  const classService = require('./src/services/classService')
-  
-  const syncTasks = []
-  if (classIdBefore) syncTasks.push(classService.syncStudentCount(classIdBefore))
-  if (classIdAfter && classIdAfter !== classIdBefore) syncTasks.push(classService.syncStudentCount(classIdAfter))
-  
-  if (syncTasks.length > 0) {
-    await Promise.all(syncTasks)
-  }
-})
+exports.onEnrollmentWrite = onDocumentWritten(
+  'enrollments/{enrollmentId}',
+  async (event) => {
+    const classIdBefore = event.data.before.data()?.classId
+    const classIdAfter = event.data.after.data()?.classId
+
+    const classService = require('./src/services/classService')
+
+    const syncTasks = []
+    if (classIdBefore)
+      syncTasks.push(classService.syncStudentCount(classIdBefore))
+    if (classIdAfter && classIdAfter !== classIdBefore)
+      syncTasks.push(classService.syncStudentCount(classIdAfter))
+
+    if (syncTasks.length > 0) {
+      await Promise.all(syncTasks)
+    }
+  },
+)
