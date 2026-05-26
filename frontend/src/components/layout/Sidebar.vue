@@ -139,7 +139,7 @@ const handleNavClick = () => {
       </p>
       <AppButton
         variant="logout"
-        class="w-full font-bold shadow-lg shadow-error/5"
+       
         :loading="!!logoutMessage"
         @click="handleLogout"
       >

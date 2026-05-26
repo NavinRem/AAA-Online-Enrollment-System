@@ -848,7 +848,7 @@ const handleActionSubmit = async (payload) => {
                 v-if="branchDisplayData?.status === 'upcoming'"
                 variant="primary"
                 size="md"
-                class="rounded-xl shadow-lg shadow-primary/20"
+               
                 @click="openAddClassModal"
               >
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />

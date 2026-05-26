@@ -696,10 +696,10 @@ watch(branchFilter, (newBranchId) => {
                     variant="secondary"
                     size="md"
                     @click="toggleDropdown('term', $event)"
-                    class="!bg-primary !text-white"
+                   
                   >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
-                    <span class="font-bold">{{ getActiveLabel('term') }}</span>
+                    <span>{{ getActiveLabel('term') }}</span>
                   </AppButton>
                   <Teleport to="body">
                     <transition
@@ -738,7 +738,7 @@ watch(branchFilter, (newBranchId) => {
                     variant="secondary"
                     size="md"
                     @click="toggleDropdown('branch', $event)"
-                    class="!text-white"
+                   
                     :style="{
                       backgroundColor: getActiveLabel('branch').color
                         ? `var(--color-${getActiveLabel('branch').color})`
@@ -746,7 +746,7 @@ watch(branchFilter, (newBranchId) => {
                     }"
                   >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
-                    <span class="font-bold">{{ getActiveLabel('branch').label }}</span>
+                    <span>{{ getActiveLabel('branch').label }}</span>
                   </AppButton>
                   <Teleport to="body">
                     <transition
@@ -798,11 +798,11 @@ watch(branchFilter, (newBranchId) => {
                     variant="secondary"
                     size="md"
                     @click="toggleDropdown('schedule', $event)"
-                    class="!text-white"
+                   
                     style="background-color: #e91e8c"
                   >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
-                    <span class="font-bold">{{ getActiveLabel('schedule') }}</span>
+                    <span>{{ getActiveLabel('schedule') }}</span>
                   </AppButton>
                   <Teleport to="body">
                     <transition

@@ -436,7 +436,7 @@ const handleDelete = async (item) => {
               <AppButton
                 type="submit"
                 variant="primary"
-                class="px-md py-3 rounded-xl shadow-lg shadow-primary/20 flex items-center gap-xs font-bold"
+               
               >
                 <img :src="getActionIcon('save')" class="w-4 h-4 brightness-0 invert" />
                 Save Preferences
@@ -458,7 +458,7 @@ const handleDelete = async (item) => {
             <AppButton
               variant="primary"
               size="md"
-              class="rounded-xl shadow-lg shadow-primary/20"
+             
               @click="openModal('add')"
             >
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
@@ -605,7 +605,7 @@ const handleDelete = async (item) => {
 
         <div class="flex items-center justify-end gap-3 mt-4">
           <AppButton variant="cancel" @click="isModalOpen = false">Cancel</AppButton>
-          <AppButton type="submit" variant="primary" :loading="submitting" class="px-8 font-bold">
+          <AppButton type="submit" variant="primary" :loading="submitting">
             {{ modalType === 'add' ? 'Add' : 'Update' }}
           </AppButton>
         </div>

@@ -208,7 +208,7 @@ onMounted(fetchData)
               v-else
               variant="ghost"
               size="xs"
-              class="!text-primary font-black hover:bg-primary-soft rounded-lg"
+             
               @click="cancelPending(assign.offeringId)"
             >
               Undo
@@ -250,7 +250,7 @@ onMounted(fetchData)
             <AppButton
               variant="ghost"
               size="xs"
-              class="!text-content-muted font-black hover:bg-outline-std/20 rounded-lg"
+             
               @click="cancelPending(assign.offeringId)"
             >
               Cancel

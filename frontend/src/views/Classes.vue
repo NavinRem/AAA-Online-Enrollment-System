@@ -602,7 +602,7 @@ const navigateToDetail = (item) => {
                   variant="secondary"
                   size="md"
                   @click="toggleDropdown('term', $event)"
-                  class="!bg-magenta"
+                 
                 >
                   <img
                     :src="getActionIcon('filter')"
@@ -648,7 +648,7 @@ const navigateToDetail = (item) => {
                   :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"
                   size="md"
                   @click="toggleDropdown('branch', $event)"
-                  class="rounded-xl transition-all duration-300 group"
+                 
                   :class="{
                     '!text-white shadow-md': branchFilter !== 'all',
                     '!text-content-dark bg-primary-light shadow-sm': branchFilter === 'all',
@@ -730,7 +730,7 @@ const navigateToDetail = (item) => {
               <AppButton
                 variant="primary"
                 size="md"
-                class="rounded-xl shadow-lg shadow-primary/20"
+               
                 @click="openAddModal"
               >
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />

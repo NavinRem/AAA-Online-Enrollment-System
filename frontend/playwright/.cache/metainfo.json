@@ -1,0 +1,629 @@
+{
+  "version": "1.60.0",
+  "viteVersion": "6.4.2",
+  "registerSourceHash": "ff8a0896b5953eb8fa0e32aaebffdab7efa3bc27",
+  "components": [
+    {
+      "id": "_home_sonavin_Code_AAA_Online_Enrollment_System_frontend_src_components_enrollments_EnrollmentActionModal_vue",
+      "filename": "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/tests/components/EnrollmentActionModal.spec.mjs",
+      "importSource": "../../src/components/enrollments/EnrollmentActionModal.vue"
+    }
+  ],
+  "sources": {
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/playwright/index.html": {
+      "timestamp": 1779421820583.8953
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/playwright/index.js": {
+      "timestamp": 1779422953727.2732
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/vue/dist/vue.runtime.esm-bundler.js": {
+      "timestamp": 1775892502882.4446
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/compiler-dom/dist/compiler-dom.esm-bundler.js": {
+      "timestamp": 1775892500454.4924
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@playwright/experimental-ct-vue/hooks.mjs": {
+      "timestamp": 1779175432824.277
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/enrollments/EnrollmentActionModal.vue": {
+      "timestamp": 1779355208552.6514
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/pinia/dist/pinia.mjs": {
+      "timestamp": 1775892500588.49
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppModal.vue": {
+      "timestamp": 1779344579533.4622
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/composables/useActionModal.js": {
+      "timestamp": 1776831222278.0295
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppAlert.vue": {
+      "timestamp": 1778744604590.2178
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppSelect.vue": {
+      "timestamp": 1779344579715.4656
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppButton.vue": {
+      "timestamp": 1779421662908.243
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/utils/formatUtils.js": {
+      "timestamp": 1779343603424.0266
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppInput.vue": {
+      "timestamp": 1779343599152.7449
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppBadge.vue": {
+      "timestamp": 1779176111534.94
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppConfirmOverlay.vue": {
+      "timestamp": 1779422130072.7524
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/utils/assetHelper.js": {
+      "timestamp": 1778771009437.0522
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/utils/sessionHelper.js": {
+      "timestamp": 1778211504422.2268
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-bundler.js": {
+      "timestamp": 1775892500974.4822
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/shared/dist/shared.esm-bundler.js": {
+      "timestamp": 1775892499580.5098
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/devtools-api/dist/index.js": {
+      "timestamp": 1775892499148.5183
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/compiler-core/dist/compiler-core.esm-bundler.js": {
+      "timestamp": 1775892500650.4888
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/composables/useForm.js": {
+      "timestamp": 1776831222278.0295
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/utils/badgeUtils.js": {
+      "timestamp": 1778652803478.4602
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/devtools-kit/dist/index.js": {
+      "timestamp": 1775892500470.4922
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js": {
+      "timestamp": 1775892500903.4836
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/bell-svgrepo.svg": {
+      "timestamp": 1775790383352.079
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/back.svg": {
+      "timestamp": 1775790383351.7834
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/cancel.svg": {
+      "timestamp": 1775790383352.079
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/close.svg": {
+      "timestamp": 1775790383352.079
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/cash.svg": {
+      "timestamp": 1775790476319.8613
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/cloud-upload.svg": {
+      "timestamp": 1775790383352.079
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/deactivate-svgrepo.svg": {
+      "timestamp": 1775790383352.079
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/download.svg": {
+      "timestamp": 1775790383352.079
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/delete.svg": {
+      "timestamp": 1775790383352.079
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/edit.svg": {
+      "timestamp": 1775790383352.079
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/eye-view.svg": {
+      "timestamp": 1775790383353.0386
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/email.svg": {
+      "timestamp": 1775790418596.356
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/eye-close.svg": {
+      "timestamp": 1775790418597.356
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/filter.svg": {
+      "timestamp": 1775790383353.0386
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/eye-open.svg": {
+      "timestamp": 1775790418597.356
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/pay.svg": {
+      "timestamp": 1775790383353.0386
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/plus-circle.svg": {
+      "timestamp": 1775790383353.0386
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/reactivate.svg": {
+      "timestamp": 1775790383354.0386
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/recent.svg": {
+      "timestamp": 1775790383354.0386
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/quick-action.svg": {
+      "timestamp": 1775790383353.0386
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/reset-password.svg": {
+      "timestamp": 1775790418597.356
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/search.svg": {
+      "timestamp": 1775790383354.0386
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/stop-svgrepo.svg": {
+      "timestamp": 1775790383354.0386
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/active.svg": {
+      "timestamp": 1777823219890.91
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/archived.svg": {
+      "timestamp": 1777823264435.3105
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/available.svg": {
+      "timestamp": 1777823297510.556
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/full.svg": {
+      "timestamp": 1777823326082.5464
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/ongoing.svg": {
+      "timestamp": 1777823343080.4907
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/upcoming.svg": {
+      "timestamp": 1777823156293.5042
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/branch.svg": {
+      "timestamp": 1775790418597.356
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/class.svg": {
+      "timestamp": 1775790418598.459
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/dashboard.svg": {
+      "timestamp": 1775790418598.459
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/dollar.svg": {
+      "timestamp": 1775790418598.459
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/enrollment.svg": {
+      "timestamp": 1775790418598.459
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/parent.svg": {
+      "timestamp": 1775790418598.459
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/program.svg": {
+      "timestamp": 1775790418598.459
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/prev.svg": {
+      "timestamp": 1776831222261.0293
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/next.svg": {
+      "timestamp": 1776831222261.0293
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/setting.svg": {
+      "timestamp": 1775790418598.459
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/student.svg": {
+      "timestamp": 1775790418598.459
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/trial.svg": {
+      "timestamp": 1776831222261.0293
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/other/google-logo.svg": {
+      "timestamp": 1775790383356.7786
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/absent.svg": {
+      "timestamp": 1775790383356.7786
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/arrow-circle-up-svgrepo.svg": {
+      "timestamp": 1775790383357.0383
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/arrow-circle-down-svgrepo.svg": {
+      "timestamp": 1775790383357.0383
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/attendance-svgrepo.svg": {
+      "timestamp": 1775790383357.0383
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/present-svgrepo.svg": {
+      "timestamp": 1775790383357.0383
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/calendar-event-upcoming.svg": {
+      "timestamp": 1775790383357.0383
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/user/family-svgrepo.svg": {
+      "timestamp": 1775790383358.0383
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/user/profile-svgrepo.svg": {
+      "timestamp": 1775790383358.0383
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/user/user-svgrepo.svg": {
+      "timestamp": 1775790383358.0383
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-ballet.png": {
+      "timestamp": 1775790383364.038
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/user/usergrp-svgrepo.svg": {
+      "timestamp": 1775790383358.0383
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/backgrounds/blue-bg-school.jpg": {
+      "timestamp": 1775790383363.038
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-model.png": {
+      "timestamp": 1775790383367.0378
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-robamKhmer.png": {
+      "timestamp": 1779173652762.8506
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-piano.png": {
+      "timestamp": 1775790383369.0378
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-robotic.png": {
+      "timestamp": 1775790383371.0378
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-taekwondo.png": {
+      "timestamp": 1775790383372.0376
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/common/logo-main.png": {
+      "timestamp": 1775790383375.0376
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/branch.png": {
+      "timestamp": 1775790418600.3557
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-branch.png": {
+      "timestamp": 1775790418605.3555
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-full-program.png": {
+      "timestamp": 1775790418606.3555
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-available-program.png": {
+      "timestamp": 1775790418602.3557
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-guardian.png": {
+      "timestamp": 1775790383383.037
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-parent.png": {
+      "timestamp": 1775790383385.037
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-nearlyfull-program.png": {
+      "timestamp": 1775790418608.3552
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-revenue.png": {
+      "timestamp": 1775790418610.3552
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-trial.png": {
+      "timestamp": 1776831222261.0293
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/enrollment.png": {
+      "timestamp": 1775790383393.0366
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-top-program.png": {
+      "timestamp": 1775790418611.3552
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/high-payment.png": {
+      "timestamp": 1775790418612.3552
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/payment.png": {
+      "timestamp": 1775790383400.0364
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/on-time.png": {
+      "timestamp": 1775790383398.0364
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/registration.png": {
+      "timestamp": 1775790383403.0361
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/refund.png": {
+      "timestamp": 1775790383402.0361
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/transaction.png": {
+      "timestamp": 1775790383404.0361
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/academic-history.png": {
+      "timestamp": 1775790383407.036
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/trial.png": {
+      "timestamp": 1776831222262.0293
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/pending_payment.png": {
+      "timestamp": 1775790383401.0361
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/attendance.png": {
+      "timestamp": 1775790383410.036
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/enrollment-capacity.png": {
+      "timestamp": 1775790383412.0356
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/behavior.png": {
+      "timestamp": 1775790383411.0356
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/exam.png": {
+      "timestamp": 1775790383414.0356
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/program-revenue.png": {
+      "timestamp": 1775790383417.0354
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/remaining-sessions.png": {
+      "timestamp": 1775790383420.0354
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/enrollment/today-enrollment.png": {
+      "timestamp": 1775790383424.0352
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/total-enrolled.png": {
+      "timestamp": 1775790383423.0352
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/enrollment/total-canceled-enrollment.png": {
+      "timestamp": 1775790383425.0352
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/enrollment/total-enrollment.png": {
+      "timestamp": 1775790383425.0352
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/enrollment/total-paid-enrollment.png": {
+      "timestamp": 1775790383425.0352
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/enrollment/total-unpaid-enrollment.png": {
+      "timestamp": 1775790383426.035
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/active-now.png": {
+      "timestamp": 1775790383426.035
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/recently-register.png": {
+      "timestamp": 1775790383427.5352
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/total-guardian.png": {
+      "timestamp": 1775790383428.035
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/paid-today.png": {
+      "timestamp": 1775790418614.355
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/total-parent.png": {
+      "timestamp": 1775790383429.035
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/payment/refund-payment.png": {
+      "timestamp": 1775790383431.0347
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/total-users.png": {
+      "timestamp": 1775790383431.0347
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/payment/total-revenue.png": {
+      "timestamp": 1775790383432.0347
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/payment/unpaid-payment.png": {
+      "timestamp": 1775790383433.0347
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/payment/total-transaction.png": {
+      "timestamp": 1775790383433.0347
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-boy.png": {
+      "timestamp": 1775790383437.0344
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-guest.png": {
+      "timestamp": 1775790418616.355
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-admin.png": {
+      "timestamp": 1775790418615.355
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-man.png": {
+      "timestamp": 1775790383440.0344
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-woman.png": {
+      "timestamp": 1775790383444.0342
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-girl.png": {
+      "timestamp": 1775790383438.0344
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-teacher-man.png": {
+      "timestamp": 1775790383442.0342
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/archived-program.png": {
+      "timestamp": 1775790383448.034
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-teacher-woman.png": {
+      "timestamp": 1775790383444.0342
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/in-progress-program.png": {
+      "timestamp": 1775790383450.0337
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/program.png": {
+      "timestamp": 1775790383451.0337
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/upcoming-program.png": {
+      "timestamp": 1775790383456.0334
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/currently-enrolled.png": {
+      "timestamp": 1775790383457.0334
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/total-program.png": {
+      "timestamp": 1775790383454.0337
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/currently-not-enrolled.png": {
+      "timestamp": 1775790383457.0334
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/newly-enrolled.png": {
+      "timestamp": 1775790383459.0334
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/graduated.png": {
+      "timestamp": 1775790383459.0334
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/total-student.png": {
+      "timestamp": 1775790383461.0332
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/stopped-enrolled.png": {
+      "timestamp": 1775790383461.0332
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-student.png": {
+      "timestamp": 1775790383392.0366
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/teacher/total-teacher.png": {
+      "timestamp": 1778125032224.6992
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/active-program.png": {
+      "timestamp": 1775790383446.034
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/devtools-shared/dist/index.js": {
+      "timestamp": 1775892499323.515
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/perfect-debounce/dist/index.mjs": {
+      "timestamp": 1775892499148.5183
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/hookable/dist/index.mjs": {
+      "timestamp": 1775892499669.508
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/birpc/dist/index.mjs": {
+      "timestamp": 1775892499546.5105
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js": {
+      "timestamp": 1775892500330.4949
+    },
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/styles/main.css": {
+      "timestamp": 1778745970768.0413
+    }
+  },
+  "deps": {
+    "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/enrollments/EnrollmentActionModal.vue": [
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/enrollments/EnrollmentActionModal.vue",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/vue/dist/vue.runtime.esm-bundler.js",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-bundler.js",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/node_modules/@vue/shared/dist/shared.esm-bundler.js",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/composables/useActionModal.js",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/composables/useForm.js",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppModal.vue",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/utils/assetHelper.js",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/back.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/bell-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/cancel.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/cash.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/close.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/cloud-upload.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/deactivate-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/delete.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/download.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/edit.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/email.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/eye-close.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/eye-open.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/eye-view.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/filter.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/pay.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/plus-circle.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/quick-action.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/reactivate.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/recent.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/reset-password.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/search.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/action/stop-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/active.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/archived.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/available.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/full.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/ongoing.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/filter/upcoming.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/branch.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/class.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/dashboard.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/dollar.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/enrollment.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/next.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/parent.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/prev.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/program.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/setting.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/student.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/navigation/trial.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/other/google-logo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/absent.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/arrow-circle-down-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/arrow-circle-up-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/attendance-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/calendar-event-upcoming.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/status/present-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/user/family-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/user/profile-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/user/user-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/icons/user/usergrp-svgrepo.svg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/backgrounds/blue-bg-school.jpg",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-ballet.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-model.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-piano.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-robamKhmer.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-robotic.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/classes/card-taekwondo.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/common/logo-main.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/branch.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-available-program.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-branch.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-full-program.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-guardian.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-nearlyfull-program.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-parent.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-revenue.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-student.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-top-program.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/card-trial.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/enrollment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/high-payment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/on-time.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/payment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/pending_payment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/refund.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/registration.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/transaction.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/dashboard/trial.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/academic-history.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/attendance.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/behavior.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/enrollment-capacity.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/exam.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/program-revenue.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/remaining-sessions.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/data-metric-card/total-enrolled.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/enrollment/today-enrollment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/enrollment/total-canceled-enrollment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/enrollment/total-enrollment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/enrollment/total-paid-enrollment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/enrollment/total-unpaid-enrollment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/active-now.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/paid-today.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/recently-register.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/total-guardian.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/total-parent.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/parent/total-users.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/payment/refund-payment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/payment/total-revenue.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/payment/total-transaction.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/payment/unpaid-payment.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-admin.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-boy.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-girl.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-guest.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-man.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-teacher-man.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-teacher-woman.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/profiles/avatar-woman.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/active-program.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/archived-program.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/in-progress-program.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/program.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/total-program.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/programs/upcoming-program.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/currently-enrolled.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/currently-not-enrolled.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/graduated.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/newly-enrolled.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/stopped-enrolled.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/student/total-student.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/assets/images/teacher/total-teacher.png",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppAlert.vue",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppButton.vue",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/utils/badgeUtils.js",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppSelect.vue",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppInput.vue",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppBadge.vue",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/components/common/ui/AppConfirmOverlay.vue",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/utils/formatUtils.js",
+      "/home/sonavin/Code/AAA-Online-Enrollment-System/frontend/src/utils/sessionHelper.js"
+    ]
+  }
+}

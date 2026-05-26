@@ -4,16 +4,14 @@ const { validateCategory } = require('../validators/categoryValidator')
 const { validateLevel } = require('../validators/levelValidator')
 const { validateTerm } = require('../validators/termValidator')
 const { validateProgram } = require('../validators/programValidator')
-const { validateTeacher } = require('../validators/teacherValidator')
-const { validateParent } = require('../validators/parentValidator')
 const { validateStudent } = require('../validators/studentValidator')
 const { validateClass } = require('../validators/classValidator')
 const { validateEnrollment } = require('../validators/enrollmentValidator')
-const { validateAdmin } = require('../validators/adminValidator')
 const { validatePayment } = require('../validators/paymentValidator')
 const { validateTrial } = require('../validators/trialValidator')
 const { validateSchedule } = require('../validators/scheduleValidator')
 const profileHelper = require('../utils/profileHelper')
+const authService = require('../services/authService')
 
 /**
  * Clear a collection entirely (Safe for Emulator)
@@ -75,11 +73,12 @@ async function seedData() {
     const adminData = {
       name: 'Super Admin',
       email: 'admin@academy.com',
+      password: 'password123',
       status: 'active',
       profileURL:
         'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=2080',
     }
-    await db.collection(COLLECTIONS.ADMIN).add(validateAdmin(adminData))
+    await authService.registerAccount(adminData, 'admin', COLLECTIONS.ADMIN)
 
     // 1. Categories & Levels
     console.log('Step 1: Multimedia Categories')
@@ -122,15 +121,15 @@ async function seedData() {
     const teacherData = {
       name: 'Sarah Spark',
       email: 'sarah.spark@example.com',
+      password: 'password123',
       status: 'active',
       profileURL:
         'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1974',
     }
-    const tRef = await db
-      .collection(COLLECTIONS.TEACHER)
-      .add(validateTeacher(teacherData))
+    const tRes = await authService.registerAccount(teacherData, 'teacher', COLLECTIONS.TEACHER)
+    const tRefId = tRes.id
     const teacherSnapshot = profileHelper.getTeacherSnapshot(
-      tRef.id,
+      tRefId,
       teacherData,
     )
 
@@ -227,7 +226,7 @@ async function seedData() {
             branch: branchSnapshot,
             scheduleId: schedSnap.id,
             schedule: schedSnap,
-            teacherId: tRef.id,
+            teacherId: tRefId,
             teacher: teacherSnapshot,
             capacity: 20,
             currentCount: 0,
@@ -268,16 +267,16 @@ async function seedData() {
     const parentData = {
       name: 'Alice Parent',
       email: 'alice@example.com',
+      password: 'password123',
       phone: '099111222',
       status: 'active',
     }
-    const pRef = await db
-      .collection(COLLECTIONS.PARENT)
-      .add(validateParent(parentData))
-    const parentSnapshot = profileHelper.getParentSnapshot(pRef.id, parentData)
+    const pRes = await authService.registerAccount(parentData, 'parent', COLLECTIONS.PARENT)
+    const pRefId = pRes.id
+    const parentSnapshot = profileHelper.getParentSnapshot(pRefId, parentData)
 
     const studentData = {
-      parentId: pRef.id,
+      parentId: pRefId,
       name: 'Leo Junior',
       dob: '2012-08-15',
       status: 'active',
@@ -294,7 +293,7 @@ async function seedData() {
     for (let i = 0; i < offerings.length; i++) {
       const currentOffering = offerings[i]
       const enrollmentData = {
-        parentId: pRef.id,
+        parentId: pRefId,
         studentId: sRef.id,
         programId: currentOffering.program.id,
         classId: currentOffering.classId,
@@ -344,7 +343,7 @@ async function seedData() {
       console.log(`Step 9: Payment for Enrollment ${eRef.id}`)
       const paymentData = {
         enrollmentId: eRef.id,
-        parentId: pRef.id,
+        parentId: pRefId,
         amount: enrollmentData.amount,
         method: 'bank_transfer',
         status: 'paid',
@@ -363,7 +362,7 @@ async function seedData() {
     console.log('Step 10: Trial Request')
     const trialData = {
       studentId: sRef.id,
-      parentId: pRef.id,
+      parentId: pRefId,
       programId: classSnapshots[0].program.id,
       classId: classRefs[0].id,
       trialDate: new Date(Date.now() + 86400000 * 2)

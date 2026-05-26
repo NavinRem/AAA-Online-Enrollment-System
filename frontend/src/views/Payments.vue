@@ -302,7 +302,7 @@ const paymentHeaders = [
                   :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"
                   size="md"
                   @click="toggleDropdown('branch', $event)"
-                  class="rounded-xl transition-all duration-300 group"
+                 
                   :class="{
                     '!text-white shadow-md': branchFilter !== 'all',
                     'shadow-sm': branchFilter === 'all',

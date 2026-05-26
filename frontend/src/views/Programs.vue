@@ -445,7 +445,7 @@ const handleActionSubmit = async (formData) => {
             <AppButton
               variant="primary"
               size="md"
-              class="rounded-xl shadow-lg shadow-primary/20"
+             
               @click="openModal('add')"
             >
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
@@ -563,7 +563,7 @@ const handleActionSubmit = async (formData) => {
                           :src="getActionIcon('edit')"
                           class="w-4 h-4 opacity-40 group-hover:opacity-100"
                         />
-                        <span class="font-bold">Edit</span>
+                        <span>Edit</span>
                       </button>
                       <div class="h-px bg-surface-light mx-1 my-1"></div>
                       <button

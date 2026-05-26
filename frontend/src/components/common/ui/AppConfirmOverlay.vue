@@ -62,7 +62,7 @@ defineEmits(['confirm', 'back'])
             type="button"
             variant="primary"
             :loading="loading"
-            class="ui-btn-premium"
+           
             @click="$emit('confirm')"
           >
             {{ confirmLabel || 'Confirm & Submit' }}

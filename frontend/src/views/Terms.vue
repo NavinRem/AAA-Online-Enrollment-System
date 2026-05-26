@@ -56,6 +56,7 @@ const fetchData = async () => {
       ]),
     ])
 
+ 
     const terms = Array.isArray(termData) ? termData : []
     branches.value = dataStore.branches
 
@@ -90,7 +91,7 @@ const fetchData = async () => {
 
         // Filter enrollments for this branch in this term period
         const branchEnrollments = dataStore.enrollments.filter((e) => {
-          const isSameBranch = String(e.branchId) === String(bId)
+          const isSameBranch = String(e["class"].branch.id === String(bId))
           const isSameTerm = String(e.termId) === String(term.id)
           if (isSameTerm && isSameBranch) return true
           if (isSameBranch) {
@@ -320,12 +321,6 @@ const displayItems = computed(() => {
   })
 })
 
-const filterOptions = [
-  { label: 'All Terms', value: 'all' },
-  { label: 'Upcoming', value: 'upcoming', color: 'blue' },
-  { label: 'Active', value: 'active', color: 'success' },
-  { label: 'Archived', value: 'archived', color: 'neutral' },
-]
 
 const sortOptions = [
   { label: 'Newest First', value: 'newest', image: getActionIcon('filter') },
@@ -342,14 +337,6 @@ const sortOptions = [
   },
 ]
 
-const getTermBranches = (branchIds) => {
-  if (!branchIds || branchIds.length === 0)
-    return [{ name: 'All Branches', abbr: 'ALL', color: 'neutral' }]
-  return branchIds.map((id) => {
-    const b = branches.value.find((b) => String(b.id) === String(id))
-    return b ? { ...b } : { name: 'Unknown', abbr: '??', color: 'neutral' }
-  })
-}
 
 const isTermReadOnly = (item) => {
   const prog = calculateClassProgress(item.startDate, item.endDate)
@@ -391,7 +378,7 @@ const getGroupedSettings = (item) => {
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard
-            v-for="(card, index) in statsCards"
+            v-for="(card) in statsCards"
             :key="card.label"
             v-bind="card"
             :loading="loading"
@@ -428,11 +415,11 @@ const getGroupedSettings = (item) => {
               <AppButton
                 variant="primary"
                 size="md"
-                class="rounded-xl shadow-lg shadow-primary/20"
+               
                 @click="openModal('add')"
               >
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-                <span class="font-bold">Add Term</span>
+                <span>Add Term</span>
               </AppButton>
             </div>
           </template>
@@ -676,7 +663,7 @@ const getGroupedSettings = (item) => {
                             :src="getActionIcon('edit')"
                             class="w-4 h-4 opacity-40 group-hover:opacity-100"
                           />
-                          <span class="font-bold">Edit</span>
+                          <span>Edit</span>
                         </button>
                         <button
                           v-if="
@@ -695,7 +682,7 @@ const getGroupedSettings = (item) => {
                             :src="getActionIcon('plus')"
                             class="w-4 h-4 opacity-40 group-hover:opacity-100"
                           />
-                          <span class="font-bold">Add Class</span>
+                          <span>Add Class</span>
                         </button>
                         <div class="h-px bg-surface-light mx-1 my-1"></div>
                       </template>

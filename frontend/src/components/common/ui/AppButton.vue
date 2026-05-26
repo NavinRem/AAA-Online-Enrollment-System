@@ -5,6 +5,7 @@ import { getStatusUI } from '@/utils/badgeUtils'
 const props = defineProps({
   type: { type: String, default: 'button' },
   variant: { type: String, default: 'primary' },
+  size: { type: String, default: 'md' },
   icon: { type: String, default: '' },
   iconOnly: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
@@ -22,6 +23,13 @@ const variantClasses = {
   outline: 'bg-transparent border-2 border-primary text-primary hover:bg-primary-soft',
   light: 'bg-primary-soft text-primary hover:bg-primary-light',
   logout: 'bg-error text-white hover:bg-error-deep hover:scale-95 active:scale-90 shadow-md',
+}
+
+const sizeClasses = {
+  xs: 'px-2 py-1 text-xs',
+  sm: 'px-4 py-1.5 text-sm',
+  md: 'px-6 py-2.5 text-sm',
+  lg: 'px-8 py-3 text-base',
 }
 
 const buttonStyle = computed(() => {
@@ -51,11 +59,12 @@ defineEmits(['click'])
 
 <template>
   <button
-    class="flex items-center justify-center gap-xs font-semibold px-6 py-2.5 text-sm cursor-pointer whitespace-nowrap transition-all duration-200 active:scale-[0.98] select-none"
+    class="flex items-center justify-center gap-xs font-semibold cursor-pointer whitespace-nowrap transition-all duration-200 active:scale-[0.98] select-none"
     :class="[
       !isSemantic
         ? variantClasses[variant] || variantClasses.primary
         : 'border border-transparent hover:brightness-95',
+      sizeClasses[size] || sizeClasses.md,
       {
         'opacity-60 cursor-not-allowed pointer-events-none grayscale-[0.2]': disabled || loading,
         'p-xs rounded-full': iconOnly,

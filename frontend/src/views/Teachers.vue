@@ -331,14 +331,14 @@ const handleAction = (type, item, closeMenu) => {
                 <div class="flex items-center gap-3 w-full mt-2">
                   <AppButton
                     variant="cancel"
-                    class="flex-1 !py-4 !rounded-2xl"
+                   
                     @click="confirmingOffering = null"
                   >
                     Go Back
                   </AppButton>
                   <AppButton
                     variant="primary"
-                    class="flex-1 !py-4 !rounded-2xl shadow-lg shadow-primary/20"
+                   
                     @click="confirmAssign"
                     :loading="!!actionLoading"
                   >
@@ -373,11 +373,11 @@ const handleAction = (type, item, closeMenu) => {
             <AppButton
               variant="primary"
               size="md"
-              class="rounded-xl shadow-lg shadow-primary/20"
+             
               @click="openModal('plus')"
             >
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold">New Teacher</span>
+              <span>New Teacher</span>
             </AppButton>
           </template>
 

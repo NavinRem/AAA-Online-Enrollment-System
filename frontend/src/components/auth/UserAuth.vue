@@ -138,7 +138,7 @@ const handleSubmit = async () => {
               :disabled="loading"
               type="submit"
               variant="primary"
-              class="w-full mt-4 py-4 ui-btn-premium"
+             
             >
               {{ isResetMode ? 'Send Recovery Link' : 'Sign In' }}
             </AppButton>

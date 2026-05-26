@@ -420,7 +420,7 @@ onUnmounted(() => {
                     :variant="selectedTermId === 'all' ? 'secondary' : 'primary'"
                     size="md"
                     @click="toggleDropdown('term', $event)"
-                    class="rounded-xl transition-all duration-300 group shadow-sm"
+                   
                   >
                     <span
                       class="font-bold tracking-tight"
@@ -542,7 +542,7 @@ onUnmounted(() => {
                     :variant="selectedTermId === 'all' ? 'secondary' : 'primary'"
                     size="md"
                     @click="toggleDropdown('term', $event)"
-                    class="rounded-xl transition-all duration-300 group shadow-sm"
+                   
                   >
                     <span
                       class="font-bold tracking-tight"

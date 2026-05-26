@@ -729,7 +729,7 @@ defineExpose({ setStudent })
               type="button"
               variant="primary"
               :loading="loading"
-              class="ui-btn-premium"
+             
               :disabled="loading || (isEditMode && !isChanged)"
               :class="{ 'opacity-50 pointer-events-none': isEditMode && !isChanged }"
               @click="requestConfirm"

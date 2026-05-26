@@ -388,11 +388,11 @@ const handleRegisterStudent = async (formData) => {
             <AppButton
               variant="primary"
               size="md"
-              class="rounded-xl shadow-lg shadow-primary/20"
+             
               @click="handleOpenNewEnrollment"
             >
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold">New Enrollment</span>
+              <span>New Enrollment</span>
             </AppButton>
           </template>
 

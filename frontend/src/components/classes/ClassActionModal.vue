@@ -789,8 +789,8 @@ const confirmSubmit = () => {
             <span class="text-xs opacity-90 font-medium leading-relaxed">
               <template v-if="type === 'remove'">
                 Remove {{ props.classInstance?.program?.name || 'this class' }} from
-                <span class="font-bold">{{ context?.termName || 'this term' }}</span> at
-                <span class="font-bold">{{ context?.branchName || 'this branch' }}</span
+                <span>{{ context?.termName || 'this term' }}</span> at
+                <span>{{ context?.branchName || 'this branch' }}</span
                 >? This will unenroll all students and delete all schedules for this specific term
                 offering.
               </template>

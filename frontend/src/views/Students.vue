@@ -423,7 +423,7 @@ const closeModals = () => {
                   :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"
                   size="md"
                   @click="toggleDropdown('branch', $event)"
-                  class="rounded-xl transition-all duration-300 group"
+                 
                   :class="{
                     '!text-white shadow-md': branchFilter !== 'all',
                     'shadow-sm': branchFilter === 'all',
@@ -505,11 +505,11 @@ const closeModals = () => {
               <AppButton
                 variant="primary"
                 size="md"
-                class="rounded-xl shadow-lg shadow-primary/20"
+               
                 @click="handleOpenAddStudent"
               >
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-                <span class="font-bold">New Student</span>
+                <span>New Student</span>
               </AppButton>
             </div>
           </template>

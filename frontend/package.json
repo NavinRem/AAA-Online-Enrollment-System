@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --fix --cache",
-    "format": "prettier --write \"src/**/*.{js,vue,css,json}\""
+    "format": "prettier --write \"src/**/*.{js,vue,css,json}\"",
+    "test:e2e": "playwright test",
+    "test:ct": "playwright test -c playwright-ct.config.mjs"
   },
   "dependencies": {
     "firebase": "^12.9.0",
@@ -17,6 +19,8 @@
     "vue-router": "^5.0.1"
   },
   "devDependencies": {
+    "@playwright/experimental-ct-vue": "^1.60.0",
+    "@playwright/test": "^1.60.0",
     "@vitejs/plugin-vue": "^6.0.3",
     "autoprefixer": "^10.4.27",
     "npm-run-all2": "^8.0.4",

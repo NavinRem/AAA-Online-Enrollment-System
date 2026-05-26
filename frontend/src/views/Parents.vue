@@ -392,15 +392,9 @@ const handleRowAction = (type, item, closeMenu) => {
               <div class="relative" id="branch-filter-btn">
                 <AppButton
                   :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"
-                  size="md"
-                  class="rounded-xl transition-all duration-500 min-w-36"
-                  :class="{
-                    '!text-white shadow-md': branchFilter !== 'all',
-                    'shadow-sm': branchFilter === 'all',
-                  }"
                   :style="
                     branchFilter !== 'all'
-                      ? { backgroundColor: getActiveLabel('branch').color }
+                      ? { backgroundColor: getActiveLabel('branch').color, color: 'white' }
                       : {}
                   "
                   @click="toggleDropdown('branch', $event)"
@@ -428,8 +422,6 @@ const handleRowAction = (type, item, closeMenu) => {
 
               <AppButton
                 variant="primary"
-                size="md"
-                class="rounded-xl shadow-lg shadow-primary/20"
                 @click="showNewParentModal = true"
               >
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />

@@ -488,7 +488,7 @@ watch(
                     variant="secondary"
                     size="md"
                     @click="toggleDropdown($event)"
-                    class="!bg-primary !text-white min-w-[240px]"
+                   
                   >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
                     <span class="font-bold truncate max-w-52">{{

@@ -359,13 +359,13 @@ const handleTeacherChange = (weekIndex, teacherId) => {
           >
         </div>
         <div class="flex items-center gap-3">
-          <AppButton variant="ghost" size="md" class="font-bold" @click="$emit('close')">
+          <AppButton variant="ghost" size="md" @click="$emit('close')">
             Cancel
           </AppButton>
           <AppButton
             variant="primary"
             size="md"
-            class="px-8 font-black shadow-lg shadow-primary/20"
+           
             @click="$emit('close')"
           >
             Finish
