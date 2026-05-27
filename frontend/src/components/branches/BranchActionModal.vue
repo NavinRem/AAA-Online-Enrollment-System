@@ -36,7 +36,7 @@ const mapSourceToForm = () => {
   return getInitialData()
 }
 
-const { localData, isDirty, errors, shaking, validate, clearError, triggerShake } = useActionModal(
+const { localData, isDirty, errors, shaking, validate, clearError, triggerShake, getPayload } = useActionModal(
   props,
   emit,
   {
@@ -117,30 +117,27 @@ const requestConfirm = () => {
 
 const handleActionSubmit = () => {
   showConfirm.value = false
-  const payload = JSON.parse(JSON.stringify(localData))
+  const payload = getPayload()
 
   if (props.type === 'delete') {
     emit('submit', { id: localData.id })
     return
   }
 
-  // Remove UI-only fields
-  delete payload.deleteConfirm
-
   emit('submit', payload)
 }
 
 const confirmRows = computed(() => {
   const rows = [
-    { key: 'Branch Name', value: localData.name },
-    { key: 'Identifier', value: localData.abbr, badge: true, type: localData.color },
-    { key: 'Physical Location', value: localData.location || 'Not Specified' },
-    { key: 'Contact Phone', value: localData.phone || 'N/A' },
+    { key: 'Name', value: localData.name },
+    { key: 'Abbr', value: localData.abbr, badge: true, type: localData.color },
+    { key: 'Location', value: localData.location || 'Not Specified' },
+    { key: 'Phone', value: localData.phone || 'N/A' },
   ]
 
   if (props.type === 'delete') {
     rows.push({
-      key: 'Security Check',
+      key: 'DeleteConfirm',
       value: localData.deleteConfirm,
       valueClass: 'text-error font-bold',
     })
@@ -319,6 +316,7 @@ watch(
             : 'Please verify the logistical details and parameters before proceeding.'
         "
         :icon="modalIcon"
+        :image="getImageUrl('enrollment/total-enrollment')"
         :rows="confirmRows"
         :confirmLabel="submitLabel"
         :loading="loading"

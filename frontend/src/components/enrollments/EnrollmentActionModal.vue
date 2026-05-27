@@ -30,7 +30,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm(
+const { form, errors, shaking, validate, clearError, triggerShake, resetForm, getPayload } = useForm(
   {
     parentId: '',
     studentId: '',
@@ -72,7 +72,9 @@ const selectPreset = (preset) => {
 
 const showConfirm = ref(false)
 const initialDataString = ref('')
-const isEditMode = computed(() => props.type === 'edit' || (props.type !== 'add' && !!props.enrollment))
+const isEditMode = computed(
+  () => props.type === 'edit' || (props.type !== 'add' && !!props.enrollment),
+)
 
 const displaySummary = computed(() => {
   const e = props.enrollment
@@ -80,7 +82,6 @@ const displaySummary = computed(() => {
 
   const classObj = e.class || {}
   const branchObj = classObj.branch || e.branch || {}
-  const scheduleSource = classObj.schedule || e.classSchedule
 
   return {
     studentName: e.student?.name,
@@ -188,35 +189,42 @@ const finalAmount = computed(() => {
 
 const confirmRows = computed(() => {
   const base = [
+    { key: 'Parent', value: props.parents?.find((item) => item.id === form.parentId)?.name || 'N/A' },
     { key: 'Student', value: selectedStudent.value?.name || 'N/A' },
     { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
-    {
-      key: 'Class Product',
-      value: selectedOffering.value?.className || 'N/A',
-    },
+    { key: 'Class', value: selectedOffering.value?.className || 'N/A' },
     { key: 'Term', value: selectedOffering.value?.termName || 'N/A', badge: true, type: 'blue' },
     {
-      key: 'Branch / Schedule',
+      key: 'Branch/Schedule',
       value: selectedOffering.value
         ? `${selectedOffering.value.branch?.abbr || selectedOffering.value.branch?.name} - ${selectedOffering.value.schedule?.day} (${selectedOffering.value.schedule?.time})`
         : 'N/A',
     },
-    { key: 'Sessions', value: `${form.enrolledSessions || 0} sessions` },
-    { key: 'Total', value: `$${formatPrice(finalAmount.value)}` },
+    { key: 'EnrolledSessions', value: `${form.enrolledSessions || 0} sessions` },
   ]
   
+  if (form.isSponsorship) {
+    base.push({ key: 'IsSponsorship', value: 'Yes', valueClass: 'text-primary font-bold' })
+  }
+  if (form.isProrated) {
+    base.push({ key: 'IsProrated', value: 'Yes', valueClass: 'text-warning font-bold' })
+  }
+  if (form.discountAmount > 0) {
+    base.push({ key: 'DiscountAmount', value: form.discountType === 'percent' ? `${form.discountAmount}%` : `$${form.discountAmount}` })
+  }
+  if (form.isCustomPrice) {
+    base.push({ key: 'CustomPrice', value: `$${form.customPrice}` })
+  }
+
+  base.push({ key: 'Amount', value: `$${formatPrice(finalAmount.value)}`, valueClass: 'font-bold text-lg text-primary' })
+
   if (props.type === 'pay') {
     return [
       ...base,
-      {
-        key: 'Payment Channel',
-        value: form.paymentMethod === 'online' ? 'Online / Bank' : 'Cash',
-      },
-      ...(form.bankName ? [{ key: 'Bank', value: form.bankName }] : []),
-      { key: 'Reference', value: form.proof },
-      ...(form.remark
-        ? [{ key: 'Remark', value: form.remark, valueClass: 'italic' }]
-        : []),
+      { key: 'PaymentMethod', value: form.paymentMethod === 'online' ? 'Online / Bank' : 'Cash' },
+      ...(form.bankName ? [{ key: 'BankName', value: form.bankName }] : []),
+      { key: 'Proof', value: form.proof },
+      ...(form.remark ? [{ key: 'Remark', value: form.remark, valueClass: 'italic' }] : []),
     ]
   }
   if (props.type === 'cancel') {
@@ -226,8 +234,11 @@ const confirmRows = computed(() => {
     return [
       ...base,
       { key: 'Status', value: props.enrollment?.status },
-      { key: 'Authorization', value: form.deleteConfirm, valueClass: 'text-error font-bold' },
+      { key: 'DeleteConfirm', value: form.deleteConfirm, valueClass: 'text-error font-bold' },
     ]
+  }
+  if (form.remark && props.type !== 'pay' && props.type !== 'cancel') {
+    base.push({ key: 'Remark', value: form.remark, valueClass: 'italic' })
   }
   return base
 })
@@ -282,7 +293,7 @@ const offeringSelectItems = computed(() =>
 
 const handleFinalSubmit = () => {
   emit('submit', {
-    ...form,
+    ...getPayload(),
     enrollAt: new Date().toISOString().split('T')[0],
     amount: Number(finalAmount.value || 0),
   })
@@ -314,7 +325,7 @@ const requestConfirm = () => {
     showConfirm.value = true
     return
   }
-  
+
   if (props.type === 'cancel') {
     if (!form.reason) {
       validationMessage.value = 'Please provide a cancellation reason.'
@@ -324,7 +335,7 @@ const requestConfirm = () => {
     showConfirm.value = true
     return
   }
-  
+
   if (props.type === 'pay') {
     if (form.paymentMethod === 'online' && !form.bankName) {
       validationMessage.value = 'Please select a bank.'
@@ -411,6 +422,25 @@ const handleOfferingChange = (offeringId) => {
   clearError('termOfferingId')
 }
 
+const handleDisabledClick = (field) => {
+  if (field === 'studentId' && !form.parentId) {
+    validationMessage.value = 'Please select a parent first'
+    setTimeout(() => { validationMessage.value = '' }, 3000)
+    errors.parentId = 'Please select a parent first'
+    triggerShake('parentId')
+  } else if (field === 'programId' && !form.studentId) {
+    validationMessage.value = 'Please select a student first'
+    setTimeout(() => { validationMessage.value = '' }, 3000)
+    errors.studentId = 'Please select a student first'
+    triggerShake('studentId')
+  } else if (field === 'termOfferingId' && !form.programId) {
+    validationMessage.value = 'Please select a program first'
+    setTimeout(() => { validationMessage.value = '' }, 3000)
+    errors.programId = 'Please select a program first'
+    triggerShake('programId')
+  }
+}
+
 watch(
   sessionInfo,
   (info) => {
@@ -492,7 +522,7 @@ const modalTitle = computed(() => {
     cancel: 'Cancel Enrollment',
     delete: 'Delete Enrollment',
     edit: 'Edit Enrollment',
-    add: 'Add Enrollment'
+    add: 'Add Enrollment',
   }
   return titles[props.type] || 'Enrollment Action'
 })
@@ -569,6 +599,7 @@ defineExpose({ setStudent })
           :shake="shaking.studentId"
           :disabled="!form.parentId"
           @change="handleStudentChange"
+          @click-disabled="handleDisabledClick('studentId')"
         >
           <template #item-badge="{ item }">
             <AppBadge v-if="item.age" status="student">{{ item.age }} years old</AppBadge>
@@ -595,6 +626,7 @@ defineExpose({ setStudent })
           :shake="shaking.programId"
           :disabled="!form.studentId"
           @change="handleProgramChange"
+          @click-disabled="handleDisabledClick('programId')"
         >
           <template #selected="{ item }">
             <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
@@ -619,6 +651,7 @@ defineExpose({ setStudent })
           :shake="shaking.termOfferingId"
           :disabled="!form.programId"
           @change="handleOfferingChange"
+          @click-disabled="handleDisabledClick('termOfferingId')"
         >
           <template #selected="{ item }">
             <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
@@ -661,7 +694,8 @@ defineExpose({ setStudent })
         </div>
       </div>
 
-      <transition v-if="type === 'add' || type === 'edit'"
+      <transition
+        v-if="type === 'add' || type === 'edit'"
         enter-active-class="transition duration-500 ease-out"
         enter-from-class="opacity-0 translate-y-4"
         enter-to-class="opacity-100 translate-y-0"
@@ -1176,9 +1210,24 @@ defineExpose({ setStudent })
 
       <AppConfirmOverlay
         :show="showConfirm"
-        :title="modalTitle"
-        subtitle="Please review carefully before submitting."
-        :icon="getActionIcon(isEditMode ? 'edit' : 'plus')"
+        :title="
+          type === 'cancel'
+            ? 'Cancel Enrollment'
+            : type === 'delete'
+              ? 'Delete Enrollment'
+              : type === 'pay'
+                ? 'Confirm Payment'
+                : 'Confirm Enrollment'
+        "
+        :subtitle="
+          type === 'cancel'
+            ? 'This will immediately cancel the enrollment and free up the schedule spot.'
+            : type === 'delete'
+              ? 'This action is irreversible and deletes historical records.'
+              : 'Please verify details before proceeding.'
+        "
+        :icon="modalIcon"
+        :image="selectedStudent?.profileURL || getImageUrl('profiles/avatar-student')"
         :rows="confirmRows"
         :totalAmount="finalAmount"
         totalLabel="Price to Pay"

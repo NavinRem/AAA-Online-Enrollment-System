@@ -25,6 +25,7 @@ export function useActionModal(props, emit, options = {}) {
     clearError,
     triggerShake,
     resetForm,
+    getPayload,
   } = useForm(getInitial(), {
     autoClear: options.autoClear || 2000,
   })
@@ -81,7 +82,7 @@ export function useActionModal(props, emit, options = {}) {
     if (validationOptions) {
       if (!validate(validationOptions)) return false
     }
-    emit('submit', clone(localData))
+    emit('submit', getPayload())
     return true
   }
 
@@ -97,5 +98,6 @@ export function useActionModal(props, emit, options = {}) {
     resetForm,
     submitForm: executeSubmit,
     sync,
+    getPayload,
   }
 }

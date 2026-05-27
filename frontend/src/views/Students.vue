@@ -91,8 +91,7 @@ const handleClickOutside = (event) => {
   }
 }
 
-const students = computed(() => dataStore.students)
-const parentsList = computed(() => dataStore.parents)
+const parentList = computed(() => dataStore.parents)
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
@@ -365,11 +364,6 @@ const submitActionModal = async (formData) => {
   } finally {
     modalLoading.value = false
   }
-}
-
-const handleAction = (type, item, closeMenu) => {
-  openActionModal(type, item)
-  if (closeMenu) closeMenu()
 }
 
 const closeModals = () => {
@@ -716,7 +710,7 @@ const closeModals = () => {
       :isOpen="actionModal.isOpen"
       :type="actionModal.type"
       :student="actionModal.student"
-      :selectableParents="parentsList"
+      :selectableParents="parentList"
       :loading="modalLoading"
       :error="modalError"
       :success="modalSuccess"
@@ -728,7 +722,7 @@ const closeModals = () => {
       v-if="parentActionModal.isOpen"
       :isOpen="parentActionModal.isOpen"
       :type="parentActionModal.type"
-      :selectableParents="parentsList"
+      :selectableParents="parentList"
       :loading="modalLoading"
       v-model:error="modalError"
       v-model:success="modalSuccess"

@@ -65,6 +65,7 @@ const {
   validate,
   clearError,
   triggerShake,
+  getPayload,
 } = useActionModal(props, emit, {
   getInitialData,
   mapSourceToForm,
@@ -117,7 +118,7 @@ const requestConfirm = () => {
         triggerShake('deleteConfirm')
         return
       }
-    } else if (['plus', 'edit'].includes(props.type)) {
+    } else if (['edit', 'add'].includes(props.type)) {
       if (!validateForm()) {
         validationMessage.value = 'Please fill out all required fields to proceed.'
         setTimeout(() => {
@@ -142,9 +143,7 @@ const handleActionSubmit = async () => {
   showConfirm.value = false
 
   if (confirmType.value === 'profile') {
-    const payload = { ...form }
-    const forbidden = ['id', '_id', 'createdAt', 'updatedAt', 'deleteConfirm']
-    forbidden.forEach((key) => delete payload[key])
+    const payload = getPayload()
     emit('submit', payload)
   } else {
     // Handle assignments submission
@@ -205,18 +204,18 @@ const isFormInvalid = computed(() => {
 const confirmRows = computed(() => {
   if (confirmType.value === 'assignments') {
     const { adds, removes } = assignmentChanges.value
-    const rows = [{ key: 'Teacher', value: form.name }]
+    const rows = [{ key: 'Name', value: form.name }]
     if (adds.length > 0) {
-      rows.push({ key: 'Adding', value: adds.length })
+      rows.push({ key: 'Adds', value: adds.length })
     }
     if (removes.length > 0) {
-      rows.push({ key: 'Removing', value: removes.length })
+      rows.push({ key: 'Removes', value: removes.length })
     }
     return rows
   }
 
   const rows = [
-    { key: 'Teacher', value: form.name },
+    { key: 'Name', value: form.name },
     { key: 'Email', value: form.email },
     { key: 'Phone', value: form.phone },
     {
@@ -227,6 +226,8 @@ const confirmRows = computed(() => {
 
   if (props.type === 'delete') {
     rows.push({ key: 'Status', value: 'Permanently Deleted', valueClass: 'text-error font-bold' })
+  } else if (['reactivate', 'deactivate'].includes(props.type)) {
+    rows.push({ key: 'Status', value: props.type === 'reactivate' ? 'active' : 'inactive', badge: true })
   }
 
   return rows
@@ -355,7 +356,7 @@ watch(
     <!-- Main Form (Add/Edit) -->
     <template v-if="activeTab === 'profile'">
       <form
-        v-if="['plus', 'edit'].includes(type)"
+        v-if="['edit', 'add'].includes(type)"
         @submit.prevent="requestConfirm"
         class="flex flex-col gap-6"
       >
@@ -496,44 +497,20 @@ watch(
       :show="showConfirm"
       :title="modalTitle"
       :subtitle="
-        type === 'delete' ? 'This action is irreversible.' : 'Verify details before proceeding.'
+        type === 'delete'
+          ? 'This action is irreversible. All data will be permanently erased.'
+          : 'Please verify details before proceeding.'
       "
       :icon="getActionIcon(type)"
+      :image="form.profileURL || getImageUrl('profiles/avatar-teacher-man')"
       :rows="confirmRows"
       :confirmLabel="submitLabel"
       :loading="loading"
       @back="showConfirm = false"
       @confirm="handleActionSubmit"
     >
-      <!-- Custom Row for Teacher Profile Preview -->
-      <template #row-Teacher>
-        <div
-          class="flex items-center justify-between gap-5 p-3 rounded-sm bg-surface-subtle border border-outline-std max-w-72"
-        >
-          <div
-            class="w-12 h-12 rounded-xl overflow-hidden border border-white shadow-sm shrink-0 bg-white"
-          >
-            <img
-              :src="
-                form.profileURL || teacher?.profileURL || getImageUrl('profiles/avatar-teacher-man')
-              "
-              class="w-full h-full object-cover"
-            />
-          </div>
-          <div class="flex flex-col text-left overflow-hidden">
-            <span class="text-sm font-black text-content-dark truncate">{{ form.name }}</span>
-            <span class="text-xs font-bold text-content-muted truncate italic">{{
-              form.phone
-            }}</span>
-            <span class="text-xs font-bold text-content-muted truncate italic">{{
-              form.email
-            }}</span>
-          </div>
-        </div>
-      </template>
-
       <!-- Custom Row for Adding Classes -->
-      <template #row-Adding>
+      <template #row-adds>
         <div class="flex flex-col gap-2 w-full max-w-72">
           <div
             v-for="add in assignmentChanges.adds"
@@ -555,7 +532,7 @@ watch(
       </template>
 
       <!-- Custom Row for Removing Classes -->
-      <template #row-Removing>
+      <template #row-removes>
         <div class="flex flex-col gap-2 w-full max-w-72">
           <div
             v-for="remove in assignmentChanges.removes"

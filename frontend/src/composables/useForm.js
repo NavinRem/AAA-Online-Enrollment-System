@@ -95,6 +95,13 @@ export function useForm(initialValues = {}, options = {}) {
     return isValid
   }
 
+  const getPayload = (options = {}) => {
+    const { exclude = ['deleteConfirm'] } = options
+    const payload = { ...form }
+    exclude.forEach((field) => delete payload[field])
+    return payload
+  }
+
   return {
     form,
     errors,
@@ -103,5 +110,6 @@ export function useForm(initialValues = {}, options = {}) {
     clearError,
     triggerShake: triggerFeedback, // maintain backward compatibility but rename internally
     resetForm,
+    getPayload,
   }
 }

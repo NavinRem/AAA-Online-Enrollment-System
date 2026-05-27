@@ -266,6 +266,10 @@ export const calculateOfferingStatus = ({
   )
   let fallbackStatus = progress.status
 
+  if (!termStartDate || !termEndDate) {
+    fallbackStatus = offering.status
+  }
+
   if (isFull) {
     return 'full'
   } else if (checkOngoing && progress.isOngoing) {

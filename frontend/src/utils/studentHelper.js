@@ -46,8 +46,9 @@ export const enrichStudents = (
       return { ...r, program: prog }
     })
 
-    const p =
+    const pRaw =
       s.parentInfo || users.find((u) => u.uid === (s.parentId || '') || u.id === (s.parentId || ''))
+    const p = Array.isArray(pRaw) ? pRaw[0] : pRaw
 
     return {
       ...s,

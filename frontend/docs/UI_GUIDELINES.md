@@ -130,3 +130,41 @@ When editing any file in this project, **never restore code that the user has ma
 - Treat deleted blocks as intentional decisions.
 - Only suggest or add _new_ improvements: better naming, cleaner style, enhanced logic, bug fixes.
 - If a feature needs to come back, the user will explicitly request it.
+
+## Rule 7 — Interactive Disabled Inputs
+
+When a required input disables subsequent dependent inputs (e.g., selecting a Class requires selecting a Program first), do not let the disabled input silently swallow clicks.
+
+- Bind `@click-disabled="handleDisabledClick('fieldName')"` to the dependent input.
+- In `handleDisabledClick`, check if the prerequisite is empty.
+- If empty, set the validation error for the prerequisite field and trigger the shake animation to guide the user.
+
+#### Implementation Example
+```javascript
+const handleDisabledClick = (field) => {
+  if ((field === 'scheduleIds' || field === 'classIds') && !form.programId) {
+    errors.programId = 'Please select a program first'
+    triggerShake('programId')
+  }
+}
+```
+
+## Rule 8 — Comprehensive Confirmation Overlays
+
+When a user submits a modal form, they are typically presented with an `AppConfirmOverlay`.
+To prevent user error, **all input data that was modified or provided in the form must be displayed in the confirmation overlay**.
+
+- Ensure the `rows` or custom template passed to `AppConfirmOverlay` includes every relevant field.
+- If a form has multiple tabs or hidden sections, summarize the data from those sections as well.
+- For select dropdowns, show the selected item's label (not just its internal ID).
+- For arrays or multiple selections (like multiple schedules or classes), summarize the count or list the items clearly.
+
+## Rule 9 — Strict Payload Keys and Visual Context in Confirmation Overlays
+
+1. **Rule 9: Modal Confirmation Overlay Data Verification**
+- **Strict Payload Mapping**: In `AppConfirmOverlay`, the `rows` data keys must be derived from the exact property names that are saved to Firebase, but formatted for better readability:
+  1. Start with a capital letter (e.g., `dob` -> `Dob`, `basePrice` -> `BasePrice`).
+  2. If the field is an ID (e.g., `studentId`, `programId`) but the UI displays the *name* value instead of the raw ID, drop the `Id` suffix from the label to serve as a context label (e.g., `Student`, `Program`).
+- **Contextual Visuals**: The confirmation overlay must include visual context:
+  - For person modules (Parent, Student, Teacher), pass the `profileURL` to the `image` prop.
+  - For non-person modules (Program, Class, Enrollment, etc.), select an appropriate context image to display (e.g., category image, enrollment thumbnail, branch badge).

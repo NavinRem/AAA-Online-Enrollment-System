@@ -98,7 +98,7 @@ const mapSourceToForm = () => {
         branchId: id,
         startDate: data.startDate,
         endDate: data.endDate,
-        status: data.status || 'upcoming',
+        status: data.status,
       }))
     }
     return data
@@ -106,12 +106,16 @@ const mapSourceToForm = () => {
   return getInitialData()
 }
 
-const { localData, shaking, errors, validate, clearError } = useActionModal(props, emit, {
-  getInitialData,
-  mapSourceToForm,
-  sourceKey: 'term',
-  autoClear: 3000,
-})
+const { localData, shaking, errors, validate, clearError, getPayload } = useActionModal(
+  props,
+  emit,
+  {
+    getInitialData,
+    mapSourceToForm,
+    sourceKey: 'term',
+    autoClear: 3000,
+  },
+)
 
 const showConfirm = ref(false)
 const isBranchDropdownOpen = ref(false)
@@ -238,7 +242,7 @@ const isDirty = computed(() => {
 const handleActionSubmit = () => {
   showConfirm.value = false
 
-  const payload = { ...localData }
+  const payload = getPayload()
 
   if (props.type === 'delete') {
     emit('submit', { id: localData.id })
@@ -248,9 +252,6 @@ const handleActionSubmit = () => {
   if (payload.totalSessions !== undefined && payload.totalSessions !== null) {
     payload.totalSessions = parseInt(payload.totalSessions, 10)
   }
-
-  // Remove UI-only fields
-  delete payload.deleteConfirm
 
   // Calculate status for each branch setting
   if (payload.branchSettings && payload.branchSettings.length > 0) {
@@ -274,22 +275,22 @@ const handleActionSubmit = () => {
 
 const confirmRows = computed(() => {
   const rows = [
-    { key: 'Term', value: localData.name, badge: true, type: 'blue' },
+    { key: 'Name', value: localData.name, badge: true, type: 'blue' },
     {
-      key: 'Start Date',
+      key: 'StartDate',
       value: formatDateOnly(localData.startDate || localData.branchSettings?.[0]?.startDate),
       badge: true,
       type: 'green',
     },
     {
-      key: 'End Date',
+      key: 'EndDate',
       value: formatDateOnly(localData.endDate || localData.branchSettings?.[0]?.endDate),
       badge: true,
       type: 'red',
     },
-    { key: 'Sessions', value: `${localData.totalSessions} Weeks` },
-    { key: 'Duplicate From', value: duplicateTermLabel.value || 'Fresh Term' },
-    { key: 'Scope', value: '' }, // Handled by slot
+    { key: 'TotalSessions', value: `${localData.totalSessions} Weeks` },
+    { key: 'DuplicateTerm', value: duplicateTermLabel.value || 'Fresh Term' },
+    { key: 'Branches', value: '' }, // Handled by slot
     {
       key: 'Status',
       value: calculateClassProgress(
@@ -299,15 +300,13 @@ const confirmRows = computed(() => {
       badge: true,
     },
   ]
-
   if (props.type === 'delete') {
     rows.push({
-      key: 'Security Check',
+      key: 'DeleteConfirm',
       value: localData.deleteConfirm,
       valueClass: 'text-error font-bold',
     })
   }
-
   return rows
 })
 
@@ -438,9 +437,7 @@ watch(
             />
           </div>
           <div class="flex flex-col">
-            <h3 class="text-xl font-black text-content-dark leading-tight uppercase tracking-tight">
-              Weekly Faculty Assignment
-            </h3>
+            <h3 class="text-2xl font-bold text-content-dark">Weekly Faculty Assignment</h3>
             <div class="flex items-center gap-2 mt-1">
               <span class="text-sm font-bold text-primary">{{ programName }}</span>
               <span class="text-xs font-bold text-content-muted/40">•</span>
@@ -499,17 +496,11 @@ watch(
             class="flex items-center gap-8 bg-white p-6 rounded-3xl border border-outline-std/60 shadow-sm justify-center flex-1 lg:flex-none"
           >
             <div class="flex flex-col items-center px-4 border-r border-outline-std/50">
-              <span class="text-4xs font-black text-content-muted uppercase tracking-widest mb-1"
-                >Total Sessions</span
-              >
-              <span class="text-xl font-black text-content-dark">{{
-                term.totalSessions || 0
-              }}</span>
+              <span class="text-xs font-semibold text-content-muted mb-1">Total Sessions</span>
+              <span class="text-xl font-bold text-content-dark">{{ term.totalSessions || 0 }}</span>
             </div>
             <div class="flex flex-col items-center pr-4">
-              <span class="text-4xs font-black text-content-muted uppercase tracking-widest mb-2"
-                >Term Progress</span
-              >
+              <span class="text-xs font-semibold text-content-muted mb-2">Term Progress</span>
               <div class="flex gap-1.5">
                 <div
                   v-for="i in term.totalSessions || 0"
@@ -522,7 +513,7 @@ watch(
                   "
                 ></div>
               </div>
-              <span class="text-5xs font-black text-primary mt-2 uppercase tracking-tighter"
+              <span class="text-xs font-semibold text-primary mt-2"
                 >{{ termProgress }} of {{ term.totalSessions || 0 }} Sessions Completed</span
               >
             </div>
@@ -533,12 +524,10 @@ watch(
       <!-- Assignment Controls Header -->
       <div class="flex items-center justify-between px-2 mt-4">
         <div class="flex flex-col">
-          <h4 class="text-sm font-black text-content-dark uppercase tracking-wider">
-            Session Assignments
-          </h4>
+          <h4 class="text-sm font-bold text-content-dark">Session Assignments</h4>
           <p class="text-xs font-bold text-content-muted mt-1">
             Showing only specialists for
-            <span class="text-primary font-black">{{ programName }}</span>
+            <span class="text-primary font-bold">{{ programName }}</span>
           </p>
         </div>
         <div class="flex items-center gap-3">
@@ -551,14 +540,12 @@ watch(
             />
             <div
               v-if="filteredTeachers.length > 3"
-              class="w-7 h-7 rounded-full bg-surface-subtle border-2 border-white flex items-center justify-center text-4xs font-black text-content-muted"
+              class="w-7 h-7 rounded-full bg-surface-subtle border-2 border-white flex items-center justify-center text-xs font-bold text-content-muted"
             >
               +{{ filteredTeachers.length - 3 }}
             </div>
           </div>
-          <span class="text-4xs font-black text-content-muted/60 uppercase tracking-widest"
-            >Available Experts</span
-          >
+          <span class="text-xs font-semibold text-content-muted/60">Available Experts</span>
         </div>
       </div>
 
@@ -572,7 +559,7 @@ watch(
         >
           <!-- Background Decoration -->
           <div
-            class="absolute -top-2 -right-2 text-6xl font-black text-surface-subtle/5 select-none transition-all group-hover/session:text-primary/5"
+            class="absolute -top-2 -right-2 text-6xl font-bold text-surface-subtle/5 select-none transition-all group-hover/session:text-primary/5"
           >
             {{ i }}
           </div>
@@ -588,7 +575,7 @@ watch(
                 "
               ></span>
               <span
-                class="text-4xs font-black px-3.5 py-1.5 rounded-lg uppercase tracking-wider shadow-sm transition-colors"
+                class="text-xs font-bold px-3.5 py-1.5 rounded-lg shadow-sm transition-colors"
                 :class="
                   i <= termProgress
                     ? 'bg-surface-subtle text-content-muted'
@@ -599,13 +586,10 @@ watch(
               </span>
             </div>
             <div class="flex flex-col items-end">
-              <span
-                class="text-5xs font-black text-content-muted/40 uppercase tracking-widest leading-none"
+              <span class="text-xs font-semibold text-content-muted/40 leading-none"
                 >Session {{ i }}</span
               >
-              <span
-                v-if="i <= termProgress"
-                class="text-5xs font-black text-green-500/60 uppercase mt-1"
+              <span v-if="i <= termProgress" class="text-xs font-semibold text-green-500/60 mt-1"
                 >Past Session</span
               >
             </div>
@@ -613,18 +597,16 @@ watch(
 
           <div class="flex flex-col gap-3 mt-2 relative z-10">
             <div class="flex items-center justify-between ml-1">
-              <span class="text-4xs font-black text-content-muted uppercase tracking-[0.15em]"
-                >Assign Faculty</span
-              >
+              <span class="text-xs font-semibold text-content-muted">Assign Faculty</span>
               <span
                 v-if="(currentOffering?.sessionTeachers || [])[i - 1]"
-                class="text-5xs font-black text-green-500 uppercase flex items-center gap-1"
+                class="text-xs font-semibold text-green-500 flex items-center gap-1"
               >
                 <span class="w-1 h-1 rounded-full bg-green-500"></span> Assigned
               </span>
               <span
                 v-else-if="responsibleTeachers.length > 0"
-                class="text-5xs font-black text-primary/60 uppercase flex items-center gap-1"
+                class="text-xs font-semibold text-primary/60 flex items-center gap-1"
               >
                 <span class="w-1 h-1 rounded-full bg-primary/40"></span> Default Specialist
               </span>
@@ -653,10 +635,10 @@ watch(
                   </div>
                   <div class="flex flex-col">
                     <span
-                      class="text-xs font-black text-content-dark truncate max-w-36 leading-tight"
+                      class="text-sm font-bold text-content-dark truncate max-w-36 leading-tight"
                       >{{ t.name }}</span
                     >
-                    <span class="text-5xs font-bold text-primary uppercase tracking-tighter"
+                    <span class="text-xs font-semibold text-primary"
                       >{{ t.branchAbbr || 'HQ' }} Specialist</span
                     >
                   </div>
@@ -677,13 +659,13 @@ watch(
                     ></div>
                   </div>
                   <div class="flex flex-col">
-                    <span class="text-sm font-black text-content-dark">{{ t.name }}</span>
+                    <span class="text-sm font-bold text-content-dark">{{ t.name }}</span>
                     <div class="flex items-center gap-1.5 mt-0.5">
                       <span
-                        class="text-4xs font-bold text-content-muted uppercase tracking-wider bg-surface-subtle px-2 py-0.5 rounded"
+                        class="text-xs font-semibold text-content-muted bg-surface-subtle px-2 py-0.5 rounded"
                         >{{ t.branchAbbr || 'HQ' }}</span
                       >
-                      <span class="text-4xs font-bold text-primary italic">Expert</span>
+                      <span class="text-xs font-semibold text-primary italic">Expert</span>
                     </div>
                   </div>
                 </div>
@@ -976,13 +958,14 @@ watch(
             : 'Please verify the academic schedule and parameters before proceeding.'
         "
         :icon="modalIcon"
+        :image="getImageUrl('enrollment/total-enrollment')"
         :rows="confirmRows"
         :confirmLabel="submitLabel"
         :loading="loading"
         @back="showConfirm = false"
         @confirm="handleActionSubmit"
       >
-        <template #row-Scope>
+        <template #row-Branches>
           <div class="flex flex-wrap justify-end gap-1 max-w-52">
             <template v-if="localData.branchIds.length > 0">
               <AppBadge

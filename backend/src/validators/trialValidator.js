@@ -115,7 +115,7 @@ function validateUpdateTrial(updateData) {
   })
 
   if (cleanData.guestStudentAge !== undefined)
-    cleanData.guestStudentAge = parseInt(cleanData.guestStudentAge || 0)
+    cleanData.guestStudentAge = parseInt(cleanData.guestStudentAge)
 
   if (Object.keys(cleanData).length === 0) {
     throw new Error('No valid fields provided for update')

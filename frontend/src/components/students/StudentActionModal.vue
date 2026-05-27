@@ -47,7 +47,7 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, isDirty, errors, shaking, clearError, validate } = useActionModal(props, emit, {
+const { localData, isDirty, errors, shaking, clearError, validate, getPayload } = useActionModal(props, emit, {
   getInitialData,
   mapSourceToForm,
   autoClear: 3000,
@@ -89,36 +89,38 @@ const requestConfirm = () => {
 
 const handleActionSubmit = () => {
   showConfirm.value = false
-  const payload = JSON.parse(JSON.stringify(localData))
-
-  // Remove UI-only and system-managed fields from backend payload
-  const forbidden = ['deleteConfirm', 'id', '_id', 'createdAt', 'updatedAt']
-  forbidden.forEach((key) => delete payload[key])
+  const payload = getPayload()
 
   emit('submit', payload)
 }
 
 const confirmRows = computed(() => {
+  if (props.type === 'delete' || props.type === 'enrollment-delete') {
+    return [
+      { key: 'Name', value: localData.name },
+      {
+        key: 'DeleteConfirm',
+        value: localData.deleteConfirm,
+        valueClass: 'text-error font-bold',
+      },
+    ]
+  }
+
   const rows = [
-    { key: 'Student Name', value: localData.name },
-    { key: 'Date of Birth', value: localData.dob },
-    { key: 'Age', value: `${calculateAge(localData.dob)} years old` },
-    { key: 'Gender', value: studentTheme.value === 'theme-pink' ? 'Female' : 'Male' },
+    { key: 'Name', value: localData.name },
+    { key: 'Dob', value: localData.dob },
     { key: 'Status', value: localData.status, badge: true },
   ]
 
-  if (props.type?.includes('delete')) {
-    rows.push({ key: 'Status', value: localData.status, badge: true })
+  if (
+    (props.type === 'override' || props.type === 'enrollment-override') &&
+    localData.overrideRemark
+  ) {
     rows.push({
-      key: 'Authorization',
-      value: localData.deleteConfirm,
-      valueClass: 'text-error font-bold',
+      key: 'OverrideRemark',
+      value: localData.overrideRemark,
+      valueClass: 'italic text-xs',
     })
-  } else if (props.type?.includes('override')) {
-    rows.push({ key: 'New Status', value: localData.status, badge: true })
-    if (localData.overrideRemark) {
-      rows.push({ key: 'Remark', value: localData.overrideRemark, valueClass: 'italic text-xs' })
-    }
   }
 
   return rows
@@ -322,10 +324,11 @@ watch(
         :title="modalTitle"
         :subtitle="
           type?.includes('delete')
-            ? 'This action is irreversible. All data will be permanently erased.'
-            : 'Please verify the details before completing this action.'
+            ? 'This action is irreversible. Data will be permanently erased.'
+            : 'Please verify details before proceeding.'
         "
         :icon="modalIcon"
+        :image="localData.profileURL"
         :rows="confirmRows"
         :confirmLabel="submitLabel"
         :loading="loading"

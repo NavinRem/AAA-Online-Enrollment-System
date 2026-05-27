@@ -7,7 +7,7 @@ import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
-import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
+import { getActionIcon, getImageUrl, getProgramProfileURL } from '@/utils/assetHelper'
 import { categoryService } from '@/services/categoryService'
 import { levelService } from '@/services/levelService'
 import { programService } from '@/services/programService'
@@ -45,7 +45,7 @@ const mapSourceToForm = () => {
   }
   return getInitialData()
 }
-const { localData, originalData, isDirty, errors, shaking, validate, clearError, triggerShake } =
+const { localData, originalData, isDirty, errors, shaking, validate, clearError, triggerShake, getPayload } =
   useActionModal(props, emit, {
     getInitialData,
     mapSourceToForm,
@@ -290,7 +290,7 @@ const handleActionSubmit = () => {
   const selectedLevel = levels.value.find((l) => String(l.id) === String(localData.levelId))
 
   const payload = {
-    ...localData,
+    ...getPayload(),
     category: selectedCategory?.name || '',
     categorySnapshot: selectedCategory || null,
     level: selectedLevel?.name || '',
@@ -308,7 +308,7 @@ const confirmOverlaySubtitle = computed(() => {
 
 const confirmRows = computed(() => {
   const rows = [
-    { key: 'Program', value: localData.name, valueClass: 'font-bold text-content-dark' },
+    { key: 'Name', value: localData.name, valueClass: 'font-bold text-content-dark' },
     {
       key: 'Category',
       value: categories.value.find((c) => String(c.id) === String(localData.categoryId))?.name,
@@ -323,23 +323,23 @@ const confirmRows = computed(() => {
     },
     { key: 'Type', value: localData.type, badge: true, type: 'tag' },
     {
-      key: 'Base Price',
+      key: 'BasePrice',
       value: `$${localData.basePrice}`,
       valueClass: 'font-bold text-primary text-base',
       badge: true,
       type: 'blue',
     },
-    { key: 'Total Sessions', value: localData.totalSessions, valueClass: 'font-bold tabular-nums' },
+    { key: 'TotalSessions', value: localData.totalSessions, valueClass: 'font-bold tabular-nums' },
     { key: 'Duration', value: `${localData.duration} mins`, valueClass: 'font-bold tabular-nums' },
     {
-      key: 'Age Range',
+      key: 'MinAge/MaxAge',
       value: `${localData.minAge} - ${localData.maxAge} years`,
       valueClass: 'font-bold text-content-dark',
     },
   ]
   if (props.type === 'delete') {
     rows.push({
-      key: 'Security Check',
+      key: 'DeleteConfirm',
       value: localData.deleteConfirm,
       valueClass: 'text-error font-bold',
     })
@@ -732,6 +732,7 @@ watch(
         :title="modalTitle"
         :subtitle="confirmOverlaySubtitle"
         :icon="modalIcon"
+        :image="getProgramProfileURL(localData.profileURL, categories?.find((c) => String(c.id) === String(localData.categoryId))?.name)"
         :rows="confirmRows"
         :confirmLabel="submitLabel"
         :loading="loading"

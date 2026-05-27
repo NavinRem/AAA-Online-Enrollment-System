@@ -172,9 +172,11 @@ const submitActionModal = async (payload) => {
       }
     }
 
+    // Refresh immediately to update dropdowns and tables
+    fetchData()
+
     setTimeout(() => {
       closeActionModal()
-      fetchData()
     }, 1500)
   } catch (err) {
     errorMessage.value = err.message || 'Failed to complete action.'

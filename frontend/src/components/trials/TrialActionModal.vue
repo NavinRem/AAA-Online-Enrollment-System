@@ -27,32 +27,33 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm(
-  {
-    isGuest: false,
-    studentId: '',
-    parentId: '',
-    programId: '',
-    branchId: '',
-    trialDate: new Date().toISOString().split('T')[0],
-    trialTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-    status: 'pending',
-    trialType: 'booked',
-    isSuccessful: false,
-    remark: '',
-    // Guest fields
-    guestParentName: '',
-    guestParentEmail: '',
-    guestParentPhone: '',
-    guestParentAvatar: '',
-    guestStudentName: '',
-    guestStudentDOB: '',
-    guestStudentAge: '',
-    guestStudentAvatar: '',
-    deleteConfirm: '',
-  },
-  { autoClear: 3000 },
-)
+const { form, errors, shaking, validate, clearError, triggerShake, resetForm, getPayload } =
+  useForm(
+    {
+      isGuest: false,
+      studentId: '',
+      parentId: '',
+      programId: '',
+      branchId: '',
+      trialDate: new Date().toISOString().split('T')[0],
+      trialTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      status: 'pending',
+      trialType: 'booked',
+      isSuccessful: false,
+      remark: '',
+      // Guest fields
+      guestParentName: '',
+      guestParentEmail: '',
+      guestParentPhone: '',
+      guestParentAvatar: '',
+      guestStudentName: '',
+      guestStudentDOB: '',
+      guestStudentAge: '',
+      guestStudentAvatar: '',
+      deleteConfirm: '',
+    },
+    { autoClear: 3000 },
+  )
 
 const showConfirm = ref(false)
 
@@ -114,21 +115,26 @@ const branchSelectItems = computed(() =>
 const confirmRows = computed(() => {
   if (props.type === 'delete') {
     return [
-      { key: 'Student', value: form.isGuest ? form.guestStudentName : selectedStudent.value?.name },
+      {
+        key: form.isGuest ? 'GuestStudentName' : 'Student',
+        value: form.isGuest ? form.guestStudentName : selectedStudent.value?.name,
+      },
       { key: 'Program', value: selectedProgram.value?.name },
-      { key: 'Date', value: formatDateOnly(form.trialDate) },
-      { key: 'Authorization', value: form.deleteConfirm, valueClass: 'text-error font-bold' },
+      { key: 'TrialDate', value: formatDateOnly(form.trialDate) },
     ]
   }
 
   const rows = [
     {
-      key: 'Parent',
+      key: form.isGuest ? 'GuestParentName' : 'Parent',
       value: form.isGuest
         ? form.guestParentName
-        : selectedStudent.value?.parent?.name || 'Registered Parent',
+        : selectedStudent.value?.parentInfo?.name || 'Registered Parent',
     },
-    { key: 'Student', value: form.isGuest ? form.guestStudentName : selectedStudent.value?.name },
+    {
+      key: form.isGuest ? 'GuestStudentName' : 'Student',
+      value: form.isGuest ? form.guestStudentName : selectedStudent.value?.name,
+    },
     { key: 'Program', value: selectedProgram.value?.name },
     {
       key: 'Branch',
@@ -136,13 +142,16 @@ const confirmRows = computed(() => {
       badge: true,
       type: selectedBranch.value?.color,
     },
-    { key: 'Schedule', value: `${formatDateOnly(form.trialDate)} @ ${form.trialTime}` },
+    { key: 'TrialDate/Time', value: `${formatDateOnly(form.trialDate)} @ ${form.trialTime}` },
     {
-      key: 'Type',
+      key: 'TrialType',
       value: form.isGuest ? 'Walk-in' : 'Booked',
       valueClass: form.isGuest ? 'text-magenta' : 'text-purple',
     },
   ]
+  if (form.isGuest) {
+    rows.splice(1, 0, { key: 'GuestParentPhone', value: form.guestParentPhone })
+  }
   if (form.remark) rows.push({ key: 'Remark', value: form.remark, valueClass: 'italic' })
   return rows
 })
@@ -173,6 +182,10 @@ const isFormInvalid = computed(
 
 const handleDisabledClick = (field) => {
   if (field === 'studentId' && !form.parentId) {
+    validationMessage.value = 'Please select a parent first'
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
     errors.parentId = 'Please select a parent first'
     triggerShake('parentId')
   }
@@ -240,7 +253,7 @@ const handleSubmit = () => {
 
 const handleFinalSubmit = () => {
   const payload = {
-    ...form,
+    ...getPayload(),
     trialType: form.isGuest ? 'walk-in' : 'booked',
   }
   emit('submit', payload)
@@ -326,6 +339,12 @@ const submitLabel = computed(() => {
   if (props.type === 'delete') return 'Delete'
   if (props.type === 'edit') return 'Update'
   return 'Add'
+})
+
+const modalIcon = computed(() => {
+  if (props.type === 'delete') return getActionIcon('delete')
+  if (props.type === 'edit') return getActionIcon('edit')
+  return getActionIcon('plus')
 })
 </script>
 
@@ -492,6 +511,7 @@ const submitLabel = computed(() => {
                 label="Age"
                 placeholder="Calculated automatically..."
                 readonly
+                disabled
               />
 
               <AvatarSelector
@@ -671,7 +691,7 @@ const submitLabel = computed(() => {
           required
           :error="errors.deleteConfirm"
           :shake="shaking.deleteConfirm"
-          @input="clearError('deleteConfirm')"
+          @update:modelValue="clearError('deleteConfirm')"
         >
           <template #label-extra>
             <span class="block text-2xs font-semibold mt-0.5">
@@ -682,12 +702,23 @@ const submitLabel = computed(() => {
         </AppInput>
       </div>
 
-      <!-- Confirmation Overlay -->
+      <!-- ── Confirmation Overlay ── -->
       <AppConfirmOverlay
         :show="showConfirm"
-        :title="modalTitle"
-        subtitle="Please review trial details carefully before confirming."
-        :icon="getImageUrl('enrollment/total-enrollment')"
+        :title="
+          type === 'delete' ? 'Delete Trial' : type === 'edit' ? 'Edit Trial' : 'Book Trial Class'
+        "
+        :subtitle="
+          type === 'delete'
+            ? 'This action is irreversible and deletes historical records.'
+            : 'Please verify details before proceeding.'
+        "
+        :icon="modalIcon"
+        :image="
+          form.isGuest
+            ? form.guestStudentAvatar || getImageUrl('profiles/avatar-student')
+            : selectedStudent?.profileURL || getImageUrl('profiles/avatar-student')
+        "
         :rows="confirmRows"
         :confirmLabel="submitLabel"
         :loading="loading"
@@ -695,7 +726,6 @@ const submitLabel = computed(() => {
         @confirm="handleFinalSubmit"
       />
     </form>
-
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
         <AppAlert v-if="isEditMode && !isChanged" type="info" class="w-full">

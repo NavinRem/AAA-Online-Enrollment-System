@@ -8,6 +8,7 @@ defineProps({
   title: { type: String, default: '' },
   subtitle: { type: String, default: '' },
   icon: { type: String, default: '' },
+  image: { type: String, default: '' }, // For person modules profileURL or other context images
   rows: { type: Array, default: () => [] },
   totalAmount: { type: Number, default: undefined },
   totalLabel: { type: String, default: 'Total' },
@@ -30,7 +31,8 @@ defineEmits(['confirm', 'back'])
     <div v-if="show" class="app-confirm-overlay" @click.self="$emit('back')">
       <div class="app-confirm-card">
         <div class="app-confirm-header">
-          <img v-if="icon" :src="icon" class="app-confirm-icon" alt="" />
+          <img v-if="image" :src="image" class="w-24 h-24 mb-md object-cover rounded-2xl border-4 border-white shadow-sm" alt="Context Image" />
+          <img v-else-if="icon" :src="icon" class="app-confirm-icon" alt="Icon" />
           <h3 class="app-confirm-title">{{ title || 'Confirm Details' }}</h3>
           <p class="app-confirm-sub">
             {{ subtitle || 'Please review carefully before submitting.' }}

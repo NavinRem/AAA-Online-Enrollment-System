@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDataStore } from '../stores/dataStore'
 
@@ -30,68 +30,8 @@ const router = useRouter()
 const dataStore = useDataStore()
 const newlyCreatedId = ref(null)
 
-// Branch Filters
-const branchFilter = ref('all')
-const dropdowns = ref({
-  branch: false,
-})
-const filterMenuStyles = ref({})
-
-const branchOptions = computed(() => {
-  return dataStore.branches
-    .filter((b) => !b.isDeleted)
-    .map((b) => ({
-      label: b.name,
-      value: b.id,
-      color: b.color,
-      abbr: b.abbr,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label))
-})
-
-const toggleDropdown = (type, event) => {
-  event.stopPropagation()
-  const isOpening = !dropdowns.value[type]
-  Object.keys(dropdowns.value).forEach((key) => {
-    dropdowns.value[key] = false
-  })
-  dropdowns.value[type] = isOpening
-
-  if (isOpening) {
-    const rect = event.currentTarget.getBoundingClientRect()
-    filterMenuStyles.value = {
-      top: `${rect.bottom + window.scrollY + 8}px`,
-      left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 300)}px`,
-      minWidth: '240px',
-    }
-  }
-}
-
-const selectFilter = (type, value) => {
-  if (type === 'branch') branchFilter.value = value
-  dropdowns.value[type] = false
-}
-
-const getActiveLabel = (type) => {
-  if (type === 'branch') {
-    if (branchFilter.value === 'all') return { label: 'All Branches', color: 'purple' }
-    const opt = branchOptions.value.find((o) => String(o.value) === String(branchFilter.value))
-    return {
-      label: opt ? opt.label : 'Select Branch',
-      color: opt?.color || 'purple',
-    }
-  }
-  return { label: '' }
-}
-
-const handleClickOutside = (event) => {
-  if (dropdowns.value.branch) {
-    const btn = document.getElementById('branch-filter-btn')
-    if (btn && !btn.contains(event.target)) {
-      dropdowns.value.branch = false
-    }
-  }
-}
+// UI State
+// Dropdowns were removed
 
 const parents = computed(() => {
   const allParents = dataStore.parents
@@ -107,8 +47,7 @@ const getRowClass = (item) => {
 }
 
 const statsCards = computed(() => {
-  const statsList = branchFilter.value === 'all' ? parents.value : statusFilteredParents.value
-  const s = calculateParentStats(statsList, enrollments.value)
+  const s = calculateParentStats(parents.value, enrollments.value)
   return [
     {
       label: 'Total Parents',
@@ -145,7 +84,6 @@ const parentHeaders = [
 ]
 
 onMounted(async () => {
-  window.addEventListener('mousedown', handleClickOutside)
   try {
     await dataStore.fetchAllCommonData()
   } catch (error) {
@@ -153,25 +91,12 @@ onMounted(async () => {
   }
 })
 
-onUnmounted(() => {
-  window.removeEventListener('mousedown', handleClickOutside)
-})
+// Component setup complete
 
 const currentFilter = ref('all')
 
 const statusFilteredParents = computed(() => {
-  let list = filterParents(parents.value, enrollments.value, currentFilter.value)
-
-  if (branchFilter.value !== 'all') {
-    list = list.filter((parent) => {
-      return enrollments.value.some(
-        (e) =>
-          String(e.parentId) === String(parent.id) &&
-          String(e.branchId) === String(branchFilter.value),
-      )
-    })
-  }
-  return list
+  return filterParents(parents.value, enrollments.value, currentFilter.value)
 })
 
 const { searchQuery, searchResults: filteredParents } = useSearch(
@@ -192,7 +117,7 @@ const paginatedParents = computed(() => {
   return list.slice(start, end)
 })
 
-watch([currentFilter, branchFilter, searchQuery], () => {
+watch([currentFilter, searchQuery], () => {
   currentPage.value = 1
 })
 
@@ -389,40 +314,7 @@ const handleRowAction = (type, item, closeMenu) => {
           @action="({ type, item }) => openActionModal(type, item)"
         >
           <template #toolbar-actions>
-            <div class="flex items-center gap-3">
-              <!-- Branch Filter -->
-              <div class="relative" id="branch-filter-btn">
-                <AppButton
-                  :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"
-                  :style="
-                    branchFilter !== 'all'
-                      ? { backgroundColor: getActiveLabel('branch').color, color: 'white' }
-                      : {}
-                  "
-                  @click="toggleDropdown('branch', $event)"
-                >
-                  <img
-                    :src="getActionIcon('navigation/branch')"
-                    class="w-4 h-4 brightness-0 transition-all"
-                    :class="{ invert: branchFilter !== 'all' }"
-                  />
-                  <span
-                    class="font-bold tracking-tight"
-                    :class="{ 'text-white': branchFilter !== 'all' }"
-                    >{{ getActiveLabel('branch').label }}</span
-                  >
-                  <span
-                    class="ml-1 opacity-60 text-xs transition-transform duration-300"
-                    :class="{
-                      'rotate-180': dropdowns.branch,
-                      'text-white': branchFilter !== 'all',
-                    }"
-                    >▼</span
-                  >
-                </AppButton>
-              </div>
-
-              <AppButton variant="primary" @click="openActionModal('add')">
+            <div class="flex items-center gap-3">              <AppButton variant="primary" @click="openActionModal('add')">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold tracking-tight">New Parent</span>
               </AppButton>
@@ -626,37 +518,8 @@ const handleRowAction = (type, item, closeMenu) => {
     />
 
     <!-- Teleported Dropdowns -->
+    <!-- Teleported Dropdowns -->
     <Teleport to="body">
-      <transition name="fade-slide">
-        <div v-if="dropdowns.branch" class="toolbar-filter-menu" :style="filterMenuStyles">
-          <div
-            class="toolbar-filter-option"
-            :class="{ 'active-filter-item': branchFilter === 'all' }"
-            @click="selectFilter('branch', 'all')"
-          >
-            <div class="w-2 h-2 rounded-full bg-purple-500"></div>
-            <span>All Branches</span>
-          </div>
-          <div
-            v-for="opt in branchOptions"
-            :key="opt.value"
-            class="toolbar-filter-option"
-            :class="{ 'active-filter-item': String(branchFilter) === String(opt.value) }"
-            @click="selectFilter('branch', opt.value)"
-          >
-            <div class="w-2 h-2 rounded-full" :style="{ backgroundColor: opt.color }"></div>
-            <div class="flex-1 flex items-center justify-between">
-              <span>{{ opt.label }}</span>
-              <span
-                v-if="String(branchFilter) === String(opt.value)"
-                class="text-xs"
-                style="color: white"
-                >✓</span
-              >
-            </div>
-          </div>
-        </div>
-      </transition>
     </Teleport>
 
 

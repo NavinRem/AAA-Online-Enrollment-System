@@ -22,8 +22,6 @@ function validateParent(parentData) {
   const phone = parentData.phone?.trim()
   const profileURL = parentData.profileURL
   const status = parentData.status || 'active'
-  const studentId = parentData.studentId
-  const role = parentData.role
 
   if (!name || !email || !phone) {
     throw new Error(

@@ -1,6 +1,5 @@
 const { db, COLLECTIONS } = require('../config/database')
 const profileHelper = require('../utils/profileHelper')
-const dateHelper = require('../utils/dateHelper')
 const firestoreHelper = require('../utils/firestoreHelper')
 const {
   validateStudent,
@@ -63,7 +62,7 @@ class StudentService {
         (profileHelper.calculateAge ? profileHelper.calculateAge(dobStr) : 0),
       profileURL: validated.profileURL,
       status: validated.status,
-      parentInfo,
+      parentInfo: [parentInfo],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }

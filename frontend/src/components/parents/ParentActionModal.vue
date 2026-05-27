@@ -9,7 +9,6 @@ import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
-import { calculateAge } from '@/utils/formatUtils'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
 
 import { auth } from '@/firebase'
@@ -71,15 +70,15 @@ const mapSourceToForm = () => {
   return {
     ...base,
     name: u.name || '',
-    phone: u.phone || u.phoneNumber || '',
+    phone: u.phone || '',
     email: u.email || '',
-    role: u.role || 'parent',
-    status: u.status || 'Active',
+    role: u.role || '',
+    status: u.status || '',
     profileURL: u.profileURL || '',
   }
 }
 
-const { localData, isDirty, errors, shaking, clearError, validate, triggerShake } = useActionModal(
+const { localData, isDirty, errors, shaking, clearError, validate, triggerShake, getPayload } = useActionModal(
   props,
   emit,
   {
@@ -151,25 +150,32 @@ const handleActionSubmit = () => {
     return
   }
 
-  const payload = JSON.parse(JSON.stringify(localData))
+  const payload = getPayload()
 
   // Fix: Mapping profileURL to profile for registration handler
   if (props.type === 'plus') {
     payload.profile = payload.profileURL
   }
 
-  // Remove UI-only and system-managed fields from backend payload
-  const forbidden = ['deleteConfirm', 'id', '_id', 'createdAt', 'updatedAt']
-  if (props.type === 'edit') forbidden.push('parentId')
-
-  forbidden.forEach((key) => delete payload[key])
+  if (props.type === 'edit') {
+    delete payload.parentId
+  }
 
   emit('submit', payload)
 }
 
 const confirmRows = computed(() => {
   const p = selectedParent.value
-  const rows = [{ key: 'Parent Name', value: p?.name || 'N/A' }]
+
+  if (props.type === 'plus') {
+    const rows = [{ key: 'ParentId', value: p?.id || 'N/A' }]
+    rows.push({ key: 'Name', value: localData.name })
+    rows.push({ key: 'Dob', value: localData.dob })
+    rows.push({ key: 'Status', value: localData.status || 'Inactive', badge: true })
+    return rows
+  }
+
+  const rows = [{ key: 'Name', value: localData.name || p?.name || 'N/A' }]
 
   if (props.type === 'edit') {
     rows.push({ key: 'Email', value: localData.email })
@@ -178,33 +184,16 @@ const confirmRows = computed(() => {
   } else if (props.type === 'add') {
     rows.push({ key: 'Email', value: localData.email })
     rows.push({ key: 'Phone', value: localData.phone })
-  } else if (props.type === 'plus') {
-    rows.push({ key: 'Parent Contact', value: p?.phone || p?.email || 'N/A' })
-    rows.push({ key: 'Student Name', value: localData.name })
-    rows.push({ key: 'Birthday', value: localData.dob })
-    rows.push({
-      key: 'Age',
-      value: localData.dob ? `${calculateAge(localData.dob)} years old` : 'N/A',
-    })
-    rows.push({
-      key: 'Gender',
-      value:
-        (localData.profileURL || '').toLowerCase().includes('girl') ||
-        (localData.profileURL || '').toLowerCase().includes('woman')
-          ? 'Female'
-          : 'Male',
-    })
-    rows.push({ key: 'Status', value: localData.status || 'Inactive', badge: true })
   } else if (props.type === 'delete') {
     rows.push({ key: 'Email', value: localData.email })
     rows.push({
-      key: 'Authorization',
+      key: 'DeleteConfirm',
       value: localData.deleteConfirm,
       valueClass: 'text-error font-bold',
     })
   } else if (props.type === 'reset-password') {
     rows.push({
-      key: 'Reset Method',
+      key: 'ResetMode',
       value: selectedResetMode.value === 'email' ? 'Email Link' : 'Manual Override',
       valueClass: 'font-bold text-primary',
     })
@@ -331,6 +320,10 @@ const selectedParent = computed(() => {
 
 const handleDisabledClick = (field) => {
   if (field === 'childInfo' && !props.user && !localData.parentId) {
+    validationMessage.value = 'Please link to a parent record first'
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
     errors.parentId = 'Please link to a parent record first'
     triggerShake('parentId')
   }
@@ -386,8 +379,8 @@ watch(
       <div v-if="type === 'edit' || type === 'add'" class="ui-form-grid">
         <AppInput
           v-model="localData.name"
-          label="Legal Full Name"
-          placeholder="Registry name"
+          label="Full Name"
+          placeholder="Full Name"
           required
           :error="errors.name"
           :shake="shaking.name"
@@ -634,6 +627,12 @@ watch(
           : 'Please verify details before proceeding.'
       "
       :icon="getActionIcon(type)"
+      :image="
+        localData.profileURL ||
+        (type === 'plus'
+          ? getImageUrl('profiles/avatar-boy')
+          : getImageUrl('profiles/avatar-parent'))
+      "
       :rows="confirmRows"
       :confirmLabel="submitLabel"
       :loading="loading"

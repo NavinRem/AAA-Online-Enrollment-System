@@ -220,22 +220,38 @@ const confirmRows = computed(() => {
             : 'This will permanently remove this class product from the catalog.',
         valueClass: 'text-error',
       },
+      {
+        key: 'DeleteConfirm',
+        value: form.deleteConfirm,
+        valueClass: 'text-error font-bold',
+      }
     ]
 
   if (props.context) {
     return [
       { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
       { key: 'Category', value: selectedProgram.value?.category || 'Standard' },
-      { key: 'Schedules', value: `${form.classIds.length} Schedules Selected` },
+      { key: 'Classes', value: `${form.classIds.length} Schedules Selected` },
     ]
   }
 
-  return [
+  const rows = [
     { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
     { key: 'Category', value: selectedProgram.value?.category || 'Standard' },
     { key: 'Duration', value: `${selectedProgram.value?.duration || 0} Minutes` },
-    { key: 'Schedules', value: `${form.scheduleIds.length} Sessions Assigned` },
   ]
+  
+  if (form.branchIds && form.branchIds.length > 0) {
+    rows.push({ key: 'Branches', value: `${form.branchIds.length} Selected` })
+  }
+  
+  rows.push({ key: 'Schedules', value: `${form.scheduleIds.length} Sessions Assigned` })
+  
+  if (form.status) {
+    rows.push({ key: 'Status', value: form.status, badge: true })
+  }
+  
+  return rows
 })
 
 const filteredPickerClasses = computed(() => {
@@ -491,6 +507,8 @@ const handleScheduleChange = () => {
 
 const handleDisabledClick = (field) => {
   if ((field === 'scheduleIds' || field === 'classIds') && !form.programId) {
+    validationMessage.value = 'Please select a program first'
+    setTimeout(() => { validationMessage.value = '' }, 3000)
     errors.programId = 'Please select a program first'
     triggerShake('programId')
   }
@@ -1211,13 +1229,8 @@ const selectAllBranches = () => {
         ? 'This action cannot be undone.'
         : 'Please review the class configuration below.'
     "
-    :icon="
-      getProgramProfileURL(
-        selectedProgram?.profileURL,
-        selectedProgram?.category,
-        selectedProgram?.categoryProfileURL,
-      )
-    "
+    :icon="modalIcon"
+    :image="getProgramProfileURL(selectedProgram?.profileURL, selectedProgram?.category)"
     :rows="confirmRows"
     :confirmLabel="submitLabel"
     :loading="loading"

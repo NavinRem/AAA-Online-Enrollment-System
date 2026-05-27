@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { storage } from '@/firebase'
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
-import { getImageUrl, ALL_BUILTIN_AVATARS, isSameProfileAsset } from '@/utils/assetHelper'
+import { getImageUrl, isSameProfileAsset } from '@/utils/assetHelper'
 
 const props = defineProps({
   modelValue: String,
@@ -22,7 +22,7 @@ const emit = defineEmits(['update:modelValue'])
 
 const uploading = ref(false)
 const success = ref(false)
-const error = ref('')
+const uploadError = ref('')
 const fileInput = ref(null)
 
 const customAvatar = ref(null)
@@ -59,7 +59,6 @@ watch(
   [() => props.modelValue, () => availableAvatars.value],
   ([newVal, currentGallery]) => {
     if (newVal) {
-      const isBuiltin = ALL_BUILTIN_AVATARS.some((builtin) => isSameProfileAsset(newVal, builtin))
       const isInGallery = currentGallery.some((a) => isSameProfileAsset(newVal, a.url))
 
       if (!isInGallery) {
@@ -84,7 +83,7 @@ const isSelected = (url) => {
 
 const selectAvatar = (url) => {
   emit('update:modelValue', url)
-  error.value = ''
+  uploadError.value = ''
   success.value = false
 }
 
@@ -122,12 +121,12 @@ const handleFileUpload = async (event) => {
   if (!file) return
 
   if (file.size > 2 * 1024 * 1024) {
-    error.value = 'Max 2MB allowed'
+    uploadError.value = 'Max 2MB allowed'
     return
   }
 
   uploading.value = true
-  error.value = ''
+  uploadError.value = ''
   success.value = false
 
   try {
@@ -153,7 +152,7 @@ const handleFileUpload = async (event) => {
     success.value = true
   } catch (err) {
     console.error('Upload error:', err)
-    error.value = 'Upload failed'
+    uploadError.value = 'Upload failed'
   } finally {
     uploading.value = false
     if (fileInput.value) fileInput.value.value = ''
@@ -166,14 +165,14 @@ const handleFileUpload = async (event) => {
     class="avatar-selector-root flex flex-col gap-xs text-left"
     :class="{ 'animate-shake': shake }"
   >
-    <label v-if="label" class="text-sm font-semibold text-content-dark flex items-center gap-1">
+    <label v-if="label" class="text-sm font-semibold text-content-mute flex items-center gap-1">
       {{ label }}
       <span v-if="required" class="text-error font-bold leading-none">*</span>
     </label>
 
     <div
       class="avatar-selector-container"
-      :class="error ? 'border-error bg-error-soft' : 'border-outline-std'"
+      :class="(uploadError || props.error) ? 'border-error bg-error-soft' : 'border-outline-std'"
     >
       <div class="avatar-gallery flex gap-4">
         <div
@@ -251,8 +250,8 @@ const handleFileUpload = async (event) => {
       leave-from-class="opacity-100 translate-y-0"
       leave-to-class="opacity-0 -translate-y-1"
     >
-      <div v-if="error || props.error" class="avatar-feedback-err">
-        {{ error || props.error }}
+      <div v-if="uploadError || props.error" class="avatar-feedback-err">
+        {{ uploadError || props.error }}
       </div>
       <div v-else-if="success" class="avatar-feedback-success">
         <i class="fas fa-check-circle"></i> Profile upload acknowledged
