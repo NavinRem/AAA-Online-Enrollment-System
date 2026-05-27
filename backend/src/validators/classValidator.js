@@ -10,6 +10,7 @@ function validateClass(classData) {
     'scheduleId',
     'scheduleIds',
     'schedulesData',
+    'branchIds',
     'status',
   ]
 
@@ -22,13 +23,16 @@ function validateClass(classData) {
   const scheduleIds = normalizeIds(
     classData.scheduleIds || classData.scheduleId,
   )
+  const branchIds = normalizeIds(classData.branchIds)
 
   if (!classData.programId) throw new Error('Program is required')
   if (!scheduleIds.length) throw new Error('At least one schedule is required')
+  if (!branchIds.length) throw new Error('At least one branch is required')
 
   return {
     programId: classData.programId,
     scheduleIds,
+    branchIds,
     schedulesData: classData.schedulesData || [],
     status: String(classData.status || 'active').toLowerCase(),
     createdAt: new Date().toISOString(),
@@ -42,6 +46,7 @@ function validateUpdateClass(updateData) {
     'scheduleId',
     'scheduleIds',
     'schedulesData',
+    'branchIds',
     'status',
   ]
   const cleanData = {}
@@ -63,8 +68,27 @@ function validateUpdateClass(updateData) {
       throw new Error('At least one schedule is required')
   }
 
+  if (cleanData.branchIds !== undefined) {
+    cleanData.branchIds = normalizeIds(cleanData.branchIds)
+    if (!cleanData.branchIds.length)
+      throw new Error('At least one branch is required')
+  }
+
   if (cleanData.status !== undefined) {
+    const validStatuses = [
+      'available',
+      'upcoming',
+      'full',
+      'cancelled',
+      'completed',
+      'deleted',
+    ]
     cleanData.status = String(cleanData.status).toLowerCase()
+    if (!validStatuses.includes(cleanData.status)) {
+      throw new Error(
+        `Invalid status. Must be one of: available, upcoming, full, cancelled, completed`,
+      )
+    }
   }
 
   cleanData.updatedAt = new Date().toISOString()

@@ -65,7 +65,7 @@ class ProgramService {
       if (p.categoryId && catMap[p.categoryId]) {
         const cat = catMap[p.categoryId]
         p.categoryName = cat.name
-        if (!p.profileURL) p.profileURL = cat.profileURL
+        if (!p.profileURL) p.profileURL = cat.profileURL || ''
       }
       return p
     })
@@ -125,22 +125,13 @@ class ProgramService {
 
     if (!programsSnap.empty) {
       const firestoreHelper = require('../utils/firestoreHelper')
-      const profileHelper = require('../utils/profileHelper')
-
-      const writes = programsSnap.docs.map((pDoc) => {
-        const programData = { ...pDoc.data(), category: categoryName }
-        const updatedSnapshot = profileHelper.getProgramSnapshot(
-          pDoc.id,
-          programData,
-        )
-        return {
-          ref: pDoc.ref,
-          data: {
-            category: categoryName,
-            updatedAt: new Date().toISOString(),
-          },
-        }
-      })
+      const writes = programsSnap.docs.map((pDoc) => ({
+        ref: pDoc.ref,
+        data: {
+          category: categoryName,
+          updatedAt: new Date().toISOString(),
+        },
+      }))
       await firestoreHelper.chunkedUpdate(writes)
     }
   }

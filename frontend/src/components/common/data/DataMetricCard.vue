@@ -55,10 +55,7 @@ defineProps({
         >
           {{ value }}
         </span>
-        <span
-          v-if="subtitle"
-          class="text-sm font-semibold text-content-light"
-        >{{ subtitle }}</span>
+        <span v-if="subtitle" class="text-sm font-semibold text-content-light">{{ subtitle }}</span>
       </div>
     </template>
   </div>

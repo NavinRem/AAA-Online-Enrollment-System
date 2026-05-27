@@ -133,13 +133,7 @@ const handleSubmit = async () => {
               </a>
             </div>
 
-            <AppButton
-              :loading="loading"
-              :disabled="loading"
-              type="submit"
-              variant="primary"
-             
-            >
+            <AppButton :loading="loading" :disabled="loading" type="submit" variant="primary">
               {{ isResetMode ? 'Send Recovery Link' : 'Sign In' }}
             </AppButton>
           </form>

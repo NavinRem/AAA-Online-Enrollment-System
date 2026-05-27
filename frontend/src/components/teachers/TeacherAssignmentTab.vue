@@ -204,13 +204,7 @@ onMounted(fetchData)
             >
               Unassign
             </AppButton>
-            <AppButton
-              v-else
-              variant="ghost"
-              size="xs"
-             
-              @click="cancelPending(assign.offeringId)"
-            >
+            <AppButton v-else variant="ghost" size="xs" @click="cancelPending(assign.offeringId)">
               Undo
             </AppButton>
           </div>
@@ -247,12 +241,7 @@ onMounted(fetchData)
                 </div>
               </div>
             </div>
-            <AppButton
-              variant="ghost"
-              size="xs"
-             
-              @click="cancelPending(assign.offeringId)"
-            >
+            <AppButton variant="ghost" size="xs" @click="cancelPending(assign.offeringId)">
               Cancel
             </AppButton>
           </div>

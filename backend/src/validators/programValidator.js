@@ -1,19 +1,4 @@
 function validateProgram(programData) {
-  const programFields = [
-    'name',
-    'categoryId',
-    'category',
-    'levelId',
-    'level',
-    'totalSessions',
-    'basePrice',
-    'description',
-    'minAge',
-    'maxAge',
-    'type',
-    'duration',
-  ]
-
   const name = programData.name?.trim()
   if (!name || !programData.categoryId || !programData.levelId) {
     throw new Error('Program Name, Category ID and Level ID are required')
@@ -32,6 +17,7 @@ function validateProgram(programData) {
     maxAge: parseInt(programData.maxAge || 0),
     type: programData.type || 'General',
     duration: parseInt(programData.duration || 0),
+    profileURL: programData.profileURL || '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -51,6 +37,7 @@ function validateUpdateProgram(updateData) {
     'maxAge',
     'type',
     'duration',
+    'profileURL',
   ]
   const cleanData = {}
 

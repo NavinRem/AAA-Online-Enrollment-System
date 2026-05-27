@@ -10,7 +10,7 @@ import AppButton from '../components/common/ui/AppButton.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
-import ParentFormModal from '../components/parents/ParentFormModal.vue'
+
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { parentService } from '../services/parentService'
@@ -204,7 +204,6 @@ const isActionModalOpen = ref(false)
 const actionModalType = ref('edit')
 const actionModalParent = ref(null)
 
-const showNewParentModal = ref(false)
 
 const openActionModal = (type, parent = null) => {
   errorMessage.value = ''
@@ -229,6 +228,10 @@ const updateLocalParent = (id, updates) => {
 
 const submitActionModal = async (formData) => {
   const type = actionModalType.value
+  if (type === 'add') {
+    return submitNewParent(formData)
+  }
+  
   const id = actionModalParent.value?.id
   submitting.value = true
   errorMessage.value = ''
@@ -311,8 +314,7 @@ const submitNewParent = async (data) => {
     successMessage.value = `Account created successfully! ${result.tempPassword ? 'Temp Password: ' + result.tempPassword : ''}`
 
     setTimeout(() => {
-      showNewParentModal.value = false
-      errorMessage.value = successMessage.value = ''
+      closeActionModal()
     }, 2000)
   } catch (error) {
     console.error('Failed creation:', error)
@@ -420,10 +422,7 @@ const handleRowAction = (type, item, closeMenu) => {
                 </AppButton>
               </div>
 
-              <AppButton
-                variant="primary"
-                @click="showNewParentModal = true"
-              >
+              <AppButton variant="primary" @click="openActionModal('add')">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold tracking-tight">New Parent</span>
               </AppButton>
@@ -431,15 +430,7 @@ const handleRowAction = (type, item, closeMenu) => {
           </template>
 
           <template
-            #row="{
-              item,
-              index,
-              toggleMenu,
-              activeMenuId,
-              isMenuAbove,
-              menuStyles,
-              closeMenu,
-            }"
+            #row="{ item, index, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }"
           >
             <!-- No -->
             <td class="ui-cell text-center hidden md:table-cell">
@@ -668,19 +659,7 @@ const handleRowAction = (type, item, closeMenu) => {
       </transition>
     </Teleport>
 
-    <ParentFormModal
-      v-if="showNewParentModal"
-      :isOpen="showNewParentModal"
-      :loading="submitting"
-      :error="errorMessage"
-      :success="successMessage"
-      @close="
-        showNewParentModal = false;
-        errorMessage = '';
-        successMessage = '';
-      "
-      @submit="submitNewParent"
-    />
+
   </DashboardLayout>
 </template>
 

@@ -156,7 +156,7 @@ const modalIcon = computed(() => {
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Edit'
+  if (props.type === 'edit') return 'Update'
   if (props.type === 'delete') return 'Delete'
   return 'Add'
 })
@@ -248,7 +248,7 @@ const handleCategoryFileUpload = async (event) => {
     const path = `categories/${newLookupName.value || 'temp'}_${timestamp}`
     const url = await storageService.uploadFile(file, path)
     newLookupURL.value = url
-  } catch (err) {
+  } catch {
     emit('update:error', 'Upload failed. Try again.')
   } finally {
     isUploading.value = false
@@ -294,6 +294,7 @@ const handleActionSubmit = () => {
     category: selectedCategory?.name || '',
     categorySnapshot: selectedCategory || null,
     level: selectedLevel?.name || '',
+    profileURL: selectedCategory?.profileURL || '',
   }
 
   emit('submit', payload)
@@ -467,12 +468,11 @@ watch(
         <!-- Inline Lookup Manager -->
         <div
           v-if="lookupType"
-          class="col-span-2 p-md bg-primary-soft/30 rounded-std border-2 border-dashed border-primary/20 flex flex-col gap-sm animate-in fade-in slide-in-from-top-2 duration-300"
+          class="col-span-2 p-md bg-primary-soft/30 rounded-std border-2 border-dashed border-primary/20 flex flex-col gap-sm"
         >
           <div class="flex justify-between items-center">
             <span class="text-sm font-semibold text-primary flex items-center gap-xs">
-              <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-              Manage {{ lookupType }}s
+              Manage {{ lookupType }}
             </span>
             <button
               type="button"
@@ -490,54 +490,31 @@ watch(
                 class="flex-1 px-md py-2 text-sm bg-white border border-outline-std rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                 @keyup.enter="addLookup"
               />
+              <input
+                v-if="lookupType === 'category'"
+                type="file"
+                @change="handleCategoryFileUpload"
+                accept="image/*"
+                id="lookup-file-upload"
+                class="hidden"
+              />
+              <label
+                v-if="lookupType === 'category'"
+                for="lookup-file-upload"
+                class="w-10 h-10 rounded-lg border border-outline-std flex items-center justify-center bg-white hover:bg-primary-soft hover:border-primary cursor-pointer transition-all shadow-xs overflow-hidden"
+              >
+                <span v-if="isUploading" class="text-xs animate-pulse">⏳</span>
+                <img v-else-if="newLookupURL" :src="newLookupURL" class="w-8 h-8 object-cover" />
+                <img
+                  v-else
+                  :src="getActionIcon('upload')"
+                  alt=""
+                  class="w-5 h-5 object-contain opacity-50"
+                />
+              </label>
               <AppButton size="sm" type="button" @click="addLookup" :loading="lookupLoading"
                 >Add</AppButton
               >
-            </div>
-
-            <!-- Lookup Identity Helper (Category Only) -->
-            <div
-              v-if="lookupType === 'category'"
-              class="flex items-center gap-sm p-2 bg-white/40 rounded-xl border border-outline-std/50 shadow-inner"
-            >
-              <div v-if="lookupType === 'category'" class="relative flex-1">
-                <input
-                  v-model="newLookupURL"
-                  placeholder="Category Asset URL (optional)..."
-                  class="w-full pl-9 pr-md py-2 text-3xs bg-white/80 border border-outline-std rounded-lg focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                />
-                <span class="absolute left-3 top-1/2 -translate-y-1/2 opacity-40 text-xs">🔗</span>
-              </div>
-
-              <div class="shrink-0 flex items-center gap-sm">
-                <template v-if="lookupType === 'category'">
-                  <input
-                    type="file"
-                    @change="handleCategoryFileUpload"
-                    accept="image/*"
-                    id="lookup-file-upload"
-                    class="hidden"
-                  />
-                  <label
-                    for="lookup-file-upload"
-                    class="w-8 h-8 rounded-lg border border-outline-std flex items-center justify-center bg-white hover:bg-primary-soft hover:border-primary cursor-pointer transition-all shadow-xs"
-                  >
-                    <span class="text-xs">{{ isUploading ? '⏳' : '🖼️' }}</span>
-                  </label>
-                </template>
-                <div
-                  class="w-8 h-8 rounded-lg overflow-hidden border border-white shadow-xs bg-white"
-                >
-                  <img
-                    :src="
-                      lookupType === 'category'
-                        ? newLookupURL || getImageUrl('common/logo-main')
-                        : selectedCategory?.profileURL || getImageUrl('common/logo-main')
-                    "
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
             </div>
           </div>
           <div class="flex flex-wrap gap-xs max-h-[100px] overflow-y-auto py-sm scrollable-v">
@@ -776,8 +753,8 @@ watch(
             type="button"
             @click="requestConfirm"
             :loading="loading"
-            :disabled="loading || (type === 'edit' && !isDirty)"
-            :class="{ 'opacity-50 pointer-events-none': type === 'edit' && !isDirty }"
+            :disabled="loading"
+            :class="{ 'opacity-60 grayscale-[0.2]': type === 'edit' && !isDirty }"
           >
             {{ submitLabel }}
           </AppButton>

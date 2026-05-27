@@ -137,12 +137,7 @@ const handleNavClick = () => {
       <p v-if="logoutMessage" class="text-error text-sm mb-3 text-center font-bold animate-pulse">
         {{ logoutMessage }}
       </p>
-      <AppButton
-        variant="logout"
-       
-        :loading="!!logoutMessage"
-        @click="handleLogout"
-      >
+      <AppButton variant="logout" :loading="!!logoutMessage" @click="handleLogout">
         Log Out
       </AppButton>
     </div>

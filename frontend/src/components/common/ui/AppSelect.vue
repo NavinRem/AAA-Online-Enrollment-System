@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
@@ -27,6 +27,7 @@ const props = defineProps({
   },
   multiple: Boolean,
   loading: Boolean,
+  dropdownWidth: String,
 })
 
 const emit = defineEmits(['update:modelValue', 'change', 'click-disabled'])
@@ -65,7 +66,7 @@ const computeDropdownPosition = async () => {
     top,
     bottom,
     left: `${rect.left}px`,
-    width: `${rect.width}px`,
+    width: props.dropdownWidth || `${rect.width}px`,
     zIndex: 9999,
     transformOrigin,
   }

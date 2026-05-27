@@ -17,7 +17,6 @@ import { sendPasswordResetEmail } from 'firebase/auth'
 import { useDataStore } from '@/stores/dataStore'
 import { parentService } from '@/services/parentService'
 import { processParentProfileImage, prepareParentPayload } from '@/utils/parentHelper'
-import ParentFormModal from './ParentFormModal.vue'
 
 const selectedResetMode = ref(null)
 const dataStore = useDataStore()
@@ -62,6 +61,13 @@ const mapSourceToForm = () => {
     }
   }
 
+  if (props.type === 'add') {
+    return {
+      ...base,
+      profileURL: '',
+    }
+  }
+
   return {
     ...base,
     name: u.name || '',
@@ -86,8 +92,13 @@ const { localData, isDirty, errors, shaking, clearError, validate, triggerShake 
 const showConfirm = ref(false)
 
 const requestConfirm = () => {
+  validationMessage.value = ''
   if (props.type === 'reset-password') {
     if (!selectedResetMode.value) {
+      validationMessage.value = 'Please select a reset method.'
+      setTimeout(() => {
+        validationMessage.value = ''
+      }, 3000)
       errors.resetMode = 'Selection required'
       triggerShake('resetMode')
       return
@@ -105,6 +116,9 @@ const requestConfirm = () => {
     if (!isDirty.value) return
     rules.required = ['name', 'phone', 'profileURL']
     rules.custom.email = (val) => (!!val?.trim() && val.includes('@')) || 'Valid email required'
+  } else if (props.type === 'add') {
+    rules.required = ['name', 'email', 'phone', 'profileURL']
+    rules.custom.email = (val) => (!val?.includes('@') ? 'Valid email is required.' : null)
   } else if (props.type === 'plus') {
     rules.required = ['name', 'dob', 'profileURL']
     if (!props.user) rules.required.push('parentId')
@@ -112,7 +126,16 @@ const requestConfirm = () => {
     rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Authorization string invalid'
   }
 
-  if (!validate(rules)) return
+  if (!validate(rules)) {
+    validationMessage.value =
+      props.type === 'delete'
+        ? 'Please type DELETE to confirm.'
+        : 'Please fill out all required fields to proceed.'
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
+    return
+  }
   showConfirm.value = true
 }
 
@@ -152,6 +175,9 @@ const confirmRows = computed(() => {
     rows.push({ key: 'Email', value: localData.email })
     rows.push({ key: 'Phone', value: localData.phone })
     rows.push({ key: 'Status', value: localData.status, badge: true })
+  } else if (props.type === 'add') {
+    rows.push({ key: 'Email', value: localData.email })
+    rows.push({ key: 'Phone', value: localData.phone })
   } else if (props.type === 'plus') {
     rows.push({ key: 'Parent Contact', value: p?.phone || p?.email || 'N/A' })
     rows.push({ key: 'Student Name', value: localData.name })
@@ -251,6 +277,7 @@ const parentThemeClasses = computed(() => {
 
 const modalTitle = computed(() => {
   const titles = {
+    add: 'Add Parent',
     edit: 'Edit Parent',
     deactivate: 'Deactivate Parent',
     activate: 'Activate Parent',
@@ -262,13 +289,29 @@ const modalTitle = computed(() => {
 })
 
 const submitLabel = computed(() => {
+  if (props.type === 'add') return 'Add'
   if (props.type === 'plus') return 'Add'
-  if (props.type === 'deactivate') return 'Deactivate'
-  if (props.type === 'activate') return 'Activate'
-  if (props.type === 'edit') return 'Edit'
+  if (props.type === 'deactivate') return 'Update'
+  if (props.type === 'activate') return 'Update'
+  if (props.type === 'edit') return 'Update'
   if (props.type === 'delete') return 'Delete'
   if (props.type === 'reset-password') return 'Reset'
   return 'Confirm'
+})
+
+const validationMessage = ref('')
+const isFormInvalid = computed(() => {
+  if (props.type === 'reset-password') return !selectedResetMode.value
+  if (props.type === 'edit')
+    return !localData.name || !localData.phone || !localData.profileURL || !localData.email
+  if (props.type === 'add')
+    return !localData.name || !localData.email || !localData.phone || !localData.profileURL
+  if (props.type === 'plus') {
+    if (!localData.name || !localData.dob || !localData.profileURL) return true
+    if (!props.user && !localData.parentId) return true
+  }
+  if (props.type === 'delete') return !localData.deleteConfirm
+  return false
 })
 
 const activeParents = computed(() => {
@@ -340,7 +383,7 @@ watch(
 
     <form id="parentActionForm" @submit.prevent="requestConfirm" novalidate>
       <!-- Edit Parent Form -->
-      <div v-if="type === 'edit'" class="ui-form-grid">
+      <div v-if="type === 'edit' || type === 'add'" class="ui-form-grid">
         <AppInput
           v-model="localData.name"
           label="Legal Full Name"
@@ -601,6 +644,9 @@ watch(
     <!-- Footer -->
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
+        <AppAlert v-if="validationMessage" type="error" class="w-full">
+          {{ validationMessage }}
+        </AppAlert>
         <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
@@ -612,8 +658,10 @@ watch(
             type="button"
             @click="requestConfirm"
             :loading="loading"
-            :disabled="loading || (type === 'edit' && !isDirty)"
-            :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
+            :disabled="loading"
+            :class="{
+              'opacity-60 grayscale-[0.2]': (type === 'edit' && !isDirty) || isFormInvalid,
+            }"
           >
             {{ submitLabel }}
           </AppButton>
@@ -623,16 +671,14 @@ watch(
   </AppModal>
 
   <!-- Inline Parent Creation Sub-Modal -->
-  <ParentFormModal
+  <ParentActionModal
+    v-if="showNewParentSubModal"
     :isOpen="showNewParentSubModal"
+    type="add"
     :loading="subModalLoading"
     :error="subModalError"
     :success="subModalSuccess"
-    @close="
-      showNewParentSubModal = false;
-      subModalError = '';
-      subModalSuccess = '';
-    "
+    @close="((showNewParentSubModal = false), (subModalError = ''), (subModalSuccess = ''))"
     @submit="handleInlineParentSubmit"
   />
 </template>

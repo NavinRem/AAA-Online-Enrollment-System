@@ -167,7 +167,7 @@ const headers = [
 
 // Modal Logic
 const isModalOpen = ref(false)
-const modalType = ref('plus')
+const modalType = ref('add')
 const selectedTeacher = ref(null)
 const actionLoading = ref(null) // offeringId
 const confirmingOffering = ref(null) // offering object
@@ -208,7 +208,7 @@ const handleSubmit = async (formData) => {
   error.value = ''
   success.value = ''
   try {
-    if (modalType.value === 'plus') {
+    if (modalType.value === 'add') {
       await teacherService.createTeacher(formData)
       success.value = 'Teacher added successfully'
     } else if (modalType.value === 'edit') {
@@ -329,19 +329,10 @@ const handleAction = (type, item, closeMenu) => {
                 </div>
 
                 <div class="flex items-center gap-3 w-full mt-2">
-                  <AppButton
-                    variant="cancel"
-                   
-                    @click="confirmingOffering = null"
-                  >
+                  <AppButton variant="cancel" @click="confirmingOffering = null">
                     Go Back
                   </AppButton>
-                  <AppButton
-                    variant="primary"
-                   
-                    @click="confirmAssign"
-                    :loading="!!actionLoading"
-                  >
+                  <AppButton variant="primary" @click="confirmAssign" :loading="!!actionLoading">
                     Confirm
                   </AppButton>
                 </div>
@@ -370,12 +361,7 @@ const handleAction = (type, item, closeMenu) => {
           ]"
         >
           <template #toolbar-actions>
-            <AppButton
-              variant="primary"
-              size="md"
-             
-              @click="openModal('plus')"
-            >
+            <AppButton variant="primary" size="md" @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span>New Teacher</span>
             </AppButton>

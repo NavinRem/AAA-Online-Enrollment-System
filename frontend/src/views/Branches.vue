@@ -54,8 +54,6 @@ onMounted(() => {
 })
 
 const statsCards = computed(() => {
-  if (loading.value || !Object.keys(branchStatsMap.value).length) return []
-
   const branches = dataStore.branches
   const enrollments = dataStore.enrollments
 
@@ -330,12 +328,7 @@ const handleActionSubmit = async (payload) => {
           @action="handleTableAction"
         >
           <template #toolbar-actions>
-            <AppButton
-              variant="primary"
-              size="md"
-             
-              @click="openAddModal"
-            >
+            <AppButton variant="primary" size="md" @click="openAddModal">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-bold tracking-tight">Add Branch</span>
             </AppButton>

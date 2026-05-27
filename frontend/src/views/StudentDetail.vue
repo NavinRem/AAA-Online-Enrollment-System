@@ -484,12 +484,7 @@ watch(
 
                 <!-- Enrollment Selector -->
                 <div class="relative" id="enrollment-filter-btn">
-                  <AppButton
-                    variant="secondary"
-                    size="md"
-                    @click="toggleDropdown($event)"
-                   
-                  >
+                  <AppButton variant="secondary" size="md" @click="toggleDropdown($event)">
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
                     <span class="font-bold truncate max-w-52">{{
                       selectedEnrollment

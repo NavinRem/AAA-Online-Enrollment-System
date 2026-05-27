@@ -433,11 +433,7 @@ const handleDelete = async (item) => {
                   </div>
                 </transition>
               </div>
-              <AppButton
-                type="submit"
-                variant="primary"
-               
-              >
+              <AppButton type="submit" variant="primary">
                 <img :src="getActionIcon('save')" class="w-4 h-4 brightness-0 invert" />
                 Save Preferences
               </AppButton>
@@ -455,12 +451,7 @@ const handleDelete = async (item) => {
           :entityName="activeTab"
         >
           <template #toolbar-actions>
-            <AppButton
-              variant="primary"
-              size="md"
-             
-              @click="openModal('add')"
-            >
+            <AppButton variant="primary" size="md" @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-bold tracking-tight">Add</span>
             </AppButton>
@@ -532,8 +523,8 @@ const handleDelete = async (item) => {
                       <button
                         class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="
-                          openModal('edit', item);
-                          closeMenu();
+                          openModal('edit', item)
+                          closeMenu()
                         "
                       >
                         <img
@@ -548,8 +539,8 @@ const handleDelete = async (item) => {
                       <button
                         class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="
-                          handleDelete(item);
-                          closeMenu();
+                          handleDelete(item)
+                          closeMenu()
                         "
                       >
                         <img

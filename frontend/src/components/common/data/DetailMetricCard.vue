@@ -17,7 +17,7 @@ defineProps({
 
 <template>
   <div
-    class="ui-metric-card bg-white rounded-md p-6 border border-outline-std shadow-sm hover:shadow-md transition-all duration-300 group"
+    class="ui-metric-card bg-white rounded-md p-md border border-outline-std shadow-sm hover:shadow-md transition-all duration-300 group"
   >
     <div class="flex items-center gap-4">
       <!-- Icon Container -->
@@ -29,7 +29,7 @@ defineProps({
 
       <!-- Content -->
       <div class="flex flex-col min-w-0">
-        <span class="text-sm font-bold text-content-dark leading-none mb-1 truncate">
+        <span class="text-sm font-bold text-content-muted leading-none mb-1 truncate">
           {{ label }}
         </span>
         <div class="flex items-baseline gap-2">

@@ -59,7 +59,7 @@ const flexWidths = computed(() => {
     </div>
 
     <div v-else class="flex-1 flex flex-col min-h-0 w-full overflow-hidden">
-      <div class="flex flex-col md:flex-row gap-xl flex-1 min-h-0 p-8 w-full">
+      <div class="flex flex-col md:flex-row gap-xl flex-1 min-h-0 px-8 py-3 w-full">
         <!-- Left Content (Main) -->
         <div :class="[flexWidths.main, 'flex flex-col gap-lg min-h-0 min-w-0 text-content-dark']">
           <div class="flex items-center justify-between min-h-[48px]">

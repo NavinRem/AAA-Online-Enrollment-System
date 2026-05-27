@@ -7,7 +7,6 @@ import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetricCard from '../components/common/data/DataMetricCard.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
-import EnrollmentFormModal from '../components/enrollments/EnrollmentFormModal.vue'
 import EnrollmentActionModal from '../components/enrollments/EnrollmentActionModal.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 
@@ -29,13 +28,11 @@ const enrollments = ref([])
 const totalItems = ref(0)
 const newlyCreatedId = ref(null)
 const loading = ref(true)
-const showModal = ref(false)
 const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
-const selectedEnrollment = ref(null)
-const enrollmentForm = ref(null)
 const currentFilter = ref('all')
+const enrollmentActionModalRef = ref(null)
 const currentPage = ref(1)
 const pageSize = 10
 
@@ -145,10 +142,10 @@ const handleSaveEnrollment = async (formData) => {
     // Refresh global store to sync class counts and student records
     await dataStore.fetchAllCommonData(true)
 
+    await dataStore.fetchAllCommonData(true)
+
     setTimeout(() => {
-      showModal.value = false
-      selectedEnrollment.value = null
-      successMessage.value = ''
+      closeActionModal()
     }, 1500)
   } catch (err) {
     errorMessage.value = err.message || 'Failed to save enrollment.'
@@ -235,12 +232,11 @@ const actionState = ref({
 const handleOpenNewEnrollment = () => {
   errorMessage.value = ''
   successMessage.value = ''
-  selectedEnrollment.value = null
-  showModal.value = true
+  actionState.value = { isOpen: true, type: 'add', enrollment: null }
 }
 
 const closeModals = () => {
-  showModal.value = false
+  closeActionModal()
   childRegistrationModal.value.isOpen = false
   errorMessage.value = ''
   successMessage.value = ''
@@ -251,13 +247,6 @@ const closeModals = () => {
 const handleTableAction = ({ type, item }) => {
   errorMessage.value = ''
   successMessage.value = ''
-
-  if (type === 'edit') {
-    selectedEnrollment.value = item
-    showModal.value = true
-    return
-  }
-
   actionState.value = { isOpen: true, type, enrollment: item }
 }
 
@@ -265,7 +254,10 @@ const submitActionModal = async (payload) => {
   const { type, enrollment } = actionState.value
   submitting.value = true
   try {
-    if (type === 'pay') {
+    if (type === 'add' || type === 'edit') {
+      await handleSaveEnrollment(payload)
+      return // handleSaveEnrollment handles success message and closing
+    } else if (type === 'pay') {
       const { bankName, paymentMethod: methodType, proof, remark, paymentStatus } = payload
       const paymentData = {
         paymentStatus: paymentStatus || 'paid',
@@ -302,17 +294,6 @@ const closeActionModal = () => {
   successMessage.value = ''
 }
 
-const handleAction = (type, item, closeMenu) => {
-  handleTableAction({ type, item })
-  if (closeMenu) closeMenu()
-}
-
-const handleOpenRegisterStudent = (parentId) => {
-  const parent = parents.value.find((p) => (p.uid || p.id) === parentId)
-  if (!parent) return
-  childRegistrationModal.value = { isOpen: true, parent, loading: false, error: '', success: '' }
-}
-
 const handleRegisterStudent = async (formData) => {
   childRegistrationModal.value.loading = true
   try {
@@ -333,7 +314,7 @@ const handleRegisterStudent = async (formData) => {
     childRegistrationModal.value.success = 'Student registered successfully!'
     const studentsRes = await studentService.getAllStudents()
     dataStore.students = Array.isArray(studentsRes) ? studentsRes : []
-    if (result && result.id && enrollmentForm.value) enrollmentForm.value.setStudent(result.id)
+    if (result && result.id && enrollmentActionModalRef.value) enrollmentActionModalRef.value.setStudent(result.id)
     setTimeout(() => {
       childRegistrationModal.value.isOpen = false
     }, 1500)
@@ -385,12 +366,7 @@ const handleRegisterStudent = async (formData) => {
           @row-click="navigateToDetail"
         >
           <template #toolbar-actions>
-            <AppButton
-              variant="primary"
-              size="md"
-             
-              @click="handleOpenNewEnrollment"
-            >
+            <AppButton variant="primary" size="md" @click="handleOpenNewEnrollment">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span>New Enrollment</span>
             </AppButton>
@@ -608,25 +584,6 @@ const handleRegisterStudent = async (formData) => {
       </template>
     </DataPageLayout>
 
-    <EnrollmentFormModal
-      v-if="showModal"
-      ref="enrollmentForm"
-      :isOpen="showModal"
-      :loading="submitting"
-      :parents="parents"
-      :students="students"
-      :programs="programs"
-      :classes="classes"
-      :terms="terms"
-      :enrollments="enrollments"
-      :enrollment="selectedEnrollment"
-      :error="errorMessage"
-      :success="successMessage"
-      @close="closeModals"
-      @submit="handleSaveEnrollment"
-      @register-student="handleOpenRegisterStudent"
-    />
-
     <ParentActionModal
       :isOpen="childRegistrationModal.isOpen"
       type="plus"
@@ -640,12 +597,24 @@ const handleRegisterStudent = async (formData) => {
     />
 
     <EnrollmentActionModal
-      v-bind="actionState"
+      ref="enrollmentActionModalRef"
+      v-if="actionState.isOpen"
+      :isOpen="actionState.isOpen"
+      :type="actionState.type"
+      :enrollment="actionState.enrollment"
+      :parents="parents"
+      :students="students"
+      :programs="programs"
+      :classes="classes"
+      :terms="terms"
+      :enrollments="enrollments"
       :loading="submitting"
-      v-model:error="errorMessage"
-      v-model:success="successMessage"
+      :error="errorMessage"
+      :success="successMessage"
       @close="closeActionModal"
       @submit="submitActionModal"
+      @update:error="errorMessage = $event"
+      @update:success="successMessage = $event"
     />
   </DashboardLayout>
 </template>

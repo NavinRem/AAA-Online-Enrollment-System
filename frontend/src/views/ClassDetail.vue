@@ -692,12 +692,7 @@ watch(branchFilter, (newBranchId) => {
               <div class="flex items-center gap-3">
                 <!-- Term Filter -->
                 <div class="relative" id="term-filter-btn">
-                  <AppButton
-                    variant="secondary"
-                    size="md"
-                    @click="toggleDropdown('term', $event)"
-                   
-                  >
+                  <AppButton variant="secondary" size="md" @click="toggleDropdown('term', $event)">
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
                     <span>{{ getActiveLabel('term') }}</span>
                   </AppButton>
@@ -738,7 +733,6 @@ watch(branchFilter, (newBranchId) => {
                     variant="secondary"
                     size="md"
                     @click="toggleDropdown('branch', $event)"
-                   
                     :style="{
                       backgroundColor: getActiveLabel('branch').color
                         ? `var(--color-${getActiveLabel('branch').color})`
@@ -798,7 +792,6 @@ watch(branchFilter, (newBranchId) => {
                     variant="secondary"
                     size="md"
                     @click="toggleDropdown('schedule', $event)"
-                   
                     style="background-color: #e91e8c"
                   >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
@@ -870,7 +863,7 @@ watch(branchFilter, (newBranchId) => {
                     <select
                       :value="getAttendanceStatus(session.id, item.studentId)"
                       @change="
-                        updateAttendanceStatus(session.id, item.studentId, $event.target.value);
+                        updateAttendanceStatus(session.id, item.studentId, $event.target.value)
                       "
                       class="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
                       :disabled="session.date > new Date()"

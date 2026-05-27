@@ -47,19 +47,16 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, isDirty, errors, shaking, clearError, validate, triggerShake } = useActionModal(
-  props,
-  emit,
-  {
-    getInitialData,
-    mapSourceToForm,
-    autoClear: 3000,
-  },
-)
+const { localData, isDirty, errors, shaking, clearError, validate } = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm,
+  autoClear: 3000,
+})
 
 const showConfirm = ref(false)
 
 const requestConfirm = () => {
+  validationMessage.value = ''
   const rules = {
     required: [],
     custom: {},
@@ -78,7 +75,15 @@ const requestConfirm = () => {
     rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Type DELETE to confirm.'
   }
 
-  if (!validate(rules)) return
+  if (!validate(rules)) {
+    validationMessage.value = props.type?.includes('delete')
+      ? 'Please type DELETE to confirm.'
+      : 'Please fill out all required fields to proceed.'
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
+    return
+  }
   showConfirm.value = true
 }
 
@@ -94,7 +99,6 @@ const handleActionSubmit = () => {
 }
 
 const confirmRows = computed(() => {
-  const source = props.student || props.enrollment || {}
   const rows = [
     { key: 'Student Name', value: localData.name },
     { key: 'Date of Birth', value: localData.dob },
@@ -122,20 +126,31 @@ const confirmRows = computed(() => {
 
 const modalTitle = computed(() => {
   const titles = {
+    add: 'Add Student',
     edit: 'Edit Student',
     delete: 'Delete Student',
     override: 'Manual Status Override',
     'enrollment-override': 'Enrollment Status Override',
     'enrollment-delete': 'Delete Enrollment',
   }
-  return titles[props.type] || 'Student Action'
+  return titles[props.type] || 'Add Student'
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Edit'
+  if (props.type === 'edit') return 'Update'
   if (props.type?.includes('delete')) return 'Delete'
   if (props.type === 'add') return 'Add'
-  return 'Edit'
+  return 'Update'
+})
+
+const validationMessage = ref('')
+const isFormInvalid = computed(() => {
+  if (props.type?.includes('delete')) return !localData.deleteConfirm
+  const baseInvalid = !localData.name || !localData.dob
+  if (['hold', 'inactive'].includes(localData.status?.toLowerCase())) {
+    return baseInvalid || !localData.overrideRemark
+  }
+  return baseInvalid
 })
 
 const modalIcon = computed(() => {
@@ -330,6 +345,9 @@ watch(
         >
           {{ error }}
         </AppAlert>
+        <AppAlert v-if="validationMessage" type="error" class="w-full">
+          {{ validationMessage }}
+        </AppAlert>
         <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
@@ -341,8 +359,10 @@ watch(
             type="button"
             @click="requestConfirm"
             :loading="loading"
-            :disabled="loading || (type === 'edit' && !isDirty)"
-            :class="{ 'button-disabled-visual': type === 'edit' && !isDirty }"
+            :disabled="loading"
+            :class="{
+              'opacity-60 grayscale-[0.2]': (type === 'edit' && !isDirty) || isFormInvalid,
+            }"
           >
             {{ submitLabel }}
           </AppButton>

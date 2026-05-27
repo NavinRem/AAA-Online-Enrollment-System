@@ -106,14 +106,25 @@ const validateForm = () => {
 }
 
 const requestConfirm = () => {
+  validationMessage.value = ''
   if (activeTab.value === 'profile') {
     if (props.type === 'delete') {
       if (form.deleteConfirm !== 'DELETE') {
+        validationMessage.value = 'Please type DELETE to confirm.'
+        setTimeout(() => {
+          validationMessage.value = ''
+        }, 3000)
         triggerShake('deleteConfirm')
         return
       }
     } else if (['plus', 'edit'].includes(props.type)) {
-      if (!validateForm()) return
+      if (!validateForm()) {
+        validationMessage.value = 'Please fill out all required fields to proceed.'
+        setTimeout(() => {
+          validationMessage.value = ''
+        }, 3000)
+        return
+      }
     }
     confirmType.value = 'profile'
   } else {
@@ -162,11 +173,11 @@ const handleActionSubmit = async () => {
 
 const modalTitle = computed(() => {
   const titles = {
-    edit: 'Edit Teacher Profile',
-    delete: 'Delete Teacher Record',
+    edit: 'Edit Teacher',
+    delete: 'Delete Teacher',
     reactivate: 'Reactivate Teacher',
     deactivate: 'Suspend Teacher',
-    plus: 'New Teacher Registration',
+    add: 'Add Teacher',
   }
   return titles[props.type] || 'Teacher Action'
 })
@@ -174,13 +185,21 @@ const modalTitle = computed(() => {
 const submitLabel = computed(() => {
   if (confirmType.value === 'assignments') return 'Confirm Assignments'
   const labels = {
-    edit: 'Save Changes',
-    delete: 'Delete Permanently',
-    reactivate: 'Reactivate',
-    deactivate: 'Suspend',
-    plus: 'Add Teacher',
+    edit: 'Update',
+    delete: 'Delete',
+    reactivate: 'Update',
+    deactivate: 'Update',
+    add: 'Add',
   }
   return labels[props.type] || 'Confirm'
+})
+
+const validationMessage = ref('')
+const isFormInvalid = computed(() => {
+  if (activeTab.value === 'assignments') return false
+  if (props.type === 'delete') return !form.deleteConfirm
+  if (['reactivate', 'deactivate'].includes(props.type)) return false
+  return !form.name || !form.email || !form.phone || !form.profileURL || !form.programIds.length
 })
 
 const confirmRows = computed(() => {
@@ -423,6 +442,9 @@ watch(
     <!-- Footer Actions -->
     <template #footer>
       <div class="flex flex-col items-end w-full gap-md">
+        <AppAlert v-if="validationMessage" type="error" class="w-full">
+          {{ validationMessage }}
+        </AppAlert>
         <AppAlert
           v-if="activeTab === 'profile' && type === 'edit' && !isDirty"
           type="info"
@@ -457,11 +479,10 @@ watch(
             type="button"
             @click="requestConfirm"
             :loading="loading"
-            :disabled="
-              loading || !!success || (activeTab === 'profile' && type === 'edit' && !isDirty)
-            "
+            :disabled="loading || !!success"
             :class="{
-              'button-disabled-visual': activeTab === 'profile' && type === 'edit' && !isDirty,
+              'opacity-60 grayscale-[0.2]':
+                (activeTab === 'profile' && type === 'edit' && !isDirty) || isFormInvalid,
             }"
           >
             {{ activeTab === 'assignments' ? 'Done' : submitLabel }}

@@ -8,7 +8,7 @@ import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import TermActionModal from '@/components/terms/TermActionModal.vue'
-import TermOfferingActionModal from '@/components/terms/TermOfferingActionModal.vue'
+import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import { useDataStore } from '@/stores/dataStore'
 
@@ -56,7 +56,6 @@ const fetchData = async () => {
       ]),
     ])
 
- 
     const terms = Array.isArray(termData) ? termData : []
     branches.value = dataStore.branches
 
@@ -91,7 +90,7 @@ const fetchData = async () => {
 
         // Filter enrollments for this branch in this term period
         const branchEnrollments = dataStore.enrollments.filter((e) => {
-          const isSameBranch = String(e["class"].branch.id === String(bId))
+          const isSameBranch = String(e['class'].branch.id === String(bId))
           const isSameTerm = String(e.termId) === String(term.id)
           if (isSameTerm && isSameBranch) return true
           if (isSameBranch) {
@@ -188,13 +187,13 @@ const statsCards = computed(() => {
     },
     {
       label: 'Most Popular',
-      value: mostEnrolledTerm ? `${mostEnrolledTerm.enrollmentCount} Enrolled` : '0 Enrolled',
+      value: `${mostEnrolledTerm?.enrollmentCount} Enrolled`,
       subtitle: mostEnrolledTerm?.name,
       image: getImageUrl('programs/active-program'),
     },
     {
       label: 'Highest Interest',
-      value: mostTrialsTerm ? `${mostTrialsTerm.trialCount} Trials` : '0 Trials',
+      value: `${mostTrialsTerm?.trialCount} Trials`,
       subtitle: mostTrialsTerm?.name,
       image: getImageUrl('enrollment/total-paid-enrollment'),
     },
@@ -241,7 +240,7 @@ const handleAddClass = async (payload) => {
   addClassModal.value.error = ''
   try {
     const term = addClassModal.value.selectedTerm
-    await termService.updateTerm(term.id, { newOfferingsRequest: payload })
+    await termService.updateTerm(term.id, { classIds: payload.classIds })
     addClassModal.value.success = 'Classes added successfully'
     setTimeout(() => {
       addClassModal.value.isOpen = false
@@ -321,7 +320,6 @@ const displayItems = computed(() => {
   })
 })
 
-
 const sortOptions = [
   { label: 'Newest First', value: 'newest', image: getActionIcon('filter') },
   {
@@ -336,7 +334,6 @@ const sortOptions = [
     image: getImageUrl('data-metric-card/program-revenue'),
   },
 ]
-
 
 const isTermReadOnly = (item) => {
   const prog = calculateClassProgress(item.startDate, item.endDate)
@@ -378,7 +375,7 @@ const getGroupedSettings = (item) => {
       <template #overview>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DataMetricCard
-            v-for="(card) in statsCards"
+            v-for="card in statsCards"
             :key="card.label"
             v-bind="card"
             :loading="loading"
@@ -412,12 +409,7 @@ const getGroupedSettings = (item) => {
                 placeholder="Sort By"
                 class="min-w-44"
               />
-              <AppButton
-                variant="primary"
-                size="md"
-               
-                @click="openModal('add')"
-              >
+              <AppButton variant="primary" size="md" @click="openModal('add')">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span>Add Term</span>
               </AppButton>
@@ -579,8 +571,8 @@ const getGroupedSettings = (item) => {
                 </template>
                 <template v-else>
                   <div
-                    v-for="prog in [calculateClassProgress(item.startDate, item.endDate)]"
-                    :key="item.id"
+                    v-for="(prog, index) in [calculateClassProgress(item.startDate, item.endDate)]"
+                    :key="index"
                     class="w-full max-w-40 flex items-center gap-3 h-8 justify-center"
                   >
                     <div class="flex flex-col items-start min-w-10 leading-none gap-0.5">
@@ -730,10 +722,11 @@ const getGroupedSettings = (item) => {
       @submit="handleActionSubmit"
     />
 
-    <TermOfferingActionModal
+    <ClassActionModal
       v-if="addClassModal.isOpen"
       :isOpen="addClassModal.isOpen"
-      :term="addClassModal.selectedTerm"
+      type="add"
+      :context="{ termId: addClassModal.selectedTerm?.id, termName: addClassModal.selectedTerm?.name, offeringIds: addClassModal.selectedTerm?.offerings?.map(o => o.classId) || [] }"
       :loading="addClassModal.loading"
       :error="addClassModal.error"
       :success="addClassModal.success"

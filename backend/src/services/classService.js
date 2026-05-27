@@ -8,14 +8,18 @@ const {
 class ClassService {
   async createClass(classData) {
     const validated = validateClass(classData)
-    const [programDoc, scheduleDocs] = await Promise.all([
+    const [programDoc, scheduleDocs, branchDocs] = await Promise.all([
       db.collection(COLLECTIONS.PROGRAM).doc(validated.programId).get(),
       this.getScheduleDocs(validated.scheduleIds),
+      this.getBranchDocs(validated.branchIds),
     ])
 
     if (!programDoc.exists) throw new Error('Program not found')
     if (scheduleDocs.some((d) => !d.exists || d.data().isDeleted)) {
       throw new Error('One or more schedules not found')
+    }
+    if (branchDocs.some((d) => !d.exists || d.data().isDeleted)) {
+      throw new Error('One or more branches not found')
     }
 
     const duplicateSnap = await db
@@ -31,6 +35,10 @@ class ClassService {
     const schedules = scheduleDocs.map((doc) =>
       this.getScheduleSnapshot(doc.id, doc.data(), validated.schedulesData),
     )
+    const branches = branchDocs.map((doc) =>
+      profileHelper.getBranchSnapshot(doc.id, doc.data()),
+    )
+    
     const newClass = {
       programId: validated.programId,
       program: profileHelper.getProgramSnapshot(
@@ -39,6 +47,8 @@ class ClassService {
       ),
       scheduleIds: validated.scheduleIds,
       schedules,
+      branchIds: validated.branchIds,
+      branches,
       isDeleted: false,
       createdAt: validated.createdAt,
       updatedAt: validated.updatedAt,
@@ -112,9 +122,16 @@ class ClassService {
       )
     }
 
-    if (updates.status !== undefined) {
-      delete updates.status // Remove root-level status update
+    if (validated.branchIds) {
+      const branchDocs = await this.getBranchDocs(validated.branchIds)
+      if (branchDocs.some((d) => !d.exists || d.data().isDeleted)) {
+        throw new Error('One or more branches not found')
+      }
+      updates.branches = branchDocs.map((branchDoc) =>
+        profileHelper.getBranchSnapshot(branchDoc.id, branchDoc.data())
+      )
     }
+
 
     await ref.update(updates)
 
@@ -146,6 +163,14 @@ class ClassService {
     return Promise.all(
       scheduleIds.map((scheduleId) =>
         db.collection(COLLECTIONS.SCHEDULE).doc(scheduleId).get(),
+      ),
+    )
+  }
+
+  async getBranchDocs(branchIds) {
+    return Promise.all(
+      branchIds.map((branchId) =>
+        db.collection(COLLECTIONS.BRANCH).doc(branchId).get(),
       ),
     )
   }

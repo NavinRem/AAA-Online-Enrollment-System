@@ -9,11 +9,15 @@ import DataTable from '@/components/common/data/DataTable.vue'
 import DetailMetricCard from '@/components/common/data/DetailMetricCard.vue'
 import { termService } from '@/services/termService'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
-import { formatPrice, formatShortDate, calculateClassProgress } from '@/utils/formatUtils'
+import {
+  formatPrice,
+  formatShortDate,
+  calculateClassProgress,
+  calculateOfferingStatus,
+} from '@/utils/formatUtils'
 import TermActionModal from '@/components/terms/TermActionModal.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import TermSessionModal from '@/components/terms/TermSessionModal.vue'
 import { teacherService } from '@/services/teacherService'
 import { classService } from '@/services/classService'
 import { useSearch, classSearchMapper, studentSearchMapper } from '@/composables/useSearch'
@@ -155,8 +159,8 @@ const rawBranchOfferings = computed(() => {
 
         return {
           ...student,
-          paymentStatus: e.paymentStatus || 'unpaid',
-          status: e.status || 'active',
+          paymentStatus: e.paymentStatus,
+          status: e.status,
           enrollmentId: e.id,
           revenue: Number(e.finalPrice || e.totalPrice || 0),
         }
@@ -192,16 +196,27 @@ const groupedBranchOfferings = computed(() => {
         schedules: [],
         totalRevenue: 0,
         uniqueStudentCount: 0,
-        status: off.status || 'active',
+        status: off.status,
       })
     }
     const group = map.get(classId)
+    const setting = activeBranchSetting.value || term.value
+
+    const computedStatus = calculateOfferingStatus({
+      termStartDate: setting.startDate,
+      termEndDate: setting.endDate,
+      schedule: off.schedule,
+      program: off.program,
+      offering: off,
+    })
+
     group.schedules.push({
       ...off.schedule,
       currentCount: off.currentCount,
-      status: off.status || 'active',
+      status: computedStatus,
       offeringId: off.offeringId,
       revenue: off.revenue || 0,
+      teachers: off.responsibleTeachers || [],
     })
   })
 
@@ -374,7 +389,7 @@ const classFilterOptions = computed(() => {
       options.push({
         label: `${day} Classes`,
         value: `day-${day}`,
-        color: dayColors[day] || 'blue',
+        color: dayColors[day],
         image: getActionIcon('calendar'),
       })
     }
@@ -480,8 +495,9 @@ const statsCards = computed(() => {
 
 const classHeaders = [
   { label: 'No', width: '50px', align: 'center' },
-  { label: 'Class Identity' },
-  { label: 'Schedule', width: '200px', align: 'center' },
+  { label: 'Class Identity', width: '250px' },
+  { label: 'Schedule', width: '180px', align: 'center' },
+  { label: 'Teachers', width: '120px', align: 'center' },
   { label: 'Enrolled', align: 'center', width: '100px' },
   { label: 'Revenue', align: 'center', width: '130px' },
   { label: 'Status', align: 'center', width: '110px' },
@@ -662,7 +678,10 @@ const openAddClassModal = () => {
     isOpen: true,
     type: 'add',
     classItem: null,
-    context: null,
+    context: {
+      termName: term.value.name,
+      branchName: activeBranch.value?.name,
+    },
     loading: false,
     error: '',
     success: '',
@@ -685,7 +704,12 @@ const handleClassActionSubmit = async (payload) => {
       classActionModal.value.success = 'Class removed from branch'
     } else {
       // Add mode
-      await termService.updateTerm(term.value.id, { newOfferingsRequest: payload })
+      await termService.updateTerm(term.value.id, {
+        newOfferingsRequest: {
+          ...payload,
+          branchIds: [activeBranchId.value],
+        },
+      })
       classActionModal.value.success = 'Classes added successfully'
     }
 
@@ -772,12 +796,12 @@ const handleActionSubmit = async (payload) => {
 
       <template #left-content v-if="term">
         <!-- Metrics Grid for Branch -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <DetailMetricCard v-for="stat in statsCards" :key="stat.label" v-bind="stat" />
         </div>
 
         <!-- Branch Selector & Sub Tabs -->
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-md">
           <div
             class="flex flex-wrap items-center gap-2 p-2 bg-white rounded-2xl border border-outline-std w-fit"
           >
@@ -824,7 +848,7 @@ const handleActionSubmit = async (payload) => {
         </div>
 
         <section
-          class="overflow-hidden animate-fade-in h-[650px] border border-outline-std rounded-xl bg-white shadow-sm flex flex-col"
+          class="overflow-hidden animate-fade-in h-[650px] border border-outline-std rounded-md bg-white shadow-sm flex flex-col"
         >
           <DataTable
             v-if="activeSubTab === 'classes'"
@@ -848,7 +872,6 @@ const handleActionSubmit = async (payload) => {
                 v-if="branchDisplayData?.status === 'upcoming'"
                 variant="primary"
                 size="md"
-               
                 @click="openAddClassModal"
               >
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
@@ -903,29 +926,62 @@ const handleActionSubmit = async (payload) => {
                   <div
                     v-for="(sched, idx) in item.schedules"
                     :key="sched.offeringId || idx"
-                    class="flex items-center justify-center h-10"
+                    class="h-10 flex items-center justify-center"
                   >
-                    <AppBadge :status="sched.currentCount || 0" type="blue" />
+                    <!-- Teacher Avatar Stack -->
+                    <div v-if="sched.teachers && sched.teachers.length > 0" class="flex -space-x-2">
+                      <div
+                        v-for="teacher in sched.teachers.slice(0, 3)"
+                        :key="teacher.id"
+                        class="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-sm bg-surface-subtle group-hover:scale-110 transition-transform"
+                        :title="teacher.name"
+                      >
+                        <img
+                          :src="teacher.profileURL || getImageUrl('profiles/avatar-teacher-man')"
+                          class="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div
+                        v-if="sched.teachers.length > 3"
+                        class="w-8 h-8 rounded-full border-2 border-white bg-primary-soft flex items-center justify-center text-4xs font-black text-primary shadow-sm"
+                      >
+                        +{{ sched.teachers.length - 3 }}
+                      </div>
+                    </div>
+                    <span v-else class="text-4xs font-bold text-content-muted/30 italic"
+                      >No teacher</span
+                    >
                   </div>
                 </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[4].width }">
-                <span class="text-sm font-bold text-primary tabular-nums"
-                  >${{ formatPrice(item.totalRevenue) }}</span
-                >
-              </td>
-              <td class="ui-cell text-center" :style="{ width: headers[5].width }">
                 <div class="flex flex-col items-center justify-center gap-4 py-6">
                   <div
                     v-for="(sched, idx) in item.schedules"
                     :key="sched.offeringId || idx"
                     class="flex items-center justify-center h-10"
                   >
-                    <AppBadge :status="sched.status || 'Active'" />
+                    <AppBadge :status="sched.currentCount || 0" type="blue" />
                   </div>
                 </div>
               </td>
+              <td class="ui-cell text-center" :style="{ width: headers[5].width }">
+                <span class="text-sm font-bold text-primary tabular-nums"
+                  >${{ formatPrice(item.totalRevenue) }}</span
+                >
+              </td>
               <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+                <div class="flex flex-col items-center justify-center gap-4 py-6">
+                  <div
+                    v-for="(sched, idx) in item.schedules"
+                    :key="sched.offeringId || idx"
+                    class="flex items-center justify-center h-10"
+                  >
+                    <AppBadge :status="sched.status" />
+                  </div>
+                </div>
+              </td>
+              <td class="ui-cell text-center" :style="{ width: headers[7].width }">
                 <div class="flex items-center justify-center py-6 h-full relative">
                   <button
                     class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-subtle text-content-muted hover:text-content-dark transition-all"
@@ -1067,52 +1123,49 @@ const handleActionSubmit = async (payload) => {
             </div>
           </section>
 
-          <!-- Parameters Card -->
           <section class="ui-detail-card !py-8">
-            <div class="flex flex-col items-center gap-6">
-              <div
-                v-if="activeBranch"
-                class="flex flex-col items-center gap-2 w-full pb-6 border-b border-outline-std/50"
-              >
-                <span class="text-sm font-bold text-content-muted">Selected Branch</span>
-                <AppBadge
-                  :status="activeBranch.name"
-                  :type="activeBranch.color"
-                  class="px-6 py-1.5 text-sm"
-                />
-              </div>
+            <div
+              v-if="activeBranch"
+              class="flex flex-col items-center gap-2 w-full pb-6 border-b border-outline-std/50"
+            >
+              <span class="text-sm font-bold text-content-muted">Selected Branch</span>
+              <AppBadge
+                :status="activeBranch.name"
+                :type="activeBranch.color"
+                class="px-6 py-1.5 text-sm"
+              />
+            </div>
 
-              <div class="grid grid-cols-2 gap-x-12 gap-y-8 w-full" v-if="branchDisplayData">
-                <div class="flex flex-col items-center gap-2">
-                  <span class="text-sm font-bold text-content-muted">Status</span>
-                  <AppBadge :status="branchDisplayData.status" />
-                </div>
-                <div class="flex flex-col items-center gap-2">
-                  <span class="text-sm font-bold text-content-muted">Locations</span>
-                  <span class="text-lg font-bold text-content-dark"
-                    >{{ term.branchIds.length }} Branches</span
-                  >
-                </div>
-                <div class="flex flex-col items-center gap-2">
-                  <span class="text-sm font-bold text-content-muted">Duration</span>
-                  <span class="text-lg font-bold text-content-dark"
-                    >{{ term.totalSessions }} Weeks</span
-                  >
-                </div>
-                <div class="flex flex-col items-center gap-2">
-                  <span class="text-sm font-bold text-content-muted">Sessions</span>
-                  <span class="text-lg font-bold text-content-dark"
-                    >{{ term.totalSessions }} Total</span
-                  >
-                </div>
-                <div class="flex flex-col items-center gap-2">
-                  <span class="text-sm font-bold text-content-muted">Start Date</span>
-                  <AppBadge :status="formatShortDate(branchDisplayData.startDate)" type="green" />
-                </div>
-                <div class="flex flex-col items-center gap-2">
-                  <span class="text-sm font-bold text-content-muted">End Date</span>
-                  <AppBadge :status="formatShortDate(branchDisplayData.endDate)" type="red" />
-                </div>
+            <div class="grid grid-cols-2 gap-x-12 gap-y-8 w-full" v-if="branchDisplayData">
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-sm font-bold text-content-muted">Status</span>
+                <AppBadge :status="branchDisplayData.status" />
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-sm font-bold text-content-muted">Locations</span>
+                <span class="text-lg font-bold text-content-dark"
+                  >{{ term.branchIds.length }} Branches</span
+                >
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-sm font-bold text-content-muted">Duration</span>
+                <span class="text-lg font-bold text-content-dark"
+                  >{{ term.totalSessions }} Weeks</span
+                >
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-sm font-bold text-content-muted">Sessions</span>
+                <span class="text-lg font-bold text-content-dark"
+                  >{{ term.totalSessions }} Total</span
+                >
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-sm font-bold text-content-muted">Start Date</span>
+                <AppBadge :status="formatShortDate(branchDisplayData.startDate)" type="green" />
+              </div>
+              <div class="flex flex-col items-center gap-2">
+                <span class="text-sm font-bold text-content-muted">End Date</span>
+                <AppBadge :status="formatShortDate(branchDisplayData.endDate)" type="red" />
               </div>
             </div>
           </section>
@@ -1147,9 +1200,10 @@ const handleActionSubmit = async (payload) => {
     />
 
     <!-- Weekly Session Management Modal -->
-    <TermSessionModal
+    <TermActionModal
       v-if="sessionModal.isOpen"
       :isOpen="sessionModal.isOpen"
+      type="session"
       :term="term"
       :offeringId="sessionModal.offeringId"
       :programId="sessionModal.programId"

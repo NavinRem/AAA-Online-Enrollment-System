@@ -36,23 +36,19 @@ const mapSourceToForm = () => {
   return getInitialData()
 }
 
-const {
-  localData,
-  isDirty,
-  errors,
-  shaking,
-  validate,
-  clearError,
-  triggerShake,
-  resetForm: _resetForm,
-} = useActionModal(props, emit, {
-  getInitialData,
-  mapSourceToForm,
-  sourceKey: 'branch',
-  autoClear: 3000,
-})
+const { localData, isDirty, errors, shaking, validate, clearError, triggerShake } = useActionModal(
+  props,
+  emit,
+  {
+    getInitialData,
+    mapSourceToForm,
+    sourceKey: 'branch',
+    autoClear: 3000,
+  },
+)
 
 const showConfirm = ref(false)
+const validationMessage = ref('')
 const colorOptions = [
   'red',
   'orange',
@@ -78,12 +74,13 @@ const modalIcon = computed(() => {
 })
 
 const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Edit'
+  if (props.type === 'edit') return 'Update'
   if (props.type === 'delete') return 'Delete'
   return 'Add'
 })
 
 const requestConfirm = () => {
+  validationMessage.value = ''
   if (props.type === 'edit' && !isDirty.value) return
 
   const rules = {
@@ -96,8 +93,21 @@ const requestConfirm = () => {
   }
 
   if (!validate(rules)) {
+    validationMessage.value =
+      props.type === 'delete'
+        ? 'Please type DELETE to confirm.'
+        : 'Please fill out all required fields to proceed.'
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
+
     if (props.type !== 'delete') {
-      triggerShake('name')
+      if (!localData.name) triggerShake('name')
+      if (!localData.abbr) triggerShake('abbr')
+      if (!localData.location) triggerShake('location')
+      if (!localData.phone) triggerShake('phone')
+    } else {
+      triggerShake('deleteConfirm')
     }
     return
   }
@@ -137,6 +147,13 @@ const confirmRows = computed(() => {
   }
 
   return rows
+})
+
+const isFormInvalid = computed(() => {
+  if (props.type === 'delete') {
+    return !localData.deleteConfirm
+  }
+  return !localData.name || !localData.abbr || !localData.location || !localData.phone
 })
 
 watch(
@@ -247,20 +264,17 @@ watch(
         class="flex flex-col gap-lg animate-in fade-in slide-in-from-bottom-4 duration-500"
       >
         <div
-          class="bg-white border border-outline-std rounded-2xl p-lg flex flex-col gap-lg shadow-sm"
+          class="bg-white border border-outline-std rounded-md p-lg flex flex-col gap-lg shadow-sm"
           v-if="branch"
         >
           <div class="flex items-center gap-4">
-            <div
-              class="w-14 h-14 rounded-2xl overflow-hidden ring-4 ring-primary/5 bg-white border border-outline-std/50 flex items-center justify-center"
-            >
-              <AppBadge :status="branch.abbr" :type="branch.color" />
-            </div>
             <div class="flex flex-col">
-              <span class="text-sm font-semibold text-content-dark tracking-tighter">{{
-                branch.name
-              }}</span>
-              <span class="text-xs font-semibold text-content-muted">{{ branch.location }}</span>
+              <div class="flex items-center gap-2">
+                <AppBadge :status="branch.abbr" :type="branch.color" />
+                <span class="text-sm font-semibold text-content-dark tracking-tighter"
+                  >{{ branch.name }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -315,6 +329,9 @@ watch(
 
     <template #footer>
       <div class="flex flex-col justify-end w-full gap-md">
+        <AppAlert v-if="validationMessage" type="error" class="w-full">
+          {{ validationMessage }}
+        </AppAlert>
         <AppAlert v-if="type === 'edit' && !isDirty" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
@@ -326,8 +343,10 @@ watch(
             type="button"
             @click="requestConfirm"
             :loading="loading"
-            :disabled="loading || (type === 'edit' && !isDirty)"
-            :class="{ 'opacity-50 pointer-events-none': type === 'edit' && !isDirty }"
+            :disabled="loading"
+            :class="{
+              'opacity-60 grayscale-[0.2]': (type === 'edit' && !isDirty) || isFormInvalid,
+            }"
           >
             {{ submitLabel }}
           </AppButton>

@@ -7,8 +7,7 @@ import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetricCard from '../components/common/data/DataMetricCard.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
-import AppConfirmOverlay from '../components/common/ui/AppConfirmOverlay.vue'
-import TrialFormModal from '../components/trials/TrialFormModal.vue'
+import TrialActionModal from '../components/trials/TrialActionModal.vue'
 
 import { trialService } from '@/services/trialService'
 import { useSearch, trialSearchMapper } from '../composables/useSearch'
@@ -24,12 +23,10 @@ import { formatDate } from '@/utils/formatUtils'
 const dataStore = useDataStore()
 
 const loading = ref(false)
-const showModal = ref(false)
 const submitting = ref(false)
 const errorMessage = ref('')
 const successMessage = ref('')
 const newlyCreatedId = ref(null)
-const selectedTrial = ref(null)
 const currentFilter = ref('all')
 
 const getRowClass = (item) => {
@@ -154,33 +151,43 @@ watch([currentFilter, searchQuery], () => {
   currentPage.value = 1
 })
 
-const handleSaveTrial = async (formData) => {
+const submitActionModal = async (payload) => {
+  const { type, trial } = actionState.value
   submitting.value = true
   errorMessage.value = ''
   successMessage.value = ''
 
   try {
-    if (selectedTrial.value) {
-      await trialService.updateTrial(selectedTrial.value.id, formData)
-      successMessage.value = 'Trial engagement successfully updated.'
+    if (type === 'delete') {
+      await trialService.deleteTrial(trial.id)
+      successMessage.value = 'Trial permanently deleted.'
     } else {
-      const res = await trialService.createTrial(formData)
-      newlyCreatedId.value = res.id
-      successMessage.value = 'New trial session successfully booked.'
+      if (type === 'edit') {
+        await trialService.updateTrial(trial.id, payload)
+        successMessage.value = 'Trial engagement successfully updated.'
+      } else {
+        const res = await trialService.createTrial(payload)
+        newlyCreatedId.value = res.id
+        successMessage.value = 'New trial session successfully booked.'
+      }
     }
 
     setTimeout(() => {
-      showModal.value = false
-      selectedTrial.value = null
-      successMessage.value = ''
+      closeActionModal()
       fetchData()
     }, 1500)
   } catch (err) {
-    errorMessage.value = err.message || 'Failed to save trial record.'
+    errorMessage.value = err.message || 'Failed to complete action.'
     console.error(err)
   } finally {
     submitting.value = false
   }
+}
+
+const closeActionModal = () => {
+  actionState.value.isOpen = false
+  errorMessage.value = ''
+  successMessage.value = ''
 }
 
 const actionState = ref({
@@ -190,42 +197,8 @@ const actionState = ref({
 })
 
 const handleTableAction = ({ type, item }) => {
-  if (type === 'edit') {
-    selectedTrial.value = item
-    showModal.value = true
-    return
-  }
-
-  if (type === 'delete') {
-    actionState.value = { isOpen: true, type: 'delete', trial: item }
-  }
+  actionState.value = { isOpen: true, type, trial: item }
 }
-
-const confirmDeleteTrial = async () => {
-  const trial = actionState.value.trial
-  if (!trial) return
-  submitting.value = true
-  try {
-    await trialService.deleteTrial(trial.id)
-    actionState.value.isOpen = false
-    await fetchData()
-  } catch (err) {
-    console.error('Failed to delete trial:', err)
-  } finally {
-    submitting.value = false
-  }
-}
-
-const confirmRows = computed(() => {
-  const item = actionState.value.trial
-  if (!item) return []
-  return [
-    { key: 'Student', value: item.student?.name || item.guestStudentName },
-    { key: 'Parent', value: item.parent?.name || item.guestParentName || 'Guest' },
-    { key: 'Program', value: item.program?.name },
-    { key: 'Date', value: formatDate(item.trialDate) },
-  ]
-})
 </script>
 
 <template>
@@ -266,8 +239,7 @@ const confirmRows = computed(() => {
             <AppButton
               variant="primary"
               size="md"
-             
-              @click="showModal = true"
+              @click="actionState = { isOpen: true, type: 'add', trial: null }"
             >
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-bold tracking-tight">New Trial</span>
@@ -426,38 +398,22 @@ const confirmRows = computed(() => {
       </template>
     </DataPageLayout>
 
-    <TrialFormModal
-      v-if="showModal"
-      :isOpen="showModal"
+    <TrialActionModal
+      v-if="actionState.isOpen"
+      :isOpen="actionState.isOpen"
+      :type="actionState.type"
+      :trial="actionState.trial"
       :loading="submitting"
-      :trial="selectedTrial"
       :parents="dataStore.parents"
       :students="dataStore.students"
       :programs="dataStore.getProgramWithCategory"
       :branches="dataStore.branches"
       :error="errorMessage"
       :success="successMessage"
-      @close="
-        () => {
-          showModal = false
-          selectedTrial = null
-          errorMessage = ''
-          successMessage = ''
-        }
-      "
-      @submit="handleSaveTrial"
-    />
-
-    <AppConfirmOverlay
-      :show="actionState.isOpen && actionState.type === 'delete'"
-      title="Delete Trial Record"
-      subtitle="Are you sure you want to permanently delete this trial engagement? This action will remove the record from all dashboard metrics."
-      :icon="getImageUrl('enrollment/total-enrollment')"
-      :rows="confirmRows"
-      confirmLabel="Delete Record"
-      :loading="submitting"
-      @back="actionState.isOpen = false"
-      @confirm="confirmDeleteTrial"
+      @close="closeActionModal"
+      @submit="submitActionModal"
+      @update:error="errorMessage = $event"
+      @update:success="successMessage = $event"
     />
   </DashboardLayout>
 </template>

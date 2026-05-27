@@ -442,12 +442,7 @@ const handleActionSubmit = async (formData) => {
           @row-click="navigateToDetail"
         >
           <template #toolbar-actions>
-            <AppButton
-              variant="primary"
-              size="md"
-             
-              @click="openModal('add')"
-            >
+            <AppButton variant="primary" size="md" @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
               <span class="font-bold tracking-tight">New Program</span>
             </AppButton>

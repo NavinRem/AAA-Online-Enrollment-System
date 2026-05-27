@@ -3,10 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
-import AppBadge from '@/components/common/ui/AppBadge.vue'
 import EnrollmentActionModal from '@/components/enrollments/EnrollmentActionModal.vue'
-import EnrollmentFormModal from '@/components/enrollments/EnrollmentFormModal.vue'
-import AppButton from '@/components/common/ui/AppButton.vue'
 import { enrollmentService } from '@/services/enrollmentService'
 import { parentService } from '@/services/parentService'
 import { studentService } from '@/services/studentService'
@@ -44,7 +41,6 @@ const actionModal = ref({
   enrollment: null,
 })
 
-const showFormModal = ref(false)
 
 const enrollmentProfileFields = computed(() => [
   { label: 'ID', value: enrollment.value?.id?.slice(-8).toUpperCase() },
@@ -81,10 +77,7 @@ const openActionModal = (type) => {
   modalError.value = ''
   modalSuccess.value = ''
 
-  if (type === 'edit') {
-    showFormModal.value = true
-    return
-  }
+
 
   actionModal.value = {
     isOpen: true,
@@ -99,7 +92,7 @@ const closeActionModal = () => {
 
 const handleActionSubmit = async (payload) => {
   const { type } = actionModal.value
-  const { amount, remark, proof, reason, paymentMethod, deleteConfirm } = payload
+  const { amount, remark, reason, deleteConfirm } = payload
   submitting.value = true
   modalError.value = ''
 
@@ -133,12 +126,21 @@ const handleActionSubmit = async (payload) => {
       setTimeout(() => router.push('/enrollments'), 1500)
       return
     } else if (type === 'edit') {
-      await enrollmentService.updateEnrollment(enrollment.value.id, {
+      const editPayload = {
+        ...payload,
         amount: Number(amount),
-        remark: remark?.trim(),
-      })
+        discountAmount: Number(payload.discountAmount || 0),
+        basePrice: Number(payload.basePrice || 0),
+        passedSessions: Number(payload.passedSessions || 0),
+        prorateSavings: Number(payload.prorateSavings || 0),
+      }
+
+      await enrollmentService.updateEnrollment(enrollment.value.id, editPayload)
       enrollment.value.amount = Number(amount)
       enrollment.value.remark = remark?.trim()
+      
+      const updated = await enrollmentService.getEnrollment(enrollment.value.id)
+      enrollment.value = updated
     }
 
     modalSuccess.value = 'Action completed successfully.'
@@ -186,35 +188,6 @@ const handleProgramChange = async (programId) => {
   }
 }
 
-const handleEditSubmit = async (formData) => {
-  submitting.value = true
-  modalError.value = ''
-  try {
-    const payload = {
-      ...formData,
-      amount: Number(formData.amount),
-      discountAmount: Number(formData.discountAmount || 0),
-      basePrice: Number(formData.basePrice || 0),
-      passedSessions: Number(formData.passedSessions || 0),
-      prorateSavings: Number(formData.prorateSavings || 0),
-    }
-
-    await enrollmentService.updateEnrollment(enrollment.value.id, payload)
-    modalSuccess.value = 'Enrollment updated successfully!'
-
-    const updated = await enrollmentService.getEnrollment(enrollment.value.id)
-    enrollment.value = updated
-
-    setTimeout(() => {
-      showFormModal.value = false
-      modalSuccess.value = ''
-    }, 1500)
-  } catch (err) {
-    modalError.value = err.message || 'Failed to update enrollment.'
-  } finally {
-    submitting.value = false
-  }
-}
 
 onMounted(async () => {
   try {
@@ -447,33 +420,24 @@ onMounted(async () => {
       </template>
     </DetailPageLayout>
 
-    <EnrollmentFormModal
-      :isOpen="showFormModal"
-      :loading="submitting"
+    <EnrollmentActionModal
+      v-if="actionModal.isOpen"
+      :isOpen="actionModal.isOpen"
+      :type="actionModal.type"
+      :enrollment="actionModal.enrollment"
       :parents="parents"
       :students="students"
       :programs="programs"
       :classes="classes"
       :enrollments="enrollments"
-      :enrollment="enrollment"
+      :loading="submitting"
       :error="modalError"
       :success="modalSuccess"
-      @close="
-        showFormModal = false;
-        modalError = '';
-        modalSuccess = '';
-      "
-      @program-change="handleProgramChange"
-      @submit="handleEditSubmit"
-    />
-
-    <EnrollmentActionModal
-      v-bind="actionModal"
-      :loading="submitting"
-      v-model:error="modalError"
-      v-model:success="modalSuccess"
       @close="closeActionModal"
       @submit="handleActionSubmit"
+      @program-change="handleProgramChange"
+      @update:error="modalError = $event"
+      @update:success="modalSuccess = $event"
     />
   </DashboardLayout>
 </template>

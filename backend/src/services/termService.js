@@ -222,10 +222,11 @@ class TermService {
         : oldBranchIds
 
     if (validatedData.newOfferingsRequest) {
-      const { branchIds, programIds } = validatedData.newOfferingsRequest
-      const newOfferings = await this.buildOfferingsForPrograms(
+      const { branchIds, classIds, scheduleIds } = validatedData.newOfferingsRequest
+      const newOfferings = await this.buildOfferingsForClasses(
         branchIds,
-        programIds,
+        classIds,
+        scheduleIds
       )
       validatedData.offerings = [
         ...(validatedData.offerings || existingTerm.offerings || []),
@@ -414,20 +415,25 @@ class TermService {
     return offerings
   }
 
-  async buildOfferingsForPrograms(branchIds, programIds) {
+  async buildOfferingsForClasses(branchIds, classIds, scheduleIds = []) {
     const ids = Array.isArray(branchIds) ? branchIds : [branchIds]
     if (ids.length === 0) throw new Error('Branch IDs are required')
-    if (!programIds || programIds.length === 0)
-      throw new Error('Program IDs are required')
+    if (!classIds || classIds.length === 0)
+      throw new Error('Class IDs are required')
 
-    const [branchesSnap, classesSnap] = await Promise.all([
-      db.collection(COLLECTIONS.BRANCH).get(),
-      db
-        .collection(COLLECTIONS.CLASS)
-        .where('programId', 'in', programIds)
-        .where('isDeleted', '==', false)
-        .get(),
+    const branchesPromise = db.collection(COLLECTIONS.BRANCH).get()
+    const classPromises = classIds.map((cid) =>
+      db.collection(COLLECTIONS.CLASS).doc(cid).get()
+    )
+
+    const [branchesSnap, ...classDocs] = await Promise.all([
+      branchesPromise,
+      ...classPromises,
     ])
+
+    const classesSnapDocs = classDocs.filter(
+      (doc) => doc.exists && !doc.data().isDeleted
+    )
 
     const validBranches = branchesSnap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
@@ -439,9 +445,14 @@ class TermService {
 
     const offerings = []
 
-    classesSnap.docs.forEach((classDoc) => {
+    classesSnapDocs.forEach((classDoc) => {
       const classData = classDoc.data()
-      const schedules = classData.schedules || []
+      let schedules = classData.schedules || []
+
+      // Filter schedules if scheduleIds are explicitly provided
+      if (scheduleIds && scheduleIds.length > 0) {
+        schedules = schedules.filter(s => scheduleIds.includes(s.id))
+      }
 
       validBranches.forEach((branch) => {
         const branchSnapshot = profileHelper.getBranchSnapshot(
