@@ -73,3 +73,89 @@ export const getSessionTime = (schedule) => {
     .replace(/\)$/, '')
     .trim()
 }
+
+
+/**
+ * Calculates the actual date of a session based on the term start date, the schedule day, and the week index.
+ * 
+ * @param {string} startDate - The start date of the term (e.g. "2024-05-01")
+ * @param {string} scheduleDay - The day of the week for the class (e.g. "Monday")
+ * @param {number} sessionIndex - The 1-based index of the session (1 for week 1, 2 for week 2, etc.)
+ * @returns {string} The formatted date string (e.g. "Mon, May 6, 2024")
+ */
+export const calculateSessionDate = (startDate, scheduleDay, sessionIndex) => {
+  if (!startDate || !scheduleDay) return ''
+  
+  const start = new Date(startDate)
+  if (isNaN(start.getTime())) return ''
+
+  const dayMap = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6
+  }
+
+  const targetDay = dayMap[scheduleDay.toLowerCase()]
+  if (targetDay === undefined) return ''
+
+  // Find the first occurrence of targetDay on or after startDate
+  let currentDay = start.getDay()
+  let daysToAdd = (targetDay - currentDay + 7) % 7
+  
+  // Calculate the specific session date by adding weeks
+  const sessionDate = new Date(start)
+  sessionDate.setDate(start.getDate() + daysToAdd + (sessionIndex - 1) * 7)
+
+  return sessionDate.toLocaleDateString('en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+/**
+ * Calculates the end date of a term that correctly covers all sessions,
+ * even when the class schedule day differs from the term's start day.
+ *
+ * Example: Term starts Sat Aug 1. Ballet class is Wednesday.
+ *   → Session 1 lands Wed Aug 5, Session 10 lands Wed Oct 7.
+ *   → The term end date should be at least Oct 7, NOT Aug 1 + 9*7 = Sep 29.
+ *
+ * @param {string} startDate - The term start date (ISO string, e.g. "2024-08-01")
+ * @param {number} totalSessions - Total number of weekly sessions
+ * @param {string} [scheduleDay] - Optional class day (e.g. "Wednesday"). If omitted, uses startDate's day.
+ * @returns {string} ISO date string for the last session date (e.g. "2024-10-07")
+ */
+export const calculateTermEndDate = (startDate, totalSessions, scheduleDay) => {
+  if (!startDate || !totalSessions) return ''
+
+  const start = new Date(startDate)
+  if (isNaN(start.getTime())) return ''
+
+  const dayMap = {
+    sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+    thursday: 4, friday: 5, saturday: 6
+  }
+
+  // If scheduleDay is provided, jump to the first occurrence of that day on/after startDate.
+  // Otherwise, keep the same day as startDate.
+  let offset = 0
+  if (scheduleDay) {
+    const targetDay = dayMap[scheduleDay.toLowerCase()]
+    if (targetDay !== undefined) {
+      const currentDay = start.getDay()
+      offset = (targetDay - currentDay + 7) % 7
+    }
+  }
+
+  // Last session = first session + (totalSessions - 1) weeks
+  const lastSession = new Date(start)
+  lastSession.setDate(start.getDate() + offset + (parseInt(totalSessions) - 1) * 7)
+
+  return lastSession.toISOString().split('T')[0]
+}

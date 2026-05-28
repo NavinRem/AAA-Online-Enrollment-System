@@ -13,6 +13,7 @@ import { programService } from '@/services/programService'
 import { useActionModal } from '@/composables/useActionModal'
 import TeacherAssignmentTab from './TeacherAssignmentTab.vue'
 import { teacherService } from '@/services/teacherService'
+import { useModalText } from '@/composables/useModalText'
 
 const assignmentTabRef = ref(null)
 const assignmentChanges = ref({ adds: [], removes: [] })
@@ -170,28 +171,12 @@ const handleActionSubmit = async () => {
   }
 }
 
-const modalTitle = computed(() => {
-  const titles = {
-    edit: 'Edit Teacher',
-    delete: 'Delete Teacher',
-    reactivate: 'Reactivate Teacher',
-    deactivate: 'Suspend Teacher',
-    add: 'Add Teacher',
-  }
-  return titles[props.type] || 'Teacher Action'
+const customSubmit = computed(() => {
+  if (confirmType.value === 'assignments') return 'Confirm Assignments'
+  return undefined
 })
 
-const submitLabel = computed(() => {
-  if (confirmType.value === 'assignments') return 'Confirm Assignments'
-  const labels = {
-    edit: 'Update',
-    delete: 'Delete',
-    reactivate: 'Update',
-    deactivate: 'Update',
-    add: 'Add',
-  }
-  return labels[props.type] || 'Confirm'
-})
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Teacher', { customSubmit })
 
 const validationMessage = ref('')
 const isFormInvalid = computed(() => {
@@ -247,7 +232,7 @@ watch(
     :show="isOpen"
     :title="modalTitle"
     variant="action"
-    :icon="getActionIcon(type)"
+    :icon="modalIcon"
     :error="error"
     :success="success"
     @close="$emit('close')"
@@ -501,7 +486,7 @@ watch(
           ? 'This action is irreversible. All data will be permanently erased.'
           : 'Please verify details before proceeding.'
       "
-      :icon="getActionIcon(type)"
+      :icon="modalIcon"
       :image="form.profileURL || getImageUrl('profiles/avatar-teacher-man')"
       :rows="confirmRows"
       :confirmLabel="submitLabel"
@@ -518,9 +503,9 @@ watch(
             class="flex items-center justify-between p-3 rounded-sm bg-primary-soft/30 border border-primary/20"
           >
             <div class="flex flex-col text-left">
-              <span class="text-sm font-black text-content-dark">{{ add.program?.name }}</span>
-              <span class="text-xs font-bold text-content-dark">{{ add.schedule?.day }}</span>
-              <span class="text-xs font-bold text-primary">{{ add.schedule?.time }}</span>
+              <span class="text-sm font-semibold text-content-dark">{{ add.program?.name }}</span>
+              <span class="text-xs text-content-muted">{{ add.schedule?.day }}</span>
+              <span class="text-xs font-medium text-primary">{{ add.schedule?.time }}</span>
             </div>
             <AppBadge
               :status="add.branch?.abbr || 'HQ'"
@@ -537,13 +522,13 @@ watch(
           <div
             v-for="remove in assignmentChanges.removes"
             :key="remove.offeringId"
-            class="flex items-center justify-between p-3 rounded-xl bg-error-soft/30 border border-error/20"
+            class="flex items-center justify-between p-3 rounded-sm bg-error-soft/30 border border-error/20"
           >
             <div class="flex flex-col text-left">
-              <span class="text-xs font-black text-content-dark truncate">{{
+              <span class="text-sm font-semibold text-content-dark truncate">{{
                 remove.program?.name
               }}</span>
-              <span class="text-4xs font-bold text-error"
+              <span class="text-xs font-medium text-error"
                 >{{ remove.schedule?.day }} • {{ remove.schedule?.time }}</span
               >
             </div>

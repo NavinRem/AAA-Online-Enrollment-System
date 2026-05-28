@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useForm } from '@/composables/useForm'
+import { useModalText } from '@/composables/useModalText'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
@@ -326,26 +327,7 @@ watch(
   },
 )
 
-const modalTitle = computed(() => {
-  const titles = {
-    delete: 'Delete Trial',
-    edit: 'Edit Trial',
-    add: 'Add Trial',
-  }
-  return titles[props.type] || 'Add Trial'
-})
-
-const submitLabel = computed(() => {
-  if (props.type === 'delete') return 'Delete'
-  if (props.type === 'edit') return 'Update'
-  return 'Add'
-})
-
-const modalIcon = computed(() => {
-  if (props.type === 'delete') return getActionIcon('delete')
-  if (props.type === 'edit') return getActionIcon('edit')
-  return getActionIcon('plus')
-})
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Trial')
 </script>
 
 <template>

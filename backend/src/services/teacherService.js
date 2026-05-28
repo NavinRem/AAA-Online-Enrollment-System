@@ -119,8 +119,14 @@ class TeacherService {
       offeringsArray.forEach((offering) => {
         const teachers = offering.teachers || []
         const isAssigned = teachers.some((t) => t.id === teacherId)
+        const isInSessions = (offering.sessionTeachers || []).some((st) => {
+          if (!st) return false
+          if (st.teachers && Array.isArray(st.teachers)) return st.teachers.some(t => t && t.id === teacherId)
+          if (Array.isArray(st)) return st.some(t => t && t.id === teacherId)
+          return st && st.id === teacherId
+        })
 
-        if (isAssigned) {
+        if (isAssigned || isInSessions) {
           assignments.push({
             termId: doc.id,
             termName: termData.name,

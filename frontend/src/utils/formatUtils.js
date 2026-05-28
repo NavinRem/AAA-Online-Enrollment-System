@@ -94,7 +94,7 @@ export const formatPrice = (val) => {
   return Number(num.toFixed(2)).toString()
 }
 
-export const calculateClassProgress = (startDate, endDate, day = null, time = null) => {
+export const calculateClassProgress = (startDate, endDate, day = null, time = null, totalSessions = null) => {
   if (!startDate || !endDate)
     return {
       status: 'N/A',
@@ -114,28 +114,47 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
   const startDateOnly = normalizeLocal(startDate)
   const endDateOnly = normalizeLocal(endDate)
 
-  const diffDays = Math.round((endDateOnly - startDateOnly) / (24 * 60 * 60 * 1000)) + 1
-  const totalWeeks = Math.ceil(diffDays / 7)
-
-  const elapsedMs = todayDate - startDateOnly
-
-  let currentWeek = 0
-  let sessionHasPassed = false
-
-  if (elapsedMs >= 0) {
-    currentWeek = Math.min(totalWeeks, Math.floor(elapsedMs / (7 * 24 * 60 * 60 * 1000)) + 1)
-    const currentWeekStartDate = new Date(startDateOnly)
-    currentWeekStartDate.setDate(currentWeekStartDate.getDate() + (currentWeek - 1) * 7)
-    sessionHasPassed = todayDate > currentWeekStartDate
+  // 1. Determine the first actual session date (accounts for schedule day offset)
+  let firstSessionDate = startDateOnly
+  if (day) {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const targetDayIndex = dayNames.findIndex((d) => d.toLowerCase() === day.toLowerCase())
+    if (targetDayIndex !== -1) {
+      const offset = (targetDayIndex - startDateOnly.getDay() + 7) % 7
+      firstSessionDate = new Date(startDateOnly)
+      firstSessionDate.setDate(startDateOnly.getDate() + offset)
+    }
   }
 
-  const remainingSessions = Math.max(0, totalWeeks - currentWeek + (sessionHasPassed ? 0 : 1))
-  const percentage =
-    currentWeek === 0 ? 0 : Math.min(100, Math.round((currentWeek / totalWeeks) * 100))
+  // 2. Determine total weeks
+  const diffDays = Math.round((endDateOnly - startDateOnly) / (24 * 60 * 60 * 1000)) + 1
+  const computedTotalWeeks = Math.ceil(diffDays / 7)
+  const totalWeeks = totalSessions ? parseInt(totalSessions) : computedTotalWeeks
 
+  // 3. Calculate completed sessions (decrements exactly the day AFTER class)
+  let sessionsCompleted = 0
+  if (todayDate >= firstSessionDate) {
+    const daysElapsed = Math.round((todayDate - firstSessionDate) / (24 * 60 * 60 * 1000))
+    const weeksElapsed = Math.floor(daysElapsed / 7)
+    const dayInCurrentWeek = daysElapsed % 7
+    
+    if (dayInCurrentWeek === 0) {
+      // Today IS the class day (session not finished yet)
+      sessionsCompleted = weeksElapsed
+    } else {
+      // Today is after the class day (session finished)
+      sessionsCompleted = weeksElapsed + 1
+    }
+  }
+
+  const currentWeek = todayDate < firstSessionDate ? 0 : Math.min(totalWeeks, sessionsCompleted + 1)
+  const remainingSessions = Math.max(0, totalWeeks - sessionsCompleted)
+  const percentage = totalWeeks === 0 ? 0 : Math.min(100, Math.round((sessionsCompleted / totalWeeks) * 100))
+
+  // 4. Calculate ongoing status
   let isOngoing = false
   if (
-    todayDate.getTime() >= startDateOnly.getTime() &&
+    todayDate.getTime() >= firstSessionDate.getTime() &&
     todayDate.getTime() <= endDateOnly.getTime() &&
     day &&
     time
@@ -148,8 +167,8 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
       const [startStr, endStr] = time.split(' - ')
       if (startStr && endStr) {
         const parseTime = (str) => {
-          const [time, period] = str.split(' ')
-          let [h, m] = time.split(':').map(Number)
+          const [t, period] = str.split(' ')
+          let [h, m] = t.split(':').map(Number)
           if (period === 'PM' && h < 12) h += 12
           if (period === 'AM' && h === 12) h = 0
           return h * 60 + m
@@ -162,24 +181,26 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
     }
   }
 
-  let status = 'available'
+  let status = 'active'
 
   if (todayDate > endDateOnly) {
     status = 'archived'
   } else if (isOngoing) {
     status = 'ongoing'
-  } else if (todayDate < startDateOnly) {
+  } else if (todayDate < firstSessionDate) {
     status = 'upcoming'
   }
+
+  const elapsedMs = firstSessionDate - todayDate
 
   return {
     status,
     weekInfo:
       currentWeek === 0
-        ? `Starts in ${Math.round(Math.abs(elapsedMs) / (24 * 60 * 60 * 1000))} days`
+        ? `Starts in ${Math.max(0, Math.round(elapsedMs / (24 * 60 * 60 * 1000)))} days`
         : `Week ${currentWeek}/${totalWeeks}`,
     week: currentWeek,
-    remainingSessions: status === 'upcoming' ? totalWeeks : remainingSessions,
+    remainingSessions,
     percentage,
     totalWeeks,
     isOngoing,

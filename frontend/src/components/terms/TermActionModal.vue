@@ -7,10 +7,12 @@ import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
-import { getActionIcon, getProgramProfileURL, getImageUrl } from '@/utils/assetHelper'
+import { getProgramProfileURL, getImageUrl } from '@/utils/assetHelper'
 import { useActionModal } from '@/composables/useActionModal'
 import { calculateClassProgress, formatDateOnly } from '@/utils/formatUtils'
+import { calculateSessionDate, calculateTermEndDate } from '@/utils/sessionHelper'
 import { useDataStore } from '@/stores/dataStore'
+import { useModalText } from '@/composables/useModalText'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -25,11 +27,12 @@ const props = defineProps({
   programId: [String, Number],
   programName: String,
   schedule: Object,
+  allSchedules: { type: Array, default: () => [] },
   teachers: { type: Array, default: () => [] },
   activeBranch: Object,
 })
 
-const emit = defineEmits(['close', 'submit', 'update-teacher'])
+const emit = defineEmits(['close', 'submit', 'update-teacher', 'switch-schedule'])
 
 const dataStore = useDataStore()
 
@@ -66,13 +69,24 @@ const termProgress = computed(() => {
   return completedSessions || 0
 })
 
-const handleTeacherChange = (weekIndex, teacherId) => {
-  emit('update-teacher', {
-    offeringId: props.offeringId,
-    weekIndex,
-    teacherId,
-  })
-}
+const firstClassDate = computed(() => {
+  if (props.type !== 'session' || !props.schedule?.day || !localData.startDate) return null
+  const startDate = new Date(localData.startDate)
+  if (isNaN(startDate.getTime())) return null
+
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+  const targetDayIndex = dayNames.findIndex(
+    (d) => d.toLowerCase() === props.schedule.day.toLowerCase(),
+  )
+
+  if (targetDayIndex !== -1) {
+    const offset = (targetDayIndex - startDate.getDay() + 7) % 7
+    const firstDate = new Date(startDate)
+    firstDate.setDate(startDate.getDate() + offset)
+    return formatDateOnly(firstDate)
+  }
+  return null
+})
 
 const getInitialData = () => ({
   name: '',
@@ -120,6 +134,72 @@ const { localData, shaking, errors, validate, clearError, getPayload } = useActi
 const showConfirm = ref(false)
 const isBranchDropdownOpen = ref(false)
 const dropdownContainer = ref(null)
+const scheduleDropdownOpen = ref(false)
+const schedDropdownRef = ref(null)
+
+const conflictMessage = ref('')
+
+const checkForConflicts = (teacherIds, weekIndex) => {
+  const sourceOffering = currentOffering.value
+  if (!sourceOffering || !sourceOffering.schedule || !props.term || !props.term.offerings)
+    return null
+
+  // teacherIds is an array of IDs from the multi-select
+  for (const tid of teacherIds) {
+    const conflictingOffering = props.term.offerings.find((o) => {
+      // Must be a different branch
+      if (String(o.branchId) === String(sourceOffering.branchId)) return false
+
+      // Must have the same schedule
+      if (
+        !o.schedule ||
+        o.schedule.day !== sourceOffering.schedule.day ||
+        o.schedule.time !== sourceOffering.schedule.time
+      )
+        return false
+
+      // Check if teacher is assigned to this week
+      const sessionTeachers = o.sessionTeachers || []
+      const weekTeachers = sessionTeachers[weekIndex]
+
+      if (weekTeachers && weekTeachers.teachers) {
+        return weekTeachers.teachers.some((t) => String(t.id) === String(tid))
+      } else {
+        // Fallback to default responsible teachers
+        return (o.teacherIds || []).some((id) => String(id) === String(tid))
+      }
+    })
+
+    if (conflictingOffering) {
+      const teacher = props.teachers.find((t) => String(t.id) === String(tid))
+      const branchName =
+        props.branches.find((b) => String(b.id) === String(conflictingOffering.branchId))?.name ||
+        'another branch'
+      return `Conflict: Teacher ${teacher?.name || 'Selected'} is already scheduled at ${branchName} for ${conflictingOffering.schedule.day} ${conflictingOffering.schedule.time} during Week ${weekIndex + 1}.`
+    }
+  }
+  return null
+}
+
+const handleTeacherChange = (weekIndex, teacherIds) => {
+  conflictMessage.value = ''
+
+  const conflict = checkForConflicts(teacherIds, weekIndex)
+  if (conflict) {
+    conflictMessage.value = conflict
+    // Auto-clear message after 5 seconds
+    setTimeout(() => {
+      conflictMessage.value = ''
+    }, 5000)
+    return
+  }
+
+  emit('update-teacher', {
+    offeringId: props.offeringId,
+    weekIndex,
+    teacherId: teacherIds,
+  })
+}
 
 const toggleAllBranches = () => {
   if (localData.branchIds.length === props.branches.length) {
@@ -138,6 +218,25 @@ const handleClickOutside = (event) => {
   ) {
     isBranchDropdownOpen.value = false
   }
+  if (
+    scheduleDropdownOpen.value &&
+    schedDropdownRef.value &&
+    !schedDropdownRef.value.contains(event.target)
+  ) {
+    scheduleDropdownOpen.value = false
+  }
+}
+
+const getSessionTeacherIds = (weekIndex) => {
+  const sessionData = (currentOffering.value?.sessionTeachers || [])[weekIndex]
+  if (!sessionData) return []
+  if (sessionData.teachers && Array.isArray(sessionData.teachers)) {
+    return sessionData.teachers.map((t) => t?.id).filter(Boolean)
+  }
+  if (Array.isArray(sessionData)) {
+    return sessionData.map((t) => t?.id).filter(Boolean)
+  }
+  return sessionData.id ? [sessionData.id] : []
 }
 
 onMounted(() => {
@@ -148,22 +247,13 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', handleClickOutside)
 })
 
-const modalTitle = computed(() => {
+const customTitle = computed(() => {
   if (props.type === 'session') return `Session Management: ${props.programName}`
-  if (props.type === 'edit') return 'Edit Term'
-  if (props.type === 'delete') return 'Delete Term'
-  return 'Add Term'
+  return undefined
 })
 
-const modalIcon = computed(() => {
-  if (props.type === 'delete') return getActionIcon('delete')
-  return props.type === 'add' ? getActionIcon('plus') : getActionIcon('edit')
-})
-
-const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Update'
-  if (props.type === 'delete') return 'Delete'
-  return 'Add'
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Term', {
+  customTitle,
 })
 
 const validationMessage = ref('')
@@ -330,14 +420,15 @@ const duplicateTermLabel = computed(
     '',
 )
 
-// Auto-calculate end date for global
+// Auto-calculate end date for global (schedule-day-aware)
+// The schedule prop gives us the class day — e.g. Wednesday class starting from a Saturday term.
 watch(
   () => [localData.startDate, localData.totalSessions],
   ([start, sessions]) => {
     if (!start || !sessions) return
-    const date = new Date(start)
-    date.setDate(date.getDate() + (parseInt(sessions) - 1) * 7)
-    localData.endDate = date.toISOString().split('T')[0]
+    // Use the schedule day from props if available so end date lands on actual last session
+    const scheduleDay = props.schedule?.day
+    localData.endDate = calculateTermEndDate(start, sessions, scheduleDay)
   },
 )
 
@@ -380,16 +471,19 @@ const getBranchSetting = (branchId) => {
   return setting
 }
 
-// Auto-calculate end dates for branch settings reactively to avoid side-effects in render
+// Auto-calculate end dates for branch settings (schedule-day-aware)
 watch(
   () => [localData.branchSettings, localData.totalSessions],
   () => {
     if (!localData.branchSettings || !localData.totalSessions) return
+    const scheduleDay = props.schedule?.day
     localData.branchSettings.forEach((setting) => {
       if (!setting.startDate) return
-      const date = new Date(setting.startDate)
-      date.setDate(date.getDate() + (parseInt(localData.totalSessions) - 1) * 7)
-      setting.endDate = date.toISOString().split('T')[0]
+      setting.endDate = calculateTermEndDate(
+        setting.startDate,
+        localData.totalSessions,
+        scheduleDay,
+      )
     })
   },
   { deep: true, immediate: true },
@@ -426,35 +520,113 @@ watch(
     @close="$emit('close')"
   >
     <template #header v-if="type === 'session'">
-      <div class="flex flex-col">
-        <div class="flex items-center gap-4">
-          <div
-            class="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm border border-outline-std p-2 overflow-hidden"
-          >
-            <img
-              :src="getProgramProfileURL(program?.profileURL, program?.category)"
-              class="w-full h-full object-contain"
-            />
-          </div>
-          <div class="flex flex-col">
-            <h3 class="text-2xl font-bold text-content-dark">Weekly Faculty Assignment</h3>
-            <div class="flex items-center gap-2 mt-1">
-              <span class="text-sm font-bold text-primary">{{ programName }}</span>
-              <span class="text-xs font-bold text-content-muted/40">•</span>
-              <span class="text-xs font-bold text-content-muted">
-                {{ schedule?.day }} {{ schedule?.time }}
-              </span>
+      <div class="flex justify-between items-start w-full gap-4 pr-lg">
+        <div class="flex flex-col">
+          <div class="flex items-center gap-4">
+            <div
+              class="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm border border-outline-std p-2 overflow-hidden"
+            >
+              <img
+                :src="getProgramProfileURL(program?.profileURL, program?.category)"
+                class="w-full h-full object-contain"
+              />
+            </div>
+            <div class="flex flex-col">
+              <h3 class="text-2xl font-bold text-content-dark">Manage Class Sessions</h3>
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-sm font-bold text-primary">{{ programName }}</span>
+                <span class="text-xs font-bold text-content-muted/40">•</span>
+                <span class="text-xs font-bold text-content-muted">
+                  {{ schedule?.day }} {{ schedule?.time }}
+                </span>
+              </div>
             </div>
           </div>
+        </div>
+        <!-- Schedule Dropdown Switcher (shown when program has multiple schedules) -->
+        <div v-if="allSchedules && allSchedules.length > 1" class="relative" ref="schedDropdownRef">
+          <!-- Trigger Button -->
+          <button
+            type="button"
+            class="flex items-center gap-3 px-4 py-2.5 bg-white border-2 border-outline-std rounded-xl text-sm font-bold text-content-dark hover:border-primary/50 hover:shadow-sm transition-all duration-200 w-full justify-between group"
+            @click="scheduleDropdownOpen = !scheduleDropdownOpen"
+          >
+            <div class="flex items-center gap-2.5">
+              <span class="text-base">📅</span>
+              <div class="flex flex-col items-start leading-tight">
+                <span class="text-3xs font-bold text-content-muted/60 uppercase tracking-widest"
+                  >Active Schedule</span
+                >
+                <span class="font-bold text-content-dark">
+                  {{ schedule?.day || 'Select Schedule' }}
+                  <span class="text-content-muted font-semibold ml-1">{{ schedule?.time }}</span>
+                </span>
+              </div>
+            </div>
+            <span
+              class="text-content-muted text-xs transition-transform duration-200"
+              :class="{ 'rotate-180': scheduleDropdownOpen }"
+              >▼</span
+            >
+          </button>
+          <!-- Dropdown Menu -->
+          <transition
+            enter-active-class="transition duration-150 ease-out"
+            enter-from-class="opacity-0 scale-95 -translate-y-1"
+            enter-to-class="opacity-100 scale-100 translate-y-0"
+            leave-active-class="transition duration-100 ease-in"
+            leave-from-class="opacity-100 scale-100 translate-y-0"
+            leave-to-class="opacity-0 scale-95 -translate-y-1"
+          >
+            <div
+              v-if="scheduleDropdownOpen"
+              class="absolute top-full left-0 right-0 mt-2 bg-white border-2 border-outline-std rounded-md shadow-xl shadow-primary/10 z-50 overflow-hidden"
+            >
+              <div class="p-1.5 flex flex-col gap-0.5">
+                <button
+                  v-for="sched in allSchedules"
+                  :key="sched.offeringId"
+                  type="button"
+                  class="flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-bold transition-all duration-150 w-full text-left"
+                  :class="
+                    String(sched.offeringId) === String(offeringId)
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-content-dark hover:bg-surface-subtle hover:text-primary'
+                  "
+                  @click="
+                    () => {
+                      $emit('switch-schedule', sched)
+                      scheduleDropdownOpen = false
+                    }
+                  "
+                >
+                  <span
+                    class="text-base"
+                    :class="
+                      String(sched.offeringId) === String(offeringId) ? 'opacity-100' : 'opacity-60'
+                    "
+                    >📅</span
+                  >
+                  <div class="flex flex-col leading-tight">
+                    <span class="font-bold">{{ sched.day }}</span>
+                    <span class="text-xs font-semibold opacity-70">{{ sched.time }}</span>
+                  </div>
+                  <span
+                    v-if="String(sched.offeringId) === String(offeringId)"
+                    class="ml-auto text-xs font-black opacity-80"
+                    >✓ Active</span
+                  >
+                </button>
+              </div>
+            </div>
+          </transition>
         </div>
       </div>
     </template>
 
-    <div v-if="type === 'session'" class="flex flex-col gap-8 py-4">
+    <div v-if="type === 'session'" class="flex flex-col gap-8">
       <!-- Class Identity Panel -->
-      <div
-        class="bg-primary-soft rounded-2xl p-8 border border-primary/60 relative overflow-hidden"
-      >
+      <div class="bg-primary-soft rounded-md p-8 border border-primary/60 relative overflow-hidden">
         <!-- Abstract Background Shape -->
         <div class="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
 
@@ -522,16 +694,16 @@ watch(
       </div>
 
       <!-- Assignment Controls Header -->
-      <div class="flex items-center justify-between px-2 mt-4">
+      <div class="flex items-center justify-between">
         <div class="flex flex-col">
           <h4 class="text-sm font-bold text-content-dark">Session Assignments</h4>
-          <p class="text-xs font-bold text-content-muted mt-1">
+          <p class="text-xs font-bold text-content-muted">
             Showing only specialists for
             <span class="text-primary font-bold">{{ programName }}</span>
           </p>
         </div>
         <div class="flex items-center gap-3">
-          <div class="flex -space-x-2">
+          <div class="flex">
             <img
               v-for="t in filteredTeachers.slice(0, 3)"
               :key="t.id"
@@ -548,6 +720,14 @@ watch(
           <span class="text-xs font-semibold text-content-muted/60">Available Experts</span>
         </div>
       </div>
+
+      <AppAlert
+        v-if="conflictMessage"
+        type="error"
+        class="mb-6 w-full animate-in fade-in slide-in-from-top-2"
+      >
+        {{ conflictMessage }}
+      </AppAlert>
 
       <!-- Sessions Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -586,7 +766,16 @@ watch(
               </span>
             </div>
             <div class="flex flex-col items-end">
-              <span class="text-xs font-semibold text-content-muted/40 leading-none"
+              <span class="text-xs font-semibold text-content-dark leading-none">
+                {{
+                  calculateSessionDate(
+                    localData?.startDate || term?.startDate,
+                    currentOffering?.schedule?.day,
+                    i,
+                  )
+                }}
+              </span>
+              <span class="text-xs font-semibold text-content-muted/40 leading-none mt-1"
                 >Session {{ i }}</span
               >
               <span v-if="i <= termProgress" class="text-xs font-semibold text-green-500/60 mt-1"
@@ -597,9 +786,9 @@ watch(
 
           <div class="flex flex-col gap-3 mt-2 relative z-10">
             <div class="flex items-center justify-between ml-1">
-              <span class="text-xs font-semibold text-content-muted">Assign Faculty</span>
+              <span class="text-xs font-semibold text-content-muted">Assign Teacher</span>
               <span
-                v-if="(currentOffering?.sessionTeachers || [])[i - 1]"
+                v-if="getSessionTeacherIds(i - 1).length > 0"
                 class="text-xs font-semibold text-green-500 flex items-center gap-1"
               >
                 <span class="w-1 h-1 rounded-full bg-green-500"></span> Assigned
@@ -614,39 +803,17 @@ watch(
 
             <AppSelect
               :modelValue="
-                (currentOffering?.sessionTeachers || [])[i - 1]?.id || responsibleTeachers[0]?.id
+                getSessionTeacherIds(i - 1).length > 0
+                  ? getSessionTeacherIds(i - 1)
+                  : responsibleTeachers.map((t) => t?.id).filter(Boolean)
               "
               :items="filteredTeachers"
-              placeholder="Select Specialist..."
+              placeholder="Select Specialists..."
+              :multiple="true"
               size="lg"
               class="!bg-surface-subtle/30 !rounded-xl border-outline-std group-hover/session:border-primary/30 transition-colors"
               @change="(val) => handleTeacherChange(i - 1, val)"
             >
-              <template #selected="{ item: t }">
-                <div v-if="t" class="flex items-center gap-3 py-1">
-                  <div class="relative">
-                    <img
-                      :src="t.profileURL || getImageUrl('profiles/avatar-teacher-man')"
-                      class="w-7 h-7 rounded-full border-2 border-white shadow-sm"
-                    />
-                    <div
-                      class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"
-                    ></div>
-                  </div>
-                  <div class="flex flex-col">
-                    <span
-                      class="text-sm font-bold text-content-dark truncate max-w-36 leading-tight"
-                      >{{ t.name }}</span
-                    >
-                    <span class="text-xs font-semibold text-primary"
-                      >{{ t.branchAbbr || 'HQ' }} Specialist</span
-                    >
-                  </div>
-                </div>
-                <div v-else class="flex items-center gap-2 py-1 opacity-60 italic">
-                  <span class="text-xs font-bold text-content-muted">No instructor assigned</span>
-                </div>
-              </template>
               <template #item="{ item: t }">
                 <div class="flex items-center gap-4 py-1">
                   <div class="relative">
@@ -809,15 +976,29 @@ watch(
           v-if="localData.branchIds.length === 0"
           class="grid grid-cols-2 gap-lg animate-in fade-in slide-in-from-top-2 duration-300"
         >
-          <AppInput
-            v-model="localData.startDate"
-            type="date"
-            label="Start Date"
-            required
-            :error="errors.startDate"
-            :shake="shaking.startDate"
-            @input="clearError('startDate')"
-          />
+          <div class="flex flex-col">
+            <AppInput
+              v-model="localData.startDate"
+              type="date"
+              label="Start Date"
+              required
+              :error="errors.startDate"
+              :shake="shaking.startDate"
+              @input="clearError('startDate')"
+            />
+            <!-- First Class Date Hint -->
+            <div
+              v-if="type === 'session' && firstClassDate"
+              class="mt-2 p-2.5 bg-primary/5 rounded-md border border-primary/20 flex items-start gap-2"
+            >
+              <span class="text-sm mt-0.5">📅</span>
+              <p class="text-xs text-content-dark leading-tight">
+                First session: <span class="font-bold text-primary">{{ firstClassDate }}</span>
+                <br />
+                <span class="text-content-muted/80">End date auto-set based on sessions</span>
+              </p>
+            </div>
+          </div>
           <AppInput
             v-model="localData.endDate"
             type="date"
@@ -951,7 +1132,7 @@ watch(
       <!-- ── Confirmation Overlay ── -->
       <AppConfirmOverlay
         :show="showConfirm"
-        :title="type === 'delete' ? 'Delete Term' : type === 'edit' ? 'Edit Term' : 'Add Term'"
+        :title="modalTitle"
         :subtitle="
           type === 'delete'
             ? 'This action will permanently erase this academic term and its historical data.'
@@ -989,7 +1170,7 @@ watch(
             <span class="text-4xs font-black uppercase tracking-wider">Auto-Saved</span>
           </div>
           <span class="text-xs font-bold italic opacity-60"
-            >Faculty list is restricted to specialists for this program.</span
+            >Teachers are filtered to specialists for this program.</span
           >
         </div>
         <div class="flex items-center gap-3">

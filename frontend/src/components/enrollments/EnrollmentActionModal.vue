@@ -10,6 +10,7 @@ import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import { getActionIcon } from '@/utils/assetHelper'
 import { formatPrice, formatDateOnly } from '@/utils/formatUtils'
+import { useModalText } from '@/composables/useModalText'
 import { getSessionCounts } from '@/utils/programHelper'
 import { getProgramProfileURL } from '@/utils/assetHelper'
 
@@ -516,24 +517,7 @@ const setStudent = (studentId) => {
   handleStudentChange()
 }
 
-const modalTitle = computed(() => {
-  const titles = {
-    pay: 'Pay Enrollment',
-    cancel: 'Cancel Enrollment',
-    delete: 'Delete Enrollment',
-    edit: 'Edit Enrollment',
-    add: 'Add Enrollment',
-  }
-  return titles[props.type] || 'Enrollment Action'
-})
-
-const submitLabel = computed(() => {
-  if (props.type === 'pay') return 'Pay'
-  if (props.type === 'cancel') return 'Cancel'
-  if (props.type === 'delete') return 'Delete'
-  if (props.type === 'edit') return 'Update'
-  return 'Add'
-})
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Enrollment')
 
 defineExpose({ setStudent })
 </script>
@@ -543,7 +527,7 @@ defineExpose({ setStudent })
     :show="isOpen"
     @close="$emit('close')"
     :title="modalTitle"
-    :icon="getActionIcon(isEditMode ? 'edit' : 'plus')"
+    :icon="modalIcon"
     :error="error"
     :success="success"
   >
@@ -1210,15 +1194,8 @@ defineExpose({ setStudent })
 
       <AppConfirmOverlay
         :show="showConfirm"
-        :title="
-          type === 'cancel'
-            ? 'Cancel Enrollment'
-            : type === 'delete'
-              ? 'Delete Enrollment'
-              : type === 'pay'
-                ? 'Confirm Payment'
-                : 'Confirm Enrollment'
-        "
+        :title="modalTitle"
+        :icon="modalIcon"
         :subtitle="
           type === 'cancel'
             ? 'This will immediately cancel the enrollment and free up the schedule spot.'
@@ -1226,7 +1203,6 @@ defineExpose({ setStudent })
               ? 'This action is irreversible and deletes historical records.'
               : 'Please verify details before proceeding.'
         "
-        :icon="modalIcon"
         :image="selectedStudent?.profileURL || getImageUrl('profiles/avatar-student')"
         :rows="confirmRows"
         :totalAmount="finalAmount"

@@ -15,6 +15,7 @@ import { scheduleService } from '@/services/scheduleService'
 import { teacherService } from '@/services/teacherService'
 import { branchService } from '@/services/branchService'
 import { classService } from '@/services/classService'
+import { useModalText } from '@/composables/useModalText'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -136,25 +137,13 @@ const filteredSchedules = computed(() => {
   })
 })
 
-const modalTitle = computed(() => {
-  if (props.type === 'delete') return 'Delete Class'
+const customTitle = computed(() => {
   if (props.type === 'remove') return `Remove Class from ${props.context?.termName || 'Term'}`
-  if (props.context) {
-    return 'Select Class'
-  }
-
-  if (props.type === 'edit') {
-    return 'Edit Class'
-  }
-  return 'Add Class'
+  if (props.context) return 'Select Class'
+  return undefined
 })
 
-const submitLabel = computed(() => {
-  if (props.type === 'delete') return 'Delete'
-  if (props.type === 'remove') return 'Delete'
-  if (props.type === 'edit') return 'Update'
-  return 'Add'
-})
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Class', { customTitle })
 
 const validationMessage = ref('')
 const isFormInvalid = computed(() => {
@@ -596,7 +585,7 @@ const selectAllBranches = () => {
   <AppModal
     :show="isOpen"
     :title="modalTitle"
-    :icon="getActionIcon(type === 'delete' ? 'delete' : 'plus')"
+    :icon="modalIcon"
     :error="error"
     :success="success"
     maxWidth="720px"
@@ -1229,7 +1218,7 @@ const selectAllBranches = () => {
         ? 'This action cannot be undone.'
         : 'Please review the class configuration below.'
     "
-    :icon="modalIcon"
+    :icon="getActionIcon(type)"
     :image="getProgramProfileURL(selectedProgram?.profileURL, selectedProgram?.category)"
     :rows="confirmRows"
     :confirmLabel="submitLabel"

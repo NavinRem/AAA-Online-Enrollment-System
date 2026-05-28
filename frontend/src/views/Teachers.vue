@@ -55,8 +55,14 @@ const getTeacherAssignments = (teacherId) => {
   const assignments = []
   allTerms.value.forEach((term) => {
     ;(term.offerings || []).forEach((offering) => {
-      const isAssigned = (offering.teachers || []).some((t) => t.id === teacherId)
-      if (isAssigned) {
+      const isDefaultAssigned = (offering.teachers || []).some((t) => t.id === teacherId)
+      const isInSessions = (offering.sessionTeachers || []).some((st) => {
+        if (!st) return false
+        if (st.teachers && Array.isArray(st.teachers)) return st.teachers.some(t => t && t.id === teacherId)
+        if (Array.isArray(st)) return st.some(t => t && t.id === teacherId)
+        return st && st.id === teacherId
+      })
+      if (isDefaultAssigned || isInSessions) {
         assignments.push({
           termName: term.name,
           ...offering,
@@ -443,9 +449,9 @@ const handleAction = (type, item, closeMenu) => {
 
             <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[4].width }">
               <div class="flex flex-wrap gap-2">
-                <template v-if="getPrograms(item.programIds).length > 0">
+                <template v-if="getPrograms(item.programIds).length > 0 || getTeacherAssignments(item.id).map(a => a.program).filter(Boolean).length > 0">
                   <div
-                    v-for="prog in getPrograms(item.programIds)"
+                    v-for="prog in Array.from(new Map([...getPrograms(item.programIds), ...getTeacherAssignments(item.id).map(a => a.program).filter(Boolean)].map(p => [p.id, p])).values())"
                     :key="prog.id"
                     class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-primary-soft border border-primary/10 group-hover:bg-white group-hover:border-primary transition-all duration-300"
                   >

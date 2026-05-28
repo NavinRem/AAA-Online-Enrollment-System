@@ -10,6 +10,7 @@ const normalize = (val) =>
 const resolveAsset = (category, path) => {
   if (
     !path ||
+    typeof path !== 'string' ||
     path.startsWith('http') ||
     path.startsWith('/') ||
     path.startsWith('data:') ||

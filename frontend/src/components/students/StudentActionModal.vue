@@ -11,6 +11,7 @@ import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { calculateAge } from '@/utils/formatUtils'
 import { useActionModal } from '@/composables/useActionModal'
+import { useModalText } from '@/composables/useModalText'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -54,6 +55,7 @@ const { localData, isDirty, errors, shaking, clearError, validate, getPayload } 
 })
 
 const showConfirm = ref(false)
+const validationMessage = ref('')
 
 const requestConfirm = () => {
   validationMessage.value = ''
@@ -126,26 +128,21 @@ const confirmRows = computed(() => {
   return rows
 })
 
-const modalTitle = computed(() => {
+const customTitle = computed(() => {
   const titles = {
-    add: 'Add Student',
-    edit: 'Edit Student',
-    delete: 'Delete Student',
     override: 'Manual Status Override',
     'enrollment-override': 'Enrollment Status Override',
     'enrollment-delete': 'Delete Enrollment',
   }
-  return titles[props.type] || 'Add Student'
+  return titles[props.type]
 })
 
-const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Update'
+const customSubmit = computed(() => {
   if (props.type?.includes('delete')) return 'Delete'
-  if (props.type === 'add') return 'Add'
-  return 'Update'
+  if (props.type === 'override' || props.type === 'enrollment-override') return 'Update'
+  return undefined
 })
 
-const validationMessage = ref('')
 const isFormInvalid = computed(() => {
   if (props.type?.includes('delete')) return !localData.deleteConfirm
   const baseInvalid = !localData.name || !localData.dob
@@ -155,10 +152,7 @@ const isFormInvalid = computed(() => {
   return baseInvalid
 })
 
-const modalIcon = computed(() => {
-  if (props.type?.includes('delete')) return getActionIcon('delete')
-  return getActionIcon('edit')
-})
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Student', { customTitle, customSubmit })
 
 const studentTheme = computed(() => {
   const url = (localData.profileURL || '').toLowerCase()

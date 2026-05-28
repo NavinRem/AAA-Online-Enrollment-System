@@ -13,6 +13,7 @@ import { levelService } from '@/services/levelService'
 import { programService } from '@/services/programService'
 import { storageService } from '@/services/storageService'
 import { useActionModal } from '@/composables/useActionModal'
+import { useModalText } from '@/composables/useModalText'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -24,6 +25,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'submit', 'update:error', 'update:success', 'lookup-deleted'])
+
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Program')
 
 const getInitialData = () => ({
   name: '',
@@ -139,26 +142,6 @@ const sortedLevels = computed(() => {
     ...l,
     profileURL: selectedCategory.value?.profileURL || getImageUrl('common/logo-main'),
   }))
-})
-
-const modalTitle = computed(() => {
-  if (props.type === 'edit') return 'Edit Program'
-  if (props.type === 'delete') return 'Delete Program'
-  return 'Add Program'
-})
-
-const modalIcon = computed(() => {
-  if (props.type === 'delete') return getActionIcon('delete')
-  return (
-    selectedCategory.value?.profileURL ||
-    (props.type === 'add' ? getActionIcon('plus') : getActionIcon('edit'))
-  )
-})
-
-const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Update'
-  if (props.type === 'delete') return 'Delete'
-  return 'Add'
 })
 
 const fetchCategories = async () => {

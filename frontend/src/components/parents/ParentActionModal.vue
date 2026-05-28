@@ -15,6 +15,8 @@ import { auth } from '@/firebase'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { useDataStore } from '@/stores/dataStore'
 import { parentService } from '@/services/parentService'
+import { studentService } from '@/services/studentService'
+import { useModalText } from '@/composables/useModalText'
 import { processParentProfileImage, prepareParentPayload } from '@/utils/parentHelper'
 
 const selectedResetMode = ref(null)
@@ -264,29 +266,12 @@ const parentThemeClasses = computed(() => {
   return 'bg-gradient-to-br from-bg-subtle to-bg-light border-outline-std'
 })
 
-const modalTitle = computed(() => {
-  const titles = {
-    add: 'Add Parent',
-    edit: 'Edit Parent',
-    deactivate: 'Deactivate Parent',
-    activate: 'Activate Parent',
-    delete: 'Delete Parent',
-    plus: 'Add Child',
-    'reset-password': 'Reset Password',
-  }
-  return titles[props.type] || 'Parent Action'
+const customTitle = computed(() => {
+  if (props.type === 'plus') return 'Add Child'
+  return undefined
 })
 
-const submitLabel = computed(() => {
-  if (props.type === 'add') return 'Add'
-  if (props.type === 'plus') return 'Add'
-  if (props.type === 'deactivate') return 'Update'
-  if (props.type === 'activate') return 'Update'
-  if (props.type === 'edit') return 'Update'
-  if (props.type === 'delete') return 'Delete'
-  if (props.type === 'reset-password') return 'Reset'
-  return 'Confirm'
-})
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Parent', { customTitle })
 
 const validationMessage = ref('')
 const isFormInvalid = computed(() => {
@@ -346,7 +331,7 @@ watch(
     :title="modalTitle"
     variant="action"
     @close="$emit('close')"
-    :icon="getActionIcon(type)"
+    :icon="modalIcon"
     :error="error"
     :success="success"
   >
@@ -626,7 +611,7 @@ watch(
           ? 'This action is irreversible. All data will be permanently erased.'
           : 'Please verify details before proceeding.'
       "
-      :icon="getActionIcon(type)"
+      :icon="modalIcon"
       :image="
         localData.profileURL ||
         (type === 'plus'

@@ -353,12 +353,13 @@ const getGroupedSettings = (item) => {
     const key = `${setting.startDate}_${setting.endDate}`
     let group = groups.find((g) => g.key === key)
     if (!group) {
-      const progress = calculateClassProgress(setting.startDate, setting.endDate)
+      const progress = calculateClassProgress(setting.startDate, setting.endDate, null, null, item.totalSessions)
       group = {
         key,
         startDate: setting.startDate,
         endDate: setting.endDate,
         status: progress.status,
+        totalSessions: item.totalSessions,
         branchIds: [],
       }
       groups.push(group)
@@ -513,7 +514,7 @@ const getGroupedSettings = (item) => {
               </div>
             </td>
 
-            <!-- Status Column -->
+            <!-- Status Column: computed live so it reflects today's actual state -->
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center justify-center gap-4 py-6">
                 <template v-if="item.branchSettings?.length">
@@ -522,12 +523,12 @@ const getGroupedSettings = (item) => {
                     :key="group.key"
                     class="flex items-center justify-center h-8"
                   >
-                    <AppBadge :status="group.status" />
+                    <AppBadge :status="calculateClassProgress(group.startDate, group.endDate, null, null, group.totalSessions).status" />
                   </div>
                 </template>
                 <template v-else>
                   <div class="flex items-center justify-center h-8">
-                    <AppBadge :status="item.status" />
+                    <AppBadge :status="calculateClassProgress(item.startDate, item.endDate, null, null, item.totalSessions).status" />
                   </div>
                 </template>
               </div>
@@ -543,7 +544,7 @@ const getGroupedSettings = (item) => {
                   >
                     <div class="flex items-center min-w-10 leading-none gap-1">
                       <span class="text-sm font-bold text-content-dark">{{
-                        calculateClassProgress(group.startDate, group.endDate).remainingSessions
+                        calculateClassProgress(group.startDate, group.endDate, null, null, group.totalSessions).remainingSessions
                       }}</span>
                       <span class="text-xs font-bold text-content-dark/60">Left</span>
                     </div>
@@ -554,7 +555,7 @@ const getGroupedSettings = (item) => {
                         class="h-full bg-primary transition-all duration-700"
                         :style="{
                           width:
-                            calculateClassProgress(group.startDate, group.endDate).percentage + '%',
+                            calculateClassProgress(group.startDate, group.endDate, null, null, group.totalSessions).percentage + '%',
                         }"
                       ></div>
                       <div
@@ -562,7 +563,7 @@ const getGroupedSettings = (item) => {
                         :style="{
                           width:
                             100 -
-                            calculateClassProgress(group.startDate, group.endDate).percentage +
+                            calculateClassProgress(group.startDate, group.endDate, null, null, group.totalSessions).percentage +
                             '%',
                         }"
                       ></div>
@@ -571,7 +572,7 @@ const getGroupedSettings = (item) => {
                 </template>
                 <template v-else>
                   <div
-                    v-for="(prog, index) in [calculateClassProgress(item.startDate, item.endDate)]"
+                    v-for="(prog, index) in [calculateClassProgress(item.startDate, item.endDate, null, null, item.totalSessions)]"
                     :key="index"
                     class="w-full max-w-40 flex items-center gap-3 h-8 justify-center"
                   >

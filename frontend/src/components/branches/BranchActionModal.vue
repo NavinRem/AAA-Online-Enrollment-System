@@ -8,6 +8,7 @@ import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { getActionIcon } from '@/utils/assetHelper'
 import { useActionModal } from '@/composables/useActionModal'
+import { useModalText } from '@/composables/useModalText'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -19,6 +20,8 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'submit'])
+
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Branch')
 
 const getInitialData = () => ({
   name: '',
@@ -61,23 +64,6 @@ const colorOptions = [
   'pink',
   'gray',
 ]
-
-const modalTitle = computed(() => {
-  if (props.type === 'edit') return 'Edit Branch'
-  if (props.type === 'delete') return 'Delete Branch'
-  return 'Add Branch'
-})
-
-const modalIcon = computed(() => {
-  if (props.type === 'delete') return getActionIcon('delete')
-  return props.type === 'add' ? getActionIcon('plus') : getActionIcon('edit')
-})
-
-const submitLabel = computed(() => {
-  if (props.type === 'edit') return 'Update'
-  if (props.type === 'delete') return 'Delete'
-  return 'Add'
-})
 
 const requestConfirm = () => {
   validationMessage.value = ''

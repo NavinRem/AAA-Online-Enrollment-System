@@ -12,14 +12,15 @@ import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetH
 import {
   formatPrice,
   formatShortDate,
+  formatDateOnly,
   calculateClassProgress,
   calculateOfferingStatus,
 } from '@/utils/formatUtils'
+import { calculateTermEndDate } from '@/utils/sessionHelper'
 import TermActionModal from '@/components/terms/TermActionModal.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { teacherService } from '@/services/teacherService'
-import { classService } from '@/services/classService'
 import { useSearch, classSearchMapper, studentSearchMapper } from '@/composables/useSearch'
 import { useTableActions } from '@/composables/useTableActions'
 
@@ -167,7 +168,25 @@ const rawBranchOfferings = computed(() => {
       })
       .filter(Boolean)
 
-    const responsibleTeachers = (off.teacherIds || [])
+    const responsibleTeacherIds = new Set((off.teacherIds || []).map(String))
+    
+    // Merge teachers from specific sessions so they show in the table
+    ;(off.sessionTeachers || []).forEach(sessionData => {
+      if (!sessionData) return
+      let sessionTeachersArray = []
+      if (sessionData.teachers && Array.isArray(sessionData.teachers)) {
+        sessionTeachersArray = sessionData.teachers
+      } else if (Array.isArray(sessionData)) {
+        sessionTeachersArray = sessionData
+      } else if (sessionData.id) {
+        sessionTeachersArray = [sessionData]
+      }
+      sessionTeachersArray.forEach(t => {
+        if (t && t.id) responsibleTeacherIds.add(String(t.id))
+      })
+    })
+
+    const responsibleTeachers = Array.from(responsibleTeacherIds)
       .map((tid) => {
         return (teachers.value || []).find((t) => String(t.id) === String(tid))
       })
@@ -512,78 +531,56 @@ const sessionModal = ref({
   schedule: null,
 })
 
+/**
+ * Initializes sessionTeachers for a given offering if they are unset.
+ * Automatically seeds with the offering's default responsible teachers.
+ */
+const initializeOfferingTeachers = async (offeringId) => {
+  const offering = (term.value?.offerings || []).find((o) => String(o.offeringId) === String(offeringId))
+  if (!offering) return
+
+  const currentSessions = offering.sessionTeachers || []
+  const needsInit = currentSessions.length === 0 || currentSessions.every((t) => t === null)
+  if (!needsInit) return // Already has data
+
+  const responsibleTeachers = (offering.teacherIds || [])
+    .map((tid) => teachers.value.find((t) => String(t.id) === String(tid)))
+    .filter(Boolean)
+
+  if (responsibleTeachers.length === 0) return // No teachers to seed with
+
+  const primaryTeacher = responsibleTeachers[0]
+  const defaultTeacherData = {
+    teachers: [{ id: primaryTeacher.id, name: primaryTeacher.name, profileURL: primaryTeacher.profileURL }],
+  }
+  const newSessionTeachers = Array(term.value.totalSessions).fill(defaultTeacherData)
+
+  try {
+    await termService.updateTermOffering(term.value.id, offering.offeringId, {
+      sessionTeachers: newSessionTeachers,
+    })
+    // Mutate in place so Vue picks up the change without full re-fetch
+    offering.sessionTeachers = [...newSessionTeachers]
+    term.value = { ...term.value } // Trigger deep reactivity
+  } catch (err) {
+    console.error('Failed to initialize session teachers for offering', offeringId, err)
+  }
+}
+
 const openSessionModal = async (item) => {
   if (!item || !item.schedules || item.schedules.length === 0) return
 
-  const sched = item.schedules[0]
-  const offering = (term.value?.offerings || []).find((o) => o.offeringId === sched.offeringId)
+  // Initialize ALL schedules' session teachers upfront so switching tabs works immediately
+  await Promise.all(item.schedules.map((s) => initializeOfferingTeachers(s.offeringId)))
 
-  if (offering) {
-    // Check if sessionTeachers needs initialization (if all slots are empty/null)
-    const currentSessions = offering.sessionTeachers || []
-    const needsInit = currentSessions.length === 0 || currentSessions.every((t) => t === null)
-
-    // If we have responsible teachers assigned to the offering, use them
-    const responsibleTeachers = (offering.teacherIds || [])
-      .map((tid) => {
-        return teachers.value.find((t) => String(t.id) === String(tid))
-      })
-      .filter(Boolean)
-
-    if (needsInit && responsibleTeachers.length > 0) {
-      const primaryTeacher = responsibleTeachers[0]
-      const defaultTeacherData = {
-        id: primaryTeacher.id,
-        name: primaryTeacher.name,
-        profileURL: primaryTeacher.profileURL,
-      }
-
-      const newSessionTeachers = Array(term.value.totalSessions).fill(defaultTeacherData)
-
-      try {
-        // Sync to all affected offerings (same day logic)
-        const affectedOfferings = (term.value.offerings || []).filter(
-          (o) =>
-            String(o.branchId) === String(activeBranchId.value) &&
-            (o.classId === offering.classId || o.programId === offering.programId) &&
-            o.schedule?.day === offering.schedule?.day,
-        )
-
-        await Promise.all(
-          affectedOfferings.map(async (off) => {
-            await termService.updateTermOffering(term.value.id, off.offeringId, {
-              sessionTeachers: newSessionTeachers,
-            })
-            off.sessionTeachers = [...newSessionTeachers]
-          }),
-        )
-
-        // Also update the global class blueprint with these teacher IDs
-        // to ensure "responsible teachers" are synchronized as requested
-        const classId = offering.classId || offering.programId
-        if (classId) {
-          const currentTeacherIds = offering.teacherIds || []
-          if (!currentTeacherIds.includes(primaryTeacher.id)) {
-            const updatedTeacherIds = [...new Set([...currentTeacherIds, primaryTeacher.id])]
-            await classService.updateClass(classId, { teacherIds: updatedTeacherIds })
-            await dataStore.fetchClasses(true) // Refresh global store
-          }
-        }
-
-        // Trigger reactivity for term object
-        term.value = { ...term.value }
-      } catch (err) {
-        console.error('Failed to auto-initialize session teachers:', err)
-      }
-    }
-  }
-
+  const firstSched = item.schedules[0]
   sessionModal.value = {
     isOpen: true,
-    offeringId: sched.offeringId,
+    offeringId: firstSched.offeringId,
     programId: item.program?.id,
     programName: item.program?.name || 'Class',
-    schedule: sched,
+    schedule: firstSched,
+    allSchedules: item.schedules, // Pass all so modal can show schedule tabs
   }
 }
 
@@ -624,19 +621,22 @@ const openModal = (type) => {
   modal.value.isOpen = true
 }
 
-const updateSessionTeacher = async (offeringId, weekIndex, teacherId) => {
+const updateSessionTeacher = async (offeringId, weekIndex, teacherIds) => {
   try {
     const sourceOffering = (term.value.offerings || []).find((o) => o.offeringId === offeringId)
     if (!sourceOffering) return
 
-    const teacher = teachers.value.find((t) => t.id === teacherId)
-    const teacherData = teacher
-      ? {
-          id: teacher.id,
-          name: teacher.name,
-          profileURL: teacher.profileURL,
-        }
-      : null
+    // teacherIds is now an array of IDs from the multi-select
+    const selectedTeachersData = (teacherIds || []).map(tid => {
+      const teacher = teachers.value.find((t) => t.id === tid)
+      return teacher
+        ? {
+            id: teacher.id,
+            name: teacher.name,
+            profileURL: teacher.profileURL,
+          }
+        : null
+    }).filter(Boolean)
 
     // Find all offerings for the same program/class and day in this branch
     // This allows assigning a teacher once for the whole day at this branch
@@ -655,7 +655,8 @@ const updateSessionTeacher = async (offeringId, weekIndex, teacherId) => {
           sessionTeachers.push(null)
         }
 
-        sessionTeachers[weekIndex] = teacherData
+        // Store it as an object to prevent Firestore INVALID_ARGUMENT (nested array) error
+        sessionTeachers[weekIndex] = { teachers: selectedTeachersData }
 
         await termService.updateTermOffering(term.value.id, off.offeringId, {
           sessionTeachers: sessionTeachers,
@@ -911,13 +912,16 @@ const handleActionSubmit = async (payload) => {
                   <div
                     v-for="(sched, idx) in item.schedules"
                     :key="sched.offeringId || idx"
-                    class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm min-w-32"
+                    class="flex flex-col items-center justify-center py-2 bg-primary-light group-hover:bg-primary/30 px-lg rounded-sm min-w-32"
                   >
                     <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
                     <span
                       class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums"
                       >{{ sched.time }}</span
                     >
+                    <span class="text-4xs font-bold text-primary/70 mt-1 uppercase tracking-wider" v-if="term?.startDate && term?.totalSessions">
+                      Ends {{ formatDateOnly(calculateTermEndDate(term.startDate, term.totalSessions, sched.day)) }}
+                    </span>
                   </div>
                 </div>
               </td>
@@ -1015,10 +1019,11 @@ const handleActionSubmit = async (payload) => {
                             }
                           "
                         >
-                          <span class="opacity-70 group-hover:opacity-100 transition-opacity"
-                            >📋</span
-                          >
-                          <span class="font-semibold">Manage Faculty</span>
+                          <img
+                            :src="getActionIcon('edit')"
+                            class="w-4 h-4 opacity-40 group-hover:opacity-100 transition-opacity"
+                          />
+                          <span class="font-semibold">Manage Class</span>
                         </button>
 
                         <div class="h-px bg-surface-light mx-1 my-1"></div>
@@ -1209,6 +1214,7 @@ const handleActionSubmit = async (payload) => {
       :programId="sessionModal.programId"
       :programName="sessionModal.programName"
       :schedule="sessionModal.schedule"
+      :allSchedules="sessionModal.allSchedules"
       :teachers="teachers"
       :activeBranch="activeBranch"
       @close="sessionModal.isOpen = false"
@@ -1216,6 +1222,11 @@ const handleActionSubmit = async (payload) => {
         ({ offeringId, weekIndex, teacherId }) =>
           updateSessionTeacher(offeringId, weekIndex, teacherId)
       "
+      @switch-schedule="async (sched) => {
+        sessionModal.offeringId = sched.offeringId
+        sessionModal.schedule = sched
+        await initializeOfferingTeachers(sched.offeringId)
+      }"
     />
   </DashboardLayout>
 </template>
