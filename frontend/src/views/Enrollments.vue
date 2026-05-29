@@ -155,26 +155,27 @@ const handleSaveEnrollment = async (formData) => {
 }
 
 const enrollmentStats = computed(() => {
-  const s = calculateTotalEnrollment(enrollments.value)
+  const { total, paidCount, unpaidCount, cancelledCount } = calculateTotalEnrollment(enrollments.value)
+  
   return [
     {
       label: 'Total Enrollment',
-      value: s.total,
+      value: total,
       image: getImageUrl('enrollment/total-enrollment'),
     },
     {
       label: 'Total Paid Enrollment',
-      value: s.paidCount,
+      value: paidCount,
       image: getImageUrl('enrollment/total-paid-enrollment'),
     },
     {
       label: 'Total Unpaid Enrollment',
-      value: s.unpaidCount,
+      value: unpaidCount,
       image: getImageUrl('enrollment/total-unpaid-enrollment'),
     },
     {
       label: 'Total Cancelled Enrollment',
-      value: s.cancelledCount,
+      value: cancelledCount,
       image: getImageUrl('enrollment/total-canceled-enrollment'),
     },
   ]

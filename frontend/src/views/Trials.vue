@@ -90,7 +90,8 @@ const trialHeaders = [
   { label: 'Student' },
   { label: 'Program' },
   { label: 'Branch', width: '120px', align: 'center' },
-  { label: 'Status', width: '200px', align: 'center' },
+  { label: 'Status', width: '120px', align: 'center' },
+  { label: 'Type', width: '120px', align: 'center' },
   { label: 'Trial Date', width: '200px', align: 'center' },
   { label: 'Action', width: '60px', align: 'center' },
 ]
@@ -324,18 +325,31 @@ const handleTableAction = ({ type, item }) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center gap-1">
-                <AppBadge :status="item.trialType || (item.isGuest ? 'walk-in' : 'booked')" />
-                <AppBadge v-if="item.isSuccessful" status="Successful" />
+                <template v-if="item.trialType === 'walk-in' || item.isGuest">
+                  <AppBadge status="Confirm" />
+                </template>
+                <template v-else>
+                  <AppBadge v-if="String(item.status || '').toLowerCase() === 'attended'" status="Confirm" />
+                  <AppBadge v-else-if="['no-show', 'absent'].includes(String(item.status || '').toLowerCase())" status="Absent" type="red" />
+                  <AppBadge v-else status="Booked" type="neutral" />
+                </template>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+              <div class="flex flex-col items-center gap-1">
+                <AppBadge :status="item.trialType || (item.isGuest ? 'walk-in' : 'booked')" />
+                <AppBadge v-if="item.isSuccessful" status="Successful" type="green" />
+              </div>
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
               <div class="flex flex-col text-content-muted items-center">
                 <span class="tabular-nums tracking-tight">{{ formatDate(item.trialDate) }}</span>
               </div>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

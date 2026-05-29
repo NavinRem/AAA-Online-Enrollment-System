@@ -125,32 +125,36 @@ const workingTeacherIds = computed(() => {
 })
 
 const statsCards = computed(() => {
-  const all = teachers.value
-  const active = all.filter((t) => (t.status || 'active').toLowerCase() === 'active')
+  const allTeacher = teachers.value
+  const active = allTeacher.filter((t) => (t.status || 'active').toLowerCase() === 'active')
 
   // New Teachers: Registered within the last 1 month
   const now = new Date()
   const oneMonthAgo = new Date()
   oneMonthAgo.setMonth(now.getMonth() - 1)
-  const newTeachersCount = all.filter((t) => {
+  const newTeachersCount = allTeacher.filter((t) => {
     const created = new Date(t.createdAt || t.date || 0)
     return created >= oneMonthAgo
   }).length
 
+  const totalTeachersCount = allTeacher.length
+  const activeTeachersCount = active.length
+  const workingTeachersCount = workingTeacherIds.value.size
+
   return [
     {
       label: 'Total Teachers',
-      value: all.length,
+      value: totalTeachersCount,
       image: getImageUrl('teacher/total-teacher'),
     },
     {
       label: 'Active Teachers',
-      value: active.length,
+      value: activeTeachersCount,
       image: getImageUrl('dashboard/card-student'),
     },
     {
       label: 'Working Teachers',
-      value: workingTeacherIds.value.size,
+      value: workingTeachersCount,
       image: getImageUrl('dashboard/card-available-program'),
     },
     {

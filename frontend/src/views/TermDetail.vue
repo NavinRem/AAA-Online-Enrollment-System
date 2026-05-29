@@ -299,22 +299,6 @@ const branchStudents = computed(() => {
   return Array.from(studentMap.values())
 })
 
-const branchTrials = computed(() => {
-  if (!term.value || !activeBranchId.value) return []
-
-  const setting = activeBranchSetting.value || term.value
-  const startDate = new Date(setting.startDate)
-  const endDate = new Date(setting.endDate)
-  startDate.setHours(0, 0, 0, 0)
-  endDate.setHours(23, 59, 59, 999)
-
-  // Trials that belong to this branch and fall within the term's date range
-  return dataStore.trials.filter((t) => {
-    const isSameBranch = String(t.branchId) === String(activeBranchId.value)
-    const trialDate = new Date(t.trialDate)
-    return isSameBranch && trialDate >= startDate && trialDate <= endDate
-  })
-})
 
 const branchEnrollments = computed(() => {
   if (!term.value || !activeBranchId.value) return []
@@ -326,17 +310,10 @@ const branchEnrollments = computed(() => {
   endDate.setHours(23, 59, 59, 999)
 
   return dataStore.enrollments.filter((e) => {
-    const isSameBranch = String(e.branchId) === String(activeBranchId.value)
-    const isSameTerm = String(e.termId) === String(term.value.id)
-
-    if (isSameTerm && isSameBranch) return true
-
-    // Fallback: matches branch and date range
-    if (isSameBranch) {
-      const enrollDate = new Date(e.enrollAt || e.createdAt)
-      return enrollDate >= startDate && enrollDate <= endDate
-    }
-    return false
+    const isSameBranch = String(e?.['class']?.branch?.id || e?.branchId) === String(activeBranchId.value)
+    if (!isSameBranch) return false
+    const enrollDate = new Date(e.createdAt || e.enrollAt)
+    return enrollDate >= startDate && enrollDate <= endDate
   })
 })
 
@@ -479,11 +456,35 @@ const paginatedStudents = computed(() => {
   return filteredStudents.value.slice(start, start + studentPageSize.value)
 })
 
+const totalTermTrials = computed(() => {
+  if (!term.value) return 0
+  let trialCount = 0
+  const sortedSettings = [...(term.value.branchSettings || [])].sort(
+    (a, b) => new Date(a.endDate || a.startDate) - new Date(b.endDate || b.startDate)
+  )
+  const branchIds = term.value.branchIds || (term.value.branchId ? [term.value.branchId] : [])
+
+  branchIds.forEach((bId) => {
+    const setting = sortedSettings.find((s) => String(s.branchId) === String(bId))
+    const startDate = new Date(setting?.startDate || term.value.startDate)
+    const endDate = new Date(setting?.endDate || term.value.endDate)
+    startDate.setHours(0, 0, 0, 0)
+    endDate.setHours(23, 59, 59, 999)
+
+    const branchTrials = dataStore.trials.filter((t) => {
+      const isSameBranch = String(t.branch?.id || t.branchId) === String(bId)
+      const trialDate = new Date(t.trialDate)
+      return isSameBranch && trialDate >= startDate && trialDate <= endDate
+    })
+    trialCount += branchTrials.length
+  })
+  return trialCount
+})
+
 const statsCards = computed(() => {
   if (!term.value) return []
 
   const offerings = rawBranchOfferings.value
-  const trials = branchTrials.value
   const enrollments = branchEnrollments.value
   const revenue = enrollments.reduce((sum, e) => sum + (e.finalPrice || e.totalPrice || 0), 0)
   const uniqueStudents = new Set(enrollments.map((e) => e.studentId)).size
@@ -506,7 +507,7 @@ const statsCards = computed(() => {
     },
     {
       label: 'Total Trials',
-      value: trials.length,
+      value: totalTermTrials.value,
       image: getImageUrl('enrollment/total-enrollment'),
     },
   ]

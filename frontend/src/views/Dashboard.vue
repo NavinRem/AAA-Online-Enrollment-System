@@ -182,89 +182,98 @@ onUnmounted(() => {
 
 const profileImageUrl = computed(() => getAvatarUrl(userProfile.value))
 
-const todayStats = computed(() => [
-  {
-    label: 'Today New Accounts',
-    value: stats.value.today.reg,
-    image: getImageUrl('dashboard/registration'),
-  },
-  {
-    label: 'Today Enrollments',
-    value: stats.value.today.enroll,
-    image: getImageUrl('dashboard/enrollment'),
-  },
-  {
-    label: 'Today Trial Class',
-    value: stats.value.today.trial,
-    image: getImageUrl('dashboard/trial'),
-  },
-  {
-    label: 'Today Payments',
-    value: `$${formatPrice(stats.value.today.pay)}`,
-    image: getImageUrl('dashboard/payment'),
-  },
-])
+const todayStats = computed(() => {
+  const todayPay = `$${formatPrice(stats.value.today.pay)}`
+  return [
+    {
+      label: 'Today New Accounts',
+      value: stats.value.today.reg,
+      image: getImageUrl('dashboard/registration'),
+    },
+    {
+      label: 'Today Enrollments',
+      value: stats.value.today.enroll,
+      image: getImageUrl('dashboard/enrollment'),
+    },
+    {
+      label: 'Today Trial Class',
+      value: stats.value.today.trial,
+      image: getImageUrl('dashboard/trial'),
+    },
+    {
+      label: 'Today Payments',
+      value: todayPay,
+      image: getImageUrl('dashboard/payment'),
+    },
+  ]
+})
 
-const thisWeekStats = computed(() => [
-  {
-    label: 'This Week New Accounts',
-    value: stats.value.week.reg,
-    image: getImageUrl('dashboard/registration'),
-  },
-  {
-    label: 'This Week Enrollments',
-    value: stats.value.week.enroll,
-    image: getImageUrl('dashboard/enrollment'),
-  },
-  {
-    label: 'This Week Trial Classes',
-    value: stats.value.week.trial,
-    image: getImageUrl('dashboard/trial'),
-  },
-  {
-    label: 'This Week Payments',
-    value: `$${formatPrice(stats.value.week.pay)}`,
-    image: getImageUrl('dashboard/payment'),
-  },
-])
+const thisWeekStats = computed(() => {
+  const weekPay = `$${formatPrice(stats.value.week.pay)}`
+  return [
+    {
+      label: 'This Week New Accounts',
+      value: stats.value.week.reg,
+      image: getImageUrl('dashboard/registration'),
+    },
+    {
+      label: 'This Week Enrollments',
+      value: stats.value.week.enroll,
+      image: getImageUrl('dashboard/enrollment'),
+    },
+    {
+      label: 'This Week Trial Classes',
+      value: stats.value.week.trial,
+      image: getImageUrl('dashboard/trial'),
+    },
+    {
+      label: 'This Week Payments',
+      value: weekPay,
+      image: getImageUrl('dashboard/payment'),
+    },
+  ]
+})
 
-const totalStats = computed(() => [
-  {
-    title: 'Total Enrollments',
-    value: stats.value.totals.enrollments,
-    image: getImageUrl('dashboard/card-top-program'),
-  },
-  {
-    title: 'Total Parents',
-    value: stats.value.totals.parents,
-    image: getImageUrl('parent/total-parent'),
-  },
-  {
-    title: 'Total Students',
-    value: stats.value.totals.students,
-    image: getImageUrl('student/total-student'),
-  },
-  {
-    title: 'Total Branches',
-    value: stats.value.totals.branches,
-    image: getImageUrl('dashboard/card-branch'),
-  },
-  {
-    title: 'Total Programs',
-    value: stats.value.totals.programs,
-    image: getImageUrl('dashboard/card-available-program'),
-  },
-  {
-    title: 'Total Trial',
-    value: stats.value.totals.trials,
-    image: getImageUrl('dashboard/card-trial'),
-  },
-  {
-    title: 'Total Revenue',
-    value: `$${formatPrice(stats.value.totals.totalRevenue)}`,
-    image: getImageUrl('dashboard/card-revenue'),
-  },
-])
+const totalStats = computed(() => {
+  const totalRev = `$${formatPrice(stats.value.totals.totalRevenue)}`
+  return [
+    {
+      title: 'Total Enrollments',
+      value: stats.value.totals.enrollments,
+      image: getImageUrl('dashboard/card-top-program'),
+    },
+    {
+      title: 'Total Parents',
+      value: stats.value.totals.parents,
+      image: getImageUrl('parent/total-parent'),
+    },
+    {
+      title: 'Total Students',
+      value: stats.value.totals.students,
+      image: getImageUrl('student/total-student'),
+    },
+    {
+      title: 'Total Branches',
+      value: stats.value.totals.branches,
+      image: getImageUrl('dashboard/card-branch'),
+    },
+    {
+      title: 'Total Programs',
+      value: stats.value.totals.programs,
+      image: getImageUrl('dashboard/card-available-program'),
+    },
+    {
+      title: 'Total Trial',
+      value: stats.value.totals.trials,
+      image: getImageUrl('dashboard/card-trial'),
+    },
+    {
+      title: 'Total Revenue',
+      value: totalRev,
+      image: getImageUrl('dashboard/card-revenue'),
+    },
+  ]
+})
 
 const mappedEnrollments = computed(() => {
   const raw = [...dataStore.enrollments]

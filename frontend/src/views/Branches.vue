@@ -113,17 +113,23 @@ const statsCards = computed(() => {
   const idleValue = branches.length - enrolledValue
   const idleSubtitle = idleValue > 0 ? `${idleValue} Branches inactive` : 'All Branches active'
 
+  const topBranchValue = topBranchNames.length > 0 ? topBranchNames.join(', ') : '—'
+  const topBranchSubtitle = maxStudents > 0 ? `${maxStudents} Studying Students` : 'No students enrolled'
+  
+  const bestEarnerValue = bestEarnerNames.length > 0 ? bestEarnerNames.join(', ') : '—'
+  const bestEarnerSubtitle = maxRevenue > 0 ? `Revenue: $${formatPrice(maxRevenue)}` : 'No revenue today'
+
   return [
     {
       label: 'Top Enrolled Branch',
-      value: topBranchNames.length > 0 ? topBranchNames.join(', ') : '—',
-      subtitle: maxStudents > 0 ? `${maxStudents} Studying Students` : 'No students enrolled',
+      value: topBranchValue,
+      subtitle: topBranchSubtitle,
       image: getImageUrl('dashboard/branch'),
     },
     {
       label: 'Highest Earner Today',
-      value: bestEarnerNames.length > 0 ? bestEarnerNames.join(', ') : '—',
-      subtitle: maxRevenue > 0 ? `Revenue: $${formatPrice(maxRevenue)}` : 'No revenue today',
+      value: bestEarnerValue,
+      subtitle: bestEarnerSubtitle,
       image: getImageUrl('dashboard/high-payment'),
     },
     {

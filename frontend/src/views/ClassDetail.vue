@@ -152,15 +152,6 @@ const allOfferings = computed(() =>
   ),
 )
 
-// Audit: Use a lookup map for O(1) offering retrieval to avoid redundant .find() in loops
-const offeringsMap = computed(() => {
-  const map = new Map()
-  allOfferings.value.forEach((o) => {
-    const key = `${o.termId}_${o.branchId}_${o.scheduleId}`
-    map.set(key, o)
-  })
-  return map
-})
 
 // Scoped offerings for metrics based on selected term filter
 const selectedTermOfferings = computed(() => {
@@ -223,12 +214,6 @@ const uniqueBranches = computed(() => {
   return Array.from(branchMap.values())
 })
 
-const totalStudentsAcrossOfferings = computed(() =>
-  selectedTermOfferings.value.reduce(
-    (total, offering) => total + Number(offering.currentCount || offering.students?.length || 0),
-    0,
-  ),
-)
 
 const normalizeDate = (val) => {
   const date = new Date(val)

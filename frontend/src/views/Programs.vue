@@ -16,7 +16,7 @@ import { enrollmentService } from '../services/enrollmentService'
 import { trialService } from '../services/trialService'
 import { useSearch } from '../composables/useSearch'
 import { getProgramProfileURL, getImageUrl, getActionIcon, getIconUrl } from '@/utils/assetHelper'
-import { formatPrice, DEFAULT_CAPACITY } from '@/utils/formatUtils'
+import { formatPrice } from '@/utils/formatUtils'
 
 const programs = ref([])
 const categories = ref([])
@@ -169,28 +169,39 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
 }
 
 const statsCards = computed(() => {
+  const totalProgramsCount = programs.value.length
+  
+  const topTrialName = topTrialProgram.value.name
+  const topTrialSubtitle = `${topTrialProgram.value.count} Trials`
+  
+  const topEnrolledName = topEnrolledProgram.value.name
+  const topEnrolledSubtitle = `${topEnrolledProgram.value.count} Enrollments`
+  
+  const topRevenueName = topRevenueProgram.value.name
+  const topRevenueSubtitle = `$${topRevenueProgram.value.revenue.toLocaleString()} Total`
+
   return [
     {
       label: 'Total Programs',
-      value: programs.value.length,
+      value: totalProgramsCount,
       image: getImageUrl('programs/total-program'),
     },
     {
       label: 'Top Trial Program',
-      value: topTrialProgram.value.name,
-      subtitle: `${topTrialProgram.value.count} Trials`,
+      value: topTrialName,
+      subtitle: topTrialSubtitle,
       image: getImageUrl('programs/active-program'),
     },
     {
       label: 'Most Popular',
-      value: topEnrolledProgram.value.name,
-      subtitle: `${topEnrolledProgram.value.count} Enrollments`,
+      value: topEnrolledName,
+      subtitle: topEnrolledSubtitle,
       image: getImageUrl('programs/total-program'),
     },
     {
       label: 'Top Revenue Program',
-      value: topRevenueProgram.value.name,
-      subtitle: `$${topRevenueProgram.value.revenue.toLocaleString()} Total`,
+      value: topRevenueName,
+      subtitle: topRevenueSubtitle,
       image: getImageUrl('programs/upcoming-program'),
     },
   ]

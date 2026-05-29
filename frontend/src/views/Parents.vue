@@ -47,26 +47,27 @@ const getRowClass = (item) => {
 }
 
 const statsCards = computed(() => {
-  const s = calculateParentStats(parents.value, enrollments.value)
+  const { parentCount, todayCount, paidTodayCount, inactiveCount } = calculateParentStats(parents.value, enrollments.value)
+  
   return [
     {
       label: 'Total Parents',
-      value: s.parentCount,
+      value: parentCount,
       image: getImageUrl('parent/total-parent'),
     },
     {
       label: 'Registered Today',
-      value: s.todayCount,
+      value: todayCount,
       image: getImageUrl('parent/recently-register'),
     },
     {
       label: 'Paid Today',
-      value: s.paidTodayCount,
+      value: paidTodayCount,
       image: getImageUrl('parent/paid-today'),
     },
     {
       label: 'Inactive Account',
-      value: s.inactiveCount,
+      value: inactiveCount,
       image: getImageUrl('parent/total-guardian'),
     },
   ]

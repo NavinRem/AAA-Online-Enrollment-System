@@ -121,8 +121,10 @@ const statsCards = computed(() => {
     .reduce((sum, e) => sum + Number(e.amount || program.value.basePrice || 0), 0)
 
   const uniqueTeachersCount = programTeachers.value.length
-  const uniqueStudentsCount = new Set(enrollments.value.map((e) => e.studentId).filter(Boolean))
-    .size
+  const uniqueStudentsCount = new Set(enrollments.value.map((e) => e.studentId).filter(Boolean)).size
+  
+  const formattedRevenue = `$${totalRevenue.toLocaleString()}`
+  const totalTrialsCount = trials.value.length
 
   return [
     {
@@ -132,12 +134,12 @@ const statsCards = computed(() => {
     },
     {
       label: 'Total Revenue',
-      value: `$${totalRevenue.toLocaleString()}`,
+      value: formattedRevenue,
       image: getImageUrl('data-metric-card/program-revenue'),
     },
     {
       label: 'Total Trials',
-      value: trials.value.length,
+      value: totalTrialsCount,
       image: getImageUrl('dashboard/card-trial'),
     },
     {

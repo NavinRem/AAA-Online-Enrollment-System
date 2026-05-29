@@ -88,16 +88,12 @@ const fetchData = async () => {
         startDate.setHours(0, 0, 0, 0)
         endDate.setHours(23, 59, 59, 999)
 
-        // Filter enrollments for this branch in this term period
+        // Filter enrollments for this branch in this term period (by created date)
         const branchEnrollments = dataStore.enrollments.filter((e) => {
-          const isSameBranch = String(e['class'].branch.id === String(bId))
-          const isSameTerm = String(e.termId) === String(term.id)
-          if (isSameTerm && isSameBranch) return true
-          if (isSameBranch) {
-            const enrollDate = new Date(e.enrollAt || e.createdAt)
-            return enrollDate >= startDate && enrollDate <= endDate
-          }
-          return false
+          const isSameBranch = String(e?.['class']?.branch?.id || e?.branchId) === String(bId)
+          if (!isSameBranch) return false
+          const enrollDate = new Date(e.createdAt || e.enrollAt)
+          return enrollDate >= startDate && enrollDate <= endDate
         })
 
         const activeEnrollments = branchEnrollments.filter((e) => {
@@ -115,9 +111,9 @@ const fetchData = async () => {
           }
         })
 
-        // Filter trials for this branch in this term period
+        // Filter trials for this branch in this term period (by trial date)
         const branchTrials = dataStore.trials.filter((t) => {
-          const isSameBranch = String(t.branchId) === String(bId)
+          const isSameBranch = String(t.branch?.id || t.branchId) === String(bId)
           const trialDate = new Date(t.trialDate)
           return isSameBranch && trialDate >= startDate && trialDate <= endDate
         })

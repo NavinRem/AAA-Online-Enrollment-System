@@ -188,27 +188,27 @@ watch([currentFilter, branchFilter, searchQuery], () => {
 const statsCards = computed(() => {
   // Use branch-filtered list for metrics if branch filter is active
   const statsList = branchFilter.value === 'all' ? studentsEnriched.value : filteredStudents.value
-  const s = calculateTotalStudent(statsList)
+  const { total, active, inactive, hold } = calculateTotalStudent(statsList)
 
   return [
     {
       label: 'Total Students',
-      value: s.total,
+      value: total,
       image: getImageUrl('student/total-student'),
     },
     {
       label: 'Active (Studying)',
-      value: s.active,
+      value: active,
       image: getImageUrl('student/currently-enrolled'),
     },
     {
       label: 'Inactive (Stopped)',
-      value: s.inactive,
+      value: inactive,
       image: getImageUrl('student/currently-not-enrolled'),
     },
     {
       label: 'On Hold',
-      value: s.hold,
+      value: hold,
       image: getImageUrl('student/stopped-enrolled'),
     },
   ]

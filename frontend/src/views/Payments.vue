@@ -221,17 +221,20 @@ const paymentStats = computed(() => {
     .reduce((sum, p) => sum + (p.amount || 0), 0)
   const onlinePaid = paidList.reduce((sum, p) => sum + (p.amount || 0), 0) - cashPaid
 
+  const monthlyPaidCount = monthlyPaid.length
+  const pendingPaidCount = pendingPaid.length
+
   return [
     {
       label: 'Monthly Revenue',
       value: '$' + formatPrice(monthlyRevenue),
-      subtitle: `${monthlyPaid.length} Settlements This Month`,
+      subtitle: `${monthlyPaidCount} Settlements This Month`,
       image: getImageUrl('payment/total-revenue'),
     },
     {
       label: 'Pending Payments',
       value: '$' + formatPrice(pendingRevenue),
-      subtitle: `${pendingPaid.length} Outstanding Records`,
+      subtitle: `${pendingPaidCount} Outstanding Records`,
       image: getImageUrl('payment/unpaid-payment'),
     },
     {

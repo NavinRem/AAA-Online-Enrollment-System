@@ -202,10 +202,13 @@ const statsCards = computed(() => {
   const availableCount = products.filter((p) => p.status === 'available').length
   const upcomingCount = products.filter((p) => p.status === 'upcoming').length
 
+  const totalProductsCount = products.length
+  const categoriesCount = dataStore.categories?.length || 0
+
   return [
     {
       label: 'Total Classes',
-      value: products.length,
+      value: totalProductsCount,
       image: getImageUrl('programs/total-program'),
     },
     {
@@ -220,7 +223,7 @@ const statsCards = computed(() => {
     },
     {
       label: 'Categories',
-      value: dataStore.categories?.length || 0,
+      value: categoriesCount,
       image: getImageUrl('programs/total-program'),
     },
   ]
