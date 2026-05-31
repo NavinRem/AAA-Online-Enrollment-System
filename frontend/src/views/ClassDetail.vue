@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
@@ -192,10 +192,30 @@ const primarySchedule = computed(() => {
 
 const uniqueBranches = computed(() => {
   const branchMap = new Map()
+  
+  // First, map all branches that the class itself is assigned to
+  const classBranchIds = classData.value?.branchIds || []
+  const classBranches = classData.value?.branches || classBranchIds.map(id => dataStore.branches.find(b => String(b.id) === String(id))).filter(Boolean)
+
+  if (classBranches.length > 0) {
+    classBranches.forEach((branch) => {
+      const liveBranch = dataStore.branches.find((b) => String(b.id) === String(branch.id))
+      branchMap.set(String(branch.id), {
+        id: branch.id,
+        name: branch.name,
+        abbr: liveBranch?.abbr || branch.abbr || branch.name,
+        color: liveBranch?.color || branch.color || 'gray', // Will be overridden if available
+        studentCount: 0,
+        isAvailable: false // Default to false until we find an offering
+      })
+    })
+  }
+
+  // Then, override/update with active offerings for the current term
   selectedTermOfferings.value.forEach((offering) => {
     if (offering.branch?.id) {
-      const branchId = offering.branch.id
-      const liveBranch = dataStore.branches.find((b) => String(b.id) === String(branchId))
+      const branchId = String(offering.branch.id)
+      const liveBranch = dataStore.branches.find((b) => String(b.id) === branchId)
 
       if (!branchMap.has(branchId)) {
         branchMap.set(branchId, {
@@ -204,8 +224,14 @@ const uniqueBranches = computed(() => {
           abbr: liveBranch?.abbr || offering.branch.abbr || offering.branch.name,
           color: liveBranch?.color || offering.branch.color || 'blue',
           studentCount: 0,
+          isAvailable: true
         })
+      } else {
+        const existing = branchMap.get(branchId)
+        existing.isAvailable = true
+        existing.color = liveBranch?.color || offering.branch.color || 'blue'
       }
+      
       branchMap.get(branchId).studentCount += Number(
         offering.currentCount || offering.students?.length || 0,
       )
@@ -337,16 +363,18 @@ const branchFilterOptions = computed(() => {
 const filteredEnrollments = computed(() => {
   return enrollments.value.filter((e) => {
     // Audit: Only successful/eligible enrollments are shown for attendance
-    const eligibleStatuses = ['active', 'confirmed', 'trial']
+    const eligibleStatuses = ['paid', 'active', 'confirmed', 'success']
     if (!eligibleStatuses.includes(e.status)) return false
 
     const termMatch = termFilter.value === 'all' || String(e.termId) === String(termFilter.value)
+    
+    const branchId = e.branchId || e.class?.branch?.id
     const branchMatch =
-      branchFilter.value === 'all' || String(e.branchId) === String(branchFilter.value)
+      branchFilter.value === 'all' || String(branchId) === String(branchFilter.value)
+      
+    const scheduleId = e.scheduleId || e.class?.schedule?.id
     const scheduleMatch =
-      scheduleFilter.value === 'all' ||
-      String(e.class?.schedule?.id) === String(scheduleFilter.value) ||
-      String(e.scheduleId) === String(scheduleFilter.value)
+      scheduleFilter.value === 'all' || String(scheduleId) === String(scheduleFilter.value)
 
     return termMatch && branchMatch && scheduleMatch
   })
@@ -542,9 +570,13 @@ const scheduleOptions = computed(() => {
   }))
 })
 
+const isInitializing = ref(true)
+
 const fetchData = async (id) => {
+  if (!id) return
   loading.value = true
   errorMessage.value = ''
+  isInitializing.value = true
   try {
     const [data, enrollmentData, attendanceMap, termData] = await Promise.all([
       classService.getClass(id),
@@ -574,6 +606,8 @@ const fetchData = async (id) => {
       }
     }
 
+    await nextTick()
+
     if (uniqueBranches.value.length > 0) {
       branchFilter.value = uniqueBranches.value[0].id
     }
@@ -581,6 +615,8 @@ const fetchData = async (id) => {
     if (classData.value?.schedules?.length > 0) {
       scheduleFilter.value = classData.value.schedules[0].id
     }
+
+    isInitializing.value = false
   } catch (err) {
     console.error('Failed to fetch class details:', err)
     errorMessage.value = err.message || 'Failed to load class details'
@@ -606,6 +642,7 @@ watch(
 )
 
 watch(termFilter, (newTermId) => {
+  if (isInitializing.value) return
   if (newTermId) {
     // Reset branch filter when term changes to ensure we show valid branches
     if (uniqueBranches.value.length > 0) {
@@ -1016,11 +1053,13 @@ watch(branchFilter, (newBranchId) => {
                         class="min-w-16 shadow-sm"
                       />
                       <AppBadge
+                        v-if="branch.isAvailable"
                         :status="`${branch.studentCount} Students`"
                         type="gray"
                         size="sm"
                         class="!bg-transparent !border-none font-bold text-content-muted"
                       />
+                      <span v-else class="text-xs font-bold text-error mr-2">Unavailable</span>
                     </div>
                   </div>
                   <span

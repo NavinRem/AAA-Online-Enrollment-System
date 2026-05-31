@@ -15,7 +15,6 @@ import { auth } from '@/firebase'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { useDataStore } from '@/stores/dataStore'
 import { parentService } from '@/services/parentService'
-import { studentService } from '@/services/studentService'
 import { useModalText } from '@/composables/useModalText'
 import { processParentProfileImage, prepareParentPayload } from '@/utils/parentHelper'
 
@@ -80,7 +79,7 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, isDirty, errors, shaking, clearError, validate, triggerShake, getPayload } = useActionModal(
+const { localData, isDirty, errors, shaking, clearError, validate, triggerShake, getPayload, sync } = useActionModal(
   props,
   emit,
   {
@@ -170,10 +169,11 @@ const confirmRows = computed(() => {
   const p = selectedParent.value
 
   if (props.type === 'plus') {
-    const rows = [{ key: 'ParentId', value: p?.id || 'N/A' }]
-    rows.push({ key: 'Name', value: localData.name })
+    const rows = []
+    if (p) rows.push({ key: 'Parent', value: p.name })
+    rows.push({ key: 'StudentName', value: localData.name })
     rows.push({ key: 'Dob', value: localData.dob })
-    rows.push({ key: 'Status', value: localData.status || 'Inactive', badge: true })
+    rows.push({ key: 'Status', value: localData.status || 'Active', badge: true })
     return rows
   }
 
@@ -186,18 +186,17 @@ const confirmRows = computed(() => {
   } else if (props.type === 'add') {
     rows.push({ key: 'Email', value: localData.email })
     rows.push({ key: 'Phone', value: localData.phone })
-  } else if (props.type === 'delete') {
-    rows.push({ key: 'Email', value: localData.email })
-    rows.push({
-      key: 'DeleteConfirm',
-      value: localData.deleteConfirm,
-      valueClass: 'text-error font-bold',
-    })
   } else if (props.type === 'reset-password') {
     rows.push({
       key: 'ResetMode',
       value: selectedResetMode.value === 'email' ? 'Email Link' : 'Manual Override',
       valueClass: 'font-bold text-primary',
+    })
+  } else if (props.type === 'delete') {
+    rows.push({
+      key: 'DeleteConfirm',
+      value: localData.deleteConfirm,
+      valueClass: 'font-bold text-error',
     })
   }
 
@@ -317,11 +316,15 @@ const handleDisabledClick = (field) => {
 watch(
   () => props.isOpen,
   (newVal) => {
-    if (!newVal) {
+    if (newVal) {
+      sync()
+    } else {
       submittingLocal.value = false
       selectedResetMode.value = null
+      clearError()
     }
   },
+  { immediate: true }
 )
 </script>
 

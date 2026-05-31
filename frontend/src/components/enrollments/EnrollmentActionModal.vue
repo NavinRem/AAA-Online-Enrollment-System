@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useForm } from '@/composables/useForm'
+import { useActionModal } from '@/composables/useActionModal'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
@@ -8,11 +8,10 @@ import AppModal from '@/components/common/ui/AppModal.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
-import { getActionIcon } from '@/utils/assetHelper'
+import { getActionIcon, getImageUrl, getProgramProfileURL } from '@/utils/assetHelper'
 import { formatPrice, formatDateOnly } from '@/utils/formatUtils'
 import { useModalText } from '@/composables/useModalText'
 import { getSessionCounts } from '@/utils/programHelper'
-import { getProgramProfileURL } from '@/utils/assetHelper'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -31,36 +30,72 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const { form, errors, shaking, validate, clearError, triggerShake, resetForm, getPayload } = useForm(
-  {
-    parentId: '',
-    studentId: '',
-    programId: '',
-    classId: '',
-    termId: '',
-    termOfferingId: '',
-    branchId: '',
-    scheduleId: '',
-    enrollAt: new Date().toISOString().split('T')[0],
-    isProrated: false,
-    isSponsorship: false,
-    sponsorName: '',
-    discountAmount: 0,
-    discountType: 'dollar',
-    isCustomPrice: false,
-    customPrice: 0,
-    enrolledSessions: 0,
-    amount: 0,
-    remark: '',
-    proof: '',
-    bankName: '',
-    reason: '',
-    deleteConfirm: '',
-    paymentMethod: 'online',
-    paymentStatus: 'paid',
-  },
-  { autoClear: 3000 },
-)
+const getInitialData = () => ({
+  parentId: '',
+  studentId: '',
+  programId: '',
+  classId: '',
+  termId: '',
+  termOfferingId: '',
+  branchId: '',
+  scheduleId: '',
+  enrollAt: new Date().toISOString().split('T')[0],
+  isProrated: false,
+  isSponsorship: false,
+  sponsorName: '',
+  discountAmount: 0,
+  discountType: 'dollar',
+  isCustomPrice: false,
+  customPrice: 0,
+  enrolledSessions: 0,
+  amount: 0,
+  remark: '',
+  proof: '',
+  bankName: '',
+  reason: '',
+  deleteConfirm: '',
+  paymentMethod: 'online',
+  paymentStatus: 'paid',
+})
+
+const mapSourceToForm = () => {
+  if (props.enrollment) {
+    return {
+      ...getInitialData(),
+      parentId: props.enrollment.parentId || '',
+      studentId: props.enrollment.studentId || '',
+      programId: props.enrollment.programId || '',
+      classId: props.enrollment.classId || '',
+      termId: props.enrollment.termId || props.enrollment.term?.id || '',
+      termOfferingId: props.enrollment.termOfferingId || props.enrollment.term?.offeringId || '',
+      branchId: props.enrollment.class?.branch?.id || props.enrollment.branchId || '',
+      scheduleId: props.enrollment.termOfferingId || '',
+      enrollAt: (
+        props.enrollment.enrollAt ||
+        props.enrollment.enrollmentDate ||
+        new Date().toISOString()
+      ).split('T')[0],
+      isProrated: !!props.enrollment.isProrated,
+      isSponsorship: !!props.enrollment.isSponsorship,
+      sponsorName: props.enrollment.sponsorName || '',
+      discountAmount: props.enrollment.discountAmount || 0,
+      discountType: props.enrollment.discountType || 'dollar',
+      isCustomPrice: !!props.enrollment.isCustomPrice,
+      customPrice: props.enrollment.customPrice || 0,
+      enrolledSessions: props.enrollment.enrolledSessions || 0,
+      amount: props.enrollment.amount || 0,
+      remark: props.enrollment.remark || '',
+    }
+  }
+  return getInitialData()
+}
+
+const { localData: form, isDirty, errors, shaking, validate, clearError, triggerShake, getPayload } = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm,
+  sourceKey: 'enrollment',
+  autoClear: 3000,
+})
 
 const cancelPresets = ['Schedule Conflict', 'Relocation', 'Financial Issue', 'Duplicated']
 const selectPreset = (preset) => {
@@ -72,7 +107,6 @@ const selectPreset = (preset) => {
 }
 
 const showConfirm = ref(false)
-const initialDataString = ref('')
 const isEditMode = computed(
   () => props.type === 'edit' || (props.type !== 'add' && !!props.enrollment),
 )
@@ -102,7 +136,7 @@ const displaySummary = computed(() => {
   }
 })
 const isChanged = computed(
-  () => !isEditMode.value || JSON.stringify(form) !== initialDataString.value,
+  () => !isEditMode.value || isDirty.value,
 )
 const hasAnyError = computed(() => Object.values(errors).some(Boolean))
 
@@ -117,7 +151,17 @@ const availableStudents = computed(() => {
 
 const availablePrograms = computed(() => {
   if (!form.studentId) return []
-  return props.programs || []
+  let programs = props.programs || []
+
+  const studentEnrollments = (props.enrollments || []).filter(
+    (e) => String(e.studentId) === String(form.studentId) && 
+           ['paid', 'unpaid', 'active', 'confirmed', 'success'].includes(e.status) &&
+           e.isDeleted !== true &&
+           String(e.id) !== String(props.enrollment?.id) // exclude the one being edited
+  )
+  const enrolledProgramIds = new Set(studentEnrollments.map(e => String(e.programId)))
+  
+  return programs.filter(p => !enrolledProgramIds.has(String(p.id)))
 })
 
 // Removed availableClassProducts as it is replaced by availableOfferings
@@ -140,24 +184,34 @@ const availableOfferings = computed(() => {
         if (!isMatch) return false
 
         const currentCount = offering.currentCount || (offering.students || []).length || 0
-        const capacity = offering.capacity || offering.class?.capacity || 20
+        
+        const classInfo = props.classes?.find((c) => String(c.id) === String(offering.classId))
+        const scheduleInfo = classInfo?.schedules?.find((s) => s.id === offering.schedule?.id)
+        const capacity = scheduleInfo?.capacity || classInfo?.capacity || offering.capacity || 20
+        
         return currentCount < capacity
       })
-      .map((offering) => ({
-        id: offering.offeringId,
-        classId: offering.classId,
-        className: offering.class?.name || 'Class',
-        name: `${offering.branch?.abbr || offering.branch?.name || 'Branch'} - ${offering.schedule?.day || 'Day'} (${offering.schedule?.time || 'Time'})`,
-        termId: term.id,
-        termName: term.name,
-        branch: offering.branch,
-        schedule: offering.schedule,
-        startDate: term.startDate,
-        endDate: term.endDate,
-        studentCount: offering.currentCount || (offering.students || []).length || 0,
-        capacity: offering.capacity || offering.class?.capacity || 20,
-        totalSessions: term.totalSessions || 0,
-      })),
+      .map((offering) => {
+        const classInfo = props.classes?.find((c) => String(c.id) === String(offering.classId))
+        const scheduleInfo = classInfo?.schedules?.find((s) => s.id === offering.schedule?.id)
+        const capacity = scheduleInfo?.capacity || classInfo?.capacity || offering.capacity || 20
+
+        return {
+          id: offering.offeringId,
+          classId: offering.classId,
+          className: props.programs?.find(p => String(p.id) === String(form.programId))?.name || offering.class?.name || 'Class',
+          name: `${term.name} | ${offering.branch?.abbr || offering.branch?.name || 'Branch'} - ${offering.schedule?.day || 'Day'} (${offering.schedule?.time || 'Time'})`,
+          termId: term.id,
+          termName: term.name,
+          branch: offering.branch,
+          schedule: offering.schedule,
+          startDate: term.startDate,
+          endDate: term.endDate,
+          studentCount: offering.currentCount || (offering.students || []).length || 0,
+          capacity: capacity,
+          totalSessions: term.totalSessions || 0,
+        }
+      }),
   )
 })
 
@@ -194,7 +248,7 @@ const confirmRows = computed(() => {
     { key: 'Student', value: selectedStudent.value?.name || 'N/A' },
     { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
     { key: 'Class', value: selectedOffering.value?.className || 'N/A' },
-    { key: 'Term', value: selectedOffering.value?.termName || 'N/A', badge: true, type: 'blue' },
+    { key: 'Term', value: selectedOffering.value?.termName || 'N/A' },
     {
       key: 'Branch/Schedule',
       value: selectedOffering.value
@@ -234,7 +288,7 @@ const confirmRows = computed(() => {
   if (props.type === 'delete') {
     return [
       ...base,
-      { key: 'Status', value: props.enrollment?.status },
+      { key: 'Status', value: props.enrollment?.status, badge: true },
       { key: 'DeleteConfirm', value: form.deleteConfirm, valueClass: 'text-error font-bold' },
     ]
   }
@@ -443,75 +497,13 @@ const handleDisabledClick = (field) => {
 }
 
 watch(
-  sessionInfo,
-  (info) => {
-    form.enrolledSessions = info ? (form.isProrated ? info.remaining : info.total) : 0
+  () => [sessionInfo.value, form.isProrated],
+  ([info, isProrated]) => {
+    form.enrolledSessions = info ? (isProrated ? info.remaining : info.total) : 0
   },
   { immediate: true },
 )
 
-watch(
-  () => props.isOpen,
-  (open) => {
-    if (open) {
-      if (props.enrollment) {
-        resetForm({
-          parentId: props.enrollment.parentId || '',
-          studentId: props.enrollment.studentId || '',
-          programId: props.enrollment.programId || '',
-          classId: props.enrollment.classId || '',
-          termId: props.enrollment.termId || props.enrollment.term?.id || '',
-          termOfferingId:
-            props.enrollment.termOfferingId || props.enrollment.term?.offeringId || '',
-          branchId: props.enrollment.class?.branch?.id || props.enrollment.branchId || '',
-          scheduleId: props.enrollment.termOfferingId || '',
-          enrollAt: (
-            props.enrollment.enrollAt ||
-            props.enrollment.enrollmentDate ||
-            new Date().toISOString()
-          ).split('T')[0],
-          isProrated: !!props.enrollment.isProrated,
-          isSponsorship: !!props.enrollment.isSponsorship,
-          sponsorName: props.enrollment.sponsorName || '',
-          discountAmount: props.enrollment.discountAmount || 0,
-          discountType: props.enrollment.discountType || 'dollar',
-          isCustomPrice: !!props.enrollment.isCustomPrice,
-          customPrice: props.enrollment.customPrice || 0,
-          enrolledSessions: props.enrollment.enrolledSessions || 0,
-          amount: props.enrollment.amount || 0,
-          remark: props.enrollment.remark || '',
-        })
-        initialDataString.value = JSON.stringify(form)
-      } else {
-        resetForm({
-          parentId: '',
-          studentId: '',
-          programId: '',
-          classId: '',
-          termId: '',
-          termOfferingId: '',
-          branchId: '',
-          scheduleId: '',
-          enrollAt: new Date().toISOString().split('T')[0],
-          isProrated: false,
-          isSponsorship: false,
-          sponsorName: '',
-          discountAmount: 0,
-          discountType: 'dollar',
-          isCustomPrice: false,
-          customPrice: 0,
-          enrolledSessions: 0,
-          amount: 0,
-          remark: '',
-        })
-        initialDataString.value = JSON.stringify(form)
-      }
-    } else {
-      clearError()
-    }
-  },
-  { immediate: true },
-)
 const setStudent = (studentId) => {
   form.studentId = studentId
   handleStudentChange()
@@ -541,6 +533,7 @@ defineExpose({ setStudent })
           required
           :error="errors.parentId"
           :shake="shaking.parentId"
+          :disabled="isEditMode"
           @change="selectParent"
         >
           <template #item="{ item }">
@@ -581,7 +574,7 @@ defineExpose({ setStudent })
           required
           :error="errors.studentId"
           :shake="shaking.studentId"
-          :disabled="!form.parentId"
+          :disabled="!form.parentId || isEditMode"
           @change="handleStudentChange"
           @click-disabled="handleDisabledClick('studentId')"
         >

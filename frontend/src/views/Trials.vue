@@ -92,7 +92,7 @@ const trialHeaders = [
   { label: 'Branch', width: '120px', align: 'center' },
   { label: 'Status', width: '120px', align: 'center' },
   { label: 'Type', width: '120px', align: 'center' },
-  { label: 'Trial Date', width: '200px', align: 'center' },
+  { label: 'Trial Date', width: '250px', align: 'center' },
   { label: 'Action', width: '60px', align: 'center' },
 ]
 
@@ -326,20 +326,36 @@ const handleTableAction = ({ type, item }) => {
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center gap-1">
                 <template v-if="item.trialType === 'walk-in' || item.isGuest">
-                  <AppBadge status="Confirm" />
+                  <AppBadge status="confirmed" />
                 </template>
                 <template v-else>
-                  <AppBadge v-if="String(item.status || '').toLowerCase() === 'attended'" status="Confirm" />
-                  <AppBadge v-else-if="['no-show', 'absent'].includes(String(item.status || '').toLowerCase())" status="Absent" type="red" />
+                  <AppBadge
+                    v-if="String(item.status).toLowerCase() === 'attended'"
+                    status="confirmed"
+                  />
+                  <AppBadge
+                    v-else-if="
+                      ['no-show', 'absent'].includes(String(item.status || '').toLowerCase())
+                    "
+                    status="Absent"
+                    type="red"
+                  />
                   <AppBadge v-else status="Booked" type="neutral" />
                 </template>
+                <AppBadge v-if="item.isSuccessful" status="Successful" type="green" />
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="flex flex-col items-center gap-1">
-                <AppBadge :status="item.trialType || (item.isGuest ? 'walk-in' : 'booked')" />
-                <AppBadge v-if="item.isSuccessful" status="Successful" type="green" />
+                <AppBadge
+                  :status="item.trialType || (item.isGuest ? 'Walk-in' : 'Booked')"
+                  :type="
+                    String(item.trialType || '').toLowerCase() === 'walk-in' || item.isGuest
+                      ? 'magenta'
+                      : 'purple'
+                  "
+                />
               </div>
             </td>
 
@@ -415,7 +431,6 @@ const handleTableAction = ({ type, item }) => {
     </DataPageLayout>
 
     <TrialActionModal
-      v-if="actionState.isOpen"
       :isOpen="actionState.isOpen"
       :type="actionState.type"
       :trial="actionState.trial"

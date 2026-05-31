@@ -228,27 +228,40 @@ class TermService {
         classIds,
         scheduleIds
       )
+      
+      const currentOfferings = validatedData.offerings || existingTerm.offerings || []
+      
+      // Filter out new offerings that already exist (same branch + class + schedule)
+      const uniqueNewOfferings = newOfferings.filter(newOff => {
+        return !currentOfferings.some(curr => 
+          String(curr.branchId) === String(newOff.branchId) && 
+          String(curr.classId) === String(newOff.classId) && 
+          String(curr.scheduleId) === String(newOff.scheduleId)
+        )
+      })
+
       validatedData.offerings = [
-        ...(validatedData.offerings || existingTerm.offerings || []),
-        ...newOfferings,
+        ...currentOfferings,
+        ...uniqueNewOfferings,
       ]
       delete validatedData.newOfferingsRequest
     }
 
     if (validatedData.deleteOfferingsRequest) {
-      const { branchId, programId } = validatedData.deleteOfferingsRequest
+      const { branchId, programId, offeringId } = validatedData.deleteOfferingsRequest
       validatedData.offerings = (
         validatedData.offerings ||
         existingTerm.offerings ||
         []
-      ).filter(
-        (off) =>
-          !(
-            String(off.branchId) === String(branchId) &&
-            (String(off.classId) === String(programId) ||
-              String(off.program?.id) === String(programId))
-          ),
-      )
+      ).filter((off) => {
+        if (offeringId) {
+          return String(off.offeringId) !== String(offeringId)
+        }
+        return !(
+          String(off.branchId) === String(branchId) &&
+          (String(off.classId) === String(programId) || String(off.program?.id) === String(programId))
+        )
+      })
       delete validatedData.deleteOfferingsRequest
     }
 

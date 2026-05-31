@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useForm } from '@/composables/useForm'
+import { useActionModal } from '@/composables/useActionModal'
 import { useModalText } from '@/composables/useModalText'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
@@ -28,41 +28,69 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit'])
 
-const { form, errors, shaking, validate, clearError, triggerShake, resetForm, getPayload } =
-  useForm(
-    {
-      isGuest: false,
-      studentId: '',
-      parentId: '',
-      programId: '',
-      branchId: '',
-      trialDate: new Date().toISOString().split('T')[0],
-      trialTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-      status: 'pending',
-      trialType: 'booked',
-      isSuccessful: false,
-      remark: '',
-      // Guest fields
-      guestParentName: '',
-      guestParentEmail: '',
-      guestParentPhone: '',
-      guestParentAvatar: '',
-      guestStudentName: '',
-      guestStudentDOB: '',
-      guestStudentAge: '',
-      guestStudentAvatar: '',
-      deleteConfirm: '',
-    },
-    { autoClear: 3000 },
-  )
+const getInitialData = () => ({
+  isGuest: false,
+  studentId: '',
+  parentId: '',
+  programId: '',
+  branchId: '',
+  trialDate: new Date().toISOString().split('T')[0],
+  trialTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  status: 'pending',
+  trialType: 'booked',
+  isSuccessful: false,
+  remark: '',
+  // Guest fields
+  guestParentName: '',
+  guestParentEmail: '',
+  guestParentPhone: '',
+  guestParentAvatar: '',
+  guestStudentName: '',
+  guestStudentDOB: '',
+  guestStudentAge: '',
+  guestStudentAvatar: '',
+  deleteConfirm: '',
+})
+
+const mapSourceToForm = () => {
+  if (props.trial) {
+    return {
+      ...getInitialData(),
+      isGuest: !!props.trial.isGuest,
+      parentId: props.trial.parentId || props.trial.parent?.id || '',
+      studentId: props.trial.studentId || props.trial.student?.id || '',
+      programId: props.trial.programId || props.trial.program?.id || '',
+      branchId: props.trial.branchId || props.trial.branch?.id || '',
+      trialDate: (props.trial.trialDate || '').split('T')[0],
+      trialTime: props.trial.trialTime || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      status: props.trial.status || 'pending',
+      trialType: props.trial.trialType || (props.trial.isGuest ? 'walk-in' : 'booked'),
+      isSuccessful: !!props.trial.isSuccessful,
+      remark: props.trial.remark || '',
+      guestParentName: props.trial.guestParentName || '',
+      guestParentEmail: props.trial.guestParentEmail || '',
+      guestParentPhone: props.trial.guestParentPhone || '',
+      guestParentAvatar: props.trial.guestParentAvatar || '',
+      guestStudentName: props.trial.guestStudentName || '',
+      guestStudentDOB: props.trial.guestStudentDOB ? props.trial.guestStudentDOB.split('T')[0] : '',
+      guestStudentAge: props.trial.guestStudentAge || '',
+      guestStudentAvatar: props.trial.guestStudentAvatar || '',
+    }
+  }
+  return getInitialData()
+}
+
+const { localData: form, isDirty, errors, shaking, validate, clearError, triggerShake, getPayload } = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm,
+  sourceKey: 'trial',
+  autoClear: 3000,
+})
 
 const showConfirm = ref(false)
 
 const isEditMode = computed(() => props.type === 'edit' || (props.type !== 'add' && !!props.trial))
-const initialDataString = ref('')
-const isChanged = computed(
-  () => !isEditMode.value || JSON.stringify(form) !== initialDataString.value,
-)
+const isChanged = computed(() => !isEditMode.value || isDirty.value)
 
 const resolveId = (val) => (val && typeof val === 'object' ? val.id : val)
 
@@ -122,6 +150,13 @@ const confirmRows = computed(() => {
       },
       { key: 'Program', value: selectedProgram.value?.name },
       { key: 'TrialDate', value: formatDateOnly(form.trialDate) },
+      { key: 'Status', value: form.status },
+      { key: 'TrialType', value: form.trialType },
+      {
+        key: 'DeleteConfirm',
+        value: form.deleteConfirm,
+        valueClass: 'text-error font-bold',
+      },
     ]
   }
 
@@ -147,9 +182,18 @@ const confirmRows = computed(() => {
     {
       key: 'TrialType',
       value: form.isGuest ? 'Walk-in' : 'Booked',
-      valueClass: form.isGuest ? 'text-magenta' : 'text-purple',
+      badge: true,
+    },
+    {
+      key: 'Status',
+      value: form.status,
+      badge: true,
     },
   ]
+
+  if (form.isSuccessful) {
+    rows.push({ key: 'Converted', value: 'Successful', badge: true })
+  }
   if (form.isGuest) {
     rows.splice(1, 0, { key: 'GuestParentPhone', value: form.guestParentPhone })
   }
@@ -261,55 +305,7 @@ const handleFinalSubmit = () => {
   showConfirm.value = false
 }
 
-watch(
-  () => props.isOpen,
-  (open) => {
-    if (open) {
-      if (props.trial) {
-        resetForm({
-          ...props.trial,
-          trialDate: (props.trial.trialDate || '').split('T')[0],
-          trialTime:
-            props.trial.trialTime ||
-            new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-          isGuest: !!props.trial.isGuest,
-          isSuccessful: !!props.trial.isSuccessful,
-          guestStudentDOB: props.trial.guestStudentDOB
-            ? props.trial.guestStudentDOB.split('T')[0]
-            : '',
-        })
-        initialDataString.value = JSON.stringify(form)
-        showConfirm.value = false
-      } else {
-        resetForm({
-          isGuest: false,
-          studentId: '',
-          parentId: '',
-          programId: '',
-          classId: '',
-          branchId: '',
-          trialDate: new Date().toISOString().split('T')[0],
-          trialTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-          status: 'pending',
-          trialType: 'booked',
-          isSuccessful: false,
-          remark: '',
-          guestParentName: '',
-          guestParentEmail: '',
-          guestParentPhone: '',
-          guestParentAvatar: '',
-          guestStudentName: '',
-          guestStudentDOB: '',
-          guestStudentAge: '',
-          guestStudentAvatar: '',
-        })
-        showConfirm.value = false
-      }
-    } else {
-      clearError()
-    }
-  },
-)
+// watch handled by useActionModal
 
 watch(
   () => form.guestStudentDOB,
@@ -343,6 +339,7 @@ const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'T
       <template v-if="type === 'add' || type === 'edit'">
         <!-- Engagement Mode Toggle -->
         <div
+          v-if="type === 'add'"
           class="bg-surface-light/50 p-4 rounded-std border-2 border-dashed border-outline-std flex items-center justify-between"
         >
           <div class="flex flex-col">
@@ -611,6 +608,51 @@ const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'T
                     :type="form.isGuest ? 'magenta' : 'purple'"
                   />
                 </div>
+                <div
+                  v-if="isEditMode && !form.isGuest"
+                  class="enroll-info-item col-span-2 mt-2 pt-2 border-t border-outline-std/50"
+                >
+                  <span class="enroll-info-key">Trial Status</span>
+                  <div class="flex items-center gap-2 mt-1">
+                    <button
+                      type="button"
+                      @click="form.status = 'pending'"
+                      class="px-3 py-1.5 rounded-md text-xs font-bold transition-all border border-outline-std shadow-sm"
+                      :class="
+                        form.status === 'pending'
+                          ? 'bg-primary text-white border-transparent shadow-primary/30'
+                          : 'bg-white text-content-muted hover:bg-surface-light'
+                      "
+                    >
+                      Pending (Booked)
+                    </button>
+                    <button
+                      type="button"
+                      @click="form.status = 'attended'"
+                      class="px-3 py-1.5 rounded-md text-xs font-bold transition-all border border-outline-std shadow-sm"
+                      :class="
+                        form.status === 'attended'
+                          ? 'bg-blue-500 text-white border-transparent shadow-blue-500/30'
+                          : 'bg-white text-content-muted hover:bg-surface-light'
+                      "
+                    >
+                      Attended
+                    </button>
+                    <button
+                      type="button"
+                      @click="form.status = 'absent'"
+                      class="px-3 py-1.5 rounded-md text-xs font-bold transition-all border border-outline-std shadow-sm"
+                      :class="
+                        form.status === 'absent'
+                          ? 'bg-red-500 text-white border-transparent shadow-red-500/30'
+                          : 'bg-white text-content-muted hover:bg-surface-light'
+                      "
+                    >
+                      Absent
+                    </button>
+                  </div>
+                </div>
+
                 <div
                   v-if="isEditMode"
                   class="enroll-info-item col-span-2 mt-2 pt-2 border-t border-outline-std/50"

@@ -10,8 +10,8 @@ import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { getActionIcon, getImageUrl, getProgramProfileURL } from '@/utils/assetHelper'
 import { categoryService } from '@/services/categoryService'
 import { levelService } from '@/services/levelService'
-import { programService } from '@/services/programService'
 import { storageService } from '@/services/storageService'
+import { useDataStore } from '@/stores/dataStore'
 import { useActionModal } from '@/composables/useActionModal'
 import { useModalText } from '@/composables/useModalText'
 
@@ -56,6 +56,8 @@ const { localData, originalData, isDirty, errors, shaking, validate, clearError,
     autoClear: 3000,
   })
 
+const dataStore = useDataStore()
+
 // Lookup Management State
 const lookupType = ref(null) // 'category' | 'level'
 const lookupLoading = ref(false)
@@ -88,7 +90,7 @@ const addLookup = async () => {
         name: newLookupName.value.trim(),
         profileURL: newLookupURL.value.trim() || null,
       })
-      await fetchCategories()
+      await dataStore.fetchCategories(true)
     } else if (lookupType.value === 'level') {
       await levelService.createLevel({ name: newLookupName.value.trim() })
       await fetchLevels()
@@ -113,7 +115,7 @@ const deleteLookup = async (id) => {
     if (lookupType.value === 'category') {
       await categoryService.deleteCategory(id)
       if (String(localData.categoryId) === String(id)) localData.categoryId = ''
-      await fetchCategories()
+      await dataStore.fetchCategories(true)
     } else if (lookupType.value === 'level') {
       await levelService.deleteLevel(id)
       if (String(localData.levelId) === String(id)) localData.levelId = ''
@@ -127,7 +129,7 @@ const deleteLookup = async (id) => {
   }
 }
 
-const categories = ref([])
+const categories = computed(() => dataStore.categories)
 const levels = ref([])
 const isUploading = ref(false)
 const showConfirm = ref(false)
@@ -144,22 +146,6 @@ const sortedLevels = computed(() => {
   }))
 })
 
-const fetchCategories = async () => {
-  try {
-    const rawData = await categoryService.getAllCategories()
-    const rawCategories = Array.isArray(rawData) ? rawData : rawData?.data || []
-    categories.value = rawCategories
-      .filter((c) => c)
-      .map((c) => ({
-        ...c,
-        id: c.id,
-        profileURL: c.profileURL || '',
-      }))
-  } catch (err) {
-    console.error('Failed to fetch categories:', err)
-  }
-}
-
 const fetchLevels = async () => {
   try {
     const rawData = await levelService.getAllLevels()
@@ -175,23 +161,16 @@ const fetchLevels = async () => {
   }
 }
 
-const programTypes = ref([])
+const programTypes = computed(() => {
+  const allPrograms = dataStore.programs || []
+  const uniqueTypes = [...new Set(allPrograms.map((p) => p.type).filter(Boolean))]
 
-const fetchProgramTypes = async () => {
-  try {
-    const rawPrograms = await programService.getAllPrograms()
-    const allPrograms = Array.isArray(rawPrograms) ? rawPrograms : rawPrograms?.data || []
-    const uniqueTypes = [...new Set(allPrograms.map((p) => p.type).filter(Boolean))]
+  // Default presets
+  const presets = ['Group', 'Private']
+  const combined = [...new Set([...presets, ...uniqueTypes])]
 
-    // Default presets
-    const presets = ['Group', 'Private']
-    const combined = [...new Set([...presets, ...uniqueTypes])]
-
-    programTypes.value = combined.map((t) => ({ id: t, name: t }))
-  } catch (err) {
-    console.error('Failed to fetch program types:', err)
-  }
-}
+  return combined.map((t) => ({ id: t, name: t }))
+})
 
 const programTypesWithCategoryImage = computed(() =>
   programTypes.value.map((t) => ({
@@ -304,13 +283,11 @@ const confirmRows = computed(() => {
       badge: true,
       type: 'magenta',
     },
-    { key: 'Type', value: localData.type, badge: true, type: 'tag' },
+    { key: 'Type', value: localData.type, badge: true },
     {
       key: 'BasePrice',
       value: `$${localData.basePrice}`,
       valueClass: 'font-bold text-primary text-base',
-      badge: true,
-      type: 'blue',
     },
     { key: 'TotalSessions', value: localData.totalSessions, valueClass: 'font-bold tabular-nums' },
     { key: 'Duration', value: `${localData.duration} mins`, valueClass: 'font-bold tabular-nums' },
@@ -320,6 +297,14 @@ const confirmRows = computed(() => {
       valueClass: 'font-bold text-content-dark',
     },
   ]
+
+  if (localData.description) {
+    rows.push({
+      key: 'Description',
+      value: localData.description,
+      valueClass: 'text-sm text-content-muted italic line-clamp-3',
+    })
+  }
   if (props.type === 'delete') {
     rows.push({
       key: 'DeleteConfirm',
@@ -334,7 +319,7 @@ watch(
   () => props.isOpen,
   async (isOpen) => {
     if (isOpen) {
-      await Promise.all([fetchCategories(), fetchLevels(), fetchProgramTypes()])
+      await fetchLevels()
     }
   },
   { immediate: true },

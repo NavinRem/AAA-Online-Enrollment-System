@@ -49,6 +49,7 @@ class ClassService {
       schedules,
       branchIds: validated.branchIds,
       branches,
+      status: validated.status,
       isDeleted: false,
       createdAt: validated.createdAt,
       updatedAt: validated.updatedAt,

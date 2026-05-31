@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useForm } from '@/composables/useForm'
+import { useActionModal } from '@/composables/useActionModal'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
@@ -9,12 +9,9 @@ import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import { getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
-import { programService } from '@/services/programService'
-import { categoryService } from '@/services/categoryService'
 import { scheduleService } from '@/services/scheduleService'
-import { teacherService } from '@/services/teacherService'
-import { branchService } from '@/services/branchService'
 import { classService } from '@/services/classService'
+import { useDataStore } from '@/stores/dataStore'
 import { useModalText } from '@/composables/useModalText'
 
 const props = defineProps({
@@ -29,26 +26,84 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'submit', 'clear-error', 'clear-success'])
 
-const { form, errors, shaking, validate, clearError, triggerShake, resetForm } = useForm(
-  {
-    programId: '',
-    scheduleIds: [],
-    branchIds: [],
-    classIds: [],
-    scheduleCapacities: {},
-    scheduleTeachers: {}, // { scheduleId: teacherId }
-    deleteConfirm: '',
-    status: 'active',
-  },
-  { autoClear: 3000 },
-)
+const getInitialData = () => ({
+  programId: '',
+  scheduleIds: [],
+  branchIds: [],
+  classIds: [],
+  scheduleCapacities: {},
+  scheduleTeachers: {}, // { scheduleId: teacherId }
+  deleteConfirm: '',
+  status: 'active',
+})
 
-const teachers = ref([])
-const branches = ref([])
-const classes = ref([])
+const mapSourceToForm = () => {
+  const classDataToUse = props.classInstance
+  if (classDataToUse) {
+    const initialCapacities = {}
+    const initialTeachers = {}
+    if (classDataToUse.schedules) {
+      classDataToUse.schedules.forEach((s) => {
+        if (s.capacity) initialCapacities[s.id] = s.capacity
+        if (s.teacherId) initialTeachers[s.id] = s.teacherId
+      })
+    }
+    return {
+      ...getInitialData(),
+      programId: classDataToUse.programId || '',
+      scheduleIds: Array.from(
+        new Set([
+          ...(classDataToUse.scheduleIds ||
+            classDataToUse.schedules?.map((schedule) => schedule.id) ||
+            []),
+        ]),
+      ),
+      branchIds: Array.from(
+        new Set([
+          ...(classDataToUse.branchIds ||
+            classDataToUse.branches?.map((branch) => branch.id) ||
+            []),
+        ]),
+      ),
+      classIds: [],
+      scheduleCapacities: initialCapacities,
+      scheduleTeachers: initialTeachers,
+      status: classDataToUse.status || 'active',
+    }
+  }
+  return getInitialData()
+}
 
-const programs = ref([])
-const schedules = ref([])
+const { localData: form, originalData, isDirty, errors, shaking, validate, clearError, triggerShake } = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm,
+  sourceKey: 'classInstance',
+  autoClear: 3000,
+})
+
+const dataStore = useDataStore()
+
+const teachers = computed(() => dataStore.teachers.map((t) => ({
+  id: t.id,
+  name: t.name,
+  profileURL: t.profileURL,
+  branchAbbr: t.branchAbbr,
+})))
+const branches = computed(() => dataStore.branches)
+const classes = computed(() => dataStore.classes)
+
+const programs = computed(() => dataStore.programs.map((program) => {
+  const category = dataStore.categories.find((item) => item.id === program.categoryId)
+  return {
+    ...program,
+    categoryProfileURL: category?.profileURL || '',
+  }
+}))
+
+const schedules = computed(() => dataStore.schedules.map((schedule) => ({
+  ...schedule,
+  name: `${schedule.day} (${schedule.time})`,
+})))
 const lookupLoading = ref(false)
 const lookupError = ref('')
 const lookupSuccess = ref('')
@@ -152,55 +207,30 @@ const isFormInvalid = computed(() => {
   return !form.programId || form.scheduleIds.length === 0 || form.branchIds.length === 0
 })
 
-const isDirty = computed(() => {
-  if (props.type !== 'edit') return true
-  if (!props.classInstance) return false
-
-  const initialProg = props.classInstance.programId || ''
-  const initialScheds = [
-    ...(props.classInstance.scheduleIds || props.classInstance.schedules?.map((s) => s.id) || []),
-  ]
-    .sort()
-    .join(',')
-  const initialBranches = [
-    ...(props.classInstance.branchIds || props.classInstance.branches?.map((b) => b.id) || []),
-  ]
-    .sort()
-    .join(',')
-
-  const currentProg = form.programId
-  const currentScheds = [...form.scheduleIds].sort().join(',')
-  const currentBranches = [...form.branchIds].sort().join(',')
-
-  if (
-    initialProg !== currentProg ||
-    initialScheds !== currentScheds ||
-    initialBranches !== currentBranches
-  )
-    return true
-
-  // Compare capacities and teachers for currently selected schedules
-  for (const id of form.scheduleIds) {
-    const initialCap = props.classInstance.schedules?.find((s) => s.id === id)?.capacity || 20
-    const currentCap = form.scheduleCapacities[id] || 20
-    if (Number(initialCap) !== Number(currentCap)) return true
-
-    const initialTeacher = props.classInstance.schedules?.find((s) => s.id === id)?.teacherId || ''
-    const currentTeacher = form.scheduleTeachers[id] || ''
-    if (initialTeacher !== currentTeacher) return true
-  }
-
-  const initialStatus = props.classInstance.status || 'active'
-  const currentStatus = form.status || 'active'
-
-  if (initialStatus !== currentStatus) return true
-
-  return false
-})
+// isDirty is provided by useActionModal
 
 const confirmRows = computed(() => {
-  if (props.type === 'delete')
-    return [
+  const rows = []
+  
+  if (props.context) {
+    rows.push(
+      { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
+      { key: 'Category', value: selectedProgram.value?.category || 'Standard' },
+      { key: 'Classes', value: `${form.classIds.length} Schedules Selected` },
+    )
+  } else {
+    rows.push(
+      { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
+      { key: 'Category', value: selectedProgram.value?.category || 'Standard' },
+      { key: 'Duration', value: `${selectedProgram.value?.duration || 0} Minutes` },
+    )
+    if (form.branchIds && form.branchIds.length > 0) {
+      rows.push({ key: 'Branches', value: `${form.branchIds.length} Selected` })
+    }
+  }
+
+  if (props.type === 'delete' || props.type === 'remove') {
+    rows.push(
       {
         key: 'Warning',
         value:
@@ -214,26 +244,10 @@ const confirmRows = computed(() => {
         value: form.deleteConfirm,
         valueClass: 'text-error font-bold',
       }
-    ]
-
-  if (props.context) {
-    return [
-      { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
-      { key: 'Category', value: selectedProgram.value?.category || 'Standard' },
-      { key: 'Classes', value: `${form.classIds.length} Schedules Selected` },
-    ]
+    )
+    return rows
   }
 
-  const rows = [
-    { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
-    { key: 'Category', value: selectedProgram.value?.category || 'Standard' },
-    { key: 'Duration', value: `${selectedProgram.value?.duration || 0} Minutes` },
-  ]
-  
-  if (form.branchIds && form.branchIds.length > 0) {
-    rows.push({ key: 'Branches', value: `${form.branchIds.length} Selected` })
-  }
-  
   rows.push({ key: 'Schedules', value: `${form.scheduleIds.length} Sessions Assigned` })
   
   if (form.status) {
@@ -255,6 +269,11 @@ const filteredPickerClasses = computed(() => {
   matches.forEach((c) => {
     if (c.schedules && c.schedules.length > 0) {
       c.schedules.forEach((s) => {
+        const isAlreadyAdded = props.context?.existingOfferings?.some(
+          (o) => String(o.classId) === String(c.id) && String(o.scheduleId) === String(s.id)
+        )
+        if (isAlreadyAdded) return
+
         flattened.push({
           ...c,
           id: `${c.id}_${s.id}`, // Unique ID for AppSelect
@@ -276,46 +295,9 @@ const filteredPickerClasses = computed(() => {
 })
 
 const loadOptions = async (skipCache = false) => {
-  const [programData, categoryData, scheduleData, teacherData, branchData, classData] =
-    await Promise.all([
-      programService.getAllPrograms(),
-      categoryService.getAllCategories(),
-      scheduleService.getAllSchedules({}, { skipCache }),
-      teacherService.getAllTeachers(),
-      branchService.getAllBranches(),
-      classService.getAllClasses(),
-    ])
-
-  const categories = Array.isArray(categoryData) ? categoryData : categoryData?.data || []
-  const programsList = Array.isArray(programData) ? programData : programData?.data || []
-  const schedulesList = Array.isArray(scheduleData) ? scheduleData : scheduleData?.data || []
-  const branchesList = Array.isArray(branchData) ? branchData : branchData?.data || []
-  const classesRaw = Array.isArray(classData) ? classData : classData?.data || []
-
-  branches.value = branchesList
-  classes.value = classesRaw
-
-  programs.value = programsList.map((program) => {
-    const category = categories.find((item) => item.id === program.categoryId)
-    return {
-      ...program,
-      categoryProfileURL: category?.profileURL || '',
-    }
-  })
-
-  schedules.value = schedulesList.map((schedule) => ({
-    ...schedule,
-    name: `${schedule.day} (${schedule.time})`,
-  }))
-
-  teachers.value = (Array.isArray(teacherData) ? teacherData : teacherData?.data || []).map(
-    (t) => ({
-      id: t.id,
-      name: t.name,
-      profileURL: t.profileURL,
-      branchAbbr: t.branchAbbr,
-    }),
-  )
+  if (skipCache) {
+    await dataStore.fetchSchedules(true)
+  }
 }
 
 const toggleScheduleManage = () => {
@@ -430,41 +412,46 @@ watch(
       try {
         const response = await classService.getClass(classDataToUse.id)
         classDataToUse = response.data || response
+        
+        // Update form and originalData with fetched async data
+        const initialCapacities = {}
+        const initialTeachers = {}
+        if (classDataToUse?.schedules) {
+          classDataToUse.schedules.forEach((s) => {
+            if (s.capacity) initialCapacities[s.id] = s.capacity
+            if (s.teacherId) initialTeachers[s.id] = s.teacherId
+          })
+        }
+
+        const updatedData = {
+          programId: classDataToUse?.programId || '',
+          scheduleIds: Array.from(
+            new Set([
+              ...(classDataToUse?.scheduleIds ||
+                classDataToUse?.schedules?.map((schedule) => schedule.id) ||
+                []),
+            ]),
+          ),
+          branchIds: Array.from(
+            new Set([
+              ...(classDataToUse?.branchIds ||
+                classDataToUse?.branches?.map((branch) => branch.id) ||
+                []),
+            ]),
+          ),
+          classIds: [],
+          scheduleCapacities: initialCapacities,
+          scheduleTeachers: initialTeachers,
+          status: classDataToUse?.status || 'active',
+        }
+        
+        Object.assign(form, JSON.parse(JSON.stringify(updatedData)))
+        Object.assign(originalData, JSON.parse(JSON.stringify(updatedData)))
+
       } catch (err) {
         console.error('Failed to fetch full class details:', err)
       }
     }
-
-    const initialCapacities = {}
-    const initialTeachers = {}
-    if (classDataToUse?.schedules) {
-      classDataToUse.schedules.forEach((s) => {
-        if (s.capacity) initialCapacities[s.id] = s.capacity
-        if (s.teacherId) initialTeachers[s.id] = s.teacherId
-      })
-    }
-
-    resetForm({
-      programId: classDataToUse?.programId || '',
-      scheduleIds: Array.from(
-        new Set([
-          ...(classDataToUse?.scheduleIds ||
-            classDataToUse?.schedules?.map((schedule) => schedule.id) ||
-            []),
-        ]),
-      ),
-      branchIds: Array.from(
-        new Set([
-          ...(classDataToUse?.branchIds ||
-            classDataToUse?.branches?.map((branch) => branch.id) ||
-            []),
-        ]),
-      ),
-      classIds: [],
-      scheduleCapacities: initialCapacities,
-      scheduleTeachers: initialTeachers,
-      status: classDataToUse?.status || 'active',
-    })
   },
   { immediate: true },
 )

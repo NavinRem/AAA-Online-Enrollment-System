@@ -13,7 +13,6 @@ import { classService } from '@/services/classService'
 import { termService } from '@/services/termService'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { useSearch } from '@/composables/useSearch'
-import { calculateOfferingStatus } from '@/utils/formatUtils'
 
 const router = useRouter()
 const dataStore = useDataStore()
@@ -141,12 +140,8 @@ const masterClasses = computed(() => {
           }
         })
 
-        const computedStatus = calculateOfferingStatus({
-          schedule: sched,
-          program: program,
-          offering: { ...product, currentCount },
-          checkOngoing: false,
-        })
+        const capacity = sched.capacity || program?.capacity || 20
+        const computedStatus = currentCount >= capacity ? 'full' : (product.status || 'available')
 
         return {
           ...sched,
@@ -507,7 +502,6 @@ const navigateToDetail = (item) => {
   </DashboardLayout>
 
   <ClassActionModal
-    v-if="modal.isOpen"
     :isOpen="modal.isOpen"
     :type="modal.type"
     :classInstance="modal.classItem"

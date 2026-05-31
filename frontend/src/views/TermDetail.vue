@@ -325,6 +325,7 @@ const branchDisplayData = computed(() => {
     status: progress.status,
     startDate: setting.startDate,
     endDate: setting.endDate,
+    remainingSessions: progress.remainingSessions > 0 ? progress.remainingSessions : term.value.totalSessions
   }
 })
 
@@ -683,6 +684,7 @@ const openAddClassModal = () => {
     context: {
       termName: term.value.name,
       branchName: activeBranch.value?.name,
+      existingOfferings: term.value.offerings?.filter((o) => o.branchId === activeBranchId.value) || [],
     },
     loading: false,
     error: '',
@@ -697,13 +699,15 @@ const handleClassActionSubmit = async (payload) => {
     if (classActionModal.value.type === 'remove') {
       const classGroup = classActionModal.value.classItem
       const apiPayload = {
-        deleteOfferingsRequest: {
-          branchId: activeBranchId.value,
-          programId: classGroup.classId,
-        },
+        deleteOfferingsRequest: classGroup.offeringId
+          ? { offeringId: classGroup.offeringId }
+          : {
+              branchId: activeBranchId.value,
+              programId: classGroup.classId,
+            },
       }
       await termService.updateTerm(term.value.id, apiPayload)
-      classActionModal.value.success = 'Class removed from branch'
+      classActionModal.value.success = classGroup.offeringId ? 'Schedule removed' : 'Class removed from branch'
     } else {
       // Add mode
       await termService.updateTerm(term.value.id, {
@@ -734,6 +738,24 @@ const confirmRemoveClass = (classGroup) => {
     isOpen: true,
     type: 'remove',
     classItem: classGroup,
+    context: {
+      termName: term.value.name,
+      branchName: activeBranch.value?.name,
+    },
+    loading: false,
+    error: '',
+    success: '',
+  }
+}
+
+const confirmRemoveSchedule = (sched) => {
+  classActionModal.value = {
+    isOpen: true,
+    type: 'remove',
+    classItem: {
+      offeringId: sched.offeringId,
+      deleteConfirm: ''
+    },
     context: {
       termName: term.value.name,
       branchName: activeBranch.value?.name,
@@ -871,7 +893,6 @@ const handleActionSubmit = async (payload) => {
           >
             <template #toolbar-actions>
               <AppButton
-                v-if="branchDisplayData?.status === 'upcoming'"
                 variant="primary"
                 size="md"
                 @click="openAddClassModal"
@@ -913,16 +934,28 @@ const handleActionSubmit = async (payload) => {
                   <div
                     v-for="(sched, idx) in item.schedules"
                     :key="sched.offeringId || idx"
-                    class="flex flex-col items-center justify-center py-2 bg-primary-light group-hover:bg-primary/30 px-lg rounded-sm min-w-32"
+                    class="flex items-center gap-1 group/sched"
                   >
-                    <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
-                    <span
-                      class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums"
-                      >{{ sched.time }}</span
+                    <div
+                      class="flex flex-col items-center justify-center py-2 bg-primary-light group-hover:bg-primary/30 px-lg rounded-sm min-w-32 relative"
                     >
-                    <span class="text-4xs font-bold text-primary/70 mt-1 uppercase tracking-wider" v-if="term?.startDate && term?.totalSessions">
-                      Ends {{ formatDateOnly(calculateTermEndDate(term.startDate, term.totalSessions, sched.day)) }}
-                    </span>
+                      <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
+                      <span
+                        class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums"
+                        >{{ sched.time }}</span
+                      >
+                      <span class="text-4xs font-bold text-primary/70 mt-1 uppercase tracking-wider" v-if="term?.startDate && term?.totalSessions">
+                        Ends {{ formatDateOnly(calculateTermEndDate(term.startDate, term.totalSessions, sched.day)) }}
+                      </span>
+                      <button
+                        type="button"
+                        title="Remove Schedule"
+                        @click.stop="confirmRemoveSchedule(sched)"
+                        class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-error text-white rounded-full flex items-center justify-center opacity-0 group-hover/sched:opacity-100 transition-opacity shadow-sm hover:scale-110 active:scale-95"
+                      >
+                        <img :src="getActionIcon('delete')" class="w-2.5 h-2.5 brightness-0 invert" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -1148,9 +1181,9 @@ const handleActionSubmit = async (payload) => {
                 <AppBadge :status="branchDisplayData.status" />
               </div>
               <div class="flex flex-col items-center gap-2">
-                <span class="text-sm font-bold text-content-muted">Locations</span>
+                <span class="text-sm font-bold text-content-muted">Remaining</span>
                 <span class="text-lg font-bold text-content-dark"
-                  >{{ term.branchIds.length }} Branches</span
+                  >{{ branchDisplayData.remainingSessions || 0 }}</span
                 >
               </div>
               <div class="flex flex-col items-center gap-2">

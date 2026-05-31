@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
@@ -8,8 +8,8 @@ import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
-import { programService } from '@/services/programService'
+import { getImageUrl } from '@/utils/assetHelper'
+import { useDataStore } from '@/stores/dataStore'
 import { useActionModal } from '@/composables/useActionModal'
 import TeacherAssignmentTab from './TeacherAssignmentTab.vue'
 import { teacherService } from '@/services/teacherService'
@@ -76,26 +76,15 @@ const {
 const activeTab = ref('profile')
 const showConfirm = ref(false)
 const confirmType = ref('profile') // 'profile' or 'assignments'
-const programs = ref([])
-const loadingPrograms = ref(false)
+const dataStore = useDataStore()
 
-const fetchPrograms = async () => {
-  loadingPrograms.value = true
-  try {
-    const data = await programService.getAllPrograms()
-    programs.value = (Array.isArray(data) ? data : []).map((p) => ({
-      id: p.id,
-      name: p.name,
-      profileURL: p.profileURL,
-    }))
-  } catch (error) {
-    console.error('Failed to fetch programs', error)
-  } finally {
-    loadingPrograms.value = false
-  }
-}
-
-onMounted(fetchPrograms)
+const programs = computed(() =>
+  dataStore.programs.map((p) => ({
+    id: p.id,
+    name: p.name,
+    profileURL: p.profileURL,
+  }))
+)
 
 const validateForm = () => {
   const rules = {
@@ -211,6 +200,7 @@ const confirmRows = computed(() => {
 
   if (props.type === 'delete') {
     rows.push({ key: 'Status', value: 'Permanently Deleted', valueClass: 'text-error font-bold' })
+    rows.push({ key: 'DeleteConfirm', value: form.deleteConfirm, valueClass: 'font-bold text-error' })
   } else if (['reactivate', 'deactivate'].includes(props.type)) {
     rows.push({ key: 'Status', value: props.type === 'reactivate' ? 'active' : 'inactive', badge: true })
   }
@@ -224,6 +214,7 @@ watch(
       activeTab.value = 'profile'
     }
   },
+  { immediate: true }
 )
 </script>
 
@@ -391,7 +382,7 @@ watch(
           placeholder="Choose programs..."
           :items="programs"
           multiple
-          :loading="loadingPrograms"
+          :loading="dataStore.loading.programs"
           required
           :error="formErrors.programIds"
           :shake="formShaking.programIds"

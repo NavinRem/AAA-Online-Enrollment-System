@@ -706,7 +706,6 @@ const closeModals = () => {
 
     <!-- Modals -->
     <StudentActionModal
-      v-if="actionModal.isOpen"
       :isOpen="actionModal.isOpen"
       :type="actionModal.type"
       :student="actionModal.student"
@@ -719,7 +718,6 @@ const closeModals = () => {
     />
 
     <ParentActionModal
-      v-if="parentActionModal.isOpen"
       :isOpen="parentActionModal.isOpen"
       :type="parentActionModal.type"
       :selectableParents="parentList"

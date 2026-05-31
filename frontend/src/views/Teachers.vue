@@ -561,7 +561,6 @@ const handleAction = (type, item, closeMenu) => {
     </DataPageLayout>
 
     <TeacherActionModal
-      v-if="isModalOpen"
       :isOpen="isModalOpen"
       :type="modalType"
       :teacher="selectedTeacher"

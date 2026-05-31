@@ -278,7 +278,7 @@ onUnmounted(() => {
               :key="item.id"
               class="px-md py-sm flex items-center gap-sm cursor-pointer transition-colors hover:bg-surface-light group/item"
               :class="{
-                'bg-primary-light text-primary font-bold': multiple
+                'bg-primary text-white font-bold': multiple
                   ? Array.isArray(modelValue) && modelValue.includes(item.id)
                   : modelValue == item.id,
               }"
@@ -295,9 +295,15 @@ onUnmounted(() => {
                     />
                   </div>
                   <span
-                    class="text-sm group-hover/item:translate-x-1 transition-transform duration-200 font-semibold text-content-dark flex-1"
+                    class="text-sm group-hover/item:translate-x-1 transition-transform duration-200 font-semibold flex-1"
+                    :class="
+                      (multiple ? Array.isArray(modelValue) && modelValue.includes(item.id) : modelValue == item.id)
+                        ? 'text-white'
+                        : 'text-content-dark'
+                    "
                     >{{ item.name }}</span
                   >
+                  <!-- Removed checkmark img -->
                   <slot name="item-badge" :item="item"></slot>
                 </div>
               </slot>

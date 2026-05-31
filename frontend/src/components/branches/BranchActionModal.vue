@@ -146,6 +146,7 @@ watch(
       showConfirm.value = false
     }
   },
+  { immediate: true }
 )
 </script>
 

@@ -288,7 +288,7 @@ export const calculateOfferingStatus = ({
   let fallbackStatus = progress.status
 
   if (!termStartDate || !termEndDate) {
-    fallbackStatus = offering.status
+    fallbackStatus = offering.status || 'available'
   }
 
   if (isFull) {

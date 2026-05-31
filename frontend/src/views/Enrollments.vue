@@ -599,7 +599,6 @@ const handleRegisterStudent = async (formData) => {
 
     <EnrollmentActionModal
       ref="enrollmentActionModalRef"
-      v-if="actionState.isOpen"
       :isOpen="actionState.isOpen"
       :type="actionState.type"
       :enrollment="actionState.enrollment"

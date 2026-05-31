@@ -365,7 +365,7 @@ const handleActionSubmit = () => {
 
 const confirmRows = computed(() => {
   const rows = [
-    { key: 'Name', value: localData.name, badge: true, type: 'blue' },
+    { key: 'Name', value: localData.name, valueClass: 'font-bold text-content-dark' },
     {
       key: 'StartDate',
       value: formatDateOnly(localData.startDate || localData.branchSettings?.[0]?.startDate),
@@ -506,6 +506,7 @@ watch(
       showConfirm.value = false
     }
   },
+  { immediate: true }
 )
 </script>
 

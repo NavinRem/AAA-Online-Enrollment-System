@@ -8,7 +8,7 @@ import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
-import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 import { calculateAge } from '@/utils/formatUtils'
 import { useActionModal } from '@/composables/useActionModal'
 import { useModalText } from '@/composables/useModalText'
@@ -48,7 +48,7 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, isDirty, errors, shaking, clearError, validate, getPayload } = useActionModal(props, emit, {
+const { localData, isDirty, errors, shaking, clearError, validate, getPayload, sync } = useActionModal(props, emit, {
   getInitialData,
   mapSourceToForm,
   autoClear: 3000,
@@ -100,6 +100,8 @@ const confirmRows = computed(() => {
   if (props.type === 'delete' || props.type === 'enrollment-delete') {
     return [
       { key: 'Name', value: localData.name },
+      { key: 'Dob', value: localData.dob },
+      { key: 'Status', value: localData.status, badge: true },
       {
         key: 'DeleteConfirm',
         value: localData.deleteConfirm,
@@ -172,10 +174,13 @@ const studentThemeClasses = computed(() => {
 watch(
   () => props.isOpen,
   (newVal) => {
-    if (!newVal) {
-      // clearError context is handled by useActionModal
+    if (newVal) {
+      sync()
+    } else {
+      clearError()
     }
   },
+  { immediate: true }
 )
 </script>
 

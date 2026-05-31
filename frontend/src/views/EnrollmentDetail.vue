@@ -421,7 +421,6 @@ onMounted(async () => {
     </DetailPageLayout>
 
     <EnrollmentActionModal
-      v-if="actionModal.isOpen"
       :isOpen="actionModal.isOpen"
       :type="actionModal.type"
       :enrollment="actionModal.enrollment"

@@ -60,6 +60,7 @@ const REGISTRIES = {
     'on-time': 'green',
     absent: 'red',
     late: 'blue',
+    attended: 'green',
   },
   role: {
     admin: 'red',

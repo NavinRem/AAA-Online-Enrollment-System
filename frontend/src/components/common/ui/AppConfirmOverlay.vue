@@ -84,7 +84,7 @@ defineEmits(['confirm', 'back'])
 }
 
 .app-confirm-header {
-  @apply p-8 bg-surface-light border-b-2 border-outline-std text-center flex flex-col items-center;
+  @apply p-8 bg-surface-subtle border-b-2 border-outline-std text-center flex flex-col items-center;
 }
 
 .app-confirm-icon {
@@ -100,7 +100,7 @@ defineEmits(['confirm', 'back'])
 }
 
 .app-confirm-body {
-  @apply p-8 flex flex-col gap-4;
+  @apply p-8 flex flex-col gap-4 overflow-y-auto scrollable-v max-h-[55vh];
 }
 
 .app-confirm-row {
@@ -124,6 +124,6 @@ defineEmits(['confirm', 'back'])
 }
 
 .app-confirm-actions {
-  @apply p-8 bg-surface-light border-t-2 border-outline-std flex justify-end gap-4;
+  @apply p-8 bg-surface-subtle border-t-2 border-outline-std flex justify-end gap-4;
 }
 </style>

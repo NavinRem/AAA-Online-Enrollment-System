@@ -507,7 +507,6 @@ const handleRowAction = (type, item, closeMenu) => {
     </DataPageLayout>
 
     <ParentActionModal
-      v-if="isActionModalOpen"
       :isOpen="isActionModalOpen"
       :type="actionModalType"
       :user="actionModalParent"
