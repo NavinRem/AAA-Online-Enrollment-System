@@ -12,13 +12,14 @@ export const attendanceService = {
   /**
    * Records attendance for a specific session.
    * @param {string} classId
-   * @param {number} sessionId
+   * @param {number|string} sessionId
    * @param {Object} statuses
+   * @param {string} termId
    */
-  recordAttendance(classId, sessionId, statuses) {
+  recordAttendance(classId, sessionId, statuses, termId) {
     return request('/attendance/record', {
       method: 'POST',
-      body: JSON.stringify({ classId, sessionId, statuses }),
+      body: JSON.stringify({ classId, sessionId, statuses, termId }),
     })
   },
 }

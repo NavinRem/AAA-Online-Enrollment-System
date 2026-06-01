@@ -107,6 +107,9 @@ const statusFilteredTrials = computed(() => {
         )
       : null
 
+    const branchId = trial.branchId || trial.branch?.id
+    const branch = dataStore.branches.find((b) => String(b.id) === String(branchId))
+
     return {
       ...trial,
       program: {
@@ -115,6 +118,7 @@ const statusFilteredTrials = computed(() => {
         category: category?.name || program?.category || trial.program?.category,
         categoryProfileURL: category?.profileURL || '',
       },
+      branch: branch || trial.branch,
     }
   })
 
@@ -325,24 +329,19 @@ const handleTableAction = ({ type, item }) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center gap-1">
-                <template v-if="item.trialType === 'walk-in' || item.isGuest">
-                  <AppBadge status="confirmed" />
-                </template>
-                <template v-else>
-                  <AppBadge
-                    v-if="String(item.status).toLowerCase() === 'attended'"
-                    status="confirmed"
-                  />
-                  <AppBadge
-                    v-else-if="
-                      ['no-show', 'absent'].includes(String(item.status || '').toLowerCase())
-                    "
-                    status="Absent"
-                    type="red"
-                  />
-                  <AppBadge v-else status="Booked" type="neutral" />
-                </template>
                 <AppBadge v-if="item.isSuccessful" status="Successful" type="green" />
+                <AppBadge
+                  v-else-if="
+                    ['no-show', 'absent'].includes(String(item.status || '').toLowerCase())
+                  "
+                  status="Absent"
+                  type="red"
+                />
+                <AppBadge 
+                  v-else-if="item.trialType === 'walk-in' || item.isGuest || String(item.status).toLowerCase() === 'attended'" 
+                  status="Confirmed" 
+                />
+                <AppBadge v-else status="Booked" type="neutral" />
               </div>
             </td>
 

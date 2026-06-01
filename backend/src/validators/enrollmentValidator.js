@@ -22,6 +22,9 @@ function validateEnrollment(enrollmentData) {
     'enrolledSessions',
     'amount',
     'remark',
+    'hasPassedExam',
+    'hasReceivedCertificate',
+    'hasReceivedReportCard',
   ]
 
   Object.keys(enrollmentData).forEach((key) => {
@@ -73,6 +76,9 @@ function validateEnrollment(enrollmentData) {
     enrolledSessions: parseInt(enrollmentData.enrolledSessions || 0),
     amount: parseFloat(enrollmentData.amount || 0),
     remark: enrollmentData.remark || '',
+    hasPassedExam: !!enrollmentData.hasPassedExam,
+    hasReceivedCertificate: !!enrollmentData.hasReceivedCertificate,
+    hasReceivedReportCard: !!enrollmentData.hasReceivedReportCard,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -99,6 +105,9 @@ function validateUpdateEnrollment(updateData) {
     'enrolledSessions',
     'amount',
     'remark',
+    'hasPassedExam',
+    'hasReceivedCertificate',
+    'hasReceivedReportCard',
   ]
   const cleanData = {}
 
@@ -137,6 +146,13 @@ function validateUpdateEnrollment(updateData) {
     cleanData.status = String(cleanData.status).toLowerCase()
   if (cleanData.paymentStatus !== undefined)
     cleanData.paymentStatus = String(cleanData.paymentStatus).toLowerCase()
+  
+  if (cleanData.hasPassedExam !== undefined)
+    cleanData.hasPassedExam = !!cleanData.hasPassedExam
+  if (cleanData.hasReceivedCertificate !== undefined)
+    cleanData.hasReceivedCertificate = !!cleanData.hasReceivedCertificate
+  if (cleanData.hasReceivedReportCard !== undefined)
+    cleanData.hasReceivedReportCard = !!cleanData.hasReceivedReportCard
 
   cleanData.updatedAt = new Date().toISOString()
   return cleanData

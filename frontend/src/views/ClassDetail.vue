@@ -4,11 +4,12 @@ import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AppAlert from '@/components/common/ui/AppAlert.vue'
 import { classService } from '@/services/classService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { programService } from '@/services/programService'
 import { termService } from '@/services/termService'
-import { getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
+import { getActionIcon, getProgramProfileURL, getStudentProfileURL } from '@/utils/assetHelper'
 import {
   calculateClassProgress,
   formatDateOnly,
@@ -34,6 +35,7 @@ const attendanceData = ref({}) // sessionId -> { studentId -> status }
 const programData = ref(null)
 const loading = ref(true)
 const errorMessage = ref('')
+const attendanceError = ref('')
 
 const ATTENDANCE_STATUS = {
   P: { label: 'P', color: 'green', theme: 'bg-success/10 text-success' },
@@ -66,6 +68,40 @@ const processSyncQueue = async () => {
   }
 }
 
+const isSessionDisabled = (sessionDate) => {
+  const sDate = new Date(sessionDate).setHours(0,0,0,0)
+  const now = new Date().setHours(0,0,0,0)
+  return sDate > now
+}
+
+const getSessionDisableReason = (sessionDate) => {
+  const sDate = new Date(sessionDate).setHours(0,0,0,0)
+  const now = new Date().setHours(0,0,0,0)
+  if (sDate > now) return "Session is in the future"
+  return ""
+}
+
+const handleAttendanceClick = (sessionDate, enrollAt, sessionId, studentId) => {
+  if (isSessionDisabled(sessionDate)) {
+    attendanceError.value = getSessionDisableReason(sessionDate)
+    setTimeout(() => { attendanceError.value = '' }, 3000)
+  } else {
+    toggleAttendanceDropdown(sessionId, studentId)
+  }
+}
+
+const toggleEnrollmentField = async (enrollmentId, field) => {
+  try {
+    const item = filteredEnrollments.value.find((e) => e.id === enrollmentId)
+    if (!item) return
+    const newValue = !item[field]
+    item[field] = newValue
+    await enrollmentService.updateEnrollment(enrollmentId, { [field]: newValue })
+  } catch (error) {
+    console.error('Failed to update field:', error)
+  }
+}
+
 const updateAttendanceStatus = async (sessionId, studentId, status) => {
   if (!attendanceData.value[sessionId]) {
     attendanceData.value[sessionId] = {}
@@ -90,6 +126,7 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
           classData.value.id,
           sessionId,
           attendanceData.value[sessionId],
+          termFilter.value,
         ),
       )
 
@@ -103,7 +140,12 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
             attendanceData.value[session.id] = linkedData
 
             updates.push(
-              attendanceService.recordAttendance(classData.value.id, session.id, linkedData),
+              attendanceService.recordAttendance(
+                classData.value.id,
+                session.id,
+                linkedData,
+                termFilter.value,
+              ),
             )
             break
           }
@@ -152,7 +194,6 @@ const allOfferings = computed(() =>
   ),
 )
 
-
 // Scoped offerings for metrics based on selected term filter
 const selectedTermOfferings = computed(() => {
   if (termFilter.value === 'all') {
@@ -192,10 +233,14 @@ const primarySchedule = computed(() => {
 
 const uniqueBranches = computed(() => {
   const branchMap = new Map()
-  
+
   // First, map all branches that the class itself is assigned to
   const classBranchIds = classData.value?.branchIds || []
-  const classBranches = classData.value?.branches || classBranchIds.map(id => dataStore.branches.find(b => String(b.id) === String(id))).filter(Boolean)
+  const classBranches =
+    classData.value?.branches ||
+    classBranchIds
+      .map((id) => dataStore.branches.find((b) => String(b.id) === String(id)))
+      .filter(Boolean)
 
   if (classBranches.length > 0) {
     classBranches.forEach((branch) => {
@@ -206,7 +251,7 @@ const uniqueBranches = computed(() => {
         abbr: liveBranch?.abbr || branch.abbr || branch.name,
         color: liveBranch?.color || branch.color || 'gray', // Will be overridden if available
         studentCount: 0,
-        isAvailable: false // Default to false until we find an offering
+        isAvailable: false, // Default to false until we find an offering
       })
     })
   }
@@ -224,14 +269,14 @@ const uniqueBranches = computed(() => {
           abbr: liveBranch?.abbr || offering.branch.abbr || offering.branch.name,
           color: liveBranch?.color || offering.branch.color || 'blue',
           studentCount: 0,
-          isAvailable: true
+          isAvailable: true,
         })
       } else {
         const existing = branchMap.get(branchId)
         existing.isAvailable = true
         existing.color = liveBranch?.color || offering.branch.color || 'blue'
       }
-      
+
       branchMap.get(branchId).studentCount += Number(
         offering.currentCount || offering.students?.length || 0,
       )
@@ -239,7 +284,6 @@ const uniqueBranches = computed(() => {
   })
   return Array.from(branchMap.values())
 })
-
 
 const normalizeDate = (val) => {
   const date = new Date(val)
@@ -299,14 +343,14 @@ const attendanceHeaders = computed(() => {
   const base = [
     { label: 'No', width: '50px', align: 'center' },
     { label: 'Name', width: '220px' },
-    { label: 'Level', width: '100px', align: 'center' },
-    { label: 'Timeslot', width: '150px', align: 'center' },
+    { label: 'Start Date', width: '120px', align: 'center' },
+    { label: 'Sessions Enrolled', width: '140px', align: 'center' },
   ]
 
   const sessionCols = sessions.value.map((s) => ({
     label: s.label,
     subLabel: formatDateOnly(s.date),
-    width: '90px',
+    width: '120px',
     align: 'center',
     class: 'session-col',
   }))
@@ -363,15 +407,14 @@ const branchFilterOptions = computed(() => {
 const filteredEnrollments = computed(() => {
   return enrollments.value.filter((e) => {
     // Audit: Only successful/eligible enrollments are shown for attendance
-    const eligibleStatuses = ['paid', 'active', 'confirmed', 'success']
-    if (!eligibleStatuses.includes(e.status)) return false
+    if (e.status !== 'paid' && e.paymentStatus !== 'paid') return false
 
     const termMatch = termFilter.value === 'all' || String(e.termId) === String(termFilter.value)
-    
+
     const branchId = e.branchId || e.class?.branch?.id
     const branchMatch =
       branchFilter.value === 'all' || String(branchId) === String(branchFilter.value)
-      
+
     const scheduleId = e.scheduleId || e.class?.schedule?.id
     const scheduleMatch =
       scheduleFilter.value === 'all' || String(scheduleId) === String(scheduleFilter.value)
@@ -394,6 +437,17 @@ const dropdowns = ref({
 })
 
 const filterMenuStyles = ref({})
+
+const activeAttendanceCell = ref(null)
+
+const toggleAttendanceDropdown = (sessionId, studentId) => {
+  const cellId = `${sessionId}-${studentId}`
+  if (activeAttendanceCell.value === cellId) {
+    activeAttendanceCell.value = null
+  } else {
+    activeAttendanceCell.value = cellId
+  }
+}
 
 const toggleDropdown = (type, event) => {
   const isOpening = !dropdowns.value[type]
@@ -439,20 +493,18 @@ const getActiveLabel = (type) => {
   }
 }
 
-const handleClickOutside = (event) => {
-  if (dropdowns.value.term || dropdowns.value.branch || dropdowns.value.schedule) {
-    const termBtn = document.getElementById('term-filter-btn')
-    const branchBtn = document.getElementById('branch-filter-btn')
-    const scheduleBtn = document.getElementById('schedule-filter-btn')
-    if (
-      (!termBtn || !termBtn.contains(event.target)) &&
-      (!branchBtn || !branchBtn.contains(event.target)) &&
-      (!scheduleBtn || !scheduleBtn.contains(event.target))
-    ) {
-      dropdowns.value.term = false
-      dropdowns.value.branch = false
-      dropdowns.value.schedule = false
-    }
+const handleClickOutside = (e) => {
+  if (
+    !e.target.closest('#term-filter-btn') &&
+    !e.target.closest('#branch-filter-btn') &&
+    !e.target.closest('#schedule-filter-btn') &&
+    !e.target.closest('.attendance-dropdown-trigger') &&
+    !e.target.closest('.attendance-dropdown-menu')
+  ) {
+    dropdowns.value.term = false
+    dropdowns.value.branch = false
+    dropdowns.value.schedule = false
+    activeAttendanceCell.value = null
   }
 }
 
@@ -692,6 +744,16 @@ watch(branchFilter, (newBranchId) => {
       <template #left-content v-if="classData">
         <!-- Table Content -->
 
+        <AppAlert
+          :show="!!attendanceError"
+          type="error"
+          closable
+          @close="attendanceError = ''"
+          class="mb-3"
+        >
+          {{ attendanceError }}
+        </AppAlert>
+
         <section
           class="overflow-hidden animate-fade-in flex-1 border border-outline-std rounded-xl bg-white shadow-sm flex flex-col min-h-0 mb-6"
         >
@@ -853,96 +915,189 @@ watch(branchFilter, (newBranchId) => {
             </template>
 
             <template #row="{ item, index, headers }">
-              <td class="ui-cell text-center" :style="{ width: headers[0].width }">
+              <td class="ui-cell text-center" :style="{ width: headers[0].width, minWidth: headers[0].width }">
                 <span class="font-bold text-content-dark text-sm">{{
                   (currentPage - 1) * pageSize + index + 1
                 }}</span>
               </td>
-              <td class="ui-cell">
+              <td class="ui-cell" :style="{ width: headers[1].width, minWidth: headers[1].width }">
                 <div class="flex items-center gap-3">
+                  <div
+                    class="w-10 h-10 rounded-full overflow-hidden bg-surface-subtle border border-outline-std flex-shrink-0"
+                  >
+                    <img
+                      :src="getStudentProfileURL(item.student?.profileURL)"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
                   <div class="flex flex-col">
                     <span class="font-bold text-content-dark text-sm leading-tight">{{
                       item.student?.name || 'Unknown'
                     }}</span>
-                    <span class="text-3xs font-bold text-content-muted tracking-tighter">{{
-                      item.student?.nickname || 'No Nick'
-                    }}</span>
                   </div>
                 </div>
               </td>
-              <td class="ui-cell text-center font-bold text-content-dark text-sm">
-                {{ classData.program?.level || 'L1' }}
+              <td class="ui-cell text-center font-bold text-content-dark text-xs" :style="{ width: headers[2].width, minWidth: headers[2].width }">
+                {{ formatDateOnly(item.enrollAt) || 'N/A' }}
               </td>
-              <td class="ui-cell text-center font-bold text-content-muted text-xs tabular-nums">
-                {{ primarySchedule.time }}
+              <td class="ui-cell text-center font-bold text-content-dark text-xs" :style="{ width: headers[3].width, minWidth: headers[3].width }">
+                {{ item.enrolledSessions || 0 }} sessions
               </td>
 
               <!-- Session Columns -->
-              <td v-for="session in sessions" :key="session.id" class="ui-cell text-center p-1">
+              <td v-for="(session, sIdx) in sessions" :key="session.id" class="ui-cell text-center p-1" :style="{ width: headers[4 + sIdx]?.width, minWidth: headers[4 + sIdx]?.width }">
                 <div class="flex flex-col items-center gap-1 relative group/cell">
                   <!-- Attendance Select Dropdown -->
                   <div class="relative w-10 h-10">
-                    <select
-                      :value="getAttendanceStatus(session.id, item.studentId)"
-                      @change="
-                        updateAttendanceStatus(session.id, item.studentId, $event.target.value)
-                      "
-                      class="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
-                      :disabled="session.date > new Date()"
-                    >
-                      <option v-for="(cfg, key) in ATTENDANCE_STATUS" :key="key" :value="key">
-                        {{ cfg.label }} -
-                        {{
-                          key === 'P'
-                            ? 'Present'
-                            : key === 'A'
-                              ? 'Absent'
-                              : key === 'M'
-                                ? 'Makeup'
-                                : key === 'L'
-                                  ? 'Late'
-                                  : 'None'
-                        }}
-                      </option>
-                    </select>
                     <div
-                      class="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all group-hover/cell:scale-110 shadow-sm border border-outline-std select-none"
+                      class="attendance-dropdown-trigger w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all group-hover/cell:scale-110 shadow-sm border border-outline-std select-none"
                       :class="[
                         ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)]?.theme ||
                           ATTENDANCE_STATUS.N.theme,
-                        session.date > new Date()
+                        isSessionDisabled(session.date, item.enrollAt)
                           ? 'opacity-20 grayscale cursor-not-allowed'
                           : 'cursor-pointer hover:shadow-md',
                       ]"
+                      :title="getSessionDisableReason(session.date, item.enrollAt)"
+                      @click="handleAttendanceClick(session.date, item.enrollAt, session.id, item.studentId)"
                     >
                       {{
                         ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)]?.label ||
                         'N'
                       }}
                     </div>
+
+                    <transition
+                      enter-active-class="transition duration-150 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-100 ease-in"
+                      leave-from-class="opacity-100"
+                      leave-to-class="opacity-0"
+                    >
+                      <div
+                        v-if="activeAttendanceCell === `${session.id}-${item.studentId}`"
+                        class="attendance-dropdown-menu absolute z-[100] left-1/2 -translate-x-1/2 mt-2 w-36 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden py-1"
+                        @mousedown.stop
+                      >
+                        <div
+                          v-for="(cfg, key) in ATTENDANCE_STATUS"
+                          :key="key"
+                          @click="
+                            updateAttendanceStatus(session.id, item.studentId, key),
+                            activeAttendanceCell = null
+                          "
+                          class="px-3 py-2 text-sm font-semibold cursor-pointer hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                        >
+                          <div
+                            class="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold"
+                            :class="cfg.theme"
+                          >
+                            {{ cfg.label }}
+                          </div>
+                          <span class="text-gray-700">
+                            {{
+                              key === 'P'
+                                ? 'Present'
+                                : key === 'A'
+                                  ? 'Absent'
+                                  : key === 'M'
+                                    ? 'Makeup'
+                                    : key === 'L'
+                                      ? 'Late'
+                                      : 'None'
+                            }}
+                          </span>
+                        </div>
+                      </div>
+                    </transition>
                   </div>
                 </div>
               </td>
 
               <!-- Special Columns -->
-              <td class="ui-cell text-center">
-                <div
-                  class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"
-                ></div>
+              <td class="ui-cell text-center" :style="{ width: headers[4 + sessions.length]?.width, minWidth: headers[4 + sessions.length]?.width }">
+                <button
+                  @click="toggleEnrollmentField(item.id, 'hasPassedExam')"
+                  class="w-6 h-6 rounded-md flex items-center justify-center mx-auto transition-colors border"
+                  :class="
+                    item.hasPassedExam
+                      ? 'bg-green-100 border-green-500 text-green-600'
+                      : 'bg-surface-subtle border-outline-std text-content-muted hover:bg-gray-100'
+                  "
+                  title="Mark Exam Passed"
+                >
+                  <svg
+                    v-if="item.hasPassedExam"
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </button>
               </td>
-              <td class="ui-cell text-center">
-                <div
-                  class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"
-                ></div>
+              <td class="ui-cell text-center" :style="{ width: headers[5 + sessions.length]?.width, minWidth: headers[5 + sessions.length]?.width }">
+                <button
+                  @click="toggleEnrollmentField(item.id, 'hasReceivedReportCard')"
+                  class="w-6 h-6 rounded-md flex items-center justify-center mx-auto transition-colors border"
+                  :class="
+                    item.hasReceivedReportCard
+                      ? 'bg-blue-100 border-blue-500 text-blue-600'
+                      : 'bg-surface-subtle border-outline-std text-content-muted hover:bg-gray-100'
+                  "
+                  title="Mark Report Card Sent"
+                >
+                  <svg
+                    v-if="item.hasReceivedReportCard"
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </button>
               </td>
-              <td class="ui-cell text-center">
-                <div
-                  class="w-8 h-8 rounded-lg bg-surface-subtle border border-outline-std mx-auto"
-                ></div>
+              <td class="ui-cell text-center" :style="{ width: headers[6 + sessions.length]?.width, minWidth: headers[6 + sessions.length]?.width }">
+                <button
+                  @click="toggleEnrollmentField(item.id, 'hasReceivedCertificate')"
+                  class="w-6 h-6 rounded-md flex items-center justify-center mx-auto transition-colors border"
+                  :class="
+                    item.hasReceivedCertificate
+                      ? 'bg-purple-100 border-purple-500 text-purple-600'
+                      : 'bg-surface-subtle border-outline-std text-content-muted hover:bg-gray-100'
+                  "
+                  title="Mark Certificate Issued"
+                >
+                  <svg
+                    v-if="item.hasReceivedCertificate"
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </button>
               </td>
-              <td class="ui-cell">
-                <span class="italic">New Student</span>
+              <td class="ui-cell" :style="{ width: headers[7 + sessions.length]?.width, minWidth: headers[7 + sessions.length]?.width }">
+                <span class="text-xs text-content-muted">{{ item.remark || '-' }}</span>
               </td>
+
             </template>
           </DataTable>
         </section>
@@ -1142,5 +1297,9 @@ watch(branchFilter, (newBranchId) => {
 
 .active-filter-item {
   @apply bg-primary text-white hover:bg-primary hover:text-white !important;
+}
+
+:deep(.table-content-area table) {
+  table-layout: fixed;
 }
 </style>

@@ -196,6 +196,16 @@ const availableOfferings = computed(() => {
         const scheduleInfo = classInfo?.schedules?.find((s) => s.id === offering.schedule?.id)
         const capacity = scheduleInfo?.capacity || classInfo?.capacity || offering.capacity || 20
 
+        let branchStartDate = term.startDate
+        let branchEndDate = term.endDate
+        
+        if (term.branchSettings) {
+          const bId = offering.branch?.id || offering.branchId || offering.branch?.abbr
+          const setting = term.branchSettings.find((s) => String(s.branchId) === String(bId))
+          if (setting && setting.startDate) branchStartDate = setting.startDate
+          if (setting && setting.endDate) branchEndDate = setting.endDate
+        }
+
         return {
           id: offering.offeringId,
           classId: offering.classId,
@@ -205,8 +215,8 @@ const availableOfferings = computed(() => {
           termName: term.name,
           branch: offering.branch,
           schedule: offering.schedule,
-          startDate: term.startDate,
-          endDate: term.endDate,
+          startDate: branchStartDate,
+          endDate: branchEndDate,
           studentCount: offering.currentCount || (offering.students || []).length || 0,
           capacity: capacity,
           totalSessions: term.totalSessions || 0,

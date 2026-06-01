@@ -2,11 +2,12 @@ const attendanceService = require('../services/attendanceService')
 
 exports.recordAttendance = async (req, res) => {
   try {
-    const { classId, sessionId, statuses } = req.body
+    const { classId, sessionId, statuses, termId } = req.body
     const result = await attendanceService.recordAttendance(
       classId,
       sessionId,
       statuses,
+      termId
     )
     res.status(200).json(result)
   } catch (error) {
