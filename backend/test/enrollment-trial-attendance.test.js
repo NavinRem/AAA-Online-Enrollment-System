@@ -4,6 +4,7 @@ const trialService = require('../src/services/trialService');
 const enrollmentService = require('../src/services/enrollmentService');
 const attendanceService = require('../src/services/attendanceService');
 const parentService = require('../src/services/parentService');
+const paymentService = require('../src/services/paymentService');
 
 /**
  * E2E Integration Test Suite: Trial → Enrollment → Attendance
@@ -50,8 +51,8 @@ describe('Enrollment, Trial, and Attendance E2E Flow', function () {
     }
     if (!parentId || !student) throw new Error('No parent with children found.');
 
-    // Use a unique test date to avoid collisions with existing data
-    const testDate = `2099-12-31`;
+    // Use a test date within the active term's bounds to ensure it's valid
+    const testDate = term.startDate || `2099-12-31`;
 
     testCtx = {
       term,
@@ -146,7 +147,7 @@ describe('Enrollment, Trial, and Attendance E2E Flow', function () {
       await batch.commit();
     });
 
-    it('should create a paid enrollment successfully', async () => {
+    it('should create a pending enrollment and process payment successfully', async () => {
       const enrollmentData = {
         parentId: testCtx.parentId,
         studentId: testCtx.student.id,
@@ -155,8 +156,8 @@ describe('Enrollment, Trial, and Attendance E2E Flow', function () {
         termId: testCtx.term.id,
         termOfferingId: testCtx.offering.id || testCtx.offering.offeringId,
         enrollAt: testCtx.testDate,
-        status: 'paid',
-        paymentStatus: 'paid',
+        status: 'pending',
+        paymentStatus: 'unpaid',
         amount: 150,
       };
 
@@ -164,9 +165,26 @@ describe('Enrollment, Trial, and Attendance E2E Flow', function () {
       createdEnrollmentId = result.id;
 
       assert.ok(result.id, 'Enrollment should have an ID');
-      assert.strictEqual(result.status, 'paid');
-      assert.strictEqual(result.paymentStatus, 'paid');
-      assert.strictEqual(result.studentId, testCtx.student.id);
+      assert.strictEqual(result.status, 'pending');
+      assert.strictEqual(result.paymentStatus, 'unpaid');
+
+      // Now process payment
+      const paymentData = {
+        enrollmentId: result.id,
+        parentId: testCtx.parentId,
+        amount: 150,
+        method: 'credit_card',
+      };
+      
+      const paymentRes = await paymentService.initiatePayment(paymentData);
+      assert.ok(paymentRes.transactionId, 'Payment should return a transaction ID');
+
+      await paymentService.verifyPayment(paymentRes.transactionId);
+
+      // Verify enrollment status updated
+      const updatedEnrollment = await db.collection('enrollments').doc(result.id).get();
+      assert.strictEqual(updatedEnrollment.data().status, 'paid');
+      assert.strictEqual(updatedEnrollment.data().paymentStatus, 'paid');
     });
 
     it('should prevent duplicate enrollment for same student and offering', async () => {
@@ -178,8 +196,8 @@ describe('Enrollment, Trial, and Attendance E2E Flow', function () {
         termId: testCtx.term.id,
         termOfferingId: testCtx.offering.id || testCtx.offering.offeringId,
         enrollAt: testCtx.testDate,
-        status: 'paid',
-        paymentStatus: 'paid',
+        status: 'pending',
+        paymentStatus: 'unpaid',
         amount: 100,
       };
 

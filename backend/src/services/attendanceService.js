@@ -1,5 +1,6 @@
 const { db, COLLECTIONS } = require('../config/database')
 const admin = require('firebase-admin')
+const { FieldValue } = require('firebase-admin/firestore')
 
 class AttendanceService {
   /**
@@ -32,7 +33,7 @@ class AttendanceService {
         studentId,
         status,
         updatedAt,
-        history: admin.firestore.FieldValue.arrayUnion({
+        history: FieldValue.arrayUnion({
           status,
           changedAt: updatedAt
         })

@@ -609,7 +609,7 @@ const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'T
                   />
                 </div>
                 <div
-                  v-if="isEditMode && !form.isGuest"
+                  v-if="isEditMode"
                   class="enroll-info-item col-span-2 mt-2 pt-2 border-t border-outline-std/50"
                 >
                   <span class="enroll-info-key">Trial Status</span>
@@ -628,11 +628,23 @@ const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'T
                     </button>
                     <button
                       type="button"
+                      @click="form.status = 'confirmed'"
+                      class="px-3 py-1.5 rounded-md text-xs font-bold transition-all border border-outline-std shadow-sm"
+                      :class="
+                        form.status === 'confirmed'
+                          ? 'bg-blue-500 text-white border-transparent shadow-blue-500/30'
+                          : 'bg-white text-content-muted hover:bg-surface-light'
+                      "
+                    >
+                      Confirmed
+                    </button>
+                    <button
+                      type="button"
                       @click="form.status = 'attended'"
                       class="px-3 py-1.5 rounded-md text-xs font-bold transition-all border border-outline-std shadow-sm"
                       :class="
                         form.status === 'attended'
-                          ? 'bg-blue-500 text-white border-transparent shadow-blue-500/30'
+                          ? 'bg-green-500 text-white border-transparent shadow-green-500/30'
                           : 'bg-white text-content-muted hover:bg-surface-light'
                       "
                     >

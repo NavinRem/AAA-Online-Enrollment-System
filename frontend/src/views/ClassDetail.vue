@@ -35,6 +35,7 @@ const attendanceData = ref({}) // sessionId -> { studentId -> status }
 const programData = ref(null)
 const loading = ref(true)
 const errorMessage = ref('')
+
 const attendanceError = ref('')
 
 const ATTENDANCE_STATUS = {
@@ -120,13 +121,19 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
     try {
       const updates = []
 
+      // Resolve term ID in case 'all' is selected
+      const resolvedTermId =
+        termFilter.value === 'all'
+          ? terms.value.find((t) => t.isCurrent)?.id || terms.value[0]?.id
+          : termFilter.value
+
       // 2. Persist primary change
       updates.push(
         attendanceService.recordAttendance(
           classData.value.id,
           sessionId,
           attendanceData.value[sessionId],
-          termFilter.value,
+          resolvedTermId,
         ),
       )
 
@@ -144,7 +151,7 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
                 classData.value.id,
                 session.id,
                 linkedData,
-                termFilter.value,
+                resolvedTermId,
               ),
             )
             break
@@ -159,7 +166,9 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
       const rollbackData = { ...attendanceData.value[sessionId] }
       rollbackData[studentId] = oldStatus
       attendanceData.value[sessionId] = rollbackData
-      errorMessage.value = 'Failed to sync attendance. Please refresh.'
+      
+      attendanceError.value = `Failed to sync: ${error.message || error}`
+      setTimeout(() => { attendanceError.value = '' }, 5000)
     }
   })
 

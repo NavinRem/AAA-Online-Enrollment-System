@@ -338,8 +338,13 @@ const handleTableAction = ({ type, item }) => {
                   type="red"
                 />
                 <AppBadge 
-                  v-else-if="item.trialType === 'walk-in' || item.isGuest || String(item.status).toLowerCase() === 'attended'" 
+                  v-else-if="['attended', 'confirmed'].includes(String(item.status || '').toLowerCase())" 
                   status="Confirmed" 
+                />
+                <AppBadge 
+                  v-else-if="String(item.status || '').toLowerCase() === 'pending'" 
+                  status="Pending" 
+                  type="orange"
                 />
                 <AppBadge v-else status="Booked" type="neutral" />
               </div>

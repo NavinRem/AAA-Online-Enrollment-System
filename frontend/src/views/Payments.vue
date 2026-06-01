@@ -228,7 +228,7 @@ const paymentStats = computed(() => {
     {
       label: 'Monthly Revenue',
       value: '$' + formatPrice(monthlyRevenue),
-      subtitle: `${monthlyPaidCount} Settlements This Month`,
+      subtitle: `${monthlyPaidCount} Payments This Month`,
       image: getImageUrl('payment/total-revenue'),
     },
     {
@@ -443,9 +443,6 @@ const paymentHeaders = [
                 <span class="text-xs font-bold text-content-dark tabular-nums tracking-tight">{{
                   formatDate(item.date)
                 }}</span>
-                <span class="text-3xs font-bold text-content-muted mt-1 uppercase tracking-tighter"
-                  >Settlement</span
-                >
               </div>
             </td>
           </template>
