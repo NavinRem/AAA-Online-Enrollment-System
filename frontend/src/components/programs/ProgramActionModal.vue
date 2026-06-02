@@ -481,7 +481,7 @@ watch(
               >
             </div>
           </div>
-          <div class="flex flex-wrap gap-xs max-h-[100px] overflow-y-auto py-sm scrollable-v">
+          <div class="flex flex-wrap gap-xs max-h-24 overflow-y-auto py-sm scrollable-v">
             <div
               v-for="item in currentLookupItems"
               :key="item.id"
@@ -719,7 +719,7 @@ watch(
             @click="requestConfirm"
             :loading="loading"
             :disabled="loading"
-            :class="{ 'opacity-60 grayscale-[0.2]': type === 'edit' && !isDirty }"
+            :class="{ 'opacity-60 grayscale-20': type === 'edit' && !isDirty }"
           >
             {{ submitLabel }}
           </AppButton>

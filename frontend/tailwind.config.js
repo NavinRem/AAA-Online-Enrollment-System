@@ -163,6 +163,12 @@ export default {
         '3xl': '40px', // section gap
         '4xl': '48px', // large section
         '5xl': '64px', // page level
+        '100': '400px',
+        '120': '480px',
+        '128': '512px',
+        '144': '576px',
+        '160': '640px',
+        '192': '768px',
       },
 
       // ================================================================
@@ -264,6 +270,13 @@ export default {
 
       fontFamily: {
         sans: ['Nunito', 'system-ui', 'sans-serif'],
+      },
+      grayscale: {
+        '20': '20%',
+        '50': '50%',
+      },
+      rotate: {
+        '-135': '-135deg',
       },
     },
   },

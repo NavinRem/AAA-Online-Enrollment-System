@@ -5,7 +5,7 @@ import { termService } from '@/services/termService'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
-import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
+import { getImageUrl } from '@/utils/assetHelper'
 
 const props = defineProps({
   teacher: {
@@ -275,7 +275,7 @@ onMounted(fetchData)
             :key="offering.offeringId"
             class="flex items-center justify-between p-4 rounded-lg bg-surface-subtle/30 border border-transparent hover:border-primary/20 hover:bg-white transition-all group/card"
             :class="{
-              'opacity-60 grayscale-[0.5] bg-outline-std/5 pointer-events-none':
+              'opacity-60 grayscale-50 bg-outline-std/5 pointer-events-none':
                 checkConflict(offering) === 'overlap',
               hidden: pendingAdds.some((o) => o.offeringId === offering.offeringId),
             }"

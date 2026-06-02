@@ -240,7 +240,7 @@ onUnmounted(() => {
           </slot>
           <span
             class="w-2.5 h-2.5 border-r-2 border-b-2 transform transition-transform duration-300 mr-0.5"
-            :class="isOpen ? 'rotate-[-135deg]' : 'rotate-45'"
+            :class="isOpen ? '-rotate-135' : 'rotate-45'"
           ></span>
         </div>
       </div>

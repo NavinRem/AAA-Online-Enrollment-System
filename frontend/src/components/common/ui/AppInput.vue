@@ -50,7 +50,7 @@ const togglePassword = () => {
         @input="$emit('update:modelValue', $event.target.value)"
         class="w-full px-4 py-3 border-2 border-outline-std rounded-sm bg-white text-base outline-none transition-all placeholder:text-content-light/50 placeholder:italic min-h-24 resize-none"
         :class="[
-          error ? 'ui-input-invalid' : 'focus:border-primary focus:ring-[3px] focus:ring-info-soft',
+          error ? 'ui-input-invalid' : 'focus:border-primary focus:ring focus:ring-info-soft',
           disabled ? 'bg-surface-subtle opacity-60 cursor-not-allowed' : 'hover:border-primary/50',
           inputClass,
         ]"
@@ -66,7 +66,7 @@ const togglePassword = () => {
         @input="$emit('update:modelValue', $event.target.value)"
         class="w-full px-4 py-3 border-2 border-outline-std rounded-sm bg-white text-base outline-none transition-all placeholder:text-content-light/50 placeholder:italic"
         :class="[
-          error ? 'ui-input-invalid' : 'focus:border-primary focus:ring-[3px] focus:ring-info-soft',
+          error ? 'ui-input-invalid' : 'focus:border-primary focus:ring focus:ring-info-soft',
           disabled ? 'bg-surface-subtle opacity-60 cursor-not-allowed' : 'hover:border-primary/50',
           inputClass,
         ]"

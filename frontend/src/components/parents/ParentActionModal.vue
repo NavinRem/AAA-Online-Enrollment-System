@@ -647,7 +647,7 @@ watch(
             :loading="loading"
             :disabled="loading"
             :class="{
-              'opacity-60 grayscale-[0.2]': (type === 'edit' && !isDirty) || isFormInvalid,
+              'opacity-60 grayscale-20': (type === 'edit' && !isDirty) || isFormInvalid,
             }"
           >
             {{ submitLabel }}

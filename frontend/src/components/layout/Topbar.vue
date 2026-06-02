@@ -49,7 +49,7 @@ onMounted(() => {
   <header class="topbar-root">
     <div class="flex items-center gap-md">
       <button
-        class="lg:hidden flex flex-col items-center justify-center gap-[5px] w-10 h-10 bg-white shadow-sm rounded-std"
+        class="lg:hidden flex flex-col items-center justify-center gap-1 w-10 h-10 bg-white shadow-sm rounded-std"
         @click="emit('toggle-menu')"
       >
         <span class="w-6 h-0.5 bg-text-dark rounded-full"></span>

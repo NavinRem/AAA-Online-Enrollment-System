@@ -351,7 +351,7 @@ const handleDelete = async (item) => {
                         class="sr-only peer"
                       />
                       <div
-                        class="w-11 h-6 bg-content-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-std after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
+                        class="w-11 h-6 bg-content-light peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-outline-std after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"
                       ></div>
                     </label>
                   </div>
@@ -378,7 +378,7 @@ const handleDelete = async (item) => {
                   :key="preset.id"
                   type="button"
                   @click="generalSettings.themeAccent = preset.id"
-                  class="p-md rounded-xl border-2 text-left transition-all duration-300 hover:scale-[1.03] flex flex-col gap-2 relative group"
+                  class="p-md rounded-xl border-2 text-left transition-all duration-300 hover:scale-105 flex flex-col gap-2 relative group"
                   :style="
                     generalSettings.themeAccent === preset.id
                       ? { borderColor: preset.primary, backgroundColor: preset.primary + '10' }
@@ -460,7 +460,6 @@ const handleDelete = async (item) => {
           <template
             #row="{
               item,
-              headers: _headers,
               toggleMenu,
               activeMenuId,
               isMenuAbove,
@@ -523,8 +522,8 @@ const handleDelete = async (item) => {
                       <button
                         class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="
-                          openModal('edit', item)
-                          closeMenu()
+                          openModal('edit', item);
+                          closeMenu();
                         "
                       >
                         <img
@@ -539,8 +538,8 @@ const handleDelete = async (item) => {
                       <button
                         class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
                         @click="
-                          handleDelete(item)
-                          closeMenu()
+                          handleDelete(item);
+                          closeMenu();
                         "
                       >
                         <img

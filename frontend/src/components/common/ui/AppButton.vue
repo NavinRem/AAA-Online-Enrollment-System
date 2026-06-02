@@ -59,7 +59,7 @@ defineEmits(['click'])
 
 <template>
   <button
-    class="flex items-center justify-center gap-xs font-semibold cursor-pointer whitespace-nowrap transition-all duration-200 active:scale-[0.98] select-none"
+    class="flex items-center justify-center gap-xs font-semibold cursor-pointer whitespace-nowrap transition-all duration-200 active:scale-95 select-none"
     :class="[
       !isSemantic
         ? variantClasses[variant] || variantClasses.primary
@@ -79,7 +79,7 @@ defineEmits(['click'])
   >
     <span
       v-if="loading"
-      class="w-4 h-4 border-2 border-white/40 border-t-current rounded-full animate-spin mr-[-4px]"
+      class="w-4 h-4 border-2 border-white/40 border-t-current rounded-full animate-spin -mr-1"
     ></span>
 
     <span v-if="$slots['icon-left'] && !loading" class="flex items-center justify-center">
@@ -88,9 +88,9 @@ defineEmits(['click'])
 
     <span
       v-if="icon && !loading"
-      class="flex items-center justify-center text-[1.25em] translate-y-[0.5px]"
+      class="flex items-center justify-center text-lg"
     >
-      <img v-if="icon.includes('/')" :src="icon" class="w-[1em] h-[1em] object-contain" />
+      <img v-if="icon.includes('/')" :src="icon" class="w-4 h-4 object-contain" />
       <span v-else>{{ icon }}</span>
     </span>
 

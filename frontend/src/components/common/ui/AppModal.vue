@@ -51,7 +51,7 @@ defineEmits(['close'])
       @click.self="$emit('close')"
     >
       <transition
-        enter-active-class="transition duration-400 cubic-bezier(0.34, 1.56, 0.64, 1)"
+        enter-active-class="transition duration-400 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
         enter-from-class="opacity-0 scale-90 translate-y-8"
         enter-to-class="opacity-100 scale-100 translate-y-0"
         leave-active-class="transition duration-250 ease-in"
@@ -61,9 +61,9 @@ defineEmits(['close'])
       >
         <div
           v-if="show"
-          class="bg-white rounded-std overflow-hidden shadow-2xl flex flex-col relative border border-white/30 w-full max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)]"
+          class="bg-white rounded-std overflow-hidden shadow-2xl flex flex-col relative border border-white/30 w-full modal-content"
           :class="[
-            variant === 'action' ? 'max-w-[95%] sm:max-w-xl' : 'max-w-full lg:max-w-5xl',
+            variant === 'action' ? 'max-w-full sm:max-w-xl' : 'max-w-full lg:max-w-5xl',
             variant,
           ]"
           :style="maxWidth ? { maxWidth } : {}"
@@ -131,3 +131,14 @@ defineEmits(['close'])
     </div>
   </transition>
 </template>
+
+<style scoped>
+.modal-content {
+  max-height: calc(100vh - 2rem);
+}
+@media (min-width: 640px) {
+  .modal-content {
+    max-height: calc(100vh - 4rem);
+  }
+}
+</style>

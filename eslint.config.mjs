@@ -68,9 +68,9 @@ export default [
     },
   },
 
-  // Views Configuration (Allow single-word page components)
+  // Views & Layouts Configuration (Allow single-word page and layout components)
   {
-    files: ['frontend/src/views/**/*.vue'],
+    files: ['frontend/src/views/**/*.vue', 'frontend/src/components/layout/**/*.vue'],
     rules: {
       'vue/multi-word-component-names': 'off',
     },

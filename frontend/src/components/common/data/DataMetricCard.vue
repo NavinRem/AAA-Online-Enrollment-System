@@ -29,7 +29,7 @@ defineProps({
 
 <template>
   <div
-    class="ui-metric-card flex flex-col items-center justify-between gap-xs p-6 rounded-std shadow-sm flex-1 transition-all hover:shadow-md text-center group border border-primary/5 min-h-[180px]"
+    class="ui-metric-card flex flex-col items-center justify-between gap-xs p-6 rounded-std shadow-sm flex-1 transition-all hover:shadow-md text-center group border border-primary/5 min-h-44"
     :style="{ backgroundColor: loading ? 'var(--surface-subtle)' : color }"
   >
     <template v-if="loading">

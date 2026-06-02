@@ -298,7 +298,7 @@ const mappedEnrollments = computed(() => {
   <DashboardLayout>
     <div
       v-if="loading"
-      class="flex flex-col items-center justify-center h-[60vh] gap-lg text-content-muted"
+      class="flex flex-col items-center justify-center flex-1 gap-lg text-content-muted"
     >
       <div
         class="w-12 h-12 border-4 border-surface-light border-r-primary rounded-full animate-spin"
@@ -307,7 +307,7 @@ const mappedEnrollments = computed(() => {
     </div>
     <div
       v-else
-      class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full h-[calc(100vh - 100px)] overflow-hidden"
+      class="flex flex-col lg:flex-row gap-xl px-xl pb-xl w-full flex-1 min-h-0 overflow-hidden"
     >
       <div class="flex flex-col flex-1 min-w-0 h-full gap-lg overflow-y-auto pr-md scrollable-v">
         <section class="ui-detail-card">
@@ -332,7 +332,7 @@ const mappedEnrollments = computed(() => {
       <div class="hidden lg:block lg:min-w-72 h-full min-h-0 max-w-80 flex-shrink-0">
         <div class="ui-detail-card h-full flex flex-col min-h-0 gap-md !p-lg">
           <div
-            class="border-b-[1px] border-gray-200 pb-lg flex flex-col items-center text-center gap-2"
+            class="border-b border-gray-200 pb-lg flex flex-col items-center text-center gap-2"
           >
             <div
               class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2"
@@ -340,7 +340,7 @@ const mappedEnrollments = computed(() => {
               <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
             </div>
             <div class="flex flex-col items-center">
-              <p class="text-xs font-semibold text-content-muted tracking-[0.14em] mb-1 opacity-70">
+              <p class="text-xs font-semibold text-content-muted tracking-widest mb-1 opacity-70">
                 {{ userProfile?.role }}
               </p>
               <h3 class="text-xl font-bold text-content-dark tracking-tighter leading-tight">

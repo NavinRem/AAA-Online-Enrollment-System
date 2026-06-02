@@ -163,12 +163,16 @@ const handleSubmit = async () => {
 }
 
 .auth-banner {
-  @apply hidden lg:flex flex-[1.4] bg-[url('@/assets/images/backgrounds/blue-bg-school.jpg')] bg-[80%_center] bg-cover bg-no-repeat relative;
+  @apply hidden lg:flex bg-cover bg-no-repeat relative;
+  flex: 1.4;
+  background-image: url('@/assets/images/backgrounds/blue-bg-school.jpg');
+  background-position: 80% center;
   border-right: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .auth-banner::after {
-  @apply content-[''] absolute inset-0;
+  content: '';
+  @apply absolute inset-0;
   background: linear-gradient(
     to bottom right,
     rgba(56, 189, 248, 0.2),

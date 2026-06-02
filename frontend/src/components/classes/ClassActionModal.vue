@@ -841,7 +841,7 @@ const selectAllBranches = () => {
                   "
                 >
                   <!-- Schedule (Day & Time in columns) -->
-                  <div class="flex flex-[2] flex-col gap-1 min-w-[120px]">
+                  <div style="flex: 2" class="flex flex-col gap-1 min-w-28">
                     <template v-if="item.displaySchedule">
                       <AppBadge
                         :status="item.displaySchedule.day"
@@ -859,7 +859,7 @@ const selectAllBranches = () => {
                   </div>
 
                   <!-- Branches -->
-                  <div class="flex flex-col flex-wrap gap-1 min-w-[100px]">
+                  <div class="flex flex-col flex-wrap gap-1 min-w-24">
                     <AppBadge
                       v-for="branch in item.branches || []"
                       :key="branch.id"
@@ -920,7 +920,7 @@ const selectAllBranches = () => {
               }}</span
             >
           </div>
-          <div class="grid grid-cols-1 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+          <div class="grid grid-cols-1 gap-4 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
             <div
               v-for="id in form.scheduleIds"
               :key="id"
@@ -1034,7 +1034,7 @@ const selectAllBranches = () => {
           <div class="flex flex-col gap-sm">
             <div class="grid grid-cols-2 gap-x-6 gap-y-4">
               <!-- Setup Row -->
-              <div class="col-span-2 grid grid-cols-[1.2fr_1fr_1fr] gap-4 items-end">
+              <div class="col-span-2 grid gap-4 items-end" style="grid-template-columns: 1.2fr 1fr 1fr">
                 <AppSelect
                   v-model="newSchedule.day"
                   :items="dayOptions"
@@ -1076,7 +1076,7 @@ const selectAllBranches = () => {
             {{ lookupSuccess }}
           </AppAlert>
 
-          <div class="flex flex-col gap-1 max-h-[180px] overflow-y-auto pr-1 scrollable-v">
+          <div class="flex flex-col gap-1 max-h-44 overflow-y-auto pr-1 scrollable-v">
             <div
               v-for="item in sortedSchedules"
               :key="item.id"
@@ -1186,7 +1186,7 @@ const selectAllBranches = () => {
             :loading="loading"
             :disabled="loading"
             :class="{
-              'opacity-60 grayscale-[0.2]': (type === 'edit' && !isDirty) || isFormInvalid,
+              'opacity-60 grayscale-20': (type === 'edit' && !isDirty) || isFormInvalid,
             }"
             @click="handleSubmit"
           >
@@ -1249,7 +1249,7 @@ const selectAllBranches = () => {
             :key="id"
             class="flex items-center gap-4 bg-surface-subtle/30 px-4 py-2.5 rounded-md border border-outline-std transition-all hover:bg-white hover:border-primary"
           >
-            <div class="flex flex-col items-end shrink-0 min-w-[80px]">
+            <div class="flex flex-col items-end shrink-0 min-w-20">
               <span class="text-sm font-bold text-content-dark">{{
                 filteredPickerClasses.find((c) => c.id === id)?.displaySchedule?.day ||
                 'No Schedule'

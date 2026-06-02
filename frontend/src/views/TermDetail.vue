@@ -886,8 +886,8 @@ const handleActionSubmit = async (payload) => {
           </div>
         </div>
 
-        <section
-          class="overflow-hidden animate-fade-in h-[650px] border border-outline-std rounded-md bg-white shadow-sm flex flex-col"
+         <section
+          class="overflow-hidden animate-fade-in h-160 border border-outline-std rounded-md bg-white shadow-sm flex flex-col"
         >
           <DataTable
             v-if="activeSubTab === 'classes'"

@@ -1241,7 +1241,7 @@ defineExpose({ setStudent })
               variant="primary"
               :loading="loading"
               :disabled="loading"
-              :class="{ 'opacity-60 grayscale-[0.2]': (isEditMode && !isChanged) || isFormInvalid }"
+              :class="{ 'opacity-60 grayscale-20': (isEditMode && !isChanged) || isFormInvalid }"
               @click="requestConfirm"
             >
               {{ submitLabel }}

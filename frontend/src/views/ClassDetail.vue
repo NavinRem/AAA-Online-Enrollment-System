@@ -995,7 +995,7 @@ watch(branchFilter, (newBranchId) => {
                     >
                       <div
                         v-if="activeAttendanceCell === `${session.id}-${item.studentId}`"
-                        class="attendance-dropdown-menu absolute z-[100] left-1/2 -translate-x-1/2 mt-2 w-36 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden py-1"
+                        class="attendance-dropdown-menu absolute z-sticky-header left-1/2 -translate-x-1/2 mt-2 w-36 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden py-1"
                         @mousedown.stop
                       >
                         <div

@@ -13,13 +13,13 @@ const toggleSidebar = () => {
   <div class="flex bg-surface-light h-screen relative overflow-hidden w-full">
     <div
       v-if="isSidebarOpen"
-      class="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[90] lg:hidden transition-opacity duration-300"
+      class="fixed inset-0 bg-black/40 backdrop-blur-sm z-sticky-header lg:hidden transition-opacity duration-300"
       @click="isSidebarOpen = false"
     ></div>
 
     <Sidebar :isOpen="isSidebarOpen" @close="isSidebarOpen = false" />
 
-    <div class="flex-1 flex flex-col min-w-0 lg:ml-[260px]">
+    <div class="flex-1 flex flex-col min-w-0 lg:ml-64">
       <Topbar @toggle-menu="toggleSidebar" />
 
       <main class="flex-1 min-h-0 h-full overflow-hidden flex flex-col items-stretch">

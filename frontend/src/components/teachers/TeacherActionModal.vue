@@ -458,7 +458,7 @@ watch(
             :loading="loading"
             :disabled="loading || !!success"
             :class="{
-              'opacity-60 grayscale-[0.2]':
+              'opacity-60 grayscale-20':
                 (activeTab === 'profile' && type === 'edit' && !isDirty) || isFormInvalid,
             }"
           >

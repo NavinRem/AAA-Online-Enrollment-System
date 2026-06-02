@@ -404,7 +404,7 @@ const handleActionSubmit = async (formData) => {
             class="px-8 py-3 rounded-2xl text-xs font-semibold transition-all duration-300"
             :class="
               activeTab === tab
-                ? 'bg-primary text-white shadow-md ring-1 ring-black/5 scale-[1.02]'
+                ? 'bg-primary text-white shadow-md ring-1 ring-black/5'
                 : 'text-content-muted hover:text-content-dark hover:bg-white/50'
             "
             @click="activeTab = tab"
@@ -423,7 +423,7 @@ const handleActionSubmit = async (formData) => {
           </button>
         </div>
 
-        <section class="overflow-hidden animate-fade-in min-h-[500px]">
+        <section class="overflow-hidden animate-fade-in min-h-96">
           <DataTable
             :title="currentTableTitle"
             :headers="currentHeaders"

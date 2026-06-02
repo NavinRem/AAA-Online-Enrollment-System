@@ -5,7 +5,7 @@ import { authService } from '@/services/authService'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import { getImageUrl, getIconUrl } from '@/utils/assetHelper'
 
-const props = defineProps({
+defineProps({
   isOpen: {
     type: Boolean,
     default: false,
@@ -80,7 +80,7 @@ const handleNavClick = () => {
 
 <template>
   <aside
-    class="w-[260px] h-screen bg-white flex flex-col border-r border-surface-light fixed left-0 top-0 z-50 transition-transform duration-300 lg:translate-x-0"
+    class="w-64 h-screen bg-white flex flex-col border-r border-surface-light fixed left-0 top-0 z-sidebar transition-transform duration-300 lg:translate-x-0"
     :class="isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'"
   >
     <div

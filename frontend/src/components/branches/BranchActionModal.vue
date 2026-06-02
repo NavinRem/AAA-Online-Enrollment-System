@@ -160,7 +160,7 @@ watch(
     maxWidth="600px"
     @close="$emit('close')"
   >
-    <div class="relative min-h-[350px]">
+    <div class="relative min-h-80">
       <!-- ADD / EDIT MODE -->
       <form
         v-if="type === 'add' || type === 'edit'"
@@ -330,7 +330,7 @@ watch(
             :loading="loading"
             :disabled="loading"
             :class="{
-              'opacity-60 grayscale-[0.2]': (type === 'edit' && !isDirty) || isFormInvalid,
+              'opacity-60 grayscale-20': (type === 'edit' && !isDirty) || isFormInvalid,
             }"
           >
             {{ submitLabel }}

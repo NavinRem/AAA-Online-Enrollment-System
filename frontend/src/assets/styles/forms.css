@@ -39,7 +39,8 @@
   }
 
   .enroll-info-item {
-    @apply flex flex-col gap-[3px];
+    @apply flex flex-col;
+    gap: 3px;
   }
 
   .enroll-info-key {
@@ -116,7 +117,7 @@
   }
 
   .ui-summary-glow {
-    @apply absolute -top-4 -right-4 w-24 h-24 bg-white/5 rounded-full blur-[8px] transition-transform duration-1000;
+    @apply absolute -top-4 -right-4 w-24 h-24 bg-white/5 rounded-full blur transition-transform duration-1000;
   }
 
   .ui-summary-card:hover .ui-summary-glow {

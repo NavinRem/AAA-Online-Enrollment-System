@@ -1,10 +1,9 @@
 <script setup>
-import { computed } from 'vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import { formatPrice } from '@/utils/formatUtils'
 
-defineProps({
+const props = defineProps({
   show: { type: Boolean, default: false },
   title: { type: String, default: '' },
   subtitle: { type: String, default: '' },
@@ -21,27 +20,35 @@ defineEmits(['confirm', 'back'])
 
 const getBadgeConfig = (row) => {
   // If explicitly overridden locally, respect it
-  if (row.badge) return { isBadge: true, type: row.type }
+  if (row.badge) return { isBadge: true, type: row.type, colorValue: row.colorValue }
 
   // Central rule definitions
   const k = (row.key || '').toLowerCase()
-  
+
   if (k === 'status') return { isBadge: true, type: undefined }
   if (k === 'type' || k === 'category') return { isBadge: true, type: 'blue' }
   if (k === 'level') return { isBadge: true, type: 'magenta' }
   if (k === 'converted') return { isBadge: true, type: 'green' }
-  if (k === 'amount') return { isBadge: true, type: 'primary' }
-  
+  if (k === 'amount') {
+    const isProratedRow = props.rows?.find((r) => (r.key || '').toLowerCase() === 'isprorated')
+    const isProrated = isProratedRow && isProratedRow.value === 'Yes'
+    return {
+      isBadge: true,
+      type: 'finance',
+      colorValue: isProrated ? 'partial' : 'full',
+    }
+  }
+
   if (k.includes('date')) {
     if (k.includes('start')) return { isBadge: true, type: 'green' }
     if (k.includes('end')) return { isBadge: true, type: 'red' }
     return { isBadge: true, type: 'blue' }
   }
-  
+
   if (k === 'issponsorship' || k === 'isprorated') {
     return { isBadge: true, type: row.value === 'Yes' ? 'blue' : 'gray' }
   }
-  
+
   return { isBadge: false }
 }
 </script>
@@ -71,12 +78,17 @@ const getBadgeConfig = (row) => {
           </p>
         </div>
 
-        <div class="app-confirm-body">
+        <div class="app-confirm-body scrollable-v">
           <div v-for="row in rows" :key="row.key" class="app-confirm-row" :class="row.class">
             <span class="app-confirm-key">{{ row.key }}</span>
             <!-- Slot-based custom rendering per row -->
             <slot :name="`row-${row.key}`" :row="row">
-              <AppBadge v-if="getBadgeConfig(row).isBadge" :status="row.value" :type="getBadgeConfig(row).type" />
+              <AppBadge
+                v-if="getBadgeConfig(row).isBadge"
+                :status="row.value"
+                :type="getBadgeConfig(row).type"
+                :colorValue="getBadgeConfig(row).colorValue"
+              />
               <span v-else class="app-confirm-val" :class="row.valueClass">{{
                 row.value ?? '—'
               }}</span>
@@ -127,7 +139,8 @@ const getBadgeConfig = (row) => {
 }
 
 .app-confirm-body {
-  @apply p-8 flex flex-col gap-4 overflow-y-auto scrollable-v max-h-[55vh];
+  @apply p-8 flex flex-col gap-4 overflow-y-auto;
+  max-height: 55vh;
 }
 
 .app-confirm-row {

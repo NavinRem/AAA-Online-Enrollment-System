@@ -106,7 +106,7 @@ const selectFilter = (val) => {
         @update:modelValue="$emit('update:searchQuery', $event)"
         :placeholder="searchPlaceholder"
         :variant="searchVariant"
-        class="lg:w-[500px] w-full flex-1"
+        class="lg:w-128 w-full flex-1"
       />
       <div v-if="hasFilter" class="relative">
         <AppButton
@@ -253,7 +253,7 @@ const selectFilter = (val) => {
 
 <style scoped>
 .toolbar-root {
-  @apply flex items-center justify-between min-h-[56px] w-full pb-lg;
+  @apply flex items-center justify-between min-h-14 w-full pb-lg;
 }
 
 .toolbar-title-box {

@@ -660,7 +660,7 @@ watch(
                   class="w-4 h-2 rounded-full transition-all duration-700"
                   :class="
                     i <= termProgress
-                      ? 'bg-primary shadow-[0_0_10px_rgba(var(--color-primary-rgb),0.5)]'
+                      ? 'bg-primary shadow-sm shadow-primary/50'
                       : 'bg-outline-std/40'
                   "
                 ></div>
@@ -730,7 +730,7 @@ watch(
                 class="w-2 h-2 rounded-full transition-all duration-500"
                 :class="
                   i === termProgress + 1
-                    ? 'bg-primary animate-pulse shadow-[0_0_8px_rgba(var(--color-primary-rgb),0.6)]'
+                    ? 'bg-primary animate-pulse shadow-sm shadow-primary/60'
                     : 'bg-outline-std'
                 "
               ></span>
@@ -823,7 +823,7 @@ watch(
       </div>
     </div>
 
-    <div v-if="type !== 'session'" class="relative min-h-[350px]">
+    <div v-if="type !== 'session'" class="relative min-h-80">
       <!-- ADD / EDIT MODE -->
       <form
         v-if="type === 'add' || type === 'edit'"
@@ -874,13 +874,13 @@ watch(
             >
               <div
                 @click="isBranchDropdownOpen = !isBranchDropdownOpen"
-                class="w-full px-4 py-3 border-2 border-outline-std rounded-sm bg-white text-base outline-none transition-all hover:border-primary/50 cursor-pointer flex items-center justify-between min-h-[50px]"
+                class="w-full px-4 py-3 border-2 border-outline-std rounded-sm bg-white text-base outline-none transition-all hover:border-primary/50 cursor-pointer flex items-center justify-between min-h-12"
                 :class="{
-                  'border-primary ring-[3px] ring-info-soft': isBranchDropdownOpen,
+                  'border-primary ring ring-info-soft': isBranchDropdownOpen,
                   'ui-input-invalid': errors.branchIds,
                 }"
               >
-                <div class="flex flex-wrap gap-1 max-w-[85%]">
+                <div class="flex flex-wrap gap-1 flex-1 min-w-0">
                   <span
                     v-if="localData.branchIds.length === 0"
                     class="text-content-light/50 italic text-base"
@@ -914,7 +914,7 @@ watch(
               >
                 <div
                   v-if="isBranchDropdownOpen"
-                  class="absolute z-50 mt-2 w-full bg-white border-2 border-outline-std rounded-sm shadow-2xl overflow-hidden max-h-[250px] flex flex-col"
+                  class="absolute z-50 mt-2 w-full bg-white border-2 border-outline-std rounded-sm shadow-2xl overflow-hidden max-h-64 flex flex-col"
                 >
                   <div class="flex flex-col overflow-y-auto scrollable-v p-2 gap-1">
                     <label
@@ -1175,7 +1175,7 @@ watch(
             :loading="loading"
             :disabled="loading"
             :class="{
-              'opacity-60 grayscale-[0.2]': (type === 'edit' && !isDirty) || isFormInvalid,
+              'opacity-60 grayscale-20': (type === 'edit' && !isDirty) || isFormInvalid,
             }"
           >
             {{ submitLabel }}
