@@ -171,4 +171,15 @@
   .ui-table-scroll-wrapper.scrollable-h {
     @apply border border-outline-std rounded-xl;
   }
+
+  /* ── Text Modifiers ──────────────────────────────────────────────────────── */
+  /* Use for: secondary data (dates, emails, IDs) in table cells               */
+  .ui-cell-muted {
+    @apply text-xs font-bold text-content-muted tabular-nums tracking-tight;
+  }
+
+  /* Use for: empty states (e.g., "—", "No Data") in table cells               */
+  .ui-cell-empty {
+    @apply text-2xs font-bold text-content-muted uppercase tracking-widest opacity-50;
+  }
 }

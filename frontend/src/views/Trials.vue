@@ -18,7 +18,7 @@ import {
   getParentProfileURL,
   getStudentProfileURL,
 } from '@/utils/assetHelper'
-import { formatDate } from '@/utils/formatUtils'
+import { formatDateOnly } from '@/utils/formatUtils'
 
 const dataStore = useDataStore()
 
@@ -329,24 +329,10 @@ const handleTableAction = ({ type, item }) => {
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
               <div class="flex flex-col items-center gap-1">
-                <AppBadge v-if="item.isSuccessful" status="Successful" type="green" />
                 <AppBadge
-                  v-else-if="
-                    ['no-show', 'absent'].includes(String(item.status || '').toLowerCase())
-                  "
-                  status="Absent"
-                  type="red"
+                  :status="item.isSuccessful ? 'Successful' : item.status || 'confirmed'"
+                  type="trial"
                 />
-                <AppBadge 
-                  v-else-if="['attended', 'confirmed'].includes(String(item.status || '').toLowerCase())" 
-                  status="Confirmed" 
-                />
-                <AppBadge 
-                  v-else-if="String(item.status || '').toLowerCase() === 'pending'" 
-                  status="Pending" 
-                  type="orange"
-                />
-                <AppBadge v-else status="Booked" type="neutral" />
               </div>
             </td>
 
@@ -364,8 +350,11 @@ const handleTableAction = ({ type, item }) => {
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[7].width }">
-              <div class="flex flex-col text-content-muted items-center">
-                <span class="tabular-nums tracking-tight">{{ formatDate(item.trialDate) }}</span>
+              <div class="flex flex-col items-center">
+                <span class="ui-cell-muted"
+                  >{{ formatDateOnly(item.trialDate) }}
+                  <span v-if="item.trialTime">at {{ item.trialTime }}</span></span
+                >
               </div>
             </td>
 

@@ -149,38 +149,38 @@ const getStudentBranches = (item) => {
   if (item.enrollments && item.enrollments.length > 0) {
     const branches = []
     const branchIds = new Set()
-    
-    item.enrollments.forEach(e => {
+
+    item.enrollments.forEach((e) => {
       let bInfo = e.class?.branch || e.branchInfo
       let bId = bInfo?.id || e.branchId
-      
+
       if (!bInfo && e.classId) {
-        const cls = dataStore.classes?.find(c => c.id === e.classId)
+        const cls = dataStore.classes?.find((c) => c.id === e.classId)
         if (cls?.branch) {
           bInfo = cls.branch
           bId = cls.branch.id
         }
       }
-      
+
       if (!bInfo && bId) {
-        bInfo = dataStore.branches?.find(b => b.id === bId)
+        bInfo = dataStore.branches?.find((b) => b.id === bId)
       }
-      
+
       if (bInfo && !branchIds.has(bId || bInfo.abbr)) {
         branchIds.add(bId || bInfo.abbr)
         branches.push(bInfo)
       }
     })
-    
+
     if (branches.length > 0) {
       return branches
     }
   }
-  
+
   if (item.branchInfo) {
     return [item.branchInfo]
   }
-  
+
   return []
 }
 
@@ -199,10 +199,10 @@ const filteredStudents = computed(() => {
   // 2. Branch Filter — only show students that display the selected branch badge
   if (branchFilter.value !== 'all') {
     const targetBranch = String(branchFilter.value)
-    
+
     list = list.filter((s) => {
       const branches = getStudentBranches(s)
-      return branches.some(b => String(b.id || '') === targetBranch)
+      return branches.some((b) => String(b.id || '') === targetBranch)
     })
   }
 
@@ -591,7 +591,7 @@ const closeModals = () => {
                   <img :src="item.parentInfo?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="text-xs font-bold text-content-muted tracking-tight">{{
+                  <span class="ui-cell-muted">{{
                     item.parentInfo?.name
                   }}</span>
                 </div>
@@ -600,7 +600,10 @@ const closeModals = () => {
 
             <!-- Branch -->
             <td class="ui-cell text-center hidden sm:table-cell">
-              <div v-if="getStudentBranches(item).length" class="flex items-center justify-center gap-1 flex-wrap">
+              <div
+                v-if="getStudentBranches(item).length"
+                class="flex items-center justify-center gap-1 flex-wrap"
+              >
                 <AppBadge
                   v-for="(b, idx) in getStudentBranches(item)"
                   :key="idx"
@@ -608,7 +611,7 @@ const closeModals = () => {
                   :type="b.color"
                 />
               </div>
-              <span v-else class="opacity-30 text-2xs font-bold uppercase tracking-widest">—</span>
+              <span v-else class="ui-cell-empty">—</span>
             </td>
 
             <!-- Programs -->
@@ -662,7 +665,7 @@ const closeModals = () => {
                   </div>
                 </template>
                 <template v-else>
-                  <span class="opacity-50"> No Programs </span>
+                  <span class="ui-cell-empty"> No Programs </span>
                 </template>
               </div>
             </td>
@@ -673,8 +676,8 @@ const closeModals = () => {
             </td>
 
             <!-- Joined -->
-            <td class="ui-cell text-center hidden xl:table-cell opacity-50">
-              <span class="text-xs font-bold text-content-muted tabular-nums">
+            <td class="ui-cell text-center hidden xl:table-cell">
+              <span class="ui-cell-muted">
                 {{ formatDate(item.createdAt || new Date().toISOString()) }}
               </span>
             </td>

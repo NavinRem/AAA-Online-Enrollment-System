@@ -1,5 +1,21 @@
 export const DEFAULT_CAPACITY = 5
 
+export const getLocalTodayStr = () => {
+  const d = new Date()
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0]
+}
+
+export const getUpcomingWeekendStr = (dateStr) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const day = d.getUTCDay()
+  if (day >= 1 && day <= 5) {
+    d.setUTCDate(d.getUTCDate() + (6 - day))
+  }
+  return d.toISOString().split('T')[0]
+}
+
 export const parseDate = (val) => {
   if (!val) return new Date(0)
   if (typeof val === 'object') {

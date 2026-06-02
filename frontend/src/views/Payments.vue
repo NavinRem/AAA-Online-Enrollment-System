@@ -417,10 +417,10 @@ const paymentHeaders = [
             <td class="ui-cell text-center" :style="{ width: headers[3].width }">
               <span
                 v-if="item.transactionId"
-                class="text-xs font-bold text-content-muted tabular-nums"
+                class="ui-cell-muted"
                 >{{ item.transactionId }}</span
               >
-              <span v-else class="opacity-30">—</span>
+              <span v-else class="ui-cell-empty">—</span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">

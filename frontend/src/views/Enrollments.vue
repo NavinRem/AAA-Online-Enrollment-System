@@ -472,7 +472,7 @@ const handleRegisterStudent = async (formData) => {
                   getSessionTime(item.classSchedule)
                 }}</span>
               </div>
-              <span v-else class="text-xs font-bold text-content-muted">Pending</span>
+              <span v-else class="ui-cell-empty">Pending</span>
             </td>
 
             <!-- Status Column -->
@@ -496,7 +496,7 @@ const handleRegisterStudent = async (formData) => {
               class="ui-cell text-center hidden lg:table-cell"
               :style="{ width: headers[8].width }"
             >
-              <span class="truncate block text-xs font-bold text-content-muted tabular-nums">{{
+              <span class="truncate block ui-cell-muted">{{
                 formatDate(item.enrollAt)
               }}</span>
             </td>

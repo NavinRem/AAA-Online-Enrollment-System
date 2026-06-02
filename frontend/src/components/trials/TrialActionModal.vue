@@ -11,7 +11,7 @@ import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
-import { formatDateOnly } from '@/utils/formatUtils'
+import { formatDateOnly, getLocalTodayStr, getUpcomingWeekendStr } from '@/utils/formatUtils'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -34,9 +34,9 @@ const getInitialData = () => ({
   parentId: '',
   programId: '',
   branchId: '',
-  trialDate: new Date().toISOString().split('T')[0],
+  trialDate: getUpcomingWeekendStr(getLocalTodayStr()),
   trialTime: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-  status: 'pending',
+  status: 'confirmed',
   trialType: 'booked',
   isSuccessful: false,
   remark: '',
@@ -62,8 +62,10 @@ const mapSourceToForm = () => {
       programId: props.trial.programId || props.trial.program?.id || '',
       branchId: props.trial.branchId || props.trial.branch?.id || '',
       trialDate: (props.trial.trialDate || '').split('T')[0],
-      trialTime: props.trial.trialTime || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-      status: props.trial.status || 'pending',
+      trialTime:
+        props.trial.trialTime ||
+        new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      status: props.trial.status || 'confirmed',
       trialType: props.trial.trialType || (props.trial.isGuest ? 'walk-in' : 'booked'),
       isSuccessful: !!props.trial.isSuccessful,
       remark: props.trial.remark || '',
@@ -80,7 +82,16 @@ const mapSourceToForm = () => {
   return getInitialData()
 }
 
-const { localData: form, isDirty, errors, shaking, validate, clearError, triggerShake, getPayload } = useActionModal(props, emit, {
+const {
+  localData: form,
+  isDirty,
+  errors,
+  shaking,
+  validate,
+  clearError,
+  triggerShake,
+  getPayload,
+} = useActionModal(props, emit, {
   getInitialData,
   mapSourceToForm,
   sourceKey: 'trial',
@@ -182,11 +193,14 @@ const confirmRows = computed(() => {
     {
       key: 'TrialType',
       value: form.isGuest ? 'Walk-in' : 'Booked',
+      type: 'trial',
       badge: true,
     },
     {
       key: 'Status',
       value: form.status,
+      type: 'trial',
+      badge: true,
     },
   ]
 
@@ -322,6 +336,22 @@ watch(
   },
 )
 
+watch(
+  () => form.trialDate,
+  (newDate) => {
+    if (newDate) {
+      const weekendDate = getUpcomingWeekendStr(newDate)
+      if (weekendDate !== newDate) {
+        form.trialDate = weekendDate
+        validationMessage.value = 'Trials are only conducted on weekends. Date auto-adjusted.'
+        setTimeout(() => {
+          validationMessage.value = ''
+        }, 4000)
+      }
+    }
+  }
+)
+
 const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Trial')
 </script>
 
@@ -339,7 +369,7 @@ const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'T
         <!-- Engagement Mode Toggle -->
         <div
           v-if="type === 'add'"
-          class="bg-surface-light/50 p-4 rounded-std border-2 border-dashed border-outline-std flex items-center justify-between"
+          class="bg-primary-soft p-4 rounded-md border border-outline-soft flex items-center justify-between"
         >
           <div class="flex flex-col">
             <span class="text-sm font-bold text-content-dark tracking-tight"
@@ -417,10 +447,10 @@ const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'T
           <template v-else>
             <!-- Guest Flow -->
             <div
-              class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-surface-subtle/30 p-4 rounded-md border border-outline-std"
+              class="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 p-4 rounded-md border border-outline-soft"
             >
               <!-- Parent Profile Section -->
-              <div class="col-span-2 flex items-center gap-2 border-b border-outline-std pb-2">
+              <div class="col-span-2 flex items-center gap-2 border-b border-outline-soft pb-2">
                 <span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
                 <span class="text-sm font-bold text-content-muted">Guest Parent Profile</span>
               </div>
@@ -613,18 +643,6 @@ const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'T
                 >
                   <span class="enroll-info-key">Trial Status</span>
                   <div class="flex items-center gap-2 mt-1">
-                    <button
-                      type="button"
-                      @click="form.status = 'pending'"
-                      class="px-3 py-1.5 rounded-md text-xs font-bold transition-all border border-outline-std shadow-sm"
-                      :class="
-                        form.status === 'pending'
-                          ? 'bg-primary text-white border-transparent shadow-primary/30'
-                          : 'bg-white text-content-muted hover:bg-surface-light'
-                      "
-                    >
-                      Pending (Booked)
-                    </button>
                     <button
                       type="button"
                       @click="form.status = 'confirmed'"

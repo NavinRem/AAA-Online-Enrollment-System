@@ -39,7 +39,7 @@ const getInitialData = () => ({
   termOfferingId: '',
   branchId: '',
   scheduleId: '',
-  enrollAt: new Date().toISOString().split('T')[0],
+  enrollAt: new Date().toISOString(),
   isProrated: false,
   isSponsorship: false,
   sponsorName: '',
@@ -74,7 +74,7 @@ const mapSourceToForm = () => {
         props.enrollment.enrollAt ||
         props.enrollment.enrollmentDate ||
         new Date().toISOString()
-      ).split('T')[0],
+      ),
       isProrated: !!props.enrollment.isProrated,
       isSponsorship: !!props.enrollment.isSponsorship,
       sponsorName: props.enrollment.sponsorName || '',
@@ -359,7 +359,7 @@ const offeringSelectItems = computed(() =>
 const handleFinalSubmit = () => {
   emit('submit', {
     ...getPayload(),
-    enrollAt: new Date().toISOString().split('T')[0],
+    enrollAt: form.enrollAt || new Date().toISOString(),
     amount: Number(finalAmount.value || 0),
   })
   showConfirm.value = false

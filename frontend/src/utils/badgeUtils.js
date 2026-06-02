@@ -85,6 +85,9 @@ const REGISTRIES = {
     booked: 'purple',
     'walk-in': 'magenta',
     successful: 'green',
+    confirmed: 'blue',
+    attended: 'blue',
+    absent: 'red',
   },
 }
 

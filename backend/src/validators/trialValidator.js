@@ -1,3 +1,17 @@
+function getUpcomingWeekendStr(dateStr) {
+  if (!dateStr) {
+    const d = new Date()
+    dateStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0]
+  }
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return new Date().toISOString()
+  const day = d.getUTCDay()
+  if (day >= 1 && day <= 5) {
+    d.setUTCDate(d.getUTCDate() + (6 - day))
+  }
+  return d.toISOString().split('T')[0]
+}
+
 function validateTrial(trialData) {
   const trialFields = [
     'studentId',
@@ -69,9 +83,9 @@ function validateTrial(trialData) {
     guestStudentAge: parseInt(trialData.guestStudentAge || 0),
     guestStudentAvatar: trialData.guestStudentAvatar?.trim() || null,
 
-    trialDate: trialData.trialDate || new Date().toISOString(),
+    trialDate: getUpcomingWeekendStr(trialData.trialDate),
     trialTime: trialData.trialTime || null,
-    status: trialData.status || 'pending',
+    status: trialData.status || 'confirmed',
     trialType:
       trialData.trialType || (trialData.isGuest ? 'walk-in' : 'booked'),
     isSuccessful: !!trialData.isSuccessful,
@@ -108,7 +122,11 @@ function validateUpdateTrial(updateData) {
 
   Object.keys(updateData).forEach((key) => {
     if (allowedFields.includes(key)) {
-      cleanData[key] = updateData[key]
+      if (key === 'trialDate') {
+        cleanData[key] = getUpcomingWeekendStr(updateData[key])
+      } else {
+        cleanData[key] = updateData[key]
+      }
     } else {
       throw new Error(`Invalid field: ${key}`)
     }

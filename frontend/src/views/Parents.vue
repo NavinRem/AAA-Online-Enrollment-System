@@ -382,13 +382,13 @@ const handleRowAction = (type, item, closeMenu) => {
 
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex flex-col max-w-40">
-                <span class="truncate text-xs font-bold text-content-muted">{{ item.email }}</span>
+                <span class="truncate ui-cell-muted">{{ item.email }}</span>
               </div>
             </td>
 
             <!-- Joined -->
             <td class="ui-cell hidden lg:table-cell text-center">
-              <span class="text-xs font-bold text-content-muted tabular-nums">
+              <span class="ui-cell-muted">
                 {{ formatDate(item.createdAt) }}
               </span>
             </td>
