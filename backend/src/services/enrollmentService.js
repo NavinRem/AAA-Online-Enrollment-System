@@ -152,16 +152,33 @@ class EnrollmentService {
           totalEnrolledCount: FieldValue.increment(1),
         })
 
-        // Save enrolled branch to student detail
+        // Save enrolled branch and set status to Active
         if (offering.branchId) {
           transaction.update(
             db.collection(COLLECTIONS.STUDENT).doc(studentId),
             {
               branchId: offering.branchId,
               branchInfo: offering.branch || null,
+              status: 'Active',
               updatedAt: new Date().toISOString(),
             },
           )
+        } else {
+          transaction.update(
+            db.collection(COLLECTIONS.STUDENT).doc(studentId),
+            {
+              status: 'Active',
+              updatedAt: new Date().toISOString(),
+            },
+          )
+        }
+        
+        // Also ensure parent is Active
+        if (parentId) {
+          transaction.update(db.collection(COLLECTIONS.PARENT).doc(parentId), {
+            status: 'Active',
+            updatedAt: new Date().toISOString(),
+          })
         }
       }
 

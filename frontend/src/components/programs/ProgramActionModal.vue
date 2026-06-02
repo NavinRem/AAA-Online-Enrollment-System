@@ -274,16 +274,12 @@ const confirmRows = computed(() => {
     {
       key: 'Category',
       value: categories.value.find((c) => String(c.id) === String(localData.categoryId))?.name,
-      badge: true,
-      type: 'blue',
     },
     {
       key: 'Level',
       value: levels.value.find((l) => String(l.id) === String(localData.levelId))?.name,
-      badge: true,
-      type: 'magenta',
     },
-    { key: 'Type', value: localData.type, badge: true },
+    { key: 'Type', value: localData.type },
     {
       key: 'BasePrice',
       value: `$${localData.basePrice}`,

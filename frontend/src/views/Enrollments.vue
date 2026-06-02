@@ -155,8 +155,10 @@ const handleSaveEnrollment = async (formData) => {
 }
 
 const enrollmentStats = computed(() => {
-  const { total, paidCount, unpaidCount, cancelledCount } = calculateTotalEnrollment(enrollments.value)
-  
+  const { total, paidCount, unpaidCount, cancelledCount } = calculateTotalEnrollment(
+    enrollments.value,
+  )
+
   return [
     {
       label: 'Total Enrollment',
@@ -185,9 +187,9 @@ const enrollmentHeaders = [
   { label: 'No', width: '50px' },
   { label: 'Parent' },
   { label: 'Child' },
-  { label: 'Term', width: '200px' },
-  { label: 'Program' },
-  { label: 'Session' },
+  { label: 'Term' },
+  { label: 'Program', width: '250px' },
+  { label: 'Session', width: '250px' },
   { label: 'Status', width: '100px' },
   { label: 'Amount', width: '100px' },
   { label: 'Date', width: '120px' },
@@ -315,7 +317,8 @@ const handleRegisterStudent = async (formData) => {
     childRegistrationModal.value.success = 'Student registered successfully!'
     const studentsRes = await studentService.getAllStudents()
     dataStore.students = Array.isArray(studentsRes) ? studentsRes : []
-    if (result && result.id && enrollmentActionModalRef.value) enrollmentActionModalRef.value.setStudent(result.id)
+    if (result && result.id && enrollmentActionModalRef.value)
+      enrollmentActionModalRef.value.setStudent(result.id)
     setTimeout(() => {
       childRegistrationModal.value.isOpen = false
     }, 1500)

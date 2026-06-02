@@ -34,3 +34,11 @@ export const clearCachePrefix = (prefix) => {
     }
   })
 }
+
+export const clearAllCache = () => {
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith(CACHE_PREFIX)) {
+      localStorage.removeItem(key)
+    }
+  })
+}

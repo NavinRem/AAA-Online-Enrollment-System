@@ -12,6 +12,7 @@ import { getImageUrl } from '@/utils/assetHelper'
 import { calculateAge } from '@/utils/formatUtils'
 import { useActionModal } from '@/composables/useActionModal'
 import { useModalText } from '@/composables/useModalText'
+import { useDataStore } from '@/stores/dataStore'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -101,7 +102,7 @@ const confirmRows = computed(() => {
     return [
       { key: 'Name', value: localData.name },
       { key: 'Dob', value: localData.dob },
-      { key: 'Status', value: localData.status, badge: true },
+      { key: 'Status', value: localData.status },
       {
         key: 'DeleteConfirm',
         value: localData.deleteConfirm,
@@ -113,7 +114,7 @@ const confirmRows = computed(() => {
   const rows = [
     { key: 'Name', value: localData.name },
     { key: 'Dob', value: localData.dob },
-    { key: 'Status', value: localData.status, badge: true },
+    { key: 'Status', value: localData.status },
   ]
 
   if (
@@ -137,6 +138,38 @@ const customTitle = computed(() => {
     'enrollment-delete': 'Delete Enrollment',
   }
   return titles[props.type]
+})
+
+const store = useDataStore()
+
+const enrolledClassesLabel = computed(() => {
+  if (!props.student?.id) return 'None'
+  const enrollments = store.enrollments?.filter(
+    (e) => e.studentId === props.student.id && !e.isDeleted && !['cancelled', 'deleted'].includes((e.status || '').toLowerCase())
+  )
+  if (!enrollments?.length) return 'None'
+  const classNames = enrollments.map(e => e.class?.name || e.className || 'Unknown Class')
+  return [...new Set(classNames)].join(', ')
+})
+
+const enrolledBranchLabel = computed(() => {
+  if (!props.student?.id) return 'None'
+  const enrollments = store.enrollments?.filter(
+    (e) => e.studentId === props.student.id && !e.isDeleted && !['cancelled', 'deleted'].includes((e.status || '').toLowerCase())
+  )
+  if (!enrollments?.length) return 'None'
+  
+  const branches = enrollments.map(e => {
+    let bId = e.branchId || e.class?.branch?.id || e.class?.branchId
+    if (!bId && e.classId) {
+      const cls = store.classes?.find(c => c.id === e.classId)
+      bId = cls?.branchId || cls?.branch?.id
+    }
+    const branch = store.branches?.find(b => b.id === bId)
+    return branch?.name || 'Unknown Branch'
+  })
+  
+  return [...new Set(branches)].join(', ')
 })
 
 const customSubmit = computed(() => {
@@ -259,6 +292,21 @@ watch(
           :searchable="false"
           @change="clearError('status')"
         />
+
+        <!-- Enrollment Context (Override mode) — show class & branch -->
+        <template v-if="type === 'override' || type === 'enrollment-override'">
+          <AppInput
+            :modelValue="enrolledClassesLabel"
+            label="Enrolled Class(es)"
+            disabled
+            class="col-span-2"
+          />
+          <AppInput
+            :modelValue="enrolledBranchLabel"
+            label="Branch"
+            disabled
+          />
+        </template>
 
         <AppInput
           v-if="['hold', 'inactive'].includes(localData.status.toLowerCase())"

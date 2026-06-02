@@ -187,12 +187,11 @@ const confirmRows = computed(() => {
     {
       key: 'Status',
       value: form.status,
-      badge: true,
     },
   ]
 
   if (form.isSuccessful) {
-    rows.push({ key: 'Converted', value: 'Successful', badge: true })
+    rows.push({ key: 'Converted', value: 'Successful' })
   }
   if (form.isGuest) {
     rows.splice(1, 0, { key: 'GuestParentPhone', value: form.guestParentPhone })

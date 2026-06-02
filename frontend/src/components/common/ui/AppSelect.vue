@@ -84,6 +84,13 @@ const selectedItems = computed(() => {
 
 const filteredItems = computed(() => {
   let items = props.items
+  
+  if (props.multiple && Array.isArray(props.modelValue)) {
+    items = items.filter((item) => !props.modelValue.includes(item.id))
+  } else if (props.modelValue !== undefined && props.modelValue !== null && props.modelValue !== '') {
+    items = items.filter((item) => String(item.id) !== String(props.modelValue))
+  }
+
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
     items = items.filter((item) => item.name.toLowerCase().includes(q))

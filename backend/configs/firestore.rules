@@ -62,7 +62,7 @@ service cloud.firestore {
     }
 
     // 5. Academic Tracking (Attendance & Progress)
-    match /attendance/{atId} {
+    match /{path=**}/attendance/{atId} {
       allow read: if isSignedIn() && (
         request.auth.uid == get(/databases/$(database)/documents/students/$(resource.data.studentId)).data.parentId || 
         isAdmin() || hasRole('teacher')

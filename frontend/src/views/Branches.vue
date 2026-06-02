@@ -84,9 +84,13 @@ const statsCards = computed(() => {
   const revByBranch = {}
 
   todayEnrollments
-    .filter((e) => isPaid(e.paymentStatus))
+    .filter((e) => isPaid(e.status || e.paymentStatus))
     .forEach((e) => {
-      const bid = e.branchId || e.class?.branch?.id || e.class?.branchId
+      let bid = e.branchId || e.class?.branch?.id || e.class?.branchId
+      if (!bid && e.classId) {
+        const cls = dataStore.classes.find((c) => c.id === e.classId)
+        bid = cls?.branchId || cls?.branch?.id
+      }
       if (bid) revByBranch[bid] = (revByBranch[bid] || 0) + (e.amount || 0)
     })
 
@@ -104,7 +108,14 @@ const statsCards = computed(() => {
   // 3. Activity metrics
   const activeBranchIds = new Set(
     todayEnrollments
-      .map((e) => e.branchId || e.class?.branch?.id || e.class?.branchId)
+      .map((e) => {
+        let bid = e.branchId || e.class?.branch?.id || e.class?.branchId
+        if (!bid && e.classId) {
+          const cls = dataStore.classes.find((c) => c.id === e.classId)
+          bid = cls?.branchId || cls?.branch?.id
+        }
+        return bid
+      })
       .filter(Boolean),
   )
   const enrolledValue = activeBranchIds.size
@@ -114,10 +125,12 @@ const statsCards = computed(() => {
   const idleSubtitle = idleValue > 0 ? `${idleValue} Branches inactive` : 'All Branches active'
 
   const topBranchValue = topBranchNames.length > 0 ? topBranchNames.join(', ') : '—'
-  const topBranchSubtitle = maxStudents > 0 ? `${maxStudents} Studying Students` : 'No students enrolled'
-  
+  const topBranchSubtitle =
+    maxStudents > 0 ? `${maxStudents} Studying Students` : 'No students enrolled'
+
   const bestEarnerValue = bestEarnerNames.length > 0 ? bestEarnerNames.join(', ') : '—'
-  const bestEarnerSubtitle = maxRevenue > 0 ? `Revenue: $${formatPrice(maxRevenue)}` : 'No revenue today'
+  const bestEarnerSubtitle =
+    maxRevenue > 0 ? `Revenue: $${formatPrice(maxRevenue)}` : 'No revenue today'
 
   return [
     {
@@ -197,11 +210,26 @@ const getBranchStats = (branchId) => {
   const localTodayStr = now.toLocaleDateString('en-CA') // YYYY-MM-DD local
   const weekAgoTimestamp = now.getTime() - 7 * 86400000
 
-  const enrollments = dataStore.enrollments.filter(
-    (e) =>
-      e.branchId === branchId || e.class?.branch?.id === branchId || e.class?.branchId === branchId,
-  )
-  const trials = dataStore.trials.filter((t) => t.branchId === branchId)
+  const enrollments = dataStore.enrollments.filter((e) => {
+    let bId = e.branchId || e.class?.branch?.id || e.class?.branchId
+    if (!bId && e.classId) {
+      const cls = dataStore.classes.find((c) => c.id === e.classId)
+      bId = cls?.branchId || cls?.branch?.id
+    }
+    return String(bId) === String(branchId)
+  })
+
+  const trials = dataStore.trials.filter((t) => {
+    let bId = t.branchId || t.branch?.id
+    if (!bId && t.programId) {
+      const prog = dataStore.programs.find((p) => p.id === t.programId)
+      if (prog?.categoryId) {
+        const cat = dataStore.categories.find((c) => c.id === prog.categoryId)
+        bId = cat?.branchId
+      }
+    }
+    return String(bId) === String(branchId)
+  })
 
   // TODAY
   const todayEnroll = enrollments.filter((e) => {
@@ -213,7 +241,7 @@ const getBranchStats = (branchId) => {
     return trialDate.split('T')[0] === localTodayStr
   })
   const todayRev = todayEnroll
-    .filter((e) => isPaid(e.paymentStatus))
+    .filter((e) => isPaid(e.status || e.paymentStatus))
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
 
   // WEEK
@@ -226,25 +254,29 @@ const getBranchStats = (branchId) => {
     return timestamp >= weekAgoTimestamp
   })
   const weekRev = weekEnroll
-    .filter((e) => isPaid(e.paymentStatus))
+    .filter((e) => isPaid(e.status || e.paymentStatus))
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
 
   // LIFETIME
   const classes = dataStore.classes.filter(
-    (c) => c.branchId === branchId || c.branch?.id === branchId,
+    (c) => 
+      c.branchId === branchId || 
+      c.branch?.id === branchId || 
+      (c.branchIds && c.branchIds.includes(branchId)) ||
+      (c.branches && c.branches.some(b => String(b.id) === String(branchId)))
   )
   const programs = new Set(classes.map((c) => c.programId || c.program?.id)).size
   const studying = new Set(
     enrollments
-      .filter((e) => isPaid(e.paymentStatus) && !['cancelled', 'deleted'].includes(e.status))
+      .filter((e) => isPaid(e.status || e.paymentStatus) && !['cancelled', 'deleted'].includes(e.status))
       .map((e) => e.studentId),
   ).size
   const totalRev = enrollments
-    .filter((e) => isPaid(e.paymentStatus))
-    .reduce((sum, e) => sum + (e.amount || 0), 0)
+    .filter((e) => isPaid(e.status || e.paymentStatus))
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
   const totalPending = enrollments
-    .filter((e) => isPending(e.paymentStatus))
-    .reduce((sum, e) => sum + (e.amount || 0), 0)
+    .filter((e) => isPending(e.status || e.paymentStatus))
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
 
   return {
     today: { enroll: todayEnroll.length, trial: todayTrials.length, rev: todayRev },

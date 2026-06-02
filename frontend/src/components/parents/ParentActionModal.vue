@@ -173,7 +173,7 @@ const confirmRows = computed(() => {
     if (p) rows.push({ key: 'Parent', value: p.name })
     rows.push({ key: 'StudentName', value: localData.name })
     rows.push({ key: 'Dob', value: localData.dob })
-    rows.push({ key: 'Status', value: localData.status || 'Active', badge: true })
+    rows.push({ key: 'Status', value: localData.status || 'Active' })
     return rows
   }
 
@@ -182,7 +182,7 @@ const confirmRows = computed(() => {
   if (props.type === 'edit') {
     rows.push({ key: 'Email', value: localData.email })
     rows.push({ key: 'Phone', value: localData.phone })
-    rows.push({ key: 'Status', value: localData.status, badge: true })
+    rows.push({ key: 'Status', value: localData.status })
   } else if (props.type === 'add') {
     rows.push({ key: 'Email', value: localData.email })
     rows.push({ key: 'Phone', value: localData.phone })

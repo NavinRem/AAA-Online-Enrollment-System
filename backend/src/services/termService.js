@@ -406,13 +406,20 @@ class TermService {
       const classData = classDoc.data()
       if (classData.isDeleted) return
 
+      const classBranchIds = classData.branchIds || (classData.branches || []).map(b => String(b.id))
       const schedules = classData.schedules || []
+      
       branches.forEach((branch) => {
+        // Skip creating an offering if this class is explicitly not assigned to this branch
+        if (classBranchIds.length > 0 && !classBranchIds.includes(String(branch.id))) {
+          return
+        }
+
         schedules.forEach((schedule) => {
           offerings.push({
             offeringId: db.collection(COLLECTIONS.TERM).doc().id,
             classId: classDoc.id,
-            program: classData.program || null,
+            program: classData.program,
             branchId: branch.id,
             branch: profileHelper.getBranchSnapshot(branch.id, branch),
             scheduleId: schedule.id,

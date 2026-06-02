@@ -251,7 +251,7 @@ const confirmRows = computed(() => {
   rows.push({ key: 'Schedules', value: `${form.scheduleIds.length} Sessions Assigned` })
   
   if (form.status) {
-    rows.push({ key: 'Status', value: form.status, badge: true })
+    rows.push({ key: 'Status', value: form.status })
   }
   
   return rows

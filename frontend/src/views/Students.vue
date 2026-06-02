@@ -145,6 +145,45 @@ const studentsEnriched = computed(() => {
   return (enriched || []).filter((s) => s.id && s.name && s.name.trim() !== '')
 })
 
+const getStudentBranches = (item) => {
+  if (item.enrollments && item.enrollments.length > 0) {
+    const branches = []
+    const branchIds = new Set()
+    
+    item.enrollments.forEach(e => {
+      let bInfo = e.class?.branch || e.branchInfo
+      let bId = bInfo?.id || e.branchId
+      
+      if (!bInfo && e.classId) {
+        const cls = dataStore.classes?.find(c => c.id === e.classId)
+        if (cls?.branch) {
+          bInfo = cls.branch
+          bId = cls.branch.id
+        }
+      }
+      
+      if (!bInfo && bId) {
+        bInfo = dataStore.branches?.find(b => b.id === bId)
+      }
+      
+      if (bInfo && !branchIds.has(bId || bInfo.abbr)) {
+        branchIds.add(bId || bInfo.abbr)
+        branches.push(bInfo)
+      }
+    })
+    
+    if (branches.length > 0) {
+      return branches
+    }
+  }
+  
+  if (item.branchInfo) {
+    return [item.branchInfo]
+  }
+  
+  return []
+}
+
 const { searchQuery, searchResults } = useSearch(studentsEnriched, studentSearchMapper)
 
 const currentFilter = ref('all')
@@ -157,14 +196,13 @@ const filteredStudents = computed(() => {
     list = list.filter((s) => (s.status || 'inactive').toLowerCase() === currentFilter.value)
   }
 
-  // 2. Branch Filter
+  // 2. Branch Filter — only show students that display the selected branch badge
   if (branchFilter.value !== 'all') {
+    const targetBranch = String(branchFilter.value)
+    
     list = list.filter((s) => {
-      // Check if student has ANY enrollment in the selected branch
-      const hasBranchEnrollment = (s.enrollments || []).some(
-        (e) => String(e.branchId) === String(branchFilter.value),
-      )
-      return hasBranchEnrollment
+      const branches = getStudentBranches(s)
+      return branches.some(b => String(b.id || '') === targetBranch)
     })
   }
 
@@ -562,11 +600,14 @@ const closeModals = () => {
 
             <!-- Branch -->
             <td class="ui-cell text-center hidden sm:table-cell">
-              <AppBadge
-                v-if="item.branchInfo?.abbr"
-                :status="item.branchInfo.abbr"
-                :type="item.branchInfo.color"
-              />
+              <div v-if="getStudentBranches(item).length" class="flex items-center justify-center gap-1 flex-wrap">
+                <AppBadge
+                  v-for="(b, idx) in getStudentBranches(item)"
+                  :key="idx"
+                  :status="b.abbr"
+                  :type="b.color"
+                />
+              </div>
               <span v-else class="opacity-30 text-2xs font-bold uppercase tracking-widest">—</span>
             </td>
 

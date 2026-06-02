@@ -169,9 +169,9 @@ const rawBranchOfferings = computed(() => {
       .filter(Boolean)
 
     const responsibleTeacherIds = new Set((off.teacherIds || []).map(String))
-    
+
     // Merge teachers from specific sessions so they show in the table
-    ;(off.sessionTeachers || []).forEach(sessionData => {
+    ;(off.sessionTeachers || []).forEach((sessionData) => {
       if (!sessionData) return
       let sessionTeachersArray = []
       if (sessionData.teachers && Array.isArray(sessionData.teachers)) {
@@ -181,7 +181,7 @@ const rawBranchOfferings = computed(() => {
       } else if (sessionData.id) {
         sessionTeachersArray = [sessionData]
       }
-      sessionTeachersArray.forEach(t => {
+      sessionTeachersArray.forEach((t) => {
         if (t && t.id) responsibleTeacherIds.add(String(t.id))
       })
     })
@@ -254,8 +254,15 @@ const groupedBranchOfferings = computed(() => {
       return isSameClass
     })
 
-    group.totalRevenue = groupEnrollments.reduce(
-      (sum, e) => sum + Number(e.finalPrice || e.totalPrice || 0),
+    const paidGroupEnrollments = groupEnrollments.filter(
+      (e) =>
+        e.status === 'paid' ||
+        e.paymentStatus === 'paid' ||
+        e.status === 'success' ||
+        e.paymentStatus === 'success',
+    )
+    group.totalRevenue = paidGroupEnrollments.reduce(
+      (sum, e) => sum + Number(e.amount || e.finalPrice || e.totalPrice || 0),
       0,
     )
     group.uniqueStudentCount = new Set(groupEnrollments.map((e) => e.studentId)).size
@@ -299,21 +306,16 @@ const branchStudents = computed(() => {
   return Array.from(studentMap.values())
 })
 
-
 const branchEnrollments = computed(() => {
   if (!term.value || !activeBranchId.value) return []
 
-  const setting = activeBranchSetting.value || term.value
-  const startDate = new Date(setting.startDate)
-  const endDate = new Date(setting.endDate)
-  startDate.setHours(0, 0, 0, 0)
-  endDate.setHours(23, 59, 59, 999)
-
   return dataStore.enrollments.filter((e) => {
-    const isSameBranch = String(e?.['class']?.branch?.id || e?.branchId) === String(activeBranchId.value)
-    if (!isSameBranch) return false
-    const enrollDate = new Date(e.createdAt || e.enrollAt)
-    return enrollDate >= startDate && enrollDate <= endDate
+    const isSameTerm = String(e.termId) === String(term.value.id)
+    const isSameBranch =
+      String(e?.['class']?.branch?.id || e?.branchId) === String(activeBranchId.value)
+
+    // An enrollment belongs to this branch's term if it explicitly references this term
+    return isSameTerm && isSameBranch && !e.isDeleted
   })
 })
 
@@ -325,7 +327,8 @@ const branchDisplayData = computed(() => {
     status: progress.status,
     startDate: setting.startDate,
     endDate: setting.endDate,
-    remainingSessions: progress.remainingSessions > 0 ? progress.remainingSessions : term.value.totalSessions
+    remainingSessions:
+      progress.remainingSessions > 0 ? progress.remainingSessions : term.value.totalSessions,
   }
 })
 
@@ -458,28 +461,21 @@ const paginatedStudents = computed(() => {
 })
 
 const totalTermTrials = computed(() => {
-  if (!term.value) return 0
-  let trialCount = 0
-  const sortedSettings = [...(term.value.branchSettings || [])].sort(
-    (a, b) => new Date(a.endDate || a.startDate) - new Date(b.endDate || b.startDate)
-  )
-  const branchIds = term.value.branchIds || (term.value.branchId ? [term.value.branchId] : [])
+  if (!term.value || !activeBranchId.value) return 0
 
-  branchIds.forEach((bId) => {
-    const setting = sortedSettings.find((s) => String(s.branchId) === String(bId))
-    const startDate = new Date(setting?.startDate || term.value.startDate)
-    const endDate = new Date(setting?.endDate || term.value.endDate)
-    startDate.setHours(0, 0, 0, 0)
-    endDate.setHours(23, 59, 59, 999)
+  const setting = activeBranchSetting.value || term.value
+  const startDate = new Date(setting.startDate || term.value.startDate)
+  const endDate = new Date(setting.endDate || term.value.endDate)
+  startDate.setHours(0, 0, 0, 0)
+  endDate.setHours(23, 59, 59, 999)
 
-    const branchTrials = dataStore.trials.filter((t) => {
-      const isSameBranch = String(t.branch?.id || t.branchId) === String(bId)
-      const trialDate = new Date(t.trialDate)
-      return isSameBranch && trialDate >= startDate && trialDate <= endDate
-    })
-    trialCount += branchTrials.length
+  const branchTrials = dataStore.trials.filter((t) => {
+    const isSameBranch = String(t.branch?.id || t.branchId) === String(activeBranchId.value)
+    const trialDate = new Date(t.trialDate)
+    return isSameBranch && trialDate >= startDate && trialDate <= endDate
   })
-  return trialCount
+
+  return branchTrials.length
 })
 
 const statsCards = computed(() => {
@@ -487,7 +483,17 @@ const statsCards = computed(() => {
 
   const offerings = rawBranchOfferings.value
   const enrollments = branchEnrollments.value
-  const revenue = enrollments.reduce((sum, e) => sum + (e.finalPrice || e.totalPrice || 0), 0)
+  const paidEnrollments = enrollments.filter(
+    (e) =>
+      e.status === 'paid' ||
+      e.paymentStatus === 'paid' ||
+      e.status === 'success' ||
+      e.paymentStatus === 'success',
+  )
+  const revenue = paidEnrollments.reduce(
+    (sum, e) => sum + Number(e.amount || e.finalPrice || e.totalPrice || 0),
+    0,
+  )
   const uniqueStudents = new Set(enrollments.map((e) => e.studentId)).size
 
   return [
@@ -538,7 +544,9 @@ const sessionModal = ref({
  * Automatically seeds with the offering's default responsible teachers.
  */
 const initializeOfferingTeachers = async (offeringId) => {
-  const offering = (term.value?.offerings || []).find((o) => String(o.offeringId) === String(offeringId))
+  const offering = (term.value?.offerings || []).find(
+    (o) => String(o.offeringId) === String(offeringId),
+  )
   if (!offering) return
 
   const currentSessions = offering.sessionTeachers || []
@@ -553,7 +561,9 @@ const initializeOfferingTeachers = async (offeringId) => {
 
   const primaryTeacher = responsibleTeachers[0]
   const defaultTeacherData = {
-    teachers: [{ id: primaryTeacher.id, name: primaryTeacher.name, profileURL: primaryTeacher.profileURL }],
+    teachers: [
+      { id: primaryTeacher.id, name: primaryTeacher.name, profileURL: primaryTeacher.profileURL },
+    ],
   }
   const newSessionTeachers = Array(term.value.totalSessions).fill(defaultTeacherData)
 
@@ -629,16 +639,18 @@ const updateSessionTeacher = async (offeringId, weekIndex, teacherIds) => {
     if (!sourceOffering) return
 
     // teacherIds is now an array of IDs from the multi-select
-    const selectedTeachersData = (teacherIds || []).map(tid => {
-      const teacher = teachers.value.find((t) => t.id === tid)
-      return teacher
-        ? {
-            id: teacher.id,
-            name: teacher.name,
-            profileURL: teacher.profileURL,
-          }
-        : null
-    }).filter(Boolean)
+    const selectedTeachersData = (teacherIds || [])
+      .map((tid) => {
+        const teacher = teachers.value.find((t) => t.id === tid)
+        return teacher
+          ? {
+              id: teacher.id,
+              name: teacher.name,
+              profileURL: teacher.profileURL,
+            }
+          : null
+      })
+      .filter(Boolean)
 
     // Find all offerings for the same program/class and day in this branch
     // This allows assigning a teacher once for the whole day at this branch
@@ -684,7 +696,8 @@ const openAddClassModal = () => {
     context: {
       termName: term.value.name,
       branchName: activeBranch.value?.name,
-      existingOfferings: term.value.offerings?.filter((o) => o.branchId === activeBranchId.value) || [],
+      existingOfferings:
+        term.value.offerings?.filter((o) => o.branchId === activeBranchId.value) || [],
     },
     loading: false,
     error: '',
@@ -707,7 +720,9 @@ const handleClassActionSubmit = async (payload) => {
             },
       }
       await termService.updateTerm(term.value.id, apiPayload)
-      classActionModal.value.success = classGroup.offeringId ? 'Schedule removed' : 'Class removed from branch'
+      classActionModal.value.success = classGroup.offeringId
+        ? 'Schedule removed'
+        : 'Class removed from branch'
     } else {
       // Add mode
       await termService.updateTerm(term.value.id, {
@@ -754,7 +769,7 @@ const confirmRemoveSchedule = (sched) => {
     type: 'remove',
     classItem: {
       offeringId: sched.offeringId,
-      deleteConfirm: ''
+      deleteConfirm: '',
     },
     context: {
       termName: term.value.name,
@@ -892,11 +907,7 @@ const handleActionSubmit = async (payload) => {
             :totalItems="filteredClasses.length"
           >
             <template #toolbar-actions>
-              <AppButton
-                variant="primary"
-                size="md"
-                @click="openAddClassModal"
-              >
+              <AppButton variant="primary" size="md" @click="openAddClassModal">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold tracking-tight">Add Class</span>
               </AppButton>
@@ -934,18 +945,26 @@ const handleActionSubmit = async (payload) => {
                   <div
                     v-for="(sched, idx) in item.schedules"
                     :key="sched.offeringId || idx"
-                    class="flex items-center gap-1 group/sched"
+                    class="flex items-center gap-1 group/sched h-20"
                   >
                     <div
-                      class="flex flex-col items-center justify-center py-2 bg-primary-light group-hover:bg-primary/30 px-lg rounded-sm min-w-32 relative"
+                      class="flex flex-col items-center justify-center py-2 bg-primary-light group-hover:bg-primary/30 px-lg rounded-sm min-w-32 relative h-full w-full"
                     >
                       <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
                       <span
                         class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums"
                         >{{ sched.time }}</span
                       >
-                      <span class="text-4xs font-bold text-primary/70 mt-1 uppercase tracking-wider" v-if="term?.startDate && term?.totalSessions">
-                        Ends {{ formatDateOnly(calculateTermEndDate(term.startDate, term.totalSessions, sched.day)) }}
+                      <span
+                        class="text-4xs font-bold text-primary/70 mt-1 uppercase tracking-wider"
+                        v-if="term?.startDate && term?.totalSessions"
+                      >
+                        Ends
+                        {{
+                          formatDateOnly(
+                            calculateTermEndDate(term.startDate, term.totalSessions, sched.day),
+                          )
+                        }}
                       </span>
                       <button
                         type="button"
@@ -953,7 +972,10 @@ const handleActionSubmit = async (payload) => {
                         @click.stop="confirmRemoveSchedule(sched)"
                         class="absolute -top-1.5 -right-1.5 w-5 h-5 bg-error text-white rounded-full flex items-center justify-center opacity-0 group-hover/sched:opacity-100 transition-opacity shadow-sm hover:scale-110 active:scale-95"
                       >
-                        <img :src="getActionIcon('delete')" class="w-2.5 h-2.5 brightness-0 invert" />
+                        <img
+                          :src="getActionIcon('delete')"
+                          class="w-2.5 h-2.5 brightness-0 invert"
+                        />
                       </button>
                     </div>
                   </div>
@@ -964,7 +986,7 @@ const handleActionSubmit = async (payload) => {
                   <div
                     v-for="(sched, idx) in item.schedules"
                     :key="sched.offeringId || idx"
-                    class="h-10 flex items-center justify-center"
+                    class="h-20 flex items-center justify-center w-full"
                   >
                     <!-- Teacher Avatar Stack -->
                     <div v-if="sched.teachers && sched.teachers.length > 0" class="flex -space-x-2">
@@ -997,7 +1019,7 @@ const handleActionSubmit = async (payload) => {
                   <div
                     v-for="(sched, idx) in item.schedules"
                     :key="sched.offeringId || idx"
-                    class="flex items-center justify-center h-10"
+                    class="flex items-center justify-center h-20 w-full"
                   >
                     <AppBadge :status="sched.currentCount || 0" type="blue" />
                   </div>
@@ -1013,7 +1035,7 @@ const handleActionSubmit = async (payload) => {
                   <div
                     v-for="(sched, idx) in item.schedules"
                     :key="sched.offeringId || idx"
-                    class="flex items-center justify-center h-10"
+                    class="flex items-center justify-center h-20 w-full"
                   >
                     <AppBadge :status="sched.status" />
                   </div>
@@ -1182,9 +1204,9 @@ const handleActionSubmit = async (payload) => {
               </div>
               <div class="flex flex-col items-center gap-2">
                 <span class="text-sm font-bold text-content-muted">Remaining</span>
-                <span class="text-lg font-bold text-content-dark"
-                  >{{ branchDisplayData.remainingSessions || 0 }}</span
-                >
+                <span class="text-lg font-bold text-content-dark">{{
+                  branchDisplayData.remainingSessions || 0
+                }}</span>
               </div>
               <div class="flex flex-col items-center gap-2">
                 <span class="text-sm font-bold text-content-muted">Duration</span>
@@ -1256,11 +1278,13 @@ const handleActionSubmit = async (payload) => {
         ({ offeringId, weekIndex, teacherId }) =>
           updateSessionTeacher(offeringId, weekIndex, teacherId)
       "
-      @switch-schedule="async (sched) => {
-        sessionModal.offeringId = sched.offeringId
-        sessionModal.schedule = sched
-        await initializeOfferingTeachers(sched.offeringId)
-      }"
+      @switch-schedule="
+        async (sched) => {
+          sessionModal.offeringId = sched.offeringId
+          sessionModal.schedule = sched
+          await initializeOfferingTeachers(sched.offeringId)
+        }
+      "
     />
   </DashboardLayout>
 </template>

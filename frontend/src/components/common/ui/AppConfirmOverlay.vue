@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from 'vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import { formatPrice } from '@/utils/formatUtils'
@@ -17,6 +18,32 @@ defineProps({
 })
 
 defineEmits(['confirm', 'back'])
+
+const getBadgeConfig = (row) => {
+  // If explicitly overridden locally, respect it
+  if (row.badge) return { isBadge: true, type: row.type }
+
+  // Central rule definitions
+  const k = (row.key || '').toLowerCase()
+  
+  if (k === 'status') return { isBadge: true, type: undefined }
+  if (k === 'type' || k === 'category') return { isBadge: true, type: 'blue' }
+  if (k === 'level') return { isBadge: true, type: 'magenta' }
+  if (k === 'converted') return { isBadge: true, type: 'green' }
+  if (k === 'amount') return { isBadge: true, type: 'primary' }
+  
+  if (k.includes('date')) {
+    if (k.includes('start')) return { isBadge: true, type: 'green' }
+    if (k.includes('end')) return { isBadge: true, type: 'red' }
+    return { isBadge: true, type: 'blue' }
+  }
+  
+  if (k === 'issponsorship' || k === 'isprorated') {
+    return { isBadge: true, type: row.value === 'Yes' ? 'blue' : 'gray' }
+  }
+  
+  return { isBadge: false }
+}
 </script>
 
 <template>
@@ -49,7 +76,7 @@ defineEmits(['confirm', 'back'])
             <span class="app-confirm-key">{{ row.key }}</span>
             <!-- Slot-based custom rendering per row -->
             <slot :name="`row-${row.key}`" :row="row">
-              <AppBadge v-if="row.badge" :status="row.value" :type="row.type" />
+              <AppBadge v-if="getBadgeConfig(row).isBadge" :status="row.value" :type="getBadgeConfig(row).type" />
               <span v-else class="app-confirm-val" :class="row.valueClass">{{
                 row.value ?? '—'
               }}</span>

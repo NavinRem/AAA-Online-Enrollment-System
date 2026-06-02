@@ -298,7 +298,7 @@ const confirmRows = computed(() => {
   if (props.type === 'delete') {
     return [
       ...base,
-      { key: 'Status', value: props.enrollment?.status, badge: true },
+      { key: 'Status', value: props.enrollment?.status },
       { key: 'DeleteConfirm', value: form.deleteConfirm, valueClass: 'text-error font-bold' },
     ]
   }

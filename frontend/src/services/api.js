@@ -1,4 +1,4 @@
-import { getCachedData, setCachedData, clearCachePrefix } from './cache'
+import { getCachedData, setCachedData, clearAllCache } from './cache'
 import { auth } from '../firebase'
 import { config } from '../config'
 
@@ -104,10 +104,9 @@ export async function request(endpoint, options = {}) {
   if (method === 'GET' && !skipCache) {
     setCachedData(cacheKey, responseData)
   } else if (method !== 'GET') {
-    const resourceBase = endpoint.split('/')[1]
-    if (resourceBase) {
-      clearCachePrefix(`/${resourceBase}`)
-    }
+    // Clear the entire API cache on any mutation to ensure cross-resource staleness doesn't happen
+    // (e.g. Trials creating Parents, Enrollments updating Student statuses)
+    clearAllCache()
   }
 
   return responseData

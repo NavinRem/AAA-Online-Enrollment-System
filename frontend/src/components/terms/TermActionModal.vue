@@ -369,14 +369,10 @@ const confirmRows = computed(() => {
     {
       key: 'StartDate',
       value: formatDateOnly(localData.startDate || localData.branchSettings?.[0]?.startDate),
-      badge: true,
-      type: 'green',
     },
     {
       key: 'EndDate',
       value: formatDateOnly(localData.endDate || localData.branchSettings?.[0]?.endDate),
-      badge: true,
-      type: 'red',
     },
     { key: 'TotalSessions', value: `${localData.totalSessions} Weeks` },
     { key: 'DuplicateTerm', value: duplicateTermLabel.value || 'Fresh Term' },
@@ -387,7 +383,6 @@ const confirmRows = computed(() => {
         localData.startDate || localData.branchSettings?.[0]?.startDate,
         localData.endDate || localData.branchSettings?.[0]?.endDate,
       ).status,
-      badge: true,
     },
   ]
   if (props.type === 'delete') {
@@ -585,15 +580,10 @@ watch(
             >
               <div class="p-1.5 flex flex-col gap-0.5">
                 <button
-                  v-for="sched in allSchedules"
+                  v-for="sched in allSchedules.filter(s => String(s.offeringId) !== String(offeringId))"
                   :key="sched.offeringId"
                   type="button"
-                  class="flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-bold transition-all duration-150 w-full text-left"
-                  :class="
-                    String(sched.offeringId) === String(offeringId)
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'text-content-dark hover:bg-surface-subtle hover:text-primary'
-                  "
+                  class="flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-bold transition-all duration-150 w-full text-left text-content-dark hover:bg-surface-subtle hover:text-primary"
                   @click="
                     () => {
                       $emit('switch-schedule', sched)
@@ -601,22 +591,11 @@ watch(
                     }
                   "
                 >
-                  <span
-                    class="text-base"
-                    :class="
-                      String(sched.offeringId) === String(offeringId) ? 'opacity-100' : 'opacity-60'
-                    "
-                    >📅</span
-                  >
+                  <span class="text-base opacity-60">📅</span>
                   <div class="flex flex-col leading-tight">
                     <span class="font-bold">{{ sched.day }}</span>
                     <span class="text-xs font-semibold opacity-70">{{ sched.time }}</span>
                   </div>
-                  <span
-                    v-if="String(sched.offeringId) === String(offeringId)"
-                    class="ml-auto text-xs font-black opacity-80"
-                    >✓ Active</span
-                  >
                 </button>
               </div>
             </div>

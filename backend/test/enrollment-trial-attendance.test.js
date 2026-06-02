@@ -225,11 +225,13 @@ describe('Enrollment, Trial, and Attendance E2E Flow', function () {
   describe('Attendance Service', () => {
     it('should record attendance with history tracking', async () => {
       const statuses = { [testCtx.student.id]: 'P' };
+      const resolvedScheduleId = testCtx.offering.scheduleId || testCtx.offering.schedule?.id || 'default';
       const result = await attendanceService.recordAttendance(
         testCtx.classId,
         testCtx.sessionId,
         statuses,
-        testCtx.term.id
+        testCtx.term.id,
+        resolvedScheduleId
       );
 
       assert.ok(Array.isArray(result), 'Result should be an array');
@@ -238,8 +240,17 @@ describe('Enrollment, Trial, and Attendance E2E Flow', function () {
       assert.strictEqual(result[0].studentId, testCtx.student.id);
 
       // Verify history was written in Firestore
-      const docId = `${testCtx.classId}_${testCtx.sessionId}_${testCtx.student.id}`;
-      const doc = await db.collection('attendances').doc(docId).get();
+      const docId = `${testCtx.sessionId}_${testCtx.student.id}`;
+      const doc = await db
+        .collection('terms')
+        .doc(testCtx.term.id)
+        .collection('classes')
+        .doc(testCtx.classId)
+        .collection('schedules')
+        .doc(resolvedScheduleId)
+        .collection('attendance')
+        .doc(docId)
+        .get();
       assert.ok(doc.exists, 'Attendance document should exist');
       const data = doc.data();
       assert.ok(Array.isArray(data.history), 'History field should be an array');
@@ -266,16 +277,27 @@ describe('Enrollment, Trial, and Attendance E2E Flow', function () {
     it('should append to history on status change without duplicating documents', async () => {
       // Change from P → A
       const statuses = { [testCtx.student.id]: 'A' };
+      const resolvedScheduleId = testCtx.offering.scheduleId || testCtx.offering.schedule?.id || 'default';
       await attendanceService.recordAttendance(
         testCtx.classId,
         testCtx.sessionId,
         statuses,
-        testCtx.term.id
+        testCtx.term.id,
+        resolvedScheduleId
       );
 
       // Verify the document was updated (not duplicated)
-      const docId = `${testCtx.classId}_${testCtx.sessionId}_${testCtx.student.id}`;
-      const doc = await db.collection('attendances').doc(docId).get();
+      const docId = `${testCtx.sessionId}_${testCtx.student.id}`;
+      const doc = await db
+        .collection('terms')
+        .doc(testCtx.term.id)
+        .collection('classes')
+        .doc(testCtx.classId)
+        .collection('schedules')
+        .doc(resolvedScheduleId)
+        .collection('attendance')
+        .doc(docId)
+        .get();
       assert.ok(doc.exists, 'Attendance document should still exist');
       const data = doc.data();
 
@@ -288,8 +310,19 @@ describe('Enrollment, Trial, and Attendance E2E Flow', function () {
 
     after(async () => {
       // Clean up: delete test attendance document
-      const docId = `${testCtx.classId}_${testCtx.sessionId}_${testCtx.student.id}`;
-      await db.collection('attendances').doc(docId).delete().catch(() => {});
+      const resolvedScheduleId = testCtx.offering.scheduleId || testCtx.offering.schedule?.id || 'default';
+      const docId = `${testCtx.sessionId}_${testCtx.student.id}`;
+      await db
+        .collection('terms')
+        .doc(testCtx.term.id)
+        .collection('classes')
+        .doc(testCtx.classId)
+        .collection('schedules')
+        .doc(resolvedScheduleId)
+        .collection('attendance')
+        .doc(docId)
+        .delete()
+        .catch(() => {});
     });
   });
 });

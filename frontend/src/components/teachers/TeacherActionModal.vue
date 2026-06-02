@@ -202,7 +202,7 @@ const confirmRows = computed(() => {
     rows.push({ key: 'Status', value: 'Permanently Deleted', valueClass: 'text-error font-bold' })
     rows.push({ key: 'DeleteConfirm', value: form.deleteConfirm, valueClass: 'font-bold text-error' })
   } else if (['reactivate', 'deactivate'].includes(props.type)) {
-    rows.push({ key: 'Status', value: props.type === 'reactivate' ? 'active' : 'inactive', badge: true })
+    rows.push({ key: 'Status', value: props.type === 'reactivate' ? 'active' : 'inactive' })
   }
 
   return rows

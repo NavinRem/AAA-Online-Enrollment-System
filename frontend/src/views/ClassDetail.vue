@@ -134,6 +134,7 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
           sessionId,
           attendanceData.value[sessionId],
           resolvedTermId,
+          scheduleFilter.value,
         ),
       )
 
@@ -152,6 +153,7 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
                 session.id,
                 linkedData,
                 resolvedTermId,
+                scheduleFilter.value,
               ),
             )
             break
@@ -414,7 +416,7 @@ const branchFilterOptions = computed(() => {
 })
 
 const filteredEnrollments = computed(() => {
-  return enrollments.value.filter((e) => {
+  const filtered = enrollments.value.filter((e) => {
     // Audit: Only successful/eligible enrollments are shown for attendance
     if (e.status !== 'paid' && e.paymentStatus !== 'paid') return false
 
@@ -429,6 +431,13 @@ const filteredEnrollments = computed(() => {
       scheduleFilter.value === 'all' || String(scheduleId) === String(scheduleFilter.value)
 
     return termMatch && branchMatch && scheduleMatch
+  })
+
+  // Sort alphabetically by student name for clean organization
+  return filtered.sort((a, b) => {
+    const nameA = (a.student?.name || '').toLowerCase()
+    const nameB = (b.student?.name || '').toLowerCase()
+    return nameA.localeCompare(nameB)
   })
 })
 
@@ -586,7 +595,7 @@ const getScheduleStatus = (schedule) => {
   }
 
   const count = Number(off.currentCount || off.students?.length || 0)
-  const capacity = Number(off.capacity || schedule.capacity || DEFAULT_CAPACITY)
+  const capacity = Number(schedule.capacity || off?.capacity || DEFAULT_CAPACITY)
 
   if (count >= capacity) return { status: 'Full', type: 'red' }
 
@@ -620,7 +629,7 @@ const getScheduleCapacity = (schedule) => {
         String(o.schedule?.id) === String(schedule.id)),
   )
 
-  return off?.capacity || schedule.capacity || DEFAULT_CAPACITY
+  return schedule.capacity || off?.capacity || DEFAULT_CAPACITY
 }
 
 const scheduleOptions = computed(() => {

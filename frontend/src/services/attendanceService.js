@@ -15,11 +15,12 @@ export const attendanceService = {
    * @param {number|string} sessionId
    * @param {Object} statuses
    * @param {string} termId
+   * @param {string} scheduleId
    */
-  recordAttendance(classId, sessionId, statuses, termId) {
+  recordAttendance(classId, sessionId, statuses, termId, scheduleId) {
     return request('/attendance/record', {
       method: 'POST',
-      body: JSON.stringify({ classId, sessionId, statuses, termId }),
+      body: JSON.stringify({ classId, sessionId, statuses, termId, scheduleId }),
     })
   },
 }
