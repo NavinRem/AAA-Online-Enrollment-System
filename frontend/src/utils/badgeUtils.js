@@ -45,7 +45,7 @@ const REGISTRIES = {
     available: 'green',
     full: 'red',
     cancelled: 'orange',
-    completed: 'gray',
+    completed: 'green',
   },
   account: {
     ...COMMON_STATUSES,

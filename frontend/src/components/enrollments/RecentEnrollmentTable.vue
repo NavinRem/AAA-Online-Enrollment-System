@@ -1,5 +1,4 @@
 <script setup>
-import { useRouter } from 'vue-router'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppTable from '@/components/common/data/AppTable.vue'
 import { formatDate, formatPrice } from '@/utils/formatUtils'
@@ -16,7 +15,6 @@ defineProps({
   },
 })
 
-const router = useRouter()
 
 const enrollmentHeaders = [
   { label: 'No', width: '40px', align: 'center' },
@@ -28,11 +26,6 @@ const enrollmentHeaders = [
   { label: 'Enrolled Date', align: 'center' },
 ]
 
-const navigateToDetail = (item) => {
-  if (item.id) {
-    router.push(`/enrollments/${item.id}`)
-  }
-}
 </script>
 
 <template>
@@ -48,7 +41,6 @@ const navigateToDetail = (item) => {
         v-for="(item, index) in enrollments.slice(0, 5)"
         :key="item.id || index"
         class="ui-row"
-        @click="navigateToDetail(item)"
       >
         <td
           class="ui-cell !py-4 text-center"

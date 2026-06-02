@@ -23,6 +23,17 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import { teacherService } from '@/services/teacherService'
 import { useSearch, classSearchMapper, studentSearchMapper } from '@/composables/useSearch'
 import { useTableActions } from '@/composables/useTableActions'
+import { getStatusTheme } from '@/utils/badgeUtils'
+
+const dayColors = {
+  Monday: 'blue',
+  Tuesday: 'magenta',
+  Wednesday: 'green',
+  Thursday: 'orange',
+  Friday: 'purple',
+  Saturday: 'blue',
+  Sunday: 'red',
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -192,13 +203,21 @@ const rawBranchOfferings = computed(() => {
       })
       .filter(Boolean)
 
+    const paidStudents = students.filter(
+      (s) =>
+        s.status === 'paid' ||
+        s.paymentStatus === 'paid' ||
+        s.status === 'success' ||
+        s.paymentStatus === 'success',
+    )
+
     return {
       ...off,
       program,
       students,
       responsibleTeachers,
       currentCount: students.length,
-      revenue: students.reduce((sum, s) => sum + (s.revenue || 0), 0),
+      revenue: paidStudents.reduce((sum, s) => sum + (s.revenue || 0), 0),
     }
   })
 })
@@ -356,6 +375,7 @@ const classFilterOptions = computed(() => {
       options.push({
         label: name,
         value: name,
+        color: 'green',
         image: getProgramProfileURL(
           p.profileURL,
           p.category?.name || p.category,
@@ -368,15 +388,6 @@ const classFilterOptions = computed(() => {
   options.push({ isDivider: true })
   options.push({ isHeader: true, label: 'Filter by Day' })
   const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-  const dayColors = {
-    Monday: 'blue',
-    Tuesday: 'magenta',
-    Wednesday: 'green',
-    Thursday: 'orange',
-    Friday: 'purple',
-    Saturday: 'blue',
-    Sunday: 'red',
-  }
   const daysInBranch = new Set()
   groupedBranchOfferings.value.forEach((g) => {
     ;(g.schedules || []).forEach((s) => {
@@ -886,7 +897,7 @@ const handleActionSubmit = async (payload) => {
           </div>
         </div>
 
-         <section
+        <section
           class="overflow-hidden animate-fade-in h-160 border border-outline-std rounded-md bg-white shadow-sm flex flex-col"
         >
           <DataTable
@@ -948,15 +959,26 @@ const handleActionSubmit = async (payload) => {
                     class="flex items-center gap-1 group/sched h-20"
                   >
                     <div
-                      class="flex flex-col items-center justify-center py-2 bg-primary-light group-hover:bg-primary/30 px-lg rounded-sm min-w-32 relative h-full w-full"
+                      class="flex flex-col items-center justify-center py-2 px-lg rounded-sm min-w-32 relative h-full w-full transition-all"
+                      :style="getStatusTheme(sched.day, dayColors[sched.day] || 'blue')"
+                      @mouseenter="
+                        (e) => {
+                          e.currentTarget.style.filter = 'brightness(0.95)'
+                        }
+                      "
+                      @mouseleave="
+                        (e) => {
+                          e.currentTarget.style.filter = 'none'
+                        }
+                      "
                     >
                       <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
                       <span
-                        class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums"
+                        class="text-3xs font-semibold opacity-80 mt-1 leading-none tabular-nums"
                         >{{ sched.time }}</span
                       >
                       <span
-                        class="text-4xs font-bold text-primary/70 mt-1 uppercase tracking-wider"
+                        class="text-4xs font-bold opacity-60 mt-1 uppercase tracking-wider"
                         v-if="term?.startDate && term?.totalSessions"
                       >
                         Ends

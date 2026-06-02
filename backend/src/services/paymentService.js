@@ -58,6 +58,8 @@ class PaymentService {
             p.class?.term?.status ||
             enrollment.class?.term?.status ||
             'unknown',
+          branchId: p.branchId || enrollment.branchId || enrollment.class?.branch?.id,
+          receiptId: p.receiptId || enrollment.receiptId,
         }
       })
   }
@@ -195,7 +197,8 @@ class PaymentService {
       totalPaidRevenue += amount
       paidCount++
 
-      if (String(p.paymentMethod).toLowerCase() === 'cash') {
+      const method = String(p.method || p.paymentMethod || '').toLowerCase()
+      if (method === 'cash') {
         cashRevenue += amount
         cashCount++
       } else {

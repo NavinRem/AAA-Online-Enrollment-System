@@ -110,29 +110,27 @@ onUnmounted(() => {
 
 // 1. Base formatting
 const formattedPayments = computed(() => {
-  return enrollments.value.map((e) => ({
-    id: e.id,
-    receiptId: e.receiptId || (e.enrollmentId ? `#${e.enrollmentId.slice(-6)}` : 'N/A'),
-    transactionId: e.transactionId || (e.paymentMethod === 'cash' ? null : 'N/A'),
-    parent: e.parent?.name || 'Unknown Parent',
-    parentProfile: e.parent?.profileURL,
-    amount: e.amount || 0,
-    method: e.paymentMethod || 'cash',
-    bankName: e.bankName || e.paymentMethod,
-    status: e.paymentStatus || e.status || 'unpaid',
-    date: e.paidAt || e.enrollAt || e.createdAt,
-    student: e.student?.name || 'Unknown Student',
-    studentProfile: e.student?.profileURL,
-    program: e.program?.name || 'Standard Program',
-    paymentModeType: e.paymentModeType || (e.isProrated ? 'partial' : 'full'),
-    termStatus: e.termStatus || 'unknown',
-    branchId:
-      e.branchId ||
-      e.enrollment?.branchId ||
-      e.class?.branchId ||
-      e.branch?.id ||
-      e.enrollment?.branch?.id,
-  }))
+  return enrollments.value.map((e) => {
+    const paymentMethod = e.method || e.paymentMethod || 'cash'
+    return {
+      id: e.id,
+      receiptId: e.receiptId || (e.enrollmentId ? `#${e.enrollmentId.slice(-6)}` : 'N/A'),
+      transactionId: e.transactionId || (paymentMethod === 'cash' ? null : 'N/A'),
+      parent: e.parent?.name || 'Unknown Parent',
+      parentProfile: e.parent?.profileURL,
+      amount: e.amount || 0,
+      method: paymentMethod,
+      bankName: e.bankName || paymentMethod,
+      status: e.paymentStatus || e.status || 'unpaid',
+      date: e.paidAt || e.enrollAt || e.createdAt,
+      student: e.student?.name || 'Unknown Student',
+      studentProfile: e.student?.profileURL,
+      program: e.program?.name || 'Standard Program',
+      paymentModeType: e.paymentModeType || (e.isProrated ? 'partial' : 'full'),
+      termStatus: e.termStatus || 'unknown',
+      branchId: e.branchId || e.class?.branch?.id || e.branch?.id || e.enrollment?.branch?.id,
+    }
+  })
 })
 
 // 2. Status filtering
@@ -415,11 +413,7 @@ const paymentHeaders = [
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[3].width }">
-              <span
-                v-if="item.transactionId"
-                class="ui-cell-muted"
-                >{{ item.transactionId }}</span
-              >
+              <span v-if="item.transactionId" class="ui-cell-muted">{{ item.transactionId }}</span>
               <span v-else class="ui-cell-empty">—</span>
             </td>
 
@@ -440,9 +434,7 @@ const paymentHeaders = [
               :style="{ width: headers[7].width }"
             >
               <div class="flex flex-col items-center">
-                <span class="text-xs font-bold text-content-dark tabular-nums tracking-tight">{{
-                  formatDate(item.date)
-                }}</span>
+                <span class="ui-cell-muted">{{ formatDate(item.date) }}</span>
               </div>
             </td>
           </template>

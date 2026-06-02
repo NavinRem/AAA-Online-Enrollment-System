@@ -50,7 +50,8 @@ const getInitialData = () => ({
   enrolledSessions: 0,
   amount: 0,
   remark: '',
-  proof: '',
+  transactionId: '',
+  receiptId: '',
   bankName: '',
   reason: '',
   deleteConfirm: '',
@@ -288,7 +289,8 @@ const confirmRows = computed(() => {
       ...base,
       { key: 'PaymentMethod', value: form.paymentMethod === 'online' ? 'Online / Bank' : 'Cash' },
       ...(form.bankName ? [{ key: 'BankName', value: form.bankName }] : []),
-      { key: 'Proof', value: form.proof },
+      { key: 'ReceiptID', value: form.receiptId },
+      ...(form.paymentMethod === 'online' ? [{ key: 'TransactionCode', value: form.transactionId }] : []),
       ...(form.remark ? [{ key: 'Remark', value: form.remark, valueClass: 'italic' }] : []),
     ]
   }
@@ -402,14 +404,21 @@ const requestConfirm = () => {
   }
 
   if (props.type === 'pay') {
-    if (form.paymentMethod === 'online' && !form.bankName) {
-      validationMessage.value = 'Please select a bank.'
-      triggerShake('bankName')
-      return
+    if (form.paymentMethod === 'online') {
+      if (!form.bankName) {
+        validationMessage.value = 'Please select a bank.'
+        triggerShake('bankName')
+        return
+      }
+      if (!form.transactionId) {
+        validationMessage.value = 'Please provide a transaction code.'
+        triggerShake('transactionId')
+        return
+      }
     }
-    if (!form.proof) {
-      validationMessage.value = 'Please provide proof of payment.'
-      triggerShake('proof')
+    if (!form.receiptId) {
+      validationMessage.value = 'Please provide a receipt ID.'
+      triggerShake('receiptId')
       return
     }
     showConfirm.value = true
@@ -1021,14 +1030,25 @@ defineExpose({ setStudent })
           />
 
           <AppInput
-            v-model="form.proof"
-            :label="form.paymentMethod === 'online' ? 'Transaction Code' : 'Receipt ID'"
-            :placeholder="form.paymentMethod === 'online' ? 'e.g. 123456' : 'e.g. REC-001'"
+            v-model="form.receiptId"
+            label="Receipt ID"
+            placeholder="e.g. REC-001"
             required
-            :error="errors.proof"
-            :shake="shaking.proof"
-            class="col-span-2"
-            @input="clearError('proof')"
+            :error="errors.receiptId"
+            :shake="shaking.receiptId"
+            :class="form.paymentMethod === 'online' ? '' : 'col-span-2'"
+            @input="clearError('receiptId')"
+          />
+
+          <AppInput
+            v-if="form.paymentMethod === 'online'"
+            v-model="form.transactionId"
+            label="Transaction Code"
+            placeholder="e.g. 123456"
+            required
+            :error="errors.transactionId"
+            :shake="shaking.transactionId"
+            @input="clearError('transactionId')"
           />
         </div>
 

@@ -194,6 +194,8 @@ class EnrollmentService {
           program: programSnapshot,
           amount: Number(newEnrollment.amount) || 0,
           paymentMethod: (newEnrollment.paymentMethod || 'cash').toLowerCase(),
+          transactionId: newEnrollment.transactionId || '',
+          receiptId: newEnrollment.receiptId || '',
           paymentStatus: 'paid',
           paidAt: newEnrollment.paidAt || newEnrollment.createdAt,
           createdAt: newEnrollment.createdAt,
@@ -448,6 +450,8 @@ class EnrollmentService {
             currentData.paymentMethod ||
             'cash'
           ).toLowerCase(),
+          transactionId: validated.transactionId || currentData.transactionId || '',
+          receiptId: validated.receiptId || currentData.receiptId || '',
           paymentStatus: 'paid',
           paidAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
@@ -710,7 +714,7 @@ class EnrollmentService {
   }
 
   async processPayment(enrollmentId, paymentData) {
-    const { paymentMethod, bankName, amount, transactionId, remark } =
+    const { paymentMethod, bankName, amount, transactionId, receiptId, remark } =
       paymentData
     const enrollmentRef = db
       .collection(COLLECTIONS.ENROLLMENT)
@@ -745,6 +749,7 @@ class EnrollmentService {
               ? bankName.toLowerCase()
               : 'online',
         transactionId: transactionId || '',
+        receiptId: receiptId || '',
       })
 
       // 2. Create Payment Record
@@ -765,6 +770,7 @@ class EnrollmentService {
               : 'online'
             : null,
         transactionId: transactionId || '',
+        receiptId: receiptId || '',
         paymentStatus: pStatus.toLowerCase(),
         remark: remark || '',
         paidAt: now,

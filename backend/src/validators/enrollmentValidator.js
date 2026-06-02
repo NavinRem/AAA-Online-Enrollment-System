@@ -25,6 +25,8 @@ function validateEnrollment(enrollmentData) {
     'hasPassedExam',
     'hasReceivedCertificate',
     'hasReceivedReportCard',
+    'transactionId',
+    'receiptId',
   ]
 
   Object.keys(enrollmentData).forEach((key) => {
@@ -79,6 +81,8 @@ function validateEnrollment(enrollmentData) {
     hasPassedExam: !!enrollmentData.hasPassedExam,
     hasReceivedCertificate: !!enrollmentData.hasReceivedCertificate,
     hasReceivedReportCard: !!enrollmentData.hasReceivedReportCard,
+    transactionId: enrollmentData.transactionId || '',
+    receiptId: enrollmentData.receiptId || '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -108,6 +112,8 @@ function validateUpdateEnrollment(updateData) {
     'hasPassedExam',
     'hasReceivedCertificate',
     'hasReceivedReportCard',
+    'transactionId',
+    'receiptId',
   ]
   const cleanData = {}
 

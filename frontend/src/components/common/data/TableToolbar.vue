@@ -119,9 +119,8 @@ const selectFilter = (val) => {
           :style="
             isActiveFilter
               ? {
-                  backgroundColor: getStatusTheme(currentFilter, activeOption?.color)
-                    .backgroundColor,
-                  color: getStatusTheme(currentFilter, activeOption?.color).color,
+                  backgroundColor: getStatusTheme(currentFilter, activeOption?.color).color,
+                  color: '#ffffff',
                   border: `1px solid ${getStatusTheme(currentFilter, activeOption?.color).color}20`,
                 }
               : {}
@@ -131,20 +130,19 @@ const selectFilter = (val) => {
             v-if="activeOption?.image || activeOption?.profileURL"
             :src="activeOption.image || activeOption.profileURL"
             class="w-4 h-4 transition-all"
+            :class="{ 'brightness-0 invert': isActiveFilter }"
             :style="
-              isActiveFilter ? { filter: getStatusFilter(currentFilter, activeOption?.color) } : {}
+              isActiveFilter ? {} : {}
             "
           />
           <img
             v-else
             :src="getActionIcon('filter')"
             class="w-4 h-4 transition-all"
-            :style="{
-              filter: getStatusFilter(
-                isActiveFilter ? currentFilter : 'filter',
-                activeOption?.color,
-              ),
-            }"
+            :class="{ 'brightness-0 invert': isActiveFilter }"
+            :style="
+              isActiveFilter ? {} : { filter: getStatusFilter('filter') }
+            "
           />
           <span class="font-bold tracking-tight">{{ activeFilterLabel }}</span>
         </AppButton>
@@ -191,10 +189,8 @@ const selectFilter = (val) => {
                     (e) => {
                       if (currentFilter !== option.value) {
                         const theme = getStatusTheme(option.value, option.color)
-                        if (theme.color !== 'var(--color-gray)') {
-                          e.currentTarget.style.backgroundColor = theme.backgroundColor
-                          e.currentTarget.style.color = theme.color
-                        }
+                        e.currentTarget.style.backgroundColor = theme.backgroundColor
+                        e.currentTarget.style.color = theme.color
                       }
                     }
                   "

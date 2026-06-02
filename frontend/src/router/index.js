@@ -30,12 +30,6 @@ const router = createRouter({
       meta: { title: 'Trials', requiresAuth: true, requiresAdmin: true },
     },
     {
-      path: '/enrollments/:id',
-      name: 'enrollment-detail',
-      component: () => import('../views/EnrollmentDetail.vue'),
-      meta: { title: 'Enrollment Detail', requiresAuth: true },
-    },
-    {
       path: '/branches',
       name: 'branches',
       component: () => import('../views/Branches.vue'),

@@ -1,6 +1,5 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
@@ -22,7 +21,6 @@ import { formatPrice, formatDate } from '@/utils/formatUtils'
 import { useDataStore } from '../stores/dataStore'
 
 const dataStore = useDataStore()
-const router = useRouter()
 
 const enrollments = ref([])
 const totalItems = ref(0)
@@ -196,12 +194,7 @@ const enrollmentHeaders = [
   { label: 'Action', width: '50px', align: 'center' },
 ]
 
-const navigateToDetail = (item) => {
-  if (item.id === newlyCreatedId.value) {
-    newlyCreatedId.value = null
-  }
-  router.push(`/enrollments/${item.id}`)
-}
+
 
 const enrichedEnrollments = computed(() => {
   return enrichEnrollments(
@@ -261,12 +254,13 @@ const submitActionModal = async (payload) => {
       await handleSaveEnrollment(payload)
       return // handleSaveEnrollment handles success message and closing
     } else if (type === 'pay') {
-      const { bankName, paymentMethod: methodType, proof, remark, paymentStatus } = payload
+      const { bankName, paymentMethod: methodType, transactionId, receiptId, remark, paymentStatus } = payload
       const paymentData = {
         paymentStatus: paymentStatus || 'paid',
         paymentMethod: methodType,
         bankName: methodType === 'online' ? bankName : null,
-        transactionId: proof,
+        transactionId: methodType === 'online' ? transactionId : '',
+        receiptId: receiptId || '',
         remark: remark?.trim() || '',
         amount: enrollment.amount,
       }
@@ -367,7 +361,7 @@ const handleRegisterStudent = async (formData) => {
           ]"
           :rowClass="getRowClass"
           @action="handleTableAction"
-          @row-click="navigateToDetail"
+
         >
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" @click="handleOpenNewEnrollment">

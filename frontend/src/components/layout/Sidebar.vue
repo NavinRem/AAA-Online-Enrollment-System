@@ -133,7 +133,7 @@ const handleNavClick = () => {
       </router-link>
     </nav>
 
-    <div class="p-5 border-t border-surface-light mt-auto">
+    <div class="p-5 border-t border-surface-light mt-auto flex justify-center">
       <p v-if="logoutMessage" class="text-error text-sm mb-3 text-center font-bold animate-pulse">
         {{ logoutMessage }}
       </p>
