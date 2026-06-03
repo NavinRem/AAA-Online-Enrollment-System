@@ -501,7 +501,6 @@ watch(
       showConfirm.value = false
     }
   },
-  { immediate: true }
 )
 </script>
 
@@ -580,7 +579,9 @@ watch(
             >
               <div class="p-1.5 flex flex-col gap-0.5">
                 <button
-                  v-for="sched in allSchedules.filter(s => String(s.offeringId) !== String(offeringId))"
+                  v-for="sched in allSchedules.filter(
+                    (s) => String(s.offeringId) !== String(offeringId),
+                  )"
                   :key="sched.offeringId"
                   type="button"
                   class="flex items-center gap-3 px-4 py-3 rounded-sm text-sm font-bold transition-all duration-150 w-full text-left text-content-dark hover:bg-surface-subtle hover:text-primary"

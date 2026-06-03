@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { parentService } from '../services/parentService'
 import { studentService } from '../services/studentService'
 import { programService } from '../services/programService'
+import { levelService } from '../services/levelService'
 import { classService } from '../services/classService'
 import { categoryService } from '../services/categoryService'
 import { termService } from '../services/termService'
@@ -15,6 +16,7 @@ export const useDataStore = defineStore('data', {
     parents: [],
     students: [],
     programs: [],
+    levels: [],
     classes: [],
     categories: [],
     terms: [],
@@ -26,6 +28,7 @@ export const useDataStore = defineStore('data', {
       parents: false,
       students: false,
       programs: false,
+      levels: false,
       classes: false,
       categories: false,
       terms: false,
@@ -38,6 +41,7 @@ export const useDataStore = defineStore('data', {
       parents: null,
       students: null,
       programs: null,
+      levels: null,
       classes: null,
       categories: null,
       terms: null,
@@ -60,6 +64,7 @@ export const useDataStore = defineStore('data', {
         'parents',
         'students',
         'programs',
+        'levels',
         'classes',
         'categories',
         'terms',
@@ -143,6 +148,24 @@ export const useDataStore = defineStore('data', {
       return this.activePromises.programs
     },
 
+    async fetchLevels(force = false) {
+      if (!force && this.activePromises.levels) return this.activePromises.levels
+      if (!force && this.levels.length > 0 && this.isFresh('levels')) return
+
+      this.loading.levels = true
+      this.activePromises.levels = (async () => {
+        try {
+          const data = await levelService.getAllLevels()
+          this.levels = Array.isArray(data) ? data : []
+          this.lastFetched.levels = Date.now()
+        } finally {
+          this.loading.levels = false
+          delete this.activePromises.levels
+        }
+      })()
+      return this.activePromises.levels
+    },
+
     async fetchClasses(force = false) {
       if (this.activePromises.classes) return this.activePromises.classes
       if (!force && this.classes.length > 0 && this.isFresh('classes')) return
@@ -162,13 +185,13 @@ export const useDataStore = defineStore('data', {
     },
 
     async fetchCategories(force = false) {
-      if (this.activePromises.categories) return this.activePromises.categories
+      if (!force && this.activePromises.categories) return this.activePromises.categories
       if (!force && this.categories.length > 0 && this.isFresh('categories')) return
 
       this.loading.categories = true
       this.activePromises.categories = (async () => {
         try {
-          const data = await categoryService.getAllCategories()
+          const data = await categoryService.getAllCategories({ skipCache: force })
           this.categories = Array.isArray(data) ? data : data?.data || []
           this.lastFetched.categories = Date.now()
         } finally {

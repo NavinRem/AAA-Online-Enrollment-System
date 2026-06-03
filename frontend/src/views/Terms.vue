@@ -9,17 +9,15 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import TermActionModal from '@/components/terms/TermActionModal.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
-import AppSelect from '@/components/common/ui/AppSelect.vue'
-import { useDataStore } from '@/stores/dataStore'
-
 import { termService } from '@/services/termService'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 import { formatShortDate, formatPrice, calculateClassProgress } from '@/utils/formatUtils'
 import { useSearch } from '@/composables/useSearch'
+import { useDataStore } from '@/stores/dataStore'
 
 const loading = ref(false)
 const items = ref([])
-const branches = ref([])
+const branches = ref([])  
 const statusFilter = ref('all')
 const dataStore = useDataStore()
 const sortMode = ref('newest')
@@ -316,21 +314,6 @@ const displayItems = computed(() => {
   })
 })
 
-const sortOptions = [
-  { label: 'Newest First', value: 'newest', image: getActionIcon('filter') },
-  {
-    label: 'Most Enrolled',
-    value: 'enrollments',
-    image: getImageUrl('data-metric-card/total-enrolled'),
-  },
-  { label: 'Highest Trials', value: 'trials', image: getImageUrl('enrollment/total-enrollment') },
-  {
-    label: 'Top Revenue',
-    value: 'revenue',
-    image: getImageUrl('data-metric-card/program-revenue'),
-  },
-]
-
 const isTermReadOnly = (item) => {
   const prog = calculateClassProgress(item.startDate, item.endDate)
   const status = prog.status.toLowerCase()
@@ -400,12 +383,6 @@ const getGroupedSettings = (item) => {
         >
           <template #toolbar-actions>
             <div class="flex items-center gap-3">
-              <AppSelect
-                v-model="sortMode"
-                :options="sortOptions"
-                placeholder="Sort By"
-                class="min-w-44"
-              />
               <AppButton variant="primary" size="md" @click="openModal('add')">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span>Add Term</span>

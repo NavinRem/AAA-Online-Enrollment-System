@@ -57,6 +57,7 @@ const getInitialData = () => ({
   deleteConfirm: '',
   paymentMethod: 'online',
   paymentStatus: 'paid',
+  transferredSessions: 0,
 })
 
 const mapSourceToForm = () => {
@@ -71,11 +72,8 @@ const mapSourceToForm = () => {
       termOfferingId: props.enrollment.termOfferingId || props.enrollment.term?.offeringId || '',
       branchId: props.enrollment.class?.branch?.id || props.enrollment.branchId || '',
       scheduleId: props.enrollment.termOfferingId || '',
-      enrollAt: (
-        props.enrollment.enrollAt ||
-        props.enrollment.enrollmentDate ||
-        new Date().toISOString()
-      ),
+      enrollAt:
+        props.enrollment.enrollAt || props.enrollment.enrollmentDate || new Date().toISOString(),
       isProrated: !!props.enrollment.isProrated,
       isSponsorship: !!props.enrollment.isSponsorship,
       sponsorName: props.enrollment.sponsorName || '',
@@ -86,12 +84,22 @@ const mapSourceToForm = () => {
       enrolledSessions: props.enrollment.enrolledSessions || 0,
       amount: props.enrollment.amount || 0,
       remark: props.enrollment.remark || '',
+      transferredSessions: props.enrollment.transferredSessions || 0,
     }
   }
   return getInitialData()
 }
 
-const { localData: form, isDirty, errors, shaking, validate, clearError, triggerShake, getPayload } = useActionModal(props, emit, {
+const {
+  localData: form,
+  isDirty,
+  errors,
+  shaking,
+  validate,
+  clearError,
+  triggerShake,
+  getPayload,
+} = useActionModal(props, emit, {
   getInitialData,
   mapSourceToForm,
   sourceKey: 'enrollment',
@@ -136,9 +144,7 @@ const displaySummary = computed(() => {
     branchColor: branchObj.color || 'blue',
   }
 })
-const isChanged = computed(
-  () => !isEditMode.value || isDirty.value,
-)
+const isChanged = computed(() => !isEditMode.value || isDirty.value)
 const hasAnyError = computed(() => Object.values(errors).some(Boolean))
 
 const activeParents = computed(() =>
@@ -155,14 +161,15 @@ const availablePrograms = computed(() => {
   let programs = props.programs || []
 
   const studentEnrollments = (props.enrollments || []).filter(
-    (e) => String(e.studentId) === String(form.studentId) && 
-           ['paid', 'unpaid', 'active', 'confirmed', 'success'].includes(e.status) &&
-           e.isDeleted !== true &&
-           String(e.id) !== String(props.enrollment?.id) // exclude the one being edited
+    (e) =>
+      String(e.studentId) === String(form.studentId) &&
+      ['paid', 'unpaid', 'active', 'confirmed', 'success'].includes(e.status) &&
+      e.isDeleted !== true &&
+      String(e.id) !== String(props.enrollment?.id), // exclude the one being edited
   )
-  const enrolledProgramIds = new Set(studentEnrollments.map(e => String(e.programId)))
-  
-  return programs.filter(p => !enrolledProgramIds.has(String(p.id)))
+  const enrolledProgramIds = new Set(studentEnrollments.map((e) => String(e.programId)))
+
+  return programs.filter((p) => !enrolledProgramIds.has(String(p.id)))
 })
 
 // Removed availableClassProducts as it is replaced by availableOfferings
@@ -185,11 +192,11 @@ const availableOfferings = computed(() => {
         if (!isMatch) return false
 
         const currentCount = offering.currentCount || (offering.students || []).length || 0
-        
+
         const classInfo = props.classes?.find((c) => String(c.id) === String(offering.classId))
         const scheduleInfo = classInfo?.schedules?.find((s) => s.id === offering.schedule?.id)
         const capacity = scheduleInfo?.capacity || classInfo?.capacity || offering.capacity || 20
-        
+
         return currentCount < capacity
       })
       .map((offering) => {
@@ -199,7 +206,7 @@ const availableOfferings = computed(() => {
 
         let branchStartDate = term.startDate
         let branchEndDate = term.endDate
-        
+
         if (term.branchSettings) {
           const bId = offering.branch?.id || offering.branchId || offering.branch?.abbr
           const setting = term.branchSettings.find((s) => String(s.branchId) === String(bId))
@@ -210,7 +217,10 @@ const availableOfferings = computed(() => {
         return {
           id: offering.offeringId,
           classId: offering.classId,
-          className: props.programs?.find(p => String(p.id) === String(form.programId))?.name || offering.class?.name || 'Class',
+          className:
+            props.programs?.find((p) => String(p.id) === String(form.programId))?.name ||
+            offering.class?.name ||
+            'Class',
           name: `${term.name} | ${offering.branch?.abbr || offering.branch?.name || 'Branch'} - ${offering.schedule?.day || 'Day'} (${offering.schedule?.time || 'Time'})`,
           termId: term.id,
           termName: term.name,
@@ -245,9 +255,16 @@ const finalAmount = computed(() => {
   if (form.isSponsorship) return 0
   if (form.isCustomPrice) return Number(form.customPrice || 0)
   let price = selectedProgram.value?.basePrice || 0
+
   if (form.isProrated && sessionInfo.value && sessionInfo.value.total > 0) {
     price = (price / sessionInfo.value.total) * sessionInfo.value.remaining
   }
+
+  if (form.transferredSessions > 0 && sessionInfo.value && sessionInfo.value.total > 0) {
+    const sessionRate = (selectedProgram.value?.basePrice || 0) / sessionInfo.value.total
+    price -= sessionRate * form.transferredSessions
+  }
+
   const discountBase = Number(form.discountAmount || 0)
   const discount = form.discountType === 'percent' ? (price * discountBase) / 100 : discountBase
   return Math.max(0, price - discount)
@@ -255,34 +272,70 @@ const finalAmount = computed(() => {
 
 const confirmRows = computed(() => {
   const base = [
-    { key: 'Parent', value: props.parents?.find((item) => item.id === form.parentId)?.name || 'N/A' },
-    { key: 'Student', value: selectedStudent.value?.name || 'N/A' },
-    { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
-    { key: 'Class', value: selectedOffering.value?.className || 'N/A' },
-    { key: 'Term', value: selectedOffering.value?.termName || 'N/A' },
+    {
+      key: 'Parent',
+      value:
+        displaySummary.value?.parentName ||
+        props.parents?.find((item) => item.id === form.parentId)?.name ||
+        'N/A',
+    },
+    {
+      key: 'Student',
+      value: displaySummary.value?.studentName || selectedStudent.value?.name || 'N/A',
+    },
+    {
+      key: 'Program',
+      value: displaySummary.value?.programName || selectedProgram.value?.name || 'N/A',
+    },
+    {
+      key: 'Class',
+      value: displaySummary.value?.className || selectedOffering.value?.className || 'N/A',
+    },
+    {
+      key: 'Term',
+      value: displaySummary.value?.termName || selectedOffering.value?.termName || 'N/A',
+    },
     {
       key: 'Branch/Schedule',
-      value: selectedOffering.value
-        ? `${selectedOffering.value.branch?.abbr || selectedOffering.value.branch?.name} - ${selectedOffering.value.schedule?.day} (${selectedOffering.value.schedule?.time})`
-        : 'N/A',
+      value:
+        displaySummary.value && displaySummary.value.branchAbbr
+          ? `${displaySummary.value.branchAbbr} - ${displaySummary.value.scheduleDay} (${displaySummary.value.scheduleTime})`
+          : selectedOffering.value
+            ? `${selectedOffering.value.branch?.abbr || selectedOffering.value.branch?.name} - ${selectedOffering.value.schedule?.day} (${selectedOffering.value.schedule?.time})`
+            : 'N/A',
     },
     { key: 'EnrolledSessions', value: `${form.enrolledSessions || 0} sessions` },
   ]
-  
+
   if (form.isSponsorship) {
     base.push({ key: 'IsSponsorship', value: 'Yes', valueClass: 'text-primary font-bold' })
   }
   if (form.isProrated) {
     base.push({ key: 'IsProrated', value: 'Yes', valueClass: 'text-warning font-bold' })
   }
+  if (form.transferredSessions > 0) {
+    base.push({
+      key: 'PriorPaidSessions',
+      value: `${form.transferredSessions}`,
+      valueClass: 'text-success font-bold',
+    })
+  }
   if (form.discountAmount > 0) {
-    base.push({ key: 'DiscountAmount', value: form.discountType === 'percent' ? `${form.discountAmount}%` : `$${form.discountAmount}` })
+    base.push({
+      key: 'DiscountAmount',
+      value:
+        form.discountType === 'percent' ? `${form.discountAmount}%` : `$${form.discountAmount}`,
+    })
   }
   if (form.isCustomPrice) {
     base.push({ key: 'CustomPrice', value: `$${form.customPrice}` })
   }
 
-  base.push({ key: 'Amount', value: `$${formatPrice(finalAmount.value)}`, valueClass: 'font-bold text-lg text-primary' })
+  base.push({
+    key: 'Amount',
+    value: `$${formatPrice(finalAmount.value)}`,
+    valueClass: 'font-bold text-lg text-primary',
+  })
 
   if (props.type === 'pay') {
     return [
@@ -290,7 +343,9 @@ const confirmRows = computed(() => {
       { key: 'PaymentMethod', value: form.paymentMethod === 'online' ? 'Online / Bank' : 'Cash' },
       ...(form.bankName ? [{ key: 'BankName', value: form.bankName }] : []),
       { key: 'ReceiptID', value: form.receiptId },
-      ...(form.paymentMethod === 'online' ? [{ key: 'TransactionCode', value: form.transactionId }] : []),
+      ...(form.paymentMethod === 'online'
+        ? [{ key: 'TransactionCode', value: form.transactionId }]
+        : []),
       ...(form.remark ? [{ key: 'Remark', value: form.remark, valueClass: 'italic' }] : []),
     ]
   }
@@ -366,7 +421,6 @@ const handleFinalSubmit = () => {
   })
   showConfirm.value = false
 }
-
 const validationMessage = ref('')
 const isFormInvalid = computed(() => {
   return (
@@ -497,19 +551,39 @@ const handleOfferingChange = (offeringId) => {
 }
 
 const handleDisabledClick = (field) => {
+  if (isEditMode.value) {
+    const msgs = {
+      parentId: 'Parent selection cannot be changed after enrollment.',
+      studentId: 'Student selection cannot be changed after enrollment.',
+      programId: 'Program cannot be changed after enrollment.',
+      termOfferingId: 'Class offering cannot be changed after enrollment.',
+    }
+    validationMessage.value = msgs[field] || 'This field cannot be changed after enrollment.'
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
+    return
+  }
+
   if (field === 'studentId' && !form.parentId) {
     validationMessage.value = 'Please select a parent first'
-    setTimeout(() => { validationMessage.value = '' }, 3000)
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
     errors.parentId = 'Please select a parent first'
     triggerShake('parentId')
   } else if (field === 'programId' && !form.studentId) {
     validationMessage.value = 'Please select a student first'
-    setTimeout(() => { validationMessage.value = '' }, 3000)
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
     errors.studentId = 'Please select a student first'
     triggerShake('studentId')
   } else if (field === 'termOfferingId' && !form.programId) {
     validationMessage.value = 'Please select a program first'
-    setTimeout(() => { validationMessage.value = '' }, 3000)
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
     errors.programId = 'Please select a program first'
     triggerShake('programId')
   }
@@ -520,7 +594,6 @@ watch(
   ([info, isProrated]) => {
     form.enrolledSessions = info ? (isProrated ? info.remaining : info.total) : 0
   },
-  { immediate: true },
 )
 
 const setStudent = (studentId) => {
@@ -547,12 +620,15 @@ defineExpose({ setStudent })
         <AppSelect
           v-model="form.parentId"
           :items="parentSelectItems"
-          label="Parent Name"
-          placeholder="Search Active Parent..."
+          label="Parent"
+          placeholder="Select Parent"
           required
+          :disabled="isEditMode"
           :error="errors.parentId"
           :shake="shaking.parentId"
-          :disabled="isEditMode"
+          :loading="loading"
+          searchPlaceholder="Search parent name..."
+          @click-disabled="handleDisabledClick('parentId')"
           @change="selectParent"
         >
           <template #item="{ item }">
@@ -588,14 +664,16 @@ defineExpose({ setStudent })
         <AppSelect
           v-model="form.studentId"
           :items="studentSelectItems"
-          label="Student Name"
-          placeholder="Search Active Student..."
+          label="Student"
+          placeholder="Select Student"
           required
+          :disabled="!form.parentId || isEditMode"
           :error="errors.studentId"
           :shake="shaking.studentId"
-          :disabled="!form.parentId || isEditMode"
-          @change="handleStudentChange"
+          :loading="loading"
+          searchPlaceholder="Search student name..."
           @click-disabled="handleDisabledClick('studentId')"
+          @change="handleStudentChange"
         >
           <template #item-badge="{ item }">
             <AppBadge v-if="item.age" status="student">{{ item.age }} years old</AppBadge>
@@ -616,13 +694,14 @@ defineExpose({ setStudent })
           v-model="form.programId"
           :items="programSelectItems"
           label="Program"
-          placeholder="Select Program..."
+          placeholder="Select Program"
           required
+          :disabled="!form.studentId"
           :error="errors.programId"
           :shake="shaking.programId"
-          :disabled="!form.studentId"
-          @change="handleProgramChange"
+          :loading="loading"
           @click-disabled="handleDisabledClick('programId')"
+          @change="handleProgramChange"
         >
           <template #selected="{ item }">
             <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
@@ -640,14 +719,16 @@ defineExpose({ setStudent })
         <AppSelect
           v-model="form.termOfferingId"
           :items="offeringSelectItems"
-          label="Class Product"
-          placeholder="Select Offering..."
+          label="Available Classes"
+          placeholder="Select a class to enroll"
           required
+          :disabled="!form.programId"
           :error="errors.termOfferingId"
           :shake="shaking.termOfferingId"
-          :disabled="!form.programId"
-          @change="handleOfferingChange"
+          :loading="loading"
+          dropdownWidth="400px"
           @click-disabled="handleDisabledClick('termOfferingId')"
+          @change="handleOfferingChange"
         >
           <template #selected="{ item }">
             <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
@@ -770,6 +851,16 @@ defineExpose({ setStudent })
                   <AppBadge :status="form.isSponsorship ? 'Sponsored' : 'Parent Paid'" />
                 </div>
               </div>
+              <div v-if="isEditMode" class="enroll-info-item col-span-2">
+                <AppInput
+                  v-model.number="form.transferredSessions"
+                  type="number"
+                  label="Prior Paid Sessions Credit"
+                  placeholder="0"
+                  :error="errors.transferredSessions"
+                  :shake="shaking.transferredSessions"
+                />
+              </div>
               <div v-if="form.isSponsorship" class="enroll-info-item col-span-2">
                 <AppInput
                   v-model="form.sponsorName"
@@ -873,95 +964,58 @@ defineExpose({ setStudent })
 
       <!-- Content for Pay Action -->
       <div v-if="type === 'pay'" class="flex flex-col gap-lg">
-        <div
-          class="bg-white border border-outline-std rounded-std p-lg flex flex-col gap-lg shadow-sm"
-          v-if="displaySummary"
-        >
-          <div class="grid grid-cols-2 gap-x-lg gap-y-md">
-            <!-- Parent -->
-            <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60"
-                >Parent Name</span
-              >
-              <div class="enroll-identity-row bg-primary-soft/40 border-primary/10">
-                <img
-                  :src="displaySummary.parentAvatar"
-                  class="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                />
-                <span class="text-sm font-bold text-content-dark tracking-tight">{{
-                  displaySummary.parentName
-                }}</span>
-              </div>
-            </div>
-            <!-- Student -->
-            <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60"
-                >Student Name</span
-              >
-              <div class="enroll-identity-row bg-primary-soft/40 border-primary/10">
-                <img
-                  :src="displaySummary.studentAvatar"
-                  class="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                />
-                <span class="text-sm font-bold text-content-dark tracking-tight">{{
-                  displaySummary.studentName
-                }}</span>
-              </div>
-            </div>
-            <!-- Program -->
-            <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60"
-                >Program Selection</span
-              >
-              <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <img
-                  :src="displaySummary.programAvatar"
-                  class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm"
-                />
-                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{
-                  displaySummary.programName
-                }}</span>
-              </div>
-            </div>
-            <!-- Class & Branch -->
-            <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60"
-                >Class and Branch</span
-              >
-              <div
-                class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20 flex-col !items-start gap-1 p-3"
-              >
-                <div class="flex items-center justify-between w-full">
-                  <span class="text-xs font-semibold"
-                    >{{ displaySummary.scheduleDay }} ({{ displaySummary.scheduleTime }})</span
-                  >
-                  <AppBadge
-                    :status="displaySummary.branchAbbr"
-                    :type="displaySummary.branchColor"
-                  />
+        <div v-if="displaySummary" class="flex flex-col gap-lg">
+          <div class="enroll-twin-card">
+            <span class="enroll-section-label">Enrollment Details</span>
+            <div class="enroll-info-grid">
+              <div class="enroll-info-item">
+                <span class="enroll-info-key">Student</span>
+                <div class="flex items-center gap-2">
+                  <img :src="displaySummary.studentAvatar" class="w-6 h-6 rounded-full" />
+                  <span class="enroll-info-val">{{ displaySummary.studentName }}</span>
                 </div>
+              </div>
+              <div class="enroll-info-item">
+                <span class="enroll-info-key">Parent</span>
+                <div class="flex items-center gap-2">
+                  <img :src="displaySummary.parentAvatar" class="w-6 h-6 rounded-full" />
+                  <span class="enroll-info-val">{{ displaySummary.parentName }}</span>
+                </div>
+              </div>
+              <div class="enroll-info-item">
+                <span class="enroll-info-key">Program</span>
+                <div class="flex items-center gap-2">
+                  <img :src="displaySummary.programAvatar" class="w-6 h-6 rounded-full" />
+                  <span class="enroll-info-val">{{ displaySummary.programName }}</span>
+                </div>
+              </div>
+              <div class="enroll-info-item">
+                <span class="enroll-info-key">Schedule</span>
+                <span class="enroll-info-val text-primary font-bold">
+                  {{ displaySummary.scheduleDay }} ({{ displaySummary.scheduleTime }})
+                </span>
+              </div>
+              <div class="enroll-info-item col-span-2">
+                <span class="enroll-info-key">Branch</span>
+                <AppBadge :status="displaySummary.branchAbbr" :type="displaySummary.branchColor" />
               </div>
             </div>
           </div>
 
-          <div
-            class="flex items-center justify-between bg-gradient-to-br from-primary to-primary-dark p-xl rounded-std shadow-xl shadow-primary/20 mt-lg border border-primary-dark/30"
-          >
-            <div class="flex flex-col gap-1">
-              <span class="text-xs font-bold text-white/70 uppercase tracking-widest"
-                >Calculated Tuition Fee</span
-              >
-              <div class="flex gap-xs">
-                <AppBadge
-                  :status="displaySummary.mode || displaySummary.status"
-                  class="bg-white/20 text-white border-none"
-                />
+          <div class="enroll-twin-card">
+            <span class="enroll-section-label">Payment Summary</span>
+            <div class="enroll-info-grid">
+              <div class="enroll-info-item col-span-2 mt-2">
+                <div class="ui-summary-card">
+                  <div class="ui-summary-content">
+                    <span class="ui-summary-label">Total Amount Due</span>
+                    <div class="enroll-tuition-savings flex gap-2 mt-1">
+                      <AppBadge :status="displaySummary.mode || displaySummary.status" />
+                    </div>
+                  </div>
+                  <span class="ui-summary-amount"> ${{ formatPrice(displaySummary.amount) }} </span>
+                </div>
               </div>
-            </div>
-            <div class="text-white text-right">
-              <span class="text-3xl font-black tracking-tighter"
-                >${{ formatPrice(displaySummary.amount) }}</span
-              >
             </div>
           </div>
         </div>
@@ -980,37 +1034,45 @@ defineExpose({ setStudent })
 
         <div class="flex flex-col gap-xs mt-lg">
           <label class="text-xs font-semibold text-content-muted">Payment Channel Selection</label>
-          <div class="grid grid-cols-2 gap-sm mt-1">
+          <div class="flex bg-surface-subtle border border-outline-std rounded-sm p-0.5 mt-1">
             <button
               type="button"
-              class="enroll-channel-btn"
+              @click="form.paymentMethod = 'online'"
+              class="px-2 py-1.5 flex items-center justify-center gap-2 rounded-xs text-sm font-semibold transition-all w-1/2"
               :class="
                 form.paymentMethod === 'online'
-                  ? 'enroll-channel-btn--online'
-                  : 'enroll-channel-btn--inactive'
+                  ? 'bg-primary text-white shadow-sm rounded-sm'
+                  : 'text-content-muted hover:text-content-dark'
               "
-              @click="form.paymentMethod = 'online'"
             >
-              <span class="text-xl">💳</span>
-              <span>Online / Bank</span>
+              <img
+                :src="getActionIcon('pay')"
+                class="w-4 h-4"
+                :class="{ 'brightness-200': form.paymentMethod === 'online' }"
+              />
+              Online / Bank
             </button>
             <button
               type="button"
-              class="enroll-channel-btn"
+              @click="form.paymentMethod = 'cash'"
+              class="px-2 py-1.5 flex items-center justify-center gap-2 rounded-xs text-sm font-semibold transition-all w-1/2"
               :class="
                 form.paymentMethod === 'cash'
-                  ? 'enroll-channel-btn--cash'
-                  : 'enroll-channel-btn--inactive'
+                  ? 'bg-primary text-white shadow-sm rounded-sm'
+                  : 'text-content-muted hover:text-content-dark'
               "
-              @click="form.paymentMethod = 'cash'"
             >
-              <span class="text-xl">💵</span>
-              <span>Cash Payment</span>
+              <img
+                :src="getActionIcon('cash')"
+                class="w-4 h-4"
+                :class="{ 'brightness-200': form.paymentMethod === 'cash' }"
+              />
+              Cash Payment
             </button>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-lg mt-md">
+        <div class="ui-form-grid mt-md">
           <AppSelect
             v-if="form.paymentMethod === 'online'"
             v-model="form.bankName"
@@ -1110,90 +1172,49 @@ defineExpose({ setStudent })
       <!-- Content for Delete Action -->
       <div v-if="type === 'delete'" class="flex flex-col gap-lg">
         <!-- Identity Summary (consistent with pay modal) -->
-        <div
-          class="bg-white border border-outline-std rounded-std p-lg flex flex-col gap-lg shadow-sm"
-          v-if="displaySummary"
-        >
-          <div class="grid grid-cols-2 gap-x-lg gap-y-md">
-            <!-- Parent -->
+
+        <div class="enroll-twin-card" v-if="displaySummary">
+          <div class="enroll-info-grid">
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60"
-                >Parent Name</span
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider"
+                >Parent</span
               >
-              <div class="enroll-identity-row">
-                <img
-                  :src="displaySummary.parentAvatar"
-                  class="w-8 h-8 rounded-full border border-white shadow-sm"
-                />
-                <span class="text-sm font-semibold text-content-dark tracking-tight">{{
-                  displaySummary.parentName
-                }}</span>
+              <div class="flex items-center gap-sm">
+                <img :src="displaySummary.parentAvatar" class="w-8 h-8 rounded-full" />
+                <span class="text-sm font-semibold">{{ displaySummary.parentName }}</span>
               </div>
             </div>
-            <!-- Student -->
             <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60"
-                >Student Name</span
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider"
+                >Student</span
               >
-              <div class="enroll-identity-row">
-                <img
-                  :src="displaySummary.studentAvatar"
-                  class="w-8 h-8 rounded-full border border-white shadow-sm"
-                />
-                <span class="text-sm font-semibold text-content-dark tracking-tight">{{
-                  displaySummary.studentName
-                }}</span>
+              <div class="flex items-center gap-sm">
+                <img :src="displaySummary.studentAvatar" class="w-8 h-8 rounded-full" />
+                <span class="text-sm font-semibold">{{ displaySummary.studentName }}</span>
               </div>
             </div>
-            <!-- Program -->
-            <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60"
+            <div class="flex flex-col gap-xs col-span-2">
+              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider"
                 >Program</span
               >
-              <div class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20">
-                <img
-                  :src="displaySummary.programAvatar"
-                  class="w-8 h-8 rounded-full text-content-dark border-2 border-white shadow-sm"
-                />
-                <span class="text-sm font-semibold text-content-dark tracking-tighter">{{
-                  displaySummary.programName
-                }}</span>
-              </div>
-            </div>
-            <!-- Class & Branch -->
-            <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted tracking-wider opacity-60"
-                >Class and Branch</span
-              >
-              <div
-                class="enroll-identity-row bg-surface-subtle/30 border-outline-std/20 flex-col !items-start gap-1 p-3"
-              >
-                <div class="flex items-center justify-between w-full">
-                  <span class="text-sm font-bold text-content-dark">{{
-                    displaySummary.className
-                  }}</span>
-                  <AppBadge
-                    :status="displaySummary.branchAbbr"
-                    :type="displaySummary.branchColor"
-                  />
-                </div>
-                <div class="flex items-center justify-between w-full opacity-70">
-                  <span class="text-xs font-semibold"
-                    >{{ displaySummary.scheduleDay }} ({{ displaySummary.scheduleTime }})</span
-                  >
-                </div>
+              <div class="flex items-center gap-sm">
+                <img :src="displaySummary.programAvatar" class="w-8 h-8 rounded-full" />
+                <span class="text-sm font-semibold">{{ displaySummary.programName }}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <AppAlert type="error">
-          <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-semibold tracking-tight">⚠ Permanent Data Deletion</strong>
-            <span class="text-xs opacity-90 font-medium"
-              >This will erase all linked financial logs and attendance records. This action is
-              irreversible and cannot be undone.</span
-            >
+        <AppAlert type="error" class="mb-lg">
+          <div class="flex gap-3">
+            <img :src="getActionIcon('delete')" class="w-5 h-5 mt-0.5" />
+            <div class="flex flex-col gap-0.5">
+              <strong class="text-sm font-semibold tracking-tight">Permanent Data Deletion</strong>
+              <p class="text-xs opacity-90 mt-1">
+                This action will completely remove this enrollment from the system. Type
+                <strong>DELETE</strong> below to confirm.
+              </p>
+            </div>
           </div>
         </AppAlert>
 

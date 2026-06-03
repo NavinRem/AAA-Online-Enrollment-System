@@ -74,7 +74,16 @@ const mapSourceToForm = () => {
   return getInitialData()
 }
 
-const { localData: form, originalData, isDirty, errors, shaking, validate, clearError, triggerShake } = useActionModal(props, emit, {
+const {
+  localData: form,
+  originalData,
+  isDirty,
+  errors,
+  shaking,
+  validate,
+  clearError,
+  triggerShake,
+} = useActionModal(props, emit, {
   getInitialData,
   mapSourceToForm,
   sourceKey: 'classInstance',
@@ -83,27 +92,33 @@ const { localData: form, originalData, isDirty, errors, shaking, validate, clear
 
 const dataStore = useDataStore()
 
-const teachers = computed(() => dataStore.teachers.map((t) => ({
-  id: t.id,
-  name: t.name,
-  profileURL: t.profileURL,
-  branchAbbr: t.branchAbbr,
-})))
+const teachers = computed(() =>
+  dataStore.teachers.map((t) => ({
+    id: t.id,
+    name: t.name,
+    profileURL: t.profileURL,
+    branchAbbr: t.branchAbbr,
+  })),
+)
 const branches = computed(() => dataStore.branches)
 const classes = computed(() => dataStore.classes)
 
-const programs = computed(() => dataStore.programs.map((program) => {
-  const category = dataStore.categories.find((item) => item.id === program.categoryId)
-  return {
-    ...program,
-    categoryProfileURL: category?.profileURL || '',
-  }
-}))
+const programs = computed(() =>
+  dataStore.programs.map((program) => {
+    const category = dataStore.categories.find((item) => item.id === program.categoryId)
+    return {
+      ...program,
+      categoryProfileURL: category?.profileURL || '',
+    }
+  }),
+)
 
-const schedules = computed(() => dataStore.schedules.map((schedule) => ({
-  ...schedule,
-  name: `${schedule.day} (${schedule.time})`,
-})))
+const schedules = computed(() =>
+  dataStore.schedules.map((schedule) => ({
+    ...schedule,
+    name: `${schedule.day} (${schedule.time})`,
+  })),
+)
 const lookupLoading = ref(false)
 const lookupError = ref('')
 const lookupSuccess = ref('')
@@ -198,7 +213,9 @@ const customTitle = computed(() => {
   return undefined
 })
 
-const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Class', { customTitle })
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Class', {
+  customTitle,
+})
 
 const validationMessage = ref('')
 const isFormInvalid = computed(() => {
@@ -211,7 +228,7 @@ const isFormInvalid = computed(() => {
 
 const confirmRows = computed(() => {
   const rows = []
-  
+
   if (props.context) {
     rows.push(
       { key: 'Program', value: selectedProgram.value?.name || 'N/A' },
@@ -243,17 +260,17 @@ const confirmRows = computed(() => {
         key: 'DeleteConfirm',
         value: form.deleteConfirm,
         valueClass: 'text-error font-bold',
-      }
+      },
     )
     return rows
   }
 
   rows.push({ key: 'Schedules', value: `${form.scheduleIds.length} Sessions Assigned` })
-  
+
   if (form.status) {
     rows.push({ key: 'Status', value: form.status })
   }
-  
+
   return rows
 })
 
@@ -270,7 +287,7 @@ const filteredPickerClasses = computed(() => {
     if (c.schedules && c.schedules.length > 0) {
       c.schedules.forEach((s) => {
         const isAlreadyAdded = props.context?.existingOfferings?.some(
-          (o) => String(o.classId) === String(c.id) && String(o.scheduleId) === String(s.id)
+          (o) => String(o.classId) === String(c.id) && String(o.scheduleId) === String(s.id),
         )
         if (isAlreadyAdded) return
 
@@ -412,7 +429,7 @@ watch(
       try {
         const response = await classService.getClass(classDataToUse.id)
         classDataToUse = response.data || response
-        
+
         // Update form and originalData with fetched async data
         const initialCapacities = {}
         const initialTeachers = {}
@@ -444,16 +461,14 @@ watch(
           scheduleTeachers: initialTeachers,
           status: classDataToUse?.status || 'active',
         }
-        
+
         Object.assign(form, JSON.parse(JSON.stringify(updatedData)))
         Object.assign(originalData, JSON.parse(JSON.stringify(updatedData)))
-
       } catch (err) {
         console.error('Failed to fetch full class details:', err)
       }
     }
   },
-  { immediate: true },
 )
 
 watch(
@@ -484,9 +499,17 @@ const handleScheduleChange = () => {
 const handleDisabledClick = (field) => {
   if ((field === 'scheduleIds' || field === 'classIds') && !form.programId) {
     validationMessage.value = 'Please select a program first'
-    setTimeout(() => { validationMessage.value = '' }, 3000)
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
     errors.programId = 'Please select a program first'
     triggerShake('programId')
+  }
+  if (field === 'programId' && props.context) {
+    validationMessage.value = 'Program cannot be changed when managing term classes'
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
   }
 }
 
@@ -603,6 +626,7 @@ const selectAllBranches = () => {
             :shake="shaking.programId"
             :disabled="!!context"
             @change="handleProgramChange"
+            @click-disabled="handleDisabledClick('programId')"
           >
             <template #selected="{ item }">
               <div v-if="item" class="flex items-center justify-between gap-xs flex-1 pr-sm">
@@ -1034,7 +1058,10 @@ const selectAllBranches = () => {
           <div class="flex flex-col gap-sm">
             <div class="grid grid-cols-2 gap-x-6 gap-y-4">
               <!-- Setup Row -->
-              <div class="col-span-2 grid gap-4 items-end" style="grid-template-columns: 1.2fr 1fr 1fr">
+              <div
+                class="col-span-2 grid gap-4 items-end"
+                style="grid-template-columns: 1.2fr 1fr 1fr"
+              >
                 <AppSelect
                   v-model="newSchedule.day"
                   :items="dayOptions"

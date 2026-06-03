@@ -8,11 +8,12 @@ export const levelService = {
     })
   },
 
-  getAllLevels(filters = {}) {
-    const params = new URLSearchParams(filters).toString()
+  getAllLevels(options = {}) {
+    const params = new URLSearchParams(options.filters || {}).toString()
     const query = params ? `?${params}` : ''
     return request(`/levels${query}`, {
       method: 'GET',
+      ...options,
     })
   },
 

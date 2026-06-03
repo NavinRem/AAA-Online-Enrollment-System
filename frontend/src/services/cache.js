@@ -36,9 +36,12 @@ export const clearCachePrefix = (prefix) => {
 }
 
 export const clearAllCache = () => {
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith(CACHE_PREFIX)) {
-      localStorage.removeItem(key)
+  const keysToRemove = []
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && key.startsWith(CACHE_PREFIX)) {
+      keysToRemove.push(key)
     }
-  })
+  }
+  keysToRemove.forEach((key) => localStorage.removeItem(key))
 }

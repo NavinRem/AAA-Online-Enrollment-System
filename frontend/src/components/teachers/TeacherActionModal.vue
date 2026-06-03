@@ -83,7 +83,7 @@ const programs = computed(() =>
     id: p.id,
     name: p.name,
     profileURL: p.profileURL,
-  }))
+  })),
 )
 
 const validateForm = () => {
@@ -165,7 +165,9 @@ const customSubmit = computed(() => {
   return undefined
 })
 
-const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Teacher', { customSubmit })
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Teacher', {
+  customSubmit,
+})
 
 const validationMessage = ref('')
 const isFormInvalid = computed(() => {
@@ -200,7 +202,11 @@ const confirmRows = computed(() => {
 
   if (props.type === 'delete') {
     rows.push({ key: 'Status', value: 'Permanently Deleted', valueClass: 'text-error font-bold' })
-    rows.push({ key: 'DeleteConfirm', value: form.deleteConfirm, valueClass: 'font-bold text-error' })
+    rows.push({
+      key: 'DeleteConfirm',
+      value: form.deleteConfirm,
+      valueClass: 'font-bold text-error',
+    })
   } else if (['reactivate', 'deactivate'].includes(props.type)) {
     rows.push({ key: 'Status', value: props.type === 'reactivate' ? 'active' : 'inactive' })
   }
@@ -214,7 +220,6 @@ watch(
       activeTab.value = 'profile'
     }
   },
-  { immediate: true }
 )
 </script>
 

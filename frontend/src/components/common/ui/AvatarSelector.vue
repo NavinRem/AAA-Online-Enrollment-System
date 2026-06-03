@@ -55,26 +55,22 @@ const availableAvatars = computed(() => {
   }))
 })
 
-watch(
-  [() => props.modelValue, () => availableAvatars.value],
-  ([newVal, currentGallery]) => {
-    if (newVal) {
-      const isInGallery = currentGallery.some((a) => isSameProfileAsset(newVal, a.url))
+watch([() => props.modelValue, () => availableAvatars.value], ([newVal, currentGallery]) => {
+  if (newVal) {
+    const isInGallery = currentGallery.some((a) => isSameProfileAsset(newVal, a.url))
 
-      if (!isInGallery) {
-        const resolved = getImageUrl(newVal)
-        if (resolved) {
-          customAvatar.value = resolved
-        } else {
-          customAvatar.value = null
-        }
+    if (!isInGallery) {
+      const resolved = getImageUrl(newVal)
+      if (resolved) {
+        customAvatar.value = resolved
       } else {
         customAvatar.value = null
       }
+    } else {
+      customAvatar.value = null
     }
-  },
-  { immediate: true },
-)
+  }
+})
 
 const isSelected = (url) => {
   if (!props.modelValue || !url) return false
@@ -172,7 +168,7 @@ const handleFileUpload = async (event) => {
 
     <div
       class="avatar-selector-container"
-      :class="(uploadError || props.error) ? 'border-error bg-error-soft' : 'border-outline-std'"
+      :class="uploadError || props.error ? 'border-error bg-error-soft' : 'border-outline-std'"
     >
       <div class="avatar-gallery flex gap-4">
         <div

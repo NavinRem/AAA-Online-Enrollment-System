@@ -6,7 +6,7 @@ import AppInput from '@/components/common/ui/AppInput.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
-import { getActionIcon } from '@/utils/assetHelper'
+import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 import { useActionModal } from '@/composables/useActionModal'
 import { useModalText } from '@/composables/useModalText'
 
@@ -39,16 +39,13 @@ const mapSourceToForm = () => {
   return getInitialData()
 }
 
-const { localData, isDirty, errors, shaking, validate, clearError, triggerShake, getPayload } = useActionModal(
-  props,
-  emit,
-  {
+const { localData, isDirty, errors, shaking, validate, clearError, triggerShake, getPayload } =
+  useActionModal(props, emit, {
     getInitialData,
     mapSourceToForm,
     sourceKey: 'branch',
     autoClear: 3000,
-  },
-)
+  })
 
 const showConfirm = ref(false)
 const validationMessage = ref('')
@@ -146,7 +143,6 @@ watch(
       showConfirm.value = false
     }
   },
-  { immediate: true }
 )
 </script>
 

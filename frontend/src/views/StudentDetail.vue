@@ -200,16 +200,12 @@ const fetchClassAttendance = async (classId) => {
   }
 }
 
-watch(
-  enrollments,
-  (newEnrollments) => {
-    if (newEnrollments.length > 0 && !selectedEnrollmentId.value) {
-      selectedEnrollmentId.value = newEnrollments[0].id
-      fetchClassAttendance(newEnrollments[0].classId)
-    }
-  },
-  { immediate: true },
-)
+watch(enrollments, (newEnrollments) => {
+  if (newEnrollments.length > 0 && !selectedEnrollmentId.value) {
+    selectedEnrollmentId.value = newEnrollments[0].id
+    fetchClassAttendance(newEnrollments[0].classId)
+  }
+})
 
 const attendanceHeaders = [
   { label: 'No', width: '60px', align: 'center' },

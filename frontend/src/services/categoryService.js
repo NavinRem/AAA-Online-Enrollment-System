@@ -8,9 +8,10 @@ export const categoryService = {
     })
   },
 
-  getAllCategories() {
+  getAllCategories(options = {}) {
     return request('/categories', {
       method: 'GET',
+      ...options,
     })
   },
 

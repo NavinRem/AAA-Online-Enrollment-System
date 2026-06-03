@@ -26,7 +26,8 @@ const getBadgeConfig = (row) => {
   const k = (row.key || '').toLowerCase()
 
   if (k === 'status') return { isBadge: true, type: undefined }
-  if (k === 'type' || k === 'category') return { isBadge: true, type: 'blue' }
+  if (k === 'type') return { isBadge: true, type: undefined }
+  if (k === 'category') return { isBadge: true, type: 'blue' }
   if (k === 'level') return { isBadge: true, type: 'magenta' }
   if (k === 'converted') return { isBadge: true, type: 'green' }
   if (k === 'amount') {
@@ -148,7 +149,7 @@ const getBadgeConfig = (row) => {
 }
 
 .app-confirm-key {
-  @apply text-xs font-semibold text-content-muted/60 flex-shrink-0;
+  @apply text-sm font-semibold text-content-muted/60 flex-shrink-0;
 }
 
 .app-confirm-val {

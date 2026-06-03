@@ -79,15 +79,21 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, isDirty, errors, shaking, clearError, validate, triggerShake, getPayload, sync } = useActionModal(
-  props,
-  emit,
-  {
-    getInitialData,
-    mapSourceToForm,
-    autoClear: 3000,
-  },
-)
+const {
+  localData,
+  isDirty,
+  errors,
+  shaking,
+  clearError,
+  validate,
+  triggerShake,
+  getPayload,
+  sync,
+} = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm,
+  autoClear: 3000,
+})
 
 const showConfirm = ref(false)
 
@@ -270,7 +276,9 @@ const customTitle = computed(() => {
   return undefined
 })
 
-const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Parent', { customTitle })
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Parent', {
+  customTitle,
+})
 
 const validationMessage = ref('')
 const isFormInvalid = computed(() => {
@@ -324,7 +332,6 @@ watch(
       clearError()
     }
   },
-  { immediate: true }
 )
 </script>
 

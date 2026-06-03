@@ -6,7 +6,6 @@ This document outlines the standard rules and patterns that all frontend Vue tem
 
 All action modals (e.g., `*ActionModal.vue`) must adhere to the following data synchronization rules:
 
-- **Immediate Watchers**: Every modal must use `watch(() => props.isOpen, ..., { immediate: true })` to handle data loading/resetting when the modal opens or closes.
 - **Form Synchronization**: On open (`isOpen === true`), the modal must reset its form using the source prop data. If using `useActionModal`, call `sync()` inside the watcher instead of relying on its internal watcher (unless `sourceKey` is used).
 - **Cleanup**: On close (`isOpen === false`), the modal must call `clearError()` and reset local UI state flags (e.g., `showConfirm = false`, `validationMessage = ''`).
 

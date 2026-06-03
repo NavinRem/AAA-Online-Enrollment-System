@@ -48,13 +48,22 @@ const mapSourceToForm = () => {
   }
   return getInitialData()
 }
-const { localData, originalData, isDirty, errors, shaking, validate, clearError, triggerShake, getPayload } =
-  useActionModal(props, emit, {
-    getInitialData,
-    mapSourceToForm,
-    sourceKey: 'program',
-    autoClear: 3000,
-  })
+const {
+  localData,
+  originalData,
+  isDirty,
+  errors,
+  shaking,
+  validate,
+  clearError,
+  triggerShake,
+  getPayload,
+} = useActionModal(props, emit, {
+  getInitialData,
+  mapSourceToForm,
+  sourceKey: 'program',
+  autoClear: 3000,
+})
 
 const dataStore = useDataStore()
 
@@ -86,19 +95,22 @@ const addLookup = async () => {
   lookupLoading.value = true
   try {
     if (lookupType.value === 'category') {
-      await categoryService.createCategory({
+      const res = await categoryService.createCategory({
         name: newLookupName.value.trim(),
         profileURL: newLookupURL.value.trim() || null,
       })
       await dataStore.fetchCategories(true)
+      if (res && res.id) localData.categoryId = res.id
     } else if (lookupType.value === 'level') {
-      await levelService.createLevel({ name: newLookupName.value.trim() })
-      await fetchLevels()
+      const res = await levelService.createLevel({ name: newLookupName.value.trim() })
+      await dataStore.fetchLevels(true)
+      if (res && res.id) localData.levelId = res.id
     } else if (lookupType.value === 'type') {
       const name = newLookupName.value.trim()
       if (!programTypes.value.find((t) => t.name.toLowerCase() === name.toLowerCase())) {
         programTypes.value.push({ id: name, name })
       }
+      localData.type = name
     }
     newLookupName.value = ''
     newLookupURL.value = ''
@@ -107,6 +119,13 @@ const addLookup = async () => {
   } finally {
     lookupLoading.value = false
   }
+}
+
+const closeLookupManage = async () => {
+  if (newLookupName.value.trim()) {
+    await addLookup()
+  }
+  lookupType.value = null
 }
 
 const deleteLookup = async (id) => {
@@ -119,7 +138,7 @@ const deleteLookup = async (id) => {
     } else if (lookupType.value === 'level') {
       await levelService.deleteLevel(id)
       if (String(localData.levelId) === String(id)) localData.levelId = ''
-      await fetchLevels()
+      await dataStore.fetchLevels(true)
     }
     emit('lookup-deleted')
   } catch (err) {
@@ -130,7 +149,7 @@ const deleteLookup = async (id) => {
 }
 
 const categories = computed(() => dataStore.categories)
-const levels = ref([])
+const levels = computed(() => dataStore.levels)
 const isUploading = ref(false)
 const showConfirm = ref(false)
 
@@ -145,21 +164,6 @@ const sortedLevels = computed(() => {
     profileURL: selectedCategory.value?.profileURL || getImageUrl('common/logo-main'),
   }))
 })
-
-const fetchLevels = async () => {
-  try {
-    const rawData = await levelService.getAllLevels()
-    const rawLevels = Array.isArray(rawData) ? rawData : rawData?.data || []
-    levels.value = rawLevels
-      .filter((l) => l)
-      .map((l) => ({
-        ...l,
-        id: l.id,
-      }))
-  } catch (err) {
-    console.error('Failed to fetch levels:', err)
-  }
-}
 
 const programTypes = computed(() => {
   const allPrograms = dataStore.programs || []
@@ -315,7 +319,7 @@ watch(
   () => props.isOpen,
   async (isOpen) => {
     if (isOpen) {
-      await fetchLevels()
+      await Promise.all([dataStore.fetchLevels(), dataStore.fetchCategories()])
     }
   },
   { immediate: true },
@@ -440,7 +444,7 @@ watch(
             </span>
             <button
               type="button"
-              @click="lookupType = null"
+              @click="closeLookupManage"
               class="text-3xs font-semibold text-content-muted hover:text-error"
             >
               Close
@@ -696,7 +700,12 @@ watch(
         :title="modalTitle"
         :subtitle="confirmOverlaySubtitle"
         :icon="modalIcon"
-        :image="getProgramProfileURL(localData.profileURL, categories?.find((c) => String(c.id) === String(localData.categoryId))?.name)"
+        :image="
+          getProgramProfileURL(
+            localData.profileURL,
+            categories?.find((c) => String(c.id) === String(localData.categoryId))?.name,
+          )
+        "
         :rows="confirmRows"
         :confirmLabel="submitLabel"
         :loading="loading"

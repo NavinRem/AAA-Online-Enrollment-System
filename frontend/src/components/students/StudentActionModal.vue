@@ -49,11 +49,12 @@ const mapSourceToForm = () => {
   }
 }
 
-const { localData, isDirty, errors, shaking, clearError, validate, getPayload, sync } = useActionModal(props, emit, {
-  getInitialData,
-  mapSourceToForm,
-  autoClear: 3000,
-})
+const { localData, isDirty, errors, shaking, clearError, validate, getPayload, sync } =
+  useActionModal(props, emit, {
+    getInitialData,
+    mapSourceToForm,
+    autoClear: 3000,
+  })
 
 const showConfirm = ref(false)
 const validationMessage = ref('')
@@ -88,6 +89,20 @@ const requestConfirm = () => {
     return
   }
   showConfirm.value = true
+}
+
+const handleDisabledClick = (field) => {
+  if (field === 'editOnly' && props.type !== 'edit') {
+    validationMessage.value = 'This field can only be modified in edit mode.'
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
+  } else if (field === 'status') {
+    validationMessage.value = 'Stopped accounts cannot be modified.'
+    setTimeout(() => {
+      validationMessage.value = ''
+    }, 3000)
+  }
 }
 
 const handleActionSubmit = () => {
@@ -145,30 +160,36 @@ const store = useDataStore()
 const enrolledClassesLabel = computed(() => {
   if (!props.student?.id) return 'None'
   const enrollments = store.enrollments?.filter(
-    (e) => e.studentId === props.student.id && !e.isDeleted && !['cancelled', 'deleted'].includes((e.status || '').toLowerCase())
+    (e) =>
+      e.studentId === props.student.id &&
+      !e.isDeleted &&
+      !['cancelled', 'deleted'].includes((e.status || '').toLowerCase()),
   )
   if (!enrollments?.length) return 'None'
-  const classNames = enrollments.map(e => e.class?.name || e.className || 'Unknown Class')
+  const classNames = enrollments.map((e) => e.class?.name || e.className || 'Unknown Class')
   return [...new Set(classNames)].join(', ')
 })
 
 const enrolledBranchLabel = computed(() => {
   if (!props.student?.id) return 'None'
   const enrollments = store.enrollments?.filter(
-    (e) => e.studentId === props.student.id && !e.isDeleted && !['cancelled', 'deleted'].includes((e.status || '').toLowerCase())
+    (e) =>
+      e.studentId === props.student.id &&
+      !e.isDeleted &&
+      !['cancelled', 'deleted'].includes((e.status || '').toLowerCase()),
   )
   if (!enrollments?.length) return 'None'
-  
-  const branches = enrollments.map(e => {
+
+  const branches = enrollments.map((e) => {
     let bId = e.branchId || e.class?.branch?.id || e.class?.branchId
     if (!bId && e.classId) {
-      const cls = store.classes?.find(c => c.id === e.classId)
+      const cls = store.classes?.find((c) => c.id === e.classId)
       bId = cls?.branchId || cls?.branch?.id
     }
-    const branch = store.branches?.find(b => b.id === bId)
+    const branch = store.branches?.find((b) => b.id === bId)
     return branch?.name || 'Unknown Branch'
   })
-  
+
   return [...new Set(branches)].join(', ')
 })
 
@@ -187,7 +208,10 @@ const isFormInvalid = computed(() => {
   return baseInvalid
 })
 
-const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Student', { customTitle, customSubmit })
+const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Student', {
+  customTitle,
+  customSubmit,
+})
 
 const studentTheme = computed(() => {
   const url = (localData.profileURL || '').toLowerCase()
@@ -213,7 +237,6 @@ watch(
       clearError()
     }
   },
-  { immediate: true }
 )
 </script>
 
@@ -261,6 +284,7 @@ watch(
           :shake="shaking.name"
           :disabled="type !== 'edit'"
           @input="clearError('name')"
+          @click-disabled="handleDisabledClick('editOnly')"
         />
 
         <AppInput
@@ -272,6 +296,7 @@ watch(
           :shake="shaking.dob"
           :disabled="type !== 'edit'"
           @input="clearError('dob')"
+          @click-disabled="handleDisabledClick('editOnly')"
         />
 
         <AppSelect
@@ -291,6 +316,7 @@ watch(
           "
           :searchable="false"
           @change="clearError('status')"
+          @click-disabled="handleDisabledClick('status')"
         />
 
         <!-- Enrollment Context (Override mode) — show class & branch -->
@@ -301,11 +327,7 @@ watch(
             disabled
             class="col-span-2"
           />
-          <AppInput
-            :modelValue="enrolledBranchLabel"
-            label="Branch"
-            disabled
-          />
+          <AppInput :modelValue="enrolledBranchLabel" label="Branch" disabled />
         </template>
 
         <AppInput
