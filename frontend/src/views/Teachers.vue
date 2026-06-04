@@ -9,36 +9,27 @@ import TeacherActionModal from '@/components/teachers/TeacherActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 
 import { teacherService } from '@/services/teacherService'
-import { programService } from '@/services/programService'
-import { classService } from '@/services/classService'
-import { termService } from '@/services/termService'
+import { useDataStore } from '@/stores/dataStore'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 import { useSearch, teacherSearchMapper } from '@/composables/useSearch'
 import { calculateClassProgress } from '@/utils/formatUtils'
 
 defineOptions({ name: 'TeacherList' })
 
-const teachers = ref([])
+const dataStore = useDataStore()
+
+const teachers = computed(() => dataStore.teachers)
+const allPrograms = computed(() => dataStore.programs)
+const allClasses = computed(() => dataStore.classes)
+const allTerms = computed(() => dataStore.terms)
+
 const loading = ref(true)
 const currentFilter = ref('all')
 
-const allPrograms = ref([])
-const allClasses = ref([])
-const allTerms = ref([])
-
-const fetchData = async () => {
+const fetchData = async (force = false) => {
   loading.value = true
   try {
-    const [teacherData, programData, classData, termData] = await Promise.all([
-      teacherService.getAllTeachers(),
-      programService.getAllPrograms(),
-      classService.getAllClasses(),
-      termService.getAllTerms(),
-    ])
-    teachers.value = Array.isArray(teacherData) ? teacherData : []
-    allPrograms.value = Array.isArray(programData) ? programData : []
-    allClasses.value = Array.isArray(classData) ? classData : []
-    allTerms.value = Array.isArray(termData) ? termData : []
+    await dataStore.fetchAllCommonData(force, ['teachers', 'programs', 'classes', 'terms'])
   } catch (error) {
     console.error('Failed to fetch data', error)
   } finally {
@@ -73,7 +64,7 @@ const getTeacherAssignments = (teacherId) => {
   return assignments
 }
 
-onMounted(fetchData)
+onMounted(() => fetchData(false))
 
 const statusFilteredTeachers = computed(() => {
   if (currentFilter.value === 'all') return teachers.value
@@ -205,7 +196,7 @@ const confirmAssign = async () => {
       offering.offeringId,
     )
     confirmingOffering.value = null
-    await fetchData()
+    await fetchData(true)
   } catch (err) {
     error.value = err.message || 'Failed to assign class'
   } finally {
@@ -234,7 +225,7 @@ const handleSubmit = async (formData) => {
       await teacherService.updateTeacher(selectedTeacher.value.id, { status: 'inactive' })
       success.value = 'Teacher account deactivated'
     }
-    fetchData()
+    fetchData(true)
     // Auto close after 1.5s on success
     setTimeout(() => {
       if (isModalOpen.value) {

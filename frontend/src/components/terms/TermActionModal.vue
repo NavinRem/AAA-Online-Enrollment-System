@@ -259,9 +259,11 @@ const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'T
 const validationMessage = ref('')
 const isFormInvalid = computed(() => {
   if (props.type === 'delete') return !localData.deleteConfirm
-  return (
-    !localData.name || !localData.totalSessions || (!localData.startDate && props.type !== 'delete')
-  )
+  if (!localData.name || !localData.totalSessions) return true
+  if (localData.branchIds.length > 0) {
+    return !localData.branchSettings || localData.branchSettings.some((s) => !s.startDate)
+  }
+  return !localData.startDate
 })
 
 const requestConfirm = () => {
@@ -282,6 +284,10 @@ const requestConfirm = () => {
     custom: {
       startDate: (val) => {
         if (props.type === 'delete') return true
+        if (localData.branchIds.length > 0) {
+          const allFilled = localData.branchSettings?.every((s) => s.startDate)
+          return allFilled || 'All branch start dates are required'
+        }
         if (val) return true
         return 'Start Date is required'
       },
@@ -375,16 +381,30 @@ const confirmRows = computed(() => {
       value: formatDateOnly(localData.endDate || localData.branchSettings?.[0]?.endDate),
     },
     { key: 'TotalSessions', value: `${localData.totalSessions} Weeks` },
-    { key: 'DuplicateTerm', value: duplicateTermLabel.value || 'Fresh Term' },
-    { key: 'Branches', value: '' }, // Handled by slot
-    {
-      key: 'Status',
-      value: calculateClassProgress(
-        localData.startDate || localData.branchSettings?.[0]?.startDate,
-        localData.endDate || localData.branchSettings?.[0]?.endDate,
-      ).status,
-    },
   ]
+
+  if (props.type === 'add') {
+    rows.push({ key: 'DuplicateTerm', value: duplicateTermLabel.value || 'Fresh Term' })
+  }
+
+  rows.push({ key: 'Branches', value: '' }) // Handled by slot
+
+  if (props.type !== 'add' && props.term) {
+    const offeringsCount = (props.term.offerings || []).length
+    rows.push(
+      { key: 'Classes', value: `${offeringsCount} Schedules` },
+      { key: 'Students', value: `${props.term.totalStudents || 0} Enrolled` },
+    )
+  }
+
+  rows.push({
+    key: 'Status',
+    value: calculateClassProgress(
+      localData.startDate || localData.branchSettings?.[0]?.startDate,
+      localData.endDate || localData.branchSettings?.[0]?.endDate,
+    ).status,
+  })
+
   if (props.type === 'delete') {
     rows.push({
       key: 'DeleteConfirm',
@@ -634,7 +654,7 @@ watch(
               <h2 class="text-2xl font-bold text-content-dark mt-2">{{ programName }}</h2>
               <div class="flex items-center gap-4 mt-3">
                 <div class="flex items-center gap-2">
-                  <AppBadge :status="schedule?.day || 'TBA'" size="md" type="blue" />
+                  <AppBadge :status="schedule?.day || 'TBA'" size="md" type="day" />
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-bold text-content-dark">{{
@@ -802,19 +822,9 @@ watch(
                       :src="t.profileURL || getImageUrl('profiles/avatar-teacher-man')"
                       class="w-10 h-10 rounded-xl shadow-sm"
                     />
-                    <div
-                      class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"
-                    ></div>
                   </div>
                   <div class="flex flex-col">
                     <span class="text-sm font-bold text-content-dark">{{ t.name }}</span>
-                    <div class="flex items-center gap-1.5 mt-0.5">
-                      <span
-                        class="text-xs font-semibold text-content-muted bg-surface-subtle px-2 py-0.5 rounded"
-                        >{{ t.branchAbbr || 'HQ' }}</span
-                      >
-                      <span class="text-xs font-semibold text-primary italic">Expert</span>
-                    </div>
                   </div>
                 </div>
               </template>
@@ -856,7 +866,7 @@ watch(
 
           <div class="flex flex-col gap-xs text-left w-full">
             <label
-              class="text-sm font-semibold text-content-dark flex items-center justify-between gap-1"
+              class="text-sm font-semibold text-content-muted flex items-center justify-between gap-1"
             >
               <div class="flex items-center gap-1">Branch Scope</div>
               <button
@@ -1039,13 +1049,25 @@ watch(
         <AppSelect
           v-if="type === 'add'"
           v-model="localData.duplicateFromTermId"
+          
           :items="duplicateTermOptions"
           label="Duplicate Offerings From"
           placeholder="Select a recent term to clone..."
         >
+          <template #selected="{ item }">
+            <div v-if="item" class="flex items-center justify-between w-full gap-4">
+              <span class="font-bold text-content-dark truncate flex-1">{{ item.name }}</span>
+              <div class="flex items-center gap-2 shrink-0">
+                <AppBadge :status="formatDateOnly(item.startDate)" type="green" />
+                <span class="text-content-muted text-xs">→</span>
+                <AppBadge :status="formatDateOnly(item.endDate)" type="red" />
+              </div>
+            </div>
+            <span v-else class="text-content-light text-sm italic opacity-70">Select a recent term to clone...</span>
+          </template>
           <template #item="{ item }">
             <div class="flex items-center justify-between w-full gap-4">
-              <span class="font-bold text-content-dark truncate">{{ item.name }}</span>
+              <span class="font-bold text-content-dark truncate flex-1">{{ item.name }}</span>
               <div class="flex items-center gap-2 shrink-0">
                 <AppBadge :status="formatDateOnly(item.startDate)" type="green" />
                 <span class="text-content-muted text-xs">→</span>

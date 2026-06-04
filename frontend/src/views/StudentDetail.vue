@@ -15,16 +15,17 @@ import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 
 import {
-  getImageUrl,
   getActionIcon,
   getParentProfileURL,
-  getStudentProfileURL,
 } from '@/utils/assetHelper'
 import { branchService } from '@/services/branchService'
 import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
 import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
 import TimestampCard from '@/components/common/detail/TimestampCard.vue'
 import { trackingService } from '@/services/trackingService'
+import { useDataStore } from '@/stores/dataStore'
+
+const dataStore = useDataStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -70,12 +71,6 @@ const enrolledBranch = computed(() => {
   }
 })
 
-// ──────────────────────────────────────────────
-// Tab System
-// ──────────────────────────────────────────────
-// ──────────────────────────────────────────────
-// Enrollment & Attendance System
-// ──────────────────────────────────────────────
 const enrollmentOptions = computed(() => {
   return enrollments.value.map((e) => ({
     label: `${e.termName} - ${e.programName} (${e.branchAbbr})`,
@@ -216,9 +211,6 @@ const attendanceHeaders = [
   { label: 'Progress', width: '120px', align: 'center' },
 ]
 
-// ──────────────────────────────────────────────
-// Action Modal
-// ──────────────────────────────────────────────
 const actionModal = ref({
   isOpen: false,
   type: '',
@@ -315,6 +307,7 @@ const submitActionModal = async (formData) => {
     }, 1500)
 
     try {
+      await dataStore.fetchAllCommonData(true, ['students', 'enrollments'])
       await fetchData(sid)
     } catch (fetchErr) {
       console.warn('Data refreshed partially after modal save:', fetchErr)
@@ -327,9 +320,6 @@ const submitActionModal = async (formData) => {
   }
 }
 
-// ──────────────────────────────────────────────
-// Data Fetching
-// ──────────────────────────────────────────────
 const fetchData = async (id) => {
   try {
     loading.value = true

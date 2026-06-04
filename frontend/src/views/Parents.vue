@@ -145,11 +145,8 @@ const closeActionModal = () => {
   successMessage.value = ''
 }
 
-const updateLocalParent = (id, updates) => {
-  const idx = dataStore.parents.findIndex((p) => p.id === id)
-  if (idx !== -1) {
-    dataStore.parents[idx] = { ...dataStore.parents[idx], ...updates }
-  }
+const reloadData = async () => {
+  await dataStore.fetchAllCommonData(true, ['parents', 'students'])
 }
 
 const submitActionModal = async (formData) => {
@@ -169,20 +166,20 @@ const submitActionModal = async (formData) => {
       delete payload.updatedAt
       delete payload.createdAt
       await parentService.updateParent(id, payload)
-      updateLocalParent(id, payload)
+      await reloadData()
       successMessage.value = 'Profile updated successfully!'
     }
 
     if (type === 'deactivate' || type === 'activate') {
       const status = type === 'activate' ? 'Active' : 'Inactive'
       await parentService.updateParent(id, { status })
-      updateLocalParent(id, { status })
+      await reloadData()
       successMessage.value = `Account ${type === 'activate' ? 'reactivated' : 'deactivated'} successfully!`
     }
 
     if (type === 'delete') {
       await parentService.deleteParent(id)
-      dataStore.parents = dataStore.parents.filter((p) => p.id !== id)
+      await reloadData()
       successMessage.value = 'Account deleted successfully!'
     }
 
@@ -195,7 +192,7 @@ const submitActionModal = async (formData) => {
       const childrenInfo = [...(parent?.childrenInfo || []), { id: result.id, ...payload }]
 
       await parentService.updateParent(id, { childrenInfo })
-      updateLocalParent(id, { childrenInfo })
+      await reloadData()
       successMessage.value = 'Child registered successfully!'
     }
 
@@ -228,15 +225,8 @@ const submitNewParent = async (data) => {
     delete payload.createdAt
 
     const result = await parentService.createParent(payload)
-    const newUser = {
-      id: result.id,
-      ...payload,
-      createdAt: new Date().toISOString(),
-      childrenInfo: [],
-    }
-
-    dataStore.parents.unshift(newUser)
     newlyCreatedId.value = result.id
+    await reloadData()
     successMessage.value = `Account created successfully! ${result.tempPassword ? 'Temp Password: ' + result.tempPassword : ''}`
 
     setTimeout(() => {

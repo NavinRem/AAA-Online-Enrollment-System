@@ -21,6 +21,7 @@ import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
 import { useSearch, enrollmentSearchMapper } from '@/composables/useSearch'
 import { useDataStore } from '@/stores/dataStore'
+import { getStatusTheme, getStatusFilter } from '@/utils/badgeUtils'
 
 const route = useRoute()
 const router = useRouter()
@@ -70,22 +71,24 @@ const processSyncQueue = async () => {
 }
 
 const isSessionDisabled = (sessionDate) => {
-  const sDate = new Date(sessionDate).setHours(0,0,0,0)
-  const now = new Date().setHours(0,0,0,0)
+  const sDate = new Date(sessionDate).setHours(0, 0, 0, 0)
+  const now = new Date().setHours(0, 0, 0, 0)
   return sDate > now
 }
 
 const getSessionDisableReason = (sessionDate) => {
-  const sDate = new Date(sessionDate).setHours(0,0,0,0)
-  const now = new Date().setHours(0,0,0,0)
-  if (sDate > now) return "Session is in the future"
-  return ""
+  const sDate = new Date(sessionDate).setHours(0, 0, 0, 0)
+  const now = new Date().setHours(0, 0, 0, 0)
+  if (sDate > now) return 'Session is in the future'
+  return ''
 }
 
 const handleAttendanceClick = (sessionDate, enrollAt, sessionId, studentId) => {
   if (isSessionDisabled(sessionDate)) {
     attendanceError.value = getSessionDisableReason(sessionDate)
-    setTimeout(() => { attendanceError.value = '' }, 3000)
+    setTimeout(() => {
+      attendanceError.value = ''
+    }, 3000)
   } else {
     toggleAttendanceDropdown(sessionId, studentId)
   }
@@ -98,6 +101,7 @@ const toggleEnrollmentField = async (enrollmentId, field) => {
     const newValue = !item[field]
     item[field] = newValue
     await enrollmentService.updateEnrollment(enrollmentId, { [field]: newValue })
+    await dataStore.fetchAllCommonData(true, ['enrollments'])
   } catch (error) {
     console.error('Failed to update field:', error)
   }
@@ -168,9 +172,11 @@ const updateAttendanceStatus = async (sessionId, studentId, status) => {
       const rollbackData = { ...attendanceData.value[sessionId] }
       rollbackData[studentId] = oldStatus
       attendanceData.value[sessionId] = rollbackData
-      
+
       attendanceError.value = `Failed to sync: ${error.message || error}`
-      setTimeout(() => { attendanceError.value = '' }, 5000)
+      setTimeout(() => {
+        attendanceError.value = ''
+      }, 5000)
     }
   })
 
@@ -511,6 +517,11 @@ const getActiveLabel = (type) => {
   }
 }
 
+const getActiveScheduleDay = () => {
+  const opt = scheduleOptions.value.find((o) => String(o.id) === String(scheduleFilter.value))
+  return opt ? opt.day : scheduleOptions.value[0]?.day || ''
+}
+
 const handleClickOutside = (e) => {
   if (
     !e.target.closest('#term-filter-btn') &&
@@ -554,12 +565,14 @@ const handleModalSubmit = async (payload) => {
     } else if (actionModal.value.type === 'delete') {
       await classService.deleteClass(classData.value.id)
       actionModal.value.success = 'Class deleted successfully!'
+      await dataStore.fetchAllCommonData(true, ['classes'])
       setTimeout(() => {
         router.push('/classes')
       }, 1500)
       return
     }
 
+    await dataStore.fetchAllCommonData(true, ['classes'])
     setTimeout(() => {
       actionModal.value.isOpen = false
       fetchData(classData.value.id)
@@ -637,6 +650,7 @@ const scheduleOptions = computed(() => {
   return classData.value.schedules.map((s) => ({
     id: s.id,
     name: `${s.day} (${s.time})`,
+    day: s.day,
   }))
 })
 
@@ -795,7 +809,7 @@ watch(branchFilter, (newBranchId) => {
                 <!-- Term Filter -->
                 <div class="relative" id="term-filter-btn">
                   <AppButton variant="secondary" size="md" @click="toggleDropdown('term', $event)">
-                    <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
+                    <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0" />
                     <span>{{ getActiveLabel('term') }}</span>
                   </AppButton>
                   <Teleport to="body">
@@ -832,13 +846,12 @@ watch(branchFilter, (newBranchId) => {
                 <!-- Branch Filter -->
                 <div class="relative" id="branch-filter-btn">
                   <AppButton
-                    variant="secondary"
                     size="md"
                     @click="toggleDropdown('branch', $event)"
                     :style="{
                       backgroundColor: getActiveLabel('branch').color
-                        ? `var(--color-${getActiveLabel('branch').color})`
-                        : '#3b82f6',
+                        ? getActiveLabel('branch').color
+                        : 'var(--color-surface-light)',
                     }"
                   >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
@@ -891,12 +904,26 @@ watch(branchFilter, (newBranchId) => {
                 <!-- Schedule Filter -->
                 <div class="relative" id="schedule-filter-btn" v-if="scheduleOptions.length > 1">
                   <AppButton
-                    variant="secondary"
                     size="md"
                     @click="toggleDropdown('schedule', $event)"
-                    style="background-color: #e91e8c"
+                    :style="{
+                      backgroundColor: getActiveScheduleDay()
+                        ? getStatusTheme(getActiveScheduleDay(), 'day').backgroundColor
+                        : 'var(--color-surface-light)',
+                      color: getActiveScheduleDay()
+                        ? getStatusTheme(getActiveScheduleDay(), 'day').color
+                        : 'inherit',
+                    }"
                   >
-                    <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
+                    <img
+                      :src="getActionIcon('filter')"
+                      class="w-4 h-4 brightness-0"
+                      :style="{
+                        filter: getActiveScheduleDay()
+                          ? getStatusFilter(getActiveScheduleDay(), 'day')
+                          : 'invert(0)',
+                      }"
+                    />
                     <span>{{ getActiveLabel('schedule') }}</span>
                   </AppButton>
                   <Teleport to="body">
@@ -933,7 +960,10 @@ watch(branchFilter, (newBranchId) => {
             </template>
 
             <template #row="{ item, index, headers }">
-              <td class="ui-cell text-center" :style="{ width: headers[0].width, minWidth: headers[0].width }">
+              <td
+                class="ui-cell text-center"
+                :style="{ width: headers[0].width, minWidth: headers[0].width }"
+              >
                 <span class="font-bold text-content-dark text-sm">{{
                   (currentPage - 1) * pageSize + index + 1
                 }}</span>
@@ -955,15 +985,26 @@ watch(branchFilter, (newBranchId) => {
                   </div>
                 </div>
               </td>
-              <td class="ui-cell text-center font-bold text-content-dark text-xs" :style="{ width: headers[2].width, minWidth: headers[2].width }">
+              <td
+                class="ui-cell text-center font-bold text-content-dark text-xs"
+                :style="{ width: headers[2].width, minWidth: headers[2].width }"
+              >
                 {{ formatDateOnly(item.enrollAt) || 'N/A' }}
               </td>
-              <td class="ui-cell text-center font-bold text-content-dark text-xs" :style="{ width: headers[3].width, minWidth: headers[3].width }">
+              <td
+                class="ui-cell text-center font-bold text-content-dark text-xs"
+                :style="{ width: headers[3].width, minWidth: headers[3].width }"
+              >
                 {{ item.enrolledSessions || 0 }} sessions
               </td>
 
               <!-- Session Columns -->
-              <td v-for="(session, sIdx) in sessions" :key="session.id" class="ui-cell text-center p-1" :style="{ width: headers[4 + sIdx]?.width, minWidth: headers[4 + sIdx]?.width }">
+              <td
+                v-for="(session, sIdx) in sessions"
+                :key="session.id"
+                class="ui-cell text-center p-1"
+                :style="{ width: headers[4 + sIdx]?.width, minWidth: headers[4 + sIdx]?.width }"
+              >
                 <div class="flex flex-col items-center gap-1 relative group/cell">
                   <!-- Attendance Select Dropdown -->
                   <div class="relative w-10 h-10">
@@ -977,7 +1018,14 @@ watch(branchFilter, (newBranchId) => {
                           : 'cursor-pointer hover:shadow-md',
                       ]"
                       :title="getSessionDisableReason(session.date, item.enrollAt)"
-                      @click="handleAttendanceClick(session.date, item.enrollAt, session.id, item.studentId)"
+                      @click="
+                        handleAttendanceClick(
+                          session.date,
+                          item.enrollAt,
+                          session.id,
+                          item.studentId,
+                        )
+                      "
                     >
                       {{
                         ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)]?.label ||
@@ -1002,8 +1050,8 @@ watch(branchFilter, (newBranchId) => {
                           v-for="(cfg, key) in ATTENDANCE_STATUS"
                           :key="key"
                           @click="
-                            updateAttendanceStatus(session.id, item.studentId, key),
-                            activeAttendanceCell = null
+                            (updateAttendanceStatus(session.id, item.studentId, key),
+                            (activeAttendanceCell = null))
                           "
                           class="px-3 py-2 text-sm font-semibold cursor-pointer hover:bg-gray-50 flex items-center gap-3 transition-colors"
                         >
@@ -1034,7 +1082,13 @@ watch(branchFilter, (newBranchId) => {
               </td>
 
               <!-- Special Columns -->
-              <td class="ui-cell text-center" :style="{ width: headers[4 + sessions.length]?.width, minWidth: headers[4 + sessions.length]?.width }">
+              <td
+                class="ui-cell text-center"
+                :style="{
+                  width: headers[4 + sessions.length]?.width,
+                  minWidth: headers[4 + sessions.length]?.width,
+                }"
+              >
                 <button
                   @click="toggleEnrollmentField(item.id, 'hasPassedExam')"
                   class="w-6 h-6 rounded-md flex items-center justify-center mx-auto transition-colors border"
@@ -1060,7 +1114,13 @@ watch(branchFilter, (newBranchId) => {
                   </svg>
                 </button>
               </td>
-              <td class="ui-cell text-center" :style="{ width: headers[5 + sessions.length]?.width, minWidth: headers[5 + sessions.length]?.width }">
+              <td
+                class="ui-cell text-center"
+                :style="{
+                  width: headers[5 + sessions.length]?.width,
+                  minWidth: headers[5 + sessions.length]?.width,
+                }"
+              >
                 <button
                   @click="toggleEnrollmentField(item.id, 'hasReceivedReportCard')"
                   class="w-6 h-6 rounded-md flex items-center justify-center mx-auto transition-colors border"
@@ -1086,7 +1146,13 @@ watch(branchFilter, (newBranchId) => {
                   </svg>
                 </button>
               </td>
-              <td class="ui-cell text-center" :style="{ width: headers[6 + sessions.length]?.width, minWidth: headers[6 + sessions.length]?.width }">
+              <td
+                class="ui-cell text-center"
+                :style="{
+                  width: headers[6 + sessions.length]?.width,
+                  minWidth: headers[6 + sessions.length]?.width,
+                }"
+              >
                 <button
                   @click="toggleEnrollmentField(item.id, 'hasReceivedCertificate')"
                   class="w-6 h-6 rounded-md flex items-center justify-center mx-auto transition-colors border"
@@ -1112,10 +1178,15 @@ watch(branchFilter, (newBranchId) => {
                   </svg>
                 </button>
               </td>
-              <td class="ui-cell" :style="{ width: headers[7 + sessions.length]?.width, minWidth: headers[7 + sessions.length]?.width }">
+              <td
+                class="ui-cell"
+                :style="{
+                  width: headers[7 + sessions.length]?.width,
+                  minWidth: headers[7 + sessions.length]?.width,
+                }"
+              >
                 <span class="text-xs text-content-muted">{{ item.remark || '-' }}</span>
               </td>
-
             </template>
           </DataTable>
         </section>

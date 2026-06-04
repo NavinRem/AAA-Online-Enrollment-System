@@ -17,7 +17,7 @@ import { useDataStore } from '@/stores/dataStore'
 
 const loading = ref(false)
 const items = ref([])
-const branches = ref([])  
+const branches = ref([])
 const statusFilter = ref('all')
 const dataStore = useDataStore()
 const sortMode = ref('newest')
@@ -38,28 +38,23 @@ const headers = [
   { label: 'Action', width: '50px', align: 'center' },
 ]
 
-const fetchData = async () => {
+const fetchData = async (force = false) => {
   loading.value = true
   try {
-    const [termData] = await Promise.all([
-      termService.getAllTerms(),
-      dataStore.fetchAllCommonData(false, [
-        'programs',
-        'classes',
-        'categories',
-        'schedules',
-        'branches',
-        'enrollments',
-        'trials',
-      ]),
+    await dataStore.fetchAllCommonData(force, [
+      'terms',
+      'programs',
+      'classes',
+      'categories',
+      'schedules',
+      'branches',
+      'enrollments',
+      'trials',
     ])
 
-    const terms = Array.isArray(termData) ? termData : []
+    const terms = dataStore.terms || []
     branches.value = dataStore.branches
 
-    // Intelligent Status Synchronization:
-    // Instead of forcing every mismatch to the DB instantly (which causes network congestion),
-    // we compute the latest status for UI and identify only critical mismatches for background sync.
     const syncPayloads = []
     items.value = terms.map((term) => {
       const prog = calculateClassProgress(term.startDate, term.endDate)
@@ -73,7 +68,6 @@ const fetchData = async () => {
         (a, b) => new Date(a.endDate || a.startDate) - new Date(b.endDate || b.startDate),
       )
 
-      // Dynamic Metrics Computation
       const branchIds = term.branchIds || (term.branchId ? [term.branchId] : [])
       const studentIds = new Set()
       let totalRevenue = 0
@@ -86,7 +80,6 @@ const fetchData = async () => {
         startDate.setHours(0, 0, 0, 0)
         endDate.setHours(23, 59, 59, 999)
 
-        // Filter enrollments for this branch in this term period (by created date)
         const branchEnrollments = dataStore.enrollments.filter((e) => {
           const isSameBranch = String(e?.['class']?.branch?.id || e?.branchId) === String(bId)
           if (!isSameBranch) return false
@@ -109,7 +102,6 @@ const fetchData = async () => {
           }
         })
 
-        // Filter trials for this branch in this term period (by trial date)
         const branchTrials = dataStore.trials.filter((t) => {
           const isSameBranch = String(t.branch?.id || t.branchId) === String(bId)
           const trialDate = new Date(t.trialDate)
@@ -143,7 +135,7 @@ const fetchData = async () => {
   }
 }
 
-onMounted(fetchData)
+onMounted(() => fetchData(false))
 
 const { searchQuery, searchResults } = useSearch(items, (item) => {
   const branchText = (item.branchIds || [])
@@ -238,7 +230,7 @@ const handleAddClass = async (payload) => {
     addClassModal.value.success = 'Classes added successfully'
     setTimeout(() => {
       addClassModal.value.isOpen = false
-      fetchData()
+      fetchData(true)
     }, 1500)
   } catch (err) {
     addClassModal.value.error = err.message || 'Failed to add classes'
@@ -277,7 +269,7 @@ const handleActionSubmit = async (payload) => {
       modal.value.success = 'Term created successfully'
     }
 
-    fetchData()
+    fetchData(true)
     // Auto close after 1.5s on success
     setTimeout(() => {
       if (modal.value.isOpen) {
@@ -308,7 +300,7 @@ const displayItems = computed(() => {
     const prog = calculateClassProgress(item.startDate, item.endDate)
     if (statusFilter.value === 'upcoming') return prog.status === 'upcoming'
     if (statusFilter.value === 'active')
-      return prog.status === 'active' || prog.status === 'ongoing'
+      return prog.status === 'active' || prog.status === 'ongoing' || prog.status === 'available'
     if (statusFilter.value === 'archived') return prog.isArchived
     return true
   })
@@ -317,7 +309,7 @@ const displayItems = computed(() => {
 const isTermReadOnly = (item) => {
   const prog = calculateClassProgress(item.startDate, item.endDate)
   const status = prog.status.toLowerCase()
-  return status === 'active' || status === 'ongoing' || prog.isArchived
+  return status === 'active' || status === 'ongoing' || status === 'available' || prog.isArchived
 }
 
 const goToDetail = (item) => {
@@ -332,7 +324,13 @@ const getGroupedSettings = (item) => {
     const key = `${setting.startDate}_${setting.endDate}`
     let group = groups.find((g) => g.key === key)
     if (!group) {
-      const progress = calculateClassProgress(setting.startDate, setting.endDate, null, null, item.totalSessions)
+      const progress = calculateClassProgress(
+        setting.startDate,
+        setting.endDate,
+        null,
+        null,
+        item.totalSessions,
+      )
       group = {
         key,
         startDate: setting.startDate,
@@ -404,7 +402,7 @@ const getGroupedSettings = (item) => {
           >
             <td class="ui-cell text-center" :style="{ width: headers[0].width }">
               <span
-                v-if="calculateClassProgress(item.startDate, item.endDate).isOngoing"
+                v-if="calculateClassProgress(item.startDate, item.endDate).status === 'ongoing'"
                 class="text-xs"
                 >🔥</span
               >
@@ -496,12 +494,32 @@ const getGroupedSettings = (item) => {
                     :key="group.key"
                     class="flex items-center justify-center h-8"
                   >
-                    <AppBadge :status="calculateClassProgress(group.startDate, group.endDate, null, null, group.totalSessions).status" />
+                    <AppBadge
+                      :status="
+                        calculateClassProgress(
+                          group.startDate,
+                          group.endDate,
+                          null,
+                          null,
+                          group.totalSessions,
+                        ).status
+                      "
+                    />
                   </div>
                 </template>
                 <template v-else>
                   <div class="flex items-center justify-center h-8">
-                    <AppBadge :status="calculateClassProgress(item.startDate, item.endDate, null, null, item.totalSessions).status" />
+                    <AppBadge
+                      :status="
+                        calculateClassProgress(
+                          item.startDate,
+                          item.endDate,
+                          null,
+                          null,
+                          item.totalSessions,
+                        ).status
+                      "
+                    />
                   </div>
                 </template>
               </div>
@@ -517,7 +535,13 @@ const getGroupedSettings = (item) => {
                   >
                     <div class="flex items-center min-w-10 leading-none gap-1">
                       <span class="text-sm font-bold text-content-dark">{{
-                        calculateClassProgress(group.startDate, group.endDate, null, null, group.totalSessions).remainingSessions
+                        calculateClassProgress(
+                          group.startDate,
+                          group.endDate,
+                          null,
+                          null,
+                          group.totalSessions,
+                        ).remainingSessions
                       }}</span>
                       <span class="text-xs font-bold text-content-dark/60">Left</span>
                     </div>
@@ -528,7 +552,13 @@ const getGroupedSettings = (item) => {
                         class="h-full bg-primary transition-all duration-700"
                         :style="{
                           width:
-                            calculateClassProgress(group.startDate, group.endDate, null, null, group.totalSessions).percentage + '%',
+                            calculateClassProgress(
+                              group.startDate,
+                              group.endDate,
+                              null,
+                              null,
+                              group.totalSessions,
+                            ).percentage + '%',
                         }"
                       ></div>
                       <div
@@ -536,7 +566,13 @@ const getGroupedSettings = (item) => {
                         :style="{
                           width:
                             100 -
-                            calculateClassProgress(group.startDate, group.endDate, null, null, group.totalSessions).percentage +
+                            calculateClassProgress(
+                              group.startDate,
+                              group.endDate,
+                              null,
+                              null,
+                              group.totalSessions,
+                            ).percentage +
                             '%',
                         }"
                       ></div>
@@ -545,7 +581,15 @@ const getGroupedSettings = (item) => {
                 </template>
                 <template v-else>
                   <div
-                    v-for="(prog, index) in [calculateClassProgress(item.startDate, item.endDate, null, null, item.totalSessions)]"
+                    v-for="(prog, index) in [
+                      calculateClassProgress(
+                        item.startDate,
+                        item.endDate,
+                        null,
+                        null,
+                        item.totalSessions,
+                      ),
+                    ]"
                     :key="index"
                     class="w-full max-w-40 flex items-center gap-3 h-8 justify-center"
                   >
@@ -700,7 +744,12 @@ const getGroupedSettings = (item) => {
       v-if="addClassModal.isOpen"
       :isOpen="addClassModal.isOpen"
       type="add"
-      :context="{ termId: addClassModal.selectedTerm?.id, termName: addClassModal.selectedTerm?.name, offeringIds: addClassModal.selectedTerm?.offerings?.map(o => o.classId) || [] }"
+      :context="{
+        termId: addClassModal.selectedTerm?.id,
+        termName: addClassModal.selectedTerm?.name,
+        offeringIds: addClassModal.selectedTerm?.offerings?.map((o) => o.classId) || [],
+        existingOfferings: addClassModal.selectedTerm?.offerings || [],
+      }"
       :loading="addClassModal.loading"
       :error="addClassModal.error"
       :success="addClassModal.success"

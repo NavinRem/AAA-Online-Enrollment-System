@@ -129,7 +129,7 @@
   }
 
   .ui-summary-label {
-    @apply text-3xs font-semibold  opacity-70;
+    @apply text-sm font-semibold  opacity-70;
   }
 
   .ui-summary-amount {

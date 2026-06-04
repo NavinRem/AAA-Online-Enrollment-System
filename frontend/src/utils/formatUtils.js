@@ -220,6 +220,7 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
     percentage,
     totalWeeks,
     isOngoing,
+    isCompleted: status === 'archived' || status === 'completed',
     isArchived: status === 'archived',
   }
 }
@@ -312,6 +313,10 @@ export const calculateOfferingStatus = ({
   } else if (checkOngoing && progress.isOngoing) {
     return 'ongoing'
   }
+
+  // Map term status specifically to class/schedule status
+  if (fallbackStatus === 'active') return 'available'
+  if (fallbackStatus === 'archived') return 'completed'
 
   return fallbackStatus
 }

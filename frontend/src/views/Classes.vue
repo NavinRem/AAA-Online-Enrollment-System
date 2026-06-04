@@ -13,6 +13,7 @@ import { classService } from '@/services/classService'
 import { termService } from '@/services/termService'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { useSearch } from '@/composables/useSearch'
+import { getStatusTheme } from '@/utils/badgeUtils'
 
 const router = useRouter()
 const dataStore = useDataStore()
@@ -103,45 +104,9 @@ const masterClasses = computed(() => {
         return (a.time || '').localeCompare(b.time || '')
       })
 
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
       schedules = schedules.map((sched) => {
-        // Find if there's any active term offering this schedule
-        const activeTerms = dataStore.terms.filter((t) => {
-          const tEnd = new Date(t.endDate)
-          return tEnd >= today
-        })
-
-        // Find offerings in active terms matching this class/program and schedule day/time
-        let currentCount = 0
-
-        activeTerms.forEach((term) => {
-          const matchingOffering = (term.offerings || []).find(
-            (o) =>
-              (String(o.classId) === String(product.id) ||
-                String(o.programId) === String(program?.id)) &&
-              o.schedule?.day === sched.day &&
-              o.schedule?.time === sched.time,
-          )
-          if (matchingOffering) {
-            // Count enrollments for this offering
-            const enrollments = dataStore.enrollments.filter(
-              (e) =>
-                String(e.termId) === String(term.id) &&
-                (e.termOfferingId === matchingOffering.offeringId ||
-                  String(e.classId) === String(product.id) ||
-                  String(e.programId) === String(program?.id)),
-            )
-            // Just a rough estimate for the catalog view if it's full across any active term
-            if (enrollments.length > currentCount) {
-              currentCount = enrollments.length
-            }
-          }
-        })
-
-        const capacity = sched.capacity || program?.capacity || 20
-        const computedStatus = currentCount >= capacity ? 'full' : (product.status || 'available')
+        let scheduleStatus = product.status || 'available'
+        const computedStatus = scheduleStatus
 
         return {
           ...sched,
@@ -158,7 +123,7 @@ const masterClasses = computed(() => {
         program,
         branches,
         schedules,
-        status: product.status || 'available',
+        status: product.status === 'active' ? 'available' : (product.status || 'available'),
         searchText: [program?.name, branchesText, schedulesText, product.status]
           .filter(Boolean)
           .join(' ')
@@ -194,7 +159,7 @@ watch(searchQuery, () => {
 
 const statsCards = computed(() => {
   const products = dataStore.classes || []
-  const availableCount = products.filter((p) => p.status === 'available').length
+  const availableCount = products.filter((p) => p.status === 'available' || p.status === 'active').length
   const upcomingCount = products.filter((p) => p.status === 'upcoming').length
 
   const totalProductsCount = products.length
@@ -409,7 +374,8 @@ const navigateToDetail = (item) => {
                 <div
                   v-for="sched in item.schedules"
                   :key="sched.id || `${sched.day}-${sched.time}`"
-                  class="flex flex-col items-center justify-center h-10 bg-primary-light group-hover:bg-primary/30 p-lg rounded-sm"
+                  class="flex flex-col items-center justify-center h-10 group-hover:opacity-80 p-lg rounded-sm transition-opacity"
+                  :style="{ backgroundColor: getStatusTheme(sched.day, 'day').backgroundColor, color: getStatusTheme(sched.day, 'day').color }"
                 >
                   <div class="flex flex-col items-center">
                     <span class="text-xs font-bold leading-none">{{ sched.day }}</span>

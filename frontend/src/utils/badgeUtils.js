@@ -89,6 +89,15 @@ const REGISTRIES = {
     attended: 'blue',
     absent: 'red',
   },
+  day: {
+    saturday: 'blue',
+    sunday: 'red',
+    monday: 'purple',
+    tuesday: 'purple',
+    wednesday: 'purple',
+    thursday: 'purple',
+    friday: 'purple',
+  }
 }
 
 const THEMES = {

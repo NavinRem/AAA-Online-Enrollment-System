@@ -364,7 +364,7 @@ watch(
 
         <div class="col-span-1">
           <div class="flex justify-between items-center mb-1">
-            <label class="text-sm font-semibold text-content-dark flex items-center gap-1">
+            <label class="text-sm font-semibold text-content-muted flex items-center gap-1">
               Category <span class="text-error font-bold leading-none">*</span>
             </label>
             <button
@@ -388,7 +388,7 @@ watch(
 
         <div class="col-span-1">
           <div class="flex justify-between items-center mb-1">
-            <label class="text-sm font-semibold text-content-dark flex items-center gap-1">
+            <label class="text-sm font-semibold text-content-muted flex items-center gap-1">
               Level <span class="text-error font-bold leading-none">*</span>
             </label>
             <button
@@ -513,7 +513,7 @@ watch(
 
         <div class="col-span-1">
           <div class="flex justify-between items-center mb-1">
-            <label class="text-sm font-semibold text-content-dark flex items-center gap-1">
+            <label class="text-sm font-semibold text-content-muted flex items-center gap-1">
               Type <span class="text-error font-bold leading-none">*</span>
             </label>
           </div>

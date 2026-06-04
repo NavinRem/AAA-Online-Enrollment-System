@@ -161,7 +161,7 @@ const getBadgeConfig = (row) => {
 }
 
 .app-confirm-total {
-  @apply text-xl font-bold text-primary-deep;
+  @apply text-3xl font-bold text-primary-deep;
 }
 
 .app-confirm-actions {

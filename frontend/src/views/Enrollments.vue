@@ -309,8 +309,7 @@ const handleRegisterStudent = async (formData) => {
       status: 'Inactive',
     })
     childRegistrationModal.value.success = 'Student registered successfully!'
-    const studentsRes = await studentService.getAllStudents()
-    dataStore.students = Array.isArray(studentsRes) ? studentsRes : []
+    await dataStore.fetchAllCommonData(true, ['students'])
     if (result && result.id && enrollmentActionModalRef.value)
       enrollmentActionModalRef.value.setStudent(result.id)
     setTimeout(() => {

@@ -9,21 +9,16 @@ import AppBadge from '../components/common/ui/AppBadge.vue'
 import ProgramActionModal from '../components/programs/ProgramActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { programService } from '../services/programService'
-import { categoryService } from '../services/categoryService'
-import { levelService } from '../services/levelService'
 import { classService } from '../services/classService'
-import { enrollmentService } from '../services/enrollmentService'
-import { trialService } from '../services/trialService'
 import { useSearch } from '../composables/useSearch'
+import { useDataStore } from '../stores/dataStore'
 import { getProgramProfileURL, getImageUrl, getActionIcon, getIconUrl } from '@/utils/assetHelper'
 import { formatPrice } from '@/utils/formatUtils'
 
-const programs = ref([])
-const categories = ref([])
+const dataStore = useDataStore()
+
 const loading = ref(true)
 const newlyCreatedId = ref(null)
-const enrollments = ref([])
-const trials = ref([])
 const currentPage = ref(1)
 const pageSize = 10
 
@@ -41,6 +36,11 @@ const actionModal = ref({
   error: '',
   success: '',
 })
+
+const programs = computed(() => dataStore.programs)
+const categories = computed(() => dataStore.categories)
+const enrollments = computed(() => dataStore.enrollments)
+const trials = computed(() => dataStore.trials)
 
 const topTrialProgram = computed(() => {
   if (!trials.value.length || !programs.value.length) return { name: 'No Trials', count: 0 }
@@ -207,48 +207,39 @@ const statsCards = computed(() => {
   ]
 })
 
-const fetchPrograms = async () => {
+const fetchPrograms = async (force = false) => {
   loading.value = true
   try {
-    const [programsData, catsData, levelsData, enrollData, trialsData] = await Promise.all([
-      programService.getAllPrograms().catch(() => []),
-      categoryService.getAllCategories().catch(() => []),
-      levelService.getAllLevels().catch(() => []),
-      enrollmentService.getAllEnrollments().catch(() => []),
-      trialService.getAllTrials().catch(() => []),
-    ])
-
-    const cats = Array.isArray(catsData) ? catsData : catsData?.data || []
-    const lvls = Array.isArray(levelsData) ? levelsData : levelsData?.data || []
-
-    const enrollDataList = enrollData?.data || (Array.isArray(enrollData) ? enrollData : [])
-    const trialsDataList = Array.isArray(trialsData) ? trialsData : []
-
-    programs.value = (Array.isArray(programsData) ? programsData : []).map((p) => {
-      const cat = cats.find((c) => c.id === p.categoryId || c.name === p.category)
-      const lvl = lvls.find((l) => l.id === p.levelId)
-      const metrics = getProgramMetrics(p.id, enrollDataList, trialsDataList)
-
-      return {
-        ...p,
-        ...metrics,
-        categoryId: p.categoryId || cat?.id || cat?.id,
-        category: cat?.name || p.category || 'Uncategorized',
-        categoryProfileURL: cat?.profileURL || '',
-        levelId: p.levelId || lvl?.id,
-        level: lvl?.name,
-      }
-    })
-
-    categories.value = cats
-    enrollments.value = enrollDataList
-    trials.value = trialsDataList
+    await dataStore.fetchAllCommonData(force, ['programs', 'categories', 'levels', 'enrollments', 'trials'])
   } catch (error) {
     console.error('Failed to fetch programs', error)
   } finally {
     loading.value = false
   }
 }
+
+const programsList = computed(() => {
+  const cats = dataStore.categories
+  const lvls = dataStore.levels
+  const enrollDataList = dataStore.enrollments
+  const trialsDataList = dataStore.trials
+
+  return dataStore.programs.map((p) => {
+    const cat = cats.find((c) => c.id === p.categoryId || c.name === p.category)
+    const lvl = lvls.find((l) => l.id === p.levelId)
+    const metrics = getProgramMetrics(p.id, enrollDataList, trialsDataList)
+
+    return {
+      ...p,
+      ...metrics,
+      categoryId: p.categoryId || cat?.id || cat?.id,
+      category: cat?.name || p.category || 'Uncategorized',
+      categoryProfileURL: cat?.profileURL || '',
+      levelId: p.levelId || lvl?.id,
+      level: lvl?.name,
+    }
+  })
+})
 
 onMounted(() => {
   fetchPrograms()
@@ -300,7 +291,7 @@ const filterOptions = computed(() => {
   return [...types, ...cats]
 })
 
-const { searchQuery, searchResults } = useSearch(programs, (p) => {
+const { searchQuery, searchResults } = useSearch(programsList, (p) => {
   return `${p.name} ${p.category} ${p.categoryId} ${p.level} ${p.type}`
 })
 
@@ -403,7 +394,7 @@ const handleActionSubmit = async (formData) => {
     }
 
     setTimeout(async () => {
-      await fetchPrograms()
+      await fetchPrograms(true)
       closeModal()
     }, 1500)
   } catch (error) {

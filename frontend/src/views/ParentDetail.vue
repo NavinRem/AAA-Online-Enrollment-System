@@ -24,6 +24,9 @@ import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
 import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
 import RelationshipsCard from '@/components/common/detail/RelationshipsCard.vue'
 import TimestampCard from '@/components/common/detail/TimestampCard.vue'
+import { useDataStore } from '@/stores/dataStore'
+
+const dataStore = useDataStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -303,7 +306,8 @@ const submitActionModal = async (formData) => {
       },
       type === 'reset-password' ? 5000 : 1500,
     )
-
+    
+    await dataStore.fetchAllCommonData(true, ['parents', 'students'])
     await fetchData(id)
   } catch (err) {
     console.error('Action failed:', err)

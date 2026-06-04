@@ -23,17 +23,7 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import { teacherService } from '@/services/teacherService'
 import { useSearch, classSearchMapper, studentSearchMapper } from '@/composables/useSearch'
 import { useTableActions } from '@/composables/useTableActions'
-import { getStatusTheme } from '@/utils/badgeUtils'
-
-const dayColors = {
-  Monday: 'blue',
-  Tuesday: 'magenta',
-  Wednesday: 'green',
-  Thursday: 'orange',
-  Friday: 'purple',
-  Saturday: 'blue',
-  Sunday: 'red',
-}
+import { getStatusTheme, resolveColor } from '@/utils/badgeUtils'
 
 const route = useRoute()
 const router = useRouter()
@@ -79,6 +69,14 @@ const initData = async () => {
     if (term.value.branchIds && term.value.branchIds.length > 0) {
       activeBranchId.value = term.value.branchIds[0]
     }
+
+    // Background sync for term status
+    const prog = calculateClassProgress(term.value.startDate, term.value.endDate)
+    const calculatedStatus = prog.status.toLowerCase()
+    if (term.value.status !== calculatedStatus) {
+      termService.updateTerm(term.value.id, { status: calculatedStatus })
+        .catch(err => console.warn('[TermSync] Background sync failed', err))
+    }
   } catch (err) {
     console.error('Error fetching term details:', err)
     errorMessage.value = 'Failed to load term details'
@@ -105,8 +103,33 @@ const activeBranchSetting = computed(() => {
   return term.value.branchSettings.find((s) => String(s.branchId) === String(activeBranchId.value))
 })
 
-const rawBranchOfferings = computed(() => {
-  if (!term.value || !activeBranchId.value) return []
+const teachers = ref([])
+
+const loadTeachers = async () => {
+  try {
+    const data = await teacherService.getAllTeachers()
+    teachers.value = data.data || data
+  } catch (err) {
+    console.error('Failed to load teachers', err)
+  }
+}
+
+onMounted(() => {
+  initData()
+  loadTeachers()
+})
+
+const branchData = computed(() => {
+  const result = {
+    offerings: [],
+    groupedOfferings: [],
+    students: [],
+    enrollments: [],
+    trialsCount: 0,
+    classFilterOptions: [{ label: 'All Programs', value: 'all', image: getActionIcon('filter') }]
+  }
+
+  if (!term.value || !activeBranchId.value) return result
 
   const setting = activeBranchSetting.value || term.value
   const startDate = new Date(setting.startDate)
@@ -114,132 +137,119 @@ const rawBranchOfferings = computed(() => {
   startDate.setHours(0, 0, 0, 0)
   endDate.setHours(23, 59, 59, 999)
 
-  // Filter offerings belonging to the active branch
+  // 1. Enrollments
+  const enrollments = dataStore.enrollments.filter((e) => {
+    const isSameTerm = String(e.termId) === String(term.value.id)
+    const isSameBranch = String(e?.['class']?.branch?.id || e?.branchId) === String(activeBranchId.value)
+    return isSameTerm && isSameBranch && !e.isDeleted
+  })
+  result.enrollments = enrollments
+
+  // 2. Trials
+  result.trialsCount = dataStore.trials.filter((t) => {
+    const isSameBranch = String(t.branch?.id || t.branchId) === String(activeBranchId.value)
+    const trialDate = new Date(t.trialDate)
+    return isSameBranch && trialDate >= startDate && trialDate <= endDate
+  }).length
+
+  // 3. Process Offerings and Group them
   const rawOfferings = (term.value.offerings || []).filter(
     (o) => String(o.branchId) === String(activeBranchId.value),
   )
 
-  return rawOfferings.map((off) => {
-    // Enrich with latest program data from store
+  const groupMap = new Map()
+  const studentMap = new Map()
+  const programsInBranch = new Map()
+  const daysInBranch = new Set()
+
+  rawOfferings.forEach((off) => {
+    // Enrich Program
     const liveProgram = dataStore.programs.find(
-      (p) =>
-        String(p.id) === String(off.program?.id) ||
-        String(p.id) === String(off.classId) ||
-        String(p.id) === String(off.programId),
+      (p) => String(p.id) === String(off.program?.id) || String(p.id) === String(off.classId) || String(p.id) === String(off.programId),
     )
     const program = liveProgram || off.program
 
-    // Find enrollments for this specific offering from the branch-pre-filtered list
-    const offeringEnrollments = branchEnrollments.value.filter((e) => {
-      const isSameTerm = String(e.termId) === String(term.value.id)
-
-      // Strict matching: If termOfferingId is provided, it MUST match
-      if (e.termOfferingId) {
-        return String(e.termOfferingId) === String(off.offeringId)
-      }
-
-      // Fallback matching: If no termOfferingId, match by class and branch/date
-      const isSameClass =
-        String(e.classId) === String(off.classId) || String(e.programId) === String(off.programId)
-      if (!isSameClass || !isSameTerm) return false
-
-      const enrollDate = new Date(e.enrollAt || e.createdAt)
-      const matchesBranchAndDate =
-        String(e.branchId) === String(activeBranchId.value) &&
-        enrollDate >= startDate &&
-        enrollDate <= endDate
-
-      // If we match by class and branch/date, but have no offeringId,
-      // we only count it in the FIRST offering of this class to avoid double counting
-      // Note: This is a simple heuristic. Better would be to fix the data at source.
-      const firstOfferingOfClass = term.value.offerings.find(
-        (o) =>
-          String(o.branchId) === String(activeBranchId.value) &&
-          (String(o.classId) === String(off.classId) ||
-            String(o.programId) === String(off.programId)),
-      )
-
-      const isFirstOffering = String(firstOfferingOfClass?.offeringId) === String(off.offeringId)
-
-      return matchesBranchAndDate && isFirstOffering
-    })
-
-    const students = offeringEnrollments
-      .map((e) => {
-        const student = dataStore.students.find((s) => String(s.id) === String(e.studentId))
-        if (!student) return null
-
-        return {
-          ...student,
-          paymentStatus: e.paymentStatus,
-          status: e.status,
-          enrollmentId: e.id,
-          revenue: Number(e.finalPrice || e.totalPrice || 0),
-        }
-      })
-      .filter(Boolean)
-
+    // Teachers
     const responsibleTeacherIds = new Set((off.teacherIds || []).map(String))
-
-    // Merge teachers from specific sessions so they show in the table
     ;(off.sessionTeachers || []).forEach((sessionData) => {
       if (!sessionData) return
       let sessionTeachersArray = []
-      if (sessionData.teachers && Array.isArray(sessionData.teachers)) {
-        sessionTeachersArray = sessionData.teachers
-      } else if (Array.isArray(sessionData)) {
-        sessionTeachersArray = sessionData
-      } else if (sessionData.id) {
-        sessionTeachersArray = [sessionData]
-      }
+      if (sessionData.teachers && Array.isArray(sessionData.teachers)) sessionTeachersArray = sessionData.teachers
+      else if (Array.isArray(sessionData)) sessionTeachersArray = sessionData
+      else if (sessionData.id) sessionTeachersArray = [sessionData]
+      
       sessionTeachersArray.forEach((t) => {
         if (t && t.id) responsibleTeacherIds.add(String(t.id))
       })
     })
 
     const responsibleTeachers = Array.from(responsibleTeacherIds)
-      .map((tid) => {
-        return (teachers.value || []).find((t) => String(t.id) === String(tid))
-      })
+      .map((tid) => (teachers.value || []).find((t) => String(t.id) === String(tid)))
       .filter(Boolean)
 
-    const paidStudents = students.filter(
-      (s) =>
-        s.status === 'paid' ||
-        s.paymentStatus === 'paid' ||
-        s.status === 'success' ||
-        s.paymentStatus === 'success',
-    )
+    // Students for this offering
+    const offeringEnrollments = enrollments.filter((e) => {
+      if (e.termOfferingId) return String(e.termOfferingId) === String(off.offeringId)
+      
+      const isSameClass = String(e.classId) === String(off.classId) || String(e.programId) === String(off.programId)
+      if (!isSameClass) return false
 
-    return {
+      const enrollDate = new Date(e.enrollAt || e.createdAt)
+      const matchesBranchAndDate = String(e.branchId) === String(activeBranchId.value) && enrollDate >= startDate && enrollDate <= endDate
+
+      const firstOfferingOfClass = term.value.offerings.find(
+        (o) => String(o.branchId) === String(activeBranchId.value) && (String(o.classId) === String(off.classId) || String(o.programId) === String(off.programId)),
+      )
+      return matchesBranchAndDate && String(firstOfferingOfClass?.offeringId) === String(off.offeringId)
+    })
+
+    const students = offeringEnrollments.map((e) => {
+      const student = dataStore.students.find((s) => String(s.id) === String(e.studentId))
+      if (!student) return null
+      return {
+        ...student,
+        paymentStatus: e.paymentStatus,
+        status: e.status,
+        enrollmentId: e.id,
+        revenue: Number(e.finalPrice || e.totalPrice || 0),
+        offeringName: `${program?.name || 'Program'} - ${off.schedule?.day || ''} ${off.schedule?.time || ''}`
+      }
+    }).filter(Boolean)
+
+    students.forEach((s) => {
+      if (!studentMap.has(s.id)) studentMap.set(s.id, s)
+    })
+
+    const paidStudents = students.filter(s => ['paid', 'success'].includes(s.status) || ['paid', 'success'].includes(s.paymentStatus))
+    const revenue = paidStudents.reduce((sum, s) => sum + (s.revenue || 0), 0)
+
+    const processedOffering = {
       ...off,
       program,
       students,
       responsibleTeachers,
       currentCount: students.length,
-      revenue: paidStudents.reduce((sum, s) => sum + (s.revenue || 0), 0),
+      revenue
     }
-  })
-})
+    result.offerings.push(processedOffering)
 
-const groupedBranchOfferings = computed(() => {
-  const map = new Map()
-  rawBranchOfferings.value.forEach((off) => {
+    // Grouping
     const classId = off.classId || off.program?.id
-    if (!map.has(classId)) {
-      map.set(classId, {
+    if (!groupMap.has(classId)) {
+      groupMap.set(classId, {
         id: `group-${classId}`,
-        classId: classId,
-        program: off.program,
+        classId,
+        program,
         schedules: [],
         totalRevenue: 0,
         uniqueStudentCount: 0,
         status: off.status,
+        groupEnrollments: [] // temporarily store to calculate unique students later
       })
+      if (program?.name) programsInBranch.set(program.name, program)
     }
-    const group = map.get(classId)
-    const setting = activeBranchSetting.value || term.value
 
+    const group = groupMap.get(classId)
     const computedStatus = calculateOfferingStatus({
       termStartDate: setting.startDate,
       termEndDate: setting.endDate,
@@ -250,102 +260,71 @@ const groupedBranchOfferings = computed(() => {
 
     group.schedules.push({
       ...off.schedule,
-      currentCount: off.currentCount,
+      currentCount: students.length,
       status: computedStatus,
       offeringId: off.offeringId,
-      revenue: off.revenue || 0,
-      teachers: off.responsibleTeachers || [],
+      revenue,
+      teachers: responsibleTeachers
     })
+    
+    // Add offering enrollments to group enrollments
+    group.groupEnrollments.push(...offeringEnrollments)
+
+    if (off.schedule?.day) daysInBranch.add(off.schedule.day)
   })
 
-  // Calculate REAL group metrics from the unique set of enrollments for this class group
-  const setting = activeBranchSetting.value || term.value
-  const startDate = new Date(setting.startDate)
-  const endDate = new Date(setting.endDate)
-  startDate.setHours(0, 0, 0, 0)
-  endDate.setHours(23, 59, 59, 999)
-
-  map.forEach((group, classId) => {
-    // Get all enrollments matching this class/program in this branch/term
-    const groupEnrollments = branchEnrollments.value.filter((e) => {
-      const isSameClass =
-        String(e.classId) === String(classId) || String(e.programId) === String(classId)
-      return isSameClass
-    })
-
-    const paidGroupEnrollments = groupEnrollments.filter(
-      (e) =>
-        e.status === 'paid' ||
-        e.paymentStatus === 'paid' ||
-        e.status === 'success' ||
-        e.paymentStatus === 'success',
-    )
-    group.totalRevenue = paidGroupEnrollments.reduce(
-      (sum, e) => sum + Number(e.amount || e.finalPrice || e.totalPrice || 0),
-      0,
-    )
-    group.uniqueStudentCount = new Set(groupEnrollments.map((e) => e.studentId)).size
-  })
-
-  const dayOrder = {
-    Monday: 1,
-    Tuesday: 2,
-    Wednesday: 3,
-    Thursday: 4,
-    Friday: 5,
-    Saturday: 6,
-    Sunday: 7,
-  }
-
-  const groups = Array.from(map.values())
-  groups.forEach((g) => {
+  // Finalize Groups
+  const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 }
+  
+  result.groupedOfferings = Array.from(groupMap.values()).map(g => {
     g.schedules.sort((a, b) => {
       const dayA = dayOrder[a.day] || 99
       const dayB = dayOrder[b.day] || 99
       if (dayA !== dayB) return dayA - dayB
       return (a.time || '').localeCompare(b.time || '')
     })
-  })
+    
+    const paidEnrolls = g.groupEnrollments.filter(e => ['paid', 'success'].includes(e.status) || ['paid', 'success'].includes(e.paymentStatus))
+    g.totalRevenue = paidEnrolls.reduce((sum, e) => sum + Number(e.amount || e.finalPrice || e.totalPrice || 0), 0)
+    g.uniqueStudentCount = new Set(g.groupEnrollments.map(e => e.studentId)).size
+    delete g.groupEnrollments // clean up temp array
+    return g
+  }).sort((a, b) => (a.program?.name || '').localeCompare(b.program?.name || ''))
 
-  return groups.sort((a, b) => (a.program?.name || '').localeCompare(b.program?.name || ''))
-})
+  result.students = Array.from(studentMap.values())
 
-const branchStudents = computed(() => {
-  const studentMap = new Map()
-  rawBranchOfferings.value.forEach((offering) => {
-    ;(offering.students || []).forEach((s) => {
-      if (!studentMap.has(s.id || s.studentId)) {
-        studentMap.set(s.id || s.studentId, {
-          ...s,
-          offeringName: `${offering.program?.name || 'Program'} - ${offering.schedule?.day || ''} ${offering.schedule?.time || ''}`,
-        })
-      }
+  // Generate Filter Options
+  Array.from(programsInBranch.keys()).sort().forEach(name => {
+    const p = programsInBranch.get(name)
+    result.classFilterOptions.push({
+      label: name, value: name, color: 'green',
+      image: getProgramProfileURL(p.profileURL, p.category?.name || p.category, p.category?.profileURL)
     })
   })
-  return Array.from(studentMap.values())
-})
 
-const branchEnrollments = computed(() => {
-  if (!term.value || !activeBranchId.value) return []
-
-  return dataStore.enrollments.filter((e) => {
-    const isSameTerm = String(e.termId) === String(term.value.id)
-    const isSameBranch =
-      String(e?.['class']?.branch?.id || e?.branchId) === String(activeBranchId.value)
-
-    // An enrollment belongs to this branch's term if it explicitly references this term
-    return isSameTerm && isSameBranch && !e.isDeleted
+  result.classFilterOptions.push({ isDivider: true })
+  result.classFilterOptions.push({ isHeader: true, label: 'Filter by Day' })
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  days.forEach((day) => {
+    if (daysInBranch.has(day)) {
+      result.classFilterOptions.push({
+        label: `${day} Classes`, value: `day-${day}`, color: resolveColor(day, 'day'), image: getActionIcon('calendar')
+      })
+    }
   })
+
+  return result
 })
 
-const branchDisplayData = computed(() => {
+
+
+const termDisplayData = computed(() => {
   if (!term.value) return null
-  const setting = activeBranchSetting.value || term.value
-  const progress = calculateClassProgress(setting.startDate, setting.endDate)
+  const progress = calculateClassProgress(term.value.startDate, term.value.endDate)
   return {
     status: progress.status,
-    startDate: setting.startDate,
-    endDate: setting.endDate,
+    startDate: term.value.startDate,
+    endDate: term.value.endDate,
     remainingSessions:
       progress.remainingSessions > 0 ? progress.remainingSessions : term.value.totalSessions,
   }
@@ -356,58 +335,11 @@ const classCurrentPage = ref(1)
 const classPageSize = ref(10)
 const classFilter = ref('all')
 const { searchQuery: classSearchQuery, searchResults: classSearchResults } = useSearch(
-  groupedBranchOfferings,
+  computed(() => branchData.value.groupedOfferings),
   classSearchMapper,
 )
 
-const classFilterOptions = computed(() => {
-  const options = [{ label: 'All Programs', value: 'all', image: getActionIcon('filter') }]
-  const programsInBranch = new Map()
-  groupedBranchOfferings.value.forEach((g) => {
-    if (g.program?.name && !programsInBranch.has(g.program.name)) {
-      programsInBranch.set(g.program.name, g.program)
-    }
-  })
-  Array.from(programsInBranch.keys())
-    .sort()
-    .forEach((name) => {
-      const p = programsInBranch.get(name)
-      options.push({
-        label: name,
-        value: name,
-        color: 'green',
-        image: getProgramProfileURL(
-          p.profileURL,
-          p.category?.name || p.category,
-          p.category?.profileURL,
-        ),
-      })
-    })
 
-  // Days Section
-  options.push({ isDivider: true })
-  options.push({ isHeader: true, label: 'Filter by Day' })
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-  const daysInBranch = new Set()
-  groupedBranchOfferings.value.forEach((g) => {
-    ;(g.schedules || []).forEach((s) => {
-      if (s.day) daysInBranch.add(s.day)
-    })
-  })
-
-  days.forEach((day) => {
-    if (daysInBranch.has(day)) {
-      options.push({
-        label: `${day} Classes`,
-        value: `day-${day}`,
-        color: dayColors[day],
-        image: getActionIcon('calendar'),
-      })
-    }
-  })
-
-  return options
-})
 
 const filteredClasses = computed(() => {
   let list = classSearchResults.value
@@ -442,7 +374,7 @@ const studentCurrentPage = ref(1)
 const studentPageSize = ref(10)
 const studentFilter = ref('all')
 const { searchQuery: studentSearchQuery, searchResults: studentSearchResults } = useSearch(
-  branchStudents,
+  computed(() => branchData.value.students),
   studentSearchMapper,
 )
 
@@ -471,29 +403,13 @@ const paginatedStudents = computed(() => {
   return filteredStudents.value.slice(start, start + studentPageSize.value)
 })
 
-const totalTermTrials = computed(() => {
-  if (!term.value || !activeBranchId.value) return 0
 
-  const setting = activeBranchSetting.value || term.value
-  const startDate = new Date(setting.startDate || term.value.startDate)
-  const endDate = new Date(setting.endDate || term.value.endDate)
-  startDate.setHours(0, 0, 0, 0)
-  endDate.setHours(23, 59, 59, 999)
-
-  const branchTrials = dataStore.trials.filter((t) => {
-    const isSameBranch = String(t.branch?.id || t.branchId) === String(activeBranchId.value)
-    const trialDate = new Date(t.trialDate)
-    return isSameBranch && trialDate >= startDate && trialDate <= endDate
-  })
-
-  return branchTrials.length
-})
 
 const statsCards = computed(() => {
   if (!term.value) return []
 
-  const offerings = rawBranchOfferings.value
-  const enrollments = branchEnrollments.value
+  const offerings = branchData.value.offerings
+  const enrollments = branchData.value.enrollments
   const paidEnrollments = enrollments.filter(
     (e) =>
       e.status === 'paid' ||
@@ -525,7 +441,7 @@ const statsCards = computed(() => {
     },
     {
       label: 'Total Trials',
-      value: totalTermTrials.value,
+      value: branchData.value.trialsCount,
       image: getImageUrl('enrollment/total-enrollment'),
     },
   ]
@@ -607,21 +523,7 @@ const openSessionModal = async (item) => {
   }
 }
 
-const teachers = ref([])
 
-const loadTeachers = async () => {
-  try {
-    const data = await teacherService.getAllTeachers()
-    teachers.value = data.data || data
-  } catch (err) {
-    console.error('Failed to load teachers', err)
-  }
-}
-
-onMounted(() => {
-  initData()
-  loadTeachers()
-})
 
 const studentHeaders = [
   { label: 'No', width: '50px', align: 'center' },
@@ -663,13 +565,9 @@ const updateSessionTeacher = async (offeringId, weekIndex, teacherIds) => {
       })
       .filter(Boolean)
 
-    // Find all offerings for the same program/class and day in this branch
-    // This allows assigning a teacher once for the whole day at this branch
+    // Strictly update only the selected offering to prevent cross-assignment to other classes
     const affectedOfferings = (term.value.offerings || []).filter(
-      (o) =>
-        String(o.branchId) === String(activeBranchId.value) &&
-        (o.classId === sourceOffering.classId || o.programId === sourceOffering.programId) &&
-        o.schedule?.day === sourceOffering.schedule?.day,
+      (o) => o.offeringId === sourceOffering.offeringId,
     )
 
     // Update all affected offerings in parallel
@@ -693,6 +591,7 @@ const updateSessionTeacher = async (offeringId, weekIndex, teacherIds) => {
 
     // Trigger reactivity for term object
     term.value = { ...term.value }
+    await dataStore.fetchAllCommonData(true, ['terms'])
   } catch (err) {
     console.error('Failed to update session teachers:', err)
     errorMessage.value = 'Failed to update session faculty'
@@ -707,8 +606,12 @@ const openAddClassModal = () => {
     context: {
       termName: term.value.name,
       branchName: activeBranch.value?.name,
-      existingOfferings:
-        term.value.offerings?.filter((o) => o.branchId === activeBranchId.value) || [],
+      offeringIds: (term.value.offerings || [])
+        .filter((o) => String(o.branchId) === String(activeBranchId.value))
+        .map((o) => o.classId || o.programId),
+      existingOfferings: (term.value.offerings || []).filter(
+        (o) => String(o.branchId) === String(activeBranchId.value)
+      ),
     },
     loading: false,
     error: '',
@@ -746,7 +649,7 @@ const handleClassActionSubmit = async (payload) => {
     }
 
     // Force global store to sync
-    await dataStore.fetchTerms(true)
+    await dataStore.fetchAllCommonData(true, ['terms'])
     setTimeout(() => {
       classActionModal.value.isOpen = false
       classActionModal.value.success = ''
@@ -799,10 +702,12 @@ const handleActionSubmit = async (payload) => {
     if (modal.value.type === 'delete') {
       await termService.deleteTerm(term.value.id)
       modal.value.success = 'Term deleted successfully'
+      await dataStore.fetchAllCommonData(true, ['terms'])
       setTimeout(() => router.push('/terms'), 1500)
     } else {
       await termService.updateTerm(term.value.id, payload)
       modal.value.success = 'Term updated successfully'
+      await dataStore.fetchAllCommonData(true, ['terms'])
       setTimeout(() => {
         modal.value.isOpen = false
         initData()
@@ -910,7 +815,7 @@ const handleActionSubmit = async (payload) => {
             :hasSearch="true"
             v-model:searchQuery="classSearchQuery"
             v-model:currentFilter="classFilter"
-            :filterOptions="classFilterOptions"
+            :filterOptions="branchData.classFilterOptions"
             :hasFilter="true"
             :hasPagination="true"
             v-model:currentPage="classCurrentPage"
@@ -960,7 +865,7 @@ const handleActionSubmit = async (payload) => {
                   >
                     <div
                       class="flex flex-col items-center justify-center py-2 px-lg rounded-sm min-w-32 relative h-full w-full transition-all"
-                      :style="getStatusTheme(sched.day, dayColors[sched.day] || 'blue')"
+                      :style="getStatusTheme(sched.day, 'day')"
                       @mouseenter="
                         (e) => {
                           e.currentTarget.style.filter = 'brightness(0.95)'
@@ -1219,15 +1124,15 @@ const handleActionSubmit = async (payload) => {
               />
             </div>
 
-            <div class="grid grid-cols-2 gap-x-12 gap-y-8 w-full" v-if="branchDisplayData">
+            <div class="grid grid-cols-2 gap-x-12 gap-y-8 w-full" v-if="termDisplayData">
               <div class="flex flex-col items-center gap-2">
                 <span class="text-sm font-bold text-content-muted">Status</span>
-                <AppBadge :status="branchDisplayData.status" />
+                <AppBadge :status="termDisplayData.status" />
               </div>
               <div class="flex flex-col items-center gap-2">
                 <span class="text-sm font-bold text-content-muted">Remaining</span>
                 <span class="text-lg font-bold text-content-dark">{{
-                  branchDisplayData.remainingSessions || 0
+                  termDisplayData.remainingSessions || 0
                 }}</span>
               </div>
               <div class="flex flex-col items-center gap-2">
@@ -1244,11 +1149,11 @@ const handleActionSubmit = async (payload) => {
               </div>
               <div class="flex flex-col items-center gap-2">
                 <span class="text-sm font-bold text-content-muted">Start Date</span>
-                <AppBadge :status="formatShortDate(branchDisplayData.startDate)" type="green" />
+                <AppBadge :status="formatShortDate(termDisplayData.startDate)" type="green" />
               </div>
               <div class="flex flex-col items-center gap-2">
                 <span class="text-sm font-bold text-content-muted">End Date</span>
-                <AppBadge :status="formatShortDate(branchDisplayData.endDate)" type="red" />
+                <AppBadge :status="formatShortDate(termDisplayData.endDate)" type="red" />
               </div>
             </div>
           </section>

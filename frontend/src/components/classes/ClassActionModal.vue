@@ -13,6 +13,7 @@ import { scheduleService } from '@/services/scheduleService'
 import { classService } from '@/services/classService'
 import { useDataStore } from '@/stores/dataStore'
 import { useModalText } from '@/composables/useModalText'
+import { filterDuplicatePrograms, filterDuplicateClasses } from '@/utils/dropdownUtils'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -101,17 +102,29 @@ const teachers = computed(() =>
   })),
 )
 const branches = computed(() => dataStore.branches)
-const classes = computed(() => dataStore.classes)
+const classes = computed(() => {
+  return dataStore.classes.map((c) => {
+    let schedules = c.schedules || []
+    if (schedules.length === 0 && c.scheduleIds) {
+      schedules = c.scheduleIds
+        .map((sid) => dataStore.schedules.find((s) => String(s.id) === String(sid)))
+        .filter(Boolean)
+    }
+    return { ...c, schedules }
+  })
+})
 
-const programs = computed(() =>
-  dataStore.programs.map((program) => {
+const programs = computed(() => {
+  let list = dataStore.programs.map((program) => {
     const category = dataStore.categories.find((item) => item.id === program.categoryId)
     return {
       ...program,
       categoryProfileURL: category?.profileURL || '',
     }
-  }),
-)
+  })
+
+  return filterDuplicatePrograms(list, props.context, props.type, classes.value)
+})
 
 const schedules = computed(() =>
   dataStore.schedules.map((schedule) => ({
@@ -242,7 +255,7 @@ const confirmRows = computed(() => {
       { key: 'Duration', value: `${selectedProgram.value?.duration || 0} Minutes` },
     )
     if (form.branchIds && form.branchIds.length > 0) {
-      rows.push({ key: 'Branches', value: `${form.branchIds.length} Selected` })
+      rows.push({ key: 'Branches', value: '' })
     }
   }
 
@@ -275,46 +288,41 @@ const confirmRows = computed(() => {
 })
 
 const filteredPickerClasses = computed(() => {
-  if (!form.programId) return []
-  const matches = classes.value.filter(
-    (c) =>
-      String(c.programId) === String(form.programId) ||
-      String(c.program?.id) === String(form.programId),
+  console.log('Classes before filter:', classes.value)
+  console.log(
+    'Filtered picker classes:',
+    filterDuplicateClasses(classes.value, form.programId, props.context?.existingOfferings),
   )
+  return filterDuplicateClasses(classes.value, form.programId, props.context?.existingOfferings)
+})
 
-  const flattened = []
-  matches.forEach((c) => {
-    if (c.schedules && c.schedules.length > 0) {
-      c.schedules.forEach((s) => {
-        const isAlreadyAdded = props.context?.existingOfferings?.some(
-          (o) => String(o.classId) === String(c.id) && String(o.scheduleId) === String(s.id),
-        )
-        if (isAlreadyAdded) return
-
-        flattened.push({
-          ...c,
-          id: `${c.id}_${s.id}`, // Unique ID for AppSelect
-          originalClassId: c.id,
-          displaySchedule: s,
-        })
-      })
-    } else {
-      flattened.push({
-        ...c,
-        id: `${c.id}_none`,
-        originalClassId: c.id,
-        displaySchedule: null,
-      })
-    }
-  })
-
-  return flattened
+const previewSchedules = computed(() => {
+  if (props.context && props.type === 'add') {
+    return form.classIds.map((id) => {
+      const item = filteredPickerClasses.value.find((c) => c.id === id)
+      return {
+        id: id,
+        day: item?.displaySchedule?.day || '',
+        time: item?.displaySchedule?.time || '',
+        isClassId: true,
+      }
+    })
+  } else {
+    return form.scheduleIds.map((id) => {
+      const sched = getScheduleById(id)
+      return {
+        id: id,
+        day: sched?.day || '',
+        time: sched?.time || '',
+        isClassId: false,
+      }
+    })
+  }
 })
 
 const loadOptions = async (skipCache = false) => {
-  if (skipCache) {
-    await dataStore.fetchSchedules(true)
-  }
+  const modules = ['classes', 'schedules', 'teachers', 'programs', 'branches']
+  await dataStore.fetchAllCommonData(skipCache, modules)
 }
 
 const toggleScheduleManage = () => {
@@ -469,6 +477,7 @@ watch(
       }
     }
   },
+  { immediate: true },
 )
 
 watch(
@@ -505,11 +514,18 @@ const handleDisabledClick = (field) => {
     errors.programId = 'Please select a program first'
     triggerShake('programId')
   }
-  if (field === 'programId' && props.context) {
-    validationMessage.value = 'Program cannot be changed when managing term classes'
-    setTimeout(() => {
-      validationMessage.value = ''
-    }, 3000)
+  if (field === 'programId') {
+    if (props.context) {
+      validationMessage.value = 'Program cannot be changed when managing term classes'
+      setTimeout(() => {
+        validationMessage.value = ''
+      }, 3000)
+    } else if (props.type === 'edit') {
+      validationMessage.value = 'Program identity cannot be changed after a class is created'
+      setTimeout(() => {
+        validationMessage.value = ''
+      }, 3000)
+    }
   }
 }
 
@@ -585,8 +601,12 @@ const confirmSubmit = () => {
   })
 }
 
-const selectAllBranches = () => {
-  form.branchIds = branches.value.map((b) => b.id)
+const toggleAllBranches = () => {
+  if (form.branchIds.length === branches.value.length) {
+    form.branchIds = []
+  } else {
+    form.branchIds = branches.value.map((b) => b.id)
+  }
   clearError('branchIds')
 }
 </script>
@@ -624,7 +644,7 @@ const selectAllBranches = () => {
             required
             :error="errors.programId"
             :shake="shaking.programId"
-            :disabled="!!context"
+            :disabled="!!context || type === 'edit'"
             @change="handleProgramChange"
             @click-disabled="handleDisabledClick('programId')"
           >
@@ -650,7 +670,7 @@ const selectAllBranches = () => {
                     }}</span>
                   </div>
                 </div>
-                <AppBadge :status="`${item.duration} mn`" type="blue" />
+                <AppBadge type="blue">{{ item.duration }} mn</AppBadge>
               </div>
             </template>
           </AppSelect>
@@ -662,10 +682,14 @@ const selectAllBranches = () => {
               </label>
               <button
                 type="button"
-                @click="selectAllBranches"
+                @click="toggleAllBranches"
                 class="text-xs font-bold text-primary hover:underline"
               >
-                Select all branches
+                {{
+                  form.branchIds.length === branches.length
+                    ? 'Deselect all branches'
+                    : 'Select all branches'
+                }}
               </button>
             </div>
             <AppSelect
@@ -684,14 +708,20 @@ const selectAllBranches = () => {
                 </div>
 
                 <div v-else class="flex items-center gap-2 overflow-hidden flex-wrap">
-                  <AppBadge
+                  <div
                     v-for="item in items"
                     :key="item.id"
-                    :status="item.abbr"
-                    :type="item.color"
-                    size="sm"
-                    class="w-12 text-center"
-                  />
+                    class="flex items-center gap-1 bg-surface-subtle border border-transparent hover:border-error/10 hover:bg-error/10 rounded-full pl-0.5 pr-0.5 py-0.5 animate-in zoom-in-95 duration-200 cursor-pointer transition-colors"
+                    title="Click to remove"
+                    @click.stop="form.branchIds = form.branchIds.filter((id) => id !== item.id)"
+                  >
+                    <AppBadge
+                      :status="item.abbr"
+                      :type="item.color"
+                      size="sm"
+                      class="w-12 text-center pointer-events-none"
+                    />
+                  </div>
                 </div>
               </template>
               <template #item="{ item }">
@@ -806,7 +836,7 @@ const selectAllBranches = () => {
                       }}</span>
                     </div>
                   </div>
-                  <AppBadge :status="`${item.duration} mn`" type="blue" />
+                  <AppBadge type="blue">{{ item.duration }} mn</AppBadge>
                 </div>
               </template>
               <template #item="{ item }">
@@ -931,7 +961,7 @@ const selectAllBranches = () => {
         </div>
         <!-- Selected Schedules Preview -->
         <div
-          v-if="(!context || type === 'edit') && form.scheduleIds.length > 0"
+          v-if="previewSchedules.length > 0"
           class="flex flex-col gap-4 mt-2 animate-in slide-in-from-top-2 duration-500"
         >
           <div class="flex items-center justify-between px-1">
@@ -939,92 +969,99 @@ const selectAllBranches = () => {
               >Selected Sessions Configuration</span
             >
             <span class="text-sm font-bold text-content-muted"
-              >{{ form.scheduleIds.length }} session{{
-                form.scheduleIds.length === 1 ? '' : 's'
+              >{{ previewSchedules.length }} session{{
+                previewSchedules.length === 1 ? '' : 's'
               }}</span
             >
           </div>
           <div class="grid grid-cols-1 gap-4 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
             <div
-              v-for="id in form.scheduleIds"
-              :key="id"
+              v-for="sched in previewSchedules"
+              :key="sched.id"
               class="flex items-center justify-between bg-white border border-outline-std rounded-sm p-5 shadow-sm"
             >
               <div class="flex items-center gap-4 flex-1">
                 <div class="flex flex-col gap-1">
-                  <span class="text-base font-bold text-content-dark flex items-center gap-2">
-                    {{ getScheduleById(id)?.day }}
-                    <span class="text-sm font-bold text-content-muted/60 tracking-tighter"
-                      >({{ getScheduleDuration(getScheduleById(id)?.time) }})</span
-                    >
-                  </span>
-                  <div class="flex items-center gap-2">
-                    <span
-                      class="text-sm font-bold text-primary tracking-tight bg-primary-soft/50 px-2 py-0.5 rounded-md border border-primary/10"
-                      >{{ getScheduleById(id)?.time }}</span
-                    >
-                  </div>
+                  <template v-if="sched.day">
+                    <span class="text-base font-bold text-content-dark flex items-center gap-2">
+                      {{ sched.day }}
+                      <span class="text-sm font-bold text-content-muted/60 tracking-tighter"
+                        >({{ getScheduleDuration(sched.time) }})</span
+                      >
+                    </span>
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="text-sm font-bold text-primary tracking-tight bg-primary-soft/50 px-2 py-0.5 rounded-md border border-primary/10"
+                        >{{ sched.time }}</span
+                      >
+                    </div>
+                  </template>
+                  <template v-else>
+                    <span class="text-sm font-bold italic text-content-muted">No schedule</span>
+                  </template>
                 </div>
               </div>
 
               <div class="flex items-center gap-6 ml-4">
-                <div class="flex flex-col gap-1.5 min-w-52">
-                  <label class="text-xs font-bold text-content-muted"> Responsible Teacher </label>
-                  <AppSelect
-                    v-model="form.scheduleTeachers[id]"
-                    :items="teachers"
-                    placeholder="Assign Teacher..."
-                    size="sm"
-                    :searchable="true"
-                    class="!bg-surface-subtle/50"
-                  >
-                    <template #selected="{ item }">
-                      <div v-if="item" class="flex items-center gap-2">
-                        <img
-                          :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')"
-                          class="w-5 h-5 rounded-full border border-outline-std"
-                        />
-                        <span class="text-xs font-bold truncate max-w-24">{{ item.name }}</span>
-                      </div>
-                    </template>
-                    <template #item="{ item }">
-                      <div class="flex items-center gap-2 w-full">
-                        <img
-                          :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')"
-                          class="w-6 h-6 rounded-lg border border-outline-std"
-                        />
-                        <div class="flex flex-col overflow-hidden">
-                          <span class="text-xs font-bold text-content-dark truncate">{{
-                            item.name
-                          }}</span>
-                          <span class="text-xs text-content-muted font-semibold">{{
-                            item.branchAbbr || 'Cross-Branch'
-                          }}</span>
+                <template v-if="!sched.isClassId">
+                  <div class="flex flex-col gap-1.5 min-w-52">
+                    <label class="text-xs font-bold text-content-muted"> Responsible Teacher </label>
+                    <AppSelect
+                      v-model="form.scheduleTeachers[sched.id]"
+                      :items="teachers"
+                      placeholder="Assign Teacher..."
+                      size="sm"
+                      :searchable="true"
+                      class="!bg-surface-subtle/50"
+                    >
+                      <template #selected="{ item }">
+                        <div v-if="item" class="flex items-center gap-2">
+                          <img
+                            :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')"
+                            class="w-5 h-5 rounded-full border border-outline-std"
+                          />
+                          <span class="text-xs font-bold truncate max-w-24">{{ item.name }}</span>
                         </div>
-                      </div>
-                    </template>
-                  </AppSelect>
-                </div>
-
-                <div class="flex flex-col items-center gap-1.5">
-                  <label class="text-xs font-bold text-content-muted"> Capacity </label>
-                  <div
-                    class="flex items-center gap-3 bg-surface-subtle p-sm rounded-sm border border-outline-std"
-                  >
-                    <input
-                      type="number"
-                      v-model.number="form.scheduleCapacities[id]"
-                      class="w-14 h-6 text-base font-black text-center bg-transparent text-content-dark outline-none focus:text-primary transition-colors"
-                      min="1"
-                      required
-                    />
-                    <span class="text-xs font-bold text-content-muted">Seats</span>
+                      </template>
+                      <template #item="{ item }">
+                        <div class="flex items-center gap-2 w-full">
+                          <img
+                            :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')"
+                            class="w-6 h-6 rounded-lg border border-outline-std"
+                          />
+                          <div class="flex flex-col overflow-hidden">
+                            <span class="text-xs font-bold text-content-dark truncate">{{
+                              item.name
+                            }}</span>
+                            <span class="text-xs text-content-muted font-semibold">{{
+                              item.branchAbbr || 'Cross-Branch'
+                            }}</span>
+                          </div>
+                        </div>
+                      </template>
+                    </AppSelect>
                   </div>
-                </div>
+
+                  <div class="flex flex-col items-center gap-1.5">
+                    <label class="text-xs font-bold text-content-muted"> Capacity </label>
+                    <div
+                      class="flex items-center gap-3 bg-surface-subtle p-sm rounded-sm border border-outline-std"
+                    >
+                      <input
+                        type="number"
+                        v-model.number="form.scheduleCapacities[sched.id]"
+                        class="w-14 h-6 text-base font-black text-center bg-transparent text-content-dark outline-none focus:text-primary transition-colors"
+                        min="1"
+                        required
+                      />
+                      <span class="text-xs font-bold text-content-muted">Seats</span>
+                    </div>
+                  </div>
+                </template>
+
                 <button
-                  v-if="!context"
                   type="button"
-                  @click="deselectSchedule(id)"
+                  @click="sched.isClassId ? form.classIds = form.classIds.filter(id => id !== sched.id) : deselectSchedule(sched.id)"
                   class="w-12 h-12 flex items-center justify-center hover:bg-error-soft text-content-muted hover:text-error rounded-xl transition-all border border-transparent hover:border-error/20 group/btn"
                 >
                   <img
@@ -1114,10 +1151,7 @@ const selectAllBranches = () => {
             >
               <div class="flex items-center gap-4">
                 <div class="w-24">
-                  <AppBadge
-                    :status="item.day"
-                    :type="['Saturday', 'Sunday'].includes(item.day) ? 'purple' : 'blue'"
-                  />
+                  <AppBadge :status="item.day" type="day" />
                 </div>
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-bold text-content-dark tracking-tight">{{
@@ -1240,6 +1274,19 @@ const selectAllBranches = () => {
     @back="showConfirm = false"
     @confirm="confirmSubmit"
   >
+    <template #row-Branches>
+      <div class="flex flex-wrap gap-1 justify-end max-w-[70%]">
+        <AppBadge
+          v-for="id in form.branchIds"
+          :key="id"
+          :status="branches.find((b) => b.id === id)?.abbr"
+          :type="branches.find((b) => b.id === id)?.color"
+          size="sm"
+          class="w-10 text-center"
+        />
+      </div>
+    </template>
+
     <template #row-Schedules>
       <div class="flex flex-col gap-2 items-end w-full">
         <!-- Regular Class Action Mode -->

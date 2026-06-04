@@ -18,6 +18,9 @@ import { enrichEnrollments } from '@/utils/enrollmentHelper'
 import ProgramActionModal from '@/components/programs/ProgramActionModal.vue'
 import DetailMetricCard from '@/components/common/data/DetailMetricCard.vue'
 import { calculateClassProgress } from '@/utils/formatUtils'
+import { useDataStore } from '@/stores/dataStore'
+
+const dataStore = useDataStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -343,11 +346,13 @@ const handleActionSubmit = async (formData) => {
     } else if (actionModal.value.type === 'delete') {
       await programService.deleteProgram(program.value.id)
       actionModal.value.success = 'Program deleted successfully!'
+      await dataStore.fetchAllCommonData(true, ['programs'])
       setTimeout(() => {
         router.push('/programs')
       }, 1500)
       return
     }
+    await dataStore.fetchAllCommonData(true, ['programs'])
     setTimeout(() => {
       closeModal()
       initData()
@@ -444,7 +449,7 @@ const handleActionSubmit = async (formData) => {
                   <div class="flex flex-col gap-1 items-start">
                     <AppBadge
                       :status="item.schedule.day"
-                      :type="['Saturday', 'Sunday'].includes(item.schedule.day) ? 'blue' : 'gray'"
+                      type="day"
                     />
                     <span class="text-xs font-bold text-content-dark leading-none tabular-nums">{{
                       item.schedule.time

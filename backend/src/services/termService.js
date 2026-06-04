@@ -406,11 +406,14 @@ class TermService {
       const classData = classDoc.data()
       if (classData.isDeleted) return
 
+      if (classData.status === 'upcoming' || classData.status === 'archived') {
+        return
+      }
+
       const classBranchIds = classData.branchIds || (classData.branches || []).map(b => String(b.id))
       const schedules = classData.schedules || []
       
       branches.forEach((branch) => {
-        // Skip creating an offering if this class is explicitly not assigned to this branch
         if (classBranchIds.length > 0 && !classBranchIds.includes(String(branch.id))) {
           return
         }
@@ -464,9 +467,20 @@ class TermService {
     if (validBranches.length === 0) throw new Error('No valid branches found')
 
     const offerings = []
+    const updatePromises = []
 
     classesSnapDocs.forEach((classDoc) => {
       const classData = classDoc.data()
+      
+      if (classData.status === 'upcoming') {
+        updatePromises.push(
+          db.collection(COLLECTIONS.CLASS).doc(classDoc.id).update({
+            status: 'available',
+            updatedAt: new Date().toISOString()
+          })
+        )
+      }
+
       let schedules = classData.schedules || []
 
       // Filter schedules if scheduleIds are explicitly provided
@@ -500,6 +514,10 @@ class TermService {
         })
       })
     })
+
+    if (updatePromises.length > 0) {
+      await Promise.all(updatePromises)
+    }
 
     return offerings
   }

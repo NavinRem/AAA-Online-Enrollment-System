@@ -34,7 +34,7 @@ function validateClass(classData) {
     scheduleIds,
     branchIds,
     schedulesData: classData.schedulesData || [],
-    status: String(classData.status || 'active').toLowerCase(),
+    status: String(classData.status || 'available').toLowerCase(),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }

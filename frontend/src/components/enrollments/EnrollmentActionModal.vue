@@ -12,6 +12,7 @@ import { getActionIcon, getImageUrl, getProgramProfileURL } from '@/utils/assetH
 import { formatPrice, formatDateOnly } from '@/utils/formatUtils'
 import { useModalText } from '@/composables/useModalText'
 import { getSessionCounts } from '@/utils/programHelper'
+import { filterEnrolledPrograms } from '@/utils/dropdownUtils'
 
 const props = defineProps({
   isOpen: { type: Boolean, required: true },
@@ -72,8 +73,7 @@ const mapSourceToForm = () => {
       termOfferingId: props.enrollment.termOfferingId || props.enrollment.term?.offeringId || '',
       branchId: props.enrollment.class?.branch?.id || props.enrollment.branchId || '',
       scheduleId: props.enrollment.termOfferingId || '',
-      enrollAt:
-        props.enrollment.enrollAt || props.enrollment.enrollmentDate || new Date().toISOString(),
+      enrollAt: props.enrollment.enrollAt || new Date().toISOString(),
       isProrated: !!props.enrollment.isProrated,
       isSponsorship: !!props.enrollment.isSponsorship,
       sponsorName: props.enrollment.sponsorName || '',
@@ -157,19 +157,12 @@ const availableStudents = computed(() => {
 })
 
 const availablePrograms = computed(() => {
-  if (!form.studentId) return []
-  let programs = props.programs || []
-
-  const studentEnrollments = (props.enrollments || []).filter(
-    (e) =>
-      String(e.studentId) === String(form.studentId) &&
-      ['paid', 'unpaid', 'active', 'confirmed', 'success'].includes(e.status) &&
-      e.isDeleted !== true &&
-      String(e.id) !== String(props.enrollment?.id), // exclude the one being edited
+  return filterEnrolledPrograms(
+    props.programs || [],
+    form.studentId,
+    props.enrollments || [],
+    props.enrollment?.id,
   )
-  const enrolledProgramIds = new Set(studentEnrollments.map((e) => String(e.programId)))
-
-  return programs.filter((p) => !enrolledProgramIds.has(String(p.id)))
 })
 
 // Removed availableClassProducts as it is replaced by availableOfferings
@@ -184,7 +177,7 @@ const activeUpcomingTerms = computed(() => {
 const availableOfferings = computed(() => {
   if (!form.programId) return []
 
-  return activeUpcomingTerms.value.flatMap((term) =>
+  const offerings = activeUpcomingTerms.value.flatMap((term) =>
     (term.offerings || [])
       .filter((offering) => {
         const isMatch =
@@ -234,6 +227,9 @@ const availableOfferings = computed(() => {
         }
       }),
   )
+
+  // Sort so active (earlier start date) terms appear first
+  return offerings.sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0))
 })
 
 // Removed availableBranches and availableSchedulesForBranch as they are combined into offeringSelectItems
@@ -296,13 +292,43 @@ const confirmRows = computed(() => {
       value: displaySummary.value?.termName || selectedOffering.value?.termName || 'N/A',
     },
     {
-      key: 'Branch/Schedule',
+      key: 'Branch',
       value:
         displaySummary.value && displaySummary.value.branchAbbr
-          ? `${displaySummary.value.branchAbbr} - ${displaySummary.value.scheduleDay} (${displaySummary.value.scheduleTime})`
+          ? displaySummary.value.branchAbbr
           : selectedOffering.value
-            ? `${selectedOffering.value.branch?.abbr || selectedOffering.value.branch?.name} - ${selectedOffering.value.schedule?.day} (${selectedOffering.value.schedule?.time})`
+            ? selectedOffering.value.branch?.abbr || selectedOffering.value.branch?.name
             : 'N/A',
+      badge: true,
+      type:
+        displaySummary.value && displaySummary.value.branchColor
+          ? displaySummary.value.branchColor
+          : selectedOffering.value
+            ? selectedOffering.value.branch?.color
+            : 'gray',
+    },
+    {
+      key: 'Schedule',
+      value:
+        displaySummary.value && displaySummary.value.scheduleDay
+          ? `${displaySummary.value.scheduleDay} (${displaySummary.value.scheduleTime})`
+          : selectedOffering.value
+            ? `${selectedOffering.value.schedule?.day} (${selectedOffering.value.schedule?.time})`
+            : 'N/A',
+      badge: true,
+      type: 'day',
+      colorValue:
+        displaySummary.value && displaySummary.value.scheduleDay
+          ? displaySummary.value.scheduleDay
+          : selectedOffering.value
+            ? selectedOffering.value.schedule?.day
+            : '',
+      timeValue:
+        displaySummary.value && displaySummary.value.scheduleTime
+          ? displaySummary.value.scheduleTime
+          : selectedOffering.value
+            ? selectedOffering.value.schedule?.time
+            : '',
     },
     { key: 'EnrolledSessions', value: `${form.enrolledSessions || 0} sessions` },
   ]
@@ -407,6 +433,7 @@ const offeringSelectItems = computed(() =>
     scheduleTime: off.schedule?.time,
     studentCount: off.studentCount,
     capacity: off.capacity,
+    termName: off.termName,
     profileURL: off.branch?.profileURL || getActionIcon('navigation/branch'),
   })),
 )
@@ -675,8 +702,40 @@ defineExpose({ setStudent })
           @click-disabled="handleDisabledClick('studentId')"
           @change="handleStudentChange"
         >
-          <template #item-badge="{ item }">
-            <AppBadge v-if="item.age" status="student">{{ item.age }} years old</AppBadge>
+          <template #selected="{ item }">
+            <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
+              <div
+                class="w-7 h-7 rounded-full border border-outline-std overflow-hidden bg-white shrink-0"
+              >
+                <img
+                  :src="item.profileURL || getActionIcon('student')"
+                  class="w-full h-full object-cover"
+                />
+              </div>
+              <span class="text-sm font-semibold text-content-dark truncate flex-1">{{
+                item.name
+              }}</span>
+              <AppBadge v-if="item.age" status="student">{{ item.age }} years old</AppBadge>
+            </div>
+            <span v-else class="text-content-light text-sm italic opacity-70">Select Student</span>
+          </template>
+          <template #item="{ item }">
+            <div class="flex items-center gap-3 w-full">
+              <div
+                class="w-8 h-8 rounded-md border border-outline-std overflow-hidden bg-white shrink-0 shadow-sm"
+              >
+                <img
+                  :src="item.profileURL || getActionIcon('student')"
+                  class="w-full h-full object-cover"
+                />
+              </div>
+              <div class="flex flex-col flex-1">
+                <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              </div>
+              <div class="ml-auto flex items-center">
+                <AppBadge v-if="item.age" status="student">{{ item.age }} years old</AppBadge>
+              </div>
+            </div>
           </template>
         </AppSelect>
 
@@ -732,7 +791,8 @@ defineExpose({ setStudent })
         >
           <template #selected="{ item }">
             <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
-              <AppBadge :status="item.scheduleDay" type="purple" />
+              <AppBadge :status="item.termName" type="purple" />
+              <AppBadge :status="item.scheduleDay" type="day" />
               <span class="text-sm font-semibold text-content-dark truncate flex-1">{{
                 item.scheduleTime
               }}</span>
@@ -742,10 +802,13 @@ defineExpose({ setStudent })
           <template #item="{ item }">
             <div class="flex flex-col w-full gap-0.5">
               <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-content-dark">{{ item.className }}</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-content-dark">{{ item.className }}</span>
+                  <AppBadge :status="item.termName" type="blue" />
+                </div>
                 <AppBadge :status="item.branchName" :type="item.branchColor" />
               </div>
-              <div class="flex items-center justify-between">
+              <div class="flex items-center justify-between mt-1">
                 <span class="text-xs font-semibold"
                   >{{ item.scheduleDay }} ({{ item.scheduleTime }})</span
                 >
@@ -948,7 +1011,7 @@ defineExpose({ setStudent })
                 <div class="ui-summary-card">
                   <div class="ui-summary-content">
                     <span class="ui-summary-label">Total Price to Pay</span>
-                    <div class="enroll-tuition-savings">
+                    <div class="text-lg font-bold">
                       Billed Sessions: {{ form.enrolledSessions || 0 }}
                     </div>
                   </div>
@@ -1008,7 +1071,9 @@ defineExpose({ setStudent })
               <div class="enroll-info-item col-span-2 mt-2">
                 <div class="ui-summary-card">
                   <div class="ui-summary-content">
-                    <span class="ui-summary-label">Total Amount Due</span>
+                    <span class="ui-summary-label text-white font-bold text-lg"
+                      >Total Amount Due</span
+                    >
                     <div class="enroll-tuition-savings flex gap-2 mt-1">
                       <AppBadge :status="displaySummary.mode || displaySummary.status" />
                     </div>
@@ -1034,15 +1099,17 @@ defineExpose({ setStudent })
 
         <div class="flex flex-col gap-xs mt-lg">
           <label class="text-xs font-semibold text-content-muted">Payment Channel Selection</label>
-          <div class="flex bg-surface-subtle border border-outline-std rounded-sm p-0.5 mt-1">
+          <div
+            class="flex items-center gap-2 p-2 bg-white rounded-2xl border border-outline-std mt-1 w-fit"
+          >
             <button
               type="button"
               @click="form.paymentMethod = 'online'"
-              class="px-2 py-1.5 flex items-center justify-center gap-2 rounded-xs text-sm font-semibold transition-all w-1/2"
+              class="py-2 px-5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all duration-300 border border-transparent"
               :class="
                 form.paymentMethod === 'online'
-                  ? 'bg-primary text-white shadow-sm rounded-sm'
-                  : 'text-content-muted hover:text-content-dark'
+                  ? 'bg-primary text-white shadow-md ring-1 ring-black/5'
+                  : 'text-content-muted hover:text-content-dark hover:bg-surface-subtle/50'
               "
             >
               <img
@@ -1055,11 +1122,11 @@ defineExpose({ setStudent })
             <button
               type="button"
               @click="form.paymentMethod = 'cash'"
-              class="px-2 py-1.5 flex items-center justify-center gap-2 rounded-xs text-sm font-semibold transition-all w-1/2"
+              class="py-2 px-5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all duration-300 border border-transparent"
               :class="
                 form.paymentMethod === 'cash'
-                  ? 'bg-primary text-white shadow-sm rounded-sm'
-                  : 'text-content-muted hover:text-content-dark'
+                  ? 'bg-primary text-white shadow-md ring-1 ring-black/5'
+                  : 'text-content-muted hover:text-content-dark hover:bg-surface-subtle/50'
               "
             >
               <img
@@ -1255,7 +1322,16 @@ defineExpose({ setStudent })
         :loading="loading"
         @back="showConfirm = false"
         @confirm="handleFinalSubmit"
-      />
+      >
+        <template #row-Schedule="{ row }">
+          <div class="flex items-center gap-2">
+            <AppBadge :status="row.colorValue" type="day" />
+            <span class="app-confirm-val text-sm font-semibold text-content-dark">{{
+              row.timeValue
+            }}</span>
+          </div>
+        </template>
+      </AppConfirmOverlay>
     </form>
 
     <template #footer>

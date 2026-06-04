@@ -5,6 +5,7 @@ import { programService } from '../services/programService'
 import { levelService } from '../services/levelService'
 import { classService } from '../services/classService'
 import { categoryService } from '../services/categoryService'
+import { teacherService } from '../services/teacherService'
 import { termService } from '../services/termService'
 import { trialService } from '../services/trialService'
 import { enrollmentService } from '../services/enrollmentService'
@@ -17,6 +18,7 @@ export const useDataStore = defineStore('data', {
     students: [],
     programs: [],
     levels: [],
+    teachers: [],
     classes: [],
     categories: [],
     terms: [],
@@ -29,6 +31,7 @@ export const useDataStore = defineStore('data', {
       students: false,
       programs: false,
       levels: false,
+      teachers: false,
       classes: false,
       categories: false,
       terms: false,
@@ -42,6 +45,7 @@ export const useDataStore = defineStore('data', {
       students: null,
       programs: null,
       levels: null,
+      teachers: null,
       classes: null,
       categories: null,
       terms: null,
@@ -50,21 +54,17 @@ export const useDataStore = defineStore('data', {
       branches: null,
       schedules: null,
     },
-    // Track active promises to prevent race conditions
     activePromises: {},
   }),
 
   actions: {
-    /**
-     * Centralized fetcher for all administrative data.
-     * Supports granular refreshing of specific modules or a full force-refresh.
-     */
     async fetchAllCommonData(force = false, modules = null) {
       const allModules = [
         'parents',
         'students',
         'programs',
         'levels',
+        'teachers',
         'classes',
         'categories',
         'terms',
@@ -80,6 +80,8 @@ export const useDataStore = defineStore('data', {
         parents: () => this.fetchParents(force),
         students: () => this.fetchStudents(force),
         programs: () => this.fetchPrograms(force),
+        levels: () => this.fetchLevels(force),
+        teachers: () => this.fetchTeachers(force),
         classes: () => this.fetchClasses(force),
         categories: () => this.fetchCategories(force),
         terms: () => this.fetchTerms(force),
@@ -164,6 +166,24 @@ export const useDataStore = defineStore('data', {
         }
       })()
       return this.activePromises.levels
+    },
+
+    async fetchTeachers(force = false) {
+      if (!force && this.activePromises.teachers) return this.activePromises.teachers
+      if (!force && this.teachers.length > 0 && this.isFresh('teachers')) return
+
+      this.loading.teachers = true
+      this.activePromises.teachers = (async () => {
+        try {
+          const data = await teacherService.getAllTeachers()
+          this.teachers = Array.isArray(data) ? data : []
+          this.lastFetched.teachers = Date.now()
+        } finally {
+          this.loading.teachers = false
+          delete this.activePromises.teachers
+        }
+      })()
+      return this.activePromises.teachers
     },
 
     async fetchClasses(force = false) {
