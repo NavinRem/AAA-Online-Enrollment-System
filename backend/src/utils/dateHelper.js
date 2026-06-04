@@ -6,12 +6,12 @@ class DateHelper {
   ) {
     if (!dateStr) throw new Error(`${fieldName} is required`)
 
-    const dateRegex = /^(\d{4})-(\d{2})-(\d{2})$/
+    const dateRegex = /^(\d{4})-(\d{2})-(\d{2})(?:T.*)?$/
     const match = dateStr.match(dateRegex)
 
     if (!match) {
       throw new Error(
-        `Invalid ${fieldName} format: "${dateStr}". Please use YYYY-MM-DD.`,
+        `Invalid ${fieldName} format: "${dateStr}". Please use YYYY-MM-DD or a full ISO timestamp.`,
       )
     }
 
@@ -32,7 +32,7 @@ class DateHelper {
       )
     }
 
-    const dateObj = new Date(year, month - 1, day)
+    const dateObj = dateStr.includes('T') ? new Date(dateStr) : new Date(year, month - 1, day)
 
     if (!options.allowFuture && dateObj > new Date()) {
       throw new Error(`${fieldName} "${dateStr}" cannot be in the future.`)
@@ -57,8 +57,9 @@ class DateHelper {
       allowFuture: true,
     })
     const end = new Date(start)
-    // 11 sessions = 10 weeks after start date
-    end.setDate(start.getDate() + (sessionCount - 1) * 7)
+    // A term week spans 7 days. E.g., if it starts on Saturday, it ends on Friday.
+    // So sessionCount weeks is sessionCount * 7 days. We subtract 1 since start date is Day 1.
+    end.setDate(start.getDate() + (sessionCount * 7) - 1)
     return this.formatDate(end)
   }
 

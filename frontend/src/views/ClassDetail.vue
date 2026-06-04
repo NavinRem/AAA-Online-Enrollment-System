@@ -70,22 +70,40 @@ const processSyncQueue = async () => {
   }
 }
 
-const isSessionDisabled = (sessionDate) => {
+const isSessionDisabled = (sessionDate, studentStatus, sessionIndex, enrolledSessions) => {
+  if (['cancelled', 'suspended', 'transferred'].includes(studentStatus)) return true
+  if (enrolledSessions && sessionIndex >= enrolledSessions) return true
   const sDate = new Date(sessionDate).setHours(0, 0, 0, 0)
   const now = new Date().setHours(0, 0, 0, 0)
   return sDate > now
 }
 
-const getSessionDisableReason = (sessionDate) => {
+const getSessionDisableReason = (sessionDate, studentStatus, sessionIndex, enrolledSessions) => {
+  if (['cancelled', 'suspended', 'transferred'].includes(studentStatus))
+    return `Student is ${studentStatus}`
+  if (enrolledSessions && sessionIndex >= enrolledSessions)
+    return `Exceeded enrolled limit (${enrolledSessions} sessions)`
   const sDate = new Date(sessionDate).setHours(0, 0, 0, 0)
   const now = new Date().setHours(0, 0, 0, 0)
   if (sDate > now) return 'Session is in the future'
   return ''
 }
 
-const handleAttendanceClick = (sessionDate, enrollAt, sessionId, studentId) => {
-  if (isSessionDisabled(sessionDate)) {
-    attendanceError.value = getSessionDisableReason(sessionDate)
+const handleAttendanceClick = (
+  sessionDate,
+  sessionId,
+  studentId,
+  studentStatus,
+  sessionIndex,
+  enrolledSessions,
+) => {
+  if (isSessionDisabled(sessionDate, studentStatus, sessionIndex, enrolledSessions)) {
+    attendanceError.value = getSessionDisableReason(
+      sessionDate,
+      studentStatus,
+      sessionIndex,
+      enrolledSessions,
+    )
     setTimeout(() => {
       attendanceError.value = ''
     }, 3000)
@@ -294,9 +312,14 @@ const uniqueBranches = computed(() => {
         existing.color = liveBranch?.color || offering.branch.color || 'blue'
       }
 
-      branchMap.get(branchId).studentCount += Number(
-        offering.currentCount || offering.students?.length || 0,
-      )
+      const paidStudentsCount = enrollments.value.filter(
+        (e) =>
+          (String(e.branchId) === branchId || String(e.class?.branch?.id) === branchId) &&
+          String(e.termId) === String(offering.termId) &&
+          (['paid', 'success'].includes(e.status) || ['paid', 'success'].includes(e.paymentStatus)),
+      ).length
+
+      branchMap.get(branchId).studentCount = paidStudentsCount
     }
   })
   return Array.from(branchMap.values())
@@ -424,7 +447,8 @@ const branchFilterOptions = computed(() => {
 const filteredEnrollments = computed(() => {
   const filtered = enrollments.value.filter((e) => {
     // Audit: Only successful/eligible enrollments are shown for attendance
-    if (e.status !== 'paid' && e.paymentStatus !== 'paid') return false
+    if (!['paid', 'success'].includes(e.status) && !['paid', 'success'].includes(e.paymentStatus))
+      return false
 
     const termMatch = termFilter.value === 'all' || String(e.termId) === String(termFilter.value)
 
@@ -982,6 +1006,11 @@ watch(branchFilter, (newBranchId) => {
                     <span class="font-bold text-content-dark text-sm leading-tight">{{
                       item.student?.name || 'Unknown'
                     }}</span>
+                    <AppBadge
+                      v-if="['cancelled', 'suspended', 'transferred'].includes(item.status)"
+                      :status="item.status"
+                      size="xs"
+                    />
                   </div>
                 </div>
               </td>
@@ -1013,17 +1042,26 @@ watch(branchFilter, (newBranchId) => {
                       :class="[
                         ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)]?.theme ||
                           ATTENDANCE_STATUS.N.theme,
-                        isSessionDisabled(session.date, item.enrollAt)
+                        isSessionDisabled(session.date, item.status, sIdx, item.enrolledSessions)
                           ? 'opacity-20 grayscale cursor-not-allowed'
                           : 'cursor-pointer hover:shadow-md',
                       ]"
-                      :title="getSessionDisableReason(session.date, item.enrollAt)"
+                      :title="
+                        getSessionDisableReason(
+                          session.date,
+                          item.status,
+                          sIdx,
+                          item.enrolledSessions,
+                        )
+                      "
                       @click="
                         handleAttendanceClick(
                           session.date,
-                          item.enrollAt,
                           session.id,
                           item.studentId,
+                          item.status,
+                          sIdx,
+                          item.enrolledSessions,
                         )
                       "
                     >
@@ -1299,9 +1337,8 @@ watch(branchFilter, (newBranchId) => {
                       <AppBadge
                         v-if="branch.isAvailable"
                         :status="`${branch.studentCount} Students`"
-                        type="gray"
                         size="sm"
-                        class="!bg-transparent !border-none font-bold text-content-muted"
+                        class="font-bold text-content-muted !bg-transparent !border-none"
                       />
                       <span v-else class="text-xs font-bold text-error mr-2">Unavailable</span>
                     </div>

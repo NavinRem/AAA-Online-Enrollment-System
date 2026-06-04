@@ -27,6 +27,9 @@ function validateEnrollment(enrollmentData) {
     'hasReceivedReportCard',
     'transactionId',
     'receiptId',
+    'branchId',
+    'scheduleId',
+    'transferredSessions',
   ]
 
   Object.keys(enrollmentData).forEach((key) => {
@@ -114,6 +117,9 @@ function validateUpdateEnrollment(updateData) {
     'hasReceivedReportCard',
     'transactionId',
     'receiptId',
+    'branchId',
+    'scheduleId',
+    'transferredSessions',
   ]
   const cleanData = {}
 

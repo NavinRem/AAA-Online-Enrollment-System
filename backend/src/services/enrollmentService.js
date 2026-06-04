@@ -7,10 +7,8 @@ const {
 } = require('../validators/enrollmentValidator')
 
 const SEAT_TAKING_STATUSES = [
-  'active',
   'confirmed',
   'paid',
-  'unpaid',
   'success',
 ]
 const isSeatTaking = (status) =>
@@ -630,6 +628,61 @@ class EnrollmentService {
     }
 
     return { message: 'Enrollment cancelled successfully' }
+  }
+
+  async transferEnrollment(id, transferData) {
+    const ref = db.collection(COLLECTIONS.ENROLLMENT).doc(id)
+    const beforeDoc = await ref.get()
+    if (!beforeDoc.exists) throw new Error('Enrollment not found')
+    const beforeData = beforeDoc.data()
+
+    if (!isSeatTaking(beforeData.status)) {
+      throw new Error('Only active enrollments can be transferred')
+    }
+
+    // 1. Calculate consumed sessions in the old offering
+    const attendanceService = require('./attendanceService')
+    const classAttendance = await attendanceService.getClassAttendance(beforeData.classId)
+    let consumed = 0
+    if (classAttendance) {
+      Object.values(classAttendance).forEach(sessionData => {
+        if (sessionData[beforeData.studentId] && ['P', 'L', 'A'].includes(sessionData[beforeData.studentId])) {
+          consumed++
+        }
+      })
+    }
+    
+    const remainingSessions = Math.max(0, (beforeData.enrolledSessions || 0) - consumed)
+
+    // 2. Mark the old enrollment as transferred
+    await this.updateEnrollment(id, {
+      status: 'transferred',
+      paymentStatus: 'transferred',
+      remark: `Transferred to new class. Consumed ${consumed} sessions. ${beforeData.remark || ''}`
+    })
+
+    // 3. Create a new enrollment for the new offering
+    const newEnrollmentData = {
+      ...beforeData,
+      termOfferingId: transferData.termOfferingId,
+      classId: transferData.classId,
+      termId: transferData.termId,
+      branchId: transferData.branchId,
+      scheduleId: transferData.scheduleId,
+      enrolledSessions: remainingSessions,
+      transferredSessions: (beforeData.transferredSessions || 0) + consumed,
+      amount: 0, // No new charge for the transfer itself
+      status: 'paid', // Keep it paid
+      paymentStatus: 'paid',
+      remark: `Transferred from previous class. Remaining sessions: ${remainingSessions}`,
+    }
+    
+    // Cleanup system fields
+    delete newEnrollmentData.id
+    delete newEnrollmentData.createdAt
+    delete newEnrollmentData.updatedAt
+    
+    return await this.createEnrollment(newEnrollmentData)
   }
 
   async getStudentEligibility(studentId, programId) {

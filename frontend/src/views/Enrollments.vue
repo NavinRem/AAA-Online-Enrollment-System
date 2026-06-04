@@ -128,8 +128,19 @@ const handleSaveEnrollment = async (formData) => {
     }
 
     if (formData.id) {
-      await enrollmentService.updateEnrollment(formData.id, payload)
-      successMessage.value = 'Successfully updated enrollment!'
+      const currentEnrollment = actionState.value.enrollment
+      if (
+        currentEnrollment &&
+        formData.termOfferingId &&
+        currentEnrollment.termOfferingId &&
+        String(formData.termOfferingId) !== String(currentEnrollment.termOfferingId)
+      ) {
+        await enrollmentService.transferEnrollment(formData.id, payload)
+        successMessage.value = 'Successfully transferred enrollment!'
+      } else {
+        await enrollmentService.updateEnrollment(formData.id, payload)
+        successMessage.value = 'Successfully updated enrollment!'
+      }
     } else {
       const result = await enrollmentService.createEnrollment(payload)
       successMessage.value = 'Successfully created enrollment!'

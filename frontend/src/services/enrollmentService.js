@@ -32,6 +32,12 @@ export const enrollmentService = {
       body: JSON.stringify(data),
     })
   },
+  transferEnrollment(enrollmentId, data) {
+    return request(`/enrollments/${enrollmentId}/transfer`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
 
   deleteEnrollment(enrollmentId) {
     return request(`/enrollments/${enrollmentId}`, {

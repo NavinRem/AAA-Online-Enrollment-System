@@ -128,20 +128,29 @@ const displaySummary = computed(() => {
   const branchObj = classObj.branch || e.branch || {}
 
   return {
-    studentName: e.student?.name,
-    programName: e.program?.name,
+    studentName: e.student?.name || e.studentName,
+    programName: e.program?.name || e.programName,
     amount: e.finalPrice || e.totalPrice || e.amount || 0,
     status: e.status || 'Pending',
     studentAvatar: e.student?.profileURL || null,
     parentAvatar: e.parent?.profileURL || null,
     programAvatar: e.program?.profileURL || null,
-    parentName: e.parent?.name || 'Parent',
-    className: classObj.name || 'N/A',
-    scheduleDay: classObj.schedule ? classObj.schedule.day : '',
-    scheduleTime: classObj.schedule ? classObj.schedule.startTime : '',
-    branchName: branchObj.name || branchObj.abbr || 'HQ',
-    branchAbbr: branchObj.abbr || 'HQ',
-    branchColor: branchObj.color || 'blue',
+    parentName: e.parent?.name || e.parentName || 'Parent',
+    className: classObj.name || e.className || 'N/A',
+    scheduleDay: classObj.schedule
+      ? classObj.schedule.day
+      : e.classSchedule
+        ? e.classSchedule.split(' ')[0]
+        : '',
+    scheduleTime: classObj.schedule
+      ? classObj.schedule.startTime || classObj.schedule.time
+      : e.classSchedule
+        ? e.classSchedule.split(' ')[1]?.replace(/[()]/g, '')
+        : '',
+    branchName: branchObj.name || branchObj.abbr || e.branchName || 'HQ',
+    branchAbbr: branchObj.abbr || e.branchAbbr || 'HQ',
+    branchColor: branchObj.color || e.branchColor || 'blue',
+    termName: classObj.term?.name || e.termName || 'N/A',
   }
 })
 const isChanged = computed(() => !isEditMode.value || isDirty.value)
@@ -165,24 +174,76 @@ const availablePrograms = computed(() => {
   )
 })
 
-// Removed availableClassProducts as it is replaced by availableOfferings
-
-const activeUpcomingTerms = computed(() => {
-  const today = new Date().toISOString().split('T')[0]
-  return (props.terms || []).filter(
-    (term) => (term.endDate || '') >= today && term.isDeleted !== true,
-  )
-})
-
 const availableOfferings = computed(() => {
   if (!form.programId) return []
 
-  const offerings = activeUpcomingTerms.value.flatMap((term) =>
+  const activeSchedules = new Set()
+  if (form.studentId && props.enrollments) {
+    const studentEnrollments = props.enrollments.filter(
+      (e) =>
+        String(e.studentId) === String(form.studentId) &&
+        ['paid', 'unpaid', 'active', 'confirmed', 'success'].includes(e.status) &&
+        e.isDeleted !== true &&
+        String(e.id) !== String(props.enrollment?.id),
+    )
+
+    studentEnrollments.forEach((e) => {
+      let day = ''
+      let time = ''
+
+      if (props.terms) {
+        for (const term of props.terms) {
+          if (term.offerings) {
+            const off = term.offerings.find(
+              (o) =>
+                String(o.offeringId) === String(e.termOfferingId) ||
+                String(o.id) === String(e.termOfferingId),
+            )
+            if (off && off.schedule) {
+              day = off.schedule.day
+              time = off.schedule.time
+              break
+            }
+          }
+        }
+      }
+
+      if (!day || !time) {
+        if (e.class?.schedule) {
+          day = e.class.schedule.day
+          time = e.class.schedule.time || e.class.schedule.startTime
+        }
+      }
+
+      if (day && time) {
+        activeSchedules.add(`${day}-${time}`)
+      }
+    })
+  }
+
+  const offerings = (props.terms || []).flatMap((term) =>
     (term.offerings || [])
       .filter((offering) => {
         const isMatch =
           offering.program?.id === form.programId || offering.class?.programId === form.programId
         if (!isMatch) return false
+
+        const isCurrentSelection =
+          isEditMode.value &&
+          String(offering.offeringId) === String(props.enrollment?.termOfferingId)
+
+        // For new selections, enforce active term check
+        if (!isCurrentSelection) {
+          const today = new Date().toISOString().split('T')[0]
+          if ((term.endDate || '') < today || term.isDeleted) return false
+        }
+
+        // Schedule conflict check
+        if (!isCurrentSelection && offering.schedule?.day && offering.schedule?.time) {
+          if (activeSchedules.has(`${offering.schedule.day}-${offering.schedule.time}`)) {
+            return false
+          }
+        }
 
         const currentCount = offering.currentCount || (offering.students || []).length || 0
 
@@ -190,7 +251,7 @@ const availableOfferings = computed(() => {
         const scheduleInfo = classInfo?.schedules?.find((s) => s.id === offering.schedule?.id)
         const capacity = scheduleInfo?.capacity || classInfo?.capacity || offering.capacity || 20
 
-        return currentCount < capacity
+        return isCurrentSelection || currentCount < capacity
       })
       .map((offering) => {
         const classInfo = props.classes?.find((c) => String(c.id) === String(offering.classId))
@@ -210,10 +271,7 @@ const availableOfferings = computed(() => {
         return {
           id: offering.offeringId,
           classId: offering.classId,
-          className:
-            props.programs?.find((p) => String(p.id) === String(form.programId))?.name ||
-            offering.class?.name ||
-            'Class',
+          className: offering.class?.name || 'Class',
           name: `${term.name} | ${offering.branch?.abbr || offering.branch?.name || 'Branch'} - ${offering.schedule?.day || 'Day'} (${offering.schedule?.time || 'Time'})`,
           termId: term.id,
           termName: term.name,
@@ -285,7 +343,7 @@ const confirmRows = computed(() => {
     },
     {
       key: 'Class',
-      value: displaySummary.value?.className || selectedOffering.value?.className || 'N/A',
+      value: displaySummary.value?.programName || selectedProgram.value?.name || 'N/A',
     },
     {
       key: 'Term',
@@ -785,7 +843,6 @@ defineExpose({ setStudent })
           :error="errors.termOfferingId"
           :shake="shaking.termOfferingId"
           :loading="loading"
-          dropdownWidth="400px"
           @click-disabled="handleDisabledClick('termOfferingId')"
           @change="handleOfferingChange"
         >
@@ -1200,8 +1257,7 @@ defineExpose({ setStudent })
               >Program Termination Warning</strong
             >
             <span class="text-xs opacity-90 font-medium"
-              >Marking this enrollment as cancelled will permanently release the reserved seat in
-              the session schedule.</span
+              >Marking this enrollment as cancelled will release the reserved seat. Cancellation can be undone later. Paid enrollments will remain in historical records but will no longer be marked for future attendance.</span
             >
           </div>
         </AppAlert>

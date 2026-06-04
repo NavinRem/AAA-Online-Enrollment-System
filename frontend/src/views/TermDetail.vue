@@ -228,7 +228,7 @@ const branchData = computed(() => {
       program,
       students,
       responsibleTeachers,
-      currentCount: students.length,
+      currentCount: paidStudents.length,
       revenue
     }
     result.offerings.push(processedOffering)
@@ -260,7 +260,7 @@ const branchData = computed(() => {
 
     group.schedules.push({
       ...off.schedule,
-      currentCount: students.length,
+      currentCount: paidStudents.length,
       status: computedStatus,
       offeringId: off.offeringId,
       revenue,
@@ -286,7 +286,7 @@ const branchData = computed(() => {
     
     const paidEnrolls = g.groupEnrollments.filter(e => ['paid', 'success'].includes(e.status) || ['paid', 'success'].includes(e.paymentStatus))
     g.totalRevenue = paidEnrolls.reduce((sum, e) => sum + Number(e.amount || e.finalPrice || e.totalPrice || 0), 0)
-    g.uniqueStudentCount = new Set(g.groupEnrollments.map(e => e.studentId)).size
+    g.uniqueStudentCount = new Set(paidEnrolls.map(e => e.studentId)).size
     delete g.groupEnrollments // clean up temp array
     return g
   }).sort((a, b) => (a.program?.name || '').localeCompare(b.program?.name || ''))

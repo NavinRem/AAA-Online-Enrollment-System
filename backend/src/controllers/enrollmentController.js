@@ -39,6 +39,18 @@ exports.updateEnrollment = async (req, res) => {
   }
 }
 
+exports.transferEnrollment = async (req, res) => {
+  try {
+    const result = await enrollmentService.transferEnrollment(
+      req.params.id,
+      req.body,
+    )
+    res.status(200).json(result)
+  } catch (error) {
+    res.status(400).json({ error: error.message })
+  }
+}
+
 exports.deleteEnrollment = async (req, res) => {
   try {
     const result = await enrollmentService.deleteEnrollment(req.params.id)

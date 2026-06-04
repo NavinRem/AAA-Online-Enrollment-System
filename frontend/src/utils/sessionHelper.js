@@ -131,31 +131,16 @@ export const calculateSessionDate = (startDate, scheduleDay, sessionIndex) => {
  * @param {string} [scheduleDay] - Optional class day (e.g. "Wednesday"). If omitted, uses startDate's day.
  * @returns {string} ISO date string for the last session date (e.g. "2024-10-07")
  */
-export const calculateTermEndDate = (startDate, totalSessions, scheduleDay) => {
+export const calculateTermEndDate = (startDate, totalSessions) => {
   if (!startDate || !totalSessions) return ''
 
   const start = new Date(startDate)
   if (isNaN(start.getTime())) return ''
 
-  const dayMap = {
-    sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
-    thursday: 4, friday: 5, saturday: 6
-  }
-
-  // If scheduleDay is provided, jump to the first occurrence of that day on/after startDate.
-  // Otherwise, keep the same day as startDate.
-  let offset = 0
-  if (scheduleDay) {
-    const targetDay = dayMap[scheduleDay.toLowerCase()]
-    if (targetDay !== undefined) {
-      const currentDay = start.getDay()
-      offset = (targetDay - currentDay + 7) % 7
-    }
-  }
-
-  // Last session = first session + (totalSessions - 1) weeks
+  // The term duration is exactly totalSessions * 7 days.
+  // The end date is 1 day before the end of the final week, to create a strict week-aligned envelope.
   const lastSession = new Date(start)
-  lastSession.setDate(start.getDate() + offset + (parseInt(totalSessions) - 1) * 7)
+  lastSession.setDate(start.getDate() + (parseInt(totalSessions) * 7) - 1)
 
   return lastSession.toISOString().split('T')[0]
 }

@@ -69,25 +69,6 @@ const termProgress = computed(() => {
   return completedSessions || 0
 })
 
-const firstClassDate = computed(() => {
-  if (props.type !== 'session' || !props.schedule?.day || !localData.startDate) return null
-  const startDate = new Date(localData.startDate)
-  if (isNaN(startDate.getTime())) return null
-
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-  const targetDayIndex = dayNames.findIndex(
-    (d) => d.toLowerCase() === props.schedule.day.toLowerCase(),
-  )
-
-  if (targetDayIndex !== -1) {
-    const offset = (targetDayIndex - startDate.getDay() + 7) % 7
-    const firstDate = new Date(startDate)
-    firstDate.setDate(startDate.getDate() + offset)
-    return formatDateOnly(firstDate)
-  }
-  return null
-})
-
 const getInitialData = () => ({
   name: '',
   startDate: '',
@@ -965,39 +946,11 @@ watch(
 
         <div
           v-if="localData.branchIds.length === 0"
-          class="grid grid-cols-2 gap-lg animate-in fade-in slide-in-from-top-2 duration-300"
+          class="p-4 bg-surface-subtle border border-outline-std rounded-md text-center animate-in fade-in slide-in-from-top-2 duration-300"
         >
-          <div class="flex flex-col">
-            <AppInput
-              v-model="localData.startDate"
-              type="date"
-              label="Start Date"
-              required
-              :error="errors.startDate"
-              :shake="shaking.startDate"
-              @input="clearError('startDate')"
-            />
-            <!-- First Class Date Hint -->
-            <div
-              v-if="type === 'session' && firstClassDate"
-              class="mt-2 p-2.5 bg-primary/5 rounded-md border border-primary/20 flex items-start gap-2"
-            >
-              <span class="text-sm mt-0.5">📅</span>
-              <p class="text-xs text-content-dark leading-tight">
-                First session: <span class="font-bold text-primary">{{ firstClassDate }}</span>
-                <br />
-                <span class="text-content-muted/80">End date auto-set based on sessions</span>
-              </p>
-            </div>
-          </div>
-          <AppInput
-            v-model="localData.endDate"
-            type="date"
-            label="Auto-calculated End Date"
-            readonly
-            disabled
-          />
+          <span class="text-sm font-bold text-content-muted">Please select at least one branch to configure term dates.</span>
         </div>
+
         <div
           v-if="localData.branchIds.length > 0"
           class="flex flex-col gap-4 mt-2 border-t border-outline-std pt-4"
@@ -1008,7 +961,37 @@ watch(
               >Different dates per branch? Edit below</span
             >
           </div>
-          <div class="grid grid-cols-1 gap-3">
+
+          <!-- Master Date Applier -->
+          <div class="flex items-end gap-3 p-3 bg-primary/5 rounded-md border border-primary/20">
+            <div class="flex-1">
+              <AppInput
+                v-model="localData.startDate"
+                type="date"
+                label="Master Start Date"
+                size="sm"
+                @input="clearError('startDate')"
+              />
+            </div>
+            <AppButton
+              type="button"
+              variant="primary"
+              size="sm"
+              class="mb-1"
+              @click="() => {
+                if (localData.startDate) {
+                  localData.branchSettings.forEach(s => s.startDate = localData.startDate)
+                }
+              }"
+            >
+              Apply to All
+            </AppButton>
+          </div>
+          <p v-if="errors.startDate" class="text-xs font-semibold text-error pl-1 mt-0.5">
+            {{ errors.startDate }}
+          </p>
+
+          <div class="grid grid-cols-1 gap-3 mt-2">
             <div
               v-for="branchId in localData.branchIds"
               :key="branchId"

@@ -12,6 +12,7 @@ router.get('/parent/:parentId', enrollmentController.getEnrollmentsByParent)
 router.get('/student/:studentId', enrollmentController.getEnrollmentsByStudent)
 router.get('/:id', enrollmentController.getEnrollment)
 router.patch('/:id', isAdmin, enrollmentController.updateEnrollment)
+router.post('/:id/transfer', isAdmin, enrollmentController.transferEnrollment)
 router.delete('/:id', isAdmin, enrollmentController.deleteEnrollment)
 
 // --- Specialized Actions ---

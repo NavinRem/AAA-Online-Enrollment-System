@@ -155,11 +155,8 @@ class TermService {
         .collection('enrollments')
         .where('termId', '==', id)
         .where('status', 'in', [
-          'active',
           'confirmed',
-          'trial',
           'paid',
-          'unpaid',
           'success',
         ])
         .get()
@@ -192,10 +189,15 @@ class TermService {
           return firstOfferingOfClass?.offeringId === off.offeringId
         })
 
+        const paidEnrollments = offEnrollments.filter(e => 
+          ['paid', 'success'].includes(e.paymentStatus) || 
+          ['paid', 'success'].includes(e.status)
+        )
+
         return {
           ...off,
-          currentCount: offEnrollments.length,
-          studentIds: offEnrollments.map((e) => e.studentId),
+          currentCount: paidEnrollments.length,
+          studentIds: paidEnrollments.map((e) => e.studentId),
         }
       })
     }
@@ -569,7 +571,17 @@ class TermService {
       let students = [...(offering.students || [])]
       const studentId = enrollment.studentId
 
-      if (action === 'remove') {
+      const isPaid = ['paid', 'success'].includes(enrollment.paymentStatus) || ['paid', 'success'].includes(enrollment.status)
+      const isCancelled = enrollment.status === 'cancelled' || enrollment.status === 'deleted'
+      
+      let effectiveAction = 'upsert'
+      if (action === 'remove' || enrollment.isDeleted) {
+        effectiveAction = 'remove'
+      } else if (isCancelled && !isPaid) {
+        effectiveAction = 'remove'
+      }
+
+      if (effectiveAction === 'remove') {
         students = students.filter(
           (student) => (student.id || student.studentId) !== studentId,
         )
