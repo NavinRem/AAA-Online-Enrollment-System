@@ -14,6 +14,9 @@ import { termService } from '@/services/termService'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { useSearch } from '@/composables/useSearch'
 import { getStatusTheme } from '@/utils/badgeUtils'
+import {
+  sortSchedulesChronologically
+} from '@/utils/formatUtils'
 
 const router = useRouter()
 const dataStore = useDataStore()
@@ -87,22 +90,7 @@ const masterClasses = computed(() => {
           .filter(Boolean)
       }
 
-      const dayOrder = {
-        Monday: 1,
-        Tuesday: 2,
-        Wednesday: 3,
-        Thursday: 4,
-        Friday: 5,
-        Saturday: 6,
-        Sunday: 7,
-      }
-
-      schedules = schedules.sort((a, b) => {
-        const dayA = dayOrder[a.day] || 99
-        const dayB = dayOrder[b.day] || 99
-        if (dayA !== dayB) return dayA - dayB
-        return (a.time || '').localeCompare(b.time || '')
-      })
+      schedules = sortSchedulesChronologically(schedules)
 
       schedules = schedules.map((sched) => {
         let scheduleStatus = product.status || 'available'

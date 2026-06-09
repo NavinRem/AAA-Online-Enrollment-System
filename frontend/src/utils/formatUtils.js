@@ -320,3 +320,41 @@ export const calculateOfferingStatus = ({
 
   return fallbackStatus
 }
+
+export const sortSchedulesChronologically = (schedulesArray) => {
+  if (!schedulesArray || !Array.isArray(schedulesArray)) return []
+
+  const parse12hToMinutes = (time12h) => {
+    if (!time12h) return 0
+    const startStr = time12h.split(' - ')[0]
+    if (!startStr) return 0
+    const parts = startStr.split(' ')
+    if (parts.length < 2) return 0
+    const [time, period] = parts
+    let [hours, minutes] = time.split(':').map(Number)
+    if (period === 'PM' && hours < 12) hours += 12
+    if (period === 'AM' && hours === 12) hours = 0
+    return hours * 60 + (minutes || 0)
+  }
+
+  const dayOrder = {
+    Monday: 1,
+    Tuesday: 2,
+    Wednesday: 3,
+    Thursday: 4,
+    Friday: 5,
+    Saturday: 6,
+    Sunday: 7,
+  }
+
+  return [...schedulesArray].sort((a, b) => {
+    const dayA = dayOrder[a.day] || 99
+    const dayB = dayOrder[b.day] || 99
+    
+    if (dayA !== dayB) return dayA - dayB
+    
+    const minsA = parse12hToMinutes(a.time)
+    const minsB = parse12hToMinutes(b.time)
+    return minsA - minsB
+  })
+}

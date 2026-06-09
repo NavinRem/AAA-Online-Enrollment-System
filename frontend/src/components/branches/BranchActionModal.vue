@@ -100,14 +100,23 @@ const requestConfirm = () => {
 
 const handleActionSubmit = () => {
   showConfirm.value = false
-  const payload = getPayload()
+  const fullPayload = getPayload()
 
   if (props.type === 'delete') {
     emit('submit', { id: localData.id })
     return
   }
 
-  emit('submit', payload)
+  // Only send allowed fields to the backend to pass strict validation
+  const cleanPayload = {
+    name: fullPayload.name,
+    abbr: fullPayload.abbr,
+    location: fullPayload.location,
+    phone: fullPayload.phone,
+    color: fullPayload.color,
+  }
+
+  emit('submit', cleanPayload)
 }
 
 const confirmRows = computed(() => {

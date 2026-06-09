@@ -15,6 +15,7 @@ import {
   formatDateOnly,
   calculateClassProgress,
   calculateOfferingStatus,
+  sortSchedulesChronologically
 } from '@/utils/formatUtils'
 import { calculateTermEndDate } from '@/utils/sessionHelper'
 import TermActionModal from '@/components/terms/TermActionModal.vue'
@@ -274,15 +275,8 @@ const branchData = computed(() => {
   })
 
   // Finalize Groups
-  const dayOrder = { Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6, Sunday: 7 }
-  
   result.groupedOfferings = Array.from(groupMap.values()).map(g => {
-    g.schedules.sort((a, b) => {
-      const dayA = dayOrder[a.day] || 99
-      const dayB = dayOrder[b.day] || 99
-      if (dayA !== dayB) return dayA - dayB
-      return (a.time || '').localeCompare(b.time || '')
-    })
+    g.schedules = sortSchedulesChronologically(g.schedules)
     
     const paidEnrolls = g.groupEnrollments.filter(e => ['paid', 'success'].includes(e.status) || ['paid', 'success'].includes(e.paymentStatus))
     g.totalRevenue = paidEnrolls.reduce((sum, e) => sum + Number(e.amount || e.finalPrice || e.totalPrice || 0), 0)
@@ -320,11 +314,17 @@ const branchData = computed(() => {
 
 const termDisplayData = computed(() => {
   if (!term.value) return null
-  const progress = calculateClassProgress(term.value.startDate, term.value.endDate)
+  
+  const setting = activeBranchSetting.value || term.value
+  const startDate = setting.startDate || term.value.startDate
+  const endDate = setting.endDate || term.value.endDate
+  
+  const progress = calculateClassProgress(startDate, endDate)
+  
   return {
     status: progress.status,
-    startDate: term.value.startDate,
-    endDate: term.value.endDate,
+    startDate: startDate,
+    endDate: endDate,
     remainingSessions:
       progress.remainingSessions > 0 ? progress.remainingSessions : term.value.totalSessions,
   }

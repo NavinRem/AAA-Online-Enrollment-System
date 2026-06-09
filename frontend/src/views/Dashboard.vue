@@ -329,11 +329,9 @@ const mappedEnrollments = computed(() => {
         <RecentEnrollmentTable :enrollments="mappedEnrollments" />
       </div>
 
-      <div class="hidden lg:block lg:min-w-72 h-full min-h-0 max-w-80 flex-shrink-0">
+      <div class="hidden lg:block lg:min-w-80 h-full min-h-0 max-w-96 flex-shrink-0">
         <div class="ui-detail-card h-full flex flex-col min-h-0 gap-md !p-lg">
-          <div
-            class="border-b border-gray-200 pb-lg flex flex-col items-center text-center gap-2"
-          >
+          <div class="border-b border-gray-200 pb-lg flex flex-col items-center text-center gap-2">
             <div
               class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2"
             >

@@ -14,6 +14,7 @@ import { classService } from '@/services/classService'
 import { useDataStore } from '@/stores/dataStore'
 import { useModalText } from '@/composables/useModalText'
 import { filterDuplicatePrograms, filterDuplicateClasses } from '@/utils/dropdownUtils'
+import { sortSchedulesChronologically } from '@/utils/formatUtils'
 
 const props = defineProps({
   isOpen: Boolean,
@@ -162,32 +163,28 @@ const statusOptions = [
 const selectedProgram = computed(() =>
   programs.value.find((program) => program.id === form.programId),
 )
+
 const sortedSchedules = computed(() => {
-  const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-  return [...schedules.value].sort((left, right) => {
-    const leftIndex = dayOrder.indexOf(left.day)
-    const rightIndex = dayOrder.indexOf(right.day)
-
-    if (leftIndex !== rightIndex) return leftIndex - rightIndex
-    return (left.time || '').localeCompare(right.time || '')
-  })
+  return sortSchedulesChronologically(schedules.value)
 })
-
-const parse12hToMinutes = (time12h) => {
-  const [time, period] = time12h.split(' ')
-  let [hours, minutes] = time.split(':').map(Number)
-  if (period === 'PM' && hours < 12) hours += 12
-  if (period === 'AM' && hours === 12) hours = 0
-  return hours * 60 + minutes
-}
 
 const getScheduleById = (id) => schedules.value.find((s) => s.id === id)
 
 const getScheduleDuration = (timeRange) => {
   const range = (timeRange || '').split(' - ')
   if (range.length !== 2) return ''
-  const start = parse12hToMinutes(range[0])
-  const end = parse12hToMinutes(range[1])
+  
+  // local parser for duration
+  const parse12hToMinutesLocal = (time12h) => {
+    const [time, period] = time12h.split(' ')
+    let [hours, minutes] = time.split(':').map(Number)
+    if (period === 'PM' && hours < 12) hours += 12
+    if (period === 'AM' && hours === 12) hours = 0
+    return hours * 60 + minutes
+  }
+
+  const start = parse12hToMinutesLocal(range[0])
+  const end = parse12hToMinutesLocal(range[1])
   let diff = end - start
   if (diff < 0) diff += 1440
   return `${diff}mn`
@@ -196,8 +193,18 @@ const getScheduleDuration = (timeRange) => {
 const getScheduleDurationMinutes = (timeRange) => {
   const range = (timeRange || '').split(' - ')
   if (range.length !== 2) return null
-  const start = parse12hToMinutes(range[0])
-  const end = parse12hToMinutes(range[1])
+  
+  // local parser for duration
+  const parse12hToMinutesLocal = (time12h) => {
+    const [time, period] = time12h.split(' ')
+    let [hours, minutes] = time.split(':').map(Number)
+    if (period === 'PM' && hours < 12) hours += 12
+    if (period === 'AM' && hours === 12) hours = 0
+    return hours * 60 + minutes
+  }
+
+  const start = parse12hToMinutesLocal(range[0])
+  const end = parse12hToMinutesLocal(range[1])
   let diff = end - start
   if (diff < 0) diff += 1440
   return diff
@@ -297,8 +304,9 @@ const filteredPickerClasses = computed(() => {
 })
 
 const previewSchedules = computed(() => {
+  let result;
   if (props.context && props.type === 'add') {
-    return form.classIds.map((id) => {
+    result = form.classIds.map((id) => {
       const item = filteredPickerClasses.value.find((c) => c.id === id)
       return {
         id: id,
@@ -308,7 +316,7 @@ const previewSchedules = computed(() => {
       }
     })
   } else {
-    return form.scheduleIds.map((id) => {
+    result = form.scheduleIds.map((id) => {
       const sched = getScheduleById(id)
       return {
         id: id,
@@ -318,6 +326,8 @@ const previewSchedules = computed(() => {
       }
     })
   }
+  
+  return sortSchedulesChronologically(result)
 })
 
 const loadOptions = async (skipCache = false) => {
