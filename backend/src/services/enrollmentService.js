@@ -74,14 +74,7 @@ class EnrollmentService {
       )
     }
 
-    const studentSnapshot = profileHelper.getStudentSnapshot(
-      studentId,
-      studentDoc.data(),
-    )
-    const programSnapshot = profileHelper.getProgramSnapshot(
-      programId,
-      programDoc.data(),
-    )
+    
     const termSnapshot = termService.getTermSnapshot(termId, term, offering)
     const classSnapshot = profileHelper.getClassSnapshot(classId, {
       ...classDoc.data(),
@@ -111,7 +104,6 @@ class EnrollmentService {
 
     const enrollmentId = db.collection(COLLECTIONS.ENROLLMENT).doc().id
 
-    // Cleanup redundant names from root if sent from frontend
     const cleanEnrollmentData = { ...validated }
     const redundantFields = [
       'studentName',
@@ -122,6 +114,14 @@ class EnrollmentService {
     ]
     redundantFields.forEach((f) => delete cleanEnrollmentData[f])
 
+    const studentSnapshot = profileHelper.getStudentSnapshot(
+      studentId,
+      studentDoc.data(),
+    )
+    const programSnapshot = profileHelper.getProgramSnapshot(
+      programId,
+      programDoc.data(),
+    )
     const newEnrollment = {
       ...cleanEnrollmentData,
       parentId: parentId,
@@ -213,17 +213,19 @@ class EnrollmentService {
     }
 
     // Background task: Mark trials as successful
+    // Trigger the background task without 'await', so it runs silently
     this.markMatchingTrialsAsSuccessful(newEnrollment).catch((error) =>
       console.error('Failed to sync trial success:', error),
     )
 
+    // Instantly return success to the frontend
     return { id: enrollmentId, ...newEnrollment }
   }
 
   async getAllEnrollments(filters = {}) {
     let query = db.collection(COLLECTIONS.ENROLLMENT)
 
-    // 1. Filtering (Only basic Firestore filters to avoid index issues)
+    // Filtering (Only basic Firestore filters to avoid index issues)
     if (filters.studentId && filters.studentId !== 'undefined')
       query = query.where('studentId', '==', filters.studentId)
     if (filters.parentId && filters.parentId !== 'undefined')
@@ -267,19 +269,25 @@ class EnrollmentService {
 
     const snapshot = await query.get()
 
-    // 2. Map and Filter by isDeleted in-memory (Foolproof)
+    // Map and Filter by isDeleted in-memory (Foolproof)
     let data = snapshot.docs
       .map((doc) => profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }))
       .filter((e) => e.isDeleted !== true)
 
-    const total = data.length
-
-    // 4. Sort and Paginate in-memory
+    // Sort and Paginate in-memory
     const orderBy = filters.orderBy || 'createdAt'
     const orderDir = filters.orderDir || 'desc'
     data.sort((a, b) => {
-      const valA = a[orderBy] || ''
-      const valB = b[orderBy] || ''
+      let valA = a[orderBy] || ''
+      let valB = b[orderBy] || ''
+
+      // Handle numeric sorting for status and paymentStatus
+      const isNumericField = ['status', 'paymentStatus'].includes(orderBy)
+      if (isNumericField) {
+        valA = parseInt(valA) || 0
+        valB = parseInt(valB) || 0
+      }
+
       if (orderDir === 'desc') return valB > valA ? 1 : -1
       return valA > valB ? 1 : -1
     })
@@ -289,6 +297,8 @@ class EnrollmentService {
     const limit = parseInt(filters.limit) || 50
     const offset = (page - 1) * limit
     const paginatedData = data.slice(offset, offset + limit)
+
+    const total = data.length
 
     return {
       data: paginatedData,

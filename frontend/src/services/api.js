@@ -7,7 +7,10 @@ const API_URL = config.api.baseUrl
 export async function request(endpoint, options = {}) {
   let url = `${API_URL}${endpoint}`
   const method = options.method || 'GET'
-
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  }
   // Global Parameter Sanitization for GET requests
   if (method === 'GET' && endpoint.includes('?')) {
     const [path, query] = endpoint.split('?')
@@ -36,11 +39,6 @@ export async function request(endpoint, options = {}) {
   if (method === 'GET' && !skipCache) {
     const cached = getCachedData(cacheKey)
     if (cached) return cached
-  }
-
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
   }
 
   // Ensure auth is ready before checking currentUser

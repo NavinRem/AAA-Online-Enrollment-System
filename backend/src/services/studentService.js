@@ -53,7 +53,7 @@ class StudentService {
     const studentId = db.collection(COLLECTIONS.STUDENT).doc().id
 
     const dobStr = validated.dob // Expecting YYYY-MM-DD from validator
-    const cleanData = {
+    const newStudent = {
       parentId: validated.parentId,
       name: validated.name,
       dob: dobStr,
@@ -67,11 +67,11 @@ class StudentService {
       updatedAt: new Date().toISOString(),
     }
 
-    const snapshot = profileHelper.getStudentSnapshot(studentId, cleanData)
+    const snapshot = profileHelper.getStudentSnapshot(studentId, newStudent)
     const childrenInfo = [...(pData.childrenInfo || []), snapshot]
 
     const batch = db.batch()
-    batch.set(db.collection(COLLECTIONS.STUDENT).doc(studentId), cleanData)
+    batch.set(db.collection(COLLECTIONS.STUDENT).doc(studentId), newStudent)
     batch.update(parentRef, { childrenInfo })
     await batch.commit()
 

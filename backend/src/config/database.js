@@ -27,6 +27,7 @@ const COLLECTIONS = {
   BRANCH: 'branches',
   CATEGORY: 'categories',
   CLASS: 'classes',
+  // ...
   ENROLLMENT: 'enrollments',
   LEVEL: 'levels',
   PARENT: 'parents',

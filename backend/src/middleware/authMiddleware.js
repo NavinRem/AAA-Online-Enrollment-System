@@ -1,6 +1,7 @@
 const admin = require('firebase-admin')
 const logger = require('firebase-functions/logger')
-const { db } = require('../config/database') // Ensures Firebase is initialized and emulators configured
+require('../config/database') // Ensures Firebase is initialized and emulators configured
+ // Ensures Firebase is initialized and emulators configured
 
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization
