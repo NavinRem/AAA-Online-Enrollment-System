@@ -4,11 +4,14 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  setPersistence,
+  browserSessionPersistence,
 } from 'firebase/auth'
 import { request } from './api'
 
 export const authService = {
   async login(email, password) {
+    await setPersistence(auth, browserSessionPersistence)
     const userCredential = await signInWithEmailAndPassword(auth, email, password)
     const token = await userCredential.user.getIdToken()
     return {
