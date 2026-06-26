@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
@@ -25,10 +25,12 @@ import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
 import RelationshipsCard from '@/components/common/detail/RelationshipsCard.vue'
 import TimestampCard from '@/components/common/detail/TimestampCard.vue'
 import { useDataStore } from '@/stores/dataStore'
+import { useModalState } from '@/composables/useModalState'
+import { useDropdowns } from '@/composables/useDropdowns'
+import { useDetailFetch } from '@/composables/useDetailFetch'
 
 const dataStore = useDataStore()
 
-const route = useRoute()
 const router = useRouter()
 
 const parent = ref(null)
@@ -37,32 +39,14 @@ const enrollments = ref([])
 const activeTab = ref('history')
 const terms = ref([])
 const selectedTermId = ref('all')
-const dropdowns = ref({
-  term: false,
-})
-const filterMenuStyles = ref({})
-
-const toggleDropdown = (type, event) => {
-  event.stopPropagation()
-  const isOpening = !dropdowns.value[type]
-  Object.keys(dropdowns.value).forEach((key) => {
-    dropdowns.value[key] = false
-  })
-  dropdowns.value[type] = isOpening
-
-  if (isOpening) {
-    const rect = event.currentTarget.getBoundingClientRect()
-    filterMenuStyles.value = {
-      top: `${rect.bottom + window.scrollY + 8}px`,
-      left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 300)}px`,
-      minWidth: '240px',
-    }
-  }
-}
+const { dropdowns, filterMenuStyles, toggleDropdown, closeAllDropdowns } = useDropdowns(
+  ['term'],
+  ['#term-filter-btn']
+)
 
 const selectFilter = (type, value) => {
   if (type === 'term') selectedTermId.value = value
-  dropdowns.value[type] = false
+  closeAllDropdowns()
 }
 
 const getActiveLabel = (type) => {
@@ -77,22 +61,8 @@ const getActiveLabel = (type) => {
   return { label: '' }
 }
 
-const handleClickOutside = (event) => {
-  if (dropdowns.value.term) {
-    const btn = document.getElementById('term-filter-btn')
-    if (btn && !btn.contains(event.target)) {
-      dropdowns.value.term = false
-    }
-  }
-}
-
-// No local filters needed as per request
-
 const loading = ref(true)
 const errorMessage = ref('')
-const submitting = ref(false)
-const globalSuccess = ref('')
-const globalError = ref('')
 
 const enrollmentHistory = computed(() => {
   let list = enrollments.value
@@ -237,54 +207,38 @@ const fetchData = async (id) => {
   }
 }
 
-const actionModal = ref({
-  isOpen: false,
-  type: '',
-  user: null,
-})
+const { actionModal, openActionModal: baseOpenModal, closeActionModal, setModalLoading, setModalError, setModalSuccess } = useModalState('edit')
 
 const openActionModal = (type) => {
-  globalError.value = ''
-  globalSuccess.value = ''
-  actionModal.value = {
-    isOpen: true,
-    type,
-    user: parent.value,
-  }
+  baseOpenModal(type)
 }
 
 const openAddChildModal = () => {
-  globalError.value = ''
-  globalSuccess.value = ''
-  actionModal.value = {
-    isOpen: true,
-    type: 'plus',
-    user: parent.value,
-  }
+  baseOpenModal('plus')
 }
 
 const submitActionModal = async (formData) => {
-  const { type, user } = actionModal.value
-  const id = user.id
-  submitting.value = true
-  globalError.value = ''
+  const { type } = actionModal.value
+  const id = parent.value.id
+  setModalLoading(true)
+  setModalError('')
 
   try {
     if (type === 'edit') {
       const finalProfile = await processParentProfileImage(
         formData.profile,
         formData.name,
-        user.profileURL,
+        parent.value.profileURL,
       )
       const payload = prepareParentPayload({ ...formData, profileURL: finalProfile })
       await parentService.updateParent(id, payload)
-      globalSuccess.value = 'Profile updated successfully!'
+      setModalSuccess('Profile updated successfully!')
     } else if (type === 'deactivate') {
       await parentService.updateParent(id, { status: 'inactive' })
-      globalSuccess.value = 'Account deactivated successfully!'
+      setModalSuccess('Account deactivated successfully!')
     } else if (type === 'activate') {
       await parentService.updateParent(id, { status: 'active' })
-      globalSuccess.value = 'Account reactivated successfully!'
+      setModalSuccess('Account reactivated successfully!')
     } else if (type === 'delete') {
       await parentService.deleteParent(id)
       router.push('/parents')
@@ -293,16 +247,15 @@ const submitActionModal = async (formData) => {
       const finalProfile = await processStudentProfileImage(formData.profileURL, formData.name)
       const payload = prepareStudentPayload({ ...formData, profileURL: finalProfile, parentId: id })
       await studentService.createStudent(payload)
-      globalSuccess.value = 'Child registered successfully!'
+      setModalSuccess('Child registered successfully!')
     } else if (type === 'reset-password') {
       const result = await authService.adminResetPassword(id)
-      globalSuccess.value = `Temporary password generated: ${result.tempPassword}`
+      setModalSuccess(`Temporary password generated: ${result.tempPassword}`)
     }
 
     setTimeout(
       () => {
-        actionModal.value.isOpen = false
-        globalSuccess.value = ''
+        closeActionModal()
       },
       type === 'reset-password' ? 5000 : 1500,
     )
@@ -311,20 +264,13 @@ const submitActionModal = async (formData) => {
     await fetchData(id)
   } catch (err) {
     console.error('Action failed:', err)
-    globalError.value = err.message || 'Action failed'
+    setModalError(err.message || 'Action failed')
   } finally {
-    submitting.value = false
+    setModalLoading(false)
   }
 }
 
-onMounted(() => {
-  window.addEventListener('mousedown', handleClickOutside)
-  if (route.params.id) fetchData(route.params.id)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('mousedown', handleClickOutside)
-})
+useDetailFetch(fetchData)
 </script>
 
 <template>
@@ -683,11 +629,11 @@ onUnmounted(() => {
     <ParentActionModal
       :isOpen="actionModal.isOpen"
       :type="actionModal.type"
-      :user="actionModal.user"
-      :loading="submitting"
-      v-model:error="globalError"
-      v-model:success="globalSuccess"
-      @close="actionModal.isOpen = false"
+      :user="parent"
+      :loading="actionModal.loading"
+      :error="actionModal.error"
+      :success="actionModal.success"
+      @close="closeActionModal"
       @submit="submitActionModal"
     />
   </DashboardLayout>

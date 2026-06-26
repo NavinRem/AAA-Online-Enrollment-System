@@ -3,11 +3,13 @@ import { ref, computed, watch } from 'vue'
 import { useActionModal } from '@/composables/useActionModal'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import AppSelect from '@/components/common/ui/AppSelect.vue'
-import AppInput from '@/components/common/ui/AppInput.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
+import ClassBasicInfoPanel from './forms/ClassBasicInfoPanel.vue'
+import ClassSelectionPanel from './forms/ClassSelectionPanel.vue'
+import ClassScheduleConfiguration from './forms/ClassScheduleConfiguration.vue'
+import ClassScheduleManagePanel from './forms/ClassScheduleManagePanel.vue'
 import { getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { scheduleService } from '@/services/scheduleService'
 import { classService } from '@/services/classService'
@@ -170,25 +172,6 @@ const sortedSchedules = computed(() => {
 
 const getScheduleById = (id) => schedules.value.find((s) => s.id === id)
 
-const getScheduleDuration = (timeRange) => {
-  const range = (timeRange || '').split(' - ')
-  if (range.length !== 2) return ''
-  
-  // local parser for duration
-  const parse12hToMinutesLocal = (time12h) => {
-    const [time, period] = time12h.split(' ')
-    let [hours, minutes] = time.split(':').map(Number)
-    if (period === 'PM' && hours < 12) hours += 12
-    if (period === 'AM' && hours === 12) hours = 0
-    return hours * 60 + minutes
-  }
-
-  const start = parse12hToMinutesLocal(range[0])
-  const end = parse12hToMinutesLocal(range[1])
-  let diff = end - start
-  if (diff < 0) diff += 1440
-  return `${diff}mn`
-}
 
 const getScheduleDurationMinutes = (timeRange) => {
   const range = (timeRange || '').split(' - ')
@@ -642,560 +625,64 @@ const toggleAllBranches = () => {
       </AppAlert>
 
       <template v-if="type !== 'delete' && type !== 'remove'">
-        <div
-          v-if="!context || type === 'edit'"
-          class="grid grid-cols-2 gap-x-8 gap-y-10 items-start"
-        >
-          <AppSelect
-            v-model="form.programId"
-            :items="programs"
-            label="Program"
-            placeholder="Select program..."
-            required
-            :error="errors.programId"
-            :shake="shaking.programId"
-            :disabled="!!context || type === 'edit'"
-            @change="handleProgramChange"
-            @click-disabled="handleDisabledClick('programId')"
-          >
-            <template #selected="{ item }">
-              <div v-if="item" class="flex items-center justify-between gap-xs flex-1 pr-sm">
-                <div class="flex items-center gap-sm flex-1">
-                  <div
-                    class="w-10 h-10 overflow-hidden rounded-full border border-outline-std shrink-0 flex items-center justify-center"
-                  >
-                    <img
-                      v-if="item.profileURL"
-                      :src="item.profileURL"
-                      alt=""
-                      class="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div class="w-full flex flex-col">
-                    <span class="text-sm font-semibold text-content-dark truncate">{{
-                      item.name
-                    }}</span>
-                    <span class="text-3xs font-semibold text-content-muted">{{
-                      item.category
-                    }}</span>
-                  </div>
-                </div>
-                <AppBadge type="blue">{{ item.duration }} mn</AppBadge>
-              </div>
-            </template>
-          </AppSelect>
-          <div class="flex flex-col w-full gap-xs">
-            <div class="flex items-center justify-between">
-              <label class="text-sm font-semibold text-content-muted flex items-center gap-1">
-                Branch Selection
-                <span class="text-error font-bold leading-none">*</span>
-              </label>
-              <button
-                type="button"
-                @click="toggleAllBranches"
-                class="text-xs font-bold text-primary hover:underline"
-              >
-                {{
-                  form.branchIds.length === branches.length
-                    ? 'Deselect all branches'
-                    : 'Select all branches'
-                }}
-              </button>
-            </div>
-            <AppSelect
-              v-model="form.branchIds"
-              :items="branches"
-              placeholder="Select branches..."
-              required
-              multiple
-              :error="errors.branchIds"
-              :shake="shaking.branchIds"
-              @change="clearError('branchIds')"
-            >
-              <template #selected="{ items }">
-                <div v-if="!items?.length" class="text-content-muted/40 italic">
-                  Choose branches...
-                </div>
-
-                <div v-else class="flex items-center gap-2 overflow-hidden flex-wrap">
-                  <div
-                    v-for="item in items"
-                    :key="item.id"
-                    class="flex items-center gap-1 bg-surface-subtle border border-transparent hover:border-error/10 hover:bg-error/10 rounded-full pl-0.5 pr-0.5 py-0.5 animate-in zoom-in-95 duration-200 cursor-pointer transition-colors"
-                    title="Click to remove"
-                    @click.stop="form.branchIds = form.branchIds.filter((id) => id !== item.id)"
-                  >
-                    <AppBadge
-                      :status="item.abbr"
-                      :type="item.color"
-                      size="sm"
-                      class="w-12 text-center pointer-events-none"
-                    />
-                  </div>
-                </div>
-              </template>
-              <template #item="{ item }">
-                <div class="flex items-center gap-3 w-full">
-                  <AppBadge
-                    :status="item.abbr"
-                    :type="item.color"
-                    size="sm"
-                    class="w-12 text-center"
-                  />
-                  <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-                </div>
-              </template>
-            </AppSelect>
-          </div>
-          <div class="flex flex-col w-full gap-xs">
-            <div class="flex items-center justify-between">
-              <label class="text-sm font-semibold text-content-muted flex items-center gap-1">
-                Schedule Selection
-                <span class="text-error font-bold leading-none">*</span>
-              </label>
-              <button
-                type="button"
-                @click="toggleScheduleManage"
-                class="text-xs font-bold text-primary hover:underline flex items-center gap-1"
-              >
-                Manage Schedules
-              </button>
-            </div>
-            <AppSelect
-              v-model="form.scheduleIds"
-              :items="filteredSchedules"
-              placeholder="Select schedules..."
-              required
-              multiple
-              :error="errors.scheduleIds"
-              :shake="shaking.scheduleIds"
-              :disabled="!form.programId"
-              @change="handleScheduleChange"
-              @click-disabled="handleDisabledClick('scheduleIds')"
-            >
-              <template #selected="{ items }">
-                <span v-if="!items?.length" class="text-content-muted/40 italic"
-                  >Choose from catalog...</span
-                >
-                <span v-else class="text-sm font-semibold text-primary"
-                  >{{ items.length }} schedule{{ items.length === 1 ? '' : 's' }} selected</span
-                >
-              </template>
-              <template #item="{ item }">
-                <div class="flex items-center justify-between w-full">
-                  <span class="text-sm font-semibold text-content-dark">{{ item.day }}</span>
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs font-bold text-content-muted opacity-40"
-                      >({{ getScheduleDuration(item.time) }})</span
-                    >
-                    <span class="text-xs font-semibold text-primary">{{ item.time }}</span>
-                  </div>
-                </div>
-              </template>
-            </AppSelect>
-          </div>
-          <div class="flex flex-col w-full gap-xs">
-            <AppSelect
-              v-model="form.status"
-              :items="statusOptions"
-              label="Class Status"
-              placeholder="Select status..."
-              required
-            >
-              <template #selected="{ item }">
-                <AppBadge v-if="item" :status="item.name" :type="item.color" size="sm" />
-                <span v-else class="text-content-muted/40 italic">Select status...</span>
-              </template>
-              <template #item="{ item }">
-                <AppBadge :status="item.name" :type="item.color" size="sm" />
-              </template>
-            </AppSelect>
-          </div>
+        <div v-if="!context || type === 'edit'" class="flex flex-col gap-6">
+          <ClassBasicInfoPanel
+            v-model:form="form"
+            :programs="programs"
+            :branches="branches"
+            :filtered-schedules="filteredSchedules"
+            :status-options="statusOptions"
+            :errors="errors"
+            :shaking="shaking"
+            :is-edit-mode="type === 'edit'"
+            @program-change="handleProgramChange"
+            @click-disabled="handleDisabledClick"
+            @schedule-change="handleScheduleChange"
+            @toggle-schedule-manage="toggleScheduleManage"
+            @clear-error="clearError"
+            @toggle-all-branches="toggleAllBranches"
+            @remove-branch="(id) => form.branchIds = form.branchIds.filter(bid => bid !== id)"
+          />
         </div>
         <div v-else-if="context && type === 'add'" class="flex flex-col gap-5">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10 items-start">
-            <AppSelect
-              v-model="form.programId"
-              :items="programs"
-              label="Select Program"
-              placeholder="Select a program first..."
-              required
-              :error="errors.programId"
-              :shake="shaking.programId"
-              @change="handleProgramChange"
-            >
-              <template #selected="{ item }">
-                <div v-if="item" class="flex items-center justify-between gap-xs flex-1 pr-sm">
-                  <div class="flex items-center gap-sm flex-1">
-                    <div
-                      class="w-10 h-10 overflow-hidden rounded-full border border-outline-std shrink-0 flex items-center justify-center"
-                    >
-                      <img
-                        v-if="item.profileURL"
-                        :src="item.profileURL"
-                        alt=""
-                        class="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div class="w-full flex flex-col">
-                      <span class="text-sm font-semibold text-content-dark truncate">{{
-                        item.name
-                      }}</span>
-                      <span class="text-3xs font-semibold text-content-muted">{{
-                        item.category
-                      }}</span>
-                    </div>
-                  </div>
-                  <AppBadge type="blue">{{ item.duration }} mn</AppBadge>
-                </div>
-              </template>
-              <template #item="{ item }">
-                <div class="flex items-center gap-sm">
-                  <div
-                    class="w-8 h-8 overflow-hidden rounded-full border border-outline-std shrink-0 flex items-center justify-center"
-                  >
-                    <img
-                      v-if="item.profileURL"
-                      :src="item.profileURL"
-                      alt=""
-                      class="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div class="flex flex-col w-full">
-                    <span class="text-sm font-semibold text-content-dark truncate">{{
-                      item.name
-                    }}</span>
-                    <span class="text-3xs font-semibold text-content-muted">{{
-                      item.category
-                    }}</span>
-                  </div>
-                </div>
-              </template>
-            </AppSelect>
-
-            <AppSelect
-              v-model="form.classIds"
-              :items="filteredPickerClasses"
-              label="Select Classes"
-              placeholder="Choose classes..."
-              required
-              multiple
-              :disabled="!form.programId"
-              :error="errors.classIds"
-              :shake="shaking.classIds"
-              dropdownWidth="500px"
-              @change="clearError('classIds')"
-              @click-disabled="handleDisabledClick('classIds')"
-            >
-              <template #selected="{ items }">
-                <span v-if="!items?.length" class="text-content-muted/40 italic"
-                  >Choose classes...</span
-                >
-                <span v-else class="text-sm font-semibold text-primary"
-                  >{{ items.length }} class{{ items.length === 1 ? '' : 'es' }} selected</span
-                >
-              </template>
-              <template #item="{ item }">
-                <div
-                  class="flex items-center gap-4 w-full p-2 rounded-md transition-colors"
-                  :class="
-                    form.classIds.includes(item.id)
-                      ? 'bg-primary/5 border border-primary/20'
-                      : 'border border-transparent'
-                  "
-                >
-                  <!-- Schedule (Day & Time in columns) -->
-                  <div style="flex: 2" class="flex flex-col gap-1 min-w-28">
-                    <template v-if="item.displaySchedule">
-                      <AppBadge
-                        :status="item.displaySchedule.day"
-                        type="blue"
-                        size="sm"
-                        class="w-fit"
-                      />
-                      <span class="text-xs font-semibold text-content-dark whitespace-nowrap">{{
-                        item.displaySchedule.time
-                      }}</span>
-                    </template>
-                    <span v-else class="text-xs text-content-muted font-medium italic"
-                      >No schedule</span
-                    >
-                  </div>
-
-                  <!-- Branches -->
-                  <div class="flex flex-col flex-wrap gap-1 min-w-24">
-                    <AppBadge
-                      v-for="branch in item.branches || []"
-                      :key="branch.id"
-                      :status="branch.abbr || branch.name"
-                      :type="branch.color"
-                      size="sm"
-                    />
-                  </div>
-
-                  <!-- Status -->
-                  <div class="w-24 shrink-0 flex items-center justify-center">
-                    <AppBadge :status="item.status" size="sm" />
-                  </div>
-
-                  <!-- Selection Mark -->
-                  <div class="w-12 shrink-0 flex items-center justify-end">
-                    <div
-                      class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors"
-                      :class="
-                        form.classIds.includes(item.id)
-                          ? 'bg-green-500 border-green-500 text-white'
-                          : 'border-outline-std bg-surface-subtle'
-                      "
-                    >
-                      <svg
-                        v-if="form.classIds.includes(item.id)"
-                        class="w-4 h-4"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="3"
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </AppSelect>
-          </div>
+          <ClassSelectionPanel
+            v-model:form="form"
+            :programs="programs"
+            :filtered-picker-classes="filteredPickerClasses"
+            :errors="errors"
+            :shaking="shaking"
+            @program-change="handleProgramChange"
+            @click-disabled="handleDisabledClick"
+            @clear-error="clearError"
+          />
         </div>
+
         <!-- Selected Schedules Preview -->
-        <div
-          v-if="previewSchedules.length > 0"
-          class="flex flex-col gap-4 mt-2 animate-in slide-in-from-top-2 duration-500"
-        >
-          <div class="flex items-center justify-between px-1">
-            <span class="text-sm font-semibold text-content-muted"
-              >Selected Sessions Configuration</span
-            >
-            <span class="text-sm font-bold text-content-muted"
-              >{{ previewSchedules.length }} session{{
-                previewSchedules.length === 1 ? '' : 's'
-              }}</span
-            >
-          </div>
-          <div class="grid grid-cols-1 gap-4 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
-            <div
-              v-for="sched in previewSchedules"
-              :key="sched.id"
-              class="flex items-center justify-between bg-white border border-outline-std rounded-sm p-5 shadow-sm"
-            >
-              <div class="flex items-center gap-4 flex-1">
-                <div class="flex flex-col gap-1">
-                  <template v-if="sched.day">
-                    <span class="text-base font-bold text-content-dark flex items-center gap-2">
-                      {{ sched.day }}
-                      <span class="text-sm font-bold text-content-muted/60 tracking-tighter"
-                        >({{ getScheduleDuration(sched.time) }})</span
-                      >
-                    </span>
-                    <div class="flex items-center gap-2">
-                      <span
-                        class="text-sm font-bold text-primary tracking-tight bg-primary-soft/50 px-2 py-0.5 rounded-md border border-primary/10"
-                        >{{ sched.time }}</span
-                      >
-                    </div>
-                  </template>
-                  <template v-else>
-                    <span class="text-sm font-bold italic text-content-muted">No schedule</span>
-                  </template>
-                </div>
-              </div>
+        <ClassScheduleConfiguration
+          v-model:form="form"
+          :preview-schedules="previewSchedules"
+          :teachers="teachers"
+          @deselect-schedule="deselectSchedule"
+          @remove-class="(id) => form.classIds = form.classIds.filter(cid => cid !== id)"
+        />
 
-              <div class="flex items-center gap-6 ml-4">
-                <template v-if="!sched.isClassId">
-                  <div class="flex flex-col gap-1.5 min-w-52">
-                    <label class="text-xs font-bold text-content-muted"> Responsible Teacher </label>
-                    <AppSelect
-                      v-model="form.scheduleTeachers[sched.id]"
-                      :items="teachers"
-                      placeholder="Assign Teacher..."
-                      size="sm"
-                      :searchable="true"
-                      class="!bg-surface-subtle/50"
-                    >
-                      <template #selected="{ item }">
-                        <div v-if="item" class="flex items-center gap-2">
-                          <img
-                            :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')"
-                            class="w-5 h-5 rounded-full border border-outline-std"
-                          />
-                          <span class="text-xs font-bold truncate max-w-24">{{ item.name }}</span>
-                        </div>
-                      </template>
-                      <template #item="{ item }">
-                        <div class="flex items-center gap-2 w-full">
-                          <img
-                            :src="item.profileURL || getImageUrl('profiles/avatar-teacher-man')"
-                            class="w-6 h-6 rounded-lg border border-outline-std"
-                          />
-                          <div class="flex flex-col overflow-hidden">
-                            <span class="text-xs font-bold text-content-dark truncate">{{
-                              item.name
-                            }}</span>
-                            <span class="text-xs text-content-muted font-semibold">{{
-                              item.branchAbbr || 'Cross-Branch'
-                            }}</span>
-                          </div>
-                        </div>
-                      </template>
-                    </AppSelect>
-                  </div>
-
-                  <div class="flex flex-col items-center gap-1.5">
-                    <label class="text-xs font-bold text-content-muted"> Capacity </label>
-                    <div
-                      class="flex items-center gap-3 bg-surface-subtle p-sm rounded-sm border border-outline-std"
-                    >
-                      <input
-                        type="number"
-                        v-model.number="form.scheduleCapacities[sched.id]"
-                        class="w-14 h-6 text-base font-black text-center bg-transparent text-content-dark outline-none focus:text-primary transition-colors"
-                        min="1"
-                        required
-                      />
-                      <span class="text-xs font-bold text-content-muted">Seats</span>
-                    </div>
-                  </div>
-                </template>
-
-                <button
-                  type="button"
-                  @click="sched.isClassId ? form.classIds = form.classIds.filter(id => id !== sched.id) : deselectSchedule(sched.id)"
-                  class="w-12 h-12 flex items-center justify-center hover:bg-error-soft text-content-muted hover:text-error rounded-xl transition-all border border-transparent hover:border-error/20 group/btn"
-                >
-                  <img
-                    :src="getActionIcon('delete')"
-                    class="w-5 h-5 group-hover/btn:opacity-100 transition-opacity"
-                  />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
+        <ClassScheduleManagePanel
           v-if="manageSchedules"
-          class="p-md bg-primary-soft/30 rounded-std border-2 border-dashed border-primary/20 flex flex-col gap-sm animate-in fade-in slide-in-from-top-2 duration-300"
-        >
-          <div class="flex justify-between items-center">
-            <span class="text-sm font-semibold text-primary flex items-center gap-xs">
-              <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-              Manage schedules
-            </span>
-            <button
-              type="button"
-              @click="toggleScheduleManage"
-              class="text-xs font-semibold text-content-muted hover:text-error"
-            >
-              Close
-            </button>
-          </div>
-
-          <div class="flex flex-col gap-sm">
-            <div class="grid grid-cols-2 gap-x-6 gap-y-4">
-              <!-- Setup Row -->
-              <div
-                class="col-span-2 grid gap-4 items-end"
-                style="grid-template-columns: 1.2fr 1fr 1fr"
-              >
-                <AppSelect
-                  v-model="newSchedule.day"
-                  :items="dayOptions"
-                  label="Day"
-                  required
-                  :searchable="false"
-                >
-                  <template #selected="{ item }">
-                    <span v-if="item" class="text-sm font-semibold text-content-dark">{{
-                      item.name
-                    }}</span>
-                  </template>
-                  <template #item="{ item }">
-                    <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-                  </template>
-                </AppSelect>
-                <AppInput v-model="newSchedule.startTime" type="time" label="Start Time" required />
-                <AppInput :modelValue="calculatedEndTime" label="End Time" disabled />
-              </div>
-
-              <div class="col-span-2 flex justify-end pt-2 border-t border-primary/10">
-                <AppButton size="md" type="button" @click="addSchedule" :loading="lookupLoading">
-                  Add Schedule
-                </AppButton>
-              </div>
-            </div>
-          </div>
-
-          <AppAlert v-if="lookupError" type="error" size="sm" closable @close="lookupError = ''">
-            {{ lookupError }}
-          </AppAlert>
-          <AppAlert
-            v-if="lookupSuccess"
-            type="success"
-            size="sm"
-            closable
-            @close="lookupSuccess = ''"
-          >
-            {{ lookupSuccess }}
-          </AppAlert>
-
-          <div class="flex flex-col gap-1 max-h-44 overflow-y-auto pr-1 scrollable-v">
-            <div
-              v-for="item in sortedSchedules"
-              :key="item.id"
-              class="px-4 py-2.5 cursor-pointer bg-white border border-outline-std rounded-xl flex items-center justify-between group hover:border-primary/30 hover:bg-primary-light transition-all"
-              :class="{
-                'ring-2 ring-primary border-primary bg-primary/5 z-10': item.id === justAddedId,
-              }"
-            >
-              <div class="flex items-center gap-4">
-                <div class="w-24">
-                  <AppBadge :status="item.day" type="day" />
-                </div>
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-bold text-content-dark tracking-tight">{{
-                    item.time
-                  }}</span>
-                  <span class="text-sm font-bold text-primary opacity-60"
-                    >({{ getScheduleDuration(item.time) }})</span
-                  >
-                </div>
-              </div>
-
-              <button
-                type="button"
-                @click="deleteSchedule(item.id)"
-                class="w-8 h-8 rounded-lg flex items-center justify-center text-content-muted hover:bg-error-soft hover:text-error transition-all opacity-40 group-hover:opacity-100"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div
-              v-if="!schedules.length"
-              class="flex flex-col items-center justify-center py-8 text-content-muted bg-surface-subtle/50 rounded-xl border border-dashed border-outline-std"
-            >
-              <span class="text-sm font-semibold italic">No schedules found in catalog</span>
-            </div>
-          </div>
-        </div>
+          v-model:new-schedule="newSchedule"
+          :calculated-end-time="calculatedEndTime"
+          :lookup-loading="lookupLoading"
+          :lookup-error="lookupError"
+          :lookup-success="lookupSuccess"
+          :sorted-schedules="sortedSchedules"
+          :schedules-length="schedules.length"
+          :just-added-id="justAddedId"
+          :day-options="dayOptions"
+          @toggle="toggleScheduleManage"
+          @add-schedule="addSchedule"
+          @delete-schedule="deleteSchedule"
+          @clear-error="lookupError = ''"
+          @clear-success="lookupSuccess = ''"
+        />
       </template>
 
       <div v-else class="flex flex-col gap-6">

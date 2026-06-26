@@ -1,6 +1,6 @@
 import { request } from './api'
 
-export const studentService = {
+const studentService = {
   createStudent(studentData, userId) {
     return request('/students', {
       method: 'POST',
@@ -43,4 +43,4 @@ export const studentService = {
   },
 }
 
-export default studentService
+export { studentService }

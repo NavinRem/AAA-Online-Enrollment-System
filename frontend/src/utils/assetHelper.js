@@ -30,10 +30,8 @@ const resolveAsset = (category, path) => {
   return ''
 }
 
-export const getImage = (p1, p2) => resolveAsset('images', p2 ? `${p1}/${p2}` : p1)
-export const getIcon = (p1, p2) => resolveAsset('icons', p2 ? `${p1}/${p2}` : p1)
-export const getImageUrl = getImage
-export const getIconUrl = getIcon
+export const getImageUrl = (p1, p2) => resolveAsset('images', p2 ? `${p1}/${p2}` : p1)
+export const getIconUrl = (p1, p2) => resolveAsset('icons', p2 ? `${p1}/${p2}` : p1)
 
 export const getProgramProfileURL = (progUrl, catName, catUrl) => {
   if (progUrl) return resolveAsset('images', progUrl)
@@ -48,10 +46,9 @@ export const getParentProfileURL = (url) =>
   resolveAsset('images', url) || resolveAsset('images', 'profiles/avatar-man')
 export const getStudentProfileURL = (url) =>
   resolveAsset('images', url) || resolveAsset('images', 'profiles/avatar-boy')
-export const getTeacherProfileURL = (url) =>
-  resolveAsset('images', url) || resolveAsset('images', 'profiles/avatar-teacher-man')
 
-export const ACTION_ICONS = {
+
+const ACTION_ICONS = {
   edit: 'action/edit',
   pay: 'action/pay',
   cancel: 'action/cancel',
@@ -75,17 +72,9 @@ export const ACTION_ICONS = {
   branch: 'navigation/branch',
 }
 
-export const getActionIcon = (name) => getIcon(ACTION_ICONS[normalize(name)] || name)
+export const getActionIcon = (name) => getIconUrl(ACTION_ICONS[normalize(name)] || name)
 
-const getProfile = (name) => getImage('profiles', `avatar-${name}`)
-export const ALL_BUILTIN_AVATARS = [
-  'boy',
-  'girl',
-  'man',
-  'woman',
-  'teacher-man',
-  'teacher-woman',
-].map(getProfile)
+
 
 export const isSameProfileAsset = (a, b) => {
   if (!a || !b) return a === b

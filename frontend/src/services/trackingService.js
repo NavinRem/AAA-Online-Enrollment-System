@@ -1,4 +1,4 @@
-export const trackingService = {
+const trackingService = {
   async getAttendanceHistory() {
     return []
   },
@@ -12,4 +12,4 @@ export const trackingService = {
   },
 }
 
-export default trackingService
+export { trackingService }

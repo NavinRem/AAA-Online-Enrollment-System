@@ -2,14 +2,18 @@
 import { ref, computed, watch } from 'vue'
 import { useActionModal } from '@/composables/useActionModal'
 import AppButton from '@/components/common/ui/AppButton.vue'
-import AppInput from '@/components/common/ui/AppInput.vue'
-import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppModal from '@/components/common/ui/AppModal.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import AppAlert from '@/components/common/ui/AppAlert.vue'
+import EnrollmentSelectionPanel from './forms/EnrollmentSelectionPanel.vue'
+import EnrollmentOfferingOverview from './forms/EnrollmentOfferingOverview.vue'
+import EnrollmentPricingPanel from './forms/EnrollmentPricingPanel.vue'
+import EnrollmentPayPanel from './forms/EnrollmentPayPanel.vue'
+import EnrollmentCancelPanel from './forms/EnrollmentCancelPanel.vue'
+import EnrollmentDeletePanel from './forms/EnrollmentDeletePanel.vue'
 import { getActionIcon, getImageUrl, getProgramProfileURL } from '@/utils/assetHelper'
-import { formatPrice, formatDateOnly } from '@/utils/formatUtils'
+import { formatPrice } from '@/utils/formatUtils'
 import { useModalText } from '@/composables/useModalText'
 import { getSessionCounts } from '@/utils/programHelper'
 import { filterEnrolledPrograms } from '@/utils/dropdownUtils'
@@ -106,14 +110,6 @@ const {
   autoClear: 3000,
 })
 
-const cancelPresets = ['Schedule Conflict', 'Relocation', 'Financial Issue', 'Duplicated']
-const selectPreset = (preset) => {
-  if (form.reason === preset) {
-    form.reason = ''
-  } else {
-    form.reason = preset
-  }
-}
 
 const showConfirm = ref(false)
 const isEditMode = computed(
@@ -701,663 +697,78 @@ defineExpose({ setStudent })
     :success="success"
   >
     <form id="enrollmentForm" novalidate @submit.prevent="requestConfirm" class="enroll-form-root">
-      <div v-if="type === 'add' || type === 'edit'" class="ui-form-grid">
-        <AppSelect
-          v-model="form.parentId"
-          :items="parentSelectItems"
-          label="Parent"
-          placeholder="Select Parent"
-          required
-          :disabled="isEditMode"
-          :error="errors.parentId"
-          :shake="shaking.parentId"
-          :loading="loading"
-          searchPlaceholder="Search parent name..."
-          @click-disabled="handleDisabledClick('parentId')"
-          @change="selectParent"
-        >
-          <template #item="{ item }">
-            <div class="flex items-center gap-3 w-full">
-              <div
-                class="w-8 h-8 rounded-md border border-outline-std overflow-hidden bg-white shrink-0 shadow-sm"
-              >
-                <img
-                  :src="item.profileURL || getActionIcon('edit')"
-                  class="w-full h-full object-cover"
-                />
-              </div>
-              <div class="flex flex-col flex-1">
-                <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-              </div>
-              <div v-if="item.children?.length" class="flex -space-x-2 ml-auto">
-                <div
-                  v-for="child in item.children"
-                  :key="child.id"
-                  class="w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-surface-subtle shadow-sm"
-                  :title="child.name"
-                >
-                  <img
-                    :src="child.profileURL || getActionIcon('student')"
-                    class="w-full h-full object-cover"
-                  />
-                </div>
-              </div>
-            </div>
-          </template>
-        </AppSelect>
-
-        <AppSelect
-          v-model="form.studentId"
-          :items="studentSelectItems"
-          label="Student"
-          placeholder="Select Student"
-          required
-          :disabled="!form.parentId || isEditMode"
-          :error="errors.studentId"
-          :shake="shaking.studentId"
-          :loading="loading"
-          searchPlaceholder="Search student name..."
-          @click-disabled="handleDisabledClick('studentId')"
-          @change="handleStudentChange"
-        >
-          <template #selected="{ item }">
-            <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
-              <div
-                class="w-7 h-7 rounded-full border border-outline-std overflow-hidden bg-white shrink-0"
-              >
-                <img
-                  :src="item.profileURL || getActionIcon('student')"
-                  class="w-full h-full object-cover"
-                />
-              </div>
-              <span class="text-sm font-semibold text-content-dark truncate flex-1">{{
-                item.name
-              }}</span>
-              <AppBadge v-if="item.age" status="student">{{ item.age }} years old</AppBadge>
-            </div>
-            <span v-else class="text-content-light text-sm italic opacity-70">Select Student</span>
-          </template>
-          <template #item="{ item }">
-            <div class="flex items-center gap-3 w-full">
-              <div
-                class="w-8 h-8 rounded-md border border-outline-std overflow-hidden bg-white shrink-0 shadow-sm"
-              >
-                <img
-                  :src="item.profileURL || getActionIcon('student')"
-                  class="w-full h-full object-cover"
-                />
-              </div>
-              <div class="flex flex-col flex-1">
-                <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
-              </div>
-              <div class="ml-auto flex items-center">
-                <AppBadge v-if="item.age" status="student">{{ item.age }} years old</AppBadge>
-              </div>
-            </div>
-          </template>
-        </AppSelect>
-
-        <div
-          v-if="form.parentId && availableStudents.length === 0"
-          class="col-span-2 p-4 bg-warning-soft border border-warning/20 rounded-xl flex items-center gap-3 animate-fade-in"
-        >
-          <img :src="getActionIcon('cancel')" class="w-5 h-5 brightness-0 grayscale opacity-60" />
-          <span class="text-xs font-bold text-content-dark opacity-70"
-            >This parent has no children registered. Add a child in the Students module first.</span
-          >
-        </div>
-
-        <AppSelect
-          v-model="form.programId"
-          :items="programSelectItems"
-          label="Program"
-          placeholder="Select Program"
-          required
-          :disabled="!form.studentId"
-          :error="errors.programId"
-          :shake="shaking.programId"
-          :loading="loading"
-          @click-disabled="handleDisabledClick('programId')"
-          @change="handleProgramChange"
-        >
-          <template #selected="{ item }">
-            <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
-              <span class="text-sm font-semibold text-content-dark truncate flex-1"
-                >{{ item.name }}
-              </span>
-              <AppBadge :status="item.type" :type="item.type" />
-            </div>
-          </template>
-          <template #item-badge="{ item }">
-            <AppBadge :status="item.type" />
-          </template>
-        </AppSelect>
-
-        <AppSelect
-          v-model="form.termOfferingId"
-          :items="offeringSelectItems"
-          label="Available Classes"
-          placeholder="Select a class to enroll"
-          required
-          :disabled="!form.programId"
-          :error="errors.termOfferingId"
-          :shake="shaking.termOfferingId"
-          :loading="loading"
-          @click-disabled="handleDisabledClick('termOfferingId')"
-          @change="handleOfferingChange"
-        >
-          <template #selected="{ item }">
-            <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
-              <AppBadge :status="item.termName" type="purple" />
-              <AppBadge :status="item.scheduleDay" type="day" />
-              <span class="text-sm font-semibold text-content-dark truncate flex-1">{{
-                item.scheduleTime
-              }}</span>
-              <AppBadge :status="item.branchName" :type="item.branchColor" />
-            </div>
-          </template>
-          <template #item="{ item }">
-            <div class="flex flex-col w-full gap-0.5">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-bold text-content-dark">{{ item.className }}</span>
-                  <AppBadge :status="item.termName" type="blue" />
-                </div>
-                <AppBadge :status="item.branchName" :type="item.branchColor" />
-              </div>
-              <div class="flex items-center justify-between mt-1">
-                <span class="text-xs font-semibold"
-                  >{{ item.scheduleDay }} ({{ item.scheduleTime }})</span
-                >
-                <span
-                  class="text-xs font-bold"
-                  :class="item.capacity - item.studentCount <= 3 ? 'text-error' : 'text-success'"
-                >
-                  {{ item.capacity - item.studentCount }} slots left
-                </span>
-              </div>
-            </div>
-          </template>
-        </AppSelect>
-
-        <div
-          v-if="form.classId && availableOfferings.length === 0"
-          class="col-span-2 p-4 bg-error-soft border border-error/10 rounded-xl flex items-center gap-3 animate-fade-in"
-        >
-          <img :src="getActionIcon('cancel')" class="w-5 h-5" />
-          <span class="text-xs font-bold text-error"
-            >No active or upcoming terms offer this class yet.</span
-          >
-        </div>
-      </div>
+      <EnrollmentSelectionPanel
+        v-if="['add', 'edit', 'transfer'].includes(type)"
+        v-model:form="form"
+        :errors="errors"
+        :shaking="shaking"
+        :loading="loading"
+        :isEditMode="isEditMode"
+        :parentSelectItems="parentSelectItems"
+        :studentSelectItems="studentSelectItems"
+        :programSelectItems="programSelectItems"
+        :offeringSelectItems="offeringSelectItems"
+        :availableStudents="availableStudents"
+        :availableOfferings="availableOfferings"
+        @click-disabled="handleDisabledClick"
+        @parent-change="selectParent"
+        @student-change="handleStudentChange"
+        @program-change="handleProgramChange"
+        @offering-change="handleOfferingChange"
+      />
 
       <transition
-        v-if="type === 'add' || type === 'edit'"
+        v-if="['add', 'edit', 'transfer'].includes(type)"
         enter-active-class="transition duration-500 ease-out"
         enter-from-class="opacity-0 translate-y-4"
         enter-to-class="opacity-100 translate-y-0"
       >
         <div v-if="selectedOffering" class="enrollment-detail-panel">
-          <div class="enroll-twin-card">
-            <span class="enroll-section-label">Offering Overview</span>
-            <div class="enroll-info-grid">
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Program</span>
-                <span class="enroll-info-val">{{ selectedProgram?.name || '—' }}</span>
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Term</span>
-                <span class="enroll-info-val">{{ selectedOffering.termName }}</span>
-              </div>
-              <div class="enroll-info-item col-span-2">
-                <span class="enroll-info-key">Schedule</span>
-                <span class="enroll-info-val text-primary font-bold">
-                  {{ selectedOffering.schedule?.day }} ({{ selectedOffering.schedule?.time }})
-                </span>
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Branch</span>
-                <AppBadge
-                  :status="selectedOffering.branch?.abbr || selectedOffering.branch?.name"
-                  :type="selectedOffering.branch?.color || 'blue'"
-                />
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Students</span>
-                <span class="enroll-info-val">{{ selectedOffering.studentCount }}</span>
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Start Date</span>
-                <AppBadge :status="formatDateOnly(selectedOffering.startDate)" type="green" />
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">End Date</span>
-                <AppBadge :status="formatDateOnly(selectedOffering.endDate)" type="red" />
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Remaining</span>
-                <span class="enroll-info-val">{{ sessionInfo?.remaining ?? '—' }}</span>
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Base Price</span>
-                <AppBadge
-                  :status="'$' + formatPrice(selectedProgram?.basePrice || 0)"
-                  type="blue"
-                />
-              </div>
-            </div>
-          </div>
+          <EnrollmentOfferingOverview
+            :selectedProgram="selectedProgram"
+            :selectedOffering="selectedOffering"
+            :sessionInfo="sessionInfo"
+          />
 
-          <div class="enroll-twin-card">
-            <span class="enroll-section-label">Pricing</span>
-            <div class="enroll-info-grid">
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Billing Mode</span>
-                <div
-                  class="ui-box-toggle"
-                  :class="{ 'ui-box-toggle--active': form.isProrated }"
-                  @click="form.isProrated = !form.isProrated"
-                >
-                  <AppBadge :status="form.isProrated ? 'Partial' : 'Full'" />
-                </div>
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Sponsorship</span>
-                <div
-                  class="ui-box-toggle"
-                  :class="{ 'ui-box-toggle--active': form.isSponsorship }"
-                  @click="form.isSponsorship = !form.isSponsorship"
-                >
-                  <AppBadge :status="form.isSponsorship ? 'Sponsored' : 'Parent Paid'" />
-                </div>
-              </div>
-              <div v-if="isEditMode" class="enroll-info-item col-span-2">
-                <AppInput
-                  v-model.number="form.transferredSessions"
-                  type="number"
-                  label="Prior Paid Sessions Credit"
-                  placeholder="0"
-                  :error="errors.transferredSessions"
-                  :shake="shaking.transferredSessions"
-                />
-              </div>
-              <div v-if="form.isSponsorship" class="enroll-info-item col-span-2">
-                <AppInput
-                  v-model="form.sponsorName"
-                  label="Sponsor Name"
-                  placeholder="e.g. Corporate Partner"
-                  :error="errors.sponsorName"
-                  :shake="shaking.sponsorName"
-                />
-              </div>
-              <div class="enroll-info-item">
-                <AppInput
-                  v-model.number="form.discountAmount"
-                  type="number"
-                  label="Discount"
-                  placeholder="0"
-                  :error="errors.discountAmount"
-                  :shake="shaking.discountAmount"
-                />
-              </div>
-              <div class="enroll-info-item">
-                <div class="flex flex-col gap-2">
-                  <span class="enroll-info-key">Discount Type</span>
-                  <div class="flex bg-surface-subtle border border-outline-std rounded-sm p-0.5">
-                    <button
-                      type="button"
-                      @click="form.discountType = 'dollar'"
-                      class="px-2 py-1 rounded-xs text-xs font-semibold transition-all"
-                      :class="
-                        form.discountType === 'dollar'
-                          ? 'bg-primary text-white shadow-sm rounded-sm'
-                          : 'text-content-muted hover:text-content-dark'
-                      "
-                    >
-                      $
-                    </button>
-                    <button
-                      type="button"
-                      @click="form.discountType = 'percent'"
-                      class="px-2 py-1 rounded-xs text-xs font-semibold transition-all"
-                      :class="
-                        form.discountType === 'percent'
-                          ? 'bg-primary text-white shadow-sm rounded-sm'
-                          : 'text-content-muted hover:text-content-dark'
-                      "
-                    >
-                      %
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Custom Price</span>
-                <div
-                  class="ui-box-toggle"
-                  :class="{ 'ui-box-toggle--danger': form.isCustomPrice }"
-                  @click="form.isCustomPrice = !form.isCustomPrice"
-                >
-                  <span class="text-sm font-semibold" :class="{ 'text-error': form.isCustomPrice }">
-                    {{ form.isCustomPrice ? 'Override' : 'Locked' }}
-                  </span>
-                </div>
-              </div>
-              <div v-if="form.isCustomPrice" class="enroll-info-item">
-                <AppInput
-                  v-model.number="form.customPrice"
-                  type="number"
-                  label="Override Price"
-                  placeholder="0"
-                  :error="errors.customPrice"
-                  :shake="shaking.customPrice"
-                />
-              </div>
-              <div class="enroll-info-item col-span-2">
-                <AppInput
-                  v-model="form.remark"
-                  type="textarea"
-                  label="Administrative Remark"
-                  placeholder="Optional note"
-                  :error="errors.remark"
-                  :shake="shaking.remark"
-                  @input="clearError('remark')"
-                />
-              </div>
-              <div class="enroll-info-item col-span-2 mt-2">
-                <div class="ui-summary-card">
-                  <div class="ui-summary-content">
-                    <span class="ui-summary-label">Total Price to Pay</span>
-                    <div class="text-lg font-bold">
-                      Billed Sessions: {{ form.enrolledSessions || 0 }}
-                    </div>
-                  </div>
-                  <span class="ui-summary-amount">
-                    {{ form.isSponsorship ? '$0.00' : '$' + formatPrice(finalAmount) }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <EnrollmentPricingPanel
+            v-model:form="form"
+            :errors="errors"
+            :shaking="shaking"
+            :isEditMode="isEditMode"
+            :finalAmount="finalAmount"
+            @clear-error="clearError"
+          />
         </div>
       </transition>
 
       <!-- Content for Pay Action -->
-      <div v-if="type === 'pay'" class="flex flex-col gap-lg">
-        <div v-if="displaySummary" class="flex flex-col gap-lg">
-          <div class="enroll-twin-card">
-            <span class="enroll-section-label">Enrollment Details</span>
-            <div class="enroll-info-grid">
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Student</span>
-                <div class="flex items-center gap-2">
-                  <img :src="displaySummary.studentAvatar" class="w-6 h-6 rounded-full" />
-                  <span class="enroll-info-val">{{ displaySummary.studentName }}</span>
-                </div>
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Parent</span>
-                <div class="flex items-center gap-2">
-                  <img :src="displaySummary.parentAvatar" class="w-6 h-6 rounded-full" />
-                  <span class="enroll-info-val">{{ displaySummary.parentName }}</span>
-                </div>
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Program</span>
-                <div class="flex items-center gap-2">
-                  <img :src="displaySummary.programAvatar" class="w-6 h-6 rounded-full" />
-                  <span class="enroll-info-val">{{ displaySummary.programName }}</span>
-                </div>
-              </div>
-              <div class="enroll-info-item">
-                <span class="enroll-info-key">Schedule</span>
-                <span class="enroll-info-val text-primary font-bold">
-                  {{ displaySummary.scheduleDay }} ({{ displaySummary.scheduleTime }})
-                </span>
-              </div>
-              <div class="enroll-info-item col-span-2">
-                <span class="enroll-info-key">Branch</span>
-                <AppBadge :status="displaySummary.branchAbbr" :type="displaySummary.branchColor" />
-              </div>
-            </div>
-          </div>
-
-          <div class="enroll-twin-card">
-            <span class="enroll-section-label">Payment Summary</span>
-            <div class="enroll-info-grid">
-              <div class="enroll-info-item col-span-2 mt-2">
-                <div class="ui-summary-card">
-                  <div class="ui-summary-content">
-                    <span class="ui-summary-label text-white font-bold text-lg"
-                      >Total Amount Due</span
-                    >
-                    <div class="enroll-tuition-savings flex gap-2 mt-1">
-                      <AppBadge :status="displaySummary.mode || displaySummary.status" />
-                    </div>
-                  </div>
-                  <span class="ui-summary-amount"> ${{ formatPrice(displaySummary.amount) }} </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <AppAlert type="warning" class="mt-md">
-          <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-semibold tracking-tight"
-              >Final Verification Required</strong
-            >
-            <span class="text-xs opacity-90 font-medium"
-              >By confirming, you verify that the payment proof matches the tuition amount. This
-              action is irreversible.</span
-            >
-          </div>
-        </AppAlert>
-
-        <div class="flex flex-col gap-xs mt-lg">
-          <label class="text-xs font-semibold text-content-muted">Payment Channel Selection</label>
-          <div
-            class="flex items-center gap-2 p-2 bg-white rounded-2xl border border-outline-std mt-1 w-fit"
-          >
-            <button
-              type="button"
-              @click="form.paymentMethod = 'online'"
-              class="py-2 px-5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all duration-300 border border-transparent"
-              :class="
-                form.paymentMethod === 'online'
-                  ? 'bg-primary text-white shadow-md ring-1 ring-black/5'
-                  : 'text-content-muted hover:text-content-dark hover:bg-surface-subtle/50'
-              "
-            >
-              <img
-                :src="getActionIcon('pay')"
-                class="w-4 h-4"
-                :class="{ 'brightness-200': form.paymentMethod === 'online' }"
-              />
-              Online / Bank
-            </button>
-            <button
-              type="button"
-              @click="form.paymentMethod = 'cash'"
-              class="py-2 px-5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all duration-300 border border-transparent"
-              :class="
-                form.paymentMethod === 'cash'
-                  ? 'bg-primary text-white shadow-md ring-1 ring-black/5'
-                  : 'text-content-muted hover:text-content-dark hover:bg-surface-subtle/50'
-              "
-            >
-              <img
-                :src="getActionIcon('cash')"
-                class="w-4 h-4"
-                :class="{ 'brightness-200': form.paymentMethod === 'cash' }"
-              />
-              Cash Payment
-            </button>
-          </div>
-        </div>
-
-        <div class="ui-form-grid mt-md">
-          <AppSelect
-            v-if="form.paymentMethod === 'online'"
-            v-model="form.bankName"
-            :items="
-              ['ABA', 'Wing', 'ACLEDA', 'Canadia', 'Sathapana', 'Other'].map((b) => ({
-                id: b,
-                name: b,
-              }))
-            "
-            label="Issuing Bank"
-            placeholder="Select Bank..."
-            required
-            :error="errors.bankName"
-            :shake="shaking.bankName"
-            :searchable="false"
-            @change="clearError('bankName')"
-          />
-
-          <AppInput
-            v-model="form.receiptId"
-            label="Receipt ID"
-            placeholder="e.g. REC-001"
-            required
-            :error="errors.receiptId"
-            :shake="shaking.receiptId"
-            :class="form.paymentMethod === 'online' ? '' : 'col-span-2'"
-            @input="clearError('receiptId')"
-          />
-
-          <AppInput
-            v-if="form.paymentMethod === 'online'"
-            v-model="form.transactionId"
-            label="Transaction Code"
-            placeholder="e.g. 123456"
-            required
-            :error="errors.transactionId"
-            :shake="shaking.transactionId"
-            @input="clearError('transactionId')"
-          />
-        </div>
-
-        <AppInput
-          v-model="form.remark"
-          type="textarea"
-          label="Internal Processing Remarks"
-          placeholder="Add any specific notes for audit trailing..."
-          :error="errors.remark"
-          :shake="shaking.remark"
-          @input="clearError('remark')"
-        />
-      </div>
+      <EnrollmentPayPanel
+        v-if="type === 'pay'"
+        v-model:form="form"
+        :displaySummary="displaySummary"
+        :errors="errors"
+        :shaking="shaking"
+        @clear-error="clearError"
+      />
 
       <!-- Content for Cancel Action -->
-      <div v-if="type === 'cancel'" class="flex flex-col gap-lg">
-        <AppAlert type="warning">
-          <div class="flex flex-col gap-0.5">
-            <strong class="text-sm font-semibold tracking-tight"
-              >Program Termination Warning</strong
-            >
-            <span class="text-xs opacity-90 font-medium"
-              >Marking this enrollment as cancelled will release the reserved seat. Cancellation can be undone later. Paid enrollments will remain in historical records but will no longer be marked for future attendance.</span
-            >
-          </div>
-        </AppAlert>
-
-        <div class="flex flex-col gap-xs">
-          <div class="flex flex-wrap gap-xs mb-sm mt-1">
-            <button
-              v-for="preset in cancelPresets"
-              :key="preset"
-              type="button"
-              class="px-md py-1.5 border-2 rounded-sm text-2xs cursor-pointer font-semibold transition-all"
-              :class="
-                form.reason === preset
-                  ? 'bg-primary text-white border-primary shadow-md scale-105'
-                  : 'bg-surface-light border-outline-std/50 hover:bg-primary-soft hover:text-primary hover:border-primary/20'
-              "
-              @click="selectPreset(preset)"
-            >
-              {{ preset }}
-            </button>
-          </div>
-          <AppInput
-            v-model="form.reason"
-            type="textarea"
-            label="Cancellation Logic / Reason"
-            required
-            :error="errors.reason"
-            :shake="shaking.reason"
-            placeholder="Provide a detailed cancel reason..."
-            @input="clearError('reason')"
-          />
-        </div>
-      </div>
+      <EnrollmentCancelPanel
+        v-if="type === 'cancel'"
+        v-model:form="form"
+        :errors="errors"
+        :shaking="shaking"
+        @clear-error="clearError"
+      />
 
       <!-- Content for Delete Action -->
-      <div v-if="type === 'delete'" class="flex flex-col gap-lg">
-        <!-- Identity Summary (consistent with pay modal) -->
-
-        <div class="enroll-twin-card" v-if="displaySummary">
-          <div class="enroll-info-grid">
-            <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider"
-                >Parent</span
-              >
-              <div class="flex items-center gap-sm">
-                <img :src="displaySummary.parentAvatar" class="w-8 h-8 rounded-full" />
-                <span class="text-sm font-semibold">{{ displaySummary.parentName }}</span>
-              </div>
-            </div>
-            <div class="flex flex-col gap-xs">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider"
-                >Student</span
-              >
-              <div class="flex items-center gap-sm">
-                <img :src="displaySummary.studentAvatar" class="w-8 h-8 rounded-full" />
-                <span class="text-sm font-semibold">{{ displaySummary.studentName }}</span>
-              </div>
-            </div>
-            <div class="flex flex-col gap-xs col-span-2">
-              <span class="text-2xs font-semibold text-content-muted uppercase tracking-wider"
-                >Program</span
-              >
-              <div class="flex items-center gap-sm">
-                <img :src="displaySummary.programAvatar" class="w-8 h-8 rounded-full" />
-                <span class="text-sm font-semibold">{{ displaySummary.programName }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <AppAlert type="error" class="mb-lg">
-          <div class="flex gap-3">
-            <img :src="getActionIcon('delete')" class="w-5 h-5 mt-0.5" />
-            <div class="flex flex-col gap-0.5">
-              <strong class="text-sm font-semibold tracking-tight">Permanent Data Deletion</strong>
-              <p class="text-xs opacity-90 mt-1">
-                This action will completely remove this enrollment from the system. Type
-                <strong>DELETE</strong> below to confirm.
-              </p>
-            </div>
-          </div>
-        </AppAlert>
-
-        <AppInput
-          v-model="form.deleteConfirm"
-          label="Authorization Confirmation"
-          placeholder='Type "DELETE" to confirm'
-          required
-          :error="errors.deleteConfirm"
-          :shake="shaking.deleteConfirm"
-          @input="clearError('deleteConfirm')"
-        >
-          <template #label-extra>
-            <span class="block text-2xs font-semibold mt-0.5">
-              Type <span class="text-error px-1 font-semibold">DELETE</span> to authorize this
-              permanent action
-            </span>
-          </template>
-        </AppInput>
-      </div>
+      <EnrollmentDeletePanel
+        v-if="type === 'delete'"
+        v-model:form="form"
+        :displaySummary="displaySummary"
+        :errors="errors"
+        :shaking="shaking"
+        @clear-error="clearError"
+      />
 
       <AppConfirmOverlay
         :show="showConfirm"

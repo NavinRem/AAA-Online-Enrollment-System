@@ -82,27 +82,7 @@ export const calculateAge = (val) => {
   return age
 }
 
-export const timeToMinutes = (t) => {
-  if (!t || !t.includes(':')) return 0
-  const [h, m] = t.split(':').map(Number)
-  return (h || 0) * 60 + (m || 0)
-}
 
-export const minutesToTime = (m) => {
-  const h = Math.floor(m / 60) % 24
-  const min = m % 60
-  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
-}
-
-export const calculateEndTime = (start, duration) =>
-  minutesToTime(timeToMinutes(start) + parseInt(duration || 0))
-
-export const calculateDuration = (start, end) => {
-  let s = timeToMinutes(start),
-    e = timeToMinutes(end)
-  if (e < s) e += 1440
-  return e - s
-}
 
 export const formatPrice = (val) => {
   const num = Number(val)

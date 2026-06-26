@@ -127,46 +127,4 @@ export const getAcademicStatus = (r) => {
   return String(r.academicStatus || r.status || 'studying').toLowerCase()
 }
 
-/**
- * Performs complex filtering on the enrollment list for entity-specific detail pages.
- * Supports filtering by student, academic status, and financial state.
- *
- * @param {Array} enrollments - Enriched enrollment list
- * @param {Object} filters - Filter criteria { studentId, academicStatus, paymentStatus }
- * @returns {Array} Purified and filtered list
- */
-export const filterDetailEnrollments = (enrollments, filters = {}) => {
-  if (!enrollments || !Array.isArray(enrollments)) return []
 
-  return enrollments.filter((e) => {
-    // 1. Filter by Student ID
-    if (filters.studentId && filters.studentId !== 'all') {
-      const sid = String(e.student?.id || '')
-      if (sid !== String(filters.studentId)) return false
-    }
-
-    // 2. Filter by Academic Status
-    if (filters.academicStatus && filters.academicStatus !== 'all') {
-      const status = getAcademicStatus(e).toLowerCase()
-      if (status !== filters.academicStatus.toLowerCase()) return false
-    }
-
-    // 3. Filter by Payment Status
-    if (filters.paymentStatus && filters.paymentStatus !== 'all') {
-      const pStatus = e.paymentStatus.toLowerCase()
-      if (filters.paymentStatus === 'paid') {
-        if (!isPaid(pStatus)) return false
-      } else if (filters.paymentStatus === 'pending') {
-        if (!isPending(pStatus)) return false
-      } else if (filters.paymentStatus === 'cancelled') {
-        const sStatus = String(e.status || '').toLowerCase()
-        if (!CANCELLED_STATUSES.includes(sStatus) && !CANCELLED_STATUSES.includes(pStatus))
-          return false
-      } else {
-        if (pStatus !== filters.paymentStatus.toLowerCase()) return false
-      }
-    }
-
-    return true
-  })
-}

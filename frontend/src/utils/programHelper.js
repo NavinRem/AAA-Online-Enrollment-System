@@ -1,4 +1,4 @@
-export const getClassCounts = (startDate, endDate, schedule) => {
+export const getSessionCounts = (startDate, endDate, schedule) => {
   if (!startDate || !endDate || !schedule) {
     return {
       total: 0,
@@ -74,13 +74,7 @@ export const getClassCounts = (startDate, endDate, schedule) => {
   }
 }
 
-export const getSessionCounts = getClassCounts
 
-export const calculateProgramStats = (program) => {
-  if (!program) return { totalClasses: 0, passedClasses: 0, remainingClasses: 0 }
-  const { startDate, endDate, schedule } = program
-  return getClassCounts(startDate, endDate, schedule)
-}
 
 export const getProgramDisplayStatus = (program) => {
   if (!program) return 'Unknown'
@@ -99,7 +93,7 @@ export const getProgramDisplayStatus = (program) => {
   if (now > end) return 'Completed'
   return 'Ongoing'
 }
-export const isClassInProgress = (classInstance) => {
+export const isSessionInProgress = (classInstance) => {
   if (!classInstance) return false
   const now = new Date()
   const classDate = new Date(classInstance.date)
@@ -108,5 +102,3 @@ export const isClassInProgress = (classInstance) => {
 
   return now >= classDate && now >= classStartTime && now <= classEndTime
 }
-
-export const isSessionInProgress = isClassInProgress

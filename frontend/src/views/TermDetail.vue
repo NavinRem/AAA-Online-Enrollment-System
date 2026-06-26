@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDataStore } from '@/stores/dataStore'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
@@ -25,6 +25,8 @@ import { teacherService } from '@/services/teacherService'
 import { useSearch, classSearchMapper, studentSearchMapper } from '@/composables/useSearch'
 import { useTableActions } from '@/composables/useTableActions'
 import { getStatusTheme, resolveColor } from '@/utils/badgeUtils'
+import { useModalState } from '@/composables/useModalState'
+import { useDetailFetch } from '@/composables/useDetailFetch'
 
 const route = useRoute()
 const router = useRouter()
@@ -86,7 +88,6 @@ const initData = async () => {
   }
 }
 
-onMounted(initData)
 
 const termBranches = computed(() => {
   if (!term.value || !branches.value.length) return []
@@ -115,7 +116,7 @@ const loadTeachers = async () => {
   }
 }
 
-onMounted(() => {
+useDetailFetch(() => {
   initData()
   loadTeachers()
 })
@@ -533,18 +534,7 @@ const studentHeaders = [
   { label: 'Status', align: 'center', width: '120px' },
 ]
 
-const modal = ref({
-  isOpen: false,
-  type: 'edit',
-  loading: false,
-  error: '',
-  success: '',
-})
-
-const openModal = (type) => {
-  modal.value.type = type
-  modal.value.isOpen = true
-}
+const { actionModal: modal, openActionModal: openModal, closeActionModal: closeModal, setModalLoading, setModalError, setModalSuccess } = useModalState('edit')
 
 const updateSessionTeacher = async (offeringId, weekIndex, teacherIds) => {
   try {
@@ -696,27 +686,27 @@ const confirmRemoveSchedule = (sched) => {
 }
 
 const handleActionSubmit = async (payload) => {
-  modal.value.loading = true
-  modal.value.error = ''
+  setModalLoading(true)
+  setModalError('')
   try {
     if (modal.value.type === 'delete') {
       await termService.deleteTerm(term.value.id)
-      modal.value.success = 'Term deleted successfully'
+      setModalSuccess('Term deleted successfully')
       await dataStore.fetchAllCommonData(true, ['terms'])
       setTimeout(() => router.push('/terms'), 1500)
     } else {
       await termService.updateTerm(term.value.id, payload)
-      modal.value.success = 'Term updated successfully'
+      setModalSuccess('Term updated successfully')
       await dataStore.fetchAllCommonData(true, ['terms'])
       setTimeout(() => {
-        modal.value.isOpen = false
+        closeModal()
         initData()
       }, 1500)
     }
   } catch (err) {
-    modal.value.error = err.message || 'Action failed'
+    setModalError(err.message || 'Action failed')
   } finally {
-    modal.value.loading = false
+    setModalLoading(false)
   }
 }
 </script>

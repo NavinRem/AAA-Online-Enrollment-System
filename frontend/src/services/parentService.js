@@ -1,6 +1,6 @@
 import { request } from './api'
 
-export const parentService = {
+const parentService = {
   createParent(data) {
     return request('/parents', {
       method: 'POST',
@@ -34,4 +34,4 @@ export const parentService = {
   },
 }
 
-export default parentService
+export { parentService }

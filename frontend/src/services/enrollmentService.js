@@ -1,6 +1,6 @@
 import { request } from './api'
 
-export const enrollmentService = {
+const enrollmentService = {
   createEnrollment(data) {
     return request('/enrollments', {
       method: 'POST',
@@ -59,4 +59,4 @@ export const enrollmentService = {
   },
 }
 
-export default enrollmentService
+export { enrollmentService }

@@ -1,6 +1,6 @@
 import { request } from './api'
 
-export const branchService = {
+const branchService = {
   createBranch(data) {
     return request('/branches', {
       method: 'POST',
@@ -34,4 +34,4 @@ export const branchService = {
   },
 }
 
-export default branchService
+export { branchService }

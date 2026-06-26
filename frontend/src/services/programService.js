@@ -1,6 +1,6 @@
 import { request } from './api'
 
-export const programService = {
+const programService = {
   createProgram(data) {
     return request('/programs', {
       method: 'POST',
@@ -46,4 +46,4 @@ export const programService = {
   },
 }
 
-export default programService
+export { programService }

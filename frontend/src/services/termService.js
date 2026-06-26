@@ -16,7 +16,7 @@ const normalizeResponse = (res) => {
   return normalizeTerm(res)
 }
 
-export const termService = {
+const termService = {
   createTerm(data) {
     return request('/terms', {
       method: 'POST',
@@ -57,4 +57,4 @@ export const termService = {
   },
 }
 
-export default termService
+export { termService }

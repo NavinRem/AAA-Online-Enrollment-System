@@ -28,20 +28,20 @@ export const enrichParents = (parents = [], students = []) => {
   }))
 }
 
-export const isRegisteredToday = (parent, todayStart) => {
+const isRegisteredToday = (parent, todayStart) => {
   const createdAt = parent?.createdAt
   if (!createdAt) return false
   const date = typeof createdAt === 'string' ? new Date(createdAt) : createdAt
   return date.getTime() >= todayStart
 }
 
-export const isActiveParent = (parent) => {
+const isActiveParent = (parent) => {
   return (parent?.status || 'active').toLowerCase() === 'active'
 }
 
 const PAID_STATUSES = ['paid', 'confirmed', 'success']
 
-export const hasPaidToday = (parentId, enrollments = [], todayStart) => {
+const hasPaidToday = (parentId, enrollments = [], todayStart) => {
   try {
     return enrollments.some((e) => {
       if (e.parentId !== parentId) return false
@@ -56,20 +56,7 @@ export const hasPaidToday = (parentId, enrollments = [], todayStart) => {
   }
 }
 
-export const hasTrialToday = (parentId, trials = [], todayStart) => {
-  try {
-    return trials.some((t) => {
-      if (t.parentId !== parentId) return false
-      const trialDate = t.trialDate
-      if (!trialDate) return false
-      const date = new Date(trialDate).getTime()
-      return date >= todayStart && date < todayStart + 86400000
-    })
-  } catch (error) {
-    console.error('Error checking if parent has trial today:', error)
-    return false
-  }
-}
+
 
 export const calculateParentStats = (parents = [], enrollments = []) => {
   const now = new Date()

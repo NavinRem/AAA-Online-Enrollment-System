@@ -41,6 +41,7 @@ export function useModalText(type, entityName, options = {}) {
       remove: `Remove ${entityName}`,
       pay: `Pay ${entityName}`,
       cancel: `Cancel ${entityName}`,
+      transfer: `Transfer ${entityName}`,
       'reset-password': 'Reset Password',
       'manage-class': `Manage Class`,
     }
@@ -63,6 +64,7 @@ export function useModalText(type, entityName, options = {}) {
       remove: 'Delete',
       pay: 'Pay',
       cancel: 'Cancel',
+      transfer: 'Transfer',
       'reset-password': 'Reset',
       'manage-class': 'Save Changes',
     }

@@ -25,6 +25,7 @@ import {
 import { processStudentProfileImage, prepareStudentPayload } from '@/utils/studentHelper'
 import { formatDate } from '@/utils/formatUtils'
 import { authService } from '@/services/authService'
+import { useModalState } from '@/composables/useModalState'
 
 const router = useRouter()
 const dataStore = useDataStore()
@@ -122,27 +123,12 @@ watch([currentFilter, searchQuery], () => {
   currentPage.value = 1
 })
 
-const submitting = ref(false)
-const errorMessage = ref('')
-const successMessage = ref('')
-
-const isActionModalOpen = ref(false)
-const actionModalType = ref('edit')
+const { actionModal, openActionModal: baseOpenModal, closeActionModal, setModalLoading, setModalError, setModalSuccess } = useModalState('edit')
 const actionModalParent = ref(null)
 
-
 const openActionModal = (type, parent = null) => {
-  errorMessage.value = ''
-  successMessage.value = ''
-  actionModalType.value = type
   actionModalParent.value = parent
-  isActionModalOpen.value = true
-}
-
-const closeActionModal = () => {
-  isActionModalOpen.value = false
-  errorMessage.value = ''
-  successMessage.value = ''
+  baseOpenModal(type)
 }
 
 const reloadData = async () => {
@@ -150,14 +136,14 @@ const reloadData = async () => {
 }
 
 const submitActionModal = async (formData) => {
-  const type = actionModalType.value
+  const type = actionModal.value.type
   if (type === 'add') {
     return submitNewParent(formData)
   }
   
   const id = actionModalParent.value?.id
-  submitting.value = true
-  errorMessage.value = ''
+  setModalLoading(true)
+  setModalError('')
 
   try {
     if (type === 'edit') {
@@ -167,20 +153,20 @@ const submitActionModal = async (formData) => {
       delete payload.createdAt
       await parentService.updateParent(id, payload)
       await reloadData()
-      successMessage.value = 'Profile updated successfully!'
+      setModalSuccess('Profile updated successfully!')
     }
 
     if (type === 'deactivate' || type === 'activate') {
       const status = type === 'activate' ? 'Active' : 'Inactive'
       await parentService.updateParent(id, { status })
       await reloadData()
-      successMessage.value = `Account ${type === 'activate' ? 'reactivated' : 'deactivated'} successfully!`
+      setModalSuccess(`Account ${type === 'activate' ? 'reactivated' : 'deactivated'} successfully!`)
     }
 
     if (type === 'delete') {
       await parentService.deleteParent(id)
       await reloadData()
-      successMessage.value = 'Account deleted successfully!'
+      setModalSuccess('Account deleted successfully!')
     }
 
     if (type === 'plus') {
@@ -193,29 +179,28 @@ const submitActionModal = async (formData) => {
 
       await parentService.updateParent(id, { childrenInfo })
       await reloadData()
-      successMessage.value = 'Child registered successfully!'
+      setModalSuccess('Child registered successfully!')
     }
 
     if (type === 'reset-password') {
       const result = await authService.adminResetPassword(id)
-      successMessage.value = `Password reset successfully! New Temporary Password: ${result.tempPassword}`
+      setModalSuccess(`Password reset successfully! New Temporary Password: ${result.tempPassword}`)
     }
 
-    const delay = successMessage.value.includes('Password') ? 5000 : 1500
+    const delay = actionModal.value.success.includes('Password') ? 5000 : 1500
     setTimeout(closeActionModal, delay)
   } catch (error) {
     console.error(`Failed ${type}:`, error)
-    errorMessage.value =
-      error.response?.data?.message || error.message || `Action failed. Please try again.`
+    setModalError(error.response?.data?.message || error.message || `Action failed. Please try again.`)
   } finally {
-    submitting.value = false
+    setModalLoading(false)
   }
 }
 
 const submitNewParent = async (data) => {
-  submitting.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
+  setModalLoading(true)
+  setModalError('')
+  setModalSuccess('')
 
   try {
     const profileURL = await processParentProfileImage(data.profileURL, data.name)
@@ -227,26 +212,22 @@ const submitNewParent = async (data) => {
     const result = await parentService.createParent(payload)
     newlyCreatedId.value = result.id
     await reloadData()
-    successMessage.value = `Account created successfully! ${result.tempPassword ? 'Temp Password: ' + result.tempPassword : ''}`
+    setModalSuccess(`Account created successfully! ${result.tempPassword ? 'Temp Password: ' + result.tempPassword : ''}`)
 
     setTimeout(() => {
       closeActionModal()
     }, 2000)
   } catch (error) {
     console.error('Failed creation:', error)
-    errorMessage.value =
-      error.response?.data?.message || error.message || 'Failed to create parent account.'
+    setModalError(error.response?.data?.message || error.message || 'Failed to create parent account.')
   } finally {
-    submitting.value = false
+    setModalLoading(false)
   }
 }
 
 const openAddChildModal = (parent) => {
-  errorMessage.value = ''
-  successMessage.value = ''
-  actionModalType.value = 'plus'
   actionModalParent.value = parent
-  isActionModalOpen.value = true
+  baseOpenModal('plus')
 }
 
 const navigateToDetail = (item) => {
@@ -497,12 +478,12 @@ const handleRowAction = (type, item, closeMenu) => {
     </DataPageLayout>
 
     <ParentActionModal
-      :isOpen="isActionModalOpen"
-      :type="actionModalType"
+      :isOpen="actionModal.isOpen"
+      :type="actionModal.type"
       :user="actionModalParent"
-      :loading="submitting"
-      :error="errorMessage"
-      :success="successMessage"
+      :loading="actionModal.loading"
+      :error="actionModal.error"
+      :success="actionModal.success"
       @close="closeActionModal"
       @submit="submitActionModal"
     />

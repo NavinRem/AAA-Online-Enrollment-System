@@ -261,7 +261,7 @@ const submitActionModal = async (payload) => {
   const { type, enrollment } = actionState.value
   submitting.value = true
   try {
-    if (type === 'add' || type === 'edit') {
+    if (type === 'add' || type === 'edit' || type === 'transfer') {
       await handleSaveEnrollment(payload)
       return // handleSaveEnrollment handles success message and closing
     } else if (type === 'pay') {
@@ -544,6 +544,20 @@ const handleRegisterStudent = async (formData) => {
                           class="w-4 h-4 opacity-40 group-hover:opacity-100"
                         />
                         <span class="font-semibold">Edit</span>
+                      </button>
+                      <button
+                        v-if="
+                          item.status === 'paid' ||
+                          item.paymentStatus === 'paid'
+                        "
+                        class="ui-dropdown-item ui-dropdown-item-warning group"
+                        @click="handleAction('transfer', item, closeMenu)"
+                      >
+                        <img
+                          :src="getActionIcon('edit')"
+                          class="w-4 h-4 opacity-40 group-hover:opacity-100"
+                        />
+                        <span class="font-semibold">Transfer Class</span>
                       </button>
                       <button
                         v-if="

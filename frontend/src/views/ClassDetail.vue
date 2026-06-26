@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, computed, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
@@ -22,8 +22,10 @@ import DataTable from '@/components/common/data/DataTable.vue'
 import { useSearch, enrollmentSearchMapper } from '@/composables/useSearch'
 import { useDataStore } from '@/stores/dataStore'
 import { getStatusTheme, getStatusFilter } from '@/utils/badgeUtils'
+import { useModalState } from '@/composables/useModalState'
+import { useDropdowns } from '@/composables/useDropdowns'
+import { useDetailFetch } from '@/composables/useDetailFetch'
 
-const route = useRoute()
 const router = useRouter()
 const dataStore = useDataStore()
 
@@ -478,13 +480,11 @@ const paginatedItems = computed(() => {
   return searchResults.value.slice(start, start + pageSize.value)
 })
 
-const dropdowns = ref({
-  term: false,
-  branch: false,
-  schedule: false,
-})
-
-const filterMenuStyles = ref({})
+const { dropdowns, filterMenuStyles, toggleDropdown, closeAllDropdowns } = useDropdowns(
+  ['term', 'branch', 'schedule'],
+  ['#term-filter-btn', '#branch-filter-btn', '#schedule-filter-btn', '.attendance-dropdown-trigger', '.attendance-dropdown-menu'],
+  () => { activeAttendanceCell.value = null }
+)
 
 const activeAttendanceCell = ref(null)
 
@@ -497,33 +497,12 @@ const toggleAttendanceDropdown = (sessionId, studentId) => {
   }
 }
 
-const toggleDropdown = (type, event) => {
-  const isOpening = !dropdowns.value[type]
-  // Close all first
-  dropdowns.value.term = false
-  dropdowns.value.branch = false
-  dropdowns.value.schedule = false
-
-  dropdowns.value[type] = isOpening
-
-  if (isOpening && event) {
-    const rect = event.currentTarget.getBoundingClientRect()
-    filterMenuStyles.value = {
-      top: `${rect.bottom + window.scrollY + 8}px`,
-      left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 250)}px`,
-      minWidth: '240px',
-    }
-  }
-}
-
 const selectFilter = (type, value) => {
   if (type === 'term') termFilter.value = value
   else if (type === 'branch') branchFilter.value = value
   else if (type === 'schedule') scheduleFilter.value = value
 
-  dropdowns.value.term = false
-  dropdowns.value.branch = false
-  dropdowns.value.schedule = false
+  closeAllDropdowns()
 }
 
 const getActiveLabel = (type) => {
@@ -546,49 +525,20 @@ const getActiveScheduleDay = () => {
   return opt ? opt.day : scheduleOptions.value[0]?.day || ''
 }
 
-const handleClickOutside = (e) => {
-  if (
-    !e.target.closest('#term-filter-btn') &&
-    !e.target.closest('#branch-filter-btn') &&
-    !e.target.closest('#schedule-filter-btn') &&
-    !e.target.closest('.attendance-dropdown-trigger') &&
-    !e.target.closest('.attendance-dropdown-menu')
-  ) {
-    dropdowns.value.term = false
-    dropdowns.value.branch = false
-    dropdowns.value.schedule = false
-    activeAttendanceCell.value = null
-  }
-}
 
-const actionModal = ref({
-  isOpen: false,
-  type: 'edit',
-  loading: false,
-  error: '',
-  success: '',
-})
 
-const openActionModal = (type) => {
-  actionModal.value = {
-    isOpen: true,
-    type,
-    loading: false,
-    error: '',
-    success: '',
-  }
-}
+const { actionModal, openActionModal, closeActionModal, setModalLoading, setModalError, setModalSuccess } = useModalState('edit')
 
 const handleModalSubmit = async (payload) => {
-  actionModal.value.loading = true
-  actionModal.value.error = ''
+  setModalLoading(true)
+  setModalError('')
   try {
     if (actionModal.value.type === 'edit') {
       await classService.updateClass(classData.value.id, payload)
-      actionModal.value.success = 'Class updated successfully!'
+      setModalSuccess('Class updated successfully!')
     } else if (actionModal.value.type === 'delete') {
       await classService.deleteClass(classData.value.id)
-      actionModal.value.success = 'Class deleted successfully!'
+      setModalSuccess('Class deleted successfully!')
       await dataStore.fetchAllCommonData(true, ['classes'])
       setTimeout(() => {
         router.push('/classes')
@@ -598,13 +548,13 @@ const handleModalSubmit = async (payload) => {
 
     await dataStore.fetchAllCommonData(true, ['classes'])
     setTimeout(() => {
-      actionModal.value.isOpen = false
+      closeActionModal()
       fetchData(classData.value.id)
     }, 1500)
   } catch (err) {
-    actionModal.value.error = err.message || 'Action failed'
+    setModalError(err.message || 'Action failed')
   } finally {
-    actionModal.value.loading = false
+    setModalLoading(false)
   }
 }
 
@@ -733,21 +683,7 @@ const fetchData = async (id) => {
   }
 }
 
-onMounted(() => {
-  window.addEventListener('mousedown', handleClickOutside)
-  if (route.params.id) fetchData(route.params.id)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('mousedown', handleClickOutside)
-})
-
-watch(
-  () => route.params.id,
-  (newId) => {
-    if (newId) fetchData(newId)
-  },
-)
+useDetailFetch(fetchData)
 
 watch(termFilter, (newTermId) => {
   if (isInitializing.value) return

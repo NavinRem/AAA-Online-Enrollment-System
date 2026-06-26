@@ -1,6 +1,6 @@
 import { request } from './api'
 
-export const scheduleService = {
+const scheduleService = {
   createSchedule(data) {
     return request('/schedules', {
       method: 'POST',
@@ -32,4 +32,4 @@ export const scheduleService = {
   },
 }
 
-export default scheduleService
+export { scheduleService }
