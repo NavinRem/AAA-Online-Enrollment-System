@@ -14,10 +14,7 @@ import { getAcademicStatus, enrichEnrollments } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 
-import {
-  getActionIcon,
-  getParentProfileURL,
-} from '@/utils/assetHelper'
+import { getActionIcon, getParentProfileURL } from '@/utils/assetHelper'
 import { branchService } from '@/services/branchService'
 import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
 import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
@@ -107,14 +104,17 @@ const studentAttendanceRecords = computed(() => {
   const classId = enrollment.classId
   const attendanceMap = classAttendanceData.value[classId] || {}
   const studentId = student.value?.id
+  const total = sessions.value.length
+  const enrolled = enrollment.enrolledSessions
+  const startIndex = enrolled && total > 0 && enrolled < total ? total - enrolled : 0
 
-  return sessions.value.map((session) => {
+  return sessions.value.map((session, index) => {
     const sessionData = attendanceMap[session.id] || {}
-    const status = sessionData[studentId] || 'N'
+    const status = index < startIndex ? 'N' : sessionData[studentId] || 'N'
     return {
       ...session,
       status,
-      remark: '-', // Placeholder for now
+      remark: index < startIndex ? 'Not enrolled' : '-',
     }
   })
 })
@@ -440,7 +440,7 @@ watch(
             <template #toolbar-actions>
               <div class="flex items-center gap-3">
                 <div
-                  class="flex items-center gap-6 px-6 py-2 bg-surface-subtle rounded-2xl border border-outline-std mr-4"
+                  class="flex items-center gap-6 px-6 py-2 bg-surface-subtle rounded-md border border-outline-std mr-4"
                 >
                   <div class="flex flex-col">
                     <span class="text-3xs font-bold text-content-muted uppercase tracking-wider"
@@ -471,7 +471,7 @@ watch(
                 <!-- Enrollment Selector -->
                 <div class="relative" id="enrollment-filter-btn">
                   <AppButton variant="secondary" size="md" @click="toggleDropdown($event)">
-                    <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
+                    <img :src="getActionIcon('filter')" class="w-4 h-4" />
                     <span class="font-bold truncate max-w-52">{{
                       selectedEnrollment
                         ? `${selectedEnrollment.programName} (${selectedEnrollment.termName})`

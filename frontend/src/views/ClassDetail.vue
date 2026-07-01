@@ -15,6 +15,7 @@ import {
   formatDateOnly,
   generateClassSessions,
   DEFAULT_CAPACITY,
+  sortSchedulesChronologically,
 } from '@/utils/formatUtils'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
@@ -72,9 +73,18 @@ const processSyncQueue = async () => {
   }
 }
 
-const isSessionDisabled = (sessionDate, studentStatus, sessionIndex, enrolledSessions) => {
+const isSessionDimmed = (studentStatus, sessionIndex, enrolledSessions) => {
   if (['cancelled', 'suspended', 'transferred'].includes(studentStatus)) return true
-  if (enrolledSessions && sessionIndex >= enrolledSessions) return true
+  const total = sessions.value.length
+  if (enrolledSessions && total > 0 && enrolledSessions < total) {
+    const startIndex = total - enrolledSessions
+    if (sessionIndex < startIndex) return true
+  }
+  return false
+}
+
+const isSessionDisabled = (sessionDate, studentStatus, sessionIndex, enrolledSessions) => {
+  if (isSessionDimmed(studentStatus, sessionIndex, enrolledSessions)) return true
   const sDate = new Date(sessionDate).setHours(0, 0, 0, 0)
   const now = new Date().setHours(0, 0, 0, 0)
   return sDate > now
@@ -83,8 +93,12 @@ const isSessionDisabled = (sessionDate, studentStatus, sessionIndex, enrolledSes
 const getSessionDisableReason = (sessionDate, studentStatus, sessionIndex, enrolledSessions) => {
   if (['cancelled', 'suspended', 'transferred'].includes(studentStatus))
     return `Student is ${studentStatus}`
-  if (enrolledSessions && sessionIndex >= enrolledSessions)
-    return `Exceeded enrolled limit (${enrolledSessions} sessions)`
+  const total = sessions.value.length
+  if (enrolledSessions && total > 0 && enrolledSessions < total) {
+    const startIndex = total - enrolledSessions
+    if (sessionIndex < startIndex)
+      return `Not enrolled for early sessions (enrolled for last ${enrolledSessions} sessions)`
+  }
   const sDate = new Date(sessionDate).setHours(0, 0, 0, 0)
   const now = new Date().setHours(0, 0, 0, 0)
   if (sDate > now) return 'Session is in the future'
@@ -242,20 +256,65 @@ const selectedTermOfferings = computed(() => {
 
 const groupedTeachers = computed(() => {
   const teacherMap = {}
-  selectedTermOfferings.value.forEach((offering) => {
-    ;(offering.teachers || []).forEach((teacher) => {
-      const id = teacher.id || teacher._id
-      if (!teacherMap[id]) {
-        teacherMap[id] = {
-          ...teacher,
-          branches: new Map(), // Use Map to ensure unique branches by ID/Abbr
-        }
+  const allTeachers = dataStore.teachers || []
+  const addTeacher = (t, branch) => {
+    let teacherObj = null
+    if (typeof t === 'string' || typeof t === 'number') {
+      teacherObj = allTeachers.find((x) => String(x.id) === String(t))
+    } else if (t && typeof t === 'object') {
+      teacherObj = t.id ? allTeachers.find((x) => String(x.id) === String(t.id)) || t : t
+    }
+    if (!teacherObj) return
+    const id = teacherObj.id || teacherObj._id
+    if (!id) return
+    if (!teacherMap[id]) {
+      teacherMap[id] = {
+        ...teacherObj,
+        branches: new Map(),
       }
-      if (offering.branch) {
-        teacherMap[id].branches.set(offering.branch.id || offering.branch.abbr, offering.branch)
-      }
+    }
+    if (branch) {
+      const bId = branch.id || branch.abbr || 'HQ'
+      teacherMap[id].branches.set(bId, branch)
+    }
+  }
+
+  const defaultBranch = classData.value?.branch || {
+    abbr: classData.value?.branchAbbr || 'HQ',
+    color: classData.value?.branchColor || 'blue',
+  }
+  const offeringsToCheck =
+    selectedTermOfferings.value.length > 0 ? selectedTermOfferings.value : allOfferings.value
+
+  offeringsToCheck.forEach((offering) => {
+    const branch = offering.branch || defaultBranch
+    if (offering.teacherId) addTeacher(offering.teacherId, branch)
+    if (offering.teacher) addTeacher(offering.teacher, branch)
+    ;(offering.teacherIds || []).forEach((tid) => addTeacher(tid, branch))
+    ;(offering.teachers || []).forEach((t) => addTeacher(t, branch))
+    ;(offering.sessionTeachers || []).forEach((st) => {
+      if (!st) return
+      if (Array.isArray(st.teachers)) st.teachers.forEach((t) => addTeacher(t, branch))
+      else if (Array.isArray(st)) st.forEach((t) => addTeacher(t, branch))
+      else if (st.id) addTeacher(st, branch)
     })
   })
+
+  if (classData.value) {
+    const schedules =
+      classData.value.schedules || (classData.value.schedule ? [classData.value.schedule] : [])
+    schedules.forEach((s) => {
+      if (s.teacherId) addTeacher(s.teacherId, defaultBranch)
+      if (s.teacher) addTeacher(s.teacher, defaultBranch)
+      ;(s.teacherIds || []).forEach((tid) => addTeacher(tid, defaultBranch))
+      ;(s.teachers || []).forEach((t) => addTeacher(t, defaultBranch))
+    })
+    if (classData.value.teacherId) addTeacher(classData.value.teacherId, defaultBranch)
+    if (classData.value.teacher) addTeacher(classData.value.teacher, defaultBranch)
+    ;(classData.value.teacherIds || []).forEach((tid) => addTeacher(tid, defaultBranch))
+    ;(classData.value.teachers || []).forEach((t) => addTeacher(t, defaultBranch))
+  }
+
   return Object.values(teacherMap).map((t) => ({
     ...t,
     branches: Array.from(t.branches.values()),
@@ -318,7 +377,8 @@ const uniqueBranches = computed(() => {
         (e) =>
           (String(e.branchId) === branchId || String(e.class?.branch?.id) === branchId) &&
           String(e.termId) === String(offering.termId) &&
-          (['paid', 'success'].includes(e.status) || ['paid', 'success'].includes(e.paymentStatus)),
+          (['paid', 'success', 'active', 'confirmed'].includes(e.status) ||
+            ['paid', 'success'].includes(e.paymentStatus)),
       ).length
 
       branchMap.get(branchId).studentCount = paidStudentsCount
@@ -449,7 +509,10 @@ const branchFilterOptions = computed(() => {
 const filteredEnrollments = computed(() => {
   const filtered = enrollments.value.filter((e) => {
     // Audit: Only successful/eligible enrollments are shown for attendance
-    if (!['paid', 'success'].includes(e.status) && !['paid', 'success'].includes(e.paymentStatus))
+    if (
+      !['paid', 'success', 'active', 'confirmed'].includes(e.status) &&
+      !['paid', 'success'].includes(e.paymentStatus)
+    )
       return false
 
     const termMatch = termFilter.value === 'all' || String(e.termId) === String(termFilter.value)
@@ -482,8 +545,16 @@ const paginatedItems = computed(() => {
 
 const { dropdowns, filterMenuStyles, toggleDropdown, closeAllDropdowns } = useDropdowns(
   ['term', 'branch', 'schedule'],
-  ['#term-filter-btn', '#branch-filter-btn', '#schedule-filter-btn', '.attendance-dropdown-trigger', '.attendance-dropdown-menu'],
-  () => { activeAttendanceCell.value = null }
+  [
+    '#term-filter-btn',
+    '#branch-filter-btn',
+    '#schedule-filter-btn',
+    '.attendance-dropdown-trigger',
+    '.attendance-dropdown-menu',
+  ],
+  () => {
+    activeAttendanceCell.value = null
+  },
 )
 
 const activeAttendanceCell = ref(null)
@@ -525,9 +596,14 @@ const getActiveScheduleDay = () => {
   return opt ? opt.day : scheduleOptions.value[0]?.day || ''
 }
 
-
-
-const { actionModal, openActionModal, closeActionModal, setModalLoading, setModalError, setModalSuccess } = useModalState('edit')
+const {
+  actionModal,
+  openActionModal,
+  closeActionModal,
+  setModalLoading,
+  setModalError,
+  setModalSuccess,
+} = useModalState('edit')
 
 const handleModalSubmit = async (payload) => {
   setModalLoading(true)
@@ -621,7 +697,8 @@ const getScheduleCapacity = (schedule) => {
 
 const scheduleOptions = computed(() => {
   if (!classData.value?.schedules) return []
-  return classData.value.schedules.map((s) => ({
+  const sorted = sortSchedulesChronologically(classData.value.schedules)
+  return sorted.map((s) => ({
     id: s.id,
     name: `${s.day} (${s.time})`,
     day: s.day,
@@ -642,6 +719,7 @@ const fetchData = async (id) => {
       attendanceService.getClassAttendance(id),
       termService.getAllTerms(),
       dataStore.fetchBranches(),
+      dataStore.fetchTeachers(),
     ])
     const normalizedSchedule = data.schedule || data.schedules?.[0] || { day: 'TBA', time: 'N/A' }
     data.schedule = normalizedSchedule
@@ -978,9 +1056,16 @@ watch(branchFilter, (newBranchId) => {
                       :class="[
                         ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)]?.theme ||
                           ATTENDANCE_STATUS.N.theme,
-                        isSessionDisabled(session.date, item.status, sIdx, item.enrolledSessions)
+                        isSessionDimmed(item.status, sIdx, item.enrolledSessions)
                           ? 'opacity-20 grayscale cursor-not-allowed'
-                          : 'cursor-pointer hover:shadow-md',
+                          : isSessionDisabled(
+                                session.date,
+                                item.status,
+                                sIdx,
+                                item.enrolledSessions,
+                              )
+                            ? 'cursor-not-allowed opacity-90'
+                            : 'cursor-pointer hover:shadow-md',
                       ]"
                       :title="
                         getSessionDisableReason(
@@ -1288,10 +1373,7 @@ watch(branchFilter, (newBranchId) => {
               </div>
 
               <!-- Teachers Section -->
-              <div
-                class="flex flex-col gap-3 pt-4 border-t border-outline-std/40"
-                v-if="selectedTermOfferings.length > 0"
-              >
+              <div class="flex flex-col gap-3 pt-4 border-t border-outline-std/40">
                 <span class="text-base font-bold text-content-dark">Teachers</span>
                 <div class="grid grid-cols-1 gap-2.5">
                   <div
@@ -1304,7 +1386,7 @@ watch(branchFilter, (newBranchId) => {
                         :src="teacher.profileURL || getImageUrl('profiles/avatar-teacher-man')"
                         class="w-8 h-8 rounded-full border border-white shadow-sm shrink-0"
                       />
-                      <span class="text-sm font-black text-content-dark truncate max-w-32">{{
+                      <span class="text-sm font-bold text-content-dark truncate max-w-32">{{
                         teacher.name
                       }}</span>
                     </div>

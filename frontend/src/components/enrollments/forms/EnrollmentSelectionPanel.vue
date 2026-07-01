@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import { getActionIcon } from '@/utils/assetHelper'
@@ -29,6 +30,33 @@ const emit = defineEmits([
 const updateForm = (field, value) => {
   emit('update:form', { ...props.form, [field]: value })
 }
+
+const fullClassAlert = ref('')
+
+const handleOfferingUpdate = (val) => {
+  const off = props.offeringSelectItems.find((item) => item.id === val)
+  if (off && (off.capacity - off.studentCount <= 0 || off.disabledReason === 'Class Full')) {
+    updateForm('termOfferingId', '')
+    return
+  }
+  updateForm('termOfferingId', val)
+}
+
+const handleOfferingSelection = (val) => {
+  const off = props.offeringSelectItems.find((item) => item.id === val)
+  if (off && (off.capacity - off.studentCount <= 0 || off.disabledReason === 'Class Full')) {
+    fullClassAlert.value =
+      'This class is full and cannot be enrolled unless a student cancelled their enrollment, so they take their seat in the class.'
+    setTimeout(() => {
+      fullClassAlert.value = ''
+    }, 6000)
+    updateForm('termOfferingId', '')
+    emit('offering-change', val)
+    return
+  }
+  fullClassAlert.value = ''
+  emit('offering-change', val)
+}
 </script>
 
 <template>
@@ -46,7 +74,7 @@ const updateForm = (field, value) => {
       :loading="loading"
       searchPlaceholder="Search parent name..."
       @click-disabled="$emit('click-disabled', 'parentId')"
-      @change="$emit('parent-change')"
+      @change="$emit('parent-change', $event)"
     >
       <template #item="{ item }">
         <div class="flex items-center gap-3 w-full">
@@ -91,7 +119,7 @@ const updateForm = (field, value) => {
       :loading="loading"
       searchPlaceholder="Search student name..."
       @click-disabled="$emit('click-disabled', 'studentId')"
-      @change="$emit('student-change')"
+      @change="$emit('student-change', $event)"
     >
       <template #selected="{ item }">
         <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
@@ -152,7 +180,7 @@ const updateForm = (field, value) => {
       :shake="shaking.programId"
       :loading="loading"
       @click-disabled="$emit('click-disabled', 'programId')"
-      @change="$emit('program-change')"
+      @change="$emit('program-change', $event)"
     >
       <template #selected="{ item }">
         <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
@@ -169,17 +197,17 @@ const updateForm = (field, value) => {
 
     <AppSelect
       :modelValue="form.termOfferingId"
-      @update:modelValue="updateForm('termOfferingId', $event)"
+      @update:modelValue="handleOfferingUpdate($event)"
       :items="offeringSelectItems"
       label="Available Classes"
       placeholder="Select a class to enroll"
       required
       :disabled="!form.programId"
-      :error="errors.termOfferingId"
-      :shake="shaking.termOfferingId"
+      :error="errors.termOfferingId || (fullClassAlert ? 'Class Full' : '')"
+      :shake="shaking.termOfferingId || !!fullClassAlert"
       :loading="loading"
       @click-disabled="$emit('click-disabled', 'termOfferingId')"
-      @change="$emit('offering-change')"
+      @change="handleOfferingSelection($event)"
     >
       <template #selected="{ item }">
         <div v-if="item" class="flex items-center gap-2 flex-1 overflow-hidden">
@@ -188,6 +216,14 @@ const updateForm = (field, value) => {
           <span class="text-sm font-semibold text-content-dark truncate flex-1">{{
             item.scheduleTime
           }}</span>
+          <AppBadge v-if="item.capacity - item.studentCount <= 0" status="Full" type="red" />
+          <span
+            v-else
+            class="text-xs font-bold"
+            :class="item.capacity - item.studentCount <= 3 ? 'text-error' : 'text-success'"
+          >
+            {{ item.capacity - item.studentCount }} slots left
+          </span>
           <AppBadge :status="item.branchName" :type="item.branchColor" />
         </div>
       </template>
@@ -204,7 +240,9 @@ const updateForm = (field, value) => {
             <span class="text-xs font-semibold"
               >{{ item.scheduleDay }} ({{ item.scheduleTime }})</span
             >
+            <AppBadge v-if="item.capacity - item.studentCount <= 0" status="Full" type="red" />
             <span
+              v-else
               class="text-xs font-bold"
               :class="item.capacity - item.studentCount <= 3 ? 'text-error' : 'text-success'"
             >
@@ -214,6 +252,23 @@ const updateForm = (field, value) => {
         </div>
       </template>
     </AppSelect>
+
+    <transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0 -translate-y-1"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 -translate-y-1"
+    >
+      <div
+        v-if="fullClassAlert"
+        class="col-span-2 p-3 bg-error-soft border border-error/20 rounded-xl flex items-start gap-2.5 shadow-sm mt-1 animate-bounce"
+      >
+        <img :src="getActionIcon('cancel')" class="w-5 h-5 shrink-0 mt-0.5" />
+        <span class="text-xs font-bold text-error leading-relaxed">{{ fullClassAlert }}</span>
+      </div>
+    </transition>
 
     <div
       v-if="form.classId && availableOfferings.length === 0"

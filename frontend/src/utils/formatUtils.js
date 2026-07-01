@@ -301,7 +301,7 @@ export const calculateOfferingStatus = ({
   return fallbackStatus
 }
 
-export const sortSchedulesChronologically = (schedulesArray) => {
+export const sortSchedulesChronologically = (schedulesArray, nestedKey = null) => {
   if (!schedulesArray || !Array.isArray(schedulesArray)) return []
 
   const parse12hToMinutes = (time12h) => {
@@ -328,13 +328,16 @@ export const sortSchedulesChronologically = (schedulesArray) => {
   }
 
   return [...schedulesArray].sort((a, b) => {
-    const dayA = dayOrder[a.day] || 99
-    const dayB = dayOrder[b.day] || 99
+    const itemA = nestedKey ? a[nestedKey] : a
+    const itemB = nestedKey ? b[nestedKey] : b
+    
+    const dayA = dayOrder[itemA?.day] || 99
+    const dayB = dayOrder[itemB?.day] || 99
     
     if (dayA !== dayB) return dayA - dayB
     
-    const minsA = parse12hToMinutes(a.time)
-    const minsB = parse12hToMinutes(b.time)
+    const minsA = parse12hToMinutes(itemA?.time)
+    const minsB = parse12hToMinutes(itemB?.time)
     return minsA - minsB
   })
 }

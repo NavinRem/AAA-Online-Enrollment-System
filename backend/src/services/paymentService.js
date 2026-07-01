@@ -143,6 +143,28 @@ class PaymentService {
         status: 'paid',
       })
 
+      if (
+        enrollmentData.termId &&
+        (enrollmentData.termOfferingId || enrollmentData.term?.offeringId)
+      ) {
+        const termService = require('./termService')
+        await termService
+          .syncOfferingStudent(
+            enrollmentData.termId,
+            enrollmentData.termOfferingId || enrollmentData.term?.offeringId,
+            {
+              id: payment.enrollmentId,
+              ...enrollmentData,
+              status: 'paid',
+              paymentStatus: 'paid',
+            },
+            'upsert',
+          )
+          .catch((err) =>
+            console.error('Failed to sync offering on verify payment:', err),
+          )
+      }
+
       const bId = enrollmentData.branchId
       if (bId) {
         const branchService = require('./branchService')

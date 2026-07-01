@@ -60,6 +60,100 @@ class TermService {
     return offerings[offIdx]
   }
 
+  enrichOfferingsWithEnrollments(offerings, enrollments) {
+    if (!Array.isArray(offerings)) {
+      if (offerings && typeof offerings === 'object') {
+        offerings = Object.values(offerings)
+      } else {
+        return []
+      }
+    }
+
+    return offerings.map((off) => {
+      const offEnrollments = enrollments.filter((e) => {
+        const offId = e.termOfferingId || e.term?.offeringId
+        if (offId) {
+          return String(offId) === String(off.offeringId)
+        }
+
+        const matchesClass =
+          String(e.classId) === String(off.classId) ||
+          String(e.programId) === String(off.programId)
+        const matchesBranch =
+          String(e.branchId || e.class?.branch?.id || e.branch?.id) ===
+          String(off.branchId || off.branch?.id)
+        if (!matchesClass || !matchesBranch) return false
+
+        const eSchedId =
+          e.scheduleId ||
+          e.class?.schedule?.id ||
+          e.schedule?.id ||
+          (Array.isArray(e.class?.scheduleIds) ? e.class.scheduleIds[0] : null)
+        const offSchedId = off.scheduleId || off.schedule?.id
+        if (eSchedId && offSchedId) {
+          return String(eSchedId) === String(offSchedId)
+        }
+
+        const eDay = e.class?.schedule?.day || e.schedule?.day || e.scheduleDay
+        const eTime =
+          e.class?.schedule?.time || e.schedule?.time || e.scheduleTime
+        const offDay = off.schedule?.day || off.scheduleDay
+        const offTime = off.schedule?.time || off.scheduleTime
+        if (eDay && offDay && String(eDay).toLowerCase() === String(offDay).toLowerCase()) {
+          if (eTime && offTime) {
+            return String(eTime).toLowerCase() === String(offTime).toLowerCase()
+          }
+          return true
+        }
+
+        const firstOfferingOfClass = offerings.find(
+          (o) =>
+            (String(o.classId) === String(off.classId) ||
+              String(o.programId) === String(off.programId)) &&
+            String(o.branchId || o.branch?.id) === String(off.branchId || off.branch?.id),
+        )
+        return firstOfferingOfClass?.offeringId === off.offeringId
+      })
+
+      const activeSeatEnrollments = offEnrollments.filter((e) => {
+        if (
+          e.isDeleted ||
+          ['cancelled', 'deleted', 'failed'].includes(
+            String(e.status || '').toLowerCase(),
+          )
+        )
+          return false
+        const pStatus = String(e.paymentStatus || '').toLowerCase()
+        const sStatus = String(e.status || '').toLowerCase()
+        return (
+          ['paid', 'success', 'confirmed', 'active'].includes(pStatus) ||
+          ['paid', 'success', 'confirmed', 'active'].includes(sStatus)
+        )
+      })
+
+      const students = activeSeatEnrollments.map((e) => ({
+        id: e.studentId || e.student?.id,
+        studentId: e.studentId || e.student?.id,
+        name: e.student?.name || 'Unknown',
+        profileURL: e.student?.profileURL || '',
+        status: e.status || 'active',
+        paymentStatus: e.paymentStatus || 'unpaid',
+        enrollmentId: e.id || '',
+        enrolledAt:
+          e.enrollAt || e.createdAt || e.enrollmentDate || new Date().toISOString(),
+      }))
+
+      return {
+        ...off,
+        currentCount: activeSeatEnrollments.length,
+        students: students.length > 0 ? students : off.students || [],
+        studentIds: activeSeatEnrollments
+          .map((e) => e.studentId || e.student?.id)
+          .filter(Boolean),
+      }
+    })
+  }
+
   async getAllTerms(filters = {}) {
     let terms = (await db.collection(COLLECTIONS.TERM).get()).docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
@@ -74,6 +168,26 @@ class TermService {
       })
     }
 
+    const enrollmentsSnap = await db.collection(COLLECTIONS.ENROLLMENT).get()
+    const enrollments = enrollmentsSnap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+
+    terms = terms.map((term) => {
+      const termEnrollments = enrollments.filter(
+        (e) => String(e.termId) === String(term.id),
+      )
+      const enrichedOfferings = this.enrichOfferingsWithEnrollments(
+        term.offerings || [],
+        termEnrollments,
+      )
+      return {
+        ...term,
+        offerings: enrichedOfferings,
+      }
+    })
+
     const chronTerms = [...terms].sort((a, b) => {
       const dateA = a.startDate ? new Date(a.startDate) : new Date(0)
       const dateB = b.startDate ? new Date(b.startDate) : new Date(0)
@@ -82,22 +196,16 @@ class TermService {
     const globalSeenStudents = new Set()
     const termStatsMap = {}
 
-    // Fetch paid enrollments to aggregate term revenue
-    const enrollmentsSnap = await db
-      .collection(COLLECTIONS.ENROLLMENT)
-      .where('paymentStatus', 'in', ['paid', 'confirmed', 'success'])
-      .get()
-    const enrollments = enrollmentsSnap.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
     const revenueMap = {}
     enrollments.forEach((e) => {
       const isCancelledOrDeleted =
         ['cancelled', 'deleted', 'failed'].includes(
           String(e.status || '').toLowerCase(),
         ) || e.isDeleted === true
-      if (e.termId && !isCancelledOrDeleted) {
+      const pStatus = String(e.paymentStatus || '').toLowerCase()
+      const sStatus = String(e.status || '').toLowerCase()
+      const isPaid = ['paid', 'confirmed', 'success'].includes(pStatus) || ['paid', 'confirmed', 'success'].includes(sStatus)
+      if (e.termId && !isCancelledOrDeleted && isPaid) {
         revenueMap[e.termId] =
           (revenueMap[e.termId] || 0) + (Number(e.amount) || 0)
       }
@@ -154,11 +262,6 @@ class TermService {
       const enrollmentsSnap = await db
         .collection('enrollments')
         .where('termId', '==', id)
-        .where('status', 'in', [
-          'confirmed',
-          'paid',
-          'success',
-        ])
         .get()
 
       const enrollments = enrollmentsSnap.docs.map((d) => ({
@@ -166,40 +269,10 @@ class TermService {
         ...d.data(),
       }))
 
-      termData.offerings = termData.offerings.map((off) => {
-        const offEnrollments = enrollments.filter((e) => {
-          // Strict matching: If termOfferingId is provided, it MUST match
-          if (e.termOfferingId) {
-            return String(e.termOfferingId) === String(off.offeringId)
-          }
-
-          // Fallback matching: If no termOfferingId, match by class and branch
-          const matchesBase =
-            String(e.classId) === String(off.classId) &&
-            String(e.branchId) === String(off.branchId)
-          if (!matchesBase) return false
-
-          // Heuristic: Assign unassigned students to the FIRST offering of that class in that branch
-          // to avoid double counting across multiple schedules.
-          const firstOfferingOfClass = termData.offerings.find(
-            (o) =>
-              String(o.classId) === String(off.classId) &&
-              String(o.branchId) === String(off.branchId),
-          )
-          return firstOfferingOfClass?.offeringId === off.offeringId
-        })
-
-        const paidEnrollments = offEnrollments.filter(e => 
-          ['paid', 'success'].includes(e.paymentStatus) || 
-          ['paid', 'success'].includes(e.status)
-        )
-
-        return {
-          ...off,
-          currentCount: paidEnrollments.length,
-          studentIds: paidEnrollments.map((e) => e.studentId),
-        }
-      })
+      termData.offerings = this.enrichOfferingsWithEnrollments(
+        termData.offerings,
+        enrollments,
+      )
     }
 
     return termData

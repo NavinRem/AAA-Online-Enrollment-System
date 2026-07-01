@@ -13,7 +13,7 @@ import EnrollmentPayPanel from './forms/EnrollmentPayPanel.vue'
 import EnrollmentCancelPanel from './forms/EnrollmentCancelPanel.vue'
 import EnrollmentDeletePanel from './forms/EnrollmentDeletePanel.vue'
 import { getActionIcon, getImageUrl, getProgramProfileURL } from '@/utils/assetHelper'
-import { formatPrice } from '@/utils/formatUtils'
+import { formatPrice, sortSchedulesChronologically } from '@/utils/formatUtils'
 import { useModalText } from '@/composables/useModalText'
 import { getSessionCounts } from '@/utils/programHelper'
 import { filterEnrolledPrograms } from '@/utils/dropdownUtils'
@@ -158,7 +158,7 @@ const activeParents = computed(() =>
 
 const availableStudents = computed(() => {
   if (!form.parentId) return []
-  return props.students.filter((student) => student.parentId === form.parentId)
+  return props.students.filter((student) => String(student.parentId) === String(form.parentId))
 })
 
 const availablePrograms = computed(() => {
@@ -221,7 +221,10 @@ const availableOfferings = computed(() => {
     (term.offerings || [])
       .filter((offering) => {
         const isMatch =
-          offering.program?.id === form.programId || offering.class?.programId === form.programId
+          String(offering.program?.id) === String(form.programId) ||
+          String(offering.class?.programId) === String(form.programId) ||
+          String(offering.programId) === String(form.programId) ||
+          String(offering.classId) === String(form.programId)
         if (!isMatch) return false
 
         const isCurrentSelection =
@@ -230,29 +233,37 @@ const availableOfferings = computed(() => {
 
         // For new selections, enforce active term check
         if (!isCurrentSelection) {
-          const today = new Date().toISOString().split('T')[0]
-          if ((term.endDate || '') < today || term.isDeleted) return false
-        }
-
-        // Schedule conflict check
-        if (!isCurrentSelection && offering.schedule?.day && offering.schedule?.time) {
-          if (activeSchedules.has(`${offering.schedule.day}-${offering.schedule.time}`)) {
-            return false
+          if (term.isDeleted) return false
+          if (term.endDate) {
+             const todayDate = new Date()
+             todayDate.setHours(0,0,0,0)
+             const tEnd = new Date(term.endDate)
+             if (tEnd < todayDate) return false
           }
         }
 
-        const currentCount = offering.currentCount || (offering.students || []).length || 0
-
-        const classInfo = props.classes?.find((c) => String(c.id) === String(offering.classId))
-        const scheduleInfo = classInfo?.schedules?.find((s) => s.id === offering.schedule?.id)
-        const capacity = scheduleInfo?.capacity || classInfo?.capacity || offering.capacity || 20
-
-        return isCurrentSelection || currentCount < capacity
+        return true
       })
       .map((offering) => {
+        const isCurrentSelection =
+          isEditMode.value &&
+          String(offering.offeringId) === String(props.enrollment?.termOfferingId)
+
+        let disabledReason = ''
+        if (!isCurrentSelection && offering.schedule?.day && offering.schedule?.time) {
+          if (activeSchedules.has(`${offering.schedule.day}-${offering.schedule.time}`)) {
+             disabledReason = 'Schedule Conflict'
+          }
+        }
+
         const classInfo = props.classes?.find((c) => String(c.id) === String(offering.classId))
         const scheduleInfo = classInfo?.schedules?.find((s) => s.id === offering.schedule?.id)
         const capacity = scheduleInfo?.capacity || classInfo?.capacity || offering.capacity || 20
+        const currentCount = offering.currentCount || (offering.students || []).length || 0
+
+        if (!isCurrentSelection && currentCount >= capacity && !disabledReason) {
+            disabledReason = 'Class Full'
+        }
 
         let branchStartDate = term.startDate
         let branchEndDate = term.endDate
@@ -264,14 +275,17 @@ const availableOfferings = computed(() => {
           if (setting && setting.endDate) branchEndDate = setting.endDate
         }
 
+        const baseName = `${term.name} | ${offering.branch?.abbr || offering.branch?.name || 'Branch'} - ${offering.schedule?.day || 'Day'} (${offering.schedule?.time || 'Time'})`
+
         return {
           id: offering.offeringId,
           classId: offering.classId,
           className: offering.class?.name || 'Class',
-          name: `${term.name} | ${offering.branch?.abbr || offering.branch?.name || 'Branch'} - ${offering.schedule?.day || 'Day'} (${offering.schedule?.time || 'Time'})`,
+          name: disabledReason ? `${baseName} [${disabledReason}]` : baseName,
           termId: term.id,
           termName: term.name,
           branch: offering.branch,
+          branchId: offering.branch?.id || offering.branchId,
           schedule: offering.schedule,
           startDate: branchStartDate,
           endDate: branchEndDate,
@@ -282,17 +296,23 @@ const availableOfferings = computed(() => {
       }),
   )
 
-  // Sort so active (earlier start date) terms appear first
-  return offerings.sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0))
+  // Sort by schedule first, then by active (earlier start date) terms so it's chronologically ordered
+  const sortedBySchedule = sortSchedulesChronologically(offerings, 'schedule')
+  return sortedBySchedule.sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0))
 })
-
-// Removed availableBranches and availableSchedulesForBranch as they are combined into offeringSelectItems
 
 const selectedProgram = computed(() => props.programs.find((item) => item.id === form.programId))
 const selectedStudent = computed(() => props.students.find((item) => item.id === form.studentId))
-const selectedOffering = computed(() =>
-  availableOfferings.value.find((item) => item.id === form.termOfferingId),
-)
+const selectedOffering = computed(() => {
+  const off = availableOfferings.value.find((item) => item.id === form.termOfferingId)
+  if (
+    off &&
+    (off.disabledReason || off.capacity - off.studentCount <= 0 || off.studentCount >= off.capacity)
+  ) {
+    return null
+  }
+  return off
+})
 
 const sessionInfo = computed(() => {
   if (!selectedOffering.value) return null
@@ -489,6 +509,7 @@ const offeringSelectItems = computed(() =>
     capacity: off.capacity,
     termName: off.termName,
     profileURL: off.branch?.profileURL || getActionIcon('navigation/branch'),
+    disabledReason: off.disabledReason,
   })),
 )
 
@@ -623,9 +644,27 @@ const handleProgramChange = (programId) => {
 const handleOfferingChange = (offeringId) => {
   const offering = availableOfferings.value.find((item) => item.id === offeringId)
   if (offering) {
+    if (offering.disabledReason) {
+      if (offering.disabledReason === 'Class Full') {
+        validationMessage.value =
+          'This class is full and cannot be enrolled unless a student cancelled their enrollment, so they take their seat in the class.'
+      } else {
+        validationMessage.value = `Cannot select this class: ${offering.disabledReason}`
+      }
+      setTimeout(() => {
+        validationMessage.value = ''
+      }, 6000)
+      triggerShake('termOfferingId')
+      
+      // Revert the selection immediately
+      form.termOfferingId = ''
+      form.classId = ''
+      return
+    }
+
     form.termOfferingId = offeringId
     form.classId = offering.classId
-    form.branchId = offering.branch?.id || ''
+    form.branchId = offering.branchId || offering.branch?.id || ''
     form.termId = offering.termId
   }
   clearError('termOfferingId')
@@ -699,7 +738,8 @@ defineExpose({ setStudent })
     <form id="enrollmentForm" novalidate @submit.prevent="requestConfirm" class="enroll-form-root">
       <EnrollmentSelectionPanel
         v-if="['add', 'edit', 'transfer'].includes(type)"
-        v-model:form="form"
+        :form="form"
+        @update:form="(val) => Object.assign(form, val)"
         :errors="errors"
         :shaking="shaking"
         :loading="loading"
@@ -731,7 +771,8 @@ defineExpose({ setStudent })
           />
 
           <EnrollmentPricingPanel
-            v-model:form="form"
+            :form="form"
+            @update:form="(val) => Object.assign(form, val)"
             :errors="errors"
             :shaking="shaking"
             :isEditMode="isEditMode"
@@ -744,7 +785,8 @@ defineExpose({ setStudent })
       <!-- Content for Pay Action -->
       <EnrollmentPayPanel
         v-if="type === 'pay'"
-        v-model:form="form"
+        :form="form"
+        @update:form="(val) => Object.assign(form, val)"
         :displaySummary="displaySummary"
         :errors="errors"
         :shaking="shaking"
@@ -754,7 +796,8 @@ defineExpose({ setStudent })
       <!-- Content for Cancel Action -->
       <EnrollmentCancelPanel
         v-if="type === 'cancel'"
-        v-model:form="form"
+        :form="form"
+        @update:form="(val) => Object.assign(form, val)"
         :errors="errors"
         :shaking="shaking"
         @clear-error="clearError"
@@ -763,7 +806,8 @@ defineExpose({ setStudent })
       <!-- Content for Delete Action -->
       <EnrollmentDeletePanel
         v-if="type === 'delete'"
-        v-model:form="form"
+        :form="form"
+        @update:form="(val) => Object.assign(form, val)"
         :displaySummary="displaySummary"
         :errors="errors"
         :shaking="shaking"

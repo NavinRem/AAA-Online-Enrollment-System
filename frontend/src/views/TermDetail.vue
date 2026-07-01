@@ -191,18 +191,37 @@ const branchData = computed(() => {
 
     // Students for this offering
     const offeringEnrollments = enrollments.filter((e) => {
-      if (e.termOfferingId) return String(e.termOfferingId) === String(off.offeringId)
+      const offId = e.termOfferingId || e.term?.offeringId
+      if (offId) return String(offId) === String(off.offeringId)
       
       const isSameClass = String(e.classId) === String(off.classId) || String(e.programId) === String(off.programId)
       if (!isSameClass) return false
 
       const enrollDate = new Date(e.enrollAt || e.createdAt)
-      const matchesBranchAndDate = String(e.branchId) === String(activeBranchId.value) && enrollDate >= startDate && enrollDate <= endDate
+      const matchesBranchAndDate = String(e.branchId || e.class?.branch?.id || e.branch?.id) === String(activeBranchId.value) && enrollDate >= startDate && enrollDate <= endDate
+      if (!matchesBranchAndDate) return false
+
+      const eSchedId = e.scheduleId || e.class?.schedule?.id || e.schedule?.id || (Array.isArray(e.class?.scheduleIds) ? e.class.scheduleIds[0] : null)
+      const offSchedId = off.scheduleId || off.schedule?.id
+      if (eSchedId && offSchedId) {
+        return String(eSchedId) === String(offSchedId)
+      }
+
+      const eDay = e.class?.schedule?.day || e.schedule?.day || e.scheduleDay
+      const eTime = e.class?.schedule?.time || e.schedule?.time || e.scheduleTime
+      const offDay = off.schedule?.day || off.scheduleDay
+      const offTime = off.schedule?.time || off.scheduleTime
+      if (eDay && offDay && String(eDay).toLowerCase() === String(offDay).toLowerCase()) {
+        if (eTime && offTime) {
+          return String(eTime).toLowerCase() === String(offTime).toLowerCase()
+        }
+        return true
+      }
 
       const firstOfferingOfClass = term.value.offerings.find(
-        (o) => String(o.branchId) === String(activeBranchId.value) && (String(o.classId) === String(off.classId) || String(o.programId) === String(off.programId)),
+        (o) => String(o.branchId || o.branch?.id) === String(activeBranchId.value) && (String(o.classId) === String(off.classId) || String(o.programId) === String(off.programId)),
       )
-      return matchesBranchAndDate && String(firstOfferingOfClass?.offeringId) === String(off.offeringId)
+      return String(firstOfferingOfClass?.offeringId) === String(off.offeringId)
     })
 
     const students = offeringEnrollments.map((e) => {
@@ -222,7 +241,7 @@ const branchData = computed(() => {
       if (!studentMap.has(s.id)) studentMap.set(s.id, s)
     })
 
-    const paidStudents = students.filter(s => ['paid', 'success'].includes(s.status) || ['paid', 'success'].includes(s.paymentStatus))
+    const paidStudents = students.filter(s => ['paid', 'success', 'confirmed', 'active'].includes(String(s.status || '').toLowerCase()) || ['paid', 'success', 'confirmed', 'active'].includes(String(s.paymentStatus || '').toLowerCase()))
     const revenue = paidStudents.reduce((sum, s) => sum + (s.revenue || 0), 0)
 
     const processedOffering = {
@@ -279,7 +298,7 @@ const branchData = computed(() => {
   result.groupedOfferings = Array.from(groupMap.values()).map(g => {
     g.schedules = sortSchedulesChronologically(g.schedules)
     
-    const paidEnrolls = g.groupEnrollments.filter(e => ['paid', 'success'].includes(e.status) || ['paid', 'success'].includes(e.paymentStatus))
+    const paidEnrolls = g.groupEnrollments.filter(e => ['paid', 'success', 'confirmed', 'active'].includes(String(e.status || '').toLowerCase()) || ['paid', 'success', 'confirmed', 'active'].includes(String(e.paymentStatus || '').toLowerCase()))
     g.totalRevenue = paidEnrolls.reduce((sum, e) => sum + Number(e.amount || e.finalPrice || e.totalPrice || 0), 0)
     g.uniqueStudentCount = new Set(paidEnrolls.map(e => e.studentId)).size
     delete g.groupEnrollments // clean up temp array

@@ -10,6 +10,7 @@ const SEAT_TAKING_STATUSES = [
   'confirmed',
   'paid',
   'success',
+  'active',
 ]
 const isSeatTaking = (status) =>
   SEAT_TAKING_STATUSES.includes(String(status || '').toLowerCase())
@@ -149,35 +150,35 @@ class EnrollmentService {
         transaction.update(db.collection(COLLECTIONS.PROGRAM).doc(programId), {
           totalEnrolledCount: FieldValue.increment(1),
         })
+      }
 
-        // Save enrolled branch and set status to Active
-        if (offering.branchId) {
-          transaction.update(
-            db.collection(COLLECTIONS.STUDENT).doc(studentId),
-            {
-              branchId: offering.branchId,
-              branchInfo: offering.branch || null,
-              status: 'Active',
-              updatedAt: new Date().toISOString(),
-            },
-          )
-        } else {
-          transaction.update(
-            db.collection(COLLECTIONS.STUDENT).doc(studentId),
-            {
-              status: 'Active',
-              updatedAt: new Date().toISOString(),
-            },
-          )
-        }
-        
-        // Also ensure parent is Active
-        if (parentId) {
-          transaction.update(db.collection(COLLECTIONS.PARENT).doc(parentId), {
+      // Save enrolled branch and set status to Active after student enrolls
+      if (offering.branchId) {
+        transaction.update(
+          db.collection(COLLECTIONS.STUDENT).doc(studentId),
+          {
+            branchId: offering.branchId,
+            branchInfo: offering.branch || null,
             status: 'Active',
             updatedAt: new Date().toISOString(),
-          })
-        }
+          },
+        )
+      } else {
+        transaction.update(
+          db.collection(COLLECTIONS.STUDENT).doc(studentId),
+          {
+            status: 'Active',
+            updatedAt: new Date().toISOString(),
+          },
+        )
+      }
+      
+      // Also ensure parent is Active
+      if (parentId) {
+        transaction.update(db.collection(COLLECTIONS.PARENT).doc(parentId), {
+          status: 'Active',
+          updatedAt: new Date().toISOString(),
+        })
       }
 
       // Automatic Payment Record Creation
@@ -783,7 +784,9 @@ class EnrollmentService {
       .collection(COLLECTIONS.ENROLLMENT)
       .doc(enrollmentId)
 
-    return await db.runTransaction(async (transaction) => {
+    let updatedEnrollmentData = null
+
+    const result = await db.runTransaction(async (transaction) => {
       const enrollmentDoc = await transaction.get(enrollmentRef)
       if (!enrollmentDoc.exists) throw new Error('Enrollment not found')
 
@@ -798,6 +801,15 @@ class EnrollmentService {
       const pStatus = paymentData.paymentStatus || 'paid'
       const eStatus = pStatus === 'paid' ? 'paid' : 'unpaid'
       const now = new Date().toISOString()
+
+      updatedEnrollmentData = {
+        ...enrollmentData,
+        id: enrollmentId,
+        paymentStatus: pStatus.toLowerCase(),
+        status: eStatus.toLowerCase(),
+        updatedAt: now,
+        paidAt: pStatus === 'paid' ? now : null,
+      }
 
       // 1. Update Enrollment
       transaction.update(enrollmentRef, {
@@ -836,9 +848,22 @@ class EnrollmentService {
         receiptId: receiptId || '',
         paymentStatus: pStatus.toLowerCase(),
         remark: remark || '',
-        paidAt: now,
         createdAt: now,
       })
+
+      // Ensure student and parent status are set to Active upon payment processing
+      if (enrollmentData.studentId) {
+        transaction.update(
+          db.collection(COLLECTIONS.STUDENT).doc(enrollmentData.studentId),
+          { status: 'Active', updatedAt: now },
+        )
+      }
+      if (enrollmentData.parentId) {
+        transaction.update(
+          db.collection(COLLECTIONS.PARENT).doc(enrollmentData.parentId),
+          { status: 'Active', updatedAt: now },
+        )
+      }
 
       return {
         success: true,
@@ -846,6 +871,20 @@ class EnrollmentService {
         enrollmentStatus: eStatus,
       }
     })
+
+    if (updatedEnrollmentData && isSeatTaking(updatedEnrollmentData.status)) {
+      const termService = require('./termService')
+      await termService
+        .syncOfferingStudent(
+          updatedEnrollmentData.termId,
+          updatedEnrollmentData.termOfferingId || updatedEnrollmentData.term?.offeringId,
+          updatedEnrollmentData,
+          'upsert',
+        )
+        .catch((err) => console.error('Failed to sync offering on payment:', err))
+    }
+
+    return result
   }
 
   async markMatchingTrialsAsSuccessful(enrollment) {
