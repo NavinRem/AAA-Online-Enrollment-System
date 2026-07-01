@@ -69,12 +69,6 @@ const requestConfirm = () => {
   if (props.type === 'edit' || props.type?.includes('override')) {
     if (props.type === 'edit' && !isDirty.value) return
     rules.required = ['name', 'dob']
-    rules.custom.overrideRemark = (val) => {
-      if (['hold', 'inactive'].includes(localData.status.toLowerCase())) {
-        return !!val?.trim() || 'Detailed remark is required for this status change.'
-      }
-      return true
-    }
   } else if (props.type?.includes('delete')) {
     rules.custom.deleteConfirm = (val) => val === 'DELETE' || 'Type DELETE to confirm.'
   }
@@ -201,11 +195,7 @@ const customSubmit = computed(() => {
 
 const isFormInvalid = computed(() => {
   if (props.type?.includes('delete')) return !localData.deleteConfirm
-  const baseInvalid = !localData.name || !localData.dob
-  if (['hold', 'inactive'].includes(localData.status?.toLowerCase())) {
-    return baseInvalid || !localData.overrideRemark
-  }
-  return baseInvalid
+  return !localData.name || !localData.dob
 })
 
 const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Student', {
@@ -317,6 +307,25 @@ watch(
           :searchable="false"
           @change="clearError('status')"
           @click-disabled="handleDisabledClick('status')"
+        >
+          <template #selected="{ item }">
+            <AppBadge v-if="item" :status="item.name" />
+          </template>
+          <template #item="{ item }">
+            <AppBadge :status="item.name" />
+          </template>
+        </AppSelect>
+
+        <AvatarSelector
+          v-if="type === 'edit'"
+          v-model="localData.profileURL"
+          label="Student Profile Avatar"
+          role="student"
+          :uid="student?.id || enrollment?.studentId"
+          :customFileName="`${localData.name}_student`"
+          :error="errors.profileURL"
+          :shake="shaking.profileURL"
+          @update:modelValue="clearError('profileURL')"
         />
 
         <!-- Enrollment Context (Override mode) — show class & branch -->
@@ -336,24 +345,10 @@ watch(
           type="textarea"
           label="Administrative Remarks"
           placeholder="Document reason for status change..."
-          required
           :error="errors.overrideRemark"
           :shake="shaking.overrideRemark"
           class="col-span-2"
           @input="clearError('overrideRemark')"
-        />
-
-        <AvatarSelector
-          v-if="type === 'edit'"
-          v-model="localData.profileURL"
-          label="Student Profile Avatar"
-          role="student"
-          :uid="student?.id || enrollment?.studentId"
-          :customFileName="`${localData.name}_student`"
-          :error="errors.profileURL"
-          :shake="shaking.profileURL"
-          class="col-span-2"
-          @update:modelValue="clearError('profileURL')"
         />
       </div>
 

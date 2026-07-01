@@ -48,8 +48,11 @@ const getRowClass = (item) => {
 }
 
 const statsCards = computed(() => {
-  const { parentCount, todayCount, paidTodayCount, inactiveCount } = calculateParentStats(parents.value, enrollments.value)
-  
+  const { parentCount, todayCount, paidTodayCount, inactiveCount } = calculateParentStats(
+    parents.value,
+    enrollments.value,
+  )
+
   return [
     {
       label: 'Total Parents',
@@ -123,7 +126,14 @@ watch([currentFilter, searchQuery], () => {
   currentPage.value = 1
 })
 
-const { actionModal, openActionModal: baseOpenModal, closeActionModal, setModalLoading, setModalError, setModalSuccess } = useModalState('edit')
+const {
+  actionModal,
+  openActionModal: baseOpenModal,
+  closeActionModal,
+  setModalLoading,
+  setModalError,
+  setModalSuccess,
+} = useModalState('edit')
 const actionModalParent = ref(null)
 
 const openActionModal = (type, parent = null) => {
@@ -140,7 +150,7 @@ const submitActionModal = async (formData) => {
   if (type === 'add') {
     return submitNewParent(formData)
   }
-  
+
   const id = actionModalParent.value?.id
   setModalLoading(true)
   setModalError('')
@@ -160,7 +170,9 @@ const submitActionModal = async (formData) => {
       const status = type === 'activate' ? 'Active' : 'Inactive'
       await parentService.updateParent(id, { status })
       await reloadData()
-      setModalSuccess(`Account ${type === 'activate' ? 'reactivated' : 'deactivated'} successfully!`)
+      setModalSuccess(
+        `Account ${type === 'activate' ? 'reactivated' : 'deactivated'} successfully!`,
+      )
     }
 
     if (type === 'delete') {
@@ -191,7 +203,9 @@ const submitActionModal = async (formData) => {
     setTimeout(closeActionModal, delay)
   } catch (error) {
     console.error(`Failed ${type}:`, error)
-    setModalError(error.response?.data?.message || error.message || `Action failed. Please try again.`)
+    setModalError(
+      error.response?.data?.message || error.message || `Action failed. Please try again.`,
+    )
   } finally {
     setModalLoading(false)
   }
@@ -212,14 +226,18 @@ const submitNewParent = async (data) => {
     const result = await parentService.createParent(payload)
     newlyCreatedId.value = result.id
     await reloadData()
-    setModalSuccess(`Account created successfully! ${result.tempPassword ? 'Temp Password: ' + result.tempPassword : ''}`)
+    setModalSuccess(
+      `Account created successfully! ${result.tempPassword ? 'Temp Password: ' + result.tempPassword : ''}`,
+    )
 
     setTimeout(() => {
       closeActionModal()
     }, 2000)
   } catch (error) {
     console.error('Failed creation:', error)
-    setModalError(error.response?.data?.message || error.message || 'Failed to create parent account.')
+    setModalError(
+      error.response?.data?.message || error.message || 'Failed to create parent account.',
+    )
   } finally {
     setModalLoading(false)
   }
@@ -286,7 +304,8 @@ const handleRowAction = (type, item, closeMenu) => {
           @action="({ type, item }) => openActionModal(type, item)"
         >
           <template #toolbar-actions>
-            <div class="flex items-center gap-3">              <AppButton variant="primary" @click="openActionModal('add')">
+            <div class="flex items-center gap-3">
+              <AppButton variant="primary" @click="openActionModal('add')">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
                 <span class="font-bold tracking-tight">New Parent</span>
               </AppButton>
@@ -334,7 +353,7 @@ const handleRowAction = (type, item, closeMenu) => {
                   </div>
                   <div
                     v-if="item.childrenInfo.length > 3"
-                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-3xs font-black"
+                    class="w-8 h-8 rounded-full border-2 border-white bg-surface-subtle flex items-center justify-center text-sm font-black"
                   >
                     +{{ item.childrenInfo.length - 3 }}
                   </div>
@@ -345,7 +364,7 @@ const handleRowAction = (type, item, closeMenu) => {
             <!-- Contact Details -->
             <td class="ui-cell hidden md:table-cell">
               <div class="flex flex-col">
-                <span class="text-xs font-bold text-content-dark tabular-nums tracking-tighter">{{
+                <span class="text-sm font-bold text-content-dark tabular-nums tracking-tighter">{{
                   item.phone
                 }}</span>
               </div>
@@ -353,7 +372,7 @@ const handleRowAction = (type, item, closeMenu) => {
 
             <td class="ui-cell hidden lg:table-cell">
               <div class="flex flex-col max-w-40">
-                <span class="truncate ui-cell-muted">{{ item.email }}</span>
+                <span class="ui-cell-muted">{{ item.email }}</span>
               </div>
             </td>
 
@@ -490,10 +509,7 @@ const handleRowAction = (type, item, closeMenu) => {
 
     <!-- Teleported Dropdowns -->
     <!-- Teleported Dropdowns -->
-    <Teleport to="body">
-    </Teleport>
-
-
+    <Teleport to="body"> </Teleport>
   </DashboardLayout>
 </template>
 

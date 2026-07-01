@@ -587,13 +587,13 @@ const closeModals = () => {
             <!-- Parent -->
             <td class="ui-cell hidden md:table-cell">
               <div class="ui-identity-cell">
-                <div class="ui-avatar !w-8 !h-8">
+                <div
+                  class="ui-avatar ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-300 shadow-sm"
+                >
                   <img :src="item.parentInfo?.profileURL" alt="parent" />
                 </div>
                 <div class="ui-identity-info">
-                  <span class="ui-cell-muted">{{
-                    item.parentInfo?.name
-                  }}</span>
+                  <span class="ui-cell-muted">{{ item.parentInfo?.name }}</span>
                 </div>
               </div>
             </td>

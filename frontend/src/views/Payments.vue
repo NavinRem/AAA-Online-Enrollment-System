@@ -400,14 +400,14 @@ const paymentHeaders = [
                   </div>
                   <div class="flex items-center gap-1.5 opacity-60">
                     <img :src="item.studentProfile" class="w-3 h-3 rounded-full" />
-                    <span class="text-3xs font-bold text-content-muted">{{ item.student }}</span>
+                    <span class="text-xs font-bold text-content-muted">{{ item.student }}</span>
                   </div>
                 </div>
               </div>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[2].width }">
-              <span class="text-xs font-bold text-content-dark tracking-tighter tabular-nums">{{
+              <span class="text-sm font-bold text-content-dark tracking-tighter tabular-nums">{{
                 item.receiptId
               }}</span>
             </td>

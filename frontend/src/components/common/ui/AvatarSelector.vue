@@ -170,7 +170,7 @@ const handleFileUpload = async (event) => {
       class="avatar-selector-container"
       :class="uploadError || props.error ? 'border-error bg-error-soft' : 'border-outline-std'"
     >
-      <div class="avatar-gallery flex gap-4">
+      <div class="avatar-gallery flex gap-2 sm:gap-3">
         <div
           v-for="avatar in availableAvatars"
           :key="avatar.id + avatar.url"
@@ -262,11 +262,11 @@ const handleFileUpload = async (event) => {
 }
 
 .avatar-selector-container {
-  @apply flex items-center justify-between bg-surface-subtle p-md px-xl rounded-std border-2 transition-all;
+  @apply flex items-center justify-between bg-surface-subtle p-2 px-3 sm:px-4 rounded-std border-2 transition-all;
 }
 
 .avatar-item {
-  @apply relative w-14 h-14 rounded-full cursor-pointer border-2 transition-all p-0.5 bg-white;
+  @apply relative w-11 h-11 shrink-0 rounded-full cursor-pointer border-2 transition-all p-0.5 bg-white;
 }
 
 .avatar-item--active {
@@ -286,7 +286,7 @@ const handleFileUpload = async (event) => {
 }
 
 .avatar-upload-btn {
-  @apply w-14 h-14 rounded-full border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all bg-white text-content-light/50 hover:border-primary hover:text-primary hover:bg-primary-soft;
+  @apply w-11 h-11 shrink-0 rounded-full border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all bg-white text-content-light/50 hover:border-primary hover:text-primary hover:bg-primary-soft;
 }
 
 .avatar-feedback-err {

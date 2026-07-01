@@ -41,7 +41,7 @@ const terms = ref([])
 const selectedTermId = ref('all')
 const { dropdowns, filterMenuStyles, toggleDropdown, closeAllDropdowns } = useDropdowns(
   ['term'],
-  ['#term-filter-btn']
+  ['#term-filter-btn'],
 )
 
 const selectFilter = (type, value) => {
@@ -146,7 +146,7 @@ const enrollmentHeaders = [
   { label: 'Program' },
   { label: 'Branch', align: 'center', width: '100px' },
   { label: 'Term', width: '150px' },
-  { label: 'Date', width: '200px', align: 'center' },
+  { label: 'Date', width: '250px', align: 'center' },
   { label: 'Status', align: 'center', width: '120px' },
 ]
 
@@ -157,7 +157,7 @@ const paymentHeaders = [
   { label: 'Program' },
   { label: 'Amount', align: 'center', width: '120px' },
   { label: 'Method', width: '100px' },
-  { label: 'Date', width: '120px', align: 'center' },
+  { label: 'Date', width: '250px', align: 'center' },
   { label: 'Status', align: 'center', width: '120px' },
 ]
 
@@ -207,7 +207,14 @@ const fetchData = async (id) => {
   }
 }
 
-const { actionModal, openActionModal: baseOpenModal, closeActionModal, setModalLoading, setModalError, setModalSuccess } = useModalState('edit')
+const {
+  actionModal,
+  openActionModal: baseOpenModal,
+  closeActionModal,
+  setModalLoading,
+  setModalError,
+  setModalSuccess,
+} = useModalState('edit')
 
 const openActionModal = (type) => {
   baseOpenModal(type)
@@ -259,7 +266,7 @@ const submitActionModal = async (formData) => {
       },
       type === 'reset-password' ? 5000 : 1500,
     )
-    
+
     await dataStore.fetchAllCommonData(true, ['parents', 'students'])
     await fetchData(id)
   } catch (err) {
@@ -332,7 +339,7 @@ useDetailFetch(fetchData)
               ]"
               :key="tab.id"
               @click="activeTab = tab.id"
-              class="px-8 py-2.5 rounded-lg text-xs font-bold transition-all duration-300"
+              class="px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-300"
               :class="
                 activeTab === tab.id
                   ? 'bg-primary text-white shadow-md'
@@ -449,12 +456,12 @@ useDetailFetch(fetchData)
                 <AppBadge :status="item.branchAbbr" :type="item.branchColor" />
               </td>
               <td class="ui-cell" :style="{ width: headers[4].width }">
-                <span class="text-xs font-bold text-content-muted tabular-nums">{{
+                <span class="text-sm font-bold text-content-muted tabular-nums">{{
                   item.termName
                 }}</span>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[5].width }">
-                <span class="text-xs font-bold text-content-muted tabular-nums">{{
+                <span class="text-sm font-bold text-content-muted tabular-nums">{{
                   formatDate(item.enrollAt)
                 }}</span>
               </td>
@@ -556,7 +563,7 @@ useDetailFetch(fetchData)
                 <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
               </td>
               <td class="ui-cell" :style="{ width: headers[1].width }">
-                <span class="text-3xs font-bold text-content-muted tracking-tight">
+                <span class="text-sm font-bold text-content-muted tracking-tight">
                   {{ item.transactionId || item.id.slice(0, 8) }}
                 </span>
               </td>
@@ -587,7 +594,7 @@ useDetailFetch(fetchData)
                 <AppBadge :status="item.paymentMethod || 'N/A'" type="blue" />
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[6].width }">
-                <span class="text-xs font-bold text-content-muted tabular-nums">
+                <span class="text-sm font-bold text-content-muted tabular-nums">
                   {{ formatDate(item.paidAt || item.enrollAt) }}
                 </span>
               </td>

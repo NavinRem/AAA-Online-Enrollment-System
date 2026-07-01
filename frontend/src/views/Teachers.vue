@@ -12,7 +12,7 @@ import { teacherService } from '@/services/teacherService'
 import { useDataStore } from '@/stores/dataStore'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 import { useSearch, teacherSearchMapper } from '@/composables/useSearch'
-import { calculateClassProgress } from '@/utils/formatUtils'
+import { calculateClassProgress, formatDate } from '@/utils/formatUtils'
 
 defineOptions({ name: 'TeacherList' })
 
@@ -49,8 +49,9 @@ const getTeacherAssignments = (teacherId) => {
       const isDefaultAssigned = (offering.teachers || []).some((t) => t.id === teacherId)
       const isInSessions = (offering.sessionTeachers || []).some((st) => {
         if (!st) return false
-        if (st.teachers && Array.isArray(st.teachers)) return st.teachers.some(t => t && t.id === teacherId)
-        if (Array.isArray(st)) return st.some(t => t && t.id === teacherId)
+        if (st.teachers && Array.isArray(st.teachers))
+          return st.teachers.some((t) => t && t.id === teacherId)
+        if (Array.isArray(st)) return st.some((t) => t && t.id === teacherId)
         return st && st.id === teacherId
       })
       if (isDefaultAssigned || isInSessions) {
@@ -162,6 +163,7 @@ const headers = [
   { label: 'Phone', class: 'hidden sm:table-cell' },
   { label: 'Assigned Classes', width: '400px', class: 'hidden lg:table-cell' },
   { label: 'Program', class: 'hidden lg:table-cell' },
+  { label: 'Joined Date', class: 'hidden lg:table-cell', align: 'center' },
   { label: 'Status', width: '150px', align: 'center' },
   { label: 'Action', width: '80px', align: 'center' },
 ]
@@ -422,10 +424,10 @@ const handleAction = (type, item, closeMenu) => {
                     class="group/assign relative flex items-center justify-between gap-10 px-2 py-1.5 rounded-sm bg-primary-soft border border-primary/10 group-hover:bg-white group-hover:border-primary transition-all cursor-default"
                   >
                     <div class="flex flex-col gap-0.5">
-                      <span class="text-xs font-black text-content-dark truncate">
+                      <span class="text-sm font-bold text-content-dark truncate">
                         {{ assign.schedule?.day || 'TBA' }}
                       </span>
-                      <span class="text-xs font-bold text-primary leading-none">
+                      <span class="text-sm font-bold text-primary leading-none">
                         {{ assign.schedule?.time || 'N/A' }}
                       </span>
                     </div>
@@ -444,9 +446,25 @@ const handleAction = (type, item, closeMenu) => {
 
             <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[4].width }">
               <div class="flex flex-wrap gap-2">
-                <template v-if="getPrograms(item.programIds).length > 0 || getTeacherAssignments(item.id).map(a => a.program).filter(Boolean).length > 0">
+                <template
+                  v-if="
+                    getPrograms(item.programIds).length > 0 ||
+                    getTeacherAssignments(item.id)
+                      .map((a) => a.program)
+                      .filter(Boolean).length > 0
+                  "
+                >
                   <div
-                    v-for="prog in Array.from(new Map([...getPrograms(item.programIds), ...getTeacherAssignments(item.id).map(a => a.program).filter(Boolean)].map(p => [p.id, p])).values())"
+                    v-for="prog in Array.from(
+                      new Map(
+                        [
+                          ...getPrograms(item.programIds),
+                          ...getTeacherAssignments(item.id)
+                            .map((a) => a.program)
+                            .filter(Boolean),
+                        ].map((p) => [p.id, p]),
+                      ).values(),
+                    )"
                     :key="prog.id"
                     class="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-primary-soft border border-primary/10 group-hover:bg-white group-hover:border-primary transition-all duration-300"
                   >
@@ -458,7 +476,7 @@ const handleAction = (type, item, closeMenu) => {
                         class="w-full h-full object-cover"
                       />
                     </div>
-                    <span class="font-bold text-primary truncate pr-5">{{ prog.name }}</span>
+                    <span class="font-bold truncate pr-5">{{ prog.name }}</span>
                   </div>
                 </template>
                 <span v-else class="font-bold text-content-muted italic opacity-40"
@@ -467,11 +485,18 @@ const handleAction = (type, item, closeMenu) => {
               </div>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[5].width }">
-              <AppBadge :status="item.status || 'active'" />
+            <!-- Joined Date -->
+            <td class="ui-cell hidden lg:table-cell text-center">
+              <span class="ui-cell-muted">
+                {{ formatDate(item.createdAt) }}
+              </span>
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+              <AppBadge :status="item.status || 'active'" />
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

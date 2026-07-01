@@ -175,7 +175,7 @@
   /* ── Text Modifiers ──────────────────────────────────────────────────────── */
   /* Use for: secondary data (dates, emails, IDs) in table cells               */
   .ui-cell-muted {
-    @apply text-xs font-bold text-content-muted tabular-nums tracking-tight;
+    @apply text-sm font-bold text-content-muted tabular-nums tracking-tight;
   }
 
   /* Use for: empty states (e.g., "—", "No Data") in table cells               */
