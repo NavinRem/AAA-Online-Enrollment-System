@@ -523,6 +523,7 @@ watch(
           :branches="branches"
           @clear-error="clearError"
           @toggle-branches="toggleAllBranches"
+          @update:localData="(val) => Object.assign(localData, val)"
         />
 
         <TermBranchSettingsPanel

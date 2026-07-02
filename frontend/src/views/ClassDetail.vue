@@ -378,7 +378,7 @@ const uniqueBranches = computed(() => {
           (String(e.branchId) === branchId || String(e.class?.branch?.id) === branchId) &&
           String(e.termId) === String(offering.termId) &&
           (['paid', 'success', 'active', 'confirmed'].includes(e.status) ||
-            ['paid', 'success'].includes(e.paymentStatus)),
+            (['paid', 'success'].includes(e.paymentStatus) && !['transferred', 'cancelled', 'suspended'].includes(e.status))),
       ).length
 
       branchMap.get(branchId).studentCount = paidStudentsCount
@@ -510,8 +510,8 @@ const filteredEnrollments = computed(() => {
   const filtered = enrollments.value.filter((e) => {
     // Audit: Only successful/eligible enrollments are shown for attendance
     if (
-      !['paid', 'success', 'active', 'confirmed'].includes(e.status) &&
-      !['paid', 'success'].includes(e.paymentStatus)
+      !['paid', 'success', 'active', 'confirmed', 'transferred', 'cancelled', 'suspended'].includes(e.status) &&
+      !['paid', 'success', 'transferred'].includes(e.paymentStatus)
     )
       return false
 
@@ -1022,7 +1022,7 @@ watch(branchFilter, (newBranchId) => {
                     }}</span>
                     <AppBadge
                       v-if="['cancelled', 'suspended', 'transferred'].includes(item.status)"
-                      :status="item.status"
+                      :status="item.status === 'transferred' ? 'Transfer' : item.status"
                       size="xs"
                     />
                   </div>

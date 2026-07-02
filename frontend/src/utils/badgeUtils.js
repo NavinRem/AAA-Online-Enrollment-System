@@ -5,6 +5,8 @@ const COMMON_STATUSES = {
   inactive: 'red',
   failed: 'red',
   success: 'green',
+  transferred: 'blue',
+  transfer: 'blue',
 }
 
 const REGISTRIES = {

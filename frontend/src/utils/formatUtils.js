@@ -127,23 +127,14 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
   const computedTotalWeeks = Math.ceil(diffDays / 7)
   const totalWeeks = totalSessions ? parseInt(totalSessions) : computedTotalWeeks
 
-  // 3. Calculate completed sessions (decrements exactly the day AFTER class)
+  // 3. Calculate completed sessions uniformly by term weeks elapsed so all classes in term have uniform remaining sessions
   let sessionsCompleted = 0
-  if (todayDate >= firstSessionDate) {
-    const daysElapsed = Math.round((todayDate - firstSessionDate) / (24 * 60 * 60 * 1000))
-    const weeksElapsed = Math.floor(daysElapsed / 7)
-    const dayInCurrentWeek = daysElapsed % 7
-    
-    if (dayInCurrentWeek === 0) {
-      // Today IS the class day (session not finished yet)
-      sessionsCompleted = weeksElapsed
-    } else {
-      // Today is after the class day (session finished)
-      sessionsCompleted = weeksElapsed + 1
-    }
+  if (todayDate >= startDateOnly) {
+    const daysElapsed = Math.round((todayDate - startDateOnly) / (24 * 60 * 60 * 1000))
+    sessionsCompleted = Math.min(totalWeeks, Math.max(0, Math.floor(daysElapsed / 7) + 1))
   }
 
-  const currentWeek = todayDate < firstSessionDate ? 0 : Math.min(totalWeeks, sessionsCompleted + 1)
+  const currentWeek = todayDate < startDateOnly ? 0 : sessionsCompleted
   const remainingSessions = Math.max(0, totalWeeks - sessionsCompleted)
   const percentage = totalWeeks === 0 ? 0 : Math.min(100, Math.round((sessionsCompleted / totalWeeks) * 100))
 
@@ -246,7 +237,7 @@ export const generateClassSessions = (
   let sessionsFound = 0
   let safetyCounter = 0
   while (sessionsFound < total && safetyCounter < 365) {
-    if (end && current > end) break
+    if (!totalSessions && end && current > end) break
 
     const dateStr = current.toISOString().split('T')[0]
     if (!skippedSet.has(dateStr)) {

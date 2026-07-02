@@ -36,6 +36,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit'])
 
 const getInitialData = () => ({
+  id: '',
   parentId: '',
   studentId: '',
   programId: '',
@@ -69,6 +70,7 @@ const mapSourceToForm = () => {
   if (props.enrollment) {
     return {
       ...getInitialData(),
+      id: props.enrollment.id || '',
       parentId: props.enrollment.parentId || '',
       studentId: props.enrollment.studentId || '',
       programId: props.enrollment.programId || '',
@@ -86,9 +88,14 @@ const mapSourceToForm = () => {
       isCustomPrice: !!props.enrollment.isCustomPrice,
       customPrice: props.enrollment.customPrice || 0,
       enrolledSessions: props.enrollment.enrolledSessions || 0,
-      amount: props.enrollment.amount || 0,
       remark: props.enrollment.remark || '',
       transferredSessions: props.enrollment.transferredSessions || 0,
+      receiptId: props.enrollment.receiptId || '',
+      transactionId: props.enrollment.transactionId || '',
+      bankName: props.enrollment.bankName || '',
+      paymentMethod: props.enrollment.paymentMethod || 'online',
+      paymentStatus: props.type === 'pay' ? 'paid' : (props.enrollment.paymentStatus || 'paid'),
+      status: props.type === 'pay' ? 'paid' : (props.enrollment.status || 'paid'),
     }
   }
   return getInitialData()
@@ -115,6 +122,8 @@ const showConfirm = ref(false)
 const isEditMode = computed(
   () => props.type === 'edit' || (props.type !== 'add' && !!props.enrollment),
 )
+// In transfer mode, parent/student/program are locked, but offering is free to change
+const isTransferMode = computed(() => props.type === 'transfer')
 
 const displaySummary = computed(() => {
   const e = props.enrollment
@@ -149,7 +158,7 @@ const displaySummary = computed(() => {
     termName: classObj.term?.name || e.termName || 'N/A',
   }
 })
-const isChanged = computed(() => !isEditMode.value || isDirty.value)
+const isChanged = computed(() => props.type !== 'edit' || isDirty.value)
 const hasAnyError = computed(() => Object.values(errors).some(Boolean))
 
 const activeParents = computed(() =>
@@ -174,11 +183,14 @@ const availableOfferings = computed(() => {
   if (!form.programId) return []
 
   const activeSchedules = new Set()
+  const activeBranchIdentifiers = new Set()
+
   if (form.studentId && props.enrollments) {
+    const activeStatuses = ['paid', 'unpaid', 'active', 'confirmed', 'success', 'pending', 'partial']
     const studentEnrollments = props.enrollments.filter(
       (e) =>
         String(e.studentId) === String(form.studentId) &&
-        ['paid', 'unpaid', 'active', 'confirmed', 'success'].includes(e.status) &&
+        activeStatuses.includes(String(e.status || '').toLowerCase().trim()) &&
         e.isDeleted !== true &&
         String(e.id) !== String(props.enrollment?.id),
     )
@@ -186,6 +198,8 @@ const availableOfferings = computed(() => {
     studentEnrollments.forEach((e) => {
       let day = ''
       let time = ''
+      let bId = e.branchId || e.branch?.id || e.class?.branch?.id || e.class?.branchId
+      let bAbbr = e.branchAbbr || e.branch?.abbr || e.class?.branch?.abbr
 
       if (props.terms) {
         for (const term of props.terms) {
@@ -195,9 +209,13 @@ const availableOfferings = computed(() => {
                 String(o.offeringId) === String(e.termOfferingId) ||
                 String(o.id) === String(e.termOfferingId),
             )
-            if (off && off.schedule) {
-              day = off.schedule.day
-              time = off.schedule.time
+            if (off) {
+              if (off.schedule) {
+                day = off.schedule.day
+                time = off.schedule.time
+              }
+              if (off.branchId || off.branch?.id) bId = off.branchId || off.branch?.id
+              if (off.branch?.abbr) bAbbr = off.branch?.abbr
               break
             }
           }
@@ -211,9 +229,30 @@ const availableOfferings = computed(() => {
         }
       }
 
+      if (!bId && e.classId && props.classes) {
+        const cls = props.classes.find((c) => String(c.id) === String(e.classId))
+        if (cls) {
+          bId = cls.branchId || cls.branch?.id
+          bAbbr = bAbbr || cls.branch?.abbr
+        }
+      }
+
       if (day && time) {
         activeSchedules.add(`${day}-${time}`)
       }
+      ;[
+        bId,
+        bAbbr,
+        e.branchId,
+        e.branch?.id,
+        e.branchAbbr,
+        e.branch?.abbr,
+        e.class?.branchId,
+        e.class?.branch?.id,
+        e.class?.branch?.abbr,
+      ]
+        .filter(Boolean)
+        .forEach((val) => activeBranchIdentifiers.add(String(val).toLowerCase().trim()))
     })
   }
 
@@ -231,8 +270,11 @@ const availableOfferings = computed(() => {
           isEditMode.value &&
           String(offering.offeringId) === String(props.enrollment?.termOfferingId)
 
+        // For transfer mode, allow current offering and ALL valid future offerings for the same program
         // For new selections, enforce active term check
         if (!isCurrentSelection) {
+          // In transfer mode, also skip the old class the student is coming FROM
+          if (isTransferMode.value && String(offering.offeringId) === String(props.enrollment?.termOfferingId)) return false
           if (term.isDeleted) return false
           if (term.endDate) {
              const todayDate = new Date()
@@ -250,9 +292,32 @@ const availableOfferings = computed(() => {
           String(offering.offeringId) === String(props.enrollment?.termOfferingId)
 
         let disabledReason = ''
-        if (!isCurrentSelection && offering.schedule?.day && offering.schedule?.time) {
-          if (activeSchedules.has(`${offering.schedule.day}-${offering.schedule.time}`)) {
-             disabledReason = 'Schedule Conflict'
+        if (!isCurrentSelection && !props.success) {
+          const hasExistingBranch = activeBranchIdentifiers.size > 0
+          if (hasExistingBranch) {
+            const offBranchIdentifiers = [
+              offering.branch?.id,
+              offering.branchId,
+              offering.branch?.abbr,
+              offering.class?.branch?.id,
+              offering.class?.branchId,
+              offering.class?.branch?.abbr,
+            ]
+              .filter(Boolean)
+              .map((val) => String(val).toLowerCase().trim())
+
+            const isSameBranch =
+              offBranchIdentifiers.length === 0 ||
+              offBranchIdentifiers.some((id) => activeBranchIdentifiers.has(id))
+            if (!isSameBranch) {
+              disabledReason = 'Branch Conflict'
+            }
+          }
+
+          if (!disabledReason && offering.schedule?.day && offering.schedule?.time) {
+            if (activeSchedules.has(`${offering.schedule.day}-${offering.schedule.time}`)) {
+              disabledReason = 'Schedule Conflict'
+            }
           }
         }
 
@@ -292,6 +357,7 @@ const availableOfferings = computed(() => {
           studentCount: offering.currentCount || (offering.students || []).length || 0,
           capacity: capacity,
           totalSessions: term.totalSessions || 0,
+          disabledReason: disabledReason,
         }
       }),
   )
@@ -314,11 +380,75 @@ const selectedOffering = computed(() => {
   return off
 })
 
+const selectedOfferingConflict = computed(() => {
+  if (props.success || !form.termOfferingId) return null
+  const off = availableOfferings.value.find((item) => item.id === form.termOfferingId)
+  if (!off || (!off.disabledReason && off.capacity - off.studentCount > 0 && off.studentCount < off.capacity)) return null
+
+  if (off.disabledReason === 'Branch Conflict') {
+    return {
+      title: 'Branch Conflict',
+      message: 'A student cannot enroll in programs across different branches. Ensure that all enrolled programs are studied in the same branch to prevent location conflicts.',
+    }
+  }
+  else if (off.disabledReason === 'Schedule Conflict') {
+    return {
+      title: 'Schedule Conflict',
+      message: 'The student is already enrolled in another program on this exact schedule day and time. Please choose a class with a different schedule to prevent time overlap.',
+    }
+  }
+  else if (off.disabledReason === 'Class Full' || off.capacity - off.studentCount <= 0 || off.studentCount >= off.capacity) {
+    return {
+      title: 'Class Full',
+      message: 'This class is full and cannot be enrolled unless a student cancels their enrollment so a seat becomes available.',
+    }
+  }
+  return {
+    title: off.disabledReason || 'Cannot Select Class',
+    message: `Cannot select this class: ${off.disabledReason || 'Class unavailable'}`,
+  }
+})
+
 const sessionInfo = computed(() => {
   if (!selectedOffering.value) return null
-  return getSessionCounts(selectedOffering.value.startDate, selectedOffering.value.endDate, {
-    [selectedOffering.value.schedule?.day || '']: selectedOffering.value.schedule?.time || '',
-  })
+  return getSessionCounts(
+    selectedOffering.value.startDate,
+    selectedOffering.value.endDate,
+    {
+      [selectedOffering.value.schedule?.day || '']: selectedOffering.value.schedule?.time || '',
+    },
+    selectedOffering.value.totalSessions,
+  )
+})
+
+const oldSessionInfo = computed(() => {
+  if (!isTransferMode.value || !props.enrollment) return null
+  const list = availableOfferings.value || props.offerings || []
+  const oldOff = list.find(
+    (o) =>
+      String(o.offeringId) === String(props.enrollment.termOfferingId) ||
+      String(o.id) === String(props.enrollment.termOfferingId),
+  )
+  if (!oldOff) {
+    return { remaining: props.enrollment.enrolledSessions || 0 }
+  }
+  return getSessionCounts(
+    oldOff.startDate,
+    oldOff.endDate,
+    { [oldOff.schedule?.day || '']: oldOff.schedule?.time || '' },
+    oldOff.totalSessions,
+  )
+})
+
+const extraSessionsToPay = computed(() => {
+  if (!isTransferMode.value || !sessionInfo.value) return 0
+  const newRem = sessionInfo.value.remaining || 0
+  const oldRem = oldSessionInfo.value?.remaining || props.enrollment?.enrolledSessions || 0
+  return Math.max(0, newRem - oldRem)
+})
+
+const oldBranchName = computed(() => {
+  return props.enrollment?.branch?.name || props.enrollment?.branch?.abbr || 'previous branch'
 })
 
 const finalAmount = computed(() => {
@@ -516,8 +646,14 @@ const offeringSelectItems = computed(() =>
 // Removed unused select items
 
 const handleFinalSubmit = () => {
+  const payload = getPayload()
+  if (props.type === 'pay') {
+    payload.paymentStatus = 'paid'
+    payload.status = 'paid'
+  }
   emit('submit', {
-    ...getPayload(),
+    ...(props.enrollment ? { id: props.enrollment.id } : {}),
+    ...payload,
     enrollAt: form.enrollAt || new Date().toISOString(),
     amount: Number(finalAmount.value || 0),
   })
@@ -538,6 +674,17 @@ const isFormInvalid = computed(() => {
 
 const requestConfirm = () => {
   validationMessage.value = ''
+
+  if (selectedOfferingConflict.value) {
+    validationMessage.value = `Cannot proceed: ${selectedOfferingConflict.value.title}. ${selectedOfferingConflict.value.message}`
+    triggerShake('termOfferingId')
+    return
+  }
+  if (['add', 'edit', 'transfer'].includes(props.type) && !selectedOffering.value) {
+    validationMessage.value = 'Please select a valid class without schedule or branch conflicts to proceed.'
+    triggerShake('termOfferingId')
+    return
+  }
 
   if (props.type === 'delete') {
     if (form.deleteConfirm !== 'DELETE') {
@@ -600,7 +747,7 @@ const requestConfirm = () => {
     return
   }
 
-  if (isEditMode.value && !isChanged.value) {
+  if (props.type === 'edit' && !isChanged.value) {
     validationMessage.value = 'No changes detected. Please update at least one field.'
     setTimeout(() => {
       validationMessage.value = ''
@@ -644,28 +791,15 @@ const handleProgramChange = (programId) => {
 const handleOfferingChange = (offeringId) => {
   const offering = availableOfferings.value.find((item) => item.id === offeringId)
   if (offering) {
-    if (offering.disabledReason) {
-      if (offering.disabledReason === 'Class Full') {
-        validationMessage.value =
-          'This class is full and cannot be enrolled unless a student cancelled their enrollment, so they take their seat in the class.'
-      } else {
-        validationMessage.value = `Cannot select this class: ${offering.disabledReason}`
-      }
-      setTimeout(() => {
-        validationMessage.value = ''
-      }, 6000)
-      triggerShake('termOfferingId')
-      
-      // Revert the selection immediately
-      form.termOfferingId = ''
-      form.classId = ''
-      return
-    }
-
     form.termOfferingId = offeringId
     form.classId = offering.classId
     form.branchId = offering.branchId || offering.branch?.id || ''
     form.termId = offering.termId
+
+    if (offering.disabledReason) {
+      triggerShake('termOfferingId')
+      return
+    }
   }
   clearError('termOfferingId')
 }
@@ -744,6 +878,7 @@ defineExpose({ setStudent })
         :shaking="shaking"
         :loading="loading"
         :isEditMode="isEditMode"
+        :isTransferMode="isTransferMode"
         :parentSelectItems="parentSelectItems"
         :studentSelectItems="studentSelectItems"
         :programSelectItems="programSelectItems"
@@ -770,6 +905,17 @@ defineExpose({ setStudent })
             :sessionInfo="sessionInfo"
           />
 
+          <AppAlert
+            v-if="isTransferMode && selectedOffering && extraSessionsToPay > 0"
+            type="warning"
+            title="Different Term End Dates & Session Count"
+            class="my-4"
+          >
+            Transfer from <strong>{{ oldBranchName }}</strong>: Target branch ends later and has <strong>{{ sessionInfo?.remaining || 0 }}</strong> remaining sessions, compared to <strong>{{ oldSessionInfo?.remaining || enrollment?.enrolledSessions || 0 }}</strong> remaining paid session(s) from previous branch.
+            <br /><br />
+            <strong>Note:</strong> {{ extraSessionsToPay }} extra session(s) require additional payment in the new branch.
+          </AppAlert>
+
           <EnrollmentPricingPanel
             :form="form"
             @update:form="(val) => Object.assign(form, val)"
@@ -779,6 +925,27 @@ defineExpose({ setStudent })
             :finalAmount="finalAmount"
             @clear-error="clearError"
           />
+        </div>
+      </transition>
+
+      <!-- Conflict Alert Panel before confirmation -->
+      <transition
+        v-if="['add', 'edit', 'transfer'].includes(type)"
+        enter-active-class="transition duration-500 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+      >
+        <div
+          v-if="selectedOfferingConflict"
+          class="p-5 bg-error-soft border-2 border-error/30 rounded-xl flex flex-col gap-2 shadow-sm animate-fade-in mt-4"
+        >
+          <div class="flex items-center gap-2 text-error font-bold text-base">
+            <img :src="getActionIcon('cancel')" class="w-5 h-5 shrink-0" />
+            <span>Cannot Proceed with Enrollment: {{ selectedOfferingConflict.title }}</span>
+          </div>
+          <p class="text-sm font-semibold text-content-dark leading-relaxed pl-7">
+            {{ selectedOfferingConflict.message }}
+          </p>
         </div>
       </transition>
 
@@ -850,7 +1017,7 @@ defineExpose({ setStudent })
         <AppAlert v-if="validationMessage" type="error" class="w-full">
           {{ validationMessage }}
         </AppAlert>
-        <AppAlert v-if="isEditMode && !isChanged" type="info" class="w-full">
+        <AppAlert v-if="type === 'edit' && !isChanged" type="info" class="w-full">
           No modifications detected. Please update at least one field to enable saving.
         </AppAlert>
         <div class="flex items-center justify-between w-full">
@@ -869,7 +1036,7 @@ defineExpose({ setStudent })
               variant="primary"
               :loading="loading"
               :disabled="loading"
-              :class="{ 'opacity-60 grayscale-20': (isEditMode && !isChanged) || isFormInvalid }"
+              :class="{ 'opacity-60 grayscale-20': (type === 'edit' && !isChanged) || isFormInvalid }"
               @click="requestConfirm"
             >
               {{ submitLabel }}

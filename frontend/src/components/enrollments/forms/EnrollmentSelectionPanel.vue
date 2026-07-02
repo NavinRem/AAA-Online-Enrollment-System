@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import { getActionIcon } from '@/utils/assetHelper'
@@ -10,6 +10,7 @@ const props = defineProps({
   shaking: { type: Object, default: () => ({}) },
   loading: { type: Boolean, default: false },
   isEditMode: { type: Boolean, default: false },
+  isTransferMode: { type: Boolean, default: false },
   parentSelectItems: { type: Array, default: () => [] },
   studentSelectItems: { type: Array, default: () => [] },
   programSelectItems: { type: Array, default: () => [] },
@@ -33,27 +34,21 @@ const updateForm = (field, value) => {
 
 const fullClassAlert = ref('')
 
+const offeringErrorLabel = computed(() => {
+  if (props.errors.termOfferingId) return props.errors.termOfferingId
+  if (!fullClassAlert.value) return ''
+  const lower = fullClassAlert.value.toLowerCase()
+  if (lower.includes('full')) return 'Class Full'
+  if (lower.includes('branch')) return 'Branch Conflict'
+  if (lower.includes('schedule')) return 'Schedule Conflict'
+  return 'Selection Conflict'
+})
+
 const handleOfferingUpdate = (val) => {
-  const off = props.offeringSelectItems.find((item) => item.id === val)
-  if (off && (off.capacity - off.studentCount <= 0 || off.disabledReason === 'Class Full')) {
-    updateForm('termOfferingId', '')
-    return
-  }
   updateForm('termOfferingId', val)
 }
 
 const handleOfferingSelection = (val) => {
-  const off = props.offeringSelectItems.find((item) => item.id === val)
-  if (off && (off.capacity - off.studentCount <= 0 || off.disabledReason === 'Class Full')) {
-    fullClassAlert.value =
-      'This class is full and cannot be enrolled unless a student cancelled their enrollment, so they take their seat in the class.'
-    setTimeout(() => {
-      fullClassAlert.value = ''
-    }, 6000)
-    updateForm('termOfferingId', '')
-    emit('offering-change', val)
-    return
-  }
   fullClassAlert.value = ''
   emit('offering-change', val)
 }
@@ -200,10 +195,10 @@ const handleOfferingSelection = (val) => {
       @update:modelValue="handleOfferingUpdate($event)"
       :items="offeringSelectItems"
       label="Available Classes"
-      placeholder="Select a class to enroll"
+      :placeholder="isTransferMode ? 'Select new class to transfer into' : 'Select a class to enroll'"
       required
-      :disabled="!form.programId"
-      :error="errors.termOfferingId || (fullClassAlert ? 'Class Full' : '')"
+      :disabled="!form.programId && !isTransferMode"
+      :error="offeringErrorLabel"
       :shake="shaking.termOfferingId || !!fullClassAlert"
       :loading="loading"
       @click-disabled="$emit('click-disabled', 'termOfferingId')"

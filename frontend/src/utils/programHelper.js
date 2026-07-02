@@ -1,4 +1,4 @@
-export const getSessionCounts = (startDate, endDate, schedule) => {
+export const getSessionCounts = (startDate, endDate, schedule, officialTotal = null) => {
   if (!startDate || !endDate || !schedule) {
     return {
       total: 0,
@@ -11,7 +11,9 @@ export const getSessionCounts = (startDate, endDate, schedule) => {
   }
 
   const start = new Date(startDate)
+  start.setHours(0, 0, 0, 0)
   const end = new Date(endDate)
+  end.setHours(23, 59, 59, 999)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -47,22 +49,31 @@ export const getSessionCounts = (startDate, endDate, schedule) => {
   }
 
   let total = 0
-  let passed = 0
-  let remaining = 0
+  let passed
+  let remaining
 
   const current = new Date(start)
   while (current <= end) {
     const dayOfWeek = current.getDay()
     if (targetDays.includes(dayOfWeek)) {
       total++
-      if (current < today) {
-        passed++
-      } else {
-        remaining++
-      }
     }
     current.setDate(current.getDate() + 1)
   }
+
+  if (officialTotal && !isNaN(officialTotal) && Number(officialTotal) > 0) {
+    total = Number(officialTotal)
+  }
+
+  if (today < start) {
+    passed = 0
+  } else if (today > end) {
+    passed = total
+  } else {
+    const daysElapsed = Math.floor((today - start) / (24 * 60 * 60 * 1000))
+    passed = Math.min(total, Math.max(0, Math.floor(daysElapsed / 7) + 1))
+  }
+  remaining = Math.max(0, total - passed)
 
   return {
     total,

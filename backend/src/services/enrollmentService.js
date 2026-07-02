@@ -46,23 +46,13 @@ class EnrollmentService {
       )
     }
 
-    const existingEnrollment = await db
-      .collection(COLLECTIONS.ENROLLMENT)
-      .where('studentId', '==', studentId)
-      .where('termOfferingId', '==', termOfferingId)
-      .get()
-
-    const activeNonDeleted = existingEnrollment.docs.filter((doc) => {
-      const data = doc.data()
-      return (
-        data.isDeleted !== true &&
-        !['cancelled', 'deleted'].includes(String(data.status).toLowerCase())
-      )
-    })
-
-    if (activeNonDeleted.length > 0) {
-      throw new Error('Student already enrolled for this term offering')
-    }
+    await this.checkEnrollmentConflicts(
+      studentId,
+      termOfferingId,
+      programId,
+      offering,
+      classDoc.data(),
+    )
 
     const scheduleCapacity =
       offering.schedule?.capacity ||
@@ -390,6 +380,14 @@ class EnrollmentService {
           nextTermId,
           nextOfferingId,
         )
+        await this.checkEnrollmentConflicts(
+          currentData.studentId,
+          nextOfferingId,
+          validated.programId || currentData.programId,
+          offering,
+          null,
+          id,
+        )
         updates.term = termService.getTermSnapshot(nextTermId, term, offering)
         updates.class = profileHelper.getClassSnapshot(nextClassId, {
           program: offering.program,
@@ -651,49 +649,261 @@ class EnrollmentService {
       throw new Error('Only active enrollments can be transferred')
     }
 
+    if (
+      !['paid', 'success', 'active', 'confirmed'].includes(
+        String(beforeData.paymentStatus || beforeData.status || '').toLowerCase(),
+      )
+    ) {
+      throw new Error('Student must complete payment before transferring to another class.')
+    }
+
     // 1. Calculate consumed sessions in the old offering
     const attendanceService = require('./attendanceService')
     const classAttendance = await attendanceService.getClassAttendance(beforeData.classId)
     let consumed = 0
     if (classAttendance) {
-      Object.values(classAttendance).forEach(sessionData => {
-        if (sessionData[beforeData.studentId] && ['P', 'L', 'A'].includes(sessionData[beforeData.studentId])) {
+      Object.values(classAttendance).forEach((sessionData) => {
+        if (
+          sessionData[beforeData.studentId] &&
+          ['P', 'L', 'A'].includes(sessionData[beforeData.studentId])
+        ) {
           consumed++
         }
       })
     }
-    
+
     const remainingSessions = Math.max(0, (beforeData.enrolledSessions || 0) - consumed)
 
-    // 2. Mark the old enrollment as transferred
+    // 2. Determine branch end dates to decide payment status
+    const termService = require('./termService')
+
+    // Fetch old term's offering to get the old branch end date
+    let oldBranchEndDate
+    let oldBranchName = 'previous branch'
+    try {
+      const { term: oldTerm, offering: oldOffering } = await termService.getOffering(
+        beforeData.termId,
+        beforeData.termOfferingId,
+      )
+      if (oldOffering?.branch?.name) {
+        oldBranchName = oldOffering.branch.name
+      } else if (oldOffering?.branch?.abbr) {
+        oldBranchName = oldOffering.branch.abbr
+      } else if (beforeData.branch?.name) {
+        oldBranchName = beforeData.branch.name
+      } else if (beforeData.branchName) {
+        oldBranchName = beforeData.branchName
+      } else if (oldOffering?.branchId || beforeData.branchId) {
+        const branchService = require('./branchService')
+        const bId = oldOffering?.branchId || beforeData.branchId
+        const bDoc = await branchService.getBranch(bId)
+        if (bDoc?.name) oldBranchName = bDoc.name
+      }
+
+      // Try branch-specific date first
+      if (oldTerm.branchSettings) {
+        const oldSetting = oldTerm.branchSettings.find(
+          (s) => String(s.branchId) === String(oldOffering.branchId || oldOffering.branch?.id),
+        )
+        oldBranchEndDate = oldSetting?.endDate || oldTerm.endDate
+      } else {
+        oldBranchEndDate = oldTerm.endDate
+      }
+    } catch {
+      oldBranchEndDate = beforeData.class?.term?.endDate || null
+      oldBranchName = beforeData.branch?.name || beforeData.branchName || 'previous branch'
+    }
+
+    // Fetch new term's offering to get the new branch end date
+    let newBranchEndDate
+    let newTermStartDate
+    let newTotalSessions = 0
+    try {
+      const { term: newTerm, offering: newOffering } = await termService.getOffering(
+        transferData.termId,
+        transferData.termOfferingId,
+      )
+      await this.checkEnrollmentConflicts(
+        beforeData.studentId,
+        transferData.termOfferingId,
+        beforeData.programId,
+        newOffering,
+        null,
+        id,
+      )
+      if (newTerm.branchSettings) {
+        const newSetting = newTerm.branchSettings.find(
+          (s) => String(s.branchId) === String(newOffering.branchId || newOffering.branch?.id),
+        )
+        newBranchEndDate = newSetting?.endDate || newTerm.endDate
+        newTermStartDate = newSetting?.startDate || newTerm.startDate
+      } else {
+        newBranchEndDate = newTerm.endDate
+        newTermStartDate = newTerm.startDate
+      }
+      newTotalSessions = newTerm.totalSessions || 0
+    } catch {
+      newBranchEndDate = null
+      newTermStartDate = null
+    }
+
+    // 3. Determine payment status and sessions owed in new branch
+    let newBranchPassed = 0
+    if (newTermStartDate && newTotalSessions > 0) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const nStart = new Date(newTermStartDate)
+      nStart.setHours(0, 0, 0, 0)
+      const nEnd = newBranchEndDate ? new Date(newBranchEndDate) : null
+      if (nEnd) nEnd.setHours(23, 59, 59, 999)
+
+      if (today < nStart) {
+        newBranchPassed = 0
+      } else if (nEnd && today > nEnd) {
+        newBranchPassed = newTotalSessions
+      } else {
+        const daysElapsedNew = Math.floor((today - nStart) / (24 * 60 * 60 * 1000))
+        newBranchPassed = Math.min(newTotalSessions, Math.max(0, Math.floor(daysElapsedNew / 7) + 1))
+      }
+    }
+    const newBranchRemainingSessions = Math.max(0, newTotalSessions - newBranchPassed)
+    const extraSessionsToPay = Math.max(0, newBranchRemainingSessions - remainingSessions)
+
+    const sameFinalDate = extraSessionsToPay === 0 && (
+      oldBranchEndDate &&
+      newBranchEndDate &&
+      new Date(oldBranchEndDate).toDateString() === new Date(newBranchEndDate).toDateString()
+    )
+
+    let newStatus
+    let newPaymentStatus
+    let newEnrolledSessions
+
+    if (extraSessionsToPay === 0) {
+      newStatus = 'paid'
+      newPaymentStatus = 'paid'
+      newEnrolledSessions = remainingSessions
+    } else {
+      newStatus = 'unpaid'
+      newPaymentStatus = 'unpaid'
+      newEnrolledSessions = Math.max(remainingSessions, newBranchRemainingSessions)
+    }
+
+    const transferRemark = extraSessionsToPay > 0
+      ? `Transfer from "${oldBranchName}", with ${remainingSessions} remaining paid session(s). Note: ${extraSessionsToPay} extra session(s) require payment in new branch (alert needed at least 1 week before paid sessions expire).`
+      : `Transfer from "${oldBranchName}", with ${remainingSessions} remaining paid session(s).`
+
+    // 4. Move attendance data to new class
+    try {
+      const oldAttendanceSnap = await db
+        .collectionGroup('attendance')
+        .where('classId', '==', beforeData.classId)
+        .get()
+
+      const batch = db.batch()
+      let opsCount = 0
+
+      oldAttendanceSnap.forEach((doc) => {
+        const data = doc.data()
+        if (
+          String(data.studentId) === String(beforeData.studentId) ||
+          doc.id.endsWith(`_${beforeData.studentId}`)
+        ) {
+          const newDocId = `${data.sessionId}_${beforeData.studentId}`
+          const newRef = db
+            .collection(COLLECTIONS.TERM)
+            .doc(transferData.termId)
+            .collection(COLLECTIONS.CLASS)
+            .doc(transferData.classId)
+            .collection(COLLECTIONS.SCHEDULE)
+            .doc(transferData.scheduleId)
+            .collection('attendance')
+            .doc(newDocId)
+
+          batch.set(
+            newRef,
+            {
+              ...data,
+              classId: transferData.classId,
+              termId: transferData.termId,
+              scheduleId: transferData.scheduleId,
+              updatedAt: new Date().toISOString(),
+            },
+            { merge: true },
+          )
+
+          batch.delete(doc.ref)
+          opsCount++
+        }
+      })
+
+      if (opsCount > 0) {
+        await batch.commit()
+      }
+    } catch (attErr) {
+      console.error('Failed to move attendance data during transfer:', attErr)
+    }
+
+    // 5. Mark the old enrollment as transferred
     await this.updateEnrollment(id, {
       status: 'transferred',
       paymentStatus: 'transferred',
-      remark: `Transferred to new class. Consumed ${consumed} sessions. ${beforeData.remark || ''}`
+      remark: `Transferred to new class. Consumed ${consumed} sessions. ${beforeData.remark || ''}`,
     })
 
-    // 3. Create a new enrollment for the new offering
+    // 6. Create the new enrollment
+    // Build only from allowed validator fields — do NOT spread beforeData which
+    // contains Firestore snapshot objects (student, parent, class, term, etc.)
     const newEnrollmentData = {
-      ...beforeData,
-      termOfferingId: transferData.termOfferingId,
+      parentId: beforeData.parentId,
+      studentId: beforeData.studentId,
+      programId: beforeData.programId,
       classId: transferData.classId,
       termId: transferData.termId,
-      branchId: transferData.branchId,
-      scheduleId: transferData.scheduleId,
-      enrolledSessions: remainingSessions,
+      termOfferingId: transferData.termOfferingId,
+      branchId: transferData.branchId || beforeData.branchId || '',
+      scheduleId: transferData.scheduleId || beforeData.scheduleId || '',
+      enrollAt: new Date().toISOString(),
+      enrollmentType: beforeData.enrollmentType || '',
+      status: newStatus,
+      paymentStatus: newPaymentStatus,
+      paymentMethod: transferData.paymentMethod || beforeData.paymentMethod || 'cash',
+      bankName: transferData.bankName || beforeData.bankName || null,
+      isProrated: !!beforeData.isProrated,
+      isSponsorship: !!beforeData.isSponsorship,
+      sponsorName: beforeData.sponsorName || '',
+      isCustomPrice: !!beforeData.isCustomPrice,
+      discountType: beforeData.discountType || 'dollar',
+      customPrice: parseFloat(beforeData.customPrice || 0),
+      discountAmount: parseFloat(beforeData.discountAmount || 0),
+      enrolledSessions: newEnrolledSessions,
       transferredSessions: (beforeData.transferredSessions || 0) + consumed,
-      amount: 0, // No new charge for the transfer itself
-      status: 'paid', // Keep it paid
-      paymentStatus: 'paid',
-      remark: `Transferred from previous class. Remaining sessions: ${remainingSessions}`,
+      amount:
+        transferData.amount !== undefined
+          ? Number(transferData.amount)
+          : Number(beforeData.amount || 0),
+      remark: transferRemark,
+      receiptId: sameFinalDate ? (transferData.receiptId || beforeData.receiptId || '') : '',
+      transactionId: sameFinalDate ? (transferData.transactionId || beforeData.transactionId || '') : '',
+      hasPassedExam: !!beforeData.hasPassedExam,
+      hasReceivedCertificate: !!beforeData.hasReceivedCertificate,
+      hasReceivedReportCard: !!beforeData.hasReceivedReportCard,
     }
-    
-    // Cleanup system fields
-    delete newEnrollmentData.id
-    delete newEnrollmentData.createdAt
-    delete newEnrollmentData.updatedAt
-    
-    return await this.createEnrollment(newEnrollmentData)
+
+    const result = await this.createEnrollment(newEnrollmentData)
+    return {
+      ...result,
+      transferSummary: {
+        consumed,
+        remainingSessions,
+        sameFinalDate: !!sameFinalDate,
+        newStatus,
+        newPaymentStatus,
+        newEnrolledSessions,
+        oldBranchEndDate,
+        newBranchEndDate,
+      },
+    }
   }
 
   async getStudentEligibility(studentId, programId) {
@@ -798,8 +1008,15 @@ class EnrollmentService {
         throw new Error('Enrollment is already paid')
       }
 
-      const pStatus = paymentData.paymentStatus || 'paid'
-      const eStatus = pStatus === 'paid' ? 'paid' : 'unpaid'
+      const pStatus =
+        paymentData.paymentStatus && paymentData.paymentStatus !== 'unpaid'
+          ? paymentData.paymentStatus
+          : 'paid'
+      const eStatus = ['paid', 'success', 'confirmed', 'active', 'partial'].includes(
+        String(pStatus).toLowerCase(),
+      )
+        ? 'paid'
+        : 'unpaid'
       const now = new Date().toISOString()
 
       updatedEnrollmentData = {
@@ -954,6 +1171,140 @@ class EnrollmentService {
       )
     }
     return this.getAllEnrollments({ studentId })
+  }
+
+  async checkEnrollmentConflicts(
+    studentId,
+    termOfferingId,
+    programId,
+    offering,
+    classData,
+    excludeEnrollmentId = null,
+  ) {
+    const existingSnap = await db
+      .collection(COLLECTIONS.ENROLLMENT)
+      .where('studentId', '==', studentId)
+      .get()
+
+    const activeNonDeleted = existingSnap.docs.filter((doc) => {
+      const data = doc.data()
+      if (
+        excludeEnrollmentId &&
+        (String(doc.id) === String(excludeEnrollmentId) ||
+          String(data.id) === String(excludeEnrollmentId) ||
+          String(data.enrollmentId) === String(excludeEnrollmentId))
+      )
+        return false
+      const statusLower = String(data.status || '').toLowerCase().trim()
+      const activeStatuses = [
+        'paid',
+        'unpaid',
+        'active',
+        'confirmed',
+        'success',
+        'pending',
+        'partial',
+      ]
+      return data.isDeleted !== true && activeStatuses.includes(statusLower)
+    })
+
+    if (
+      activeNonDeleted.some(
+        (doc) => String(doc.data().termOfferingId) === String(termOfferingId),
+      )
+    ) {
+      throw new Error('Student already enrolled for this term offering')
+    }
+
+    if (
+      activeNonDeleted.some(
+        (doc) => String(doc.data().programId) === String(programId),
+      )
+    ) {
+      throw new Error('Student is already enrolled in this program')
+    }
+
+    const newBranchIds = new Set(
+      [
+        offering?.branchId,
+        offering?.branch?.id,
+        offering?.branch?.abbr,
+        classData?.branchId,
+        classData?.branch?.id,
+        classData?.branch?.abbr,
+      ]
+        .filter(Boolean)
+        .map((val) => String(val).toLowerCase().trim()),
+    )
+
+    const newDay =
+      offering?.schedule?.day ||
+      offering?.scheduleDay ||
+      classData?.schedule?.day ||
+      classData?.scheduleDay
+    const newTime =
+      offering?.schedule?.time ||
+      offering?.schedule?.startTime ||
+      offering?.scheduleTime ||
+      classData?.schedule?.time ||
+      classData?.schedule?.startTime ||
+      classData?.scheduleTime
+    const newDayStr = String(newDay || '').toLowerCase().trim()
+    const newTimeStr = String(newTime || '').toLowerCase().trim()
+
+    for (const doc of activeNonDeleted) {
+      const e = doc.data()
+      const existingBranchIds = new Set(
+        [
+          e.branchId,
+          e.branch?.id,
+          e.class?.branch?.id,
+          e.class?.branchId,
+          e.branchAbbr,
+          e.branch?.abbr,
+          e.class?.branch?.abbr,
+        ]
+          .filter(Boolean)
+          .map((val) => String(val).toLowerCase().trim()),
+      )
+
+      const hasBranchInfo = newBranchIds.size > 0 && existingBranchIds.size > 0
+      const isSameBranch =
+        !hasBranchInfo ||
+        [...newBranchIds].some((id) => existingBranchIds.has(id))
+
+      if (!isSameBranch) {
+        throw new Error(
+          'Branch Conflict: A student cannot enroll in programs across different branches. Ensure that all programs are studied in the same branch.',
+        )
+      }
+
+      let existingDay =
+        e.class?.schedule?.day || e.schedule?.day || e.scheduleDay || e.day
+      let existingTime =
+        e.class?.schedule?.time ||
+        e.class?.schedule?.startTime ||
+        e.schedule?.time ||
+        e.scheduleTime ||
+        e.time
+      if (!existingDay || !existingTime) {
+        if (e.classSchedule) {
+          existingDay = e.classSchedule.split(' ')[0]
+          existingTime = e.classSchedule.split(' ')[1]?.replace(/[()]/g, '')
+        }
+      }
+
+      const existingDayStr = String(existingDay || '').toLowerCase().trim()
+      const existingTimeStr = String(existingTime || '').toLowerCase().trim()
+
+      if (newDayStr && newTimeStr && existingDayStr && existingTimeStr) {
+        if (newDayStr === existingDayStr && newTimeStr === existingTimeStr) {
+          throw new Error(
+            `Schedule Conflict: Student is already enrolled in another program on this exact schedule (${newDay} ${newTime}).`,
+          )
+        }
+      }
+    }
   }
 }
 

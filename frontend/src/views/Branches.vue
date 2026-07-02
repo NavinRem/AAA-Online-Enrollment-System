@@ -317,7 +317,7 @@ const handleActionSubmit = async (payload) => {
       success.value = 'Branch updated successfully'
     } else {
       const res = await branchService.createBranch(payload)
-      newlyCreatedId.value = res.id || res.UID
+      newlyCreatedId.value = res.id
       success.value = 'Branch established successfully'
     }
 

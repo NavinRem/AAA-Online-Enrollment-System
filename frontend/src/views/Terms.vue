@@ -265,7 +265,7 @@ const handleActionSubmit = async (payload) => {
       modal.value.success = 'Term updated successfully'
     } else {
       const res = await termService.createTerm(payload)
-      newlyCreatedId.value = res.id || res.UID
+      newlyCreatedId.value = res.id
       modal.value.success = 'Term created successfully'
     }
 

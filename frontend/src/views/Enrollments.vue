@@ -71,9 +71,16 @@ const fetchEnrollments = async () => {
       status:
         currentFilter.value === 'all'
           ? undefined
-          : ['paid', 'unpaid', 'cancelled', 'confirmed', 'success', 'active', 'pending'].includes(
-                currentFilter.value,
-              )
+          : [
+                'paid',
+                'unpaid',
+                'cancelled',
+                'confirmed',
+                'success',
+                'active',
+                'pending',
+                'transferred',
+              ].includes(currentFilter.value)
             ? currentFilter.value
             : undefined,
     }
@@ -110,6 +117,8 @@ const handleSaveEnrollment = async (formData) => {
       classId: formData.classId,
       termId: formData.termId,
       termOfferingId: formData.termOfferingId,
+      scheduleId: formData.scheduleId || '',
+      branchId: formData.branchId || '',
       amount: formData.amount,
       discountAmount: formData.discountAmount || 0,
       isSponsorship: formData.isSponsorship || false,
@@ -118,6 +127,10 @@ const handleSaveEnrollment = async (formData) => {
       enrollmentType: formData.enrollmentType || '',
       remark: formData.remark || '',
       enrolledSessions: formData.enrolledSessions || 0,
+      receiptId: formData.receiptId || '',
+      transactionId: formData.transactionId || '',
+      paymentMethod: formData.paymentMethod || 'cash',
+      bankName: formData.bankName || null,
       ...(!formData.id
         ? {
             status: 'unpaid',
@@ -127,31 +140,30 @@ const handleSaveEnrollment = async (formData) => {
         : {}),
     }
 
-    if (formData.id) {
+    const targetId = formData.id || actionState.value.enrollment?.id
+    if (targetId) {
       const currentEnrollment = actionState.value.enrollment
-      if (
+      const isTransfer =
+        actionState.value.type === 'transfer' &&
         currentEnrollment &&
         formData.termOfferingId &&
         currentEnrollment.termOfferingId &&
         String(formData.termOfferingId) !== String(currentEnrollment.termOfferingId)
-      ) {
-        await enrollmentService.transferEnrollment(formData.id, payload)
+
+      if (isTransfer) {
+        await enrollmentService.transferEnrollment(targetId, payload)
         successMessage.value = 'Successfully transferred enrollment!'
       } else {
-        await enrollmentService.updateEnrollment(formData.id, payload)
+        await enrollmentService.updateEnrollment(targetId, payload)
         successMessage.value = 'Successfully updated enrollment!'
       }
     } else {
       const result = await enrollmentService.createEnrollment(payload)
       successMessage.value = 'Successfully created enrollment!'
-      newlyCreatedId.value = result.id || result.UID
+      newlyCreatedId.value = result.id
     }
 
-    await fetchEnrollments()
-    // Refresh global store to sync class counts and student records
-    await dataStore.fetchAllCommonData(true)
-
-    await dataStore.fetchAllCommonData(true)
+    await Promise.all([fetchEnrollments(), dataStore.fetchAllCommonData(true)])
 
     setTimeout(() => {
       closeActionModal()
@@ -204,8 +216,6 @@ const enrollmentHeaders = [
   { label: 'Date', width: '120px' },
   { label: 'Action', width: '50px', align: 'center' },
 ]
-
-
 
 const enrichedEnrollments = computed(() => {
   return enrichEnrollments(
@@ -265,9 +275,16 @@ const submitActionModal = async (payload) => {
       await handleSaveEnrollment(payload)
       return // handleSaveEnrollment handles success message and closing
     } else if (type === 'pay') {
-      const { bankName, paymentMethod: methodType, transactionId, receiptId, remark, paymentStatus } = payload
+      const {
+        bankName,
+        paymentMethod: methodType,
+        transactionId,
+        receiptId,
+        remark,
+        paymentStatus,
+      } = payload
       const paymentData = {
-        paymentStatus: paymentStatus || 'paid',
+        paymentStatus: paymentStatus && paymentStatus !== 'unpaid' ? paymentStatus : 'paid',
         paymentMethod: methodType,
         bankName: methodType === 'online' ? bankName : null,
         transactionId: methodType === 'online' ? transactionId : '',
@@ -285,10 +302,8 @@ const submitActionModal = async (payload) => {
       await enrollmentService.deleteEnrollment(enrollment.id)
     }
     successMessage.value = 'Action completed successfully.'
-    await fetchEnrollments()
-    // Refresh global store for class count synchronization
-    await dataStore.fetchAllCommonData(true)
-    setTimeout(() => closeActionModal(), 2000)
+    await Promise.all([fetchEnrollments(), dataStore.fetchAllCommonData(true)])
+    setTimeout(() => closeActionModal(), 1500)
   } catch (err) {
     errorMessage.value = err.message
   } finally {
@@ -368,10 +383,10 @@ const handleRegisterStudent = async (formData) => {
             { label: 'Paid', value: 'paid' },
             { label: 'Unpaid', value: 'unpaid' },
             { label: 'Cancelled', value: 'cancelled' },
+            { label: 'Transferred', value: 'transferred' },
           ]"
           :rowClass="getRowClass"
           @action="handleTableAction"
-
         >
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" @click="handleOpenNewEnrollment">
@@ -500,9 +515,7 @@ const handleRegisterStudent = async (formData) => {
               class="ui-cell text-center hidden lg:table-cell"
               :style="{ width: headers[8].width }"
             >
-              <span class="truncate block ui-cell-muted">{{
-                formatDate(item.enrollAt)
-              }}</span>
+              <span class="truncate block ui-cell-muted">{{ formatDate(item.enrollAt) }}</span>
             </td>
 
             <!-- Action Column -->
@@ -534,7 +547,9 @@ const handleRegisterStudent = async (formData) => {
                         v-if="
                           item.status !== 'paid' &&
                           item.paymentStatus !== 'paid' &&
-                          item.status !== 'cancelled'
+                          item.status !== 'cancelled' &&
+                          item.status !== 'transferred' &&
+                          item.paymentStatus !== 'transferred'
                         "
                         class="ui-dropdown-item ui-dropdown-item-info group"
                         @click="handleAction('edit', item, closeMenu)"
@@ -547,8 +562,9 @@ const handleRegisterStudent = async (formData) => {
                       </button>
                       <button
                         v-if="
-                          item.status === 'paid' ||
-                          item.paymentStatus === 'paid'
+                          (item.status === 'paid' || item.paymentStatus === 'paid') &&
+                          item.status !== 'transferred' &&
+                          item.paymentStatus !== 'transferred'
                         "
                         class="ui-dropdown-item ui-dropdown-item-warning group"
                         @click="handleAction('transfer', item, closeMenu)"
@@ -563,7 +579,9 @@ const handleRegisterStudent = async (formData) => {
                         v-if="
                           item.status !== 'paid' &&
                           item.paymentStatus !== 'paid' &&
-                          item.status !== 'cancelled'
+                          item.status !== 'cancelled' &&
+                          item.status !== 'transferred' &&
+                          item.paymentStatus !== 'transferred'
                         "
                         class="ui-dropdown-item ui-dropdown-item-success group"
                         @click="handleAction('pay', item, closeMenu)"
@@ -575,7 +593,11 @@ const handleRegisterStudent = async (formData) => {
                         <span class="font-semibold">Process Payment</span>
                       </button>
                       <button
-                        v-if="item.status !== 'cancelled'"
+                        v-if="
+                          item.status !== 'cancelled' &&
+                          item.status !== 'transferred' &&
+                          item.paymentStatus !== 'transferred'
+                        "
                         class="ui-dropdown-item ui-dropdown-item-danger group"
                         @click="handleAction('cancel', item, closeMenu)"
                       >

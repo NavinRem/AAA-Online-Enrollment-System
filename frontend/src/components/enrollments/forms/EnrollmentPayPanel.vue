@@ -66,9 +66,7 @@ const updateForm = (field, value) => {
           <div class="enroll-info-item col-span-2 mt-2">
             <div class="ui-summary-card">
               <div class="ui-summary-content">
-                <span class="ui-summary-label text-white font-bold text-lg"
-                  >Total Amount Due</span
-                >
+                <span class="ui-summary-label text-white font-bold text-lg">Total Amount Due</span>
                 <div class="enroll-tuition-savings flex gap-2 mt-1">
                   <AppBadge :status="displaySummary.mode || displaySummary.status" />
                 </div>
@@ -82,25 +80,23 @@ const updateForm = (field, value) => {
 
     <AppAlert type="warning" class="mt-md">
       <div class="flex flex-col gap-0.5">
-        <strong class="text-sm font-semibold tracking-tight"
-          >Final Verification Required</strong
-        >
-        <span class="text-xs opacity-90 font-medium"
-          >By confirming, you verify that the payment proof matches the tuition amount. This
-          action is irreversible.</span
+        <strong class="text-sm font-bold tracking-tight">Final Verification Required</strong>
+        <span class="text-sm opacity-90 font-medium"
+          >By confirming, you verify that the payment proof matches the tuition amount. This action
+          is irreversible.</span
         >
       </div>
     </AppAlert>
 
     <div class="flex flex-col gap-xs mt-lg">
-      <label class="text-xs font-semibold text-content-muted">Payment Channel Selection</label>
+      <label class="text-sm font-bold text-content-muted">Payment Channel Selection</label>
       <div
         class="flex items-center gap-2 p-2 bg-white rounded-2xl border border-outline-std mt-1 w-fit"
       >
         <button
           type="button"
           @click="updateForm('paymentMethod', 'online')"
-          class="py-2 px-5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all duration-300 border border-transparent"
+          class="py-2 px-5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 border border-transparent"
           :class="
             form.paymentMethod === 'online'
               ? 'bg-primary text-white shadow-md ring-1 ring-black/5'
@@ -117,7 +113,7 @@ const updateForm = (field, value) => {
         <button
           type="button"
           @click="updateForm('paymentMethod', 'cash')"
-          class="py-2 px-5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all duration-300 border border-transparent"
+          class="py-2 px-5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 border border-transparent"
           :class="
             form.paymentMethod === 'cash'
               ? 'bg-primary text-white shadow-md ring-1 ring-black/5'

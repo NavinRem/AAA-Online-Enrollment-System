@@ -3,7 +3,7 @@ import { getProgramProfileURL, getParentProfileURL, getStudentProfileURL } from 
 
 import { isPaid, isPending } from '@/constants/status'
 
-const CANCELLED_STATUSES = ['cancelled', 'canceled', 'stopped', 'deleted']
+const CANCELLED_STATUSES = ['cancelled', 'canceled', 'stopped', 'deleted', 'transferred']
 
 /**
  * Calculates high-level enrollment statistics for dashboards and overview cards.
@@ -112,7 +112,13 @@ export const enrichEnrollments = (
         termId: classInst?.term?.id || r.class?.term?.id || r.termId,
       }
     })
-    .sort((a, b) => parseDate(b.enrollAt).getTime() - parseDate(a.enrollAt).getTime())
+    .sort((a, b) => {
+      // Put transferred/cancelled enrollments at the bottom, active on top
+      const isAInactive = CANCELLED_STATUSES.includes(String(a.status || '').toLowerCase())
+      const isBInactive = CANCELLED_STATUSES.includes(String(b.status || '').toLowerCase())
+      if (isAInactive !== isBInactive) return isAInactive ? 1 : -1
+      return parseDate(b.enrollAt).getTime() - parseDate(a.enrollAt).getTime()
+    })
 }
 
 /**

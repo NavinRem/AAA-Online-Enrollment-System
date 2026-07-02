@@ -91,10 +91,11 @@ export const filterDuplicateClasses = (classes, programId, existingOfferings) =>
 export const filterEnrolledPrograms = (programs, studentId, allEnrollments = [], excludeEnrollmentId = null) => {
   if (!studentId) return []
   
+  const activeStatuses = ['paid', 'unpaid', 'active', 'confirmed', 'success', 'pending', 'partial']
   const studentEnrollments = allEnrollments.filter(
     (e) =>
       String(e.studentId) === String(studentId) &&
-      ['paid', 'unpaid', 'active', 'confirmed', 'success'].includes(e.status) &&
+      activeStatuses.includes(String(e.status || '').toLowerCase().trim()) &&
       e.isDeleted !== true &&
       String(e.id) !== String(excludeEnrollmentId)
   )
