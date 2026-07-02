@@ -171,8 +171,11 @@ class EnrollmentService {
         })
       }
 
-      // Automatic Payment Record Creation
-      if (newEnrollment.paymentStatus === 'paid') {
+      // Automatic Payment Record Creation (Skip if created during class transfer without new payment)
+      const isTransferEnrollment =
+        newEnrollment.transferredSessions > 0 ||
+        (newEnrollment.remark && String(newEnrollment.remark).startsWith('Transfer from '))
+      if (newEnrollment.paymentStatus === 'paid' && !isTransferEnrollment) {
         const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc()
         transaction.set(paymentRef, {
           enrollmentId,
@@ -438,10 +441,14 @@ class EnrollmentService {
 
       transaction.update(ref, updates)
 
-      // Automatic Payment Record Creation on Status Transition
+      // Automatic Payment Record Creation on Status Transition (Skip if transfer enrollment)
+      const isTransferEnrollment =
+        currentData.transferredSessions > 0 ||
+        (currentData.remark && String(currentData.remark).startsWith('Transfer from '))
       if (
         validated.paymentStatus === 'paid' &&
-        currentData.paymentStatus !== 'paid'
+        currentData.paymentStatus !== 'paid' &&
+        !isTransferEnrollment
       ) {
         const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc()
         transaction.set(paymentRef, {
