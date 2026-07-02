@@ -32,6 +32,8 @@ function validateEnrollment(enrollmentData) {
     'branchId',
     'scheduleId',
     'transferredSessions',
+    'isTransfer',
+    'skipPaymentCreation',
   ]
 
   Object.keys(enrollmentData).forEach((key) => {
@@ -91,6 +93,8 @@ function validateEnrollment(enrollmentData) {
     hasReceivedReportCard: !!enrollmentData.hasReceivedReportCard,
     transactionId: enrollmentData.transactionId || '',
     receiptId: enrollmentData.receiptId || '',
+    isTransfer: !!enrollmentData.isTransfer,
+    skipPaymentCreation: !!enrollmentData.skipPaymentCreation,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   }
@@ -125,6 +129,8 @@ function validateUpdateEnrollment(updateData) {
     'branchId',
     'scheduleId',
     'transferredSessions',
+    'isTransfer',
+    'skipPaymentCreation',
   ]
   const cleanData = {}
 

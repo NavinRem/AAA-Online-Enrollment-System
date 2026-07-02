@@ -43,7 +43,17 @@ class PaymentService {
       .filter((p) => {
         if (!p.enrollmentId) return true
         const enrollment = enrollmentMap[p.enrollmentId]
-        return enrollment && enrollment.isDeleted !== true
+        if (!enrollment || enrollment.isDeleted === true) return false
+
+        // Skip duplicate auto-created payment records for enrollments generated via class transfer
+        const isTransferEnrollment =
+          enrollment.isTransfer === true ||
+          (enrollment.remark && String(enrollment.remark).startsWith('Transfer from '))
+        if (isTransferEnrollment && p.remark === 'Automatically created during enrollment') {
+          return false
+        }
+
+        return true
       })
       .map((p) => {
         const enrollment = enrollmentMap[p.enrollmentId] || {}
@@ -176,12 +186,12 @@ class PaymentService {
   }
 
   async getFinancialStats() {
-    const [enrollSnap, paymentSnap, termSnap, classSnap] = await Promise.all([
+    const [enrollSnap, payments, termSnap, classSnap] = await Promise.all([
       db
         .collection(COLLECTIONS.ENROLLMENT)
         .where('isDeleted', '!=', true)
         .get(),
-      db.collection(COLLECTIONS.PAYMENT).get(),
+      this.getAllPayments(),
       db.collection(COLLECTIONS.TERM).where('status', '==', 'active').get(),
       db.collection(COLLECTIONS.CLASS).get(),
     ])
@@ -199,7 +209,6 @@ class PaymentService {
     })
 
     const enrollments = enrollSnap.docs.map((doc) => doc.data())
-    const payments = paymentSnap.docs.map((doc) => doc.data())
 
     // 1. Settled Stats (From Payments Collection, filtered by Active Term Classes)
     let totalPaidRevenue = 0

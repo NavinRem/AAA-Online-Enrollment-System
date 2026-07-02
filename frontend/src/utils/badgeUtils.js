@@ -25,11 +25,13 @@ const REGISTRIES = {
     full: 'magenta',
   },
   payment: {
-    cash: 'green',
-    aba: 'blue',
-    acleda: 'blue',
-    sathapana: 'blue',
-    wing: 'yellow',
+    cash: 'purple',
+    online: 'magenta',
+    'bakong khqr': 'magenta',
+    aba: 'magenta',
+    acleda: 'magenta',
+    sathapana: 'magenta',
+    wing: 'magenta',
     aeon: 'purple',
   },
   academic: {

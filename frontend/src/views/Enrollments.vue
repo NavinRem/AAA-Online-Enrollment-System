@@ -130,7 +130,6 @@ const handleSaveEnrollment = async (formData) => {
       receiptId: formData.receiptId || '',
       transactionId: formData.transactionId || '',
       paymentMethod: formData.paymentMethod || 'cash',
-      bankName: formData.bankName || null,
       ...(!formData.id
         ? {
             status: 'unpaid',
@@ -275,18 +274,10 @@ const submitActionModal = async (payload) => {
       await handleSaveEnrollment(payload)
       return // handleSaveEnrollment handles success message and closing
     } else if (type === 'pay') {
-      const {
-        bankName,
-        paymentMethod: methodType,
-        transactionId,
-        receiptId,
-        remark,
-        paymentStatus,
-      } = payload
+      const { paymentMethod: methodType, transactionId, receiptId, remark, paymentStatus } = payload
       const paymentData = {
         paymentStatus: paymentStatus && paymentStatus !== 'unpaid' ? paymentStatus : 'paid',
         paymentMethod: methodType,
-        bankName: methodType === 'online' ? bankName : null,
         transactionId: methodType === 'online' ? transactionId : '',
         receiptId: receiptId || '',
         remark: remark?.trim() || '',
@@ -495,7 +486,7 @@ const handleRegisterStudent = async (formData) => {
             </td>
 
             <!-- Status Column -->
-            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+            <td class="ui-cell" :style="{ width: headers[6].width }">
               <AppBadge :status="item.status || item.paymentStatus || 'Unpaid'" />
             </td>
 

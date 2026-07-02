@@ -66,7 +66,6 @@ export const paymentSearchMapper = (p) =>
     p.student,
     p.program,
     p.method,
-    p.bankName,
     p.status,
     p.amount,
     formatDate(p.date),

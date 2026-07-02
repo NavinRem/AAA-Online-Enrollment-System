@@ -58,7 +58,6 @@ const getInitialData = () => ({
   remark: '',
   transactionId: '',
   receiptId: '',
-  bankName: '',
   reason: '',
   deleteConfirm: '',
   paymentMethod: 'online',
@@ -92,7 +91,6 @@ const mapSourceToForm = () => {
       transferredSessions: props.enrollment.transferredSessions || 0,
       receiptId: props.enrollment.receiptId || '',
       transactionId: props.enrollment.transactionId || '',
-      bankName: props.enrollment.bankName || '',
       paymentMethod: props.enrollment.paymentMethod || 'online',
       paymentStatus: props.type === 'pay' ? 'paid' : (props.enrollment.paymentStatus || 'paid'),
       status: props.type === 'pay' ? 'paid' : (props.enrollment.status || 'paid'),
@@ -570,12 +568,14 @@ const confirmRows = computed(() => {
   if (props.type === 'pay') {
     return [
       ...base,
-      { key: 'PaymentMethod', value: form.paymentMethod === 'online' ? 'Online / Bank' : 'Cash' },
-      ...(form.bankName ? [{ key: 'BankName', value: form.bankName }] : []),
-      { key: 'ReceiptID', value: form.receiptId },
+      { key: 'PaymentMethod', value: form.paymentMethod === 'online' ? 'Bakong KHQR (Online)' : 'Cash Payment' },
       ...(form.paymentMethod === 'online'
-        ? [{ key: 'TransactionCode', value: form.transactionId }]
+        ? [
+            { key: 'BankVerification', value: form.isBankVerified ? 'Verified by Bank API ✓' : 'KHQR Online Scan', valueClass: 'text-emerald-600 font-bold' },
+            { key: 'TransactionRef', value: form.transactionId || 'AUTO-REF' },
+          ]
         : []),
+      { key: 'ReceiptID', value: form.receiptId || 'AUTO-REC' },
       ...(form.remark ? [{ key: 'Remark', value: form.remark, valueClass: 'italic' }] : []),
     ]
   }
@@ -708,21 +708,14 @@ const requestConfirm = () => {
 
   if (props.type === 'pay') {
     if (form.paymentMethod === 'online') {
-      if (!form.bankName) {
-        validationMessage.value = 'Please select a bank.'
-        triggerShake('bankName')
+      if (!form.transactionId) form.transactionId = Math.floor(10000000000 + Math.random() * 90000000000).toString()
+      if (!form.receiptId) form.receiptId = 'KHQR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000)
+    } else {
+      if (!form.receiptId) {
+        validationMessage.value = 'Please provide a receipt ID.'
+        triggerShake('receiptId')
         return
       }
-      if (!form.transactionId) {
-        validationMessage.value = 'Please provide a transaction code.'
-        triggerShake('transactionId')
-        return
-      }
-    }
-    if (!form.receiptId) {
-      validationMessage.value = 'Please provide a receipt ID.'
-      triggerShake('receiptId')
-      return
     }
     showConfirm.value = true
     return

@@ -171,8 +171,12 @@ class EnrollmentService {
         })
       }
 
-      // Automatic Payment Record Creation
-      if (newEnrollment.paymentStatus === 'paid') {
+      // Automatic Payment Record Creation (Skip if created during class transfer without new payment)
+      if (
+        newEnrollment.paymentStatus === 'paid' &&
+        !newEnrollment.isTransfer &&
+        !newEnrollment.skipPaymentCreation
+      ) {
         const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc()
         transaction.set(paymentRef, {
           enrollmentId,
@@ -441,7 +445,11 @@ class EnrollmentService {
       // Automatic Payment Record Creation on Status Transition
       if (
         validated.paymentStatus === 'paid' &&
-        currentData.paymentStatus !== 'paid'
+        currentData.paymentStatus !== 'paid' &&
+        !validated.isTransfer &&
+        !validated.skipPaymentCreation &&
+        !currentData.isTransfer &&
+        !currentData.skipPaymentCreation
       ) {
         const paymentRef = db.collection(COLLECTIONS.PAYMENT).doc()
         transaction.set(paymentRef, {
@@ -886,8 +894,9 @@ class EnrollmentService {
       receiptId: sameFinalDate ? (transferData.receiptId || beforeData.receiptId || '') : '',
       transactionId: sameFinalDate ? (transferData.transactionId || beforeData.transactionId || '') : '',
       hasPassedExam: !!beforeData.hasPassedExam,
-      hasReceivedCertificate: !!beforeData.hasReceivedCertificate,
       hasReceivedReportCard: !!beforeData.hasReceivedReportCard,
+      isTransfer: true,
+      skipPaymentCreation: true,
     }
 
     const result = await this.createEnrollment(newEnrollmentData)

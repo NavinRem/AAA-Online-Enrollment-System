@@ -120,7 +120,6 @@ const formattedPayments = computed(() => {
       parentProfile: e.parent?.profileURL,
       amount: e.amount || 0,
       method: paymentMethod,
-      bankName: e.bankName || paymentMethod,
       status: e.paymentStatus || e.status || 'unpaid',
       date: e.paidAt || e.enrollAt || e.createdAt,
       student: e.student?.name || 'Unknown Student',
@@ -418,11 +417,14 @@ const paymentHeaders = [
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[4].width }">
-              <AppBadge :status="'$' + formatPrice(item.amount)" type="green" />
+              <AppBadge :status="'$' + formatPrice(item.amount)" type="blue" />
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[5].width }">
-              <AppBadge :status="item.method" type="blue" />
+              <AppBadge
+                :status="item.method?.toLowerCase() === 'cash' ? 'Cash' : 'Online'"
+                type="payment"
+              />
             </td>
 
             <td class="ui-cell text-center" :style="{ width: headers[6].width }">
