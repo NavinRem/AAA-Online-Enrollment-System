@@ -10,7 +10,7 @@ import { isPaid } from '@/constants/status'
 /**
  * Calculates a comprehensive set of dashboard statistics across multiple entities.
  *
- * @param {Array} allUsers - List of all user records (Parents, Admins, Teachers)
+ * @param {Array} parents - List of all parent records
  * @param {Array} regs - List of enriched enrollment records
  * @param {Array} progs - List of program records
  * @param {Array} students - List of student records
@@ -20,7 +20,7 @@ import { isPaid } from '@/constants/status'
  * @returns {Object} Metric summary (daily, weekly, and lifetime totals)
  */
 export const calculateDashboardStats = (
-  allUsers = [],
+  parents = [],
   regs = [],
   progs = [],
   students = [],
@@ -51,11 +51,11 @@ export const calculateDashboardStats = (
     return (t >= s && t <= e) || (u >= s && u <= e)
   }
 
-  const todayRegs = (allUsers || []).filter(
-    (u) => u.role === 'parent' && parseDate(u.createdAt).getTime() >= today,
+  const todayRegs = (parents || []).filter(
+    (u) => parseDate(u.createdAt).getTime() >= today,
   )
-  const weekRegs = (allUsers || []).filter(
-    (u) => u.role === 'parent' && parseDate(u.createdAt).getTime() >= weekly,
+  const weekRegs = (parents || []).filter(
+    (u) => parseDate(u.createdAt).getTime() >= weekly,
   )
 
   return {
@@ -82,7 +82,7 @@ export const calculateDashboardStats = (
       trial: trials.filter((t) => parseDate(t.createdAt || t.trialDate).getTime() >= weekly).length,
     },
     totals: {
-      parents: (allUsers || []).filter((u) => u.role === 'parent').length,
+      parents: (parents || []).length,
       students: (students || []).length,
       programs: (progs || []).length,
       classes: (classes || []).length,
