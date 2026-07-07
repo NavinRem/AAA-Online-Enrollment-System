@@ -228,13 +228,14 @@ class EnrollmentService {
       query = query.where('classId', '==', filters.classId)
 
     // Intelligent Status/PaymentStatus handling
+    let statusLower = null
     if (
       filters.status &&
       filters.status !== 'undefined' &&
       filters.status !== 'all'
     ) {
-      const statusLower = filters.status.toLowerCase()
-      // Enhanced mapping for all valid payment and operational statuses
+      statusLower = filters.status.toLowerCase()
+      // Enhanced mapping for all valid payment statuses
       if (
         [
           'paid',
@@ -242,12 +243,12 @@ class EnrollmentService {
           'pending',
           'confirmed',
           'success',
-          'active',
-          'cancelled',
         ].includes(statusLower)
       ) {
         // If it's a payment status, we can filter by paymentStatus field
         query = query.where('paymentStatus', '==', statusLower)
+      } else if (['full', 'partial'].includes(statusLower)) {
+        // For full or partial enrollment, filter in-memory after fetching docs
       } else {
         query = query.where('status', '==', statusLower)
       }
@@ -266,7 +267,26 @@ class EnrollmentService {
     // Map and Filter by isDeleted in-memory (Foolproof)
     let data = snapshot.docs
       .map((doc) => profileHelper.ensureFreshAge({ id: doc.id, ...doc.data() }))
-      .filter((e) => e.isDeleted !== true)
+      .filter((e) => {
+        if (e.isDeleted === true) return false
+
+        if (statusLower) {
+          if (['paid', 'unpaid', 'pending', 'confirmed', 'success'].includes(statusLower)) {
+            const st = String(e.status || '').toLowerCase()
+            if (['cancelled', 'canceled', 'stopped', 'deleted'].includes(st)) {
+              return false
+            }
+          } else if (statusLower === 'full') {
+            const mode = e.paymentModeType || (e.isProrated ? 'partial' : 'full')
+            if (mode !== 'full') return false
+          } else if (statusLower === 'partial') {
+            const mode = e.paymentModeType || (e.isProrated ? 'partial' : 'full')
+            if (mode !== 'partial') return false
+          }
+        }
+
+        return true
+      })
 
     // Sort and Paginate in-memory
     const orderBy = filters.orderBy || 'createdAt'

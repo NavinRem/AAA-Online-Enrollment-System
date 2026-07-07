@@ -297,38 +297,38 @@ export const sortSchedulesChronologically = (schedulesArray, nestedKey = null) =
 
   const parse12hToMinutes = (time12h) => {
     if (!time12h) return 0
-    const startStr = time12h.split(' - ')[0]
+    const startStr = String(time12h).split('-')[0].trim()
     if (!startStr) return 0
-    const parts = startStr.split(' ')
-    if (parts.length < 2) return 0
-    const [time, period] = parts
-    let [hours, minutes] = time.split(':').map(Number)
+    const match = startStr.match(/^(\d+):(\d+)\s*(AM|PM|am|pm)?/i)
+    if (!match) return 0
+    let hours = Number(match[1])
+    const minutes = Number(match[2])
+    const period = (match[3] || '').toUpperCase()
     if (period === 'PM' && hours < 12) hours += 12
     if (period === 'AM' && hours === 12) hours = 0
     return hours * 60 + (minutes || 0)
   }
 
   const dayOrder = {
-    Monday: 1,
-    Tuesday: 2,
-    Wednesday: 3,
-    Thursday: 4,
-    Friday: 5,
-    Saturday: 6,
-    Sunday: 7,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6,
+    sunday: 7,
   }
 
   return [...schedulesArray].sort((a, b) => {
     const itemA = nestedKey ? a[nestedKey] : a
     const itemB = nestedKey ? b[nestedKey] : b
     
-    const dayA = dayOrder[itemA?.day] || 99
-    const dayB = dayOrder[itemB?.day] || 99
-    
-    if (dayA !== dayB) return dayA - dayB
-    
     const minsA = parse12hToMinutes(itemA?.time)
     const minsB = parse12hToMinutes(itemB?.time)
-    return minsA - minsB
+    if (minsA !== minsB) return minsA - minsB
+
+    const dayA = dayOrder[String(itemA?.day || '').trim().toLowerCase()] || 99
+    const dayB = dayOrder[String(itemB?.day || '').trim().toLowerCase()] || 99
+    return dayA - dayB
   })
 }

@@ -263,12 +263,4 @@ const selectFilter = (val) => {
 .toolbar-actions {
   @apply flex justify-end items-center gap-lg;
 }
-
-.toolbar-filter-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-dropdown p-xs min-w-60 max-h-80 overflow-y-auto flex flex-col gap-1;
-}
-
-.toolbar-filter-option {
-  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-all rounded-sm select-none hover:bg-surface-subtle hover:text-primary;
-}
 </style>

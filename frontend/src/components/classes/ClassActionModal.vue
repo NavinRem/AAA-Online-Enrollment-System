@@ -794,11 +794,9 @@ const toggleAllBranches = () => {
             :key="id"
             class="flex items-center gap-4 bg-surface-subtle/30 px-4 py-2.5 rounded-xl border border-outline-std/40 transition-all hover:bg-white hover:border-primary/20 w-full justify-end"
           >
-            <div class="flex flex-col items-end shrink-0">
-              <span class="text-sm font-bold text-content-dark">{{
-                getScheduleById(id)?.day
-              }}</span>
-              <span class="text-xs font-semibold text-primary tracking-tight">{{
+            <div class="flex flex-col items-end shrink-0 gap-1">
+              <AppBadge :status="getScheduleById(id)?.day" type="day" size="xs" />
+              <span class="text-xs font-semibold text-content-dark tracking-tight">{{
                 getScheduleById(id)?.time
               }}</span>
             </div>
@@ -821,12 +819,13 @@ const toggleAllBranches = () => {
             :key="id"
             class="flex items-center gap-4 bg-surface-subtle/30 px-4 py-2.5 rounded-md border border-outline-std transition-all hover:bg-white hover:border-primary"
           >
-            <div class="flex flex-col items-end shrink-0 min-w-20">
-              <span class="text-sm font-bold text-content-dark">{{
-                filteredPickerClasses.find((c) => c.id === id)?.displaySchedule?.day ||
-                'No Schedule'
-              }}</span>
-              <span class="text-xs font-semibold text-primary tracking-tight">{{
+            <div class="flex flex-col items-end shrink-0 min-w-20 gap-1">
+              <AppBadge
+                :status="filteredPickerClasses.find((c) => c.id === id)?.displaySchedule?.day || 'No Schedule'"
+                type="day"
+                size="xs"
+              />
+              <span class="text-xs font-semibold text-content-dark tracking-tight">{{
                 filteredPickerClasses.find((c) => c.id === id)?.displaySchedule?.time || ''
               }}</span>
             </div>

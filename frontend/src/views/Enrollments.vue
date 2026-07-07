@@ -68,21 +68,7 @@ const fetchEnrollments = async () => {
     const params = {
       page: currentPage.value,
       limit: pageSize,
-      status:
-        currentFilter.value === 'all'
-          ? undefined
-          : [
-                'paid',
-                'unpaid',
-                'cancelled',
-                'confirmed',
-                'success',
-                'active',
-                'pending',
-                'transferred',
-              ].includes(currentFilter.value)
-            ? currentFilter.value
-            : undefined,
+      status: currentFilter.value === 'all' ? undefined : currentFilter.value,
     }
     const response = await enrollmentService.getAllEnrollments(params, { skipCache: true })
 
@@ -375,6 +361,8 @@ const handleRegisterStudent = async (formData) => {
             { label: 'Unpaid', value: 'unpaid' },
             { label: 'Cancelled', value: 'cancelled' },
             { label: 'Transferred', value: 'transferred' },
+            { label: 'Full', value: 'full' },
+            { label: 'Partial', value: 'partial' },
           ]"
           :rowClass="getRowClass"
           @action="handleTableAction"

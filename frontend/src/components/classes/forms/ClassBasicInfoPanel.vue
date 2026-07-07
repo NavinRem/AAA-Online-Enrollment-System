@@ -216,7 +216,7 @@ const getScheduleDuration = (timeRange) => {
         </template>
         <template #item="{ item }">
           <div class="flex items-center justify-between w-full">
-            <span class="text-sm font-semibold text-content-dark">{{ item.day }}</span>
+            <AppBadge :status="item.day" type="day" size="sm" />
             <div class="flex items-center gap-2">
               <span class="text-xs font-bold text-content-muted opacity-40"
                 >({{ getScheduleDuration(item.time) }})</span

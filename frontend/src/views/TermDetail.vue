@@ -24,7 +24,7 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import { teacherService } from '@/services/teacherService'
 import { useSearch, classSearchMapper, studentSearchMapper } from '@/composables/useSearch'
 import { useTableActions } from '@/composables/useTableActions'
-import { getStatusTheme, resolveColor } from '@/utils/badgeUtils'
+import {  resolveColor } from '@/utils/badgeUtils'
 import { useModalState } from '@/composables/useModalState'
 import { useDetailFetch } from '@/composables/useDetailFetch'
 
@@ -873,26 +873,15 @@ const handleActionSubmit = async (payload) => {
                     class="flex items-center gap-1 group/sched h-20"
                   >
                     <div
-                      class="flex flex-col items-center justify-center py-2 px-lg rounded-sm min-w-32 relative h-full w-full transition-all"
-                      :style="getStatusTheme(sched.day, 'day')"
-                      @mouseenter="
-                        (e) => {
-                          e.currentTarget.style.filter = 'brightness(0.95)'
-                        }
-                      "
-                      @mouseleave="
-                        (e) => {
-                          e.currentTarget.style.filter = 'none'
-                        }
-                      "
+                      class="flex flex-col items-center justify-center py-2 px-1 rounded-sm min-w-32 relative h-full w-full gap-1"
                     >
-                      <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
+                      <AppBadge :status="sched.day" type="day" size="sm" />
                       <span
-                        class="text-3xs font-semibold opacity-80 mt-1 leading-none tabular-nums"
+                        class="text-xs font-semibold text-content-dark leading-none tabular-nums"
                         >{{ sched.time }}</span
                       >
                       <span
-                        class="text-4xs font-bold opacity-60 mt-1 uppercase tracking-wider"
+                        class="text-3xs font-medium text-content-muted mt-0.5"
                         v-if="term?.startDate && term?.totalSessions"
                       >
                         Ends

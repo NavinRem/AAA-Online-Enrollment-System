@@ -13,6 +13,7 @@ import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { formatPrice } from '@/utils/formatUtils'
 import { useSearch, branchSearchMapper } from '../composables/useSearch'
 import { isPaid, isPending } from '@/constants/status'
+import { countUniqueEnrollmentStudents, isTransferDestination } from '@/utils/enrollmentHelper'
 
 const dataStore = useDataStore()
 const loading = ref(true)
@@ -75,6 +76,7 @@ const statsCards = computed(() => {
   // 2. Highest Earner Today
   const today = new Date().toISOString().split('T')[0]
   const todayEnrollments = enrollments.filter((e) => {
+    if (isTransferDestination(e)) return false
     const eDate = (e.enrollAt || e.createdAt || '').split('T')[0]
     return eDate === today
   })
@@ -233,6 +235,7 @@ const getBranchStats = (branchId) => {
 
   // TODAY
   const todayEnroll = enrollments.filter((e) => {
+    if (isTransferDestination(e)) return false
     const enrollDate = e.enrollAt || e.createdAt || ''
     return enrollDate.split('T')[0] === localTodayStr
   })
@@ -246,6 +249,7 @@ const getBranchStats = (branchId) => {
 
   // WEEK
   const weekEnroll = enrollments.filter((e) => {
+    if (isTransferDestination(e)) return false
     const timestamp = new Date(e.enrollAt || e.createdAt || 0).getTime()
     return timestamp >= weekAgoTimestamp
   })
@@ -279,8 +283,8 @@ const getBranchStats = (branchId) => {
     .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
 
   return {
-    today: { enroll: todayEnroll.length, trial: todayTrials.length, rev: todayRev },
-    week: { enroll: weekEnroll.length, trial: weekTrials.length, rev: weekRev },
+    today: { enroll: countUniqueEnrollmentStudents(todayEnroll), trial: todayTrials.length, rev: todayRev },
+    week: { enroll: countUniqueEnrollmentStudents(weekEnroll), trial: weekTrials.length, rev: weekRev },
     lifetime: { classes: classes.length, programs, studying, totalRev, totalPending },
   }
 }

@@ -1,5 +1,6 @@
 <script setup>
 import AppSelect from '@/components/common/ui/AppSelect.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 
 const props = defineProps({
@@ -68,17 +69,14 @@ const getScheduleDuration = (timeRange) => {
         <div class="flex items-center gap-4 flex-1">
           <div class="flex flex-col gap-1">
             <template v-if="sched.day">
-              <span class="text-base font-bold text-content-dark flex items-center gap-2">
-                {{ sched.day }}
-                <span class="text-sm font-bold text-content-muted/60 tracking-tighter"
+              <div class="flex items-center gap-2">
+                <AppBadge :status="sched.day" type="day" size="sm" />
+                <span class="text-xs font-bold text-content-muted/60 tracking-tighter"
                   >({{ getScheduleDuration(sched.time) }})</span
                 >
-              </span>
-              <div class="flex items-center gap-2">
-                <span
-                  class="text-sm font-bold text-primary tracking-tight bg-primary-soft/50 px-2 py-0.5 rounded-md border border-primary/10"
-                  >{{ sched.time }}</span
-                >
+              </div>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-xs font-semibold text-content-dark">{{ sched.time }}</span>
               </div>
             </template>
             <template v-else>

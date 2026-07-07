@@ -1,5 +1,6 @@
 import { parseDate } from './formatUtils'
 import { isPaid } from '@/constants/status'
+import { countUniqueEnrollmentStudents } from './enrollmentHelper'
 
 /**
  * Utility for aggregating system-wide statistics for the administrative dashboard.
@@ -51,6 +52,14 @@ export const calculateDashboardStats = (
     return (t >= s && t <= e) || (u >= s && u <= e)
   }
 
+  /**
+   * Internal helper to count new enrollments within a time window,
+   * excluding transferred enrollments and counting only 1 new enrollment per student.
+   */
+  const countNewEnrollments = (list, startTime) => {
+    return countUniqueEnrollmentStudents(list, (r) => parseDate(r.enrollAt || r.createdAt).getTime() >= startTime)
+  }
+
   const todayRegs = (parents || []).filter(
     (u) => parseDate(u.createdAt).getTime() >= today,
   )
@@ -61,7 +70,7 @@ export const calculateDashboardStats = (
   return {
     today: {
       reg: todayRegs.length,
-      enroll: regs.filter((r) => parseDate(r.enrollAt || r.createdAt).getTime() >= today).length,
+      enroll: countNewEnrollments(regs, today),
       pay:
         Math.round(
           regs
@@ -72,7 +81,7 @@ export const calculateDashboardStats = (
     },
     week: {
       reg: weekRegs.length,
-      enroll: regs.filter((r) => parseDate(r.enrollAt || r.createdAt).getTime() >= weekly).length,
+      enroll: countNewEnrollments(regs, weekly),
       pay:
         Math.round(
           regs

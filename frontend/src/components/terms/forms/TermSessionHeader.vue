@@ -1,8 +1,9 @@
 <script setup>
 import { ref } from 'vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 import { getProgramProfileURL } from '@/utils/assetHelper'
 
-const props = defineProps({
+defineProps({
   program: { type: Object, default: null },
   programName: { type: String, default: '' },
   schedule: { type: Object, default: null },
@@ -10,7 +11,7 @@ const props = defineProps({
   offeringId: { type: [String, Number], default: null }
 })
 
-const emit = defineEmits(['switch-schedule'])
+defineEmits(['switch-schedule'])
 
 const scheduleDropdownOpen = ref(false)
 const schedDropdownRef = ref(null)
@@ -38,9 +39,10 @@ const toggleScheduleDropdown = () => {
           <div class="flex items-center gap-2 mt-1">
             <span class="text-sm font-bold text-primary">{{ programName }}</span>
             <span class="text-xs font-bold text-content-muted/40">•</span>
-            <span class="text-xs font-bold text-content-muted">
-              {{ schedule?.day }} {{ schedule?.time }}
-            </span>
+            <div class="flex items-center gap-1.5" v-if="schedule?.day">
+              <AppBadge :status="schedule?.day" type="day" size="xs" />
+              <span class="text-xs font-semibold text-content-dark">{{ schedule?.time }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -59,10 +61,11 @@ const toggleScheduleDropdown = () => {
             <span class="text-3xs font-bold text-content-muted/60 uppercase tracking-widest"
               >Active Schedule</span
             >
-            <span class="font-bold text-content-dark">
-              {{ schedule?.day || 'Select Schedule' }}
-              <span class="text-content-muted font-semibold ml-1">{{ schedule?.time }}</span>
-            </span>
+            <div class="flex items-center gap-1.5 mt-0.5" v-if="schedule?.day">
+              <AppBadge :status="schedule?.day" type="day" size="xs" />
+              <span class="text-xs font-semibold text-content-dark">{{ schedule?.time }}</span>
+            </div>
+            <span v-else class="font-bold text-content-dark">Select Schedule</span>
           </div>
         </div>
         <span
@@ -100,10 +103,10 @@ const toggleScheduleDropdown = () => {
               "
             >
               <span class="text-base opacity-60">📅</span>
-              <div class="flex flex-col leading-tight">
-                <span class="font-bold">{{ sched.day }}</span>
-                <span class="text-xs font-semibold opacity-70">{{ sched.time }}</span>
-              </div>
+                <div class="flex items-center gap-1.5">
+                  <AppBadge :status="sched.day" type="day" size="xs" />
+                  <span class="text-xs font-semibold text-content-dark">{{ sched.time }}</span>
+                </div>
             </button>
           </div>
         </div>

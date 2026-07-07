@@ -445,21 +445,3 @@ const paymentHeaders = [
     </DataPageLayout>
   </DashboardLayout>
 </template>
-
-<style scoped>
-.toolbar-filter-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-dropdown p-xs min-w-60 max-h-80 overflow-y-auto;
-}
-
-.toolbar-filter-option {
-  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-all rounded-sm select-none flex items-center gap-2;
-}
-
-.toolbar-filter-option:hover {
-  @apply bg-surface-subtle text-primary;
-}
-
-.active-filter-item {
-  @apply bg-primary text-white hover:bg-primary hover:text-white !important;
-}
-</style>

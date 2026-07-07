@@ -187,11 +187,8 @@ onMounted(fetchData)
                   />
                 </div>
                 <div class="flex items-center gap-1.5 mt-0.5">
-                  <span class="text-xs font-bold text-content-muted">{{
-                    assign.schedule?.day
-                  }}</span>
-                  <span class="text-xs opacity-30">•</span>
-                  <span class="text-xs font-black text-primary">{{ assign.schedule?.time }}</span>
+                  <AppBadge :status="assign.schedule?.day" type="day" size="xs" />
+                  <span class="text-xs font-semibold text-content-dark">{{ assign.schedule?.time }}</span>
                 </div>
               </div>
             </div>
@@ -233,11 +230,8 @@ onMounted(fetchData)
                   />
                 </div>
                 <div class="flex items-center gap-1.5 mt-0.5">
-                  <span class="text-xs font-bold text-content-muted">{{
-                    assign.schedule?.day
-                  }}</span>
-                  <span class="text-xs opacity-30">•</span>
-                  <span class="text-xs font-black text-primary">{{ assign.schedule?.time }}</span>
+                  <AppBadge :status="assign.schedule?.day" type="day" size="xs" />
+                  <span class="text-xs font-semibold text-content-dark">{{ assign.schedule?.time }}</span>
                 </div>
               </div>
             </div>
@@ -311,11 +305,8 @@ onMounted(fetchData)
                   >
                 </div>
                 <div class="flex items-center gap-1.5 mt-0.5">
-                  <span class="text-xs font-bold text-content-muted">{{
-                    offering.schedule?.day
-                  }}</span>
-                  <span class="text-xs opacity-30">•</span>
-                  <span class="text-xs font-black text-primary">{{ offering.schedule?.time }}</span>
+                  <AppBadge :status="offering.schedule?.day" type="day" size="xs" />
+                  <span class="text-xs font-semibold text-content-dark">{{ offering.schedule?.time }}</span>
                   <span class="text-xs opacity-30">•</span>
                   <span class="text-xs font-bold text-content-muted tracking-tighter">{{
                     offering.termName

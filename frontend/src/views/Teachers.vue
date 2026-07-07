@@ -423,11 +423,9 @@ const handleAction = (type, item, closeMenu) => {
                     :key="assign.offeringId || assign.id || idx"
                     class="group/assign relative flex items-center justify-between gap-10 px-2 py-1.5 rounded-sm bg-primary-soft border border-primary/10 group-hover:bg-white group-hover:border-primary transition-all cursor-default"
                   >
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-sm font-bold text-content-dark truncate">
-                        {{ assign.schedule?.day || 'TBA' }}
-                      </span>
-                      <span class="text-sm font-bold text-primary leading-none">
+                    <div class="flex flex-col gap-1 items-start">
+                      <AppBadge :status="assign.schedule?.day || 'TBA'" type="day" size="xs" />
+                      <span class="text-xs font-semibold text-content-dark leading-none tabular-nums">
                         {{ assign.schedule?.time || 'N/A' }}
                       </span>
                     </div>

@@ -14,6 +14,7 @@ import { useSearch } from '../composables/useSearch'
 import { useDataStore } from '../stores/dataStore'
 import { getProgramProfileURL, getImageUrl, getActionIcon, getIconUrl } from '@/utils/assetHelper'
 import { formatPrice } from '@/utils/formatUtils'
+import { isTransferDestination } from '@/utils/enrollmentHelper'
 
 const dataStore = useDataStore()
 
@@ -69,7 +70,7 @@ const topEnrolledProgram = computed(() => {
     return { name: 'No Enrollments', count: 0 }
   const counts = {}
   enrollments.value.forEach((e) => {
-    if (e.programId) counts[e.programId] = (counts[e.programId] || 0) + 1
+    if (e.programId && !isTransferDestination(e)) counts[e.programId] = (counts[e.programId] || 0) + 1
   })
   let maxCount = 0,
     maxPid = null
@@ -116,16 +117,12 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
   const pEnrollments = allEnrollments.filter((e) => String(e.programId) === String(programId))
   const pTrials = allTrials.filter((t) => String(t.programId) === String(programId))
 
-  // Unique Students: Count distinct studentIds associated with this program
-  const uniqueStudentIds = new Set(pEnrollments.map((e) => e.studentId).filter((id) => id))
-  const uniqueStudentCount = uniqueStudentIds.size
-
   const now = new Date()
   const localTodayStr = now.toLocaleDateString('en-CA') // YYYY-MM-DD local
   const weekAgoTimestamp = now.getTime() - 7 * 86400000
 
   const stats = {
-    uniqueStudents: uniqueStudentCount || 0,
+    uniqueStudents: 0,
     enrollmentToday: 0,
     enrollmentWeek: 0,
     trialToday: 0,
@@ -134,7 +131,15 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
     revenueWeek: 0,
   }
 
+  const todayStudents = new Set()
+  const weekStudents = new Set()
+  const allStudents = new Set()
+
   pEnrollments.forEach((e) => {
+    if (isTransferDestination(e)) return
+    const sId = e.studentId || e.student?.id || e.id
+    if (sId) allStudents.add(String(sId))
+
     const enrollDate = e.enrollAt || e.createdAt || ''
     if (!enrollDate) return
 
@@ -144,14 +149,18 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
     const amount = Number(e.amount) || 0
 
     if (enrollDateStr === localTodayStr) {
-      stats.enrollmentToday++
+      if (sId) todayStudents.add(String(sId))
       stats.revenueToday += amount
     }
     if (enrollTimestamp >= weekAgoTimestamp) {
-      stats.enrollmentWeek++
+      if (sId) weekStudents.add(String(sId))
       stats.revenueWeek += amount
     }
   })
+
+  stats.uniqueStudents = allStudents.size || 0
+  stats.enrollmentToday = todayStudents.size
+  stats.enrollmentWeek = weekStudents.size
 
   pTrials.forEach((t) => {
     const trialDate = t.date || t.trialDate || t.createdAt || ''

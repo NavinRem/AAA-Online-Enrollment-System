@@ -501,11 +501,12 @@ watch(
                           :class="{ 'active-filter-item': selectedEnrollmentId === opt.value }"
                           @click="selectEnrollment(opt.value)"
                         >
-                          <div class="flex flex-col gap-0.5">
+                          <div class="flex flex-col gap-1">
                             <span class="font-bold text-sm">{{ opt.label }}</span>
-                            <span class="text-3xs text-content-muted"
-                              >{{ opt.schedule?.day }} at {{ opt.schedule?.time }}</span
-                            >
+                            <div class="flex items-center gap-1.5" v-if="opt.schedule?.day">
+                              <AppBadge :status="opt.schedule?.day" type="day" size="xs" />
+                              <span class="text-3xs font-semibold text-content-dark">{{ opt.schedule?.time }}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -574,3 +575,4 @@ watch(
     />
   </DashboardLayout>
 </template>
+

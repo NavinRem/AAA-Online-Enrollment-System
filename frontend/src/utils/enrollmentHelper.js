@@ -6,6 +6,36 @@ import { isPaid, isPending } from '@/constants/status'
 const CANCELLED_STATUSES = ['cancelled', 'canceled', 'stopped', 'deleted', 'transferred']
 
 /**
+ * Checks if an enrollment record was created as the destination of a class transfer.
+ * Destination transfer records should be excluded from "New Enrollment" metrics.
+ */
+export const isTransferDestination = (r) => {
+  if (!r) return false
+  if ((r.transferredSessions && Number(r.transferredSessions) > 0) || String(r.enrollmentType).toLowerCase() === 'transfer') return true
+  if (r.remark && String(r.remark).startsWith('Transfer from ')) return true
+  return false
+}
+
+/**
+ * Counts unique students from a list of enrollments, excluding incoming transfer records.
+ */
+export const countUniqueEnrollmentStudents = (enrollList = [], filterFn = null) => {
+  const uniqueStudents = new Set()
+  const items = enrollList || []
+  items.forEach((r) => {
+    if (filterFn && !filterFn(r)) return
+    if (isTransferDestination(r)) return
+    const sId = r.studentId || r.student?.id || r.childId
+    if (sId) {
+      uniqueStudents.add(String(sId))
+    } else {
+      uniqueStudents.add(r.id || r)
+    }
+  })
+  return uniqueStudents.size
+}
+
+/**
  * Calculates high-level enrollment statistics for dashboards and overview cards.
  * Provides counts for total, paid, and recently added registrations.
  *
@@ -29,8 +59,7 @@ export const calculateTotalEnrollment = (enroll = []) => {
     cancelledCount: enroll.filter((r) =>
       CANCELLED_STATUSES.includes(String(r.status).toLowerCase()),
     ).length,
-    todayCount: enroll.filter((r) => parseDate(r.enrollAt || r.createdAt).getTime() >= today)
-      .length,
+    todayCount: countUniqueEnrollmentStudents(enroll, (r) => parseDate(r.enrollAt || r.createdAt).getTime() >= today),
   }
 }
 

@@ -122,7 +122,7 @@ const updateForm = (field, value) => {
               <template v-if="item.displaySchedule">
                 <AppBadge
                   :status="item.displaySchedule.day"
-                  type="blue"
+                  type="day"
                   size="sm"
                   class="w-fit"
                 />

@@ -659,22 +659,6 @@ useDetailFetch(fetchData)
   @apply px-4 py-2 bg-primary-soft text-primary text-xs font-semibold rounded-lg transition-all hover:bg-primary-soft;
 }
 
-.toolbar-filter-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-dropdown p-xs min-w-60 max-h-80 overflow-y-auto;
-}
-
-.toolbar-filter-option {
-  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-all rounded-sm select-none flex items-center gap-2;
-}
-
-.toolbar-filter-option:hover {
-  @apply bg-surface-subtle text-primary;
-}
-
-.active-filter-item {
-  @apply bg-primary text-white hover:bg-primary hover:text-white !important;
-}
-
 /* Hide scrollbar for Chrome, Safari and Opera */
 .overflow-x-auto::-webkit-scrollbar {
   display: none;

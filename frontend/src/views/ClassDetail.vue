@@ -378,7 +378,8 @@ const uniqueBranches = computed(() => {
           (String(e.branchId) === branchId || String(e.class?.branch?.id) === branchId) &&
           String(e.termId) === String(offering.termId) &&
           (['paid', 'success', 'active', 'confirmed'].includes(e.status) ||
-            (['paid', 'success'].includes(e.paymentStatus) && !['transferred', 'cancelled', 'suspended'].includes(e.status))),
+            (['paid', 'success'].includes(e.paymentStatus) &&
+              !['transferred', 'cancelled', 'suspended'].includes(e.status))),
       ).length
 
       branchMap.get(branchId).studentCount = paidStudentsCount
@@ -510,7 +511,9 @@ const filteredEnrollments = computed(() => {
   const filtered = enrollments.value.filter((e) => {
     // Audit: Only successful/eligible enrollments are shown for attendance
     if (
-      !['paid', 'success', 'active', 'confirmed', 'transferred', 'cancelled', 'suspended'].includes(e.status) &&
+      !['paid', 'success', 'active', 'confirmed', 'transferred', 'cancelled', 'suspended'].includes(
+        e.status,
+      ) &&
       !['paid', 'success', 'transferred'].includes(e.paymentStatus)
     )
       return false
@@ -591,9 +594,9 @@ const getActiveLabel = (type) => {
   }
 }
 
-const getActiveScheduleDay = () => {
+const getActiveScheduleObj = () => {
   const opt = scheduleOptions.value.find((o) => String(o.id) === String(scheduleFilter.value))
-  return opt ? opt.day : scheduleOptions.value[0]?.day || ''
+  return opt || scheduleOptions.value[0] || { name: 'Schedule', day: '', time: '' }
 }
 
 const {
@@ -702,6 +705,7 @@ const scheduleOptions = computed(() => {
     id: s.id,
     name: `${s.day} (${s.time})`,
     day: s.day,
+    time: s.time,
   }))
 })
 
@@ -942,27 +946,31 @@ watch(branchFilter, (newBranchId) => {
                 <!-- Schedule Filter -->
                 <div class="relative" id="schedule-filter-btn" v-if="scheduleOptions.length > 1">
                   <AppButton
+                    variant="secondary"
                     size="md"
                     @click="toggleDropdown('schedule', $event)"
                     :style="{
-                      backgroundColor: getActiveScheduleDay()
-                        ? getStatusTheme(getActiveScheduleDay(), 'day').backgroundColor
+                      backgroundColor: getActiveScheduleObj().day
+                        ? getStatusTheme(getActiveScheduleObj().day, 'day').backgroundColor
                         : 'var(--color-surface-light)',
-                      color: getActiveScheduleDay()
-                        ? getStatusTheme(getActiveScheduleDay(), 'day').color
-                        : 'inherit',
                     }"
                   >
                     <img
                       :src="getActionIcon('filter')"
                       class="w-4 h-4 brightness-0"
                       :style="{
-                        filter: getActiveScheduleDay()
-                          ? getStatusFilter(getActiveScheduleDay(), 'day')
+                        filter: getActiveScheduleObj().day
+                          ? getStatusFilter(getActiveScheduleObj().day, 'day')
                           : 'invert(0)',
                       }"
                     />
-                    <span>{{ getActiveLabel('schedule') }}</span>
+                    <div class="flex items-center gap-1.5" v-if="getActiveScheduleObj().day">
+                      <span class="text-sm font-bold">{{ getActiveScheduleObj().day }}</span>
+                      <span class="text-sm font-semibold opacity-80">{{
+                        getActiveScheduleObj().time
+                      }}</span>
+                    </div>
+                    <span v-else>{{ getActiveScheduleObj().name }}</span>
                   </AppButton>
                   <Teleport to="body">
                     <transition
@@ -988,7 +996,12 @@ watch(branchFilter, (newBranchId) => {
                           }"
                           @click="selectFilter('schedule', opt.id)"
                         >
-                          {{ opt.name }}
+                          <div class="flex items-center gap-2">
+                            <AppBadge :status="opt.day" type="day" size="xs" />
+                            <span class="text-xs font-semibold text-content-dark">{{
+                              opt.time
+                            }}</span>
+                          </div>
                         </div>
                       </div>
                     </transition>
@@ -1305,12 +1318,11 @@ watch(branchFilter, (newBranchId) => {
                     :key="schedule.id || `${schedule.day}-${schedule.time}`"
                     class="flex items-center justify-between bg-primary-soft px-4 py-3 rounded-sm border border-outline-std transition-all group"
                   >
-                    <div class="flex flex-col gap-0.5">
-                      <span
-                        class="text-sm font-bold text-content-dark group-hover:text-primary transition-colors"
-                        >{{ schedule.day }}</span
-                      >
-                      <span class="text-xs font-semibold text-primary/80">{{ schedule.time }}</span>
+                    <div class="flex flex-col gap-1 items-start">
+                      <AppBadge :status="schedule.day" type="day" size="sm" />
+                      <span class="text-xs font-semibold text-content-dark">{{
+                        schedule.time
+                      }}</span>
                     </div>
 
                     <div class="flex items-center gap-4">
@@ -1429,18 +1441,6 @@ watch(branchFilter, (newBranchId) => {
 <style scoped>
 .ui-detail-card {
   @apply bg-white rounded-xl p-8 border border-outline-std shadow-sm transition-all duration-500 hover:shadow-xl hover:shadow-primary/5;
-}
-
-.toolbar-filter-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-dropdown p-xs min-w-60 max-h-80 overflow-y-auto;
-}
-
-.toolbar-filter-option {
-  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-all rounded-sm select-none hover:bg-surface-subtle hover:text-primary;
-}
-
-.active-filter-item {
-  @apply bg-primary text-white hover:bg-primary hover:text-white !important;
 }
 
 :deep(.table-content-area table) {

@@ -232,9 +232,10 @@ const handleOfferingSelection = (val) => {
             <AppBadge :status="item.branchName" :type="item.branchColor" />
           </div>
           <div class="flex items-center justify-between mt-1">
-            <span class="text-xs font-semibold"
-              >{{ item.scheduleDay }} ({{ item.scheduleTime }})</span
-            >
+            <div class="flex items-center gap-1.5">
+              <AppBadge :status="item.scheduleDay" type="day" size="xs" />
+              <span class="text-xs font-semibold text-content-dark">{{ item.scheduleTime }}</span>
+            </div>
             <AppBadge v-if="item.capacity - item.studentCount <= 0" status="Full" type="red" />
             <span
               v-else

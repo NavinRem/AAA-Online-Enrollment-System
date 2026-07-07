@@ -500,8 +500,10 @@ watch(
           >
             <div class="flex flex-col text-left">
               <span class="text-sm font-semibold text-content-dark">{{ add.program?.name }}</span>
-              <span class="text-xs text-content-muted">{{ add.schedule?.day }}</span>
-              <span class="text-xs font-medium text-primary">{{ add.schedule?.time }}</span>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <AppBadge :status="add.schedule?.day" type="day" size="xs" />
+                <span class="text-xs font-semibold text-content-dark">{{ add.schedule?.time }}</span>
+              </div>
             </div>
             <AppBadge
               :status="add.branch?.abbr || 'HQ'"
@@ -524,9 +526,10 @@ watch(
               <span class="text-sm font-semibold text-content-dark truncate">{{
                 remove.program?.name
               }}</span>
-              <span class="text-xs font-medium text-error"
-                >{{ remove.schedule?.day }} • {{ remove.schedule?.time }}</span
-              >
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <AppBadge :status="remove.schedule?.day" type="day" size="xs" />
+                <span class="text-xs font-semibold text-content-dark">{{ remove.schedule?.time }}</span>
+              </div>
             </div>
             <AppBadge :status="remove.branch?.abbr || 'HQ'" size="xs" type="red" />
           </div>

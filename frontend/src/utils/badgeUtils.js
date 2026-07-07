@@ -94,13 +94,22 @@ const REGISTRIES = {
     absent: 'red',
   },
   day: {
-    saturday: 'blue',
-    sunday: 'red',
-    monday: 'purple',
-    tuesday: 'purple',
-    wednesday: 'purple',
+    monday: 'yellow',
+    mon: 'yellow',
+    tuesday: 'orange',
+    tue: 'orange',
+    wednesday: 'green',
+    wed: 'green',
     thursday: 'purple',
-    friday: 'purple',
+    thu: 'purple',
+    thur: 'purple',
+    thurs: 'purple',
+    friday: 'magenta',
+    fri: 'magenta',
+    saturday: 'blue',
+    sat: 'blue',
+    sunday: 'red',
+    sun: 'red',
   }
 }
 

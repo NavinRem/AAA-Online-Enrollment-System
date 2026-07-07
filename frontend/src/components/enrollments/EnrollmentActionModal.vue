@@ -360,9 +360,9 @@ const availableOfferings = computed(() => {
       }),
   )
 
-  // Sort by schedule first, then by active (earlier start date) terms so it's chronologically ordered
-  const sortedBySchedule = sortSchedulesChronologically(offerings, 'schedule')
-  return sortedBySchedule.sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0))
+  // Sort by schedule first (morning to evening, Monday to Sunday), then by active term start date
+  const sortedByDate = [...offerings].sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0))
+  return sortSchedulesChronologically(sortedByDate, 'schedule')
 })
 
 const selectedProgram = computed(() => props.programs.find((item) => item.id === form.programId))

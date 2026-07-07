@@ -13,7 +13,6 @@ import { classService } from '@/services/classService'
 import { termService } from '@/services/termService'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { useSearch } from '@/composables/useSearch'
-import { getStatusTheme } from '@/utils/badgeUtils'
 import {
   sortSchedulesChronologically
 } from '@/utils/formatUtils'
@@ -362,16 +361,13 @@ const navigateToDetail = (item) => {
                 <div
                   v-for="sched in item.schedules"
                   :key="sched.id || `${sched.day}-${sched.time}`"
-                  class="flex flex-col items-center justify-center h-10 group-hover:opacity-80 p-lg rounded-sm transition-opacity"
-                  :style="{ backgroundColor: getStatusTheme(sched.day, 'day').backgroundColor, color: getStatusTheme(sched.day, 'day').color }"
+                  class="flex flex-col items-center justify-center h-10 gap-1"
                 >
-                  <div class="flex flex-col items-center">
-                    <span class="text-xs font-bold leading-none">{{ sched.day }}</span>
-                    <span
-                      class="text-3xs font-semibold text-content-muted mt-1 leading-none tabular-nums"
-                      >{{ sched.time }}</span
-                    >
-                  </div>
+                  <AppBadge :status="sched.day" type="day" size="sm" />
+                  <span
+                    class="text-xs font-semibold text-content-dark leading-none tabular-nums"
+                    >{{ sched.time }}</span
+                  >
                 </div>
               </div>
             </td>
@@ -468,28 +464,3 @@ const navigateToDetail = (item) => {
     @clear-success="modal.success = ''"
   />
 </template>
-
-<style scoped>
-.toolbar-filter-menu,
-.ui-dropdown-menu {
-  @apply fixed bg-white rounded-md shadow-2xl border border-outline-std z-dropdown p-xs min-w-60 max-h-80 overflow-y-auto;
-}
-
-.toolbar-filter-option,
-.ui-dropdown-item {
-  @apply px-md py-sm text-sm font-semibold cursor-pointer transition-all rounded-sm select-none flex items-center gap-2;
-}
-
-.toolbar-filter-option:hover,
-.ui-dropdown-item:hover {
-  @apply bg-surface-subtle text-primary;
-}
-
-.active-filter-item {
-  @apply bg-primary text-white hover:bg-primary hover:text-white !important;
-}
-
-.ui-dropdown-item-danger:hover {
-  @apply bg-error-soft text-error !important;
-}
-</style>
