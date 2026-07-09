@@ -9,6 +9,7 @@ import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
+import AuditBadge from '../components/common/ui/AuditBadge.vue'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 
 import { useSearch, parentSearchMapper } from '../composables/useSearch'
@@ -85,6 +86,7 @@ const parentHeaders = [
   { label: 'Email', class: 'hidden lg:table-cell' },
   { label: 'Joined Date', class: 'hidden lg:table-cell', align: 'center' },
   { label: 'Status', align: 'center' },
+  { label: 'Modified By', width: '140px', align: 'left' },
   { label: 'Action', width: '90px', align: 'center' },
 ]
 
@@ -386,6 +388,11 @@ const handleRowAction = (type, item, closeMenu) => {
             <!-- Status -->
             <td class="ui-cell text-center">
               <AppBadge :status="item.status" />
+            </td>
+
+            <!-- Modified By -->
+            <td class="ui-cell text-left">
+              <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
             </td>
 
             <!-- Actions -->

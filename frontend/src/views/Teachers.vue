@@ -5,6 +5,7 @@ import DataPageLayout from '@/components/layout/DataPageLayout.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 import TeacherActionModal from '@/components/teachers/TeacherActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 
@@ -165,6 +166,7 @@ const headers = [
   { label: 'Program', class: 'hidden lg:table-cell' },
   { label: 'Joined Date', class: 'hidden lg:table-cell', align: 'center' },
   { label: 'Status', width: '150px', align: 'center' },
+  { label: 'Modified By', width: '140px', align: 'left' },
   { label: 'Action', width: '80px', align: 'center' },
 ]
 
@@ -494,7 +496,12 @@ const handleAction = (type, item, closeMenu) => {
               <AppBadge :status="item.status || 'active'" />
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+            <!-- Modified By -->
+            <td class="ui-cell text-left">
+              <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

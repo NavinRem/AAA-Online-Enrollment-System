@@ -6,6 +6,7 @@ import DataPageLayout from '@/components/layout/DataPageLayout.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 import { paymentService } from '@/services/paymentService'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
 import { useSearch, paymentSearchMapper } from '@/composables/useSearch'
@@ -128,6 +129,8 @@ const formattedPayments = computed(() => {
       paymentModeType: e.paymentModeType || (e.isProrated ? 'partial' : 'full'),
       termStatus: e.termStatus || 'unknown',
       branchId: e.branchId || e.class?.branch?.id || e.branch?.id || e.enrollment?.branch?.id,
+      modifiedBy: e.modifiedBy,
+      createdBy: e.createdBy,
     }
   })
 })
@@ -251,13 +254,14 @@ const paymentStats = computed(() => {
 
 const paymentHeaders = [
   { label: 'No', width: '60px', align: 'center', class: 'hidden md:table-cell' },
-  { label: 'Client Identity', width: '280px' },
-  { label: 'Receipt ID', align: 'center', width: '120px' },
-  { label: 'Transaction ID', align: 'center', width: '150px' },
-  { label: 'Amount', align: 'center', width: '120px' },
-  { label: 'Method', align: 'center', width: '120px' },
-  { label: 'Status', align: 'center', width: '120px' },
-  { label: 'Date', align: 'center', class: 'hidden lg:table-cell', width: '150px' },
+  { label: 'Client Identity' },
+  { label: 'Receipt ID', align: 'center' },
+  { label: 'Transaction ID', align: 'center' },
+  { label: 'Amount', align: 'center' },
+  { label: 'Method', align: 'center' },
+  { label: 'Status', align: 'center' },
+  { label: 'Date', align: 'center', class: 'hidden lg:table-cell' },
+  { label: 'Modified By', width: '140px', align: 'left' },
 ]
 </script>
 
@@ -438,6 +442,11 @@ const paymentHeaders = [
               <div class="flex flex-col items-center">
                 <span class="ui-cell-muted">{{ formatDate(item.date) }}</span>
               </div>
+            </td>
+
+            <!-- Modified By -->
+            <td class="ui-cell text-left" :style="{ width: headers[8].width }">
+              <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
             </td>
           </template>
         </DataTable>

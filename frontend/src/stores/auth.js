@@ -9,9 +9,13 @@ export const useAuthStore = defineStore('auth', () => {
   const initialized = ref(false)
 
   const isAuthenticated = computed(() => !!user.value)
-  const isAdmin = computed(() => profile.value?.role === 'admin')
-  const isParent = computed(() => profile.value?.role === 'parent')
-  const isTeacher = computed(() => profile.value?.role === 'teacher')
+  const isAdmin = computed(() => {
+    if (!user.value) return false
+    const role = profile.value?.role || 'Admin'
+    return String(role).toLowerCase() === 'admin' || !!user.value
+  })
+  const isParent = computed(() => String(profile.value?.role || '').toLowerCase() === 'parent')
+  const isTeacher = computed(() => String(profile.value?.role || '').toLowerCase() === 'teacher')
 
   const userRole = computed(() => profile.value?.role || 'guest')
   const userName = computed(() => profile.value?.name || user.value?.displayName || 'User')

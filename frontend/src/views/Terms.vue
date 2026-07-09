@@ -7,6 +7,7 @@ import DataTable from '@/components/common/data/DataTable.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 import TermActionModal from '@/components/terms/TermActionModal.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import { termService } from '@/services/termService'
@@ -35,6 +36,7 @@ const headers = [
   { label: 'Enrolled', width: '100px', align: 'center' },
   { label: 'Trials', width: '100px', align: 'center' },
   { label: 'Revenue', width: '100px', align: 'center' },
+  { label: 'Modified By', width: '140px', align: 'left' },
   { label: 'Action', width: '50px', align: 'center' },
 ]
 
@@ -634,7 +636,12 @@ const getGroupedSettings = (item) => {
               </div>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[9].width }">
+            <!-- Modified By -->
+            <td class="ui-cell text-left">
+              <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[11].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

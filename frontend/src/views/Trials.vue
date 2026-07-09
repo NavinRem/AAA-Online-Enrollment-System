@@ -7,6 +7,7 @@ import AppButton from '../components/common/ui/AppButton.vue'
 import DataMetricCard from '../components/common/data/DataMetricCard.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
+import AuditBadge from '../components/common/ui/AuditBadge.vue'
 import TrialActionModal from '../components/trials/TrialActionModal.vue'
 
 import { trialService } from '@/services/trialService'
@@ -92,7 +93,8 @@ const trialHeaders = [
   { label: 'Branch', width: '120px', align: 'center' },
   { label: 'Status', width: '120px', align: 'center' },
   { label: 'Type', width: '120px', align: 'center' },
-  { label: 'Trial Date', width: '250px', align: 'center' },
+  { label: 'Trial Date', width: '200px', align: 'center' },
+  { label: 'Modified By', width: '140px', align: 'left' },
   { label: 'Action', width: '60px', align: 'center' },
 ]
 
@@ -358,7 +360,11 @@ const handleTableAction = ({ type, item }) => {
               </div>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+            <td class="ui-cell text-left" :style="{ width: headers[8].width }">
+              <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[9].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

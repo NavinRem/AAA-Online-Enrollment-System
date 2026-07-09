@@ -93,6 +93,32 @@
     @apply w-full h-full object-cover;
   }
 
+
+  /* ── Audit Badge ─────────────────────────────────────────────────────────── */
+  /* Use for: the clickable admin identity card in Modified By cells            */
+  .ui-audit-badge {
+    @apply inline-flex items-center gap-sm py-xs px-xs
+           rounded-sm cursor-pointer hover:bg-white;
+  }
+
+  /* ── Audit Popover ───────────────────────────────────────────────────────── */
+  /* Use for: the floating audit trail log panel opened from AuditBadge        */
+  .ui-audit-popover {
+    @apply fixed z-dropdown w-72 bg-white rounded-sm shadow-2xl
+           border border-outline-std p-md flex flex-col gap-md font-sans;
+  }
+  .ui-audit-popover-header {
+    @apply flex items-center justify-between border-b border-outline-std/60 pb-sm;
+  }
+  .ui-audit-popover-title {
+    @apply font-bold text-sm text-content-dark;
+  }
+  .ui-audit-log-item {
+    @apply flex items-start gap-sm text-sm
+           bg-surface-subtle/40 p-sm rounded-std
+           border border-outline-std/30;
+  }
+
   /* ── Avatar Stack ────────────────────────────────────────────────────────── */
   /* Use for: showing multiple avatars overlapping (e.g. class members)        */
   .ui-avatar-stack {

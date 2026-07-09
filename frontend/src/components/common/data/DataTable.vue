@@ -1,5 +1,6 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import AppTable from '@/components/common/data/AppTable.vue'
 import TableToolbar from '@/components/common/data/TableToolbar.vue'
 import { useTableActions } from '@/composables/useTableActions'
@@ -82,6 +83,41 @@ const handleAction = (type, item) => {
   emit('action', { type, item })
   closeMenu()
 }
+
+let route = null
+try {
+  route = useRoute()
+} catch (e) {}
+
+const highlightedQuery = ref('')
+
+if (route) {
+  watch(
+    () => route.query,
+    (newQuery) => {
+      const target = newQuery?.highlight || newQuery?.search || newQuery?.q
+      if (target) {
+        highlightedQuery.value = String(target).toLowerCase().trim()
+        setTimeout(() => {
+          highlightedQuery.value = ''
+        }, 5000)
+      } else {
+        highlightedQuery.value = ''
+      }
+    },
+    { immediate: true, deep: true }
+  )
+}
+
+const isHighlightedRow = (item) => {
+  if (!highlightedQuery.value || !item) return false
+  const q = highlightedQuery.value
+  return Object.values(item).some((v) =>
+    String(v || '')
+      .toLowerCase()
+      .includes(q),
+  )
+}
 </script>
 
 <template>
@@ -136,7 +172,12 @@ const handleAction = (type, item) => {
         v-for="(item, index) in items"
         :key="item.id || index"
         class="ui-row group"
-        :class="rowClass(item)"
+        :class="[
+          rowClass(item),
+          isHighlightedRow(item)
+            ? '!bg-primary-soft !border-l-4 !border-l-primary shadow-sm font-bold transition-all duration-500'
+            : '',
+        ]"
         @click="emit('row-click', item)"
       >
         <slot

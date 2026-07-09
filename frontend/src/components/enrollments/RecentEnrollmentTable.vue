@@ -1,6 +1,7 @@
 <script setup>
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppTable from '@/components/common/data/AppTable.vue'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 import { formatDate, formatPrice } from '@/utils/formatUtils'
 import {
   getProgramProfileURL,
@@ -15,17 +16,17 @@ defineProps({
   },
 })
 
-
 const enrollmentHeaders = [
   { label: 'No', width: '40px', align: 'center' },
   { label: 'Parent' },
   { label: 'Child' },
   { label: 'Program' },
+  { label: 'Branch', width: '90px', align: 'center' },
   { label: 'Status', width: '90px', align: 'center' },
   { label: 'Amount', width: '90px', align: 'center' },
+  { label: 'Modified By', width: '130px' },
   { label: 'Enrolled Date', align: 'center' },
 ]
-
 </script>
 
 <template>
@@ -37,11 +38,7 @@ const enrollmentHeaders = [
           <div class="ui-section-divider"></div>
         </div>
       </template>
-      <tr
-        v-for="(item, index) in enrollments.slice(0, 5)"
-        :key="item.id || index"
-        class="ui-row"
-      >
+      <tr v-for="(item, index) in enrollments.slice(0, 5)" :key="item.id || index" class="ui-row">
         <td
           class="ui-cell !py-4 text-center"
           :style="{
@@ -107,7 +104,7 @@ const enrollmentHeaders = [
             minWidth: enrollmentHeaders[4].width,
           }"
         >
-          <AppBadge :status="item.status" />
+          <AppBadge :status="item.branchAbbr" :type="item.branchColor" />
         </td>
         <td
           class="ui-cell !py-4 text-center"
@@ -117,11 +114,31 @@ const enrollmentHeaders = [
             minWidth: enrollmentHeaders[5].width,
           }"
         >
+          <AppBadge :status="item.status" />
+        </td>
+        <td
+          class="ui-cell !py-4 text-center"
+          :style="{
+            width: enrollmentHeaders[6].width,
+            flex: '0 0 auto',
+            minWidth: enrollmentHeaders[6].width,
+          }"
+        >
           <AppBadge
             :status="'$' + formatPrice(item.amount || 0)"
             :colorValue="item.paymentModeType"
             type="finance"
           />
+        </td>
+        <td
+          class="ui-cell !py-4 text-left"
+          :style="{
+            width: enrollmentHeaders[7].width,
+            flex: '0 0 auto',
+            minWidth: enrollmentHeaders[7].width,
+          }"
+        >
+          <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
         </td>
         <td
           class="ui-cell !py-4 text-center overflow-hidden"

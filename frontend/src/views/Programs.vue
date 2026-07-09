@@ -6,6 +6,7 @@ import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import DataTable from '../components/common/data/DataTable.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
+import AuditBadge from '../components/common/ui/AuditBadge.vue'
 import ProgramActionModal from '../components/programs/ProgramActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import { programService } from '../services/programService'
@@ -266,6 +267,7 @@ const programHeaders = [
   { label: 'Trial (W)', align: 'center', width: '85px' },
   { label: 'Rev (W)', align: 'center', width: '95px' },
   { label: 'Type', align: 'center', width: '100px' },
+  { label: 'Modified By', width: '140px', align: 'left' },
   { label: 'Action', width: '60px', align: 'center' },
 ]
 
@@ -532,7 +534,12 @@ const handleActionSubmit = async (formData) => {
               <AppBadge :status="item.type || 'Group'" />
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[10].width }">
+            <!-- Modified By -->
+            <td class="ui-cell text-left">
+              <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[12].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

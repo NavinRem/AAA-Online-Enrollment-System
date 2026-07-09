@@ -19,7 +19,10 @@ const resolveAsset = (category, path) => {
     return path
   }
 
-  const normPath = normalize(path)
+  let normPath = normalize(path)
+  if (normPath === 'profiles/avatar-admin' || normPath === 'avatar-admin') {
+    normPath = normPath.replace('avatar-admin', 'avatar-admin-female')
+  }
   const extensions = ['', '.png', '.svg', '.jpg', '.webp', '.jpeg']
 
   for (const ext of extensions) {

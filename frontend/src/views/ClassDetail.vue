@@ -43,15 +43,15 @@ const errorMessage = ref('')
 const attendanceError = ref('')
 
 const ATTENDANCE_STATUS = {
-  P: { label: 'P', color: 'green', theme: 'bg-success/10 text-success' },
+  P: { label: 'P', color: 'green', theme: 'bg-success-soft text-success' },
   A: { label: 'A', color: 'red', theme: 'bg-error-soft text-error' },
   M: {
     label: 'M',
     color: 'purple',
-    theme: 'bg-primary-soft text-primary border border-primary/20 font-black',
+    theme: 'bg-primary-soft text-primary',
   },
   L: { label: 'L', color: 'yellow', theme: 'bg-warning-soft text-warning' },
-  N: { label: 'N', color: 'gray', theme: 'bg-surface-subtle text-content-muted/40' },
+  N: { label: 'N', color: 'gray', theme: 'bg-surface-light text-content-muted' },
 }
 
 const getAttendanceStatus = (sessionId, studentId) => {
@@ -450,13 +450,18 @@ const attendanceHeaders = computed(() => {
     { label: 'Sessions Enrolled', width: '140px', align: 'center' },
   ]
 
-  const sessionCols = sessions.value.map((s) => ({
-    label: s.label,
-    subLabel: formatDateOnly(s.date),
-    width: '120px',
-    align: 'center',
-    class: 'session-col',
-  }))
+  const now = new Date().setHours(0, 0, 0, 0)
+  const sessionCols = sessions.value.map((s) => {
+    const sDate = new Date(s.date).setHours(0, 0, 0, 0)
+    const isFuture = sDate > now
+    return {
+      label: s.label,
+      subLabel: formatDateOnly(s.date),
+      width: '120px',
+      align: 'center',
+      class: isFuture ? 'session-col opacity-40' : 'session-col',
+    }
+  })
 
   const extraCols = [
     { label: 'Exam', width: '90px', align: 'center' },
@@ -1077,7 +1082,7 @@ watch(branchFilter, (newBranchId) => {
                                 sIdx,
                                 item.enrolledSessions,
                               )
-                            ? 'cursor-not-allowed opacity-90'
+                            ? 'cursor-not-allowed opacity-35 border-dashed'
                             : 'cursor-pointer hover:shadow-md',
                       ]"
                       :title="
@@ -1115,7 +1120,7 @@ watch(branchFilter, (newBranchId) => {
                     >
                       <div
                         v-if="activeAttendanceCell === `${session.id}-${item.studentId}`"
-                        class="attendance-dropdown-menu absolute z-sticky-header left-1/2 -translate-x-1/2 mt-2 w-36 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden py-1"
+                        class="attendance-dropdown-menu absolute z-sticky-header left-1/2 -translate-x-1/2 mt-2 w-36 bg-white rounded-sm shadow-xl border border-gray-100 overflow-hidden p-1"
                         @mousedown.stop
                       >
                         <div
@@ -1125,15 +1130,15 @@ watch(branchFilter, (newBranchId) => {
                             (updateAttendanceStatus(session.id, item.studentId, key),
                             (activeAttendanceCell = null))
                           "
-                          class="px-3 py-2 text-sm font-semibold cursor-pointer hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                          class="px-3 py-2 text-sm rounded-sm font-semibold cursor-pointer hover:bg-primary-light flex items-center gap-3 transition-colors"
                         >
                           <div
-                            class="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold"
+                            class="w-6 h-6 flex rounded-full items-center justify-center text-sm font-bold"
                             :class="cfg.theme"
                           >
                             {{ cfg.label }}
                           </div>
-                          <span class="text-gray-700">
+                          <span>
                             {{
                               key === 'P'
                                 ? 'Present'

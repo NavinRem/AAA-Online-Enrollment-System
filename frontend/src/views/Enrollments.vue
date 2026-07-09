@@ -19,6 +19,7 @@ import { getSessionDay, getSessionTime } from '@/utils/sessionHelper'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { formatPrice, formatDate } from '@/utils/formatUtils'
 import { useDataStore } from '../stores/dataStore'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 
 const dataStore = useDataStore()
 
@@ -191,14 +192,15 @@ const enrollmentStats = computed(() => {
 
 const enrollmentHeaders = [
   { label: 'No', width: '50px' },
-  { label: 'Parent' },
-  { label: 'Child' },
-  { label: 'Term' },
+  { label: 'Parent', width: '250px' },
+  { label: 'Child', width: '250px' },
+  { label: 'Term', width: '120px' },
   { label: 'Program', width: '250px' },
   { label: 'Session', width: '250px' },
   { label: 'Status', width: '100px' },
   { label: 'Amount', width: '100px' },
   { label: 'Date', width: '120px' },
+  { label: 'Modified By', width: '140px' },
   { label: 'Action', width: '50px', align: 'center' },
 ]
 
@@ -427,7 +429,7 @@ const handleRegisterStudent = async (formData) => {
             <!-- Term Column -->
             <td class="ui-cell" :style="{ width: headers[3].width }">
               <div class="flex flex-col">
-                <span class="text-xs font-bold text-content-dark">{{ item.termName }}</span>
+                <span class="text-sm font-bold text-content-dark">{{ item.termName }}</span>
                 <AppBadge
                   v-if="item.branchAbbr"
                   :status="item.branchAbbr"
@@ -463,10 +465,10 @@ const handleRegisterStudent = async (formData) => {
             <!-- Session Column -->
             <td class="ui-cell" :style="{ width: headers[5].width }">
               <div v-if="getSessionDay(item.classSchedule) !== 'N/A'" class="flex flex-col">
-                <span class="text-xs font-bold text-content-dark leading-none">{{
+                <span class="text-sm font-bold text-content-dark leading-none">{{
                   getSessionDay(item.classSchedule, true)
                 }}</span>
-                <span class="text-3xs font-bold text-content-muted mt-0.5 tabular-nums">{{
+                <span class="text-sm font-bold text-content-muted mt-0.5 tabular-nums">{{
                   getSessionTime(item.classSchedule)
                 }}</span>
               </div>
@@ -497,8 +499,13 @@ const handleRegisterStudent = async (formData) => {
               <span class="truncate block ui-cell-muted">{{ formatDate(item.enrollAt) }}</span>
             </td>
 
+            <!-- Modified By Column -->
+            <td class="ui-cell text-left" :style="{ width: headers[9].width }">
+              <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
+            </td>
+
             <!-- Action Column -->
-            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[10].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

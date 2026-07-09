@@ -47,6 +47,7 @@ const getInitialData = () => ({
   deleteConfirm: '',
   parentId: props.user?.id,
   dob: '',
+  age: '',
 })
 
 const mapSourceToForm = () => {
@@ -333,6 +334,25 @@ watch(
     }
   },
 )
+
+watch(
+  () => localData.dob,
+  (dob) => {
+    if (dob) {
+      const birthDate = new Date(dob)
+      const today = new Date()
+      let age = today.getFullYear() - birthDate.getFullYear()
+      const m = today.getMonth() - birthDate.getMonth()
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--
+      }
+      localData.age = age
+    } else {
+      localData.age = ''
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -478,6 +498,15 @@ watch(
             :shake="shaking.profileURL"
             @update:modelValue="clearError('profileURL')"
             @click-disabled="handleDisabledClick('childInfo')"
+          />
+
+          <AppInput
+            v-model.number="localData.age"
+            type="number"
+            label="Age"
+            placeholder="Calculated automatically..."
+            readonly
+            disabled
           />
         </div>
       </div>

@@ -1,5 +1,8 @@
+import { useDataStore } from '@/stores/dataStore'
+
 const COMMON_STATUSES = {
   active: 'green',
+  'active now': 'green',
   upcoming: 'blue',
   archived: 'magenta',
   inactive: 'red',
@@ -31,7 +34,6 @@ const REGISTRIES = {
     aba: 'magenta',
     acleda: 'magenta',
     sathapana: 'magenta',
-    wing: 'magenta',
     aeon: 'purple',
   },
   academic: {
@@ -72,9 +74,11 @@ const REGISTRIES = {
     parent: 'magenta',
     student: 'blue',
   },
+  admin: {
+    ...COMMON_STATUSES,
+  },
   tag: {
     online: 'blue',
-    transfer: 'blue',
     'joined-today': 'magenta',
     'paid-today': 'green',
     'trial-today': 'purple',
@@ -110,7 +114,7 @@ const REGISTRIES = {
     sat: 'blue',
     sunday: 'red',
     sun: 'red',
-  }
+  },
 }
 
 const THEMES = {
@@ -167,3 +171,73 @@ export const getStatusUI = (value, module = null) => {
 
 export const getStatusTheme = (value, module = null) => getStatusUI(value, module).theme
 export const getStatusFilter = (value, module = null) => getStatusUI(value, module).filter
+
+export const resolveBranchBadgeProps = (branchVal, branchesList = null) => {
+  if (!branchVal) return null
+
+  let list = branchesList
+  if (!list || !Array.isArray(list) || list.length === 0) {
+    try {
+      list = useDataStore().branches || []
+    } catch {
+      // Pinia store not ready or not in active Vue context
+    }
+  }
+
+  // Determine lookup keys whether branchVal is an object or string/number
+  let lookupId = ''
+  let lookupName = ''
+  let lookupAbbr = ''
+  if (typeof branchVal === 'object') {
+    lookupId = String(branchVal.id || '').trim().toLowerCase()
+    lookupName = String(branchVal.name || branchVal.branchName || '').trim().toLowerCase()
+    lookupAbbr = String(branchVal.abbr || branchVal.branchAbbr || '').trim().toLowerCase()
+  } else {
+    const str = String(branchVal).trim().toLowerCase()
+    lookupId = str
+    lookupName = str
+    lookupAbbr = str
+  }
+
+  // Always check dataStore branches first so the actual color from the branch modal is used
+  if (Array.isArray(list) && list.length > 0) {
+    const match = list.find((b) => {
+      const bId = String(b.id || '').trim().toLowerCase()
+      const bName = String(b.name || '').trim().toLowerCase()
+      const bAbbr = String(b.abbr || '').trim().toLowerCase()
+      return (
+        (lookupId && bId === lookupId) ||
+        (lookupName && (bName === lookupName || bAbbr === lookupName)) ||
+        (lookupAbbr && (bAbbr === lookupAbbr || bName === lookupAbbr))
+      )
+    })
+    if (match) {
+      return {
+        status: match.abbr || match.name,
+        type: match.color || match.badgeColor || 'blue',
+      }
+    }
+  }
+
+  // Fallback if branch is not yet in store list
+  if (typeof branchVal === 'object') {
+    return {
+      status:
+        branchVal.abbr ||
+        branchVal.branchAbbr ||
+        branchVal.name ||
+        branchVal.branchName ||
+        branchVal.id ||
+        'Branch',
+      type:
+        branchVal.color ||
+        branchVal.branchColor ||
+        branchVal.badgeColor ||
+        branchVal.type ||
+        'blue',
+    }
+  }
+
+  return { status: String(branchVal).trim(), type: 'blue' }
+}
+

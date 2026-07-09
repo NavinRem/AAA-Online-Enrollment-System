@@ -15,10 +15,23 @@ import { getImageUrl } from '@/utils/assetHelper'
  */
 export const getAvatarUrl = (profile) => {
   if (!profile) return getImageUrl('profiles', 'avatar-guest')
-  if (typeof profile === 'string') return profile
-  if (profile.profileURL) return profile.profileURL
+  if (typeof profile === 'string') {
+    if (profile.includes('avatar-admin') && !profile.includes('admin-')) {
+      return getImageUrl('profiles', 'avatar-admin-female')
+    }
+    return profile
+  }
+  if (profile.profileURL) {
+    if (profile.profileURL.includes('avatar-admin') && !profile.profileURL.includes('admin-')) {
+      return getImageUrl('profiles', 'avatar-admin-female')
+    }
+    return profile.profileURL
+  }
 
   const role = (profile.role?.toLowerCase() || 'guest').trim()
+  if (role === 'admin') {
+    return getImageUrl('profiles', 'avatar-admin-female')
+  }
   try {
     const url = getImageUrl('profiles', `avatar-${role}`)
     return url || getImageUrl('profiles', 'avatar-guest')

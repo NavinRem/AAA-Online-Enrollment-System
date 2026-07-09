@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { getActionIcon } from '@/utils/assetHelper'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
 
 const props = defineProps({
   modelValue: [String, Number, Array],
@@ -185,10 +186,11 @@ onUnmounted(() => {
                 class="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-sm pl-1.5 pr-2 py-1.5 group/tag animate-in zoom-in-95 duration-200"
               >
                 <div
+                  v-if="item.profileURL"
                   class="w-10 h-10 rounded-full overflow-hidden border border-primary/30 bg-white shrink-0 shadow-sm"
                 >
                   <img
-                    :src="item.profileURL || getActionIcon('edit')"
+                    :src="item.profileURL"
                     class="w-full h-full object-cover"
                   />
                 </div>
@@ -220,16 +222,18 @@ onUnmounted(() => {
             <!-- Single Selection View -->
             <div v-else-if="selectedItem" class="flex items-center gap-2 flex-1 overflow-hidden">
               <div
+                v-if="selectedItem.profileURL"
                 class="w-7 h-7 rounded-full border border-outline-std overflow-hidden bg-white shrink-0"
               >
                 <img
-                  :src="selectedItem.profileURL || getActionIcon('edit')"
+                  :src="selectedItem.profileURL"
                   class="w-full h-full object-cover"
                 />
               </div>
               <span class="text-sm font-semibold text-content-dark truncate flex-1">{{
                 selectedItem.name
               }}</span>
+              <AppBadge v-if="selectedItem.badgeStatus" :status="selectedItem.badgeStatus" :type="selectedItem.type" />
               <slot name="selected-badge" :item="selectedItem"></slot>
             </div>
             <span v-else class="text-content-light text-sm italic opacity-70">{{
@@ -292,10 +296,11 @@ onUnmounted(() => {
               <slot name="item" :item="item">
                 <div class="flex items-center gap-3 w-full">
                   <div
+                    v-if="item.profileURL"
                     class="w-8 h-8 rounded-md border border-outline-std overflow-hidden bg-white shrink-0 shadow-sm group-hover/item:scale-105 transition-transform"
                   >
                     <img
-                      :src="item.profileURL || getActionIcon('edit')"
+                      :src="item.profileURL"
                       class="w-full h-full object-cover"
                     />
                   </div>
@@ -312,7 +317,7 @@ onUnmounted(() => {
                     "
                     >{{ item.name }}</span
                   >
-                  <!-- Removed checkmark img -->
+                  <AppBadge v-if="item.badgeStatus" :status="item.badgeStatus" :type="item.type" />
                   <slot name="item-badge" :item="item"></slot>
                 </div>
               </slot>

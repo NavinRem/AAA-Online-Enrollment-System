@@ -6,6 +6,7 @@ import { formatPrice, calculateClassProgress } from '@/utils/formatUtils'
 import { calculateDashboardStats } from '@/utils/statsHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
 import { authService } from '@/services/authService'
+import { getAdminBranch, getAdminProfile } from '@/utils/adminBranchHelper'
 
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataMetrics from '../components/common/data/DataMetrics.vue'
@@ -16,11 +17,27 @@ import { enrichEnrollments } from '@/utils/enrollmentHelper'
 import { formatDateOnly, parseDate } from '@/utils/formatUtils'
 
 const dataStore = useDataStore()
+const currentAdminBranch = computed(() => getAdminBranch())
 
-const userProfile = ref({
-  name: 'Loading...',
-  role: '...',
-  profileURL: null,
+const currentAdminBranchObj = computed(() => {
+  const branchVal = currentAdminBranch.value
+  if (!branchVal) return null
+  const found = dataStore.branches.find(
+    (b) => String(b.id) === String(branchVal) || b.name === branchVal || b.abbr === branchVal,
+  )
+  return {
+    status: found ? found.abbr : branchVal,
+    type: found ? found.color : 'blue',
+  }
+})
+
+const userProfile = computed(() => {
+  const p = getAdminProfile()
+  return {
+    name: p?.name || 'Administrator',
+    role: p?.role || 'Admin',
+    profileURL: p?.profileURL || null,
+  }
 })
 
 const loading = ref(true)
@@ -263,7 +280,7 @@ const totalStats = computed(() => {
       image: getImageUrl('dashboard/card-available-program'),
     },
     {
-      title: 'Total Trial',
+      title: 'Total Trials',
       value: stats.value.totals.trials,
       image: getImageUrl('dashboard/card-trial'),
     },
@@ -276,21 +293,29 @@ const totalStats = computed(() => {
 })
 
 const mappedEnrollments = computed(() => {
-  const raw = [...dataStore.enrollments]
-    .sort((a, b) => {
-      const timeB = parseDate(b.enrollAt || b.createdAt).getTime()
-      const timeA = parseDate(a.enrollAt || a.createdAt).getTime()
-      return timeB - timeA
-    })
-    .slice(0, 5)
-
-  return enrichEnrollments(
-    raw,
+  // enrichEnrollments() has its own internal sort that re-orders by enrollAt
+  // and pushes cancelled/transferred to the bottom — which overrides any sort
+  // we apply before it. So we enrich first, then apply the Dashboard sort last.
+  //
+  // createdAt is a full ISO datetime (ms precision); enrollAt is date-only ("2026-07-07").
+  // We use createdAt so same-day enrollments are ordered by actual creation time.
+  const enriched = enrichEnrollments(
+    dataStore.enrollments,
     dataStore.parents,
     dataStore.students,
     dataStore.getProgramWithCategory,
     dataStore.classes,
   )
+
+  return enriched
+    .sort((a, b) => {
+      const getTime = (item) => {
+        const t = item.createdAt || item.enrollAt || item.createdBy?.timestamp
+        return parseDate(t).getTime()
+      }
+      return getTime(b) - getTime(a)
+    })
+    .slice(0, 5)
 })
 </script>
 
@@ -332,18 +357,26 @@ const mappedEnrollments = computed(() => {
       <div class="hidden lg:block lg:min-w-80 h-full min-h-0 max-w-96 flex-shrink-0">
         <div class="ui-detail-card h-full flex flex-col min-h-0 gap-md !p-lg">
           <div class="border-b border-gray-200 pb-lg flex flex-col items-center text-center gap-2">
-            <div
-              class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md mb-2"
-            >
-              <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
+            <div class="relative inline-block mb-2">
+              <div
+                class="w-24 h-24 rounded-2xl overflow-hidden bg-surface-light ring-4 ring-white shadow-md"
+              >
+                <img class="w-full h-full object-cover" :src="profileImageUrl" alt="User" />
+              </div>
+              <span
+                class="absolute top-1 right-1 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-sm"
+                title="Active Now"
+              ></span>
             </div>
-            <div class="flex flex-col items-center">
-              <p class="text-xs font-semibold text-content-muted tracking-widest mb-1 opacity-70">
-                {{ userProfile?.role }}
-              </p>
+            <div class="flex flex-col items-center gap-1.5">
               <h3 class="text-xl font-bold text-content-dark tracking-tighter leading-tight">
                 {{ userProfile?.name }}
               </h3>
+              <AppBadge
+                v-if="currentAdminBranchObj"
+                :status="currentAdminBranchObj.status"
+                :type="currentAdminBranchObj.type"
+              />
             </div>
           </div>
 

@@ -7,6 +7,7 @@ import DataPageLayout from '@/components/layout/DataPageLayout.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 import ParentActionModal from '@/components/parents/ParentActionModal.vue'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
@@ -260,7 +261,8 @@ const studentHeaders = [
   { label: 'Branch', width: '150px', align: 'center', class: 'hidden sm:table-cell' },
   { label: 'Programs', class: 'hidden lg:table-cell', width: '240px' },
   { label: 'Status', align: 'center', width: '100px' },
-  { label: 'Joined', class: 'hidden xl:table-cell', width: '300px', align: 'center' },
+  { label: 'Joined', class: 'hidden xl:table-cell', width: '220px', align: 'center' },
+  { label: 'Modified By', width: '140px', align: 'left' },
   { label: 'Action', width: '60px', align: 'center' },
 ]
 
@@ -680,6 +682,11 @@ const closeModals = () => {
               <span class="ui-cell-muted">
                 {{ formatDate(item.createdAt || new Date().toISOString()) }}
               </span>
+            </td>
+
+            <!-- Modified By -->
+            <td class="ui-cell text-left">
+              <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
             </td>
 
             <!-- Action -->

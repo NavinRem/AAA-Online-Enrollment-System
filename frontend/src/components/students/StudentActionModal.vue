@@ -31,6 +31,7 @@ const emit = defineEmits(['close', 'submit', 'update:error', 'update:success'])
 const getInitialData = () => ({
   name: '',
   dob: '',
+  age: '',
   profileURL: '',
   status: 'inactive',
   deleteConfirm: '',
@@ -39,9 +40,23 @@ const getInitialData = () => ({
 
 const mapSourceToForm = () => {
   const source = props.student || props.enrollment || {}
+  let computedAge = ''
+  if (source.dob) {
+    const birthDate = new Date(source.dob)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const m = today.getMonth() - birthDate.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    computedAge = age
+  } else if (source.age) {
+    computedAge = source.age
+  }
   return {
     name: source.name || '',
     dob: source.dob || '',
+    age: computedAge,
     profileURL: source.profileURL || '',
     status: (source.status || 'inactive').toLowerCase(),
     deleteConfirm: '',
@@ -228,6 +243,25 @@ watch(
     }
   },
 )
+
+watch(
+  () => localData.dob,
+  (dob) => {
+    if (dob) {
+      const birthDate = new Date(dob)
+      const today = new Date()
+      let age = today.getFullYear() - birthDate.getFullYear()
+      const m = today.getMonth() - birthDate.getMonth()
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--
+      }
+      localData.age = age
+    } else {
+      localData.age = ''
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -262,7 +296,7 @@ watch(
     <form id="studentActionForm" @submit.prevent="requestConfirm" novalidate>
       <!-- Edit Profile / Override Form -->
       <div
-        v-if="type === 'edit' || type === 'override' || type === 'enrollment-override'"
+        v-if="!type?.includes('delete')"
         class="ui-form-grid-lg"
       >
         <AppInput
@@ -272,7 +306,7 @@ watch(
           required
           :error="errors.name"
           :shake="shaking.name"
-          :disabled="type !== 'edit'"
+          :disabled="type !== 'edit' && type !== 'add' && type !== 'plus'"
           @input="clearError('name')"
           @click-disabled="handleDisabledClick('editOnly')"
         />
@@ -284,7 +318,7 @@ watch(
           required
           :error="errors.dob"
           :shake="shaking.dob"
-          :disabled="type !== 'edit'"
+          :disabled="type !== 'edit' && type !== 'add' && type !== 'plus'"
           @input="clearError('dob')"
           @click-disabled="handleDisabledClick('editOnly')"
         />
@@ -305,6 +339,7 @@ watch(
             (student?.status || enrollment?.status || '').toLowerCase() === 'stopped'
           "
           :searchable="false"
+          :class="type === 'edit' ? 'col-span-2' : ''"
           @change="clearError('status')"
           @click-disabled="handleDisabledClick('status')"
         >
@@ -326,6 +361,15 @@ watch(
           :error="errors.profileURL"
           :shake="shaking.profileURL"
           @update:modelValue="clearError('profileURL')"
+        />
+
+        <AppInput
+          v-model.number="localData.age"
+          type="number"
+          label="Age"
+          placeholder="Calculated automatically..."
+          readonly
+          disabled
         />
 
         <!-- Enrollment Context (Override mode) — show class & branch -->

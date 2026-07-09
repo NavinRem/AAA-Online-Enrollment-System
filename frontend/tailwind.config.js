@@ -163,12 +163,12 @@ export default {
         '3xl': '40px', // section gap
         '4xl': '48px', // large section
         '5xl': '64px', // page level
-        '100': '400px',
-        '120': '480px',
-        '128': '512px',
-        '144': '576px',
-        '160': '640px',
-        '192': '768px',
+        100: '400px',
+        120: '480px',
+        128: '512px',
+        144: '576px',
+        160: '640px',
+        192: '768px',
       },
 
       // ================================================================
@@ -272,11 +272,86 @@ export default {
         sans: ['Nunito', 'system-ui', 'sans-serif'],
       },
       grayscale: {
-        '20': '20%',
-        '50': '50%',
+        20: '20%',
+        50: '50%',
       },
       rotate: {
         '-135': '-135deg',
+      },
+      shake: {
+        '0%, 60%, 100%': {
+          transform: 'rotate(0deg)',
+        },
+        '5%': {
+          transform: 'rotate(18deg)',
+        },
+        '10%': {
+          transform: 'rotate(-18deg)',
+        },
+        '15%': {
+          transform: 'rotate(14deg)',
+        },
+        '20%': {
+          transform: 'rotate(-14deg)',
+        },
+        '25%': {
+          transform: 'rotate(10deg)',
+        },
+        '30%': {
+          transform: 'rotate(-10deg)',
+        },
+        '35%': {
+          transform: 'rotate(6deg)',
+        },
+        '40%': {
+          transform: 'rotate(-6deg)',
+        },
+      },
+      keyframes: {
+        'draw-circle': {
+          '0%': {
+            strokeDashoffset: '100',
+          },
+          '100%': {
+            strokeDashoffset: '0',
+          },
+        },
+
+        'draw-check': {
+          '0%': {
+            strokeDashoffset: '30',
+          },
+          '100%': {
+            strokeDashoffset: '0',
+          },
+        },
+
+        'bell-ring': {
+          '0%, 100%': {
+            transform: 'rotate(0deg)',
+          },
+          '10%': {
+            transform: 'rotate(18deg)',
+          },
+          '20%': {
+            transform: 'rotate(-18deg)',
+          },
+          '30%': {
+            transform: 'rotate(12deg)',
+          },
+          '40%': {
+            transform: 'rotate(-12deg)',
+          },
+          '50%': {
+            transform: 'rotate(0deg)',
+          },
+        },
+      },
+      animation: {
+        shake: 'shake 3s ease-in-out 0s infinite normal none running',
+        'draw-circle': 'draw-circle 0.8s ease-out forwards',
+        'draw-check': 'draw-check 0.4s 0.6s ease-out forwards',
+        'bell-ring': 'bell-ring 1.5s ease-in-out infinite',
       },
     },
   },

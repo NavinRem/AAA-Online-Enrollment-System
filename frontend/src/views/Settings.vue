@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
 import DataTable from '../components/common/data/DataTable.vue'
@@ -12,6 +12,8 @@ import AppSelect from '../components/common/ui/AppSelect.vue'
 import { levelService } from '@/services/levelService'
 import { categoryService } from '@/services/categoryService'
 import { getActionIcon } from '@/utils/assetHelper'
+import { getAdminProfile, saveAdminProfile } from '@/utils/adminBranchHelper'
+import { useDataStore } from '@/stores/dataStore'
 
 const activeTab = ref('levels')
 const loading = ref(false)
@@ -93,7 +95,33 @@ const themePresets = [
   },
 ]
 
+const dataStore = useDataStore()
+
+const adminProfileForm = ref({
+  name: '',
+  email: '',
+  role: '',
+  branch: '',
+})
+
+const dbBranchesList = computed(() => {
+  return (dataStore.branches || [])
+    .map((b) => ({
+      id: b.name || b.abbr,
+      name: b.name || b.abbr,
+    }))
+    .filter((item) => item.id)
+})
+
 const loadGeneralSettings = () => {
+  if (dataStore.branches.length === 0) {
+    dataStore.fetchBranches()
+  }
+  const savedProfile = getAdminProfile()
+  if (savedProfile) {
+    adminProfileForm.value = { ...adminProfileForm.value, ...savedProfile }
+  }
+
   const savedName = localStorage.getItem('aaa-academy-name')
   if (savedName) generalSettings.value.academyName = savedName
 
@@ -109,6 +137,8 @@ const loadGeneralSettings = () => {
 
 const saveSuccess = ref(false)
 const saveGeneralSettings = () => {
+  saveAdminProfile(adminProfileForm.value)
+
   localStorage.setItem('aaa-academy-name', generalSettings.value.academyName)
   localStorage.setItem('aaa-general-settings', JSON.stringify(generalSettings.value))
 
@@ -302,6 +332,32 @@ const handleDelete = async (item) => {
                       { id: '£', name: 'British Pound (£)' },
                     ]"
                   />
+
+                  <div class="h-px bg-surface-light my-2"></div>
+                  <h5 class="text-xs font-bold text-primary tracking-wider uppercase">
+                    Active Administrator & Branch Scope
+                  </h5>
+
+                  <AppInput
+                    v-model="adminProfileForm.name"
+                    label="Admin Display Name"
+                    placeholder="Enter admin name..."
+                    required
+                  />
+                  <AppInput
+                    v-model="adminProfileForm.email"
+                    type="email"
+                    label="Admin Account Email / Google Identity"
+                    placeholder="admin@aaa.edu.kh"
+                    required
+                  />
+                  <AppSelect
+                    v-model="adminProfileForm.branch"
+                    label="Assigned Operational Branch (Fetched from Database)"
+                    :items="dbBranchesList"
+                    placeholder="Select Database Branch..."
+                    required
+                  />
                 </div>
               </div>
 
@@ -457,16 +513,7 @@ const handleDelete = async (item) => {
             </AppButton>
           </template>
 
-          <template
-            #row="{
-              item,
-              toggleMenu,
-              activeMenuId,
-              isMenuAbove,
-              menuStyles,
-              closeMenu,
-            }"
-          >
+          <template #row="{ item, toggleMenu, activeMenuId, isMenuAbove, menuStyles, closeMenu }">
             <!-- Identity Column -->
             <td class="ui-cell">
               <div class="flex flex-col">
@@ -521,10 +568,7 @@ const handleDelete = async (item) => {
                     >
                       <button
                         class="ui-dropdown-item ui-dropdown-item-info group"
-                        @click="
-                          openModal('edit', item);
-                          closeMenu();
-                        "
+                        @click="(openModal('edit', item), closeMenu())"
                       >
                         <img
                           :src="getActionIcon('edit')"
@@ -537,10 +581,7 @@ const handleDelete = async (item) => {
 
                       <button
                         class="ui-dropdown-item ui-dropdown-item-danger group font-bold tracking-tighter"
-                        @click="
-                          handleDelete(item);
-                          closeMenu();
-                        "
+                        @click="(handleDelete(item), closeMenu())"
                       >
                         <img
                           :src="getActionIcon('delete')"

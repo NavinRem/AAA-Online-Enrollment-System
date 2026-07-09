@@ -1,4 +1,5 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { formatDateOnly, formatDate } from '@/utils/formatUtils'
 
 /**
@@ -7,6 +8,24 @@ import { formatDateOnly, formatDate } from '@/utils/formatUtils'
  */
 export function useSearch(listRef, customMapper = null) {
   const searchQuery = ref('')
+  let route = null
+  try {
+    route = useRoute()
+  } catch (e) {
+    // Fallback if used outside router context
+  }
+
+  if (route) {
+    watch(
+      () => route.query,
+      (newQuery) => {
+        if (newQuery && (newQuery.search !== undefined || newQuery.q !== undefined || newQuery.id !== undefined)) {
+          searchQuery.value = String(newQuery.search || newQuery.q || newQuery.id || '')
+        }
+      },
+      { immediate: true, deep: true }
+    )
+  }
 
   const searchResults = computed(() => {
     const list = listRef.value
@@ -96,20 +115,20 @@ export const studentSearchMapper = (s) => {
     .map((r) => `${r.program?.name || ''} ${r.program?.category || ''}`)
     .join(' ')
 
-  return [s.name, s.parentInfo?.name, s.status, programText, formatDateOnly(s.createdAt)]
+  return [s.id, s.name, s.parentInfo?.name, s.status, programText, formatDateOnly(s.createdAt)]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
 }
 
 export const parentSearchMapper = (p) =>
-  [p.name, p.email, p.phone, p.location, p.status, formatDateOnly(p.createdAt)]
+  [p.id, p.name, p.email, p.phone, p.location, p.status, formatDateOnly(p.createdAt)]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
 
 export const programSearchMapper = (p) =>
-  [p.name, p.category, p.level, p.description, p.type].filter(Boolean).join(' ').toLowerCase()
+  [p.id, p.name, p.category, p.level, p.description, p.type].filter(Boolean).join(' ').toLowerCase()
 
 export const teacherSearchMapper = (t) =>
   [t.name, t.email, t.phone, t.id].filter(Boolean).join(' ').toLowerCase()
@@ -121,11 +140,11 @@ export const classSearchMapper = (c) => {
     .map((schedule) => `${schedule.day} ${schedule.time}`)
     .join(' ')
 
-  return [c.program?.name, catName, c.schedule?.day, c.schedule?.time, scheduleText, c.status]
+  return [c.id, c.program?.name, catName, c.schedule?.day, c.schedule?.time, scheduleText, c.status]
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
 }
 
 export const branchSearchMapper = (b) =>
-  [b.name, b.abbr, b.location].filter(Boolean).join(' ').toLowerCase()
+  [b.id, b.name, b.abbr, b.location].filter(Boolean).join(' ').toLowerCase()

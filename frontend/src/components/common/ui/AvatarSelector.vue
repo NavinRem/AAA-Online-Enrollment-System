@@ -37,6 +37,11 @@ const TEACHER_AVATARS = [
   { id: 'teacher-woman', name: 'Teacher (F)', key: 'profiles/avatar-teacher-woman' },
 ]
 
+const ADMIN_AVATARS = [
+  { id: 'admin-female', name: 'Admin (F)', key: 'profiles/avatar-admin-female' },
+  { id: 'admin-male', name: 'Admin (M)', key: 'profiles/avatar-admin-male' },
+]
+
 const DEFAULT_AVATARS = [
   { id: 'man', name: 'Man', key: 'profiles/avatar-man' },
   { id: 'woman', name: 'Woman', key: 'profiles/avatar-woman' },
@@ -48,6 +53,7 @@ const availableAvatars = computed(() => {
   let base = DEFAULT_AVATARS
   if (role === 'student') base = STUDENT_AVATARS
   else if (role === 'teacher') base = TEACHER_AVATARS
+  else if (role === 'admin') base = ADMIN_AVATARS
 
   return base.map((a) => ({
     ...a,

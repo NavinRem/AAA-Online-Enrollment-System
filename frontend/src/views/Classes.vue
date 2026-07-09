@@ -7,6 +7,7 @@ import DataPageLayout from '@/components/layout/DataPageLayout.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
 import DataMetricCard from '@/components/common/data/DataMetricCard.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import { classService } from '@/services/classService'
@@ -33,6 +34,7 @@ const classHeaders = [
   { label: 'Branches', width: '150px', align: 'center' },
   { label: 'Schedules', width: '180px', align: 'center' },
   { label: 'Status', width: '110px', align: 'center' },
+  { label: 'Modified By', width: '140px', align: 'left' },
   { label: 'Action', width: '80px', align: 'center' },
 ]
 
@@ -384,7 +386,12 @@ const navigateToDetail = (item) => {
               </div>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[5].width }">
+            <!-- Modified By -->
+            <td class="ui-cell text-left">
+              <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

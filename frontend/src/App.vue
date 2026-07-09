@@ -1,6 +1,7 @@
 <script setup>
 import { RouterView } from 'vue-router'
 import { onMounted } from 'vue'
+import AppToastContainer from '@/components/common/ui/AppToastContainer.vue'
 
 onMounted(() => {
   const savedTheme = localStorage.getItem('aaa-app-theme')
@@ -23,6 +24,7 @@ onMounted(() => {
 <template>
   <div class="app-container">
     <RouterView />
+    <AppToastContainer />
   </div>
 </template>
 

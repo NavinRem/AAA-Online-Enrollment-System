@@ -457,10 +457,7 @@ const handleActionSubmit = async (formData) => {
                   </div>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[2].width }">
-                  <AppBadge
-                    :status="item.branch?.abbr || 'TBA'"
-                    :type="item.branch?.color || 'blue'"
-                  />
+                  <AppBadge :branch="item.branch || 'TBA'" />
                 </td>
                 <td class="ui-cell">
                   <span class="text-xs font-bold text-content-muted tabular-nums">{{
@@ -557,7 +554,7 @@ const handleActionSubmit = async (formData) => {
                   </div>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[2].width }">
-                  <AppBadge :status="item.branch || 'Multiple'" type="blue" />
+                  <AppBadge :branch="item.branch || 'Multiple'" />
                 </td>
                 <td class="ui-cell">
                   <span class="text-xs font-bold text-content-muted">{{
@@ -645,7 +642,7 @@ const handleActionSubmit = async (formData) => {
                   }}</span>
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[3].width }">
-                  <AppBadge :status="item.branch?.abbr || 'HQ'" type="blue" />
+                  <AppBadge :branch="item.branch || 'HQ'" />
                 </td>
                 <td class="ui-cell text-center" :style="{ width: headers[4].width }">
                   <div class="flex flex-col items-center">
@@ -675,7 +672,7 @@ const handleActionSubmit = async (formData) => {
                     <span class="text-sm font-bold text-content-dark tracking-tighter">{{
                       item.branch?.name
                     }}</span>
-                    <AppBadge :status="item.branch?.abbr" :type="item.branch?.color || 'blue'" />
+                    <AppBadge :branch="item.branch" />
                   </div>
                 </td>
                 <td class="ui-cell">

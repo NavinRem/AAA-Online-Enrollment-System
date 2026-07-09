@@ -7,6 +7,7 @@ import DataTable from '../components/common/data/DataTable.vue'
 import DataMetricCard from '../components/common/data/DataMetricCard.vue'
 import AppButton from '../components/common/ui/AppButton.vue'
 import AppBadge from '../components/common/ui/AppBadge.vue'
+import AuditBadge from '../components/common/ui/AuditBadge.vue'
 import BranchActionModal from '../components/branches/BranchActionModal.vue'
 import { branchService } from '../services/branchService'
 import { getImageUrl, getActionIcon } from '@/utils/assetHelper'
@@ -86,14 +87,17 @@ const statsCards = computed(() => {
   const revByBranch = {}
 
   todayEnrollments
-    .filter((e) => isPaid(e.status || e.paymentStatus))
+    .filter((e) => isPaid(e.paymentStatus) || isPaid(e.status))
     .forEach((e) => {
-      let bid = e.branchId || e.class?.branch?.id || e.class?.branchId
+      let bid = e.branchId || e.branch?.id || e.class?.branch?.id || e.class?.branchId
       if (!bid && e.classId) {
         const cls = dataStore.classes.find((c) => c.id === e.classId)
         bid = cls?.branchId || cls?.branch?.id
       }
-      if (bid) revByBranch[bid] = (revByBranch[bid] || 0) + (e.amount || 0)
+      if (bid) {
+        const rev = Number(e.amount ?? e.finalPrice ?? e.totalPrice ?? e.paidAmount ?? e.price ?? 0)
+        revByBranch[bid] = (revByBranch[bid] || 0) + rev
+      }
     })
 
   Object.entries(revByBranch).forEach(([bid, rev]) => {
@@ -179,6 +183,7 @@ const branchHeaders = [
   { label: 'Studying', width: '80px', align: 'center' },
   { label: 'Total Rev', width: '100px', align: 'center' },
   { label: 'Pending', width: '100px', align: 'center' },
+  { label: 'Modified By', width: '140px', align: 'left' },
   { label: 'Action', width: '60px', align: 'center' },
 ]
 
@@ -207,30 +212,68 @@ watch(searchQuery, () => {
   currentPage.value = 1
 })
 
+const belongsToBranch = (item, branchId) => {
+  if (!item || !branchId) return false
+  const targetBranch = dataStore.branches.find((b) => String(b.id) === String(branchId))
+  const matchVal = (v) => {
+    if (!v) return false
+    const str = String(v).toLowerCase().trim()
+    return (
+      str === String(branchId).toLowerCase().trim() ||
+      (targetBranch?.abbr && str === String(targetBranch.abbr).toLowerCase().trim()) ||
+      (targetBranch?.name && str === String(targetBranch.name).toLowerCase().trim())
+    )
+  }
+
+  if (matchVal(item.branchId)) return true
+  if (typeof item.branch === 'object' && item.branch) {
+    if (matchVal(item.branch.id) || matchVal(item.branch.abbr) || matchVal(item.branch.name))
+      return true
+  } else if (matchVal(item.branch)) {
+    return true
+  }
+  if (matchVal(item.branchName) || matchVal(item.branchAbbr)) return true
+
+  if (item.class) {
+    if (matchVal(item.class.branchId)) return true
+    if (item.class.branch && (matchVal(item.class.branch.id) || matchVal(item.class.branch.abbr) || matchVal(item.class.branch.name)))
+      return true
+  }
+  if (item.classId) {
+    const cls = dataStore.classes.find((c) => c.id === item.classId)
+    if (cls) {
+      if (matchVal(cls.branchId)) return true
+      if (cls.branch && (matchVal(cls.branch.id) || matchVal(cls.branch.abbr) || matchVal(cls.branch.name)))
+        return true
+    }
+  }
+  return false
+}
+
+const getEnrollmentRev = (e) =>
+  Number(e.amount ?? e.finalPrice ?? e.totalPrice ?? e.paidAmount ?? e.price ?? 0)
+
+const isEnrollmentPaid = (e) => isPaid(e.paymentStatus) || isPaid(e.status)
+const isEnrollmentPending = (e) =>
+  isPending(e.paymentStatus) || (isPending(e.status) && !isEnrollmentPaid(e))
+
 const getBranchStats = (branchId) => {
   const now = new Date()
   const localTodayStr = now.toLocaleDateString('en-CA') // YYYY-MM-DD local
   const weekAgoTimestamp = now.getTime() - 7 * 86400000
 
-  const enrollments = dataStore.enrollments.filter((e) => {
-    let bId = e.branchId || e.class?.branch?.id || e.class?.branchId
-    if (!bId && e.classId) {
-      const cls = dataStore.classes.find((c) => c.id === e.classId)
-      bId = cls?.branchId || cls?.branch?.id
-    }
-    return String(bId) === String(branchId)
-  })
+  const enrollments = dataStore.enrollments.filter((e) => belongsToBranch(e, branchId))
 
   const trials = dataStore.trials.filter((t) => {
-    let bId = t.branchId || t.branch?.id
-    if (!bId && t.programId) {
+    if (belongsToBranch(t, branchId)) return true
+    if (t.programId) {
       const prog = dataStore.programs.find((p) => p.id === t.programId)
       if (prog?.categoryId) {
         const cat = dataStore.categories.find((c) => c.id === prog.categoryId)
-        bId = cat?.branchId
+        if (String(cat?.branchId) === String(branchId)) return true
       }
     }
-    return String(bId) === String(branchId)
+    return false
   })
 
   // TODAY
@@ -244,8 +287,8 @@ const getBranchStats = (branchId) => {
     return trialDate.split('T')[0] === localTodayStr
   })
   const todayRev = todayEnroll
-    .filter((e) => isPaid(e.status || e.paymentStatus))
-    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+    .filter((e) => isEnrollmentPaid(e))
+    .reduce((sum, e) => sum + getEnrollmentRev(e), 0)
 
   // WEEK
   const weekEnroll = enrollments.filter((e) => {
@@ -258,33 +301,41 @@ const getBranchStats = (branchId) => {
     return timestamp >= weekAgoTimestamp
   })
   const weekRev = weekEnroll
-    .filter((e) => isPaid(e.status || e.paymentStatus))
-    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+    .filter((e) => isEnrollmentPaid(e))
+    .reduce((sum, e) => sum + getEnrollmentRev(e), 0)
 
   // LIFETIME
   const classes = dataStore.classes.filter(
-    (c) => 
-      c.branchId === branchId || 
-      c.branch?.id === branchId || 
+    (c) =>
+      String(c.branchId) === String(branchId) ||
+      String(c.branch?.id) === String(branchId) ||
       (c.branchIds && c.branchIds.includes(branchId)) ||
-      (c.branches && c.branches.some(b => String(b.id) === String(branchId)))
+      (c.branches && c.branches.some((b) => String(b.id) === String(branchId))),
   )
   const programs = new Set(classes.map((c) => c.programId || c.program?.id)).size
   const studying = new Set(
     enrollments
-      .filter((e) => isPaid(e.status || e.paymentStatus) && !['cancelled', 'deleted'].includes(e.status))
+      .filter((e) => isEnrollmentPaid(e) && !['cancelled', 'deleted'].includes(String(e.status).toLowerCase()))
       .map((e) => e.studentId),
   ).size
   const totalRev = enrollments
-    .filter((e) => isPaid(e.status || e.paymentStatus))
-    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+    .filter((e) => isEnrollmentPaid(e))
+    .reduce((sum, e) => sum + getEnrollmentRev(e), 0)
   const totalPending = enrollments
-    .filter((e) => isPending(e.status || e.paymentStatus))
-    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0)
+    .filter((e) => isEnrollmentPending(e))
+    .reduce((sum, e) => sum + getEnrollmentRev(e), 0)
 
   return {
-    today: { enroll: countUniqueEnrollmentStudents(todayEnroll), trial: todayTrials.length, rev: todayRev },
-    week: { enroll: countUniqueEnrollmentStudents(weekEnroll), trial: weekTrials.length, rev: weekRev },
+    today: {
+      enroll: countUniqueEnrollmentStudents(todayEnroll),
+      trial: todayTrials.length,
+      rev: todayRev,
+    },
+    week: {
+      enroll: countUniqueEnrollmentStudents(weekEnroll),
+      trial: weekTrials.length,
+      rev: weekRev,
+    },
     lifetime: { classes: classes.length, programs, studying, totalRev, totalPending },
   }
 }
@@ -487,7 +538,12 @@ const handleActionSubmit = async (payload) => {
               />
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[16].width }">
+            <!-- Modified By -->
+            <td class="ui-cell text-left">
+              <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
+            </td>
+
+            <td class="ui-cell text-center" :style="{ width: headers[17].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"

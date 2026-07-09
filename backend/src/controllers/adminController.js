@@ -1,4 +1,5 @@
 const adminService = require('../services/adminService')
+const { clearAdminCache } = require('../middleware/authMiddleware')
 
 exports.createAdmin = async (req, res) => {
   try {
@@ -30,6 +31,7 @@ exports.getAdmin = async (req, res) => {
 exports.updateAdmin = async (req, res) => {
   try {
     const result = await adminService.updateAdmin(req.params.id, req.body)
+    clearAdminCache(req.params.id)
     res.status(200).json(result)
   } catch (error) {
     res.status(400).json({ error: error.message })
