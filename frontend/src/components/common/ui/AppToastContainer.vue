@@ -67,7 +67,7 @@ const getEnhancedDetails = (toast) => {
 
 <template>
   <div
-    class="fixed top-20 right-6 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none"
+    class="fixed top-20 right-6 z-[9999] flex flex-col gap-3 w-[440px] max-w-[94vw] pointer-events-none"
   >
     <transition-group
       enter-active-class="transition duration-300 ease-out"

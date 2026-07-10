@@ -90,16 +90,33 @@ const getAvatarSrc = (url) => url || adminFallback
 
 /* ── Popover open / close ─────────────────────────────────────────────────── */
 
+const listStyle = ref({ maxHeight: '320px' })
+
 const toggleHistory = (event) => {
-  if (!props.meta?.name) return
   if (isOpen.value) {
     isOpen.value = false
     return
   }
   const rect = event.currentTarget.getBoundingClientRect()
-  popoverStyle.value = {
-    top: `${rect.bottom + 6}px`,
-    left: `${Math.max(10, Math.min(window.innerWidth - 296, rect.left - 20))}px`,
+  const spaceBelow = window.innerHeight - rect.bottom - 16
+  const spaceAbove = rect.top - 16
+
+  if (spaceBelow < 280 && spaceAbove > spaceBelow) {
+    const availableListH = Math.max(140, Math.min(320, spaceAbove - 60))
+    popoverStyle.value = {
+      bottom: `${window.innerHeight - rect.top + 6}px`,
+      top: 'auto',
+      left: `${Math.max(10, Math.min(window.innerWidth - 320, rect.left - 20))}px`,
+    }
+    listStyle.value = { maxHeight: `${availableListH}px` }
+  } else {
+    const availableListH = Math.max(140, Math.min(320, spaceBelow - 60))
+    popoverStyle.value = {
+      top: `${rect.bottom + 6}px`,
+      bottom: 'auto',
+      left: `${Math.max(10, Math.min(window.innerWidth - 320, rect.left - 20))}px`,
+    }
+    listStyle.value = { maxHeight: `${availableListH}px` }
   }
   isOpen.value = true
 }
@@ -163,14 +180,16 @@ onUnmounted(() => {
   <!-- ── FALLBACK: system / pre-audit record ──────────────────────────────── -->
   <div
     v-else
-    class="ui-audit-badge opacity-60"
-    title="Created before admin audit tracking or by automated system"
+    class="ui-audit-badge opacity-80 cursor-pointer group hover:opacity-100 transition-opacity"
+    data-audit-badge
+    title="Click to view full audit activity trail"
+    @click.stop="toggleHistory($event)"
   >
     <div class="ui-stack-item flex-shrink-0">
       <img :src="adminFallback" alt="system" class="w-full h-full object-cover" />
     </div>
     <div class="ui-identity-info min-w-0">
-      <span class="font-bold text-sm text-content-muted truncate">System Initial</span>
+      <span class="font-bold text-sm text-content-dark truncate group-hover:text-primary transition-colors">System Initial</span>
       <span class="ui-cell-muted">Automated</span>
     </div>
   </div>
@@ -202,7 +221,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Chronological list, newest first -->
-        <div class="flex flex-col gap-sm max-h-80 overflow-y-auto pr-xs custom-scrollbar">
+        <div class="flex flex-col gap-sm overflow-y-auto pr-xs custom-scrollbar" :style="listStyle">
           <template v-if="effectiveHistory && effectiveHistory.length > 0">
             <div
               v-for="(logItem, idx) in [...effectiveHistory].reverse()"
@@ -263,6 +282,30 @@ onUnmounted(() => {
                     Created Record
                   </span>
                   <AppBadge v-if="resolveAdminBranch(meta)" :branch="resolveAdminBranch(meta)" />
+                </div>
+              </div>
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="ui-audit-log-item">
+              <div class="ui-stack-item flex-shrink-0 mt-0.5">
+                <img :src="adminFallback" alt="system" class="w-full h-full object-cover" />
+              </div>
+              <div class="ui-identity-info min-w-0 flex-1">
+                <div class="flex flex-col items-start justify-between gap-xs">
+                  <span class="font-bold text-sm text-content-dark truncate">System Initial</span>
+                  <span class="font-bold text-xs text-content-muted flex-shrink-0">{{
+                    formatTime(meta?.timestamp || item?.createdAt || item?.enrollAt)
+                  }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  <span
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-extrabold border bg-blue-50 text-blue-700 border-blue-200"
+                  >
+                    Automated Record
+                  </span>
+                  <AppBadge branch="Main" />
                 </div>
               </div>
             </div>

@@ -372,7 +372,7 @@ const handleRegisterStudent = async (formData) => {
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" @click="handleOpenNewEnrollment">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span>New Enrollment</span>
+              <span class="font-bold tracking-light">New Enrollment</span>
             </AppButton>
           </template>
 

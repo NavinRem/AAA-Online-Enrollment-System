@@ -423,7 +423,7 @@ const handleActionSubmit = async (payload) => {
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" @click="openAddModal">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold tracking-tight">Add Branch</span>
+              <span class="font-bold tracking-tight">New Branch</span>
             </AppButton>
           </template>
 

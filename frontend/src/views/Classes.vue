@@ -14,9 +14,7 @@ import { classService } from '@/services/classService'
 import { termService } from '@/services/termService'
 import { getImageUrl, getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { useSearch } from '@/composables/useSearch'
-import {
-  sortSchedulesChronologically
-} from '@/utils/formatUtils'
+import { sortSchedulesChronologically } from '@/utils/formatUtils'
 
 const router = useRouter()
 const dataStore = useDataStore()
@@ -112,7 +110,7 @@ const masterClasses = computed(() => {
         program,
         branches,
         schedules,
-        status: product.status === 'active' ? 'available' : (product.status || 'available'),
+        status: product.status === 'active' ? 'available' : product.status || 'available',
         searchText: [program?.name, branchesText, schedulesText, product.status]
           .filter(Boolean)
           .join(' ')
@@ -148,7 +146,9 @@ watch(searchQuery, () => {
 
 const statsCards = computed(() => {
   const products = dataStore.classes || []
-  const availableCount = products.filter((p) => p.status === 'available' || p.status === 'active').length
+  const availableCount = products.filter(
+    (p) => p.status === 'available' || p.status === 'active',
+  ).length
   const upcomingCount = products.filter((p) => p.status === 'upcoming').length
 
   const totalProductsCount = products.length
@@ -293,7 +293,7 @@ const navigateToDetail = (item) => {
 
               <AppButton variant="primary" size="md" @click="openAddModal">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-                <span class="font-bold tracking-tight">Add Class</span>
+                <span class="font-bold tracking-tight">New Class</span>
               </AppButton>
             </div>
           </template>
@@ -366,10 +366,9 @@ const navigateToDetail = (item) => {
                   class="flex flex-col items-center justify-center h-10 gap-1"
                 >
                   <AppBadge :status="sched.day" type="day" size="sm" />
-                  <span
-                    class="text-xs font-semibold text-content-dark leading-none tabular-nums"
-                    >{{ sched.time }}</span
-                  >
+                  <span class="text-xs font-semibold text-content-dark leading-none tabular-nums">{{
+                    sched.time
+                  }}</span>
                 </div>
               </div>
             </td>

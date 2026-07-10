@@ -167,7 +167,7 @@ const handleFileUpload = async (event) => {
     class="avatar-selector-root flex flex-col gap-xs text-left"
     :class="{ 'animate-shake': shake }"
   >
-    <label v-if="label" class="text-sm font-semibold text-content-mute flex items-center gap-1">
+    <label v-if="label" class="text-sm font-semibold text-content-muted flex items-center gap-1">
       {{ label }}
       <span v-if="required" class="text-error font-bold leading-none">*</span>
     </label>

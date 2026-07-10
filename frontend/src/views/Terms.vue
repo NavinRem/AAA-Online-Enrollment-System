@@ -385,7 +385,7 @@ const getGroupedSettings = (item) => {
             <div class="flex items-center gap-3">
               <AppButton variant="primary" size="md" @click="openModal('add')">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-                <span>Add Term</span>
+                <span class="font-bold tracking-light">New Term</span>
               </AppButton>
             </div>
           </template>

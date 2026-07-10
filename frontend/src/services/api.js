@@ -82,7 +82,10 @@ function triggerSystemNotification(endpoint, method, responseData, options) {
         cleanEndpoint.includes('/terms') ||
         cleanEndpoint.includes('/trials')
       ) {
-        if (cleanEndpoint.includes('/programs')) {
+        if (cleanEndpoint.includes('/assign') || cleanEndpoint.includes('/unassign') || (cleanEndpoint.includes('/offerings') && responseData && (responseData.sessionTeachers || responseData.teachers))) {
+          module = 'Teachers'
+          link = '/teachers'
+        } else if (cleanEndpoint.includes('/programs')) {
           module = 'Programs'
           link = '/programs'
         } else if (cleanEndpoint.includes('/classes')) {
@@ -108,13 +111,27 @@ function triggerSystemNotification(endpoint, method, responseData, options) {
             ? 'Class Offering'
             : cleanEndpoint.includes('/branches')
               ? 'Branch'
-              : cleanEndpoint.includes('/teachers')
+              : cleanEndpoint.includes('/teachers') || cleanEndpoint.includes('/assign') || cleanEndpoint.includes('/unassign') || (cleanEndpoint.includes('/offerings') && responseData && (responseData.sessionTeachers || responseData.teachers))
                 ? 'Teacher'
                 : cleanEndpoint.includes('/terms')
                   ? 'Term'
                   : 'Trial Session'
 
-        if (method === 'POST') {
+        if (cleanEndpoint.includes('/assign') || cleanEndpoint.includes('/unassign') || (cleanEndpoint.includes('/offerings') && responseData && (responseData.sessionTeachers || responseData.teachers))) {
+          if (responseData?.actionLabel) {
+            title = responseData.actionType || 'Teacher Class Schedule Updated'
+            message = responseData.actionLabel
+            if (responseData.actionLabel.includes('Removed')) type = 'warning'
+          } else {
+            title = cleanEndpoint.includes('/unassign')
+              ? 'Teacher Class Unassigned'
+              : 'Teacher Class Assigned'
+            const progName = responseData?.program?.name || responseData?.programName || responseData?.name
+            message = progName
+              ? `Assigned teacher schedule for ${progName}`
+              : 'Teacher class sessions assigned successfully.'
+          }
+        } else if (method === 'POST') {
           title = `New ${entityName} Created`
           message =
             responseData?.name || responseData?.title
@@ -149,7 +166,11 @@ function triggerSystemNotification(endpoint, method, responseData, options) {
       const adminBranch = getAdminBranch()
 
       let activityType
-      if (method === 'POST') {
+      if (cleanEndpoint.includes('/assign') || cleanEndpoint.includes('/unassign') || (cleanEndpoint.includes('/offerings') && responseData && (responseData.sessionTeachers || responseData.teachers))) {
+        activityType = responseData?.actionLabel || (cleanEndpoint.includes('/unassign')
+          ? 'Unassigned Teacher from Class'
+          : 'Assigned Teacher to Class')
+      } else if (method === 'POST') {
         activityType = 'Created Record'
       } else if (method === 'DELETE') {
         activityType = 'Deleted Record'
@@ -168,19 +189,31 @@ function triggerSystemNotification(endpoint, method, responseData, options) {
         activityType = 'Updated Record Details'
       }
 
+      const formatSafeDetail = (val) => {
+        if (val === null || val === undefined) return null
+        if (typeof val === 'object') {
+          if (val.day || val.time) return [val.day, val.time].filter(Boolean).join(' ')
+          if (val.name) return String(val.name)
+          if (val.title) return String(val.title)
+          if (val.abbr) return String(val.abbr)
+          return null
+        }
+        return String(val)
+      }
+
       const details = [{ label: 'Activity Type', value: activityType }]
       if (responseData && typeof responseData === 'object' && !Array.isArray(responseData)) {
-        const branchVal = responseData.branchName || (typeof responseData.branch === 'object' ? responseData.branch?.name : responseData.branch) || responseData.location || adminBranch
-        if (branchVal) details.push({ label: 'Branch', value: String(branchVal) })
+        const branchVal = formatSafeDetail(responseData.branchName || responseData.branch || responseData.location || adminBranch)
+        if (branchVal) details.push({ label: 'Branch', value: branchVal })
 
-        const nameVal = responseData.studentName || responseData.name || responseData.title || responseData.parentName || responseData.guestStudentName
-        if (nameVal) details.push({ label: 'Name / Subject', value: String(nameVal) })
+        const nameVal = formatSafeDetail(responseData.studentName || responseData.name || responseData.title || responseData.parentName || responseData.guestStudentName)
+        if (nameVal) details.push({ label: 'Name / Subject', value: nameVal })
 
-        const progVal = responseData.programName || responseData.className || (typeof responseData.program === 'object' ? responseData.program?.name : responseData.program) || (typeof responseData.category === 'object' ? responseData.category?.name : responseData.category) || responseData.subject
-        if (progVal && String(progVal) !== String(nameVal)) details.push({ label: 'Program / Class', value: String(progVal) })
+        const progVal = formatSafeDetail(responseData.programName || responseData.className || responseData.program || responseData.category || responseData.subject)
+        if (progVal && progVal !== nameVal) details.push({ label: 'Program / Class', value: progVal })
 
-        const termOrSched = responseData.termName || (typeof responseData.term === 'object' ? responseData.term?.name : responseData.term) || responseData.schedule || responseData.teacherName
-        if (termOrSched && String(termOrSched) !== String(progVal)) details.push({ label: 'Term / Schedule', value: String(termOrSched) })
+        const termOrSched = formatSafeDetail(responseData.termName || responseData.term || responseData.schedule || responseData.teacherName)
+        if (termOrSched && termOrSched !== progVal) details.push({ label: 'Term / Schedule', value: termOrSched })
 
         if (responseData.amount !== undefined && responseData.amount !== null && responseData.amount !== '') {
           const amtNum = Number(responseData.amount)

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 import { parentService } from '@/services/parentService'
 import { studentService } from '@/services/studentService'
 import { authService } from '@/services/authService'
@@ -18,7 +19,7 @@ import { programService } from '@/services/programService'
 import { classService } from '@/services/classService'
 import { processParentProfileImage, prepareParentPayload } from '../utils/parentHelper'
 import { processStudentProfileImage, prepareStudentPayload } from '../utils/studentHelper'
-import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
+import { getActionIcon, getImageUrl, getProgramProfileURL } from '@/utils/assetHelper'
 import ParentActionModal from '../components/parents/ParentActionModal.vue'
 import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
 import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
@@ -121,9 +122,17 @@ const childrenItems = computed(() =>
       (a, b) => new Date(b.enrollAt || b.createdAt || 0) - new Date(a.enrollAt || a.createdAt || 0),
     )[0]
 
-    // Get unique program profile URLs for all enrollments of this child
+    // Get unique program profile URLs for active paid enrollments of this child
+    const activePaidChildEnrollments = childEnrollments.filter((e) => {
+      const st = String(e.status || e.academicStatus || '').toLowerCase()
+      const paySt = String(e.paymentStatus || '').toLowerCase()
+      return (
+        !['transferred', 'cancelled', 'stopped', 'deleted'].includes(st) &&
+        (['paid', 'confirmed', 'success', 'active'].includes(paySt) || Number(e.amount || 0) === 0)
+      )
+    })
     const programIcons = [
-      ...new Set(childEnrollments.map((e) => e.program?.profileURL).filter(Boolean)),
+      ...new Set(activePaidChildEnrollments.map((e) => e.program?.profileURL).filter(Boolean)),
     ]
 
     return {
@@ -141,24 +150,27 @@ const childrenItems = computed(() =>
 )
 
 const enrollmentHeaders = [
-  { label: 'No', width: '50px', align: 'center' },
-  { label: 'Child Identity' },
-  { label: 'Program' },
-  { label: 'Branch', align: 'center', width: '100px' },
-  { label: 'Term', width: '150px' },
-  { label: 'Date', width: '250px', align: 'center' },
-  { label: 'Status', align: 'center', width: '120px' },
+  { label: 'No', width: '60px', align: 'center' },
+  { label: 'Child Identity', width: '220px' },
+  { label: 'Program', width: '250px' },
+  { label: 'Branch', align: 'center', width: '120px' },
+  { label: 'Term', width: '160px' },
+  { label: 'Date', width: '180px', align: 'center' },
+  { label: 'Status', align: 'center', width: '130px' },
+  { label: 'Modified By', width: '180px' },
 ]
 
 const paymentHeaders = [
-  { label: 'No', width: '50px', align: 'center' },
-  { label: 'Transaction' },
-  { label: 'Child' },
-  { label: 'Program' },
-  { label: 'Amount', align: 'center', width: '120px' },
-  { label: 'Method', width: '100px' },
-  { label: 'Date', width: '250px', align: 'center' },
-  { label: 'Status', align: 'center', width: '120px' },
+  { label: 'No', width: '60px', align: 'center' },
+  { label: 'Transaction', width: '150px' },
+  { label: 'Receipt ID', width: '150px' },
+  { label: 'Child', width: '220px' },
+  { label: 'Program', width: '250px' },
+  { label: 'Amount', align: 'center', width: '130px' },
+  { label: 'Method', width: '130px' },
+  { label: 'Date', width: '180px', align: 'center' },
+  { label: 'Status', align: 'center', width: '130px' },
+  { label: 'Modified By', width: '180px' },
 ]
 
 const fetchData = async (id) => {
@@ -361,7 +373,7 @@ useDetailFetch(fetchData)
             :headers="enrollmentHeaders"
             :items="paginatedEnrollmentHistory"
             entityName="enrollment"
-            :flexible="false"
+            :flexible="true"
             :hasSearch="false"
             :hasFilter="false"
             emptyMessage="No enrollment history found for this family."
@@ -450,7 +462,26 @@ useDetailFetch(fetchData)
                 </div>
               </td>
               <td class="ui-cell" :style="{ width: headers[2].width }">
-                <span class="text-sm font-bold text-content-dark">{{ item.programName }}</span>
+                <div class="ui-identity-cell">
+                  <div class="ui-avatar">
+                    <img
+                      :src="
+                        getProgramProfileURL(
+                          item.program?.profileURL,
+                          item.program?.category?.name || item.program?.category,
+                          item.program?.category?.profileURL,
+                        )
+                      "
+                      :alt="item.programName"
+                    />
+                  </div>
+                  <div class="ui-identity-info">
+                    <span class="truncate block font-bold text-content-dark text-sm">{{
+                      item.programName
+                    }}</span>
+                    <AppBadge v-if="item.program?.type" :status="item.program?.type" />
+                  </div>
+                </div>
               </td>
               <td class="ui-cell text-center" :style="{ width: headers[3].width }">
                 <AppBadge :status="item.branchAbbr" :type="item.branchColor" />
@@ -468,6 +499,9 @@ useDetailFetch(fetchData)
               <td class="ui-cell text-center" :style="{ width: headers[6].width }">
                 <AppBadge :status="item.enrollmentStatus" />
               </td>
+              <td class="ui-cell text-left" :style="{ width: headers[7].width }">
+                <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
+              </td>
             </template>
           </DataTable>
         </section>
@@ -482,7 +516,7 @@ useDetailFetch(fetchData)
             :headers="paymentHeaders"
             :items="paginatedPaymentHistory"
             entityName="payment"
-            :flexible="false"
+            :flexible="true"
             :hasSearch="false"
             :hasFilter="false"
             emptyMessage="No payment history found for this family."
@@ -568,6 +602,18 @@ useDetailFetch(fetchData)
                 </span>
               </td>
               <td class="ui-cell" :style="{ width: headers[2].width }">
+                <span class="text-sm font-bold text-content-dark tracking-tight">
+                  {{
+                    item.receiptId ||
+                    (item.enrollmentId
+                      ? `#${item.enrollmentId.slice(-6)}`
+                      : item.id
+                        ? `#${item.id.slice(0, 8).toUpperCase()}`
+                        : 'N/A')
+                  }}
+                </span>
+              </td>
+              <td class="ui-cell" :style="{ width: headers[3].width }">
                 <div class="flex items-center gap-3">
                   <div
                     class="w-8 h-8 rounded-full overflow-hidden bg-surface-subtle border border-outline-std"
@@ -580,26 +626,48 @@ useDetailFetch(fetchData)
                   <span class="font-bold text-content-dark text-sm">{{ item.studentName }}</span>
                 </div>
               </td>
-              <td class="ui-cell" :style="{ width: headers[3].width }">
-                <span class="font-bold text-content-dark text-sm">{{ item.programName }}</span>
+              <td class="ui-cell" :style="{ width: headers[4].width }">
+                <div class="ui-identity-cell">
+                  <div class="ui-avatar">
+                    <img
+                      :src="
+                        getProgramProfileURL(
+                          item.program?.profileURL,
+                          item.program?.category?.name || item.program?.category,
+                          item.program?.category?.profileURL,
+                        )
+                      "
+                      :alt="item.programName"
+                    />
+                  </div>
+                  <div class="ui-identity-info">
+                    <span class="truncate block font-bold text-content-dark text-sm">{{
+                      item.programName
+                    }}</span>
+                    <AppBadge v-if="item.program?.type" :status="item.program?.type" />
+                  </div>
+                </div>
               </td>
-              <td class="ui-cell text-center" :style="{ width: headers[4].width }">
+              <td class="ui-cell text-center" :style="{ width: headers[5].width }">
                 <AppBadge
                   :status="'$' + formatPrice(item.amount)"
                   type="finance"
                   :colorValue="item.paymentModeType"
                 />
               </td>
-              <td class="ui-cell" :style="{ width: headers[5].width }">
+              <td class="ui-cell" :style="{ width: headers[6].width }">
                 <AppBadge :status="item.paymentMethod || 'N/A'" type="blue" />
               </td>
-              <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+              <td class="ui-cell text-center" :style="{ width: headers[7].width }">
                 <span class="text-sm font-bold text-content-muted tabular-nums">
                   {{ formatDate(item.paidAt || item.enrollAt) }}
                 </span>
               </td>
-              <td class="ui-cell text-center" :style="{ width: headers[7].width }">
+              <td class="ui-cell text-center" :style="{ width: headers[8].width }">
                 <AppBadge :status="item.paymentStatus" />
+              </td>
+              <td class="ui-cell text-left" :style="{ width: headers[9].width }">
+                <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
               </td>
             </template>
           </DataTable>
@@ -625,7 +693,13 @@ useDetailFetch(fetchData)
               </button>
             </template>
           </RelationshipsCard>
-          <TimestampCard :createdAt="parent.createdAt" :updatedAt="parent.updatedAt" />
+          <TimestampCard
+            :createdAt="parent.createdAt"
+            :updatedAt="parent.updatedAt"
+            :createdBy="parent.createdBy"
+            :modifiedBy="parent.modifiedBy"
+            :item="parent"
+          />
         </div>
       </template>
     </DetailPageLayout>
@@ -659,16 +733,22 @@ useDetailFetch(fetchData)
   @apply px-4 py-2 bg-primary-soft text-primary text-xs font-semibold rounded-lg transition-all hover:bg-primary-soft;
 }
 
-/* Hide scrollbar for Chrome, Safari and Opera */
-.overflow-x-auto::-webkit-scrollbar {
-  display: none;
-}
-
-/* Hide scrollbar for IE, Edge and Firefox */
+/* Subtle, light scrollbar for horizontal table scrolling */
 .overflow-x-auto {
-  -ms-overflow-style: none;
-  /* IE and Edge */
-  scrollbar-width: none;
-  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+.overflow-x-auto::-webkit-scrollbar {
+  height: 5px;
+}
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background-color: #cbd5e1;
 }
 </style>

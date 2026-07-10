@@ -56,8 +56,50 @@ class TermService {
       updatedAt: new Date().toISOString(),
     }
 
-    await termRef.update({ offerings })
-    return offerings[offIdx]
+    const auditAction = updateData.actionLabel || (updateData.sessionTeachers
+      ? 'Updated Teacher Class Schedule'
+      : 'Updated Offering Details')
+
+    await termRef.update({ offerings, auditAction })
+
+    const progName = offerings[offIdx]?.program?.name || offerings[offIdx]?.name || 'Class Offering'
+    const teacherIds = new Set()
+    if (updateData.targetTeacherId) {
+      teacherIds.add(String(updateData.targetTeacherId))
+    }
+    if (updateData.sessionTeachers && Array.isArray(updateData.sessionTeachers)) {
+      updateData.sessionTeachers.forEach((st) => {
+        if (!st) return
+        if (st.teachers && Array.isArray(st.teachers)) {
+          st.teachers.forEach((t) => t && (t.id || typeof t === 'string') && teacherIds.add(t.id || t))
+        } else if (Array.isArray(st)) {
+          st.forEach((t) => t && (t.id || typeof t === 'string') && teacherIds.add(t.id || t))
+        } else if (st.id) {
+          teacherIds.add(st.id)
+        }
+      })
+    }
+
+    for (const tId of teacherIds) {
+      const isTarget = String(tId) === String(updateData.targetTeacherId)
+      try {
+        await db.collection(COLLECTIONS.TEACHER).doc(String(tId)).update({
+          updatedAt: new Date().toISOString(),
+          auditAction: isTarget && updateData.actionLabel
+            ? updateData.actionLabel
+            : `Assigned Class Sessions: ${progName}`,
+        })
+      } catch (e) {
+        console.debug('[Audit] Failed to update teacher audit for session assignment:', e.message)
+      }
+    }
+
+    return {
+      ...offerings[offIdx],
+      actionLabel: updateData.actionLabel || auditAction,
+      actionType: updateData.actionType || 'Updated Teacher Class Schedule',
+      targetTeacherId: updateData.targetTeacherId,
+    }
   }
 
   enrichOfferingsWithEnrollments(offerings, enrollments) {

@@ -22,7 +22,8 @@ const dataStore = useDataStore()
 const getActivityBadgeType = (activityVal) => {
   const v = String(activityVal || '').toLowerCase()
   if (v.includes('create') || v.includes('new')) return 'green'
-  if (v.includes('cancel') || v.includes('delete') || v.includes('drop') || v.includes('remove')) return 'red'
+  if (v.includes('cancel') || v.includes('delete') || v.includes('drop') || v.includes('remove'))
+    return 'red'
   if (v.includes('transfer')) return 'purple'
   if (v.includes('payment') || v.includes('paid') || v.includes('process')) return 'magenta'
   if (v.includes('update') || v.includes('edit') || v.includes('status')) return 'blue'
@@ -164,7 +165,9 @@ const getDetailBadgeConfig = (detail, item = null) => {
       if (item?.link && item.link.includes('search=')) {
         try {
           linkSearch = decodeURIComponent(item.link.split('search=')[1].split('&')[0]).toLowerCase()
-        } catch { /* empty */ }
+        } catch {
+          /* empty */
+        }
       }
       const nameDetail = item?.details?.find((d) => d.label && d.label.includes('Name'))?.value
       const progDetail = item?.details?.find((d) => d.label && d.label.includes('Program'))?.value
@@ -232,7 +235,11 @@ const handleLocateRecord = (item) => {
       const targetVal =
         item.details?.find((d) => d.label && d.label.includes('Name'))?.value ||
         item.details?.[0]?.value
-      if (targetVal && String(targetVal) !== 'Created Record' && String(targetVal) !== 'Updated Record Details') {
+      if (
+        targetVal &&
+        String(targetVal) !== 'Created Record' &&
+        String(targetVal) !== 'Updated Record Details'
+      ) {
         targetLink += `?highlight=${encodeURIComponent(String(targetVal))}`
       }
     }
@@ -253,7 +260,11 @@ const getEnhancedDetails = (item) => {
         )
       : []
   list.forEach((d) => {
-    if (d.label && d.label.toLowerCase().includes('branch') && (d.value === 'Main Branch' || !d.value)) {
+    if (
+      d.label &&
+      d.label.toLowerCase().includes('branch') &&
+      (d.value === 'Main Branch' || !d.value)
+    ) {
       d.value = item.adminBranch || d.value
     }
   })
@@ -300,7 +311,7 @@ onUnmounted(() => window.removeEventListener('mousedown', handleOutsideFilterCli
   >
     <div
       v-if="isOpen"
-      class="absolute right-0 mt-3 w-[94vw] sm:w-[480px] md:w-[560px] lg:w-[600px] bg-white rounded-md shadow-2xl border border-outline-std z-50 overflow-hidden flex flex-col"
+      class="absolute right-0 mt-3 w-[100vw] sm:w-[540px] md:w-[640px] lg:w-[700px] bg-white rounded-md shadow-2xl border border-outline-std z-50 overflow-hidden flex flex-col"
       @click.stop
     >
       <!-- ── Header ────────────────────────────────────────────────────────── -->
@@ -461,10 +472,7 @@ onUnmounted(() => window.removeEventListener('mousedown', handleOutsideFilterCli
                   item.admin || 'System Admin'
                 }}</span>
                 <!-- Admin branch badge: centralized branch lookup -->
-                <AppBadge
-                  v-if="item.adminBranch"
-                  :branch="item.adminBranch"
-                />
+                <AppBadge v-if="item.adminBranch" :branch="item.adminBranch" />
                 <span class="text-sm text-content-muted">{{ getActionVerb(item) }}</span>
                 <!-- Module badge inline with action phrase so it flows naturally -->
                 <span

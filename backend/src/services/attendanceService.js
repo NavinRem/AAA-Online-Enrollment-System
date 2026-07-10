@@ -131,9 +131,15 @@ class AttendanceService {
           attendanceMap[data.sessionId] = {}
         }
         attendanceMap[data.sessionId][data.studentId] = data.status
+        attendanceMap[data.sessionId][`${data.studentId}_meta`] = {
+          status: data.status,
+          updatedAt: data.updatedAt || data.changedAt || data.modifiedBy?.timestamp || null,
+          modifiedBy: data.modifiedBy || null,
+          createdBy: data.createdBy || null,
+          remark: data.remark || null,
+        }
       }
     })
-
     return attendanceMap
   }
 }

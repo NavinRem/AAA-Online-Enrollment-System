@@ -6,7 +6,25 @@ import notificationSoundUrl from '@/assets/sounds/notification.wav'
 const STORAGE_KEY = 'aaa-notification-history'
 const MAX_HISTORY_ITEMS = 200
 
-function playFallbackChime(type = 'success') {
+export function getNotificationVolume() {
+  try {
+    const v = localStorage.getItem('aaa-notification-volume')
+    return v !== null ? Number(v) : 1.0
+  } catch {
+    return 1.0
+  }
+}
+
+export function setNotificationVolume(val) {
+  try {
+    const v = Math.max(0, Math.min(1, Number(val)))
+    localStorage.setItem('aaa-notification-volume', String(v))
+  } catch {
+    /* ignore */
+  }
+}
+
+function playFallbackChime(type = 'success', vol = 1.0) {
   try {
     const AudioCtx = window.AudioContext || window.webkitAudioContext
     if (!AudioCtx) return
@@ -25,7 +43,8 @@ function playFallbackChime(type = 'success') {
     osc.frequency.setValueAtTime(freq, now)
     osc.frequency.exponentialRampToValueAtTime(freq2, now + 0.12)
 
-    gain.gain.setValueAtTime(0.18, now)
+    const maxGain = Math.min(1.0, 0.5 * vol)
+    gain.gain.setValueAtTime(maxGain, now)
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3)
 
     osc.start(now)
@@ -36,17 +55,19 @@ function playFallbackChime(type = 'success') {
 }
 
 export function playNotificationAlertSound(type = 'success') {
+  const vol = getNotificationVolume()
+  if (vol <= 0) return
   try {
     const audio = new Audio(notificationSoundUrl)
-    audio.volume = 0.65
+    audio.volume = vol
     const playPromise = audio.play()
     if (playPromise !== undefined) {
       playPromise.catch(() => {
-        playFallbackChime(type)
+        playFallbackChime(type, vol)
       })
     }
   } catch {
-    playFallbackChime(type)
+    playFallbackChime(type, vol)
   }
 }
 

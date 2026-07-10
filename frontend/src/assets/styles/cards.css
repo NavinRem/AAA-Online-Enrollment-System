@@ -113,13 +113,12 @@
   /* ── Tabs Navigation ─────────────────────────────────────────────────────── */
   /* Use for: page-level tab switching, module sub-navigation                  */
   .ui-tabs-nav {
-    @apply flex items-center gap-xs p-xs rounded-std shadow-sm mb-xl
-           overflow-x-auto whitespace-nowrap;
+    @apply flex items-center gap-xs p-xs rounded-std shadow-sm;
     background-color: var(--color-surface);
     border: 1px solid var(--color-outline-std);
   }
   .ui-tab-item {
-    @apply px-xl py-sm rounded-sm text-sm font-semibold transition-all select-none cursor-pointer;
+    @apply px-xl py-sm rounded-full text-sm font-semibold transition-all select-none cursor-pointer;
     color: var(--color-content-muted);
   }
   .ui-tab-item:hover {

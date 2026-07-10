@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
@@ -14,11 +14,13 @@ import { getAcademicStatus, enrichEnrollments } from '@/utils/enrollmentHelper'
 import StudentActionModal from '@/components/students/StudentActionModal.vue'
 import AppButton from '@/components/common/ui/AppButton.vue'
 
-import { getActionIcon, getParentProfileURL } from '@/utils/assetHelper'
+import { getActionIcon, getParentProfileURL, getProgramProfileURL } from '@/utils/assetHelper'
 import { branchService } from '@/services/branchService'
 import EntityProfileCard from '@/components/common/detail/EntityProfileCard.vue'
 import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
 import TimestampCard from '@/components/common/detail/TimestampCard.vue'
+import AppBadge from '@/components/common/ui/AppBadge.vue'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 import { trackingService } from '@/services/trackingService'
 import { useDataStore } from '@/stores/dataStore'
 
@@ -59,19 +61,35 @@ const inferredGender = computed(() => {
 })
 
 const enrolledBranch = computed(() => {
-  const latest = enrollments.value[0]
-  if (!latest)
-    return { abbr: student.value?.branchAbbr || 'HQ', color: student.value?.branchColor || 'blue' }
+  const latest = activeProgramsList.value[0]
+  if (!latest) return { abbr: 'No Branch', color: 'neutral' }
+  let abbr = latest.branchAbbr || 'No Branch'
+  if (abbr === 'HQ') abbr = 'No Branch'
   return {
-    abbr: latest.branchAbbr || 'HQ',
-    color: latest.branchColor || 'blue',
+    abbr,
+    color: abbr === 'No Branch' ? 'neutral' : latest.branchColor || 'blue',
   }
 })
 
+const activeProgramsList = computed(() => {
+  return enrollments.value.filter((e) => {
+    const status = String(e.status || e.academicStatus || '').toLowerCase()
+    const payment = String(e.paymentStatus || e.status || '').toLowerCase()
+    const isActive = !['transferred', 'cancelled', 'stopped', 'deleted'].includes(status)
+    const isPaidStatus =
+      ['paid', 'confirmed', 'success'].includes(payment) || status === 'paid'
+    return isActive && isPaidStatus
+  })
+})
+
 const enrollmentOptions = computed(() => {
-  return enrollments.value.map((e) => ({
+  return activeProgramsList.value.map((e) => ({
     label: `${e.termName} - ${e.programName} (${e.branchAbbr})`,
     value: e.id,
+    programName: e.programName,
+    termName: e.termName,
+    branchAbbr: e.branchAbbr,
+    branchColor: e.branchColor,
     classId: e.classId,
     term: e.class?.term,
     schedule: e.class?.schedule || e.class?.schedules?.[0],
@@ -80,8 +98,9 @@ const enrollmentOptions = computed(() => {
 
 const selectedEnrollment = computed(() => {
   return (
-    enrollments.value.find((e) => String(e.id) === String(selectedEnrollmentId.value)) ||
-    enrollments.value[0]
+    activeProgramsList.value.find((e) => String(e.id) === String(selectedEnrollmentId.value)) ||
+    activeProgramsList.value[0] ||
+    null
   )
 })
 
@@ -110,26 +129,59 @@ const studentAttendanceRecords = computed(() => {
 
   return sessions.value.map((session, index) => {
     const sessionData = attendanceMap[session.id] || {}
-    const status = index < startIndex ? 'N' : sessionData[studentId] || 'N'
+    const rawVal = sessionData[studentId]
+    const metaVal = sessionData[`${studentId}_meta`]
+    const status =
+      index < startIndex
+        ? 'N'
+        : metaVal?.status || (typeof rawVal === 'object' ? rawVal.status : rawVal) || 'N'
+    const scheduleTime =
+      enrollment.class?.schedule?.time ||
+      enrollment.class?.schedules?.[0]?.time ||
+      enrollment.schedule?.time ||
+      '-'
+
     return {
       ...session,
+      no: index + 1,
+      label: `Session ${index + 1}`,
+      time: scheduleTime,
+      program: enrollment.program || enrollment.class?.program,
+      programName:
+        enrollment.programName ||
+        enrollment.program?.name ||
+        enrollment.class?.program?.name ||
+        '-',
+      programProfileURL: getProgramProfileURL(
+        enrollment.program?.profileURL || enrollment.class?.program?.profileURL,
+        enrollment.program?.category?.name ||
+          enrollment.program?.category ||
+          enrollment.class?.program?.category?.name ||
+          enrollment.class?.program?.category,
+        enrollment.program?.category?.profileURL || enrollment.class?.program?.category?.profileURL,
+      ),
+      programType: enrollment.program?.type || enrollment.class?.program?.type,
       status,
-      remark: index < startIndex ? 'Not enrolled' : '-',
+      modifiedBy:
+        metaVal?.modifiedBy || metaVal?.createdBy || enrollment.modifiedBy || enrollment.createdBy,
+      createdBy: metaVal?.createdBy || enrollment.createdBy,
+      updatedAt: metaVal?.updatedAt || enrollment.updatedAt || enrollment.createdAt || session.date,
+      remark: metaVal?.remark || (index < startIndex ? 'Not enrolled' : '-'),
     }
   })
 })
 
 const attendanceStats = computed(() => {
   const records = studentAttendanceRecords.value
-  if (!records.length) return { total: 0, passed: 0, absent: 0, remaining: 0 }
+  const enrollment = selectedEnrollment.value
+  if (!records.length) return { totalEnrolled: 0, present: 0, absent: 0 }
 
-  const total = records.length
-  const passed = records.filter((r) => ['P', 'L', 'M'].includes(r.status)).length
+  const totalSessions = records.length
+  const totalEnrolled = Number(enrollment?.enrolledSessions) || totalSessions
+  const present = records.filter((r) => ['P', 'L', 'M'].includes(r.status)).length
   const absent = records.filter((r) => r.status === 'A').length
-  const completed = records.filter((r) => r.status !== 'N').length
-  const remaining = total - completed
 
-  return { total, passed, absent, remaining }
+  return { totalEnrolled, present, absent }
 })
 
 const ATTENDANCE_STATUS = {
@@ -165,6 +217,7 @@ const parentDetailFields = computed(() => [
 ])
 
 const toggleDropdown = (event) => {
+  if (event) event.stopPropagation()
   dropdownOpen.value = !dropdownOpen.value
   if (dropdownOpen.value && event) {
     const rect = event.currentTarget.getBoundingClientRect()
@@ -204,11 +257,13 @@ watch(enrollments, (newEnrollments) => {
 
 const attendanceHeaders = [
   { label: 'No', width: '60px', align: 'center' },
-  { label: 'Session' },
+  { label: 'Session', width: '100px' },
   { label: 'Date', width: '200px' },
-  { label: 'Outcome', align: 'center', width: '150px' },
+  { label: 'Program', width: '230px' },
+  { label: 'Time', width: '200px' },
+  { label: 'Status', align: 'center', width: '90px' },
+  { label: 'Modified By', width: '160px' },
   { label: 'Remark' },
-  { label: 'Progress', width: '120px', align: 'center' },
 ]
 
 const actionModal = ref({
@@ -373,8 +428,22 @@ const fetchData = async (id) => {
   }
 }
 
+const handleOutsideClick = (e) => {
+  if (dropdownOpen.value) {
+    const btn = document.getElementById('enrollment-filter-btn')
+    if (btn && !btn.contains(e.target)) {
+      dropdownOpen.value = false
+    }
+  }
+}
+
 onMounted(() => {
+  window.addEventListener('click', handleOutsideClick)
   if (route.params.id) fetchData(route.params.id)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', handleOutsideClick)
 })
 
 watch(
@@ -433,9 +502,10 @@ watch(
             :items="studentAttendanceRecords"
             :loading="loading"
             entityName="session"
-            :flexible="false"
+            :flexible="true"
             :hasSearch="false"
             :hasFilter="false"
+            emptyMessage="Attendance track is available only after enrollment payment is completed."
           >
             <template #toolbar-actions>
               <div class="flex items-center gap-3">
@@ -443,39 +513,33 @@ watch(
                   class="flex items-center gap-6 px-6 py-2 bg-surface-subtle rounded-md border border-outline-std mr-4"
                 >
                   <div class="flex flex-col">
-                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider"
-                      >Total</span
-                    >
+                    <span class="text-sm font-bold text-content-muted">Total Enrolled</span>
                     <span class="text-lg font-black text-content-dark">{{
-                      attendanceStats.total
+                      attendanceStats.totalEnrolled
                     }}</span>
                   </div>
                   <div class="w-px h-8 bg-outline-std/50"></div>
                   <div class="flex flex-col">
-                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider"
-                      >Passed</span
-                    >
+                    <span class="text-sm font-bold text-content-muted">Present</span>
                     <span class="text-lg font-black text-success">{{
-                      attendanceStats.passed
+                      attendanceStats.present
                     }}</span>
                   </div>
                   <div class="w-px h-8 bg-outline-std/50"></div>
                   <div class="flex flex-col">
-                    <span class="text-3xs font-bold text-content-muted uppercase tracking-wider"
-                      >Absent</span
-                    >
+                    <span class="text-sm font-bold text-content-muted">Absent</span>
                     <span class="text-lg font-black text-error">{{ attendanceStats.absent }}</span>
                   </div>
                 </div>
 
                 <!-- Enrollment Selector -->
-                <div class="relative" id="enrollment-filter-btn">
+                <div v-if="enrollmentOptions.length > 0" class="relative" id="enrollment-filter-btn">
                   <AppButton variant="secondary" size="md" @click="toggleDropdown($event)">
                     <img :src="getActionIcon('filter')" class="w-4 h-4" />
                     <span class="font-bold truncate max-w-52">{{
                       selectedEnrollment
                         ? `${selectedEnrollment.programName} (${selectedEnrollment.termName})`
-                        : 'Select Enrollment'
+                        : 'No Paid Enrollment'
                     }}</span>
                   </AppButton>
 
@@ -490,22 +554,72 @@ watch(
                     >
                       <div
                         v-if="dropdownOpen"
-                        class="toolbar-filter-menu shadow-2xl"
+                        class="fixed bg-white rounded-sm shadow-2xl border border-outline-std z-dropdown p-2 min-w-80 max-w-96 flex flex-col gap-1.5"
                         :style="filterMenuStyles"
                         @mousedown.stop
+                        @click.stop
                       >
                         <div
                           v-for="opt in enrollmentOptions"
                           :key="opt.value"
-                          class="toolbar-filter-option"
-                          :class="{ 'active-filter-item': selectedEnrollmentId === opt.value }"
+                          class="p-3 rounded-sm border transition-all cursor-pointer flex items-center justify-between gap-3"
+                          :class="
+                            selectedEnrollmentId === opt.value
+                              ? 'bg-primary text-white border-primary shadow-sm'
+                              : 'bg-white hover:bg-surface-subtle border-outline-std/60 text-content-dark'
+                          "
                           @click="selectEnrollment(opt.value)"
                         >
-                          <div class="flex flex-col gap-1">
-                            <span class="font-bold text-sm">{{ opt.label }}</span>
-                            <div class="flex items-center gap-1.5" v-if="opt.schedule?.day">
-                              <AppBadge :status="opt.schedule?.day" type="day" size="xs" />
-                              <span class="text-3xs font-semibold text-content-dark">{{ opt.schedule?.time }}</span>
+                          <div class="flex flex-col gap-1.5 min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-2">
+                              <span
+                                class="font-extrabold text-sm truncate"
+                                :class="
+                                  selectedEnrollmentId === opt.value
+                                    ? 'text-white font-black'
+                                    : 'text-content-dark'
+                                "
+                              >
+                                {{ opt.programName }}
+                              </span>
+                              <AppBadge
+                                :status="opt.branchAbbr"
+                                :type="opt.branchColor || 'blue'"
+                                size="xs"
+                              />
+                            </div>
+                            <div class="flex items-center gap-2 flex-wrap text-sm">
+                              <span
+                                class="font-bold"
+                                :class="
+                                  selectedEnrollmentId === opt.value
+                                    ? 'text-white/90'
+                                    : 'text-content-muted'
+                                "
+                              >
+                                {{ opt.termName }}
+                              </span>
+                              <span
+                                :class="
+                                  selectedEnrollmentId === opt.value
+                                    ? 'text-white/60'
+                                    : 'text-outline-std'
+                                "
+                                >•</span
+                              >
+                              <div class="flex items-center gap-1.5" v-if="opt.schedule?.day">
+                                <AppBadge :status="opt.schedule?.day" type="day" size="xs" />
+                                <span
+                                  class="font-semibold"
+                                  :class="
+                                    selectedEnrollmentId === opt.value
+                                      ? 'text-white'
+                                      : 'text-content-dark'
+                                  "
+                                >
+                                  {{ opt.schedule?.time }}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -520,27 +634,50 @@ watch(
               <td class="ui-cell text-center" :style="{ width: headers[0].width }">
                 <span class="font-bold text-content-dark text-sm">{{ index + 1 }}</span>
               </td>
-              <td class="ui-cell">
+              <td class="ui-cell" :style="{ width: headers[1].width }">
                 <span class="font-bold text-content-dark text-sm">{{ item.label }}</span>
               </td>
-              <td class="ui-cell tabular-nums font-bold text-content-muted text-xs">
+              <td
+                class="ui-cell tabular-nums font-bold text-content-dark text-sm"
+                :style="{ width: headers[2].width }"
+              >
                 {{ formatDateOnly(item.date) }}
               </td>
-              <td class="ui-cell text-center">
+              <td class="ui-cell" :style="{ width: headers[3].width }">
+                <div class="ui-identity-cell">
+                  <div class="ui-avatar">
+                    <img :src="item.programProfileURL" :alt="item.programName" />
+                  </div>
+                  <div class="ui-identity-info">
+                    <span class="truncate block font-bold text-content-dark text-sm">{{
+                      item.programName
+                    }}</span>
+                    <AppBadge v-if="item.programType" :status="item.programType" />
+                  </div>
+                </div>
+              </td>
+              <td
+                class="ui-cell font-semibold text-content-muted text-sm"
+                :style="{ width: headers[4].width }"
+              >
+                {{ item.time }}
+              </td>
+              <td class="ui-cell text-center" :style="{ width: headers[5].width }">
                 <div class="flex justify-center">
                   <div
-                    class="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shadow-sm border border-outline-std select-none"
+                    class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black shadow-sm border border-outline-std select-none"
                     :class="(ATTENDANCE_STATUS[item.status] || ATTENDANCE_STATUS.N).theme"
+                    :title="(ATTENDANCE_STATUS[item.status] || ATTENDANCE_STATUS.N).label"
                   >
                     {{ (ATTENDANCE_STATUS[item.status] || ATTENDANCE_STATUS.N).label }}
                   </div>
                 </div>
               </td>
-              <td class="ui-cell italic text-content-muted font-bold text-xs">
-                {{ item.remark }}
+              <td class="ui-cell text-left" :style="{ width: headers[6].width }">
+                <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
               </td>
-              <td class="ui-cell text-center font-black text-content-dark text-xs tabular-nums">
-                {{ index + 1 }}/{{ attendanceStats.total }}
+              <td class="ui-cell italic text-content-muted font-bold text-sm">
+                {{ item.remark }}
               </td>
             </template>
           </DataTable>
@@ -556,7 +693,13 @@ watch(
           />
           <EntityInfoCard title="Student Details" :fields="studentInfoFields" />
           <EntityInfoCard v-if="parent" title="Parent Details" :fields="parentDetailFields" />
-          <TimestampCard :createdAt="student.createdAt" :updatedAt="student.updatedAt" />
+          <TimestampCard
+            :createdAt="student.createdAt"
+            :updatedAt="student.updatedAt"
+            :createdBy="student.createdBy"
+            :modifiedBy="student.modifiedBy"
+            :item="student"
+          />
         </div>
       </template>
     </DetailPageLayout>
@@ -576,3 +719,23 @@ watch(
   </DashboardLayout>
 </template>
 
+<style scoped>
+/* Subtle, light scrollbar for horizontal table scrolling */
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+.overflow-x-auto::-webkit-scrollbar {
+  height: 5px;
+}
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+}
+.overflow-x-auto::-webkit-scrollbar-thumb:hover {
+  background-color: #cbd5e1;
+}
+</style>

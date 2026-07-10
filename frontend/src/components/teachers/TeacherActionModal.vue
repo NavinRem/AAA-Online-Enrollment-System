@@ -13,7 +13,9 @@ import { useDataStore } from '@/stores/dataStore'
 import { useActionModal } from '@/composables/useActionModal'
 import TeacherAssignmentTab from './TeacherAssignmentTab.vue'
 import { teacherService } from '@/services/teacherService'
+import { termService } from '@/services/termService'
 import { useModalText } from '@/composables/useModalText'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 
 const assignmentTabRef = ref(null)
 const assignmentChanges = ref({ adds: [], removes: [] })
@@ -138,7 +140,7 @@ const handleActionSubmit = async () => {
   } else {
     // Handle assignments submission
     try {
-      const { adds, removes } = assignmentChanges.value
+      const { adds = [], removes = [], sessionUpdates = [] } = assignmentChanges.value || {}
       const promises = [
         ...adds.map((offering) =>
           teacherService.assignToClass(props.teacher.id, offering.termId, offering.offeringId),
@@ -150,9 +152,17 @@ const handleActionSubmit = async () => {
             offering.offeringId,
           )
         }),
+        ...sessionUpdates.map((update) => {
+          return termService.updateTermOffering(update.termId, update.offeringId, {
+            sessionTeachers: update.sessionTeachers,
+            targetTeacherId: props.teacher.id,
+            actionLabel: update.actionLabel,
+            actionType: update.actionType,
+          })
+        }),
       ]
       await Promise.all(promises)
-      emit('refresh')
+      emit('refresh', true)
       emit('close')
     } catch (err) {
       console.error('Failed to update assignments', err)
@@ -161,7 +171,7 @@ const handleActionSubmit = async () => {
 }
 
 const customSubmit = computed(() => {
-  if (confirmType.value === 'assignments') return 'Confirm Assignments'
+  if (confirmType.value === 'assignments') return 'Confirm'
   return undefined
 })
 
@@ -179,13 +189,29 @@ const isFormInvalid = computed(() => {
 
 const confirmRows = computed(() => {
   if (confirmType.value === 'assignments') {
-    const { adds, removes } = assignmentChanges.value
-    const rows = [{ key: 'Name', value: form.name }]
+    const { adds = [], removes = [], sessionUpdates = [] } = assignmentChanges.value || {}
+    const programNames =
+      form.programIds
+        .map((id) => programs.value.find((p) => p.id === id)?.name)
+        .filter(Boolean)
+        .join(', ') || '—'
+
+    const rows = [
+      { key: 'Teacher Name', value: form.name || props.teacher?.name || '—' },
+      { key: 'Programs', value: programNames },
+    ]
     if (adds.length > 0) {
-      rows.push({ key: 'Adds', value: adds.length })
+      rows.push({ key: 'adds', label: 'Added Classes', value: adds.length })
     }
     if (removes.length > 0) {
-      rows.push({ key: 'Removes', value: removes.length })
+      rows.push({ key: 'removes', label: 'Removed Classes', value: removes.length })
+    }
+    if (sessionUpdates.length > 0) {
+      rows.push({
+        key: 'classSessions',
+        label: 'Class Sessions',
+        class: 'flex-col !items-stretch gap-3 !pb-4 mt-2',
+      })
     }
     return rows
   }
@@ -228,6 +254,7 @@ watch(
     :show="isOpen"
     :title="modalTitle"
     variant="action"
+    maxWidth="900px"
     :icon="modalIcon"
     :error="error"
     :success="success"
@@ -240,7 +267,6 @@ watch(
         class="ui-tab-item"
         :class="{ active: activeTab === 'profile' }"
       >
-        <span class="text-sm">👤</span>
         Profile Info
       </button>
       <button
@@ -248,7 +274,6 @@ watch(
         class="ui-tab-item"
         :class="{ active: activeTab === 'assignments' }"
       >
-        <span class="text-sm">📅</span>
         Class Assignments
       </button>
     </div>
@@ -270,7 +295,7 @@ watch(
         </div>
         <div class="flex flex-col text-left overflow-hidden">
           <span class="text-base font-bold text-content-dark truncate">{{ teacher?.name }}</span>
-          <span class="text-xs font-semibold text-content-muted truncate italic">{{
+          <span class="text-sm font-semibold text-content-muted truncate italic">{{
             teacher?.email
           }}</span>
         </div>
@@ -283,7 +308,7 @@ watch(
             <strong class="text-sm font-semibold tracking-tight text-warning-dark"
               >Reactivation Protocol</strong
             >
-            <span class="text-xs opacity-90 font-medium leading-relaxed">
+            <span class="text-sm opacity-90 font-medium leading-relaxed">
               Account access will be restored immediately. This teacher will be eligible for active
               class assignments and attendance tracking across their assigned programs.
             </span>
@@ -296,7 +321,7 @@ watch(
         <AppAlert type="warning">
           <div class="flex flex-col gap-1 text-left">
             <strong class="text-sm font-semibold tracking-tight">Account Suspension</strong>
-            <span class="text-xs opacity-90 font-medium leading-relaxed">
+            <span class="text-sm opacity-90 font-medium leading-relaxed">
               Deactivating this account will restrict the teacher's access to the portal. Ongoing
               class assignments will remain, but the status will reflect as inactive.
             </span>
@@ -309,7 +334,7 @@ watch(
         <AppAlert type="error">
           <div class="flex flex-col gap-0.5 text-left">
             <strong class="text-sm font-semibold tracking-tight">⚠ Permanent Record Removal</strong>
-            <span class="text-xs opacity-90 font-medium leading-relaxed">
+            <span class="text-sm opacity-90 font-medium leading-relaxed">
               This action will permanently purge the faculty record. This is irreversible. Linked
               historical data will be severed from the active database.
             </span>
@@ -339,76 +364,97 @@ watch(
       <form
         v-if="['edit', 'add'].includes(type)"
         @submit.prevent="requestConfirm"
-        class="flex flex-col gap-6"
+        class="flex flex-col gap-5"
       >
-        <AvatarSelector
-          v-model="form.profileURL"
-          label="Teacher Avatar"
-          role="teacher"
-          :uid="teacher?.id"
-          required
-          :error="formErrors.profileURL"
-          :shake="formShaking.profileURL"
-          @input="clearError('profileURL')"
-        />
+        <!-- Row 1: Name + Avatar -->
+        <div class="grid grid-cols-2 gap-4 items-start">
+          <AppInput
+            v-model="form.name"
+            label="Teacher Name"
+            placeholder="e.g. Dr. John Doe"
+            required
+            :error="formErrors.name"
+            :shake="formShaking.name"
+            @input="clearError('name')"
+          />
+          <AvatarSelector
+            v-model="form.profileURL"
+            label="Teacher Avatar"
+            role="teacher"
+            :uid="teacher?.id"
+            required
+            :error="formErrors.profileURL"
+            :shake="formShaking.profileURL"
+            @input="clearError('profileURL')"
+          />
+        </div>
 
-        <AppInput
-          v-model="form.name"
-          label="Teacher Name"
-          placeholder="e.g. Dr. John Doe"
-          required
-          :error="formErrors.name"
-          :shake="formShaking.name"
-          @input="clearError('name')"
-        />
-        <AppInput
-          v-model="form.email"
-          type="email"
-          label="Email"
-          placeholder="teacher@aaa.edu"
-          required
-          :error="formErrors.email"
-          :shake="formShaking.email"
-          @input="clearError('email')"
-        />
-        <AppInput
-          v-model="form.phone"
-          label="Phone Number"
-          placeholder="e.g. 012 345 678"
-          required
-          :error="formErrors.phone"
-          :shake="formShaking.phone"
-          @input="clearError('phone')"
-        />
+        <!-- Row 2: Email + Phone -->
+        <div class="grid grid-cols-2 gap-4">
+          <AppInput
+            v-model="form.email"
+            type="email"
+            label="Email"
+            placeholder="teacher@aaa.edu"
+            required
+            :error="formErrors.email"
+            :shake="formShaking.email"
+            @input="clearError('email')"
+          />
+          <AppInput
+            v-model="form.phone"
+            label="Phone Number"
+            placeholder="e.g. 012 345 678"
+            required
+            :error="formErrors.phone"
+            :shake="formShaking.phone"
+            @input="clearError('phone')"
+          />
+        </div>
 
-        <AppSelect
-          v-model="form.programIds"
-          label="Programs"
-          placeholder="Choose programs..."
-          :items="programs"
-          multiple
-          :loading="dataStore.loading.programs"
-          required
-          :error="formErrors.programIds"
-          :shake="formShaking.programIds"
-          @change="clearError('programIds')"
-        >
-          <template #item="{ item }">
-            <div class="flex items-center gap-1 w-full">
-              <div
-                class="w-8 h-8 rounded-xl border border-outline-std overflow-hidden bg-white shrink-0 shadow-md"
-              >
-                <img
-                  :src="item.profileURL || getImageUrl('dashboard/card-top-program')"
-                  class="w-full h-full object-cover"
-                />
+        <!-- Row 3: Programs (full width) -->
+        <div class="grid grid-cols-2 gap-4">
+          <AppSelect
+            v-model="form.programIds"
+            label="Programs"
+            placeholder="Choose programs..."
+            :items="programs"
+            multiple
+            :loading="dataStore.loading.programs"
+            required
+            :error="formErrors.programIds"
+            :shake="formShaking.programIds"
+            @change="clearError('programIds')"
+          >
+            <template #item="{ item }">
+              <div class="flex items-center gap-1 w-full">
+                <div
+                  class="w-8 h-8 rounded-xl border border-outline-std overflow-hidden bg-white shrink-0 shadow-md"
+                >
+                  <img
+                    :src="item.profileURL || getImageUrl('dashboard/card-top-program')"
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+                <div class="flex flex-col text-left">
+                  <span class="text-sm font-bold text-content-dark">{{ item.name }}</span>
+                </div>
               </div>
-              <div class="flex flex-col text-left">
-                <span class="text-sm font-bold text-content-dark">{{ item.name }}</span>
-              </div>
+            </template>
+          </AppSelect>
+
+          <!-- Row 4: Audit Badge (full width, same height as input) -->
+          <div v-if="type === 'edit' && teacher" class="flex flex-col gap-xs text-left w-full">
+            <label class="text-sm font-semibold text-content-muted flex items-center gap-1"
+              >Last Modified</label
+            >
+            <div
+              class="w-full px-4 py-2 border-2 border-outline-std rounded-sm bg-white flex items-center min-h-[50px]"
+            >
+              <AuditBadge :meta="teacher?.modifiedBy || teacher?.createdBy" :item="teacher" />
             </div>
-          </template>
-        </AppSelect>
+          </div>
+        </div>
       </form>
     </template>
 
@@ -435,7 +481,7 @@ watch(
           <div class="flex items-center gap-2 text-left">
             <span class="text-lg">ℹ️</span>
             <div class="flex flex-col">
-              <span class="text-xs font-semibold tracking-tight">No modifications detected</span>
+              <span class="text-sm font-semibold tracking-tight">No modifications detected</span>
               <span class="text-4xs opacity-80"
                 >Please update at least one field to enable saving.</span
               >
@@ -487,6 +533,7 @@ watch(
       :rows="confirmRows"
       :confirmLabel="submitLabel"
       :loading="loading"
+      maxWidth="660px"
       @back="showConfirm = false"
       @confirm="handleActionSubmit"
     >
@@ -502,7 +549,9 @@ watch(
               <span class="text-sm font-semibold text-content-dark">{{ add.program?.name }}</span>
               <div class="flex items-center gap-1.5 mt-0.5">
                 <AppBadge :status="add.schedule?.day" type="day" size="xs" />
-                <span class="text-xs font-semibold text-content-dark">{{ add.schedule?.time }}</span>
+                <span class="text-sm font-semibold text-content-dark">{{
+                  add.schedule?.time
+                }}</span>
               </div>
             </div>
             <AppBadge
@@ -528,10 +577,66 @@ watch(
               }}</span>
               <div class="flex items-center gap-1.5 mt-0.5">
                 <AppBadge :status="remove.schedule?.day" type="day" size="xs" />
-                <span class="text-xs font-semibold text-content-dark">{{ remove.schedule?.time }}</span>
+                <span class="text-sm font-semibold text-content-dark">{{
+                  remove.schedule?.time
+                }}</span>
               </div>
             </div>
             <AppBadge :status="remove.branch?.abbr || 'HQ'" size="xs" type="red" />
+          </div>
+        </div>
+      </template>
+
+      <!-- Custom Row for Session Updates -->
+      <template #row-classSessions>
+        <div class="flex flex-col gap-3 w-full">
+          <div
+            v-for="upd in assignmentChanges.sessionUpdates || []"
+            :key="upd.offeringId"
+            class="flex items-center justify-between p-4 rounded-lg bg-surface-subtle/80 border border-outline-std gap-4 shadow-2xs"
+          >
+            <div class="flex flex-col text-left gap-1.5 flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-base font-bold text-content-dark truncate">{{
+                  upd.programName
+                }}</span>
+                <AppBadge
+                  v-if="upd.branch"
+                  :status="upd.branch.abbr || upd.branch.name || 'HQ'"
+                  size="xs"
+                  :type="upd.branch.color || 'blue'"
+                />
+                <AppBadge
+                  v-if="upd.termName"
+                  :status="upd.termName"
+                  size="xs"
+                  :type="upd.termColor || 'blue'"
+                />
+              </div>
+              <div class="flex items-center gap-2">
+                <AppBadge
+                  v-if="upd.schedule?.day"
+                  :status="upd.schedule.day"
+                  type="day"
+                  size="xs"
+                />
+                <span class="text-sm font-semibold text-content-dark">{{
+                  upd.schedule?.time
+                }}</span>
+              </div>
+            </div>
+            <div
+              class="flex flex-col items-end gap-1 shrink-0 bg-white px-3 py-1.5 rounded-md border border-outline-std/80 shadow-2xs"
+            >
+              <AppBadge
+                :status="`${upd.sessionCount} session${upd.sessionCount !== 1 ? 's' : ''}`"
+                size="xs"
+                type="blue"
+              />
+              <span class="text-3xs font-semibold text-content-muted uppercase tracking-wider"
+                >assigned</span
+              >
+            </div>
           </div>
         </div>
       </template>

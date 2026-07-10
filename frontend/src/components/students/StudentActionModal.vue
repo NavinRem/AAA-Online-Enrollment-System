@@ -8,6 +8,7 @@ import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 import { getImageUrl } from '@/utils/assetHelper'
 import { calculateAge } from '@/utils/formatUtils'
 import { useActionModal } from '@/composables/useActionModal'
@@ -172,7 +173,7 @@ const enrolledClassesLabel = computed(() => {
     (e) =>
       e.studentId === props.student.id &&
       !e.isDeleted &&
-      !['cancelled', 'deleted'].includes((e.status || '').toLowerCase()),
+      !['cancelled', 'deleted', 'transferred'].includes((e.status || '').toLowerCase()),
   )
   if (!enrollments?.length) return 'None'
   const classNames = enrollments.map((e) => e.class?.name || e.className || 'Unknown Class')
@@ -185,7 +186,7 @@ const enrolledBranchLabel = computed(() => {
     (e) =>
       e.studentId === props.student.id &&
       !e.isDeleted &&
-      !['cancelled', 'deleted'].includes((e.status || '').toLowerCase()),
+      !['cancelled', 'deleted', 'transferred'].includes((e.status || '').toLowerCase()),
   )
   if (!enrollments?.length) return 'None'
 
@@ -268,6 +269,7 @@ watch(
   <AppModal
     :show="isOpen"
     :title="modalTitle"
+    maxWidth="720px"
     @close="$emit('close')"
     :icon="modalIcon"
     :error="error"
@@ -339,7 +341,6 @@ watch(
             (student?.status || enrollment?.status || '').toLowerCase() === 'stopped'
           "
           :searchable="false"
-          :class="type === 'edit' ? 'col-span-2' : ''"
           @change="clearError('status')"
           @click-disabled="handleDisabledClick('status')"
         >
@@ -371,6 +372,18 @@ watch(
           readonly
           disabled
         />
+
+        <div
+          v-if="!type?.includes('delete') && (student || enrollment) && (type === 'edit' || type?.includes('override'))"
+          class="flex flex-col gap-xs text-left w-full"
+        >
+          <label class="text-sm font-semibold text-content-muted flex items-center gap-1">Last Modified</label>
+          <div
+            class="w-full px-4 py-2 border-2 border-outline-std rounded-sm bg-white flex items-center min-h-[50px]"
+          >
+            <AuditBadge :meta="(student || enrollment)?.modifiedBy || (student || enrollment)?.createdBy" :item="student || enrollment" />
+          </div>
+        </div>
 
         <!-- Enrollment Context (Override mode) — show class & branch -->
         <template v-if="type === 'override' || type === 'enrollment-override'">

@@ -31,8 +31,8 @@ defineProps({
     >
       <slot name="loading">Loading data...</slot>
     </div>
-    <div v-else :class="['table-content-area', flexible ? '' : 'flex-1 scrollable-v']">
-      <table class="w-full border-separate border-spacing-0 table-auto">
+    <div v-else :class="['table-content-area overflow-x-auto', flexible ? '' : 'flex-1 scrollable-v']">
+      <table class="w-full border-separate border-spacing-0 table-auto min-w-max">
         <thead class="sticky top-0 z-20 bg-white">
           <tr class="w-full">
             <th
@@ -112,15 +112,25 @@ defineProps({
   width: 6px;
 }
 
+.table-content-area {
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
 .table-content-area::-webkit-scrollbar {
-  height: 6px;
+  height: 5px;
 }
 
 .table-content-area::-webkit-scrollbar-track {
-  @apply bg-surface-subtle/50;
+  background: transparent;
 }
 
 .table-content-area::-webkit-scrollbar-thumb {
-  @apply bg-outline-std/50 rounded-full hover:bg-outline-std;
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+}
+
+.table-content-area::-webkit-scrollbar-thumb:hover {
+  background-color: #cbd5e1;
 }
 </style>

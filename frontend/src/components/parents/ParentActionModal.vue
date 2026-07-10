@@ -7,6 +7,7 @@ import AppSelect from '@/components/common/ui/AppSelect.vue'
 import AppInput from '@/components/common/ui/AppInput.vue'
 import AvatarSelector from '@/components/common/ui/AvatarSelector.vue'
 import AppConfirmOverlay from '@/components/common/ui/AppConfirmOverlay.vue'
+import AuditBadge from '@/components/common/ui/AuditBadge.vue'
 import { useActionModal } from '@/composables/useActionModal'
 import { getActionIcon, getImageUrl } from '@/utils/assetHelper'
 import { useSearch, parentSearchMapper } from '@/composables/useSearch'
@@ -360,6 +361,7 @@ watch(
     :show="isOpen"
     :title="modalTitle"
     variant="action"
+    maxWidth="720px"
     @close="$emit('close')"
     :icon="modalIcon"
     :error="error"
@@ -402,15 +404,16 @@ watch(
           @input="clearError('name')"
         />
 
-        <AppInput
-          v-model="localData.email"
-          type="email"
-          label="Account Email"
-          placeholder="email@address.com"
+        <AvatarSelector
+          v-model="localData.profileURL"
+          label="Avatar Signature"
           required
-          :error="errors.email"
-          :shake="shaking.email"
-          @input="clearError('email')"
+          :role="localData.role"
+          :uid="user?.id"
+          :customFileName="`${localData.name}_${localData.role}`"
+          :error="errors.profileURL"
+          :shake="shaking.profileURL"
+          @update:modelValue="clearError('profileURL')"
         />
 
         <AppInput
@@ -423,16 +426,25 @@ watch(
           @input="clearError('phone')"
         />
 
-        <AvatarSelector
-          v-model="localData.profileURL"
-          label="Avatar Signature"
+        <div v-if="type === 'edit' && user" class="flex flex-col gap-xs text-left w-full">
+          <label class="text-sm font-semibold text-content-muted flex items-center gap-1">Last Modified</label>
+          <div
+            class="w-full px-4 py-2 border-2 border-outline-std rounded-sm bg-white flex items-center min-h-[50px]"
+          >
+            <AuditBadge :meta="user?.modifiedBy || user?.createdBy" :item="user" />
+          </div>
+        </div>
+
+        <AppInput
+          v-model="localData.email"
+          type="email"
+          label="Account Email"
+          placeholder="email@address.com"
           required
-          :role="localData.role"
-          :uid="user?.id"
-          :customFileName="`${localData.name}_${localData.role}`"
-          :error="errors.profileURL"
-          :shake="shaking.profileURL"
-          @update:modelValue="clearError('profileURL')"
+          :error="errors.email"
+          :shake="shaking.email"
+          :class="type === 'edit' && user ? 'col-span-2' : ''"
+          @input="clearError('email')"
         />
       </div>
 
@@ -510,6 +522,7 @@ watch(
           />
         </div>
       </div>
+
     </form>
 
     <!-- Account Lifecycle Views -->

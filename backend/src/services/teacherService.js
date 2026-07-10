@@ -190,6 +190,13 @@ class TeacherService {
         offerings,
         updatedAt: new Date().toISOString(),
       })
+
+      const teacherRef = db.collection(COLLECTIONS.TEACHER).doc(teacherId)
+      const progName = offering.program?.name || offering.name || 'Class Offering'
+      transaction.update(teacherRef, {
+        updatedAt: new Date().toISOString(),
+        auditAction: `Assigned Class: ${progName}`,
+      })
     })
 
     return { message: 'Teacher assigned successfully' }
@@ -229,6 +236,13 @@ class TeacherService {
       transaction.update(termRef, {
         offerings,
         updatedAt: new Date().toISOString(),
+      })
+
+      const teacherRef = db.collection(COLLECTIONS.TEACHER).doc(teacherId)
+      const progName = offering.program?.name || offering.name || 'Class Offering'
+      transaction.update(teacherRef, {
+        updatedAt: new Date().toISOString(),
+        auditAction: `Unassigned Class: ${progName}`,
       })
     })
 

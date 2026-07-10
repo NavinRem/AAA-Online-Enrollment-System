@@ -14,6 +14,7 @@ const props = defineProps({
   totalLabel: { type: String, default: 'Total' },
   confirmLabel: { type: String, default: 'Confirm & Submit' },
   loading: { type: Boolean, default: false },
+  maxWidth: { type: String, default: '580px' },
 })
 
 defineEmits(['confirm', 'back'])
@@ -64,7 +65,7 @@ const getBadgeConfig = (row) => {
     leave-to-class="opacity-0"
   >
     <div v-if="show" class="app-confirm-overlay" @click.self="$emit('back')">
-      <div class="app-confirm-card">
+      <div class="app-confirm-card" :style="{ maxWidth: maxWidth }">
         <div class="app-confirm-header">
           <img
             v-if="image"
@@ -81,7 +82,7 @@ const getBadgeConfig = (row) => {
 
         <div class="app-confirm-body scrollable-v">
           <div v-for="row in rows" :key="row.key" class="app-confirm-row" :class="row.class">
-            <span class="app-confirm-key">{{ row.key }}</span>
+            <span class="app-confirm-key">{{ row.label ?? row.key }}</span>
             <!-- Slot-based custom rendering per row -->
             <slot :name="`row-${row.key}`" :row="row">
               <AppBadge

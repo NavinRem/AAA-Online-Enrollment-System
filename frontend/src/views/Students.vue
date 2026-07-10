@@ -178,11 +178,29 @@ const getStudentBranches = (item) => {
     }
   }
 
-  if (item.branchInfo) {
+  if (item.branchInfo && item.branchInfo.abbr !== 'HQ') {
     return [item.branchInfo]
   }
 
   return []
+}
+
+const getActivePaidUniqueEnrollments = (item) => {
+  if (!item?.enrollments?.length) return []
+  const activePaid = item.enrollments.filter((e) => {
+    const status = String(e.status || e.academicStatus || '').toLowerCase()
+    const payment = String(e.paymentStatus || '').toLowerCase()
+    const isActive = !['transferred', 'cancelled', 'stopped', 'deleted'].includes(status)
+    const isPaidStatus =
+      ['paid', 'confirmed', 'success', 'active'].includes(payment) || Number(e.amount || 0) === 0
+    return isActive && isPaidStatus
+  })
+  const map = new Map()
+  activePaid.forEach((e) => {
+    const pId = e.programId || e.program?.id
+    if (pId && !map.has(pId)) map.set(pId, e)
+  })
+  return Array.from(map.values())
 }
 
 const { searchQuery, searchResults } = useSearch(studentsEnriched, studentSearchMapper)
@@ -537,7 +555,7 @@ const closeModals = () => {
 
               <AppButton variant="primary" size="md" @click="handleOpenAddStudent">
                 <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-                <span>New Student</span>
+                <span class="font-bold tracking-light">New Student</span>
               </AppButton>
             </div>
           </template>
@@ -613,7 +631,7 @@ const closeModals = () => {
                   :type="b.color"
                 />
               </div>
-              <span v-else class="ui-cell-empty">—</span>
+              <AppBadge v-else status="No Branch" type="neutral" />
             </td>
 
             <!-- Programs -->
@@ -621,14 +639,10 @@ const closeModals = () => {
               <div
                 class="flex -space-x-3 hover:space-x-1 transition-all duration-500 overflow-hidden py-1 px-2"
               >
-                <template v-if="item.enrollments?.length">
-                  <!-- Group by program to show unique programs only -->
+                <template v-if="getActivePaidUniqueEnrollments(item).length">
+                  <!-- Group by program to show unique active paid programs only -->
                   <div
-                    v-for="(reg, rIdx) in [
-                      ...new Map(
-                        item.enrollments.map((e) => [e.programId || e.program?.id, e]),
-                      ).values(),
-                    ]"
+                    v-for="(reg, rIdx) in getActivePaidUniqueEnrollments(item)"
                     :key="rIdx"
                     class="w-10 h-10 rounded-full border-2 border-white bg-surface-subtle overflow-hidden shadow-md hover:z-10 transition-all duration-300 hover:scale-110 ring-1 ring-black/5 flex-shrink-0"
                     :title="reg.program?.name || reg.programName"
@@ -648,22 +662,10 @@ const closeModals = () => {
                     />
                   </div>
                   <div
-                    v-if="
-                      [
-                        ...new Map(
-                          item.enrollments.map((e) => [e.programId || e.program?.id, e]),
-                        ).values(),
-                      ].length > 3
-                    "
+                    v-if="getActivePaidUniqueEnrollments(item).length > 3"
                     class="w-10 h-10 rounded-full border-2 border-white bg-primary text-white flex items-center justify-center text-xs font-bold shadow-md z-20"
                   >
-                    +{{
-                      [
-                        ...new Map(
-                          item.enrollments.map((e) => [e.programId || e.program?.id, e]),
-                        ).values(),
-                      ].length - 3
-                    }}
+                    +{{ getActivePaidUniqueEnrollments(item).length - 3 }}
                   </div>
                 </template>
                 <template v-else>

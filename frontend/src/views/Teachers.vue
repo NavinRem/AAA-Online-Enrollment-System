@@ -21,7 +21,6 @@ const dataStore = useDataStore()
 
 const teachers = computed(() => dataStore.teachers)
 const allPrograms = computed(() => dataStore.programs)
-const allClasses = computed(() => dataStore.classes)
 const allTerms = computed(() => dataStore.terms)
 
 const loading = ref(true)
@@ -46,18 +45,100 @@ const getPrograms = (programIds) => {
 const getTeacherAssignments = (teacherId) => {
   const assignments = []
   allTerms.value.forEach((term) => {
+    const progress = calculateClassProgress(
+      term.startDate,
+      term.endDate,
+      null,
+      null,
+      term.totalSessions,
+    )
+    if (progress.status === 'archived' || progress.status === 'completed') return
+
+    const normalizeDateOnly = (d) => {
+      if (!d) return null
+      const dt = new Date(d)
+      if (isNaN(dt.getTime())) return null
+      return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate())
+    }
+
+    const todayDate = normalizeDateOnly(new Date()) || new Date()
+
+    const getSessionDate = (startDate, day, weekIndex) => {
+      const base = normalizeDateOnly(startDate)
+      if (!base) return null
+      if (day) {
+        const dayNames = [
+          'Sunday',
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+        ]
+        const targetDayIndex = dayNames.findIndex(
+          (d) => d.toLowerCase() === String(day).toLowerCase(),
+        )
+        if (targetDayIndex !== -1) {
+          const offset = (targetDayIndex - base.getDay() + 7) % 7
+          base.setDate(base.getDate() + offset)
+        }
+      }
+      const sessionDate = new Date(base)
+      sessionDate.setDate(base.getDate() + weekIndex * 7)
+      return sessionDate
+    }
+
     ;(term.offerings || []).forEach((offering) => {
-      const isDefaultAssigned = (offering.teachers || []).some((t) => t.id === teacherId)
-      const isInSessions = (offering.sessionTeachers || []).some((st) => {
-        if (!st) return false
-        if (st.teachers && Array.isArray(st.teachers))
-          return st.teachers.some((t) => t && t.id === teacherId)
-        if (Array.isArray(st)) return st.some((t) => t && t.id === teacherId)
-        return st && st.id === teacherId
-      })
-      if (isDefaultAssigned || isInSessions) {
+      const sessionTeachers = offering.sessionTeachers || []
+      let isAssignedActiveSession = false
+      let nextSessionDateStr = null
+
+      if (sessionTeachers && sessionTeachers.length > 0) {
+        // Check sessions against today's date: show if session date is today or future
+        sessionTeachers.forEach((st, weekIndex) => {
+          if (!st) return
+          const sDate = getSessionDate(term.startDate, offering.schedule?.day, weekIndex)
+          if (sDate && sDate < todayDate) return // Session has already passed
+
+          const isAssigned =
+            (st.teachers &&
+              Array.isArray(st.teachers) &&
+              st.teachers.some(
+                (t) => t && (String(t.id) === String(teacherId) || String(t) === String(teacherId)),
+              )) ||
+            (Array.isArray(st) &&
+              st.some(
+                (t) => t && (String(t.id) === String(teacherId) || String(t) === String(teacherId)),
+              )) ||
+            String(st.id) === String(teacherId)
+
+          if (isAssigned) {
+            isAssignedActiveSession = true
+            if (!nextSessionDateStr && sDate) {
+              nextSessionDateStr = sDate.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+              })
+            }
+          }
+        })
+      } else {
+        // Fallback when no weekly sessions have been customized yet
+        const termEnd = normalizeDateOnly(term.endDate)
+        if (!termEnd || termEnd >= todayDate) {
+          isAssignedActiveSession =
+            (offering.teachers || []).some(
+              (t) => t && (String(t.id) === String(teacherId) || String(t) === String(teacherId)),
+            ) || (offering.teacherIds || []).some((id) => String(id) === String(teacherId))
+        }
+      }
+
+      if (isAssignedActiveSession) {
         assignments.push({
           termName: term.name,
+          termColor: term.color || 'blue',
+          nextSessionDate: nextSessionDateStr,
           ...offering,
         })
       }
@@ -98,20 +179,9 @@ const filteredTeachers = computed(() => {
 
 const workingTeacherIds = computed(() => {
   const ids = new Set()
-  allClasses.value.forEach((cls) => {
-    const start = cls.startDate || cls.term?.startDate
-    const end = cls.endDate || cls.term?.endDate
-    const day = cls.schedule?.day || cls.schedules?.[0]?.day
-    const time = cls.schedule?.time || cls.schedules?.[0]?.time
-
-    if (start && end) {
-      const { status } = calculateClassProgress(start, end, day, time)
-      if (status === 'active' || status === 'ongoing') {
-        if (cls.teacherId) ids.add(cls.teacherId)
-        if (cls.teachers && Array.isArray(cls.teachers)) {
-          cls.teachers.forEach((t) => ids.add(t.id || t))
-        }
-      }
+  teachers.value.forEach((t) => {
+    if (getTeacherAssignments(t.id).length > 0) {
+      ids.add(t.id)
     }
   })
   return ids
@@ -159,13 +229,14 @@ const statsCards = computed(() => {
 })
 
 const headers = [
-  { label: 'No', width: '50px', align: 'center', class: 'hidden md:table-cell' },
+  { label: 'No', width: '50px', align: 'center' },
   { label: 'Teacher Name' },
-  { label: 'Phone', class: 'hidden sm:table-cell' },
-  { label: 'Assigned Classes', width: '400px', class: 'hidden lg:table-cell' },
-  { label: 'Program', class: 'hidden lg:table-cell' },
-  { label: 'Joined Date', class: 'hidden lg:table-cell', align: 'center' },
-  { label: 'Status', width: '150px', align: 'center' },
+  { label: 'Phone Number' },
+  { label: 'Email' },
+  { label: 'Assigned Classes', width: '330px' },
+  { label: 'Program', width: '220px' },
+  { label: 'Joined Date', width: '250px', align: 'center' },
+  { label: 'Status', width: '120px', align: 'center' },
   { label: 'Modified By', width: '140px', align: 'left' },
   { label: 'Action', width: '80px', align: 'center' },
 ]
@@ -353,6 +424,7 @@ const handleAction = (type, item, closeMenu) => {
           :headers="headers"
           :items="filteredTeachers"
           :loading="loading"
+          :flexible="true"
           searchPlaceholder="Search by name, email or specialization..."
           :hasFilter="true"
           v-model:searchQuery="searchQuery"
@@ -368,7 +440,7 @@ const handleAction = (type, item, closeMenu) => {
           <template #toolbar-actions>
             <AppButton variant="primary" size="md" @click="openModal('add')">
               <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span>New Teacher</span>
+              <span class="font-bold tracking-light">New Teacher</span>
             </AppButton>
           </template>
 
@@ -384,10 +456,7 @@ const handleAction = (type, item, closeMenu) => {
               closeMenu,
             }"
           >
-            <td
-              class="ui-cell text-center hidden md:table-cell"
-              :style="{ width: headers[0].width }"
-            >
+            <td class="ui-cell text-center" :style="{ width: headers[0].width }">
               <span class="font-bold text-content-dark">{{ index + 1 }}</span>
             </td>
 
@@ -411,13 +480,21 @@ const handleAction = (type, item, closeMenu) => {
               </div>
             </td>
 
-            <td class="ui-cell hidden sm:table-cell" :style="{ width: headers[2].width }">
-              <span class="font-bold text-content-dark tabular-nums tracking-tighter">{{
-                item.phone || '—'
-              }}</span>
+            <td class="ui-cell" :style="{ width: headers[2].width }">
+              <div class="flex flex-col">
+                <span class="text-sm font-bold text-content-dark tabular-nums tracking-tighter">{{
+                  item.phone || 'N/A'
+                }}</span>
+              </div>
             </td>
 
-            <td class="ui-cell hidden lg:table-cell">
+            <td class="ui-cell" :style="{ width: headers[3].width }">
+              <div class="flex flex-col max-w-44">
+                <span class="ui-cell-muted">{{ item.email || 'N/A' }}</span>
+              </div>
+            </td>
+
+            <td class="ui-cell" :style="{ width: headers[4].width }">
               <div class="flex flex-wrap gap-1.5">
                 <template v-if="getTeacherAssignments(item.id).length > 0">
                   <div
@@ -425,9 +502,11 @@ const handleAction = (type, item, closeMenu) => {
                     :key="assign.offeringId || assign.id || idx"
                     class="group/assign relative flex items-center justify-between gap-10 px-2 py-1.5 rounded-sm bg-primary-soft border border-primary/10 group-hover:bg-white group-hover:border-primary transition-all cursor-default"
                   >
-                    <div class="flex flex-col gap-1 items-start">
+                    <div class="flex flex-col gap-2 items-start">
                       <AppBadge :status="assign.schedule?.day || 'TBA'" type="day" size="xs" />
-                      <span class="text-xs font-semibold text-content-dark leading-none tabular-nums">
+                      <span
+                        class="text-xs font-semibold text-content-dark leading-none tabular-nums"
+                      >
                         {{ assign.schedule?.time || 'N/A' }}
                       </span>
                     </div>
@@ -444,7 +523,7 @@ const handleAction = (type, item, closeMenu) => {
               </div>
             </td>
 
-            <td class="ui-cell hidden lg:table-cell" :style="{ width: headers[4].width }">
+            <td class="ui-cell" :style="{ width: headers[5].width }">
               <div class="flex flex-wrap gap-2">
                 <template
                   v-if="
@@ -486,13 +565,13 @@ const handleAction = (type, item, closeMenu) => {
             </td>
 
             <!-- Joined Date -->
-            <td class="ui-cell hidden lg:table-cell text-center">
+            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
               <span class="ui-cell-muted">
                 {{ formatDate(item.createdAt) }}
               </span>
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[6].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[7].width }">
               <AppBadge :status="item.status || 'active'" />
             </td>
 
@@ -501,7 +580,7 @@ const handleAction = (type, item, closeMenu) => {
               <AuditBadge :meta="item.modifiedBy || item.createdBy" :item="item" />
             </td>
 
-            <td class="ui-cell text-center" :style="{ width: headers[8].width }">
+            <td class="ui-cell text-center" :style="{ width: headers[9].width }">
               <div class="ui-action-menu">
                 <button
                   class="w-8 h-8 flex items-center justify-center hover:bg-surface-subtle rounded-lg transition-all text-content-muted hover:text-content-dark"
@@ -590,7 +669,7 @@ const handleAction = (type, item, closeMenu) => {
       :success="success"
       @close="isModalOpen = false"
       @submit="handleSubmit"
-      @refresh="fetchData"
+      @refresh="() => fetchData(true)"
     />
   </DashboardLayout>
 </template>

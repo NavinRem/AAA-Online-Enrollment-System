@@ -36,19 +36,24 @@ function injectAuditMetadata(data, isCreate = false) {
   if (!baseSnapshot || !data || typeof data !== 'object' || Array.isArray(data)) {
     return data
   }
+  const copy = { ...data }
   let action = baseSnapshot.action || (isCreate ? 'Created Record' : 'Edited Details')
   if (isCreate) {
     action = 'Created Record'
-  } else if (data.status) {
-    const sLower = String(data.status).toLowerCase()
+  } else if (copy.auditAction || copy.lastAssignedAction) {
+    action = copy.auditAction || copy.lastAssignedAction
+    delete copy.auditAction
+    delete copy.lastAssignedAction
+  } else if (copy.status) {
+    const sLower = String(copy.status).toLowerCase()
     if (sLower.includes('cancel') || sLower.includes('drop')) {
       action = 'Cancelled Enrollment'
     } else {
-      action = `Status -> ${data.status}`
+      action = `Status -> ${copy.status}`
     }
-  } else if (data.paymentStatus) {
-    action = `Payment -> ${data.paymentStatus}`
-  } else if (data.classId || data.schedule) {
+  } else if (copy.paymentStatus) {
+    action = `Payment -> ${copy.paymentStatus}`
+  } else if (copy.classId || copy.schedule) {
     action = 'Transferred / Updated Class'
   }
 
@@ -57,7 +62,6 @@ function injectAuditMetadata(data, isCreate = false) {
     action,
     timestamp: new Date().toISOString()
   }
-  const copy = { ...data }
   if (isCreate && !copy.createdBy) {
     copy.createdBy = snapshot
   }
