@@ -7,6 +7,7 @@ import AppAlert from '@/components/common/ui/AppAlert.vue'
 import { getActionIcon, getProgramProfileURL } from '@/utils/assetHelper'
 import { calculateSessionDate } from '@/utils/sessionHelper'
 import { calculateClassProgress } from '@/utils/formatUtils'
+import { getTermColor } from '@/utils/badgeUtils'
 
 const props = defineProps({
   teacher: {
@@ -19,8 +20,6 @@ const props = defineProps({
     default: () => [],
   },
 })
-
-const TERM_COLORS = ['blue', 'green', 'purple', 'magenta']
 
 const activeTerms = ref([])
 const selectedTermId = ref('all')
@@ -85,7 +84,7 @@ const fetchData = async () => {
           offeringsList.push({
             termId: term.id,
             termName: term.name,
-            termColor: TERM_COLORS[active.indexOf(term) % TERM_COLORS.length],
+            termColor: getTermColor(term),
             termStartDate: term.startDate,
             termTotalSessions: totalSessions,
             key,
@@ -105,11 +104,11 @@ const fetchData = async () => {
 
 const termOptions = computed(() => [
   { id: 'all', name: 'All Active Terms' },
-  ...activeTerms.value.map((t, idx) => ({
+  ...activeTerms.value.map((t) => ({
     id: t.id,
     name: t.name,
     badgeStatus: t.name,
-    type: TERM_COLORS[idx % TERM_COLORS.length],
+    type: getTermColor(t),
   })),
 ])
 
@@ -363,12 +362,7 @@ onUnmounted(() => {
               @click="((selectedTermId = opt.id), (termDropdownOpen = false))"
             >
               <span v-if="opt.id === 'all'" class="font-bold">All Active Terms</span>
-              <AppBadge
-                v-else
-                :status="opt.name"
-                :type="opt.type || 'blue'"
-                size="sm"
-              />
+              <AppBadge v-else :status="opt.name" :type="opt.type || 'blue'" size="sm" />
             </button>
           </div>
         </div>

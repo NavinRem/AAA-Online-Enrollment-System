@@ -22,7 +22,7 @@ import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
 import { useSearch, enrollmentSearchMapper } from '@/composables/useSearch'
 import { useDataStore } from '@/stores/dataStore'
-import { getStatusTheme, getStatusFilter } from '@/utils/badgeUtils'
+import { getStatusTheme, getStatusFilter, resolveColor } from '@/utils/badgeUtils'
 import { useModalState } from '@/composables/useModalState'
 import { useDropdowns } from '@/composables/useDropdowns'
 import { useDetailFetch } from '@/composables/useDetailFetch'
@@ -642,65 +642,158 @@ const handleModalSubmit = async (payload) => {
   }
 }
 
-const getScheduleStatus = (schedule) => {
+const getScheduleMatchingOfferings = (schedule) => {
   const currentTermId =
     termFilter.value === 'all'
       ? terms.value.find((t) => t.isCurrent)?.id || terms.value[0]?.id
       : termFilter.value
-  const currentBranchId =
-    branchFilter.value === 'all' ? uniqueBranches.value[0]?.id : branchFilter.value
 
-  const off = allOfferings.value.find(
-    (o) =>
-      (String(o.termId) === String(currentTermId) ||
-        String(o.term?.id) === String(currentTermId)) &&
-      (String(o.branchId) === String(currentBranchId) ||
-        String(o.branch?.id) === String(currentBranchId)) &&
-      (String(o.scheduleId) === String(schedule.id) ||
-        String(o.schedule?.id) === String(schedule.id)),
-  )
+  return allOfferings.value.filter((o) => {
+    const termMatch =
+      !currentTermId ||
+      String(o.termId) === String(currentTermId) ||
+      String(o.term?.id) === String(currentTermId)
+    const branchMatch =
+      branchFilter.value === 'all' ||
+      String(o.branchId) === String(branchFilter.value) ||
+      String(o.branch?.id) === String(branchFilter.value)
+    const schedMatch =
+      String(o.scheduleId || o.schedule?.id) === String(schedule.id) ||
+      (o.schedule?.day === schedule.day && o.schedule?.time === schedule.time)
+    return termMatch && branchMatch && schedMatch
+  })
+}
 
-  if (!off) {
-    const isFull = schedule.status === 'full'
-    return { status: schedule.status || 'Active', type: isFull ? 'red' : 'green' }
+const getScheduleCapacity = (schedule) => {
+  const matchingOfferings = getScheduleMatchingOfferings(schedule)
+
+  if (matchingOfferings.length > 0) {
+    return matchingOfferings.reduce(
+      (sum, off) =>
+        sum +
+        Number(
+          off.capacity ||
+            schedule.capacity ||
+            classData.value?.maxCapacity ||
+            classData.value?.capacity ||
+            DEFAULT_CAPACITY,
+        ),
+      0,
+    )
   }
 
-  const count = Number(off.currentCount || off.students?.length || 0)
-  const capacity = Number(schedule.capacity || off?.capacity || DEFAULT_CAPACITY)
+  return Number(
+    schedule.capacity ||
+      classData.value?.maxCapacity ||
+      classData.value?.capacity ||
+      DEFAULT_CAPACITY,
+  )
+}
 
-  if (count >= capacity) return { status: 'Full', type: 'red' }
+const getScheduleEnrolledCount = (schedule) => {
+  const currentTermId =
+    termFilter.value === 'all'
+      ? terms.value.find((t) => t.isCurrent)?.id || terms.value[0]?.id
+      : termFilter.value
 
-  const startDate = off.termStartDate || off.term?.startDate
-  const endDate = off.termEndDate || off.term?.endDate
+  const matchingEnrollsCount = enrollments.value.filter((e) => {
+    const isActive =
+      (['paid', 'success', 'active', 'confirmed'].includes(String(e.status || '').toLowerCase()) ||
+        ['paid', 'success'].includes(String(e.paymentStatus || '').toLowerCase())) &&
+      !['transferred', 'cancelled', 'suspended'].includes(String(e.status || '').toLowerCase())
+    if (!isActive) return false
+
+    const eTermId = e.termId || e.class?.termId || e.class?.term?.id
+    if (currentTermId && eTermId && String(eTermId) !== String(currentTermId)) return false
+
+    const eBranchId = e.branchId || e.class?.branchId || e.class?.branch?.id
+    if (
+      branchFilter.value !== 'all' &&
+      eBranchId &&
+      String(eBranchId) !== String(branchFilter.value)
+    ) {
+      return false
+    }
+
+    const eSchedId =
+      e.scheduleId ||
+      e.class?.schedule?.id ||
+      e.schedule?.id ||
+      (Array.isArray(e.class?.scheduleIds) ? e.class.scheduleIds[0] : null)
+    if (eSchedId && String(eSchedId) === String(schedule.id)) return true
+
+    const eDay = e.class?.schedule?.day || e.schedule?.day || e.scheduleDay
+    const eTime = e.class?.schedule?.time || e.schedule?.time || e.scheduleTime
+    if (
+      eDay &&
+      schedule.day &&
+      String(eDay).toLowerCase() === String(schedule.day).toLowerCase()
+    ) {
+      if (eTime && schedule.time) {
+        return String(eTime).toLowerCase() === String(schedule.time).toLowerCase()
+      }
+      return true
+    }
+
+    return false
+  }).length
+
+  const matchingOfferings = getScheduleMatchingOfferings(schedule)
+  const offeringCount = matchingOfferings.reduce(
+    (sum, o) => sum + Number(o.currentCount || o.enrolledCount || o.students?.length || 0),
+    0,
+  )
+
+  return Math.max(matchingEnrollsCount, offeringCount)
+}
+
+const getScheduleStatus = (schedule) => {
+  const matchingOfferings = getScheduleMatchingOfferings(schedule)
+
+  const explicitOffering = matchingOfferings.find((o) =>
+    ['cancelled', 'closed'].includes(String(o.status || '').toLowerCase()),
+  )
+  if (explicitOffering) {
+    const st = explicitOffering.status
+    return {
+      status: st.charAt(0).toUpperCase() + st.slice(1),
+      type: resolveColor(st, 'academic'),
+    }
+  }
+
+  if (['cancelled', 'closed'].includes(String(classData.value?.status || '').toLowerCase())) {
+    const st = classData.value.status
+    return {
+      status: st.charAt(0).toUpperCase() + st.slice(1),
+      type: resolveColor(st, 'academic'),
+    }
+  }
+
+  const count = getScheduleEnrolledCount(schedule)
+  const capacity = getScheduleCapacity(schedule)
+  if (count >= capacity) {
+    return { status: 'Full', type: 'red' }
+  }
+
+  const off = matchingOfferings[0]
+  const startDate = off?.termStartDate || off?.term?.startDate || selectedTermDates.value?.startDate
+  const endDate = off?.termEndDate || off?.term?.endDate || selectedTermDates.value?.endDate
 
   if (startDate && endDate) {
     const progress = calculateClassProgress(startDate, endDate, schedule.day, schedule.time)
     if (progress.status === 'ongoing') return { status: 'Ongoing', type: 'blue' }
-    if (progress.status === 'archived') return { status: 'Completed', type: 'gray' }
+    if (progress.status === 'archived' || progress.status === 'completed') {
+      return { status: 'Completed', type: 'green' }
+    }
   }
 
-  return { status: 'Active', type: 'green' }
+  return { status: 'Available', type: 'green' }
 }
 
-const getScheduleCapacity = (schedule) => {
-  const currentTermId =
-    termFilter.value === 'all'
-      ? terms.value.find((t) => t.isCurrent)?.id || terms.value[0]?.id
-      : termFilter.value
-  const currentBranchId =
-    branchFilter.value === 'all' ? uniqueBranches.value[0]?.id : branchFilter.value
-
-  const off = allOfferings.value.find(
-    (o) =>
-      (String(o.termId) === String(currentTermId) ||
-        String(o.term?.id) === String(currentTermId)) &&
-      (String(o.branchId) === String(currentBranchId) ||
-        String(o.branch?.id) === String(currentBranchId)) &&
-      (String(o.scheduleId) === String(schedule.id) ||
-        String(o.schedule?.id) === String(schedule.id)),
-  )
-
-  return schedule.capacity || off?.capacity || DEFAULT_CAPACITY
+const getScheduleSeatDisplay = (schedule) => {
+  const count = getScheduleEnrolledCount(schedule)
+  const cap = getScheduleCapacity(schedule)
+  return `${count}/${cap}`
 }
 
 const scheduleOptions = computed(() => {
@@ -1338,7 +1431,7 @@ watch(branchFilter, (newBranchId) => {
                           >Seats</span
                         >
                         <span class="text-sm font-black text-content-dark leading-none">{{
-                          getScheduleCapacity(schedule)
+                          getScheduleSeatDisplay(schedule)
                         }}</span>
                       </div>
                       <div class="w-px h-6 bg-outline-std/50"></div>

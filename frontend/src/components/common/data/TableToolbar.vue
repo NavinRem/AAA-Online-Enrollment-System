@@ -27,6 +27,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  filterLabel: {
+    type: String,
+    default: 'Filter',
+  },
   currentFilter: {
     type: String,
     default: 'all',
@@ -55,7 +59,7 @@ const activeOption = computed(() => {
 })
 
 const activeFilterLabel = computed(() => {
-  return activeOption.value ? activeOption.value.label : 'Filter'
+  return activeOption.value ? activeOption.value.label : props.filterLabel
 })
 
 const toggleFilter = (event) => {
@@ -106,22 +110,22 @@ const selectFilter = (val) => {
         @update:modelValue="$emit('update:searchQuery', $event)"
         :placeholder="searchPlaceholder"
         :variant="searchVariant"
-        class="lg:w-128 w-full flex-1"
+        class="max-w-md lg:max-w-lg w-full flex-1"
       />
       <div v-if="hasFilter" class="relative">
         <AppButton
           ref="filterToggleRef"
           :variant="isActiveFilter ? 'ghost' : 'secondary'"
           size="md"
-          class="rounded-xl transition-all duration-300"
+          class="rounded-xl font-bold transition-all duration-300"
           :class="{ 'shadow-md': isActiveFilter, 'shadow-sm': !isActiveFilter }"
           @click="toggleFilter"
           :style="
             isActiveFilter
               ? {
-                  backgroundColor: getStatusTheme(currentFilter, activeOption?.color).color,
+                  backgroundColor: getStatusTheme(currentFilter, activeOption?.type || activeOption?.color).color,
                   color: '#ffffff',
-                  border: `1px solid ${getStatusTheme(currentFilter, activeOption?.color).color}20`,
+                  border: `1px solid ${getStatusTheme(currentFilter, activeOption?.type || activeOption?.color).color}20`,
                 }
               : {}
           "
@@ -178,9 +182,9 @@ const selectFilter = (val) => {
                   :style="
                     currentFilter === option.value
                       ? {
-                          backgroundColor: getStatusTheme(option.value, option.color)
+                          backgroundColor: getStatusTheme(option.value, option.type || option.color)
                             .backgroundColor,
-                          color: getStatusTheme(option.value, option.color).color,
+                          color: getStatusTheme(option.value, option.type || option.color).color,
                         }
                       : {}
                   "
@@ -188,7 +192,7 @@ const selectFilter = (val) => {
                   @mouseenter="
                     (e) => {
                       if (currentFilter !== option.value) {
-                        const theme = getStatusTheme(option.value, option.color)
+                        const theme = getStatusTheme(option.value, option.type || option.color)
                         e.currentTarget.style.backgroundColor = theme.backgroundColor
                         e.currentTarget.style.color = theme.color
                       }
@@ -205,10 +209,14 @@ const selectFilter = (val) => {
                 >
                   <div class="flex items-center gap-3">
                     <div
-                      v-if="option.badge"
+                      v-if="option.badge || option.badgeStatus"
                       class="shrink-0 flex items-center justify-center min-w-6"
                     >
-                      <AppBadge :status="option.badge.status" :type="option.badge.type" />
+                      <AppBadge
+                        :status="option.badge?.status || option.badgeStatus"
+                        :type="option.badge?.type || option.type || option.color"
+                        size="sm"
+                      />
                     </div>
                     <div
                       v-else-if="option.image || option.profileURL"
@@ -234,7 +242,9 @@ const selectFilter = (val) => {
                         ]"
                       />
                     </div>
-                    <span class="flex-1 truncate">{{ option.label }}</span>
+                    <span v-if="!(option.badge || option.badgeStatus)" class="flex-1 font-bold truncate">{{
+                      option.label
+                    }}</span>
                   </div>
                 </div>
               </template>
@@ -249,11 +259,11 @@ const selectFilter = (val) => {
 
 <style scoped>
 .toolbar-root {
-  @apply flex items-center justify-between min-h-14 w-full pb-lg;
+  @apply flex items-center justify-between min-h-14 w-full pb-lg gap-4 flex-wrap;
 }
 
 .toolbar-title-box {
-  @apply flex items-center gap-md flex-1 min-w-0 pr-xl;
+  @apply flex items-center gap-md shrink-0 pr-xl;
 }
 
 .toolbar-title {
@@ -261,6 +271,6 @@ const selectFilter = (val) => {
 }
 
 .toolbar-actions {
-  @apply flex justify-end items-center gap-lg;
+  @apply flex justify-end items-center gap-3 flex-wrap;
 }
 </style>

@@ -14,11 +14,11 @@ defineProps({
 
 <template>
   <section class="ui-detail-card bg-primary-soft/30 border-primary/10">
-    <h2 class="font-bold text-2xl text-content-dark ">Account Timestamp</h2>
+    <h2 class="font-bold text-2xl text-content-dark">Account Timestamp</h2>
     <div class="space-y-4">
       <div class="flex flex-col gap-2 p-4 bg-white rounded-md border border-outline-std shadow-2xs">
         <div class="flex items-center justify-between gap-2">
-          <span class="text-sm font-bold  text-content-muted">Created At</span>
+          <span class="text-sm font-bold text-content-muted">Created At</span>
           <AppBadge type="green">
             {{ formatDate(createdAt) }}
           </AppBadge>
@@ -30,7 +30,7 @@ defineProps({
 
       <div class="flex flex-col gap-2 p-4 bg-white rounded-md border border-outline-std shadow-2xs">
         <div class="flex items-center justify-between gap-2">
-          <span class="text-sm font-bold se  text-content-muted">Last Modified</span>
+          <span class="text-sm font-bold se text-content-muted">Last Modified</span>
           <AppBadge type="blue">
             {{ formatDate(updatedAt || createdAt) }}
           </AppBadge>

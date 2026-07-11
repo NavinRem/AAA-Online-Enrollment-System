@@ -13,6 +13,23 @@ const COMMON_STATUSES = {
 }
 
 const REGISTRIES = {
+  academic: {
+    ...COMMON_STATUSES,
+    studying: 'green',
+    graduated: 'blue',
+    suspended: 'yellow',
+    stopped: 'red',
+    trial: 'purple',
+    ongoing: 'blue',
+    passed: 'green',
+    prospect: 'purple',
+    intermediate: 'purple',
+    'in progress': 'purple',
+    available: 'green',
+    full: 'red',
+    cancelled: 'orange',
+    completed: 'green',
+  },
   finance: {
     ...COMMON_STATUSES,
     paid: 'green',
@@ -35,23 +52,6 @@ const REGISTRIES = {
     acleda: 'magenta',
     sathapana: 'magenta',
     aeon: 'purple',
-  },
-  academic: {
-    ...COMMON_STATUSES,
-    studying: 'green',
-    graduated: 'blue',
-    suspended: 'yellow',
-    stopped: 'red',
-    trial: 'purple',
-    ongoing: 'blue',
-    passed: 'green',
-    prospect: 'purple',
-    intermediate: 'purple',
-    'in progress': 'purple',
-    available: 'green',
-    full: 'red',
-    cancelled: 'orange',
-    completed: 'green',
   },
   account: {
     ...COMMON_STATUSES,
@@ -234,10 +234,79 @@ export const resolveBranchBadgeProps = (branchVal, branchesList = null) => {
         branchVal.branchColor ||
         branchVal.badgeColor ||
         branchVal.type ||
-        'blue',
+        'gray',
     }
   }
 
-  return { status: String(branchVal).trim(), type: 'blue' }
+  return { status: String(branchVal).trim(), type: 'gray' }
+}
+
+export const TERM_COLORS = ['blue', 'green', 'purple', 'magenta']
+
+export const getTermColor = (termVal, termsList = null) => {
+  if (termVal === null || termVal === undefined) return TERM_COLORS[0]
+
+  if (typeof termVal === 'number') {
+    return TERM_COLORS[Math.abs(termVal) % TERM_COLORS.length]
+  }
+
+  let list = termsList
+  if (!Array.isArray(list)) {
+    try {
+      list = useDataStore().terms || []
+    } catch {
+      list = []
+    }
+  }
+
+  if (typeof termVal === 'object') {
+    if (termVal.color || termVal.termColor || termVal.badgeColor) {
+      return termVal.color || termVal.termColor || termVal.badgeColor
+    }
+    if (Array.isArray(list) && list.length > 0) {
+      const matchIdx = list.findIndex(
+        (t) => String(t.id) === String(termVal.id) || String(t.name) === String(termVal.name),
+      )
+      if (matchIdx >= 0) {
+        return TERM_COLORS[matchIdx % TERM_COLORS.length]
+      }
+    }
+    const nameStr = String(termVal.name || termVal.termName || '').trim()
+    const tNumMatch = nameStr.match(/T(\d+)/i) || nameStr.match(/Term\s*(\d+)/i)
+    if (tNumMatch) {
+      const idx = parseInt(tNumMatch[1], 10) - 1
+      if (idx >= 0) return TERM_COLORS[idx % TERM_COLORS.length]
+    }
+    return TERM_COLORS[0]
+  }
+
+  const strVal = String(termVal).trim()
+  if (Array.isArray(list) && list.length > 0) {
+    const matchIdx = list.findIndex(
+      (t) =>
+        String(t.id) === strVal || String(t.name).toLowerCase() === strVal.toLowerCase(),
+    )
+    if (matchIdx >= 0) {
+      return TERM_COLORS[matchIdx % TERM_COLORS.length]
+    }
+  }
+
+  const tNumMatch = strVal.match(/T(\d+)/i) || strVal.match(/Term\s*(\d+)/i)
+  if (tNumMatch) {
+    const idx = parseInt(tNumMatch[1], 10) - 1
+    if (idx >= 0) return TERM_COLORS[idx % TERM_COLORS.length]
+  }
+
+  return TERM_COLORS[0]
+}
+
+export const resolveTermBadgeProps = (termVal, termsList = null) => {
+  if (!termVal) return null
+  const status =
+    typeof termVal === 'object'
+      ? termVal.name || termVal.termName || String(termVal.id || 'Term')
+      : String(termVal).trim()
+  const type = getTermColor(termVal, termsList)
+  return { status, type }
 }
 

@@ -1,6 +1,6 @@
 <script setup>
 import { computed } from 'vue'
-import { getStatusTheme, resolveBranchBadgeProps } from '@/utils/badgeUtils'
+import { getStatusTheme, resolveBranchBadgeProps, resolveTermBadgeProps } from '@/utils/badgeUtils'
 
 const props = defineProps({
   value: { type: [String, Number], default: '' },
@@ -8,6 +8,7 @@ const props = defineProps({
   type: { type: String, default: '' },
   colorValue: { type: [String, Number], default: '' },
   branch: { type: [String, Number, Object], default: null },
+  term: { type: [String, Number, Object], default: null },
 })
 
 const resolvedBranch = computed(() => {
@@ -15,14 +16,23 @@ const resolvedBranch = computed(() => {
   return resolveBranchBadgeProps(props.branch)
 })
 
+const resolvedTerm = computed(() => {
+  if (!props.term) return null
+  return resolveTermBadgeProps(props.term)
+})
+
 const badgeValue = computed(() => {
   if (resolvedBranch.value) return resolvedBranch.value.status
+  if (resolvedTerm.value) return resolvedTerm.value.status
   return props.value || props.status
 })
 
 const badgeStyle = computed(() => {
   if (resolvedBranch.value && !props.type) {
     return getStatusTheme(resolvedBranch.value.type, resolvedBranch.value.type)
+  }
+  if (resolvedTerm.value && !props.type) {
+    return getStatusTheme(resolvedTerm.value.type, resolvedTerm.value.type)
   }
   return getStatusTheme(props.colorValue || badgeValue.value, props.type)
 })

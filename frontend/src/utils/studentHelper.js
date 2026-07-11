@@ -53,8 +53,18 @@ export const enrichStudents = (
       return { ...r, program: prog, branchId: bId }
     })
 
+    const targetParentId = String(s.parentId || s.parent?.id || s.parent?.uid || '')
     const pRaw =
-      s.parentInfo || users.find((u) => u.uid === (s.parentId || '') || u.id === (s.parentId || ''))
+      s.parentInfo ||
+      s.parent ||
+      (targetParentId
+        ? users.find(
+            (u) =>
+              String(u.id || '') === targetParentId ||
+              String(u.uid || '') === targetParentId ||
+              String(u.docId || '') === targetParentId,
+          )
+        : null)
     const p = Array.isArray(pRaw) ? pRaw[0] : pRaw
 
     return {
@@ -63,14 +73,14 @@ export const enrichStudents = (
       archived: !!(s.archived || (s.status || '').toLowerCase() === 'stopped'),
       parentInfo: p
         ? {
-            id: p.uid || p.id,
-            name: p.name || 'N/A',
+            id: p.uid || p.id || targetParentId,
+            name: p.name || p.displayName || s.parentName || 'N/A',
             profileURL: p.profileURL || getImageUrl('profiles', 'avatar-guest'),
             status: p.status || 'Active',
           }
         : {
-            id: s.parentId,
-            name: 'Registry Pending',
+            id: s.parentId || null,
+            name: s.parentName || 'Registry Pending',
             profileURL: getImageUrl('profiles', 'avatar-guest'),
             status: 'Inactive',
           },

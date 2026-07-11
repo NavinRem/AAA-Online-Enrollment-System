@@ -10,15 +10,48 @@ export function useTableActions() {
 
   /**
    * Toggles the menu for a specific row item.
-   * Calculates if it should open upwards based on available viewport space.
+   * Handles both left-click on action button and right-click contextmenu on row.
    */
   const toggleMenu = (event, id) => {
-    if (activeMenuId.value === id) {
+    const isContextMenu = event && event.type === 'contextmenu'
+
+    if (activeMenuId.value === id && !isContextMenu) {
       activeMenuId.value = null
       return
     }
 
-    if (!event || !event.currentTarget) {
+    if (!event) {
+      activeMenuId.value = id
+      return
+    }
+
+    if (isContextMenu) {
+      const x = event.clientX
+      const y = event.clientY
+
+      const spaceBelow = window.innerHeight - y
+      isMenuAbove.value = spaceBelow < 260
+
+      const styles = {}
+
+      if (window.innerWidth - x < 220) {
+        styles.right = `${window.innerWidth - x}px`
+      } else {
+        styles.left = `${x}px`
+      }
+
+      if (isMenuAbove.value) {
+        styles.bottom = `${window.innerHeight - y}px`
+      } else {
+        styles.top = `${y}px`
+      }
+
+      menuStyles.value = styles
+      activeMenuId.value = id
+      return
+    }
+
+    if (!event.currentTarget) {
       activeMenuId.value = id
       return
     }
@@ -49,6 +82,11 @@ export function useTableActions() {
 
   const handleEventClose = (event) => {
     if (!activeMenuId.value) return
+
+    // Do not close on right-click mousedown so contextmenu event can trigger
+    if (event.type === 'mousedown' && event.button === 2) {
+      return
+    }
 
     // In E2E tests, bypass closing on scroll/resize to prevent test flakiness from auto-scrolling
     if (typeof window !== 'undefined' && window.__playwright_mock_auth__) {
@@ -81,14 +119,24 @@ export function useTableActions() {
     }
   }
 
+  const handleContextMenuClose = (event) => {
+    if (!activeMenuId.value) return
+    const target = event.target
+    if (!target.closest('.ui-row')) {
+      closeMenu()
+    }
+  }
+
   onMounted(() => {
     document.addEventListener('mousedown', handleEventClose)
+    document.addEventListener('contextmenu', handleContextMenuClose)
     window.addEventListener('resize', handleEventClose)
     window.addEventListener('scroll', handleEventClose, true) // Capture scroll
   })
 
   onUnmounted(() => {
     document.removeEventListener('mousedown', handleEventClose)
+    document.removeEventListener('contextmenu', handleContextMenuClose)
     window.removeEventListener('resize', handleEventClose)
     window.removeEventListener('scroll', handleEventClose, true)
   })
@@ -101,3 +149,4 @@ export function useTableActions() {
     closeMenu,
   }
 }
+

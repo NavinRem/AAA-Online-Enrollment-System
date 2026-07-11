@@ -15,6 +15,7 @@ const props = defineProps({
   searchPlaceholder: { type: String, default: 'Search...' },
   hasFilter: { type: Boolean, default: false },
   currentFilter: { type: String, default: 'all' },
+  filterLabel: { type: String, default: 'Filter' },
   filterOptions: { type: Array, default: () => [] },
   hasSearch: { type: Boolean, default: true },
   loadingMessage: { type: String, default: 'Loading data...' },
@@ -84,10 +85,26 @@ const handleAction = (type, item) => {
   closeMenu()
 }
 
+const hasActionColumn = computed(() => {
+  return (props.headers || []).some((h) => {
+    const label = (typeof h === 'object' ? h.label : h) || ''
+    const key = (typeof h === 'object' ? h.key : '') || ''
+    return String(label).toLowerCase() === 'action' || String(key).toLowerCase() === 'action'
+  })
+})
+
+const handleRowContextMenu = (event, item) => {
+  if (!hasActionColumn.value || !item || !item.id) return
+  event.preventDefault()
+  toggleMenu(event, item.id)
+}
+
 let route = null
 try {
   route = useRoute()
-} catch (e) {}
+} catch (e) {
+  console.error(e)
+}
 
 const highlightedQuery = ref('')
 
@@ -143,6 +160,7 @@ const isHighlightedRow = (item) => {
           :searchVariant="searchVariant"
           @update:currentFilter="emit('update:currentFilter', $event)"
           :filterOptions="filterOptions"
+          :filterLabel="filterLabel"
           :title="title"
         >
           <template #actions>
@@ -179,6 +197,7 @@ const isHighlightedRow = (item) => {
             : '',
         ]"
         @click="emit('row-click', item)"
+        @contextmenu="handleRowContextMenu($event, item)"
       >
         <slot
           name="row"
