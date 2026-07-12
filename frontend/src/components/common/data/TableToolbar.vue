@@ -110,7 +110,7 @@ const selectFilter = (val) => {
         @update:modelValue="$emit('update:searchQuery', $event)"
         :placeholder="searchPlaceholder"
         :variant="searchVariant"
-        class="max-w-md lg:max-w-lg w-full flex-1"
+        class="max-w-lg w-full flex-1"
       />
       <div v-if="hasFilter" class="relative">
         <AppButton
@@ -123,7 +123,10 @@ const selectFilter = (val) => {
           :style="
             isActiveFilter
               ? {
-                  backgroundColor: getStatusTheme(currentFilter, activeOption?.type || activeOption?.color).color,
+                  backgroundColor: getStatusTheme(
+                    currentFilter,
+                    activeOption?.type || activeOption?.color,
+                  ).color,
                   color: '#ffffff',
                   border: `1px solid ${getStatusTheme(currentFilter, activeOption?.type || activeOption?.color).color}20`,
                 }
@@ -135,18 +138,14 @@ const selectFilter = (val) => {
             :src="activeOption.image || activeOption.profileURL"
             class="w-4 h-4 transition-all"
             :class="{ 'brightness-0 invert': isActiveFilter }"
-            :style="
-              isActiveFilter ? {} : {}
-            "
+            :style="isActiveFilter ? {} : {}"
           />
           <img
             v-else
             :src="getActionIcon('filter')"
             class="w-4 h-4 transition-all"
             :class="{ 'brightness-0 invert': isActiveFilter }"
-            :style="
-              isActiveFilter ? {} : { filter: getStatusFilter('filter') }
-            "
+            :style="isActiveFilter ? {} : { filter: getStatusFilter('filter') }"
           />
           <span class="font-bold tracking-tight">{{ activeFilterLabel }}</span>
         </AppButton>
@@ -242,9 +241,11 @@ const selectFilter = (val) => {
                         ]"
                       />
                     </div>
-                    <span v-if="!(option.badge || option.badgeStatus)" class="flex-1 font-bold truncate">{{
-                      option.label
-                    }}</span>
+                    <span
+                      v-if="!(option.badge || option.badgeStatus)"
+                      class="flex-1 font-bold truncate"
+                      >{{ option.label }}</span
+                    >
                   </div>
                 </div>
               </template>
@@ -271,6 +272,6 @@ const selectFilter = (val) => {
 }
 
 .toolbar-actions {
-  @apply flex justify-end items-center gap-3 flex-wrap;
+  @apply flex flex-1 justify-end items-center gap-3 flex-wrap;
 }
 </style>

@@ -30,7 +30,7 @@ const goBack = () => router.push(props.backRoute)
 const flexWidths = computed(() => {
   if (props.sidebarWidth === 'sm') return { main: 'flex-1', side: 'w-full md:w-80' }
   if (props.sidebarWidth === 'lg') return { main: 'flex-1', side: 'w-full md:w-120' }
-  return { main: 'flex-1', side: 'w-full md:w-100' }
+  return { main: 'flex-1', side: 'w-full md:w-120' }
 })
 </script>
 

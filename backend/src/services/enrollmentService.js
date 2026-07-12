@@ -459,6 +459,25 @@ class EnrollmentService {
         }
       }
 
+      const nextStatus = updates.status || currentData.status
+      if (isSeatTaking(nextStatus) && !isSeatTaking(currentData.status)) {
+        const termService = require('./termService')
+        const { offering } = await termService.getOffering(
+          validated.termId || currentData.termId,
+          validated.termOfferingId || currentData.termOfferingId,
+        )
+        const scheduleCapacity =
+          offering.schedule?.capacity ||
+          offering.capacity ||
+          currentData.class?.capacity ||
+          20
+        if ((offering.currentCount || 0) >= scheduleCapacity) {
+          throw new Error(
+            `Cannot complete payment: This class/schedule is already full (${offering.currentCount}/${scheduleCapacity}). Please change the student's schedule to another class or cancel the enrollment.`
+          )
+        }
+      }
+
       transaction.update(ref, updates)
 
       // Automatic Payment Record Creation on Status Transition (Skip if transfer enrollment)
@@ -758,6 +777,15 @@ class EnrollmentService {
         null,
         id,
       )
+      const targetCapacity =
+        newOffering.schedule?.capacity ||
+        newOffering.capacity ||
+        20
+      if ((newOffering.currentCount || 0) >= targetCapacity) {
+        throw new Error(
+          `Cannot transfer student: The destination class/schedule is already full (${newOffering.currentCount}/${targetCapacity}).`
+        )
+      }
       if (newTerm.branchSettings) {
         const newSetting = newTerm.branchSettings.find(
           (s) => String(s.branchId) === String(newOffering.branchId || newOffering.branch?.id),
@@ -1045,6 +1073,24 @@ class EnrollmentService {
         ? 'paid'
         : 'unpaid'
       const now = new Date().toISOString()
+
+      if (!isSeatTaking(enrollmentData.status) && isSeatTaking(eStatus)) {
+        const termService = require('./termService')
+        const { offering } = await termService.getOffering(
+          enrollmentData.termId,
+          enrollmentData.termOfferingId,
+        )
+        const scheduleCapacity =
+          offering.schedule?.capacity ||
+          offering.capacity ||
+          enrollmentData.class?.capacity ||
+          20
+        if ((offering.currentCount || 0) >= scheduleCapacity) {
+          throw new Error(
+            `Cannot complete payment: This class/schedule is already full (${offering.currentCount}/${scheduleCapacity}). Please change the student's schedule to another class or cancel the enrollment.`
+          )
+        }
+      }
 
       updatedEnrollmentData = {
         ...enrollmentData,

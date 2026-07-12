@@ -1,5 +1,3 @@
-export const DEFAULT_CAPACITY = 5
-
 export const getLocalTodayStr = () => {
   const d = new Date()
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0]

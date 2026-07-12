@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DetailPageLayout from '@/components/layout/DetailPageLayout.vue'
@@ -9,12 +9,11 @@ import { classService } from '@/services/classService'
 import { enrollmentService } from '@/services/enrollmentService'
 import { programService } from '@/services/programService'
 import { termService } from '@/services/termService'
-import { getActionIcon, getProgramProfileURL, getStudentProfileURL } from '@/utils/assetHelper'
+import { getStatusTheme, getStatusFilter, resolveColor, getTermColor } from '@/utils/badgeUtils'
 import {
   calculateClassProgress,
   formatDateOnly,
   generateClassSessions,
-  DEFAULT_CAPACITY,
   sortSchedulesChronologically,
 } from '@/utils/formatUtils'
 import AppButton from '@/components/common/ui/AppButton.vue'
@@ -22,15 +21,14 @@ import ClassActionModal from '@/components/classes/ClassActionModal.vue'
 import DataTable from '@/components/common/data/DataTable.vue'
 import { useSearch, enrollmentSearchMapper } from '@/composables/useSearch'
 import { useDataStore } from '@/stores/dataStore'
-import { getStatusTheme, getStatusFilter, resolveColor } from '@/utils/badgeUtils'
 import { useModalState } from '@/composables/useModalState'
 import { useDropdowns } from '@/composables/useDropdowns'
 import { useDetailFetch } from '@/composables/useDetailFetch'
+import { getActionIcon, getProgramProfileURL, getStudentProfileURL } from '@/utils/assetHelper'
+import { attendanceService } from '@/services/attendanceService'
 
 const router = useRouter()
 const dataStore = useDataStore()
-
-import { attendanceService } from '@/services/attendanceService'
 
 const classData = ref(null)
 const enrollments = ref([])
@@ -54,8 +52,14 @@ const ATTENDANCE_STATUS = {
   N: { label: 'N', color: 'gray', theme: 'bg-surface-light text-content-muted' },
 }
 
-const getAttendanceStatus = (sessionId, studentId) => {
-  return attendanceData.value[sessionId]?.[studentId] || 'N'
+const getAttendanceStatus = (sessionId, studentId, rawId = null) => {
+  if (attendanceData.value[sessionId]?.[studentId]) {
+    return attendanceData.value[sessionId][studentId]
+  }
+  if (rawId && attendanceData.value[rawId]?.[studentId]) {
+    return attendanceData.value[rawId][studentId]
+  }
+  return 'N'
 }
 
 let isSyncing = false
@@ -249,7 +253,8 @@ const allOfferings = computed(() =>
 const selectedTermOfferings = computed(() => {
   if (termFilter.value === 'all') {
     const currentTermIds = terms.value.filter((t) => t.isCurrent).map((t) => String(t.id))
-    return allOfferings.value.filter((o) => currentTermIds.includes(String(o.termId)))
+    const matched = allOfferings.value.filter((o) => currentTermIds.includes(String(o.termId)))
+    return matched.length > 0 ? matched : allOfferings.value
   }
   return allOfferings.value.filter((o) => String(o.termId) === String(termFilter.value))
 })
@@ -347,44 +352,43 @@ const uniqueBranches = computed(() => {
         abbr: liveBranch?.abbr || branch.abbr || branch.name,
         color: liveBranch?.color || branch.color || 'gray', // Will be overridden if available
         studentCount: 0,
-        isAvailable: false, // Default to false until we find an offering
+        isAvailable: true, // Assigned class branches default to available
       })
     })
   }
 
-  // Then, override/update with active offerings for the current term
-  selectedTermOfferings.value.forEach((offering) => {
-    if (offering.branch?.id) {
-      const branchId = String(offering.branch.id)
-      const liveBranch = dataStore.branches.find((b) => String(b.id) === branchId)
+  const targetTermId = termFilter.value === 'all' ? null : termFilter.value
 
-      if (!branchMap.has(branchId)) {
-        branchMap.set(branchId, {
-          id: branchId,
-          name: offering.branch.name,
-          abbr: liveBranch?.abbr || offering.branch.abbr || offering.branch.name,
-          color: liveBranch?.color || offering.branch.color || 'blue',
-          studentCount: 0,
-          isAvailable: true,
-        })
-      } else {
-        const existing = branchMap.get(branchId)
-        existing.isAvailable = true
-        existing.color = liveBranch?.color || offering.branch.color || 'blue'
+  branchMap.forEach((branch, branchIdStr) => {
+    const count = enrollments.value.filter((e) => {
+      if (
+        e.isDeleted ||
+        ['deleted', 'cancelled', 'transferred'].includes(String(e.status || '').toLowerCase())
+      ) {
+        return false
+      }
+      const st = String(e.status || '').toLowerCase()
+      const paySt = String(e.paymentStatus || '').toLowerCase()
+      const isEligible =
+        ['paid', 'success', 'active', 'confirmed', 'unpaid', 'pending'].includes(st) ||
+        ['paid', 'success', 'unpaid', 'pending'].includes(paySt)
+      if (!isEligible) return false
+
+      const eBranchId =
+        e.branchId || e.branch?.id || e.branchInfo?.id || e.class?.branchId || e.class?.branch?.id
+      if (eBranchId && String(eBranchId) !== String(branchIdStr)) return false
+
+      if (targetTermId) {
+        const eTermId = e.termId || e.term?.id || e.class?.termId || e.class?.term?.id
+        if (eTermId && String(eTermId) !== String(targetTermId)) return false
       }
 
-      const paidStudentsCount = enrollments.value.filter(
-        (e) =>
-          (String(e.branchId) === branchId || String(e.class?.branch?.id) === branchId) &&
-          String(e.termId) === String(offering.termId) &&
-          (['paid', 'success', 'active', 'confirmed'].includes(e.status) ||
-            (['paid', 'success'].includes(e.paymentStatus) &&
-              !['transferred', 'cancelled', 'suspended'].includes(e.status))),
-      ).length
+      return true
+    }).length
 
-      branchMap.get(branchId).studentCount = paidStudentsCount
-    }
+    branch.studentCount = count
   })
+
   return Array.from(branchMap.values())
 })
 
@@ -396,11 +400,16 @@ const normalizeDate = (val) => {
 // Resolve the correct start/end dates directly from term.branchSettings
 // This is the single source of truth for session date generation — no offering chain
 const selectedTermDates = computed(() => {
-  const term = terms.value.find((t) => String(t.id) === String(termFilter.value))
+  const targetTermId =
+    termFilter.value === 'all'
+      ? terms.value.find((t) => t.isCurrent)?.id || terms.value[0]?.id
+      : termFilter.value
+
+  const term = terms.value.find((t) => String(t.id) === String(targetTermId))
   if (!term) return { startDate: null, endDate: null }
 
   // Resolve branch-specific dates from branchSettings
-  if (branchFilter.value && term.branchSettings) {
+  if (branchFilter.value && branchFilter.value !== 'all' && term.branchSettings) {
     const setting = term.branchSettings.find(
       (s) => String(s.branchId) === String(branchFilter.value),
     )
@@ -424,7 +433,11 @@ const sessions = computed(() => {
   const dayOfWeek = schedule?.day || primarySchedule.value?.day
 
   // Calculate total sessions
-  const term = terms.value.find((t) => String(t.id) === String(termFilter.value))
+  const targetTermId =
+    termFilter.value === 'all'
+      ? terms.value.find((t) => t.isCurrent)?.id || terms.value[0]?.id
+      : termFilter.value
+  const term = terms.value.find((t) => String(t.id) === String(targetTermId))
   let total = term?.totalSessions || programData.value?.totalSessions
   if (!total) {
     const diff = normalizeDate(endDate) - normalizeDate(startDate)
@@ -433,28 +446,46 @@ const sessions = computed(() => {
 
   const baseSessions = generateClassSessions(startDate, dayOfWeek, total, endDate)
 
+  const prefixTerm = targetTermId || 'all'
+  const prefixBranch = branchFilter.value || 'all'
+
   // Audit: Enrich session IDs with term + branch prefix.
   // CRITICAL: This ensures attendance data is scoped to specific term/branch offerings,
   // preventing "Session 1" from Term A being overwritten by "Session 1" from Term B.
   return baseSessions.map((s) => ({
     ...s,
-    id: `${termFilter.value}_${branchFilter.value}_${s.id}`,
+    id: `${prefixTerm}_${prefixBranch}_${s.id}`,
+    rawId: s.id,
   }))
 })
 
 const attendanceHeaders = computed(() => {
-  const base = [
-    { label: 'No', width: '50px', align: 'center' },
-    { label: 'Name', width: '220px' },
-    { label: 'Start Date', width: '120px', align: 'center' },
-    { label: 'Sessions Enrolled', width: '140px', align: 'center' },
+  const cols = [
+    { key: 'no', label: 'No', width: '50px', align: 'center' },
+    { key: 'name', label: 'Name', width: '220px' },
   ]
 
+  if (termFilter.value === 'all') {
+    cols.push({ key: 'term', label: 'Term', width: '130px', align: 'center' })
+  }
+  if (branchFilter.value === 'all') {
+    cols.push({ key: 'branch', label: 'Branch', width: '120px', align: 'center' })
+  }
+  if (scheduleFilter.value === 'all') {
+    cols.push({ key: 'schedule', label: 'Schedule', width: '300px', align: 'center' })
+  }
+
+  cols.push(
+    { key: 'startDate', label: 'Start Date', width: '150px', align: 'center' },
+    { key: 'sessionsEnrolled', label: 'Sessions Enrolled', width: '140px', align: 'center' },
+  )
+
   const now = new Date().setHours(0, 0, 0, 0)
-  const sessionCols = sessions.value.map((s) => {
+  const sessionCols = sessions.value.map((s, idx) => {
     const sDate = new Date(s.date).setHours(0, 0, 0, 0)
     const isFuture = sDate > now
     return {
+      key: 'session-' + idx,
       label: s.label,
       subLabel: formatDateOnly(s.date),
       width: '120px',
@@ -464,14 +495,41 @@ const attendanceHeaders = computed(() => {
   })
 
   const extraCols = [
-    { label: 'Exam', width: '90px', align: 'center' },
-    { label: 'Report Card', width: '110px', align: 'center' },
-    { label: 'Certificate', width: '110px', align: 'center' },
-    { label: 'Remark', width: '180px' },
+    { key: 'exam', label: 'Exam', width: '90px', align: 'center' },
+    { key: 'reportCard', label: 'Report Card', width: '110px', align: 'center' },
+    { key: 'certificate', label: 'Certificate', width: '110px', align: 'center' },
+    { key: 'remark', label: 'Remark', width: '300px' },
   ]
 
-  return [...base, ...sessionCols, ...extraCols]
+  return [...cols, ...sessionCols, ...extraCols]
 })
+
+const getColStyle = (headers, key, defaultWidth = '120px') => {
+  const found = (headers || []).find((h) => h.key === key)
+  const w = found ? found.width : defaultWidth
+  return { width: w, minWidth: w }
+}
+
+const hasCol = (headers, key) => {
+  return (headers || []).some((h) => h.key === key)
+}
+
+const getEnrollmentTermName = (item) => {
+  return item.term?.name || item.termName || item.class?.term?.name || '-'
+}
+
+const getEnrollmentBranchAbbr = (item) => {
+  return (
+    item.branchInfo?.abbr ||
+    item.branch?.abbr ||
+    item.branchAbbr ||
+    item.class?.branch?.abbr ||
+    item.branchInfo?.name ||
+    item.branch?.name ||
+    item.branchName ||
+    '-'
+  )
+}
 
 const currentEntityName = computed(() => 'student')
 const currentTableTitle = computed(() => 'Student Attendance')
@@ -481,19 +539,58 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 
 // Filters
-const termFilter = ref('all')
-const branchFilter = ref('all')
-const scheduleFilter = ref('all')
+const termFilter = ref(null)
+const branchFilter = ref(null)
+const scheduleFilter = ref(null)
+
+const initializeFilters = () => {
+  // 1. Select active academic term
+  const activeTerm =
+    terms.value.find((t) => t.isCurrent) ||
+    terms.value.find((t) => calculateClassProgress(t.startDate, t.endDate).status === 'ongoing') ||
+    terms.value[0]
+
+  termFilter.value = activeTerm?.id || null
+
+  // 2. Select branch
+  const branches = uniqueBranches.value
+
+  if (branches.length === 1) {
+    branchFilter.value = branches[0].id
+  } else {
+    const classBranch =
+      classData.value?.branchId || classData.value?.branch?.id || classData.value?.branchIds?.[0]
+
+    branchFilter.value = classBranch || branches[0]?.id || null
+  }
+
+  // 3. Select schedule
+  const schedules = classData.value?.schedules || []
+
+  if (schedules.length === 1) {
+    scheduleFilter.value = schedules[0].id
+  } else {
+    scheduleFilter.value = schedules[0]?.id || null
+  }
+}
 
 const termOptions = computed(() => {
-  return terms.value
+  const list = terms.value
     .map((t) => {
       const progress = calculateClassProgress(t.startDate, t.endDate)
+
+      // Use dataStore.terms (same source AppBadge/getTermColor falls back to)
+      // so index-based color matches exactly
+      const colorName = getTermColor(t.name, dataStore.terms)
+      const theme = getStatusTheme(t.name, colorName)
+
       return {
         label: t.name,
         value: t.id,
         isCurrent: t.isCurrent,
         status: progress.status,
+        color: theme.backgroundColor,
+        textColor: theme.color,
       }
     })
     .sort((a, b) => {
@@ -501,37 +598,73 @@ const termOptions = computed(() => {
       if (b.isCurrent) return 1
       return a.status === 'active' ? -1 : 1
     })
+
+  return [{ label: 'All Terms', value: 'all', color: '', textColor: '' }, ...list]
 })
 
 const branchFilterOptions = computed(() => {
-  return uniqueBranches.value.map((b) => ({
+  const list = uniqueBranches.value.map((b) => ({
     label: b.name,
     value: b.id,
     color: b.color,
     badge: { status: b.abbr, type: b.color },
   }))
+  return [{ label: 'All Branches', value: 'all' }, ...list]
 })
 
 const filteredEnrollments = computed(() => {
   const filtered = enrollments.value.filter((e) => {
-    // Audit: Only successful/eligible enrollments are shown for attendance
-    if (
-      !['paid', 'success', 'active', 'confirmed', 'transferred', 'cancelled', 'suspended'].includes(
-        e.status,
-      ) &&
-      !['paid', 'success', 'transferred'].includes(e.paymentStatus)
-    )
+    if (e.isDeleted || ['deleted'].includes(String(e.status || '').toLowerCase())) {
       return false
+    }
 
-    const termMatch = termFilter.value === 'all' || String(e.termId) === String(termFilter.value)
+    const st = String(e.status || '').toLowerCase()
+    const paySt = String(e.paymentStatus || '').toLowerCase()
+    const isEligible =
+      ['paid', 'success', 'active', 'confirmed', 'unpaid', 'pending'].includes(st) ||
+      ['paid', 'success', 'unpaid', 'pending'].includes(paySt)
+    if (!isEligible) return false
 
-    const branchId = e.branchId || e.class?.branch?.id
+    const eTermId = e.termId || e.term?.id || e.class?.termId || e.class?.term?.id
+    const termMatch =
+      termFilter.value === 'all' ||
+      !termFilter.value ||
+      !eTermId ||
+      String(eTermId) === String(termFilter.value)
+
+    const eBranchId =
+      e.branchId || e.branch?.id || e.branchInfo?.id || e.class?.branchId || e.class?.branch?.id
     const branchMatch =
-      branchFilter.value === 'all' || String(branchId) === String(branchFilter.value)
+      branchFilter.value === 'all' ||
+      !branchFilter.value ||
+      !eBranchId ||
+      String(eBranchId) === String(branchFilter.value)
 
-    const scheduleId = e.scheduleId || e.class?.schedule?.id
+    const eSchedId =
+      e.scheduleId ||
+      e.schedule?.id ||
+      e.class?.scheduleId ||
+      e.class?.schedule?.id ||
+      (Array.isArray(e.class?.scheduleIds) ? e.class.scheduleIds[0] : null)
+
+    const targetSched =
+      classData.value?.schedules?.find((s) => String(s.id) === String(scheduleFilter.value)) ||
+      classData.value?.schedule
+
+    const eDay = e.schedule?.day || e.class?.schedule?.day || e.scheduleDay
+    const eTime = e.schedule?.time || e.class?.schedule?.time || e.scheduleTime
+
     const scheduleMatch =
-      scheduleFilter.value === 'all' || String(scheduleId) === String(scheduleFilter.value)
+      scheduleFilter.value === 'all' ||
+      !scheduleFilter.value ||
+      String(eSchedId) === String(scheduleFilter.value) ||
+      (!eSchedId && !eDay) ||
+      (targetSched &&
+        eDay &&
+        String(eDay).toLowerCase() === String(targetSched.day || '').toLowerCase() &&
+        (!targetSched.time ||
+          !eTime ||
+          String(eTime).toLowerCase() === String(targetSched.time || '').toLowerCase()))
 
     return termMatch && branchMatch && scheduleMatch
   })
@@ -587,21 +720,38 @@ const selectFilter = (type, value) => {
 const getActiveLabel = (type) => {
   if (type === 'term') {
     const opt = termOptions.value.find((o) => String(o.value) === String(termFilter.value))
-    return opt ? opt.label : termOptions.value[0]?.label || 'Term'
+
+    return (
+      opt || {
+        label: 'All Terms',
+        value: 'all',
+        status: '',
+        isCurrent: false,
+        color: '',
+      }
+    )
   } else if (type === 'branch') {
     const opt = branchFilterOptions.value.find(
       (o) => String(o.value) === String(branchFilter.value),
     )
-    return opt || branchFilterOptions.value[0] || { label: 'Branch', color: 'gray' }
+
+    return opt || { label: 'All Branches', color: '' }
   } else {
     const opt = scheduleOptions.value.find((o) => String(o.id) === String(scheduleFilter.value))
-    return opt ? opt.name : scheduleOptions.value[0]?.name || 'Schedule'
+
+    return (
+      opt || {
+        name: 'All Schedules',
+        day: '',
+        time: '',
+      }
+    )
   }
 }
 
 const getActiveScheduleObj = () => {
   const opt = scheduleOptions.value.find((o) => String(o.id) === String(scheduleFilter.value))
-  return opt || scheduleOptions.value[0] || { name: 'Schedule', day: '', time: '' }
+  return opt || { name: 'All Schedules', day: '', time: '' }
 }
 
 const {
@@ -669,25 +819,12 @@ const getScheduleCapacity = (schedule) => {
 
   if (matchingOfferings.length > 0) {
     return matchingOfferings.reduce(
-      (sum, off) =>
-        sum +
-        Number(
-          off.capacity ||
-            schedule.capacity ||
-            classData.value?.maxCapacity ||
-            classData.value?.capacity ||
-            DEFAULT_CAPACITY,
-        ),
+      (sum, off) => sum + Number(off.capacity || schedule.capacity),
       0,
     )
   }
 
-  return Number(
-    schedule.capacity ||
-      classData.value?.maxCapacity ||
-      classData.value?.capacity ||
-      DEFAULT_CAPACITY,
-  )
+  return Number(schedule.capacity)
 }
 
 const getScheduleEnrolledCount = (schedule) => {
@@ -724,11 +861,7 @@ const getScheduleEnrolledCount = (schedule) => {
 
     const eDay = e.class?.schedule?.day || e.schedule?.day || e.scheduleDay
     const eTime = e.class?.schedule?.time || e.schedule?.time || e.scheduleTime
-    if (
-      eDay &&
-      schedule.day &&
-      String(eDay).toLowerCase() === String(schedule.day).toLowerCase()
-    ) {
+    if (eDay && schedule.day && String(eDay).toLowerCase() === String(schedule.day).toLowerCase()) {
       if (eTime && schedule.time) {
         return String(eTime).toLowerCase() === String(schedule.time).toLowerCase()
       }
@@ -797,14 +930,15 @@ const getScheduleSeatDisplay = (schedule) => {
 }
 
 const scheduleOptions = computed(() => {
-  if (!classData.value?.schedules) return []
+  if (!classData.value?.schedules) return [{ id: 'all', name: 'All Schedules' }]
   const sorted = sortSchedulesChronologically(classData.value.schedules)
-  return sorted.map((s) => ({
+  const list = sorted.map((s) => ({
     id: s.id,
     name: `${s.day} (${s.time})`,
     day: s.day,
     time: s.time,
   }))
+  return [{ id: 'all', name: 'All Schedules' }, ...list]
 })
 
 const isInitializing = ref(true)
@@ -836,23 +970,8 @@ const fetchData = async (id) => {
       programData.value = pData?.data || pData
     }
 
-    // Set default filters — always select a concrete option, no "All" state
-    if (terms.value.length > 0) {
-      const currentTerm = terms.value.find((t) => t.isCurrent) || terms.value[0]
-      if (currentTerm) {
-        termFilter.value = currentTerm.id
-      }
-    }
-
     await nextTick()
-
-    if (uniqueBranches.value.length > 0) {
-      branchFilter.value = uniqueBranches.value[0].id
-    }
-
-    if (classData.value?.schedules?.length > 0) {
-      scheduleFilter.value = classData.value.schedules[0].id
-    }
+    initializeFilters()
 
     isInitializing.value = false
   } catch (err) {
@@ -864,24 +983,6 @@ const fetchData = async (id) => {
 }
 
 useDetailFetch(fetchData)
-
-watch(termFilter, (newTermId) => {
-  if (isInitializing.value) return
-  if (newTermId) {
-    // Reset branch filter when term changes to ensure we show valid branches
-    if (uniqueBranches.value.length > 0) {
-      branchFilter.value = uniqueBranches.value[0].id
-    } else {
-      branchFilter.value = 'all'
-    }
-  }
-})
-
-watch(branchFilter, (newBranchId) => {
-  if (newBranchId && classData.value?.schedules?.length > 0) {
-    scheduleFilter.value = classData.value.schedules[0].id
-  }
-})
 </script>
 
 <template>
@@ -935,7 +1036,7 @@ watch(branchFilter, (newBranchId) => {
             :items="paginatedItems"
             :loading="loading"
             :entityName="currentEntityName"
-            :flexible="false"
+            :flexible="true"
             :hasSearch="false"
             :hasPagination="true"
             v-model:currentPage="currentPage"
@@ -948,9 +1049,22 @@ watch(branchFilter, (newBranchId) => {
               <div class="flex items-center gap-3">
                 <!-- Term Filter -->
                 <div class="relative" id="term-filter-btn">
-                  <AppButton variant="secondary" size="md" @click="toggleDropdown('term', $event)">
+                  <AppButton
+                    variant="secondary"
+                    size="md"
+                    @click="toggleDropdown('term', $event)"
+                    :style="
+                      getActiveLabel('term').value !== 'all' && getActiveLabel('term').color
+                        ? {
+                            backgroundColor: getActiveLabel('term').color,
+                            borderColor: 'transparent',
+                            color: getActiveLabel('term').textColor,
+                          }
+                        : {}
+                    "
+                  >
                     <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0" />
-                    <span>{{ getActiveLabel('term') }}</span>
+                    <span>{{ getActiveLabel('term').label }}</span>
                   </AppButton>
                   <Teleport to="body">
                     <transition
@@ -976,7 +1090,7 @@ watch(branchFilter, (newBranchId) => {
                           }"
                           @click="selectFilter('term', opt.value)"
                         >
-                          {{ opt.label }}
+                          <AppBadge :term="opt.label" />
                         </div>
                       </div>
                     </transition>
@@ -986,15 +1100,22 @@ watch(branchFilter, (newBranchId) => {
                 <!-- Branch Filter -->
                 <div class="relative" id="branch-filter-btn">
                   <AppButton
+                    :variant="getActiveLabel('branch').color ? undefined : 'secondary'"
                     size="md"
                     @click="toggleDropdown('branch', $event)"
-                    :style="{
-                      backgroundColor: getActiveLabel('branch').color
-                        ? getActiveLabel('branch').color
-                        : 'var(--color-surface-light)',
-                    }"
+                    :style="
+                      getActiveLabel('branch').color
+                        ? { backgroundColor: getActiveLabel('branch').color }
+                        : {}
+                    "
                   >
-                    <img :src="getActionIcon('filter')" class="w-4 h-4 brightness-0 invert" />
+                    <img
+                      :src="getActionIcon('filter')"
+                      class="w-4 h-4"
+                      :class="
+                        getActiveLabel('branch').color ? 'brightness-0 invert' : 'brightness-0'
+                      "
+                    />
                     <span>{{ getActiveLabel('branch').label }}</span>
                   </AppButton>
                   <Teleport to="body">
@@ -1045,12 +1166,11 @@ watch(branchFilter, (newBranchId) => {
                 <div class="relative" id="schedule-filter-btn" v-if="scheduleOptions.length > 1">
                   <AppButton
                     variant="secondary"
-                    size="md"
                     @click="toggleDropdown('schedule', $event)"
                     :style="{
                       backgroundColor: getActiveScheduleObj().day
                         ? getStatusTheme(getActiveScheduleObj().day, 'day').backgroundColor
-                        : 'var(--color-surface-light)',
+                        : 'var(--color-primary-soft)',
                     }"
                   >
                     <img
@@ -1094,12 +1214,15 @@ watch(branchFilter, (newBranchId) => {
                           }"
                           @click="selectFilter('schedule', opt.id)"
                         >
-                          <div class="flex items-center gap-2">
-                            <AppBadge :status="opt.day" type="day" size="xs" />
-                            <span class="text-xs font-semibold text-content-dark">{{
+                          <div v-if="opt.day" class="flex items-center gap-2">
+                            <AppBadge :status="opt.day" type="day" />
+                            <span class="text-sm font-semibold text-content-dark">{{
                               opt.time
                             }}</span>
                           </div>
+                          <span v-else class="text-sm font-semibold text-content-dark">{{
+                            opt.name
+                          }}</span>
                         </div>
                       </div>
                     </transition>
@@ -1107,17 +1230,13 @@ watch(branchFilter, (newBranchId) => {
                 </div>
               </div>
             </template>
-
             <template #row="{ item, index, headers }">
-              <td
-                class="ui-cell text-center"
-                :style="{ width: headers[0].width, minWidth: headers[0].width }"
-              >
+              <td class="ui-cell text-center" :style="getColStyle(headers, 'no', '50px')">
                 <span class="font-bold text-content-dark text-sm">{{
                   (currentPage - 1) * pageSize + index + 1
                 }}</span>
               </td>
-              <td class="ui-cell" :style="{ width: headers[1].width, minWidth: headers[1].width }">
+              <td class="ui-cell" :style="getColStyle(headers, 'name', '220px')">
                 <div class="flex items-center gap-3">
                   <div
                     class="w-10 h-10 rounded-full overflow-hidden bg-surface-subtle border border-outline-std flex-shrink-0"
@@ -1134,22 +1253,57 @@ watch(branchFilter, (newBranchId) => {
                     <AppBadge
                       v-if="['cancelled', 'suspended', 'transferred'].includes(item.status)"
                       :status="item.status === 'transferred' ? 'Transfer' : item.status"
-                      size="xs"
                     />
                   </div>
                 </div>
               </td>
               <td
-                class="ui-cell text-center font-bold text-content-dark text-xs"
-                :style="{ width: headers[2].width, minWidth: headers[2].width }"
+                v-if="hasCol(headers, 'term')"
+                class="ui-cell text-center"
+                :style="getColStyle(headers, 'term', '130px')"
               >
-                {{ formatDateOnly(item.enrollAt) || 'N/A' }}
+                <AppBadge :term="getEnrollmentTermName(item)" />
               </td>
               <td
-                class="ui-cell text-center font-bold text-content-dark text-xs"
-                :style="{ width: headers[3].width, minWidth: headers[3].width }"
+                v-if="hasCol(headers, 'branch')"
+                class="ui-cell text-center"
+                :style="getColStyle(headers, 'branch', '120px')"
               >
-                {{ item.enrolledSessions || 0 }} sessions
+                <AppBadge :branch="getEnrollmentBranchAbbr(item)" />
+              </td>
+              <td
+                v-if="hasCol(headers, 'schedule')"
+                class="ui-cell text-center"
+                :style="getColStyle(headers, 'schedule', '160px')"
+              >
+                <div class="flex items-center justify-center gap-2">
+                  <AppBadge
+                    v-if="item.schedule?.day || item.class?.schedule?.day"
+                    :status="item.schedule?.day || item.class?.schedule?.day"
+                    type="day"
+                  />
+                  <span class="text-sm font-semibold text-content-dark leading-none tabular-nums">
+                    {{
+                      item.schedule?.time ||
+                      item.class?.schedule?.time ||
+                      item.class?.schedule?.startTime ||
+                      '-'
+                    }}
+                  </span>
+                </div>
+              </td>
+              <td
+                class="ui-cell text-center font-bold text-content-dark text-sm"
+                :style="getColStyle(headers, 'startDate', '120px')"
+              >
+                {{ formatDateOnly(item.startDate || item.enrollAt || item.createdAt) || 'N/A' }}
+              </td>
+              <td
+                class="ui-cell text-center font-bold text-content-dark text-sm"
+                :style="getColStyle(headers, 'sessionsEnrolled', '140px')"
+              >
+                {{ (item.enrolledSessions > 0 ? item.enrolledSessions : sessions.length) || 0 }}
+                sessions
               </td>
 
               <!-- Session Columns -->
@@ -1157,35 +1311,21 @@ watch(branchFilter, (newBranchId) => {
                 v-for="(session, sIdx) in sessions"
                 :key="session.id"
                 class="ui-cell text-center p-1"
-                :style="{ width: headers[4 + sIdx]?.width, minWidth: headers[4 + sIdx]?.width }"
+                :style="getColStyle(headers, 'session-' + sIdx, '120px')"
               >
                 <div class="flex flex-col items-center gap-1 relative group/cell">
                   <!-- Attendance Select Dropdown -->
                   <div class="relative w-10 h-10">
                     <div
-                      class="attendance-dropdown-trigger w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black transition-all group-hover/cell:scale-110 shadow-sm border border-outline-std select-none"
+                      class="attendance-dropdown-trigger w-10 h-10 rounded-xl flex items-center justify-center text-sm font-black transition-all group-hover/cell:scale-110 shadow-sm border border-outline-std select-none"
                       :class="[
-                        ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)]?.theme ||
-                          ATTENDANCE_STATUS.N.theme,
+                        ATTENDANCE_STATUS[
+                          getAttendanceStatus(session.id, item.studentId, session.rawId)
+                        ]?.theme || ATTENDANCE_STATUS.N.theme,
                         isSessionDimmed(item.status, sIdx, item.enrolledSessions)
                           ? 'opacity-20 grayscale cursor-not-allowed'
-                          : isSessionDisabled(
-                                session.date,
-                                item.status,
-                                sIdx,
-                                item.enrolledSessions,
-                              )
-                            ? 'cursor-not-allowed opacity-35 border-dashed'
-                            : 'cursor-pointer hover:shadow-md',
+                          : 'cursor-pointer',
                       ]"
-                      :title="
-                        getSessionDisableReason(
-                          session.date,
-                          item.status,
-                          sIdx,
-                          item.enrolledSessions,
-                        )
-                      "
                       @click="
                         handleAttendanceClick(
                           session.date,
@@ -1198,8 +1338,8 @@ watch(branchFilter, (newBranchId) => {
                       "
                     >
                       {{
-                        ATTENDANCE_STATUS[getAttendanceStatus(session.id, item.studentId)]?.label ||
-                        'N'
+                        getAttendanceStatus(session.id, item.studentId, session.rawId) ||
+                        (isSessionDimmed(item.status, sIdx, item.enrolledSessions) ? '-' : 'N')
                       }}
                     </div>
 
@@ -1252,13 +1392,7 @@ watch(branchFilter, (newBranchId) => {
               </td>
 
               <!-- Special Columns -->
-              <td
-                class="ui-cell text-center"
-                :style="{
-                  width: headers[4 + sessions.length]?.width,
-                  minWidth: headers[4 + sessions.length]?.width,
-                }"
-              >
+              <td class="ui-cell text-center" :style="getColStyle(headers, 'exam', '90px')">
                 <button
                   @click="toggleEnrollmentField(item.id, 'hasPassedExam')"
                   class="w-6 h-6 rounded-md flex items-center justify-center mx-auto transition-colors border"
@@ -1284,13 +1418,7 @@ watch(branchFilter, (newBranchId) => {
                   </svg>
                 </button>
               </td>
-              <td
-                class="ui-cell text-center"
-                :style="{
-                  width: headers[5 + sessions.length]?.width,
-                  minWidth: headers[5 + sessions.length]?.width,
-                }"
-              >
+              <td class="ui-cell text-center" :style="getColStyle(headers, 'reportCard', '110px')">
                 <button
                   @click="toggleEnrollmentField(item.id, 'hasReceivedReportCard')"
                   class="w-6 h-6 rounded-md flex items-center justify-center mx-auto transition-colors border"
@@ -1316,13 +1444,7 @@ watch(branchFilter, (newBranchId) => {
                   </svg>
                 </button>
               </td>
-              <td
-                class="ui-cell text-center"
-                :style="{
-                  width: headers[6 + sessions.length]?.width,
-                  minWidth: headers[6 + sessions.length]?.width,
-                }"
-              >
+              <td class="ui-cell text-center" :style="getColStyle(headers, 'certificate', '110px')">
                 <button
                   @click="toggleEnrollmentField(item.id, 'hasReceivedCertificate')"
                   class="w-6 h-6 rounded-md flex items-center justify-center mx-auto transition-colors border"
@@ -1348,14 +1470,13 @@ watch(branchFilter, (newBranchId) => {
                   </svg>
                 </button>
               </td>
-              <td
-                class="ui-cell"
-                :style="{
-                  width: headers[7 + sessions.length]?.width,
-                  minWidth: headers[7 + sessions.length]?.width,
-                }"
-              >
-                <span class="text-xs text-content-muted">{{ item.remark || '-' }}</span>
+              <td class="ui-cell" :style="getColStyle(headers, 'remark', '180px')">
+                <span
+                  class="text-sm text-content-muted block leading-relaxed break-words"
+                  :title="item.remark || item.note || ''"
+                >
+                  {{ item.remark || item.note || '-' }}
+                </span>
               </td>
             </template>
           </DataTable>
@@ -1418,7 +1539,7 @@ watch(branchFilter, (newBranchId) => {
                   >
                     <div class="flex flex-col gap-1 items-start">
                       <AppBadge :status="schedule.day" type="day" size="sm" />
-                      <span class="text-xs font-semibold text-content-dark">{{
+                      <span class="text-sm font-semibold text-content-dark">{{
                         schedule.time
                       }}</span>
                     </div>
@@ -1427,7 +1548,7 @@ watch(branchFilter, (newBranchId) => {
                       <div class="w-px h-6 bg-outline-std/50"></div>
                       <div class="flex flex-col items-center shrink-0">
                         <span
-                          class="text-xs font-black text-content-muted tracking-tighter leading-none mb-1"
+                          class="text-sm font-black text-content-muted tracking-tighter leading-none mb-1"
                           >Seats</span
                         >
                         <span class="text-sm font-black text-content-dark leading-none">{{
@@ -1471,7 +1592,7 @@ watch(branchFilter, (newBranchId) => {
                         size="sm"
                         class="font-bold text-content-muted !bg-transparent !border-none"
                       />
-                      <span v-else class="text-xs font-bold text-error mr-2">Unavailable</span>
+                      <span v-else class="text-sm font-bold text-error mr-2">Unavailable</span>
                     </div>
                   </div>
                   <span
@@ -1506,13 +1627,12 @@ watch(branchFilter, (newBranchId) => {
                         :key="branch.id || branch.abbr"
                         :status="branch.abbr || 'HQ'"
                         :type="branch.color || 'blue'"
-                        size="xs"
                       />
                     </div>
                   </div>
                   <span
                     v-if="groupedTeachers.length === 0"
-                    class="text-xs font-bold text-content-muted italic p-4 text-center bg-primary-soft border border-outline-std rounded-sm"
+                    class="text-sm font-bold text-content-muted italic p-4 text-center bg-primary-soft border border-outline-std rounded-sm"
                     >No teachers assigned to this term's sessions</span
                   >
                 </div>
@@ -1539,9 +1659,5 @@ watch(branchFilter, (newBranchId) => {
 <style scoped>
 .ui-detail-card {
   @apply bg-white rounded-xl p-8 border border-outline-std shadow-sm transition-all duration-500 hover:shadow-xl hover:shadow-primary/5;
-}
-
-:deep(.table-content-area table) {
-  table-layout: fixed;
 }
 </style>

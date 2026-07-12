@@ -122,7 +122,7 @@ if (route) {
         highlightedQuery.value = ''
       }
     },
-    { immediate: true, deep: true }
+    { immediate: true, deep: true },
   )
 }
 

@@ -490,12 +490,7 @@ const enrolledStudents = computed(() => {
         )
       : null
     const parentObj =
-      parentFromStore ||
-      student.parentInfo ||
-      student.parent ||
-      e.parentInfo ||
-      e.parent ||
-      {}
+      parentFromStore || student.parentInfo || student.parent || e.parentInfo || e.parent || {}
     const term =
       terms.value.find((t) => String(t.id) === String(e.termId || e.class?.termId)) || e.term
     const branch =
@@ -1401,7 +1396,9 @@ const handleActionSubmit = async (formData) => {
 
                         <!-- 3. Days Filter (Schedule Tab Only) -->
                         <div v-if="activeTab === 'schedule'" class="flex flex-col gap-1.5 mb-5">
-                          <label class="text-xs font-semibold text-content-muted">Day of Week</label>
+                          <label class="text-xs font-semibold text-content-muted"
+                            >Day of Week</label
+                          >
                           <div class="flex flex-wrap gap-1.5">
                             <button
                               v-for="opt in daysFilterOptions"

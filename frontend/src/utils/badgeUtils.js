@@ -10,6 +10,8 @@ const COMMON_STATUSES = {
   success: 'green',
   transferred: 'blue',
   transfer: 'blue',
+  cancelled: 'red',
+  canceled: 'red',
 }
 
 const REGISTRIES = {
@@ -27,7 +29,6 @@ const REGISTRIES = {
     'in progress': 'purple',
     available: 'green',
     full: 'red',
-    cancelled: 'orange',
     completed: 'green',
   },
   finance: {
@@ -189,9 +190,15 @@ export const resolveBranchBadgeProps = (branchVal, branchesList = null) => {
   let lookupName = ''
   let lookupAbbr = ''
   if (typeof branchVal === 'object') {
-    lookupId = String(branchVal.id || '').trim().toLowerCase()
-    lookupName = String(branchVal.name || branchVal.branchName || '').trim().toLowerCase()
-    lookupAbbr = String(branchVal.abbr || branchVal.branchAbbr || '').trim().toLowerCase()
+    lookupId = String(branchVal.id || '')
+      .trim()
+      .toLowerCase()
+    lookupName = String(branchVal.name || branchVal.branchName || '')
+      .trim()
+      .toLowerCase()
+    lookupAbbr = String(branchVal.abbr || branchVal.branchAbbr || '')
+      .trim()
+      .toLowerCase()
   } else {
     const str = String(branchVal).trim().toLowerCase()
     lookupId = str
@@ -202,9 +209,15 @@ export const resolveBranchBadgeProps = (branchVal, branchesList = null) => {
   // Always check dataStore branches first so the actual color from the branch modal is used
   if (Array.isArray(list) && list.length > 0) {
     const match = list.find((b) => {
-      const bId = String(b.id || '').trim().toLowerCase()
-      const bName = String(b.name || '').trim().toLowerCase()
-      const bAbbr = String(b.abbr || '').trim().toLowerCase()
+      const bId = String(b.id || '')
+        .trim()
+        .toLowerCase()
+      const bName = String(b.name || '')
+        .trim()
+        .toLowerCase()
+      const bAbbr = String(b.abbr || '')
+        .trim()
+        .toLowerCase()
       return (
         (lookupId && bId === lookupId) ||
         (lookupName && (bName === lookupName || bAbbr === lookupName)) ||
@@ -283,8 +296,7 @@ export const getTermColor = (termVal, termsList = null) => {
   const strVal = String(termVal).trim()
   if (Array.isArray(list) && list.length > 0) {
     const matchIdx = list.findIndex(
-      (t) =>
-        String(t.id) === strVal || String(t.name).toLowerCase() === strVal.toLowerCase(),
+      (t) => String(t.id) === strVal || String(t.name).toLowerCase() === strVal.toLowerCase(),
     )
     if (matchIdx >= 0) {
       return TERM_COLORS[matchIdx % TERM_COLORS.length]
@@ -309,4 +321,3 @@ export const resolveTermBadgeProps = (termVal, termsList = null) => {
   const type = getTermColor(termVal, termsList)
   return { status, type }
 }
-

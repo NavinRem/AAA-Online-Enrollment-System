@@ -265,6 +265,7 @@ const availableOfferings = computed(() => {
         if (!isMatch) return false
 
         const isCurrentSelection =
+          !isTransferMode.value &&
           isEditMode.value &&
           String(offering.offeringId) === String(props.enrollment?.termOfferingId)
 
@@ -286,6 +287,7 @@ const availableOfferings = computed(() => {
       })
       .map((offering) => {
         const isCurrentSelection =
+          !isTransferMode.value &&
           isEditMode.value &&
           String(offering.offeringId) === String(props.enrollment?.termOfferingId)
 
@@ -707,6 +709,13 @@ const requestConfirm = () => {
   }
 
   if (props.type === 'pay') {
+    const targetOfferingId = form.termOfferingId || props.enrollment?.termOfferingId
+    const off = availableOfferings.value.find((item) => String(item.id) === String(targetOfferingId))
+    if (off && off.studentCount >= off.capacity) {
+      validationMessage.value = `Cannot complete payment: This class/schedule is already full (${off.studentCount}/${off.capacity} seats taken). Please change the student's schedule to another class or cancel the enrollment.`
+      return
+    }
+
     if (form.paymentMethod === 'online') {
       if (!form.transactionId) form.transactionId = Math.floor(10000000000 + Math.random() * 90000000000).toString()
       if (!form.receiptId) form.receiptId = 'KHQR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000)
