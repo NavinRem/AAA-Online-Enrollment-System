@@ -31,14 +31,13 @@ const currentAdminBranchObj = computed(() => {
   }
 })
 
-const userProfile = computed(() => {
-  const p = getAdminProfile()
-  return {
-    name: p?.name || 'Administrator',
-    role: p?.role || 'Admin',
-    profileURL: p?.profileURL || null,
-  }
+const rawProfile = ref({
+  name: getAdminProfile()?.name || 'Administrator',
+  role: getAdminProfile()?.role || 'Admin',
+  profileURL: getAdminProfile()?.profileURL || null,
 })
+
+const userProfile = computed(() => rawProfile.value)
 
 const loading = ref(true)
 const currentTermIndex = ref(0)
@@ -153,10 +152,13 @@ const stats = computed(() => {
   )
 })
 
+let _mounted = false
 onMounted(() => {
+  _mounted = true
   authService.onAuthStateChanged(async (currentUser) => {
+    if (!_mounted) return
     if (!currentUser) {
-      userProfile.value = {
+      rawProfile.value = {
         name: 'Guest',
         role: 'Guest',
         profileURL: getImageUrl('profiles', 'avatar-guest'),
@@ -167,19 +169,20 @@ onMounted(() => {
 
     try {
       const profile = await authService.getUserProfile(currentUser.uid)
-      userProfile.value = profile
+      if (!_mounted) return
+      rawProfile.value = profile
       await dataStore.fetchAllCommonData(true)
-
-      startTermCycling()
+      if (_mounted) startTermCycling()
     } catch (err) {
       console.error('Dashboard error:', err)
-      userProfile.value = {
+      if (!_mounted) return
+      rawProfile.value = {
         name: 'User',
         role: 'Unknown',
         profileURL: getImageUrl('profiles', 'avatar-guest'),
       }
     } finally {
-      loading.value = false
+      if (_mounted) loading.value = false
     }
   })
 })
@@ -194,6 +197,7 @@ const startTermCycling = () => {
 }
 
 onUnmounted(() => {
+  _mounted = false
   if (termInterval) clearInterval(termInterval)
 })
 

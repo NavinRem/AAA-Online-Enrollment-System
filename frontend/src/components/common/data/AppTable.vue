@@ -31,7 +31,7 @@ defineProps({
     >
       <slot name="loading">Loading data...</slot>
     </div>
-    <div v-else :class="['table-content-area overflow-x-auto', flexible ? '' : 'flex-1 scrollable-v']">
+    <div class="table-content-area overflow-x-auto flex-1 min-h-0 overflow-y-auto scrollable-v">
       <table class="w-full border-separate border-spacing-0 table-auto min-w-max">
         <thead class="sticky top-0 z-20 bg-white">
           <tr class="w-full">
@@ -85,7 +85,7 @@ defineProps({
 
 <style scoped>
 .table-root {
-  @apply w-full relative flex flex-1 flex-col min-h-0 overflow-hidden bg-white rounded-md border border-outline-std shadow-sm p-4 sm:p-6;
+  @apply w-full relative flex flex-1 flex-col min-h-0 bg-white rounded-md border border-outline-std shadow-sm p-4 sm:p-6;
 }
 
 .table-toolbar-container {

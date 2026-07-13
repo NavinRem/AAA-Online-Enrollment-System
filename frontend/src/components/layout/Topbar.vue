@@ -2,24 +2,36 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { paymentService } from '@/services/paymentService'
-import {  getIconUrl } from '@/utils/assetHelper'
+import { getIconUrl } from '@/utils/assetHelper'
 import { getAvatarUrl } from '@/utils/profileHelper'
 import SearchBox from '@/components/common/data/SearchBox.vue'
 import { useNotificationStore } from '@/stores/notificationStore'
 import NotificationCenter from '@/components/layout/NotificationCenter.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AdminProfileModal from '@/components/layout/AdminProfileModal.vue'
-import { getAdminProfile, getAdminBranch } from '@/utils/adminBranchHelper'
-
+import {
+  getAdminProfile,
+  getAdminBranch,
+  syncAdminProfileWithDatabase,
+} from '@/utils/adminBranchHelper'
 
 const route = useRoute()
 const searchQuery = ref('')
-const userProfile = computed(() => getAdminProfile())
-const userName = computed(() => getAdminProfile()?.name || 'Administrator')
-const userRole = computed(() => getAdminProfile()?.role || 'Admin')
 const showProfileModal = ref(false)
-const currentAdminBranch = computed(() => getAdminBranch())
 
+const profileVersion = ref(0)
+let notifInterval = null
+
+const userProfile = computed(() => {
+  profileVersion.value // reactive dependency
+  return getAdminProfile()
+})
+const userName = computed(() => userProfile.value?.name || 'Administrator')
+// const userRole = computed(() => userProfile.value?.role || 'Admin')
+const currentAdminBranch = computed(() => {
+  profileVersion.value // reactive dependency
+  return getAdminBranch()
+})
 
 // Notification Center State
 const notifStore = useNotificationStore()
@@ -57,14 +69,18 @@ const emit = defineEmits(['toggle-menu'])
 const pageTitle = computed(() => route.meta.title)
 const avatarUrl = computed(() => getAvatarUrl(userProfile.value))
 
-onMounted(() => {
-  loadNotifications()
-  const notifInterval = setInterval(loadNotifications, 15000)
+onMounted(async () => {
   window.addEventListener('mousedown', handleOutsideClick)
-  onUnmounted(() => {
-    clearInterval(notifInterval)
-    window.removeEventListener('mousedown', handleOutsideClick)
-  })
+  notifInterval = setInterval(loadNotifications, 15000)
+
+  await syncAdminProfileWithDatabase()
+  profileVersion.value++
+  loadNotifications()
+})
+
+onUnmounted(() => {
+  if (notifInterval) clearInterval(notifInterval)
+  window.removeEventListener('mousedown', handleOutsideClick)
 })
 </script>
 
@@ -141,12 +157,7 @@ onMounted(() => {
     <AdminProfileModal
       :isOpen="showProfileModal"
       @close="showProfileModal = false"
-      @saved="
-        (saved) => {
-          userName = saved.name
-          userRole = saved.role
-        }
-      "
+      @saved="profileVersion++"
     />
   </header>
 </template>

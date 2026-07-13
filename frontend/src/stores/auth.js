@@ -11,8 +11,8 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!user.value)
   const isAdmin = computed(() => {
     if (!user.value) return false
-    const role = profile.value?.role || 'Admin'
-    return String(role).toLowerCase() === 'admin' || !!user.value
+    const role = profile.value?.role || ''
+    return String(role).toLowerCase() === 'admin'
   })
   const isParent = computed(() => String(profile.value?.role || '').toLowerCase() === 'parent')
   const isTeacher = computed(() => String(profile.value?.role || '').toLowerCase() === 'teacher')

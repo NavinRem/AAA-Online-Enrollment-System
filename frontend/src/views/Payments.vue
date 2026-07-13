@@ -22,8 +22,10 @@ const currentFilter = ref('all')
 
 // Filters
 const branchFilter = ref('all')
+const timelineFilter = ref('all') // 'all' | 'today' | 'week' | 'month'
 const dropdowns = ref({
   branch: false,
+  timeline: false,
 })
 const filterMenuStyles = ref({})
 
@@ -59,8 +61,19 @@ const toggleDropdown = (type, event) => {
 
 const selectFilter = (type, value) => {
   if (type === 'branch') branchFilter.value = value
+  if (type === 'timeline') timelineFilter.value = value
   dropdowns.value[type] = false
 }
+
+const timelineOptions = [
+  { label: 'All Time', value: 'all' },
+  { label: 'Today', value: 'today' },
+  { label: 'This Week', value: 'week' },
+  { label: 'This Month', value: 'month' },
+]
+
+const getTimelineLabel = () =>
+  timelineOptions.find((o) => o.value === timelineFilter.value)?.label ?? 'All Time'
 
 const getActiveLabel = (type) => {
   if (type === 'branch') {
@@ -77,9 +90,11 @@ const getActiveLabel = (type) => {
 const handleClickOutside = (event) => {
   if (dropdowns.value.branch) {
     const btn = document.getElementById('branch-filter-btn')
-    if (btn && !btn.contains(event.target)) {
-      dropdowns.value.branch = false
-    }
+    if (btn && !btn.contains(event.target)) dropdowns.value.branch = false
+  }
+  if (dropdowns.value.timeline) {
+    const btn = document.getElementById('payment-timeline-btn')
+    if (btn && !btn.contains(event.target)) dropdowns.value.timeline = false
   }
 }
 
@@ -135,11 +150,31 @@ const formattedPayments = computed(() => {
   })
 })
 
-// 2. Status filtering
+// 2. Timeline + Status filtering
 const statusFilteredPayments = computed(() => {
   let list = formattedPayments.value
 
-  // 1. Status Filter
+  // Timeline filter on payment date
+  if (timelineFilter.value !== 'all') {
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
+    const weekStart = new Date(today)
+    weekStart.setDate(today.getDate() - today.getDay())
+    const weekStartStr = weekStart.toISOString().split('T')[0]
+    const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+
+    list = list.filter((p) => {
+      const rawDate = p.date
+      if (!rawDate) return false
+      const dateStr = String(rawDate).split('T')[0]
+      if (timelineFilter.value === 'today') return dateStr === todayStr
+      if (timelineFilter.value === 'week') return dateStr >= weekStartStr && dateStr <= todayStr
+      if (timelineFilter.value === 'month') return dateStr.startsWith(monthStr)
+      return true
+    })
+  }
+
+  // Status filter
   if (currentFilter.value !== 'all') {
     const filter = currentFilter.value.toLowerCase()
     list = list.filter((p) => {
@@ -152,7 +187,7 @@ const statusFilteredPayments = computed(() => {
     })
   }
 
-  // 2. Branch Filter
+  // Branch Filter
   if (branchFilter.value !== 'all') {
     list = list.filter((p) => String(p.branchId) === String(branchFilter.value))
   }
@@ -189,7 +224,7 @@ const paginatedPayments = computed(() => {
   return filteredPayments.value.slice(start, end)
 })
 
-watch([searchQuery, currentFilter, branchFilter], () => {
+watch([searchQuery, currentFilter, branchFilter, timelineFilter], () => {
   currentPage.value = 1
 })
 
@@ -300,7 +335,52 @@ const paymentHeaders = [
         >
           <template #toolbar-actions>
             <div class="flex items-center gap-3">
-              <!-- Branch Filter -->
+              <!-- Timeline Filter -->
+              <div class="relative" id="payment-timeline-btn">
+                <AppButton
+                  :variant="timelineFilter === 'all' ? 'secondary' : 'primary'"
+                  size="md"
+                  @click="toggleDropdown('timeline', $event)"
+                >
+                  <img
+                    :src="getActionIcon('time')"
+                    class="w-4 h-4 brightness-0 opacity-80"
+                    :class="{ invert: timelineFilter !== 'all' }"
+                  />
+                  <span class="font-bold tracking-tight">{{ getTimelineLabel() }}</span>
+                  <span class="ml-2 text-xs opacity-60">▼</span>
+                </AppButton>
+                <Teleport to="body">
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="dropdowns.timeline"
+                      class="toolbar-filter-menu"
+                      :style="filterMenuStyles"
+                      @mousedown.stop
+                    >
+                      <div
+                        v-for="opt in timelineOptions"
+                        :key="opt.value"
+                        class="toolbar-filter-option flex items-center justify-between gap-3"
+                        :class="{ 'active-filter-item': timelineFilter === opt.value }"
+                        @click="selectFilter('timeline', opt.value)"
+                      >
+                        <span>{{ opt.label }}</span>
+                        <span v-if="timelineFilter === opt.value" class="text-xs">✓</span>
+                      </div>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
+
+              <!-- Branch Filter (existing) -->
               <div class="relative" id="branch-filter-btn">
                 <AppButton
                   :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"

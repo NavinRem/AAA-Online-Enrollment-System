@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useDataStore } from '../stores/dataStore'
 import DashboardLayout from '../components/layout/DashboardLayout.vue'
 import DataPageLayout from '../components/layout/DataPageLayout.vue'
@@ -29,6 +29,63 @@ const errorMessage = ref('')
 const successMessage = ref('')
 const newlyCreatedId = ref(null)
 const currentFilter = ref('all')
+const timelineFilter = ref('all') // 'all' | 'today' | 'week' | 'month'
+const branchFilter = ref('all')
+
+// Filter dropdown state
+const dropdowns = ref({ timeline: false, branch: false })
+const filterMenuStyles = ref({})
+
+const toggleDropdown = (type, event) => {
+  event.stopPropagation()
+  const isOpening = !dropdowns.value[type]
+  Object.keys(dropdowns.value).forEach((k) => (dropdowns.value[k] = false))
+  dropdowns.value[type] = isOpening
+  if (isOpening) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    filterMenuStyles.value = {
+      top: `${rect.bottom + window.scrollY + 8}px`,
+      left: `${Math.min(rect.left + window.scrollX, window.innerWidth - 250)}px`,
+      minWidth: '210px',
+    }
+  }
+}
+
+const selectFilter = (type, value) => {
+  if (type === 'timeline') timelineFilter.value = value
+  if (type === 'branch') branchFilter.value = value
+  dropdowns.value[type] = false
+}
+
+const handleFilterClickOutside = (e) => {
+  const ids = ['trial-timeline-btn', 'trial-branch-btn']
+  if (ids.every((id) => !document.getElementById(id)?.contains(e.target))) {
+    dropdowns.value.timeline = false
+    dropdowns.value.branch = false
+  }
+}
+
+const branchOptions = computed(() =>
+  dataStore.branches
+    .filter((b) => !b.isDeleted)
+    .map((b) => ({ label: b.name, value: b.id, color: b.color, abbr: b.abbr }))
+    .sort((a, b) => a.label.localeCompare(b.label)),
+)
+
+const timelineOptions = [
+  { label: 'All Time', value: 'all' },
+  { label: 'Today', value: 'today' },
+  { label: 'This Week', value: 'week' },
+  { label: 'This Month', value: 'month' },
+]
+
+const getTimelineLabel = () =>
+  timelineOptions.find((o) => o.value === timelineFilter.value)?.label ?? 'All Time'
+const getBranchLabel = () => {
+  if (branchFilter.value === 'all') return { label: 'All Branches', color: 'purple' }
+  const opt = branchOptions.value.find((o) => String(o.value) === String(branchFilter.value))
+  return { label: opt?.label ?? 'Branch', color: opt?.color ?? 'purple' }
+}
 
 const getRowClass = (item) => {
   return newlyCreatedId.value === item.id ? 'ui-row-new' : ''
@@ -46,7 +103,12 @@ const fetchData = async () => {
 }
 
 onMounted(() => {
+  window.addEventListener('mousedown', handleFilterClickOutside)
   fetchData()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('mousedown', handleFilterClickOutside)
 })
 
 const trialStats = computed(() => {
@@ -139,8 +201,38 @@ const statusFilteredTrials = computed(() => {
   })
 })
 
+// Timeline + Branch filter applied after status filter
+const timelineBranchFiltered = computed(() => {
+  let list = statusFilteredTrials.value
+
+  if (timelineFilter.value !== 'all') {
+    const today = new Date()
+    const todayStr = today.toISOString().split('T')[0]
+    const weekStart = new Date(today)
+    weekStart.setDate(today.getDate() - today.getDay())
+    const weekStartStr = weekStart.toISOString().split('T')[0]
+    const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+
+    list = list.filter((t) => {
+      const rawDate = t.trialDate || t.createdAt
+      if (!rawDate) return false
+      const dateStr = String(rawDate).split('T')[0]
+      if (timelineFilter.value === 'today') return dateStr === todayStr
+      if (timelineFilter.value === 'week') return dateStr >= weekStartStr && dateStr <= todayStr
+      if (timelineFilter.value === 'month') return dateStr.startsWith(monthStr)
+      return true
+    })
+  }
+
+  if (branchFilter.value !== 'all') {
+    list = list.filter((t) => String(t.branch?.id || t.branchId) === String(branchFilter.value))
+  }
+
+  return list
+})
+
 const { searchQuery, searchResults: filteredTrials } = useSearch(
-  statusFilteredTrials,
+  timelineBranchFiltered,
   trialSearchMapper,
 )
 
@@ -154,7 +246,7 @@ const paginatedTrials = computed(() => {
   return filteredTrials.value.slice(start, end)
 })
 
-watch([currentFilter, searchQuery], () => {
+watch([currentFilter, searchQuery, timelineFilter, branchFilter], () => {
   currentPage.value = 1
 })
 
@@ -245,14 +337,146 @@ const handleTableAction = ({ type, item }) => {
           @action="handleTableAction"
         >
           <template #toolbar-actions>
-            <AppButton
-              variant="primary"
-              size="md"
-              @click="actionState = { isOpen: true, type: 'add', trial: null }"
-            >
-              <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
-              <span class="font-bold tracking-tight">New Trial</span>
-            </AppButton>
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- Timeline Filter -->
+              <div class="relative" id="trial-timeline-btn">
+                <AppButton
+                  :variant="timelineFilter === 'all' ? 'secondary' : 'primary'"
+                  size="md"
+                  @click="toggleDropdown('timeline', $event)"
+                >
+                  <img
+                    :src="getActionIcon('time')"
+                    class="w-4 h-4 brightness-0 opacity-80"
+                    :class="{ invert: timelineFilter !== 'all' }"
+                  />
+                  <span class="font-bold tracking-tight">{{ getTimelineLabel() }}</span>
+                  <span class="ml-1 text-xs opacity-60">▼</span>
+                </AppButton>
+                <Teleport to="body">
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="dropdowns.timeline"
+                      class="toolbar-filter-menu"
+                      :style="filterMenuStyles"
+                      @mousedown.stop
+                    >
+                      <div
+                        v-for="opt in timelineOptions"
+                        :key="opt.value"
+                        class="toolbar-filter-option flex items-center justify-between gap-3"
+                        :class="{ 'active-filter-item': timelineFilter === opt.value }"
+                        @click="selectFilter('timeline', opt.value)"
+                      >
+                        <span>{{ opt.label }}</span>
+                        <span v-if="timelineFilter === opt.value" class="text-xs">✓</span>
+                      </div>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
+
+              <!-- Branch Filter -->
+              <div class="relative" id="trial-branch-btn">
+                <AppButton
+                  :variant="branchFilter === 'all' ? 'secondary' : 'ghost'"
+                  size="md"
+                  @click="toggleDropdown('branch', $event)"
+                  :style="
+                    branchFilter !== 'all'
+                      ? { backgroundColor: `var(--color-${getBranchLabel().color})` }
+                      : {}
+                  "
+                  :class="{
+                    '!text-white shadow-md': branchFilter !== 'all',
+                    'shadow-sm': branchFilter === 'all',
+                  }"
+                >
+                  <img
+                    :src="getActionIcon('branch')"
+                    class="w-4 h-4 brightness-0 opacity-80"
+                    :class="{ invert: branchFilter !== 'all' }"
+                  />
+                  <span
+                    class="font-bold tracking-tight"
+                    :class="{ 'text-white': branchFilter !== 'all' }"
+                    >{{ getBranchLabel().label }}</span
+                  >
+                  <span
+                    class="ml-1 text-xs opacity-60"
+                    :class="{ 'text-white': branchFilter !== 'all' }"
+                    >▼</span
+                  >
+                </AppButton>
+                <Teleport to="body">
+                  <transition
+                    enter-active-class="transition duration-200 ease-out"
+                    enter-from-class="transform scale-95 opacity-0"
+                    enter-to-class="transform scale-100 opacity-100"
+                    leave-active-class="transition duration-150 ease-in"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                  >
+                    <div
+                      v-if="dropdowns.branch"
+                      class="toolbar-filter-menu"
+                      :style="filterMenuStyles"
+                      @mousedown.stop
+                    >
+                      <div
+                        class="toolbar-filter-option flex items-center justify-between gap-4"
+                        :class="{ 'active-filter-item': branchFilter === 'all' }"
+                        @click="selectFilter('branch', 'all')"
+                      >
+                        <div class="flex items-center gap-3">
+                          <AppBadge status="ALL" type="gray" size="sm" class="w-12 text-center" />
+                          <span>All Branches</span>
+                        </div>
+                      </div>
+                      <div
+                        v-for="opt in branchOptions"
+                        :key="opt.value"
+                        class="toolbar-filter-option flex items-center justify-between gap-4"
+                        :class="{
+                          'active-filter-item': String(branchFilter) === String(opt.value),
+                        }"
+                        @click="selectFilter('branch', opt.value)"
+                      >
+                        <div class="flex items-center gap-3">
+                          <AppBadge
+                            :status="opt.abbr"
+                            :type="opt.color"
+                            size="sm"
+                            class="w-12 text-center"
+                          />
+                          <span class="truncate">{{ opt.label }}</span>
+                        </div>
+                        <span v-if="String(branchFilter) === String(opt.value)" class="text-xs"
+                          >✓</span
+                        >
+                      </div>
+                    </div>
+                  </transition>
+                </Teleport>
+              </div>
+
+              <!-- New Trial -->
+              <AppButton
+                variant="primary"
+                size="md"
+                @click="actionState = { isOpen: true, type: 'add', trial: null }"
+              >
+                <img :src="getActionIcon('plus')" class="w-4 h-4 brightness-0 invert" />
+                <span class="font-bold tracking-tight">New Trial</span>
+              </AppButton>
+            </div>
           </template>
 
           <template

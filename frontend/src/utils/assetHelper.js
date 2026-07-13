@@ -73,6 +73,7 @@ const ACTION_ICONS = {
   email: 'action/email',
   cash: 'action/cash',
   branch: 'navigation/branch',
+  time: 'filter/ongoing'
 }
 
 export const getActionIcon = (name) => getIconUrl(ACTION_ICONS[normalize(name)] || name)

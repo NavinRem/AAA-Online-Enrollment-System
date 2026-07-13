@@ -138,7 +138,7 @@ const isHighlightedRow = (item) => {
 </script>
 
 <template>
-  <div :class="['w-full flex flex-col', flexible ? '' : 'flex-1 min-h-0']">
+  <div class="w-full flex flex-col flex-1 min-h-0">
     <AppTable
       :headers="headers"
       :loading="loading"

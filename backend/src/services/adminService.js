@@ -1,17 +1,12 @@
 const { db, COLLECTIONS } = require('../config/database')
 const authService = require('./authService')
-const {
-  validateAdmin,
-  validateUpdateAdmin,
-} = require('../validators/adminValidator')
+const { validateUpdateAdmin } = require('../validators/adminValidator')
 
 class AdminService {
   async createAdmin(adminData) {
     const { email, password, ...profileData } = adminData
-    const validatedProfile = validateAdmin({ email, ...profileData })
-
     return authService.registerAccount(
-      { password, ...validatedProfile },
+      { email, password, ...profileData },
       'admin',
       COLLECTIONS.ADMIN,
     )

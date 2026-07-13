@@ -20,7 +20,9 @@ export const authService = {
     }
   },
 
-  logout() {
+  async logout() {
+    localStorage.removeItem('aaa-admin-profile')
+    localStorage.removeItem('aaa-admin-branch')
     return signOut(auth)
   },
 

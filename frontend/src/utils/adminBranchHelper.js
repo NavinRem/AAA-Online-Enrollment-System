@@ -47,20 +47,41 @@ export function getAdminBranch() {
  * Sync active admin identity with Firestore database
  */
 export async function syncAdminProfileWithDatabase() {
-  const current = getAdminProfile()
-  if (!current.email && !current.id) return current
+  const currentUser = auth?.currentUser
+  if (!currentUser) return getAdminProfile()
+
+  // If the cached profile belongs to a DIFFERENT uid than the one now signed in,
+  // discard it immediately — never trust stale cache to resolve identity.
+  const cached = reactiveAdminProfile.value
+  if (cached?.id && cached.id !== currentUser.uid) {
+    reactiveAdminProfile.value = {
+      id: currentUser.uid,
+      name: currentUser.displayName || '',
+      email: currentUser.email || '',
+      role: 'Admin',
+      branch: '',
+      profileURL: currentUser.photoURL || 'profiles/avatar-admin-female',
+    }
+    localStorage.removeItem('aaa-admin-profile')
+    localStorage.removeItem('aaa-admin-branch')
+  }
 
   try {
-    let remote = null
-    if (current.email) {
-      remote = await adminService.getAdminByEmail(current.email)
-    }
-    if (!remote && current.id) {
-      remote = await adminService.getAdminById(current.id)
+    // Always resolve by the REAL signed-in uid/email — never by whatever was cached
+    let remote = await adminService.getAdminById(currentUser.uid)
+    if (!remote && currentUser.email) {
+      remote = await adminService.getAdminByEmail(currentUser.email)
     }
 
     if (remote) {
-      const next = { ...current, ...remote }
+      const next = {
+        id: currentUser.uid,
+        name: remote.name || currentUser.displayName || '',
+        email: remote.email || currentUser.email || '',
+        role: remote.role || 'Admin',
+        branch: remote.branch || '',
+        profileURL: remote.profileURL || currentUser.photoURL || 'profiles/avatar-admin-female',
+      }
       reactiveAdminProfile.value = next
       localStorage.setItem('aaa-admin-profile', JSON.stringify(next))
       if (next.branch) localStorage.setItem('aaa-admin-branch', next.branch)
@@ -69,7 +90,7 @@ export async function syncAdminProfileWithDatabase() {
   } catch (err) {
     console.warn('Unable to sync admin profile with database:', err)
   }
-  return current
+  return getAdminProfile()
 }
 
 export function saveAdminProfile(updatedProfile) {

@@ -76,8 +76,7 @@ const activeProgramsList = computed(() => {
     const status = String(e.status || e.academicStatus || '').toLowerCase()
     const payment = String(e.paymentStatus || e.status || '').toLowerCase()
     const isActive = !['transferred', 'cancelled', 'stopped', 'deleted'].includes(status)
-    const isPaidStatus =
-      ['paid', 'confirmed', 'success'].includes(payment) || status === 'paid'
+    const isPaidStatus = ['paid', 'confirmed', 'success'].includes(payment) || status === 'paid'
     return isActive && isPaidStatus
   })
 })
@@ -257,7 +256,7 @@ watch(enrollments, (newEnrollments) => {
 
 const attendanceHeaders = [
   { label: 'No', width: '60px', align: 'center' },
-  { label: 'Session', width: '100px' },
+  { label: 'Session', width: '120px' },
   { label: 'Date', width: '200px' },
   { label: 'Program', width: '230px' },
   { label: 'Time', width: '200px' },
@@ -462,6 +461,7 @@ watch(
       backRoute="/students"
       title="Student Profile"
       sidebarWidth="md"
+      :scrollable="false"
     >
       <template #header-actions v-if="student">
         <div class="flex items-center gap-3">
@@ -533,7 +533,11 @@ watch(
                 </div>
 
                 <!-- Enrollment Selector -->
-                <div v-if="enrollmentOptions.length > 0" class="relative" id="enrollment-filter-btn">
+                <div
+                  v-if="enrollmentOptions.length > 0"
+                  class="relative"
+                  id="enrollment-filter-btn"
+                >
                   <AppButton variant="secondary" size="md" @click="toggleDropdown($event)">
                     <img :src="getActionIcon('filter')" class="w-4 h-4" />
                     <span class="font-bold truncate max-w-52">{{

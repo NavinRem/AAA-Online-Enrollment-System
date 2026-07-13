@@ -73,8 +73,8 @@ const flexWidths = computed(() => {
           </div>
 
           <div
-            class="flex flex-col gap-lg pr-1 min-h-0"
-            :class="scrollable ? 'overflow-y-auto scrollable-v' : 'flex-1'"
+            class="flex flex-col gap-lg pr-1 min-h-0 flex-1"
+            :class="scrollable ? 'overflow-y-auto scrollable-v' : ''"
           >
             <slot name="left-content"></slot>
           </div>

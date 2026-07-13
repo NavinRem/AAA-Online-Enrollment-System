@@ -11,7 +11,11 @@ const CANCELLED_STATUSES = ['cancelled', 'canceled', 'stopped', 'deleted', 'tran
  */
 export const isTransferDestination = (r) => {
   if (!r) return false
-  if ((r.transferredSessions && Number(r.transferredSessions) > 0) || String(r.enrollmentType).toLowerCase() === 'transfer') return true
+  if (
+    (r.transferredSessions && Number(r.transferredSessions) > 0) ||
+    String(r.enrollmentType).toLowerCase() === 'transfer'
+  )
+    return true
   if (r.remark && String(r.remark).startsWith('Transfer from ')) return true
   return false
 }
@@ -59,7 +63,10 @@ export const calculateTotalEnrollment = (enroll = []) => {
     cancelledCount: enroll.filter((r) =>
       CANCELLED_STATUSES.includes(String(r.status).toLowerCase()),
     ).length,
-    todayCount: countUniqueEnrollmentStudents(enroll, (r) => parseDate(r.enrollAt || r.createdAt).getTime() >= today),
+    todayCount: countUniqueEnrollmentStudents(
+      enroll,
+      (r) => parseDate(r.enrollAt || r.createdAt).getTime() >= today,
+    ),
   }
 }
 
@@ -121,6 +128,7 @@ export const enrichEnrollments = (
         paymentModeType: r.isProrated ? 'partial' : 'full',
         branchAbbr: classInst?.branch?.abbr || 'N/A',
         branchColor: classInst?.branch?.color || 'blue',
+        branchId: r.branchId || classInst?.branch?.id || classInst?.branchId || '', // <- ADD THIS
         classSchedule: scheduleVal,
         currentCount: classInst?.currentCount || r.class?.currentCount || 0,
         capacity: classInst?.capacity || r.class?.capacity || 0,
@@ -161,5 +169,3 @@ export const getAcademicStatus = (r) => {
   if (!r) return 'stopped'
   return String(r.academicStatus || r.status || 'studying').toLowerCase()
 }
-
-

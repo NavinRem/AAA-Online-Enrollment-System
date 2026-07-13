@@ -50,7 +50,14 @@ const newAdminForm = ref({
   identityProvider: 'Google Workspace Verified',
   status: 'Active',
   profileURL: '',
+  password: '',
+  confirmPassword: '',
 })
+
+const creationError = ref('')
+
+// Admin account creation (Firebase Auth + Firestore) is handled by the backend
+// via POST /api/admins which uses Firebase Admin SDK to set custom claims.
 
 const authorizedAdmins = ref([])
 const loadingAdmins = ref(false)
@@ -132,46 +139,63 @@ const executeConfirmedAction = async () => {
       emit('close')
     }, 1200)
   } else if (actionType === 'create_admin') {
-    const docId = 'admin_' + (newAdminForm.value.email.replace(/[^a-zA-Z0-9]/g, '_') || Date.now())
-    const newAdmin = {
-      id: docId,
-      name: newAdminForm.value.name,
-      email: newAdminForm.value.email,
-      phone: newAdminForm.value.phone || '',
-      branch: newAdminForm.value.branch,
-      role: newAdminForm.value.role,
-      identityProvider: newAdminForm.value.identityProvider,
-      profileURL: newAdminForm.value.profileURL || '',
-      addedAt: new Date().toISOString(),
-      status: newAdminForm.value.status || 'Active',
-    }
-
+    creationError.value = ''
     try {
-      await adminService.createAdmin(newAdmin)
+      const result = await adminService.createAdmin({
+        name: newAdminForm.value.name,
+        email: newAdminForm.value.email,
+        password: newAdminForm.value.password,
+        branch: newAdminForm.value.branch,
+        phone: newAdminForm.value.phone || '',
+        profileURL: newAdminForm.value.profileURL || '',
+        status: (newAdminForm.value.status || 'Active').toLowerCase(),
+      })
+
+      const newAdmin = {
+        id: result.id,
+        name: newAdminForm.value.name,
+        email: newAdminForm.value.email,
+        phone: newAdminForm.value.phone || '',
+        branch: newAdminForm.value.branch,
+        role: newAdminForm.value.role,
+        identityProvider: newAdminForm.value.identityProvider,
+        profileURL: newAdminForm.value.profileURL || '',
+        addedAt: new Date().toISOString(),
+        status: newAdminForm.value.status || 'Active',
+      }
+
+      const updatedList = [newAdmin, ...authorizedAdmins.value.filter((a) => a.id !== result.id)]
+      authorizedAdmins.value = updatedList
+      localStorage.setItem('aaa-authorized-admins', JSON.stringify(updatedList))
+
+      newAdminForm.value = {
+        id: '',
+        name: '',
+        email: '',
+        phone: '',
+        branch: '',
+        role: 'Admin',
+        identityProvider: 'Google Workspace Verified',
+        status: 'Active',
+        profileURL: '',
+        password: '',
+        confirmPassword: '',
+      }
+
+      successMsg.value = 'New administrator authorized and can now log in!'
+      emit('saved', newAdmin)
+      setTimeout(() => {
+        successMsg.value = ''
+        emit('close')
+      }, 1500)
     } catch (err) {
-      console.warn('Firestore creation fallback to local:', err)
+      console.error('Failed to create admin account:', err)
+      creationError.value =
+        err.message?.includes('email-already-exists') ||
+        err.message?.includes('email-already-in-use')
+          ? 'An account with this email already exists.'
+          : err.message || 'Failed to create admin account.'
     }
-
-    const updatedList = [newAdmin, ...authorizedAdmins.value.filter((a) => a.id !== docId)]
-    authorizedAdmins.value = updatedList
-    localStorage.setItem('aaa-authorized-admins', JSON.stringify(updatedList))
-
-    newAdminForm.value = {
-      id: '',
-      name: '',
-      email: '',
-      phone: '',
-      branch: '',
-      role: 'Admin',
-      identityProvider: 'Google Workspace Verified',
-      status: 'Active',
-      profileURL: '',
-    }
-
-    successMsg.value = 'New administrator safely authorized!'
-    setTimeout(() => {
-      successMsg.value = ''
-    }, 1800)
   } else if (actionType === 'update_admin') {
     try {
       await adminService.updateAdmin(targetData.id, targetData)
@@ -211,13 +235,23 @@ const promptSaveProfile = () => {
 }
 
 const promptCreateAdmin = () => {
+  creationError.value = ''
   if (!newAdminForm.value.name || !newAdminForm.value.email || !newAdminForm.value.branch) {
+    creationError.value = 'Please fill in name, email, and branch.'
+    return
+  }
+  if (!newAdminForm.value.password || newAdminForm.value.password.length < 6) {
+    creationError.value = 'Password must be at least 6 characters.'
+    return
+  }
+  if (newAdminForm.value.password !== newAdminForm.value.confirmPassword) {
+    creationError.value = 'Passwords do not match.'
     return
   }
   openConfirm(
     'create_admin',
     'Confirm Admin Authorization',
-    `Are you sure you want to authorize "${newAdminForm.value.name}" (${newAdminForm.value.email}) as "${newAdminForm.value.role}" for branch "${newAdminForm.value.branch}"?`,
+    `Are you sure you want to authorize "${newAdminForm.value.name}" (${newAdminForm.value.email}) as "${newAdminForm.value.role}" for branch "${newAdminForm.value.branch}"? A login account will be created for them.`,
   )
 }
 
@@ -500,8 +534,8 @@ watch(
 
             <AppInput
               v-model="newAdminForm.name"
-              label="Legal Name"
-              placeholder="Administrator full name..."
+              label="Admin Username"
+              placeholder="Administrator User Name..."
               required
             />
 
@@ -510,6 +544,22 @@ watch(
               type="email"
               label="Verified Email"
               placeholder="staff@school.edu.kh"
+              required
+            />
+
+            <AppInput
+              v-model="newAdminForm.password"
+              type="password"
+              label="Login Password"
+              placeholder="Min 6 characters"
+              required
+            />
+
+            <AppInput
+              v-model="newAdminForm.confirmPassword"
+              type="password"
+              label="Confirm Password"
+              placeholder="Re-enter password"
               required
             />
 
@@ -550,6 +600,13 @@ watch(
             class="flex items-center gap-2 p-2.5 rounded-md bg-emerald-50 text-emerald-700 text-sm font-bold"
           >
             <span>✓</span> {{ successMsg }}
+          </div>
+
+          <div
+            v-if="creationError"
+            class="flex items-center gap-2 p-2.5 rounded-md bg-red-50 border border-red-200 text-red-700 text-sm font-semibold"
+          >
+            <span>⚠</span> {{ creationError }}
           </div>
 
           <div class="flex items-center justify-end gap-3 pt-2 border-t border-outline-std/50">

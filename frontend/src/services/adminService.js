@@ -1,15 +1,6 @@
 import { firestore as db } from '@/firebase'
-import {
-  collection,
-  doc,
-  getDocs,
-  getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-} from 'firebase/firestore'
+import { collection, doc, getDocs, getDoc, query, where } from 'firebase/firestore'
+import { request } from './api'
 
 const ADMINS_COLLECTION = 'admins'
 
@@ -67,60 +58,45 @@ export const adminService = {
   },
 
   /**
-   * Create a new administrator record in Firestore
+   * Create a new administrator — delegates to backend API so Firebase
+   * custom claims (role: 'admin') are set correctly via Admin SDK.
    */
   async createAdmin(adminData) {
-    try {
-      if (!db) throw new Error('Firestore not initialized')
-      const docId = adminData.id || `admin_${Date.now()}`
-      const payload = {
+    return request('/admins', {
+      method: 'POST',
+      body: JSON.stringify({
         name: adminData.name || '',
         email: adminData.email || '',
         branch: adminData.branch || '',
-        role: adminData.role || 'Administrator',
+        phone: adminData.phone || '',
         profileURL: adminData.profileURL || '',
-        identityProvider: adminData.identityProvider || 'Proved Identity',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      await setDoc(doc(db, ADMINS_COLLECTION, docId), payload)
-      return { id: docId, ...payload }
-    } catch (error) {
-      console.error('Failed to create admin in Firestore:', error)
-      throw error
-    }
+        status: adminData.status || 'active',
+        password: adminData.password || undefined,
+      }),
+    })
   },
 
   /**
-   * Update an existing administrator profile and branch assignment
+   * Update an existing administrator profile and branch assignment via backend API.
    */
   async updateAdmin(adminId, updatedFields) {
-    try {
-      if (!db || !adminId) throw new Error('Invalid Admin ID')
-      const docRef = doc(db, ADMINS_COLLECTION, String(adminId))
-      const payload = {
-        ...updatedFields,
-        updatedAt: new Date().toISOString(),
-      }
-      await updateDoc(docRef, payload)
-      return { id: adminId, ...payload }
-    } catch (error) {
-      console.error('Failed to update admin in Firestore:', error)
-      throw error
-    }
+    if (!adminId) throw new Error('Invalid Admin ID')
+    // Strip client-only fields before sending to backend
+    const { password: _p, confirmPassword: _cp, id: _id, ...safeFields } = updatedFields
+    void _p
+    void _cp
+    void _id
+    return request(`/admins/${adminId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(safeFields),
+    })
   },
 
   /**
-   * Delete an administrator record
+   * Delete an administrator record via backend API.
    */
   async deleteAdmin(adminId) {
-    try {
-      if (!db || !adminId) throw new Error('Invalid Admin ID')
-      await deleteDoc(doc(db, ADMINS_COLLECTION, String(adminId)))
-      return true
-    } catch (error) {
-      console.error('Failed to delete admin from Firestore:', error)
-      throw error
-    }
+    if (!adminId) throw new Error('Invalid Admin ID')
+    return request(`/admins/${adminId}`, { method: 'DELETE' })
   },
 }
