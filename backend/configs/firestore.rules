@@ -1,9 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // --- HELPER FUNCTIONS ---
-    
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -17,12 +17,20 @@ service cloud.firestore {
       return hasRole('admin');
     }
 
+    function isParent() {
+      return hasRole('parent');
+    }
+
+    function isOwnParent(parentId) {
+      return isParent() && request.auth.uid == parentId;
+    }
+
     // --- COLLECTION RULES ---
 
     // 1. User Profiles (Parents, Teachers, Admins)
     match /parents/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin(); // Admin manages all profile creations via backend
+      allow write: if isAdmin(); // Admin manages profile creation/edits via backend
     }
     match /teachers/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
@@ -33,18 +41,18 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 2. student: Parents manage their kids; Staff/Admins can view
+    // 2. Students: Parents manage their own kids; Staff/Admins can view
     match /students/{studentId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.parentId || 
+        request.auth.uid == resource.data.parentId ||
         isAdmin() || hasRole('teacher')
       );
       allow write: if isAdmin(); // Global student writes handled by backend
     }
 
-    // 3. programs & sessions: Publicly readable; Only Admins can modify
+    // 3. Programs & sessions: Publicly readable; Only Admins can modify
     match /programs/{programId} {
-      allow read: if true; 
+      allow read: if true;
       allow write: if isAdmin();
     }
     match /sessions/{sessionId} {
@@ -52,38 +60,63 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // 4. enrollment: Parents view their own; Admins manage
+    // 4. Enrollments: Parents view/create/limited-update their own; Admins manage fully
     match /enrollments/{enrollId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.parentId || 
+        request.auth.uid == resource.data.parentId ||
         isAdmin()
       );
-      allow write: if isAdmin(); // Enrollment logic is complex, handled by backend transaction
+
+      // Parent can create their OWN enrollment, but only in 'unpaid' state
+      allow create: if isAdmin() ||
+        (isParent() &&
+         request.resource.data.parentId == request.auth.uid &&
+         request.resource.data.status == 'unpaid' &&
+         request.resource.data.paymentStatus == 'unpaid');
+
+      // Parent can update ONLY payment-proof-related fields on their own enrollment,
+      // and can never set paymentStatus to 'paid' themselves (admin-only)
+      allow update: if isAdmin() ||
+        (isParent() &&
+         resource.data.parentId == request.auth.uid &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['paymentProofURL', 'paymentProofSubmittedAt', 'transactionId', 'remark', 'paymentStatus']) &&
+         request.resource.data.paymentStatus == 'verifying');
+
+      allow delete: if isAdmin();
     }
 
-    // 5. Academic Tracking (Attendance & Progress)
+    // 5. Academic Tracking (Attendance) — admin/teacher only via rules.
+    // Parents access attendance ONLY through the backend API (parentController.getMyChildAttendance),
+    // which filters per-student server-side. Direct client reads are blocked here because
+    // a single attendance doc contains ALL students in a class — rules can't filter within it.
     match /{path=**}/attendance/{atId} {
-      allow read: if isSignedIn() && (
-        request.auth.uid == get(/databases/$(database)/documents/students/$(resource.data.studentId)).data.parentId || 
-        isAdmin() || hasRole('teacher')
-      );
+      allow read: if isAdmin() || hasRole('teacher');
       allow write: if isAdmin() || hasRole('teacher');
     }
 
-    // 6. payments: Restricted financial records
+    // 6. Payments: Restricted financial records
     match /payments/{paymentId} {
       allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.parentId || 
+        request.auth.uid == resource.data.parentId ||
         isAdmin()
       );
       allow write: if isAdmin(); // Managed by backend payment flow
     }
 
-    // 7. Support Collections (Terms, Categories, etc.)
+    // 7. Support Collections (Terms, Categories, Branches, Classes)
     match /terms/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /categories/{id} { 
-      allow read: if true; allow write: if isAdmin(); 
+    match /classes/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /branches/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /categories/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
       match /levels/{lvlId} { allow read: if true; allow write: if isAdmin(); }
+    }
+
+    // Default deny anything not explicitly matched above
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -151,9 +151,20 @@ const clearAdminCache = (uid) => {
   }
 }
 
+const isParent = (req, res, next) => {
+  if (!req.user || req.user.role !== 'parent') {
+    return res.status(403).json({
+      error: 'Forbidden',
+      message: 'Access Denied: Parent account required.',
+    })
+  }
+  next()
+}
+
 module.exports = {
   verifyToken,
   isAdmin,
   isOwnerOrAdmin,
+  isParent,
   clearAdminCache,
 }
