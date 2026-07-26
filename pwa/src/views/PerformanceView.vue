@@ -9,21 +9,25 @@ const route = useRoute()
 const router = useRouter()
 const studentStore = useStudentStore()
 
-const performanceData = ref(null)
+const performanceList = ref([])
 const loading = ref(false)
-const showDemo = ref(false)
+const selectedClassId = ref('all')
 
 const loadPerformance = async (studentId) => {
   if (!studentId) return
   loading.value = true
-  performanceData.value = null
   try {
     const res = await parentPortalService.getChildPerformance(studentId)
-    if (res && (res.overallGrade || res.evaluations || res.skillsMastered || (Array.isArray(res) && res.length > 0))) {
-      performanceData.value = Array.isArray(res) ? res[0] : res
+    if (res && Array.isArray(res)) {
+      performanceList.value = res
+    } else if (res && (res.overallGrade || res.skillsMastered || res.className)) {
+      performanceList.value = [res]
+    } else {
+      performanceList.value = []
     }
   } catch (err) {
     console.error('Failed fetching performance:', err)
+    performanceList.value = []
   } finally {
     loading.value = false
   }
@@ -51,174 +55,202 @@ onMounted(() => {
   }
 })
 
-// Demo data for preview if backend records aren't published yet
-const displayData = computed(() => {
-  if (performanceData.value && !showDemo.value) return performanceData.value
-  if (showDemo.value || !performanceData.value) {
-    return {
-      overallGrade: 'Excellent',
-      termName: 'Mid-Year Term 2 (2026)',
-      teacherRemarks:
-        'Sokha has demonstrated wonderful dedication and consistency in class. Her technical precision during the practical exam and willingness to assist classmates make her a pleasure to teach!',
-      skillsMastered: [
-        'Classical Posture & Alignment',
-        'Rhythmic Tempo Accuracy',
-        'First & Second Position Transitions',
-        'Improvisational Musicality',
-        'Stage Presence & Expression',
-      ],
-      examScores: [
-        { id: 1, title: 'Practical Technique Assessment', score: '94/100', grade: 'A', date: 'Jul 10, 2026', notes: 'Superior control and balance.' },
-        { id: 2, title: 'Music & Theory Quiz', score: '90/100', grade: 'A-', date: 'Jun 28, 2026', notes: 'Solid understanding of rhythm.' },
-        { id: 3, title: 'Mid-Term Choreography Evaluation', score: '95/100', grade: 'A+', date: 'Jun 15, 2026', notes: 'Flawless execution!' },
-      ],
-    }
-  }
-  return null
-})
-
-const badgeColor = computed(() => {
-  const grade = (displayData.value?.overallGrade || '').toLowerCase()
-  if (grade.includes('outstanding') || grade.includes('excellent') || grade === 'a+') {
-    return 'from-emerald-500 to-teal-600 text-white shadow-emerald-500/25'
-  }
-  if (grade.includes('satisfactory') || grade === 'a' || grade === 'b') {
-    return 'from-sky-500 to-blue-600 text-white shadow-sky-500/25'
-  }
-  return 'from-amber-500 to-orange-600 text-slate-950 shadow-amber-500/25'
+const displayRecords = computed(() => {
+  if (selectedClassId.value === 'all') return performanceList.value
+  return performanceList.value.filter((r) => r.classId === selectedClassId.value || r.id === selectedClassId.value)
 })
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-5 pb-28">
     <!-- Child Switcher Header -->
     <ChildSwitcher />
 
-    <!-- Page Title -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <!-- Page Title & Class Selector -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4.5 rounded-2xl border border-[#e2e8f0] shadow-sm">
       <div>
-        <h1 class="text-xl font-extrabold text-white flex items-center gap-2">
-          <span>Academic Report Card & Exams</span>
-          <span v-if="showDemo" class="text-[10px] uppercase font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">
-            Preview Mode
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-extrabold text-[#0f172a]">Academic Report Card & Exams</h1>
+          <span class="px-2.5 py-0.5 bg-[#f0f9ff] text-[#0284c7] border border-[#0ea5e9]/20 rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xs">
+            {{ performanceList.length }} {{ performanceList.length === 1 ? 'Program' : 'Programs' }}
           </span>
-        </h1>
-        <p class="text-xs text-slate-400 mt-0.5">
-          Official teacher evaluation and exam progress for {{ studentStore.selectedStudent ? studentStore.selectedStudent.name : 'your child' }}
+        </div>
+        <p class="text-xs text-[#64748b] mt-0.5">
+          Official evaluation & exam progress for <strong class="text-[#0ea5e9]">{{ studentStore.selectedStudent?.name || 'your child' }}</strong>
         </p>
       </div>
 
-      <button
-        @click="showDemo = !showDemo"
-        class="self-start sm:self-auto px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700 transition-all flex items-center gap-1.5"
-      >
-        <span>{{ showDemo ? 'Show Live Records' : '👁️ View Demo Evaluation' }}</span>
-      </button>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="py-16 text-center text-sm text-slate-400">
-      Loading official performance records...
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="!displayData" class="py-14 text-center bg-slate-900/80 rounded-3xl border border-slate-800 p-8 shadow-xl">
-      <div class="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-400">
-        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
+      <!-- Class Filter Pill Bar if multiple classes -->
+      <div v-if="performanceList.length > 1" class="flex items-center gap-1.5 overflow-x-auto py-1">
+        <button
+          type="button"
+          @click="selectedClassId = 'all'"
+          :class="[
+            'px-3 py-1.5 rounded-xl text-xs font-black transition-all flex-shrink-0 cursor-pointer border',
+            selectedClassId === 'all'
+              ? 'bg-gradient-to-r from-[#0ea5e9] to-[#0284c7] text-white border-[#0ea5e9] shadow-md'
+              : 'bg-[#f8fafc] text-[#64748b] border-[#e2e8f0] hover:bg-white'
+          ]"
+        >
+          All Classes
+        </button>
+        <button
+          v-for="rec in performanceList"
+          :key="rec.id"
+          @click="selectedClassId = rec.classId || rec.id"
+          :class="[
+            'px-3 py-1.5 rounded-xl text-xs font-black transition-all flex-shrink-0 cursor-pointer border',
+            selectedClassId === (rec.classId || rec.id)
+              ? 'bg-gradient-to-r from-[#0ea5e9] to-[#0284c7] text-white border-[#0ea5e9] shadow-md'
+              : 'bg-[#f8fafc] text-[#64748b] border-[#e2e8f0] hover:bg-white'
+          ]"
+        >
+          {{ rec.className || rec.programName || 'Class' }}
+        </button>
       </div>
-      <h3 class="text-base font-extrabold text-white">No Exam Evaluations Yet</h3>
-      <p class="text-xs text-slate-400 max-w-md mx-auto mt-1 leading-relaxed">
-        Performance evaluations and report cards are published by instructors at the end of each term and exam cycle.
-      </p>
-      <button
-        @click="showDemo = true"
-        class="mt-5 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xs rounded-xl shadow-lg transition-all"
-      >
-        Preview Sample Evaluation Report →
-      </button>
     </div>
 
-    <!-- Main Report Card Content -->
+    <div v-if="loading" class="py-16 text-center text-xs font-bold text-[#64748b] flex flex-col items-center justify-center gap-3">
+      <svg class="animate-spin h-6 w-6 text-[#0ea5e9]" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>Loading academic evaluations across enrolled programs...</span>
+    </div>
+
+    <!-- Main Report Cards List -->
     <div v-else class="space-y-6">
-      <!-- Overall Grade Banner -->
-      <div :class="['p-6 rounded-3xl bg-gradient-to-r shadow-xl relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4', badgeColor]">
-        <div class="space-y-1 relative z-10">
-          <span class="text-[11px] font-black uppercase tracking-widest opacity-90 block">
-            {{ displayData.termName || 'Term Evaluation Status' }}
-          </span>
-          <h2 class="text-2xl sm:text-3xl font-black tracking-tight">
-            {{ displayData.overallGrade || 'Satisfactory' }}
-          </h2>
-          <p class="text-xs opacity-90 font-medium">
-            Verified academic standing for {{ studentStore.selectedStudent?.name }}
-          </p>
-        </div>
+      <div
+        v-for="(rec, idx) in displayRecords"
+        :key="rec.id || idx"
+        class="bg-white rounded-3xl border border-[#e2e8f0] p-5 sm:p-6 shadow-sm space-y-5 relative overflow-hidden group hover:shadow-md transition-all"
+      >
+        <!-- Top accent gradient -->
+        <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#0ea5e9] via-[#38bdf8] to-[#0284c7]"></div>
 
-        <div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl font-black self-end sm:self-center shadow-inner">
-          ★
-        </div>
-      </div>
-
-      <!-- Teacher Remarks Quote Card -->
-      <div class="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl relative">
-        <div class="flex items-center gap-2 text-sky-400 text-xs font-bold uppercase tracking-wider mb-2">
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-          </svg>
-          <span>Instructor Remarks</span>
-        </div>
-        <blockquote class="text-sm text-slate-200 italic leading-relaxed pl-3 border-l-2 border-sky-500">
-          "{{ displayData.teacherRemarks || 'No remarks provided for this evaluation.' }}"
-        </blockquote>
-      </div>
-
-      <!-- Skills Mastered Section -->
-      <div class="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-xl space-y-3">
-        <h3 class="text-sm font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-          <span>🎯 Skills & Competencies Mastered</span>
-          <span class="text-xs text-sky-400 font-bold">({{ (displayData.skillsMastered || []).length }})</span>
-        </h3>
-
-        <div class="flex flex-wrap gap-2 pt-1">
-          <div
-            v-for="skill in (displayData.skillsMastered || [])"
-            :key="skill"
-            class="px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700/80 text-xs font-bold text-emerald-300 flex items-center gap-2 shadow-sm"
-          >
-            <span class="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-[10px]">✓</span>
-            <span>{{ skill }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Exam & Evaluation Breakdown Table/List -->
-      <div class="bg-slate-900/90 rounded-3xl border border-slate-800 p-6 shadow-xl space-y-4">
-        <h3 class="text-sm font-extrabold text-white uppercase tracking-wider">Exam & Assessment Results</h3>
-
-        <div class="space-y-3">
-          <div
-            v-for="exam in (displayData.examScores || displayData.evaluations || [])"
-            :key="exam.id || exam.title"
-            class="p-4 rounded-2xl bg-slate-800/70 border border-slate-700/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-          >
+        <!-- Class Header & Badges -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+          <div class="flex items-start gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#0ea5e9] to-[#0284c7] text-white flex items-center justify-center font-black text-base shadow-md flex-shrink-0">
+              {{ (rec.className || rec.programName || 'E').charAt(0).toUpperCase() }}
+            </div>
             <div>
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-bold text-white">{{ exam.title || exam.name || 'Assessment' }}</span>
-                <span class="text-[11px] text-slate-400 font-semibold">• {{ exam.date || 'Recent' }}</span>
+              <div class="flex items-center gap-2 flex-wrap">
+                <!-- Branch Badge -->
+                <span
+                  :class="[
+                    'inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold leading-none whitespace-nowrap shadow-2xs',
+                    rec.branchId && (String(rec.branchId).toUpperCase() === 'FM' || String(rec.branchId).toUpperCase() === 'SEN SOK') ? 'bg-[#f3e8ff] text-[#581c87]' : 'bg-[#e0f2fe] text-[#0284c7]'
+                  ]"
+                >
+                  {{ rec.branchId || 'AEON' }}
+                </span>
+                <!-- Status Badge -->
+                <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold leading-none whitespace-nowrap shadow-2xs bg-[#d1fae5] text-[#064e3b]">
+                  {{ rec.isEnrollmentSummary ? 'Active Standing' : 'Verified Report' }}
+                </span>
               </div>
-              <p v-if="exam.notes" class="text-xs text-slate-400 mt-0.5">{{ exam.notes }}</p>
+              <h3 class="text-base font-black text-[#0f172a] mt-1 leading-snug">{{ rec.className || rec.programName || 'Enrolled Class' }}</h3>
+              <p class="text-xs font-extrabold text-[#334155] mt-0.5 flex items-center gap-2 flex-wrap">
+                <span>👨‍🏫 Teacher: <strong>{{ rec.instructor || 'Faculty' }}</strong></span>
+                <span class="text-[#94a3b8]">•</span>
+                <span>🕒 {{ rec.schedule || 'Regular Schedule' }}</span>
+              </p>
             </div>
+          </div>
 
-            <div class="flex items-center gap-3 self-end sm:self-center">
-              <span class="text-xs font-mono font-bold text-slate-300">{{ exam.score || 'Graded' }}</span>
-              <span class="px-3 py-1 rounded-lg bg-sky-500/20 border border-sky-500/30 text-sky-300 text-xs font-extrabold">
-                Grade: {{ exam.grade || 'A' }}
-              </span>
+          <div class="text-right flex-shrink-0">
+            <span class="text-xs font-black uppercase tracking-wider text-[#0ea5e9] block">{{ rec.termName || 'Current Term' }}</span>
+            <span class="text-[11px] text-[#64748b] font-bold">{{ rec.evaluationDate ? new Date(rec.evaluationDate).toLocaleDateString() : 'Active Term' }}</span>
+          </div>
+        </div>
+
+        <!-- Overall Grade Banner -->
+        <div class="p-5 rounded-2xl bg-gradient-to-r from-[#0ea5e9] to-[#0284c7] text-white shadow-md relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="space-y-1 relative z-10">
+            <span class="text-[10px] font-black uppercase tracking-widest text-[#f0f9ff]/90 block">
+              Academic Evaluation Standing
+            </span>
+            <h4 class="text-2xl sm:text-3xl font-black tracking-tight">
+              {{ rec.overallGrade || 'Satisfactory' }}
+            </h4>
+            <p class="text-xs text-[#f0f9ff]/90 font-medium">
+              Comprehensive performance indicator based on session participation and skill check-ins.
+            </p>
+          </div>
+          <div class="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl font-black self-end sm:self-center shadow-inner">
+            ★
+          </div>
+        </div>
+
+        <!-- Teacher Remarks Quote Card -->
+        <div class="p-4.5 rounded-2xl bg-[#f0f9ff] border border-[#0ea5e9]/30 shadow-sm relative">
+          <div class="flex items-center gap-2 text-[#0284c7] text-xs font-extrabold uppercase tracking-wider mb-2">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+            </svg>
+            <span>Instructor Remarks</span>
+          </div>
+          <blockquote class="text-xs sm:text-sm text-[#0f172a] italic leading-relaxed pl-3 border-l-2 border-[#0ea5e9]">
+            "{{ rec.teacherRemarks || 'Student is currently enrolled and actively participating in class sessions.' }}"
+          </blockquote>
+        </div>
+
+        <!-- Skills Mastered Section -->
+        <div class="p-4.5 rounded-2xl bg-[#f8fafc] border border-[#e2e8f0] shadow-2xs space-y-3">
+          <h4 class="text-xs font-extrabold text-[#0f172a] uppercase tracking-wider flex items-center gap-2">
+            <span>🎯 Skills & Competencies Tracked</span>
+            <span class="text-[11px] text-[#0284c7] font-bold">({{ (rec.skillsMastered || []).length }})</span>
+          </h4>
+
+          <div v-if="(rec.skillsMastered || []).length > 0" class="flex flex-wrap gap-2 pt-1">
+            <div
+              v-for="skill in rec.skillsMastered"
+              :key="skill"
+              class="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-800 flex items-center gap-2 shadow-2xs"
+            >
+              <span class="w-4 h-4 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[9px] font-black">✓</span>
+              <span>{{ skill }}</span>
+            </div>
+          </div>
+          <div v-else class="py-3 text-center text-xs font-bold text-[#64748b]">
+            No skills assessed yet for the current term.
+          </div>
+        </div>
+
+        <!-- Exam & Assessment Results if grades present -->
+        <div v-if="(rec.grades || rec.examScores || rec.evaluations || []).length > 0" class="bg-white rounded-2xl border border-[#e2e8f0] p-4.5 shadow-2xs space-y-3">
+          <h4 class="text-xs font-extrabold text-[#0f172a] uppercase tracking-wider">Exam & Assessment Breakdown</h4>
+          <div class="space-y-2">
+            <div
+              v-for="exam in (rec.grades || rec.examScores || rec.evaluations)"
+              :key="exam.id || exam.title || exam.assessmentName"
+              class="p-3 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
+            >
+              <div>
+                <span class="text-sm font-extrabold text-[#0f172a]">{{ exam.assessmentName || exam.title || exam.name || 'Assessment' }}</span>
+                <p v-if="exam.remarks || exam.notes" class="text-xs text-[#334155] mt-0.5">{{ exam.remarks || exam.notes }}</p>
+              </div>
+              <div class="flex items-center gap-2 self-end sm:self-center">
+                <span class="text-xs font-extrabold text-[#0f172a]">{{ exam.score !== undefined ? exam.score + '%' : 'Graded' }}</span>
+                <span class="px-3 py-1 rounded-lg bg-[#f0f9ff] border border-[#0ea5e9]/30 text-[#0284c7] text-xs font-extrabold">
+                  Grade: {{ exam.grade || 'A' }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Zero State if no classes enrolled -->
+      <div v-if="displayRecords.length === 0" class="p-8 bg-white rounded-3xl border border-dashed border-[#e2e8f0] text-center shadow-sm">
+        <div class="w-12 h-12 bg-[#f8fafc] border border-[#e2e8f0] rounded-full flex items-center justify-center mx-auto mb-3 text-[#64748b]">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <p class="text-sm font-extrabold text-[#0f172a]">No academic evaluation records found</p>
+        <p class="text-xs text-[#64748b] mt-1">Once your child enrolls in classes and instructors complete term check-ins, performance evaluations will appear here.</p>
       </div>
     </div>
   </div>

@@ -21,7 +21,7 @@ import EntityInfoCard from '@/components/common/detail/EntityInfoCard.vue'
 import TimestampCard from '@/components/common/detail/TimestampCard.vue'
 import AppBadge from '@/components/common/ui/AppBadge.vue'
 import AuditBadge from '@/components/common/ui/AuditBadge.vue'
-import { trackingService } from '@/services/trackingService'
+
 import { useDataStore } from '@/stores/dataStore'
 
 const dataStore = useDataStore()
@@ -413,12 +413,7 @@ const fetchData = async (id) => {
       allPrograms,
       allClasses,
     )
-    try {
-      const attendance = await trackingService.getAttendanceHistory(id)
-      attendanceHistory.value = attendance || []
-    } catch (e) {
-      console.warn('Could not fetch tracking data silently', e)
-    }
+
   } catch (error) {
     console.error('Failed to load student details', error)
     errorMessage.value = error.message || 'Failed to load details'

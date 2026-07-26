@@ -387,9 +387,6 @@ class TermService {
       (bid) => !oldBranchIds.some((oid) => String(oid) === String(bid)),
     )
     if (addedBranchIds.length > 0) {
-      console.log(
-        `Adding offerings for new branches: ${addedBranchIds.join(', ')}`,
-      )
       const newOfferings = await this.buildOfferingsForBranches(
         addedBranchIds,
         validatedData.branchSettings,
@@ -405,9 +402,6 @@ class TermService {
       (bid) => !newBranchIds.includes(bid),
     )
     if (removedBranchIds.length > 0) {
-      console.log(
-        `Removing offerings for branches: ${removedBranchIds.join(', ')}`,
-      )
       validatedData.offerings = (
         validatedData.offerings ||
         existingTerm.offerings ||

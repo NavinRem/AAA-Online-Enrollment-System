@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   CSS VARIABLES — DESIGN TOKENS (Shared across Admin Portal & PWA)
+   ========================================================================== */
+:root {
+  /* ── BRAND COLORS ──────────────────────────────────────────────────────── */
+  --color-primary: #38bdf8; /* sky-400  — main brand blue            */
+  --color-primary-dark: #0ea5e9; /* sky-500  — hover / darker blue        */
+  --color-primary-soft: #e0f2fe; /* sky-100  — light blue tint background */
+  --color-primary-light: #e0f2fe; /* sky-100  — pale blue tint             */
+  --color-primary-deep: #0284c7; /* sky-600  — strong border / pressed    */
+
+  /* ── STATUS COLORS ─────────────────────────────────────────────────────── */
+  --color-success: #10b981;
+  --color-success-soft: #d1fae5;
+  --color-success-deep: #064e3b;
+
+  --color-error: #ef4444;
+  --color-error-soft: #fee2e2;
+  --color-error-deep: #b91c1c;
+
+  --color-warning: #fbbf24;
+  --color-warning-soft: #fef3c7;
+  --color-warning-deep: #78350f;
+
+  --color-info: #3b82f6;
+  --color-info-soft: #eff6ff;
+  --color-info-deep: #0284c7;
+
+  /* ── EXTENDED COLORS ───────────────────────────────────────────────────── */
+  --color-orange: #c2410c;
+  --color-orange-soft: #ffedd5;
+  --color-orange-deep: #7c2d12;
+
+  --color-purple: #7e22ce;
+  --color-purple-soft: #f3e8ff;
+  --color-purple-deep: #581c87;
+
+  --color-magenta: #db2777;
+  --color-magenta-soft: #fce7f3;
+  --color-magenta-deep: #831843;
+
+  --color-pink: #ec4899;
+  --color-pink-soft: #fce7f3;
+  --color-pink-deep: #9d174d;
+
+  --color-teal: #0f766e;
+  --color-teal-soft: #ccfbf1;
+  --color-teal-deep: #115e59;
+
+  --color-gray: #64748b;
+  --color-gray-soft: #e2e8f0;
+  --color-gray-deep: #475569;
+
+  /* ── SURFACE COLORS (backgrounds) ─────────────────────────────────────── */
+  --color-surface: #ffffff; /* white      — cards, modals, inputs    */
+  --color-surface-subtle: #f8fafc; /* slate-50   — section backgrounds      */
+  --color-surface-light: #f1f5f9; /* slate-100  — page background          */
+
+  /* ── CONTENT COLORS (text) ─────────────────────────────────────────────── */
+  --color-content-deep: #0f172a; /* slate-900 — headings (darkest)        */
+  --color-content-dark: #1e293b; /* slate-800 — body text (default)       */
+  --color-content-muted: #64748b; /* slate-500 — labels, helper text       */
+  --color-content-light: #94a3b8; /* slate-400 — placeholders, disabled    */
+
+  /* ── BORDER COLOR ───────────────────────────────────────────────────────── */
+  --color-outline-std: #e2e8f0; /* slate-200 — default borders           */
+
+  /* ── SPACING & RADIUS ───────────────────────────────────────────────────── */
+  --radius-sm: 8px;
+  --radius-std: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-2xl: 48px;
+  --radius-full: 9999px;
+
+  --font-sans: 'Nunito', system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+    font-family: var(--font-sans);
+  }
+
+  body, input, button, select, textarea {
+    font-family: var(--font-sans) !important;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--color-surface-light);
+    color: var(--color-content-dark);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 12px);
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}

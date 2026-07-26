@@ -15,7 +15,6 @@ export const storageService = {
       const storageRefObj = storageRef(storage, path)
       const snapshot = await uploadBytes(storageRefObj, file)
       const downloadURL = await getDownloadURL(snapshot.ref)
-      console.log(`File uploaded successfully to: ${path}`)
       return downloadURL
     } catch (error) {
       console.error('Upload failed:', error)
@@ -36,7 +35,6 @@ export const storageService = {
       })
       const newURL = await getDownloadURL(snapshot.ref)
       await deleteObject(oldRef)
-      console.log(`Successfully moved profile image from temp to ${newPath}`)
       return newURL
     } catch (error) {
       console.error('Failed to move profile image:', error)

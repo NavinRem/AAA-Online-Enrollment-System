@@ -1,6 +1,6 @@
 import { auth } from '@/firebase'
 
-const API_URL = import.meta.env.VITE_API_BASE_URL // same backend as admin portal
+const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://127.0.0.1:5001/aaa-online-registration-e3833/us-central1/api'
 
 export async function request(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`

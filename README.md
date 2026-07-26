@@ -1,23 +1,26 @@
 # AAA Online Enrollment System
 
-A robust, full-stack enrollment solution featuring a responsive Web dashboard and a native Mobile experience. This project utilizes a serverless architecture to provide real-time data synchronization and secure user management.
+A robust, full-stack enrollment solution featuring a responsive Web dashboard for administrators and a Progressive Web App (PWA) for parents. This project utilizes a serverless architecture to provide real-time data synchronization and secure user management.
 
 ---
 
 ## Platforms
 
-- **Web Portal:** Built with **Vue.js** for administrative control and desktop users.
-- **Mobile App:** Built with **Flutter** for a seamless, high-performance Android/iOS experience.
-- **Backend:** Powered by **Firebase** for real-time database, authentication, and hosting.
+- **Admin Dashboard:** Built with **Vue.js + Tailwind CSS** for administrative control and desktop users.
+- **Parent Portal (PWA):** Built with **Vue.js + Vite PWA** for a seamless, installable mobile experience on any device.
+- **Backend:** Powered by **Firebase** (Cloud Functions, Firestore, Auth, Storage) for real-time database, authentication, and hosting.
 
 ---
 
 ## Key Features
 
-- **Real-time Sync:** Instant data updates across mobile and web via Cloud Firestore.
-- **Secure Auth:** Robust user authentication (Email/Password, Social Login).
-- **Push Notifications:** Keep mobile users engaged with Firebase Cloud Messaging.
-- **Cross-Platform UI:** Modern, clean design using Material Design and Tailwind CSS.
+- **Real-time Sync:** Instant data updates across all platforms via Cloud Firestore.
+- **Secure Auth:** Robust user authentication (Email/Password, Phone/Telegram login).
+- **Online Payments:** KHQR, Card, and Bank Transfer support with proof verification.
+- **Self-Enrollment:** Parents can browse and enroll children with automatic conflict prevention.
+- **Performance Tracking:** Exam scores, evaluations, and report cards visible to parents.
+- **Attendance Monitoring:** Session-by-session check-in history and attendance rates.
+- **Installable PWA:** Parent portal works offline-first and can be installed on any mobile device.
 
 ---
 
@@ -25,11 +28,11 @@ A robust, full-stack enrollment solution featuring a responsive Web dashboard an
 
 ```text
 AAA-Online-Enrollment-System/
-├── frontend/      # Vue.js frontend (Web Dashboard)
-├── mobile/        # Flutter mobile application
-└── backend/       # Firebase Functions and Configurations
+├── frontend/      # Vue.js Admin Dashboard (Web)
+├── pwa/           # Vue.js Parent Portal (Progressive Web App)
+└── backend/       # Firebase Cloud Functions & Configurations
     ├── configs/   # Security rules and indexes
-    └── functions/ # Cloud Functions source
+    └── src/       # Express.js API source (17 domain modules)
 ```
 
 ---
@@ -45,22 +48,28 @@ firebase login
 firebase init
 ```
 
-### Web (Vue.js)
+### Admin Dashboard (Vue.js)
 
 ```bash
-
 cd frontend
 npm install
 npm run dev
 ```
 
-### Mobile (Flutter)
+### Parent Portal (PWA)
 
-```Bash
+```bash
+cd pwa
+npm install
+npm run dev
+```
 
-cd mobile
-flutter pub get
-flutter run
+### Backend (Firebase Functions)
+
+```bash
+cd backend
+npm install
+npm run serve
 ```
 
 ---
@@ -69,5 +78,4 @@ flutter run
 
 ```text
 Rem Sonavin
-
 ```

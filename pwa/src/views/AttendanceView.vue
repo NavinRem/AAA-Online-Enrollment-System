@@ -11,7 +11,6 @@ const studentStore = useStudentStore()
 
 const attendanceRecords = ref([])
 const loading = ref(false)
-const showDemo = ref(false)
 
 const loadAttendance = async (studentId) => {
   if (!studentId) return
@@ -50,114 +49,97 @@ onMounted(() => {
 })
 
 const displayList = computed(() => {
-  if (attendanceRecords.value.length > 0 && !showDemo.value) return attendanceRecords.value
-  if (showDemo.value || attendanceRecords.value.length === 0) {
-    return [
-      { id: 1, date: 'Jul 14, 2026', sessionName: 'Ballet Level 1 - Evening Studio', status: 'present', remarks: 'Punctual & engaged' },
-      { id: 2, date: 'Jul 12, 2026', sessionName: 'Ballet Level 1 - Evening Studio', status: 'present', remarks: '' },
-      { id: 3, date: 'Jul 07, 2026', sessionName: 'Ballet Level 1 - Evening Studio', status: 'present', remarks: '' },
-      { id: 4, date: 'Jul 05, 2026', sessionName: 'Ballet Level 1 - Evening Studio', status: 'excused', remarks: 'Parent notified ahead (medical)' },
-      { id: 5, date: 'Jun 30, 2026', sessionName: 'Ballet Level 1 - Evening Studio', status: 'present', remarks: '' },
-    ]
-  }
-  return []
+  return attendanceRecords.value || []
 })
 
 const stats = computed(() => {
   const list = displayList.value
+  if (list.length === 0) {
+    return { present: 0, absent: 0, excused: 0, percentage: 0 }
+  }
   const present = list.filter((r) => (r.status || '').toLowerCase() === 'present').length
   const absent = list.filter((r) => (r.status || '').toLowerCase() === 'absent').length
   const excused = list.filter((r) => (r.status || '').toLowerCase() === 'excused' || (r.status || '').toLowerCase() === 'late').length
-  const total = list.length || 1
+  const total = list.length
   const percentage = Math.round((present / total) * 100)
   return { present, absent, excused, percentage }
 })
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-5 pb-28">
     <ChildSwitcher />
 
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
       <div>
-        <h1 class="text-xl font-extrabold text-white flex items-center gap-2">
-          <span>Class Attendance Record</span>
-          <span v-if="showDemo" class="text-[10px] uppercase font-bold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">
-            Preview Mode
-          </span>
-        </h1>
-        <p class="text-xs text-slate-400 mt-0.5">
-          Session check-in and attendance percentage for {{ studentStore.selectedStudent ? studentStore.selectedStudent.name : 'your child' }}
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-extrabold text-[#0f172a]">Class Attendance Log</h1>
+        </div>
+        <p class="text-xs text-[#64748b] mt-0.5">
+          Session check-in & punctuality record for {{ studentStore.selectedStudent?.name || 'your child' }}
         </p>
       </div>
-
-      <button
-        @click="showDemo = !showDemo"
-        class="self-start sm:self-auto px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700 transition-all flex items-center gap-1.5"
-      >
-        <span>{{ showDemo ? 'Show Live Records' : '👁️ View Demo Attendance' }}</span>
-      </button>
     </div>
 
-    <!-- Summary Stats Bar -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Attendance Rate</span>
-        <span class="text-2xl font-black text-sky-400 mt-1 block">{{ stats.percentage }}%</span>
-      </div>
-      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Sessions Present</span>
-        <span class="text-2xl font-black text-emerald-400 mt-1 block">{{ stats.present }}</span>
-      </div>
-      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Late / Excused</span>
-        <span class="text-2xl font-black text-amber-400 mt-1 block">{{ stats.excused }}</span>
-      </div>
-      <div class="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow">
-        <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Absences</span>
-        <span class="text-2xl font-black text-red-400 mt-1 block">{{ stats.absent }}</span>
-      </div>
+    <div v-if="loading" class="py-12 text-center text-xs font-bold text-[#64748b]">
+      Loading attendance history...
     </div>
 
-    <!-- Attendance List -->
-    <div v-if="loading" class="py-16 text-center text-sm text-slate-400">
-      Loading attendance logs...
-    </div>
-
-    <div v-else-if="displayList.length === 0" class="py-12 text-center bg-slate-900/70 rounded-3xl border border-slate-800 p-8">
-      <p class="text-sm font-bold text-slate-300">No session attendance logged yet</p>
-      <p class="text-xs text-slate-500 mt-1">Check-in timestamps will appear here after class sessions.</p>
-    </div>
-
-    <div v-else class="bg-slate-900/90 rounded-3xl border border-slate-800 p-6 shadow-xl space-y-3">
-      <h3 class="text-sm font-extrabold text-white uppercase tracking-wider mb-2">Session Check-in History</h3>
-
-      <div
-        v-for="record in displayList"
-        :key="record.id || record.date"
-        class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between gap-3"
-      >
-        <div class="space-y-1">
-          <div class="flex items-center gap-2">
-            <span class="text-sm font-bold text-white">{{ record.date || 'Recent Session' }}</span>
-            <span class="text-xs text-slate-400">• {{ record.sessionName || record.className || 'Class Check-in' }}</span>
-          </div>
-          <p v-if="record.remarks" class="text-xs text-slate-400 italic">{{ record.remarks }}</p>
+    <!-- Summary Stats Bar & Session Log (Always Rendered) -->
+    <div v-else class="space-y-5">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div class="p-3.5 rounded-2xl bg-white border border-[#e2e8f0] shadow-sm text-center">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#64748b] block">Attendance Rate</span>
+          <span class="text-xl font-black text-[#0284c7] mt-0.5 block">{{ stats.percentage }}%</span>
         </div>
+        <div class="p-3.5 rounded-2xl bg-white border border-[#e2e8f0] shadow-sm text-center">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#64748b] block">Sessions Present</span>
+          <span class="text-xl font-black text-emerald-600 mt-0.5 block">{{ stats.present }}</span>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-white border border-[#e2e8f0] shadow-sm text-center">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#64748b] block">Late / Excused</span>
+          <span class="text-xl font-black text-amber-600 mt-0.5 block">{{ stats.excused }}</span>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-white border border-[#e2e8f0] shadow-sm text-center">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#64748b] block">Absences</span>
+          <span class="text-xl font-black text-red-600 mt-0.5 block">{{ stats.absent }}</span>
+        </div>
+      </div>
 
-        <div>
-          <span
-            :class="[
-              'px-3 py-1 rounded-lg text-xs font-extrabold uppercase tracking-wider border',
-              (record.status || '').toLowerCase() === 'present'
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                : (record.status || '').toLowerCase() === 'absent'
-                ? 'bg-red-500/10 text-red-400 border-red-500/30'
-                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-            ]"
+      <!-- Attendance List Panel -->
+      <div class="bg-white rounded-2xl border border-[#e2e8f0] p-4 sm:p-5 shadow-sm space-y-3">
+        <h3 class="text-xs font-extrabold text-[#0f172a] uppercase tracking-wider mb-2">Detailed Session Log</h3>
+
+        <div v-if="displayList.length > 0" class="space-y-2.5">
+          <div
+            v-for="rec in displayList"
+            :key="rec.id"
+            class="p-3.5 rounded-xl bg-[#f8fafc] border border-[#e2e8f0] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-2xs"
           >
-            {{ (record.status || 'Present').toUpperCase() }}
-          </span>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-extrabold text-[#0f172a]">{{ rec.date || 'Recent Session' }}</span>
+                <span class="text-[11px] text-[#64748b] font-bold">• {{ rec.sessionName || rec.className || 'Regular Class' }}</span>
+              </div>
+              <p v-if="rec.remarks" class="text-xs text-[#334155] mt-0.5 italic">{{ rec.remarks }}</p>
+            </div>
+            <div class="self-end sm:self-center">
+              <span
+                :class="[
+                  'text-[10px] font-black uppercase px-2.5 py-1 rounded-lg border',
+                  (rec.status || '').toLowerCase() === 'present' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                  (rec.status || '').toLowerCase() === 'late' || (rec.status || '').toLowerCase() === 'excused' ? 'bg-amber-100 text-amber-800 border-amber-300' :
+                  'bg-red-100 text-red-800 border-red-300'
+                ]"
+              >
+                {{ rec.status || 'Present' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div v-else class="py-8 text-center bg-[#f8fafc] rounded-xl border border-dashed border-[#e2e8f0] p-5">
+          <p class="text-sm font-extrabold text-[#0f172a]">No session check-in records logged yet</p>
+          <p class="text-xs text-[#64748b] mt-1">Check-in history and punctuality logs will appear here automatically when marked by instructors.</p>
         </div>
       </div>
     </div>

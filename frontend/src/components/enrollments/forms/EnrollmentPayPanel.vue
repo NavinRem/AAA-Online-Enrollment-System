@@ -73,7 +73,6 @@ const clearCustomQr = () => {
 
 // Secret Presentation Shortcut: Ctrl+Shift+B or double click QR to silently simulate bank webhook!
 const triggerBankVerificationDemo = () => {
-  console.log('⚡ Simulated Bank Webhook Verification Received!')
   const realTransId = Math.floor(10000000000 + Math.random() * 90000000000).toString()
   const realReceiptId = 'KHQR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000)
   updateForm('transactionId', realTransId)

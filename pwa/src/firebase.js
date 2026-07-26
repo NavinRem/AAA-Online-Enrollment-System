@@ -35,7 +35,6 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   connectFirestoreEmulator(firestore, '127.0.0.1', 8080)
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
   connectStorageEmulator(storage, '127.0.0.1', 9199)
-  console.log('Parent PWA connected to Firebase Emulators')
 }
 
 export { app, auth, firestore, storage }

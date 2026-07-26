@@ -12,7 +12,6 @@ exports.createCategory = async (req, res) => {
 exports.getAllCategories = async (req, res) => {
   try {
     const categories = await categoryService.getAllCategories(req.query)
-    console.log('GET ALL CATEGORIES RETURNED:', categories)
     res.status(200).json(categories)
   } catch (error) {
     res.status(500).json({ error: error.message })

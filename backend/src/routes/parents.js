@@ -15,6 +15,15 @@ router.post(
   registrationLimiter,
   parentController.registerParentSelf,
 )
+router.post(
+  '/resolve-login-identifier',
+  parentController.resolveLoginIdentifier,
+)
+router.post(
+  '/register-google',
+  registrationLimiter,
+  parentController.registerParentGoogle,
+)
 
 // ── AUTHENTICATED — token required, but role checked per-route below ──
 router.use(verifyToken)

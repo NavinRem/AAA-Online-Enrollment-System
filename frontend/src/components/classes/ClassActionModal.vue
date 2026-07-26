@@ -279,11 +279,6 @@ const confirmRows = computed(() => {
 })
 
 const filteredPickerClasses = computed(() => {
-  console.log('Classes before filter:', classes.value)
-  console.log(
-    'Filtered picker classes:',
-    filterDuplicateClasses(classes.value, form.programId, props.context?.existingOfferings),
-  )
   return filterDuplicateClasses(classes.value, form.programId, props.context?.existingOfferings)
 })
 

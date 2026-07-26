@@ -6,11 +6,14 @@ const { currentUser } = useAuth()
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-950 text-slate-100 font-sans antialiased selection:bg-sky-500 selection:text-white">
-    <PwaNavbar v-if="currentUser" />
-    <main :class="currentUser ? 'pt-16 pb-20 sm:pb-8 max-w-4xl mx-auto px-4 sm:px-6' : ''">
-      <RouterView />
-    </main>
+  <div class="min-h-screen bg-surface-light text-content-dark font-sans antialiased selection:bg-primary selection:text-white flex flex-col items-center">
+    <!-- Mobile App Container Shell -->
+    <div class="w-full max-w-lg min-h-screen bg-surface sm:border-x border-outline-std sm:shadow-xl flex flex-col justify-between relative">
+      <PwaNavbar v-if="currentUser" />
+      <main :class="currentUser ? 'pt-16 pb-24 flex-1 px-4 sm:px-5' : 'flex-1 flex flex-col justify-center'">
+        <RouterView />
+      </main>
+    </div>
   </div>
 </template>
 

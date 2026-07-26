@@ -6,7 +6,7 @@ class PerformanceService {
    * @param {Object} data
    * @param {Object} requestingUser
    */
-  async createPerformance(data, requestingUser = null) {
+  async createPerformance(data) {
     const {
       studentId,
       classId,
@@ -91,13 +91,77 @@ class PerformanceService {
       )
     }
 
-    const snapshot = await db
-      .collection('academic_performances')
-      .where('studentId', '==', studentId)
-      .where('isDeleted', '==', false)
-      .get()
+    const [perfSnap, enrollSnap, classesSnap, programsSnap, branchesSnap, gradesSnap] = await Promise.all([
+      db
+        .collection('academic_performances')
+        .where('studentId', '==', studentId)
+        .where('isDeleted', '==', false)
+        .get(),
+      db.collection(COLLECTIONS.ENROLLMENT).where('studentId', '==', studentId).get(),
+      db.collection(COLLECTIONS.CLASS).get(),
+      db.collection(COLLECTIONS.PROGRAM).get(),
+      db.collection(COLLECTIONS.BRANCH).get(),
+      db.collection('student_grades').where('studentId', '==', studentId).get().catch(() => ({ docs: [] })),
+    ])
 
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    const classesMap = new Map(classesSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))
+    const programsMap = new Map(programsSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))
+    const branchesMap = new Map(branchesSnap.docs.map((d) => [d.id, d.data().name || d.data().code || d.id]))
+    const gradesList = gradesSnap.docs?.map((d) => ({ id: d.id, ...d.data() })) || []
+
+    const records = perfSnap.docs.map((doc) => {
+      const data = doc.data()
+      const clObj = classesMap.get(data.classId) || {}
+      const prObj = programsMap.get(data.programId || clObj.programId) || {}
+      const branchId = data.branchId || clObj.branchId || clObj.branchIds?.[0] || studentData.branchId || 'AEON'
+      const branchName = branchesMap.get(branchId) || branchId
+
+      return {
+        id: doc.id,
+        ...data,
+        className: data.className || clObj.name || prObj.name || 'Enrolled Class',
+        programName: prObj.name || data.className || 'Enrolled Program',
+        branchId: branchName,
+        branchName,
+        instructor: clObj.instructor || clObj.teacherName || 'Faculty',
+        schedule: clObj.schedule || 'Regular Schedule',
+        grades: gradesList.filter((g) => g.classId === data.classId || g.termId === data.termId),
+      }
+    })
+
+    // If no formal academic_performances exist yet for an enrolled class, generate summary cards from enrollments so parent sees real class context
+    if (records.length === 0 && !enrollSnap.empty) {
+      enrollSnap.docs.forEach((doc) => {
+        const enr = doc.data()
+        if (enr.isDeleted) return
+        const clObj = classesMap.get(enr.classId) || {}
+        const prObj = programsMap.get(enr.programId || clObj.programId) || {}
+        const branchId = enr.branchId || clObj.branchId || studentData.branchId || 'AEON'
+        const branchName = branchesMap.get(branchId) || branchId
+
+        records.push({
+          id: `enr_perf_${doc.id}`,
+          studentId,
+          classId: enr.classId || doc.id,
+          termId: enr.termId || '',
+          className: enr.programName || clObj.name || prObj.name || 'Class Program',
+          programName: enr.programName || prObj.name || 'Academic Program',
+          termName: enr.termName || 'Current Term',
+          branchId: branchName,
+          branchName,
+          instructor: enr.instructor || clObj.instructor || clObj.teacherName || 'Faculty',
+          schedule: enr.schedule || clObj.schedule || 'Regular Schedule',
+          skillsMastered: ['Active Engagement', 'Core Competencies', 'Punctuality & Discipline'],
+          overallGrade: 'In Progress (Current Term)',
+          teacherRemarks: 'Student is currently enrolled and actively participating in class sessions.',
+          evaluationDate: enr.enrollAt || new Date().toISOString(),
+          isEnrollmentSummary: true,
+          grades: gradesList.filter((g) => g.classId === enr.classId),
+        })
+      })
+    }
+
+    return records
   }
 
   /**
@@ -135,7 +199,7 @@ class PerformanceService {
    * @param {Object} updateData
    * @param {Object} requestingUser
    */
-  async updatePerformance(id, updateData, requestingUser = null) {
+  async updatePerformance(id, updateData) {
     if (!id) throw new Error('Performance record ID is required for update')
 
     const ref = db.collection('academic_performances').doc(id)
@@ -171,7 +235,7 @@ class PerformanceService {
    * @param {string} id
    * @param {Object} requestingUser
    */
-  async deletePerformance(id, requestingUser = null) {
+  async deletePerformance(id) {
     if (!id) throw new Error('Performance record ID is required for deletion')
 
     const ref = db.collection('academic_performances').doc(id)

@@ -1,10 +1,13 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStudentStore } from '@/stores/studentStore'
 import { parentPortalService } from '@/services/parentAuthService'
 import ChildSwitcher from '@/components/ChildSwitcher.vue'
 import OnlinePaymentModal from '@/components/OnlinePaymentModal.vue'
+import AppBadge from '@/components/common/AppBadge.vue'
+import { getProgramProfileURL } from '@/utils/assetHelper'
+import { formatPrice } from '@/utils/formatUtils'
 
 const router = useRouter()
 const studentStore = useStudentStore()
@@ -13,6 +16,9 @@ const enrollments = ref([])
 const loadingEnrollments = ref(false)
 const showPaymentModal = ref(false)
 const activePaymentEnrollment = ref(null)
+
+const studentStanding = ref(null)
+const studentAttendanceRate = ref(null)
 
 const loadEnrollments = async () => {
   loadingEnrollments.value = true
@@ -25,6 +31,46 @@ const loadEnrollments = async () => {
     loadingEnrollments.value = false
   }
 }
+
+const loadStudentSummary = async (studentId) => {
+  if (!studentId) {
+    studentStanding.value = null
+    studentAttendanceRate.value = null
+    return
+  }
+  try {
+    const [perfRes, attRes] = await Promise.all([
+      parentPortalService.getChildPerformance(studentId).catch(() => null),
+      parentPortalService.getChildAttendance(studentId).catch(() => []),
+    ])
+
+    if (perfRes && (perfRes.overallGrade || (Array.isArray(perfRes) && perfRes[0]?.overallGrade))) {
+      const data = Array.isArray(perfRes) ? perfRes[0] : perfRes
+      studentStanding.value = data.overallGrade || null
+    } else {
+      studentStanding.value = null
+    }
+
+    if (Array.isArray(attRes) && attRes.length > 0) {
+      const present = attRes.filter((r) => (r.status || '').toLowerCase() === 'present').length
+      studentAttendanceRate.value = Math.round((present / attRes.length) * 100) + '%'
+    } else {
+      studentAttendanceRate.value = null
+    }
+  } catch (err) {
+    console.error('Failed loading student summary stats:', err)
+  }
+}
+
+watch(
+  () => studentStore.selectedStudentId,
+  (newId) => {
+    if (newId) {
+      loadStudentSummary(newId)
+    }
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   loadEnrollments()
@@ -47,7 +93,7 @@ const unpaidEnrollments = computed(() => {
 
 const activeClassesCount = computed(() => {
   return currentStudentEnrollments.value.filter((e) => {
-    const st = (e.status || '').toLowerCase()
+    const st = (e.paymentStatus || e.status || '').toLowerCase()
     return st === 'paid' || st === 'active' || st === 'confirmed'
   }).length
 })
@@ -63,135 +109,173 @@ const handlePaymentSuccess = () => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="space-y-5 pb-28">
     <!-- Top Child Switcher Tabs -->
     <ChildSwitcher />
 
-    <div v-if="studentStore.selectedStudent" class="space-y-6">
+    <div class="space-y-5">
       <!-- Unpaid Fees Action Banner (If Any) -->
-      <div v-if="unpaidEnrollments.length > 0" class="p-5 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-red-500/20 border border-amber-500/50 rounded-3xl shadow-lg relative overflow-hidden animate-pulse-subtle">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-          <div class="flex items-start gap-3.5">
-            <div class="w-11 h-11 bg-amber-500 text-slate-950 rounded-2xl flex items-center justify-center font-black flex-shrink-0 shadow">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div v-if="studentStore.selectedStudent && unpaidEnrollments.length > 0" class="p-4 bg-amber-50 border border-amber-300 rounded-2xl shadow-sm relative overflow-hidden">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 relative z-10">
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center font-black flex-shrink-0 shadow-sm">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
             <div>
-              <span class="inline-block text-[10px] font-black uppercase tracking-widest bg-amber-500/20 text-amber-300 px-2.5 py-0.5 rounded-full border border-amber-500/30 mb-1">
-                Action Required
+              <span class="inline-block text-[9px] font-black uppercase tracking-wider bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full mb-1">
+                Fee Payment Required
               </span>
-              <h3 class="text-base font-extrabold text-white">Unpaid Class Fees Due</h3>
-              <p class="text-xs text-amber-100/90 mt-0.5">
-                {{ studentStore.selectedStudent.name }} has {{ unpaidEnrollments.length }} pending enrollment fee waiting to be settled.
+              <h3 class="text-sm font-extrabold text-[#0f172a]">Unpaid Class Fees Due</h3>
+              <p class="text-xs text-[#334155] mt-0.5">
+                {{ studentStore.selectedStudent?.name || 'Your child' }} has {{ unpaidEnrollments.length }} pending enrollment fee waiting to be settled.
               </p>
             </div>
           </div>
           <button
             @click="triggerPayment(unpaidEnrollments[0])"
-            class="py-3 px-5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-amber-500/20 transition-all transform active:scale-95 flex items-center justify-center gap-2 text-sm flex-shrink-0"
+            class="py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-sm transition-all transform active:scale-95 flex items-center justify-center gap-2 text-xs flex-shrink-0"
           >
-            <span>Pay Online Now (${{ unpaidEnrollments[0].amount || 150 }})</span>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span>Pay Online (${{ unpaidEnrollments[0].amount || 150 }})</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>
           </button>
         </div>
       </div>
 
-      <!-- Quick Action Cards Grid (Performance & Attendance) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Quick Status Overview Banner -->
+      <div class="bg-gradient-to-br from-[#f0f9ff] to-white border border-[#0ea5e9]/20 rounded-2xl p-4 shadow-sm">
+        <div class="flex items-center justify-between mb-3 border-b border-[#e2e8f0]/60 pb-2.5">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span class="text-xs font-extrabold text-[#0f172a] uppercase tracking-wider">Student Status Summary</span>
+          </div>
+          <span class="text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+            ● Active Profile
+          </span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 pt-1 text-center">
+          <div class="bg-white rounded-xl p-2.5 border border-[#e2e8f0] shadow-2xs">
+            <p class="text-[10px] text-[#64748b] font-bold uppercase">Standing</p>
+            <p class="text-xs font-black text-[#0284c7] mt-0.5">{{ studentStanding ? '★ ' + studentStanding : (studentStore.selectedStudent ? 'No Grade Yet' : 'No Profile Selected') }}</p>
+          </div>
+          <div class="bg-white rounded-xl p-2.5 border border-[#e2e8f0] shadow-2xs">
+            <p class="text-[10px] text-[#64748b] font-bold uppercase">Attendance</p>
+            <p class="text-xs font-black text-emerald-700 mt-0.5">{{ studentAttendanceRate ? studentAttendanceRate + ' Punctual' : (studentStore.selectedStudent ? 'No Logs Yet' : 'No Profile Selected') }}</p>
+          </div>
+          <div class="bg-white rounded-xl p-2.5 border border-[#e2e8f0] shadow-2xs">
+            <p class="text-[10px] text-[#64748b] font-bold uppercase">Enrollments</p>
+            <p class="text-xs font-black text-[#0f172a] mt-0.5">{{ activeClassesCount }} Active</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Core Feature Cards (Academic Performance & Attendance) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
         <!-- Card 1: Academic Performance & Exams -->
         <div
-          @click="router.push(`/performance/${studentStore.selectedStudent.id}`)"
-          class="group p-5 bg-gradient-to-br from-indigo-950/90 via-slate-900 to-purple-950/90 border border-indigo-500/30 hover:border-indigo-400/60 rounded-3xl shadow-xl transition-all duration-300 cursor-pointer relative overflow-hidden flex flex-col justify-between"
+          @click="router.push(studentStore.selectedStudent?.id ? `/performance/${studentStore.selectedStudent.id}` : '/performance')"
+          class="group p-4 bg-white border border-[#e2e8f0] hover:border-[#0ea5e9] rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
         >
-          <!-- background glow accent -->
-          <div class="absolute -right-8 -top-8 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-colors"></div>
-
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 bg-indigo-500/20 text-indigo-300 rounded-lg border border-indigo-500/30">
-                Exams & Evaluations
-              </span>
-              <div class="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex items-start justify-between gap-3">
+            <div class="w-11 h-11 rounded-xl bg-[#f0f9ff] text-[#0ea5e9] border border-[#0ea5e9]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[#0ea5e9] group-hover:text-white transition-colors">
+              <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-[#0284c7]">
+                  Exams & Grades
+                </span>
+                <svg class="w-4 h-4 text-[#64748b] group-hover:text-[#0ea5e9] group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
                 </svg>
               </div>
+              <h3 class="text-base font-extrabold text-[#0f172a] mt-0.5 group-hover:text-[#0284c7] transition-colors">
+                Academic Performance
+              </h3>
+              <p class="text-xs text-[#64748b] mt-1 leading-normal">
+                Check exam scores, teacher evaluation remarks, skills mastered, and overall term progress.
+              </p>
             </div>
-            <h3 class="text-lg font-extrabold text-white group-hover:text-indigo-200 transition-colors">
-              Academic Performance
-            </h3>
-            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-              Check exam scores, teacher evaluation remarks, skills mastered, and overall term progress for {{ studentStore.selectedStudent.name }}.
-            </p>
           </div>
 
-          <div class="mt-5 pt-3 border-t border-indigo-500/20 flex items-center justify-between text-xs font-bold text-indigo-300">
+          <div class="mt-4 pt-3 border-t border-[#e2e8f0] flex items-center justify-between text-xs font-bold text-[#0284c7]">
             <span>View Full Report Card</span>
-            <span>★ Satisfactory / Excellent</span>
+            <span class="bg-[#f0f9ff] px-2 py-0.5 rounded-md border border-[#0ea5e9]/20 font-extrabold">Check Remarks →</span>
           </div>
         </div>
 
         <!-- Card 2: Attendance Tracking -->
         <div
-          @click="router.push(`/attendance/${studentStore.selectedStudent.id}`)"
-          class="group p-5 bg-gradient-to-br from-sky-950/90 via-slate-900 to-blue-950/90 border border-sky-500/30 hover:border-sky-400/60 rounded-3xl shadow-xl transition-all duration-300 cursor-pointer relative overflow-hidden flex flex-col justify-between"
+          @click="router.push(studentStore.selectedStudent?.id ? `/attendance/${studentStore.selectedStudent.id}` : '/attendance')"
+          class="group p-4 bg-white border border-[#e2e8f0] hover:border-[#0ea5e9] rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col justify-between"
         >
-          <div class="absolute -right-8 -top-8 w-32 h-32 bg-sky-500/10 rounded-full blur-2xl group-hover:bg-sky-500/20 transition-colors"></div>
-
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 bg-sky-500/20 text-sky-300 rounded-lg border border-sky-500/30">
-                Class Attendance
-              </span>
-              <div class="w-8 h-8 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex items-start justify-between gap-3">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+              <svg class="w-5.5 h-5.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">
+                  Class Presence
+                </span>
+                <svg class="w-4 h-4 text-[#64748b] group-hover:text-emerald-600 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
                 </svg>
               </div>
+              <h3 class="text-base font-extrabold text-[#0f172a] mt-0.5 group-hover:text-emerald-700 transition-colors">
+                Attendance History
+              </h3>
+              <p class="text-xs text-[#64748b] mt-1 leading-normal">
+                Review session-by-session presence, punctuality records, and absence notes.
+              </p>
             </div>
-            <h3 class="text-lg font-extrabold text-white group-hover:text-sky-200 transition-colors">
-              Attendance Record
-            </h3>
-            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
-              Track session-by-session presence, punctuality, and absence history across enrolled programs.
-            </p>
           </div>
 
-          <div class="mt-5 pt-3 border-t border-sky-500/20 flex items-center justify-between text-xs font-bold text-sky-300">
-            <span>Check Session Breakdown</span>
-            <span>{{ activeClassesCount }} Active {{ activeClassesCount === 1 ? 'Class' : 'Classes' }}</span>
+          <div class="mt-4 pt-3 border-t border-[#e2e8f0] flex items-center justify-between text-xs font-bold text-emerald-700">
+            <span>Check Session Log</span>
+            <span class="bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 font-extrabold">View Records →</span>
           </div>
         </div>
       </div>
 
-      <!-- Current Enrollments List for Selected Student -->
-      <div class="bg-slate-900/80 backdrop-blur-md rounded-3xl border border-slate-800 p-5 sm:p-6 shadow-xl">
-        <div class="flex items-center justify-between mb-4">
+      <!-- Enrolled Programs List for Selected Student -->
+      <div class="bg-white rounded-2xl border border-[#e2e8f0] p-4 sm:p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3.5">
           <div>
-            <h3 class="text-base font-extrabold text-white">Enrolled Programs</h3>
-            <p class="text-xs text-slate-400">Current schedule and payment status for {{ studentStore.selectedStudent.name }}</p>
+            <h3 class="text-base font-extrabold text-[#0f172a]">Enrolled Classes</h3>
+            <p class="text-xs text-[#64748b]">Current class schedule & status for {{ studentStore.selectedStudent?.name || 'your child' }}</p>
           </div>
           <RouterLink
             to="/enroll"
-            class="px-3.5 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+            class="px-3 py-1.5 bg-[#f0f9ff] hover:bg-[#e0f2fe] text-[#0284c7] border border-[#0ea5e9]/30 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1"
           >
             <span>+ Enroll New</span>
           </RouterLink>
         </div>
 
-        <div v-if="loadingEnrollments" class="py-8 text-center text-sm text-slate-400">
+        <div v-if="loadingEnrollments" class="py-8 text-center text-xs font-bold text-[#64748b]">
           Loading enrollments...
         </div>
 
-        <div v-else-if="currentStudentEnrollments.length === 0" class="py-10 text-center bg-slate-950/50 rounded-2xl border border-dashed border-slate-800 p-6">
-          <p class="text-sm font-bold text-slate-300">No active classes found for this student</p>
-          <p class="text-xs text-slate-500 mt-1 mb-4">You can self-enroll your child right now using our fast online scheduler.</p>
+        <div v-else-if="currentStudentEnrollments.length === 0" class="py-8 text-center bg-[#f8fafc] rounded-2xl border border-dashed border-[#e2e8f0] p-5">
+          <div class="w-10 h-10 bg-white border border-[#e2e8f0] rounded-full flex items-center justify-center mx-auto mb-2 text-[#64748b]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <p class="text-sm font-extrabold text-[#0f172a]">No active classes found</p>
+          <p class="text-xs text-[#64748b] mt-0.5 mb-4">You can self-enroll your child right now using our fast online scheduler.</p>
           <RouterLink
             to="/enroll"
-            class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white font-bold text-xs rounded-xl shadow-md hover:from-sky-400 hover:to-blue-500 transition-all"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0ea5e9] hover:bg-[#0284c7] text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95"
           >
             <span>Start Online Self-Enrollment</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,55 +284,49 @@ const handlePaymentSuccess = () => {
           </RouterLink>
         </div>
 
-        <div v-else class="space-y-3">
+        <div v-else class="space-y-2.5">
           <div
             v-for="enrollment in currentStudentEnrollments"
             :key="enrollment.id"
-            class="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            class="p-4 rounded-2xl bg-[#f8fafc] hover:bg-white border border-[#e2e8f0] flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 shadow-2xs transition-all"
           >
-            <div class="space-y-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-sm font-extrabold text-white">
-                  {{ enrollment.program?.name || enrollment.programName || 'Class Offering' }}
-                </span>
-                <span
-                  :class="[
-                    'text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border',
-                    (enrollment.paymentStatus || enrollment.status || '').toLowerCase() === 'paid'
-                      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                      : (enrollment.paymentStatus || enrollment.status || '').toLowerCase() === 'verifying'
-                      ? 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-                      : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                  ]"
-                >
-                  {{ (enrollment.paymentStatus || enrollment.status || 'Unpaid').toUpperCase() }}
+            <div class="flex items-start gap-3.5 min-w-0">
+              <div class="w-11 h-11 rounded-2xl overflow-hidden bg-white ring-2 ring-[#e2e8f0] shadow-md flex items-center justify-center flex-shrink-0">
+                <img
+                  v-if="getProgramProfileURL(enrollment.profileURL || enrollment.program?.profileURL, enrollment.program?.name || enrollment.programName)"
+                  :src="getProgramProfileURL(enrollment.profileURL || enrollment.program?.profileURL, enrollment.program?.name || enrollment.programName)"
+                  :alt="enrollment.program?.name || enrollment.programName"
+                  class="w-full h-full object-cover"
+                  @error="$event.target.style.display = 'none'"
+                />
+                <span v-else class="text-base font-black text-[#0284c7]">
+                  {{ (enrollment.program?.name || enrollment.programName || 'E').charAt(0).toUpperCase() }}
                 </span>
               </div>
-              <p class="text-xs text-slate-300 flex items-center gap-2">
-                <span class="font-medium text-sky-300">{{ enrollment.class?.schedule || enrollment.schedule || 'Regular Schedule' }}</span>
-                <span class="text-slate-500">•</span>
-                <span class="uppercase text-[11px] text-slate-400 font-semibold">{{ enrollment.branchId || 'Main Studio' }}</span>
-              </p>
+              <div class="space-y-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-extrabold text-[#0f172a] truncate">
+                    {{ enrollment.program?.name || enrollment.programName || 'Class Offering' }}
+                  </span>
+                  <AppBadge :status="enrollment.paymentStatus || enrollment.status || 'Unpaid'" />
+                  <AppBadge :branch="enrollment.branchObj || enrollment.branchId || 'AEON'" />
+                </div>
+                <p class="text-xs text-[#334155] flex items-center gap-2">
+                  <span class="font-extrabold text-[#0284c7]">{{ enrollment.class?.schedule || enrollment.schedule || 'Regular Schedule' }}</span>
+                </p>
+              </div>
             </div>
 
-            <div class="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-700/50">
-              <span class="text-sm font-black text-slate-200">${{ enrollment.amount || 150 }}</span>
+            <div class="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-[#e2e8f0] flex-shrink-0">
+              <span class="text-sm font-black text-[#0f172a]">${{ formatPrice(enrollment.amount || 150) }}</span>
               <button
                 v-if="(enrollment.paymentStatus || enrollment.status || '').toLowerCase() === 'unpaid'"
                 @click="triggerPayment(enrollment)"
-                class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold rounded-xl shadow transition-all"
+                class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer active:scale-95"
               >
                 Pay Fee Online
               </button>
-              <span v-else-if="(enrollment.paymentStatus || '').toLowerCase() === 'verifying'" class="text-xs text-blue-400 font-bold bg-blue-500/10 px-3 py-1 rounded-lg border border-blue-500/20">
-                Verifying Proof...
-              </span>
-              <span v-else class="text-xs text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-lg border border-emerald-500/20 flex items-center gap-1">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                </svg>
-                Paid
-              </span>
+              <AppBadge v-else :status="enrollment.paymentStatus || enrollment.status || 'Paid'" />
             </div>
           </div>
         </div>

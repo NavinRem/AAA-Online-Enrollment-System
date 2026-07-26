@@ -1,5 +1,7 @@
 import {
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
@@ -38,12 +40,44 @@ export const parentAuthService = {
   },
 
   async login(emailOrPhone, password) {
-    let targetEmail = emailOrPhone
-    if (!emailOrPhone.includes('@')) {
-      const cleanIdentifier = emailOrPhone.replace(/[^a-zA-Z0-9+_]/g, '')
-      targetEmail = `${cleanIdentifier.toLowerCase()}@telegram.aaa.edu`
+    let targetEmail = emailOrPhone ? emailOrPhone.trim() : ''
+    if (!targetEmail.includes('@')) {
+      try {
+        const res = await request('/parents/resolve-login-identifier', {
+          method: 'POST',
+          body: JSON.stringify({ identifier: targetEmail }),
+        })
+        if (res && res.email) {
+          targetEmail = res.email
+        }
+      } catch (err) {
+        console.warn('Could not resolve phone identifier, falling back to synthetic email:', err)
+        const cleanIdentifier = targetEmail.replace(/[^a-zA-Z0-9+_]/g, '')
+        targetEmail = `${cleanIdentifier.toLowerCase()}@telegram.aaa.edu`
+      }
     }
     const cred = await signInWithEmailAndPassword(auth, targetEmail, password)
+    return cred.user
+  },
+
+  async loginWithGoogle() {
+    const provider = new GoogleAuthProvider()
+    const cred = await signInWithPopup(auth, provider)
+    const { uid, email, displayName, photoURL } = cred.user
+    const idToken = await cred.user.getIdToken()
+
+    await request('/parents/register-google', {
+      method: 'POST',
+      body: JSON.stringify({
+        idToken,
+        uid,
+        email: email || `${uid}@google.aaa.edu`,
+        name: displayName || email?.split('@')[0] || 'Parent User',
+        photoURL: photoURL || '',
+      }),
+    })
+
+    await cred.user.getIdToken(true)
     return cred.user
   },
 
@@ -65,6 +99,7 @@ export const parentAuthService = {
 }
 
 export const parentPortalService = {
+  getMyProfile: () => request('/parents/me'),
   getMyChildren: () => request('/parents/my-children'),
   getMyEnrollments: () => request('/parents/my-enrollments'),
   getChildAttendance: (studentId) => request(`/parents/attendance/${studentId}`),
