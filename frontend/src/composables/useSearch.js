@@ -127,8 +127,7 @@ export const parentSearchMapper = (p) =>
     .join(' ')
     .toLowerCase()
 
-export const programSearchMapper = (p) =>
-  [p.id, p.name, p.category, p.level, p.description, p.type].filter(Boolean).join(' ').toLowerCase()
+
 
 export const teacherSearchMapper = (t) =>
   [t.name, t.email, t.phone, t.id].filter(Boolean).join(' ').toLowerCase()

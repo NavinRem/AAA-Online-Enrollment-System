@@ -1,4 +1,4 @@
-import { getCachedData, setCachedData, clearAllCache } from './cache'
+
 import { auth } from '../firebase'
 import { config } from '../config'
 import { triggerSystemNotification } from './notificationInterceptor'
@@ -34,13 +34,7 @@ export async function request(endpoint, options = {}) {
     url = newQuery ? `${API_URL}${path}?${newQuery}` : `${API_URL}${path}`
   }
 
-  const cacheKey = url
-  const skipCache =
-    options.skipCache || (typeof globalThis !== 'undefined' && globalThis.__playwright_mock_auth__)
-  if (method === 'GET' && !skipCache) {
-    const cached = getCachedData(cacheKey)
-    if (cached) return cached
-  }
+
 
   // Ensure auth is ready before checking currentUser
   let currentUser = auth.currentUser
@@ -100,12 +94,7 @@ export async function request(endpoint, options = {}) {
     throw error
   }
 
-  if (method === 'GET' && !skipCache) {
-    setCachedData(cacheKey, responseData)
-  } else if (method !== 'GET') {
-    // Clear the entire API cache on any mutation to ensure cross-resource staleness doesn't happen
-    // (e.g. Trials creating Parents, Enrollments updating Student statuses)
-    clearAllCache()
+  if (method !== 'GET') {
     triggerSystemNotification(endpoint, method, responseData, options)
   }
 

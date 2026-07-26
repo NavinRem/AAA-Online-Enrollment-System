@@ -117,12 +117,3 @@ export function saveAdminProfile(updatedProfile) {
   return next
 }
 
-export function useAdminProfile() {
-  return {
-    adminProfile: reactiveAdminProfile,
-    getAdminProfile,
-    getAdminBranch,
-    saveAdminProfile,
-    syncAdminProfileWithDatabase,
-  }
-}

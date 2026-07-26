@@ -3,7 +3,7 @@
  * Ensures consistency between Dashboard, Payments, and Enrollment views.
  */
 
-export const PAYMENT_STATUS = {
+const PAYMENT_STATUS = {
   PAID: 'paid',
   CONFIRMED: 'confirmed',
   SUCCESS: 'success',
@@ -15,14 +15,14 @@ export const PAYMENT_STATUS = {
   REFUNDED: 'refunded',
 }
 
-export const PAID_STATUS_LIST = [
+const PAID_STATUS_LIST = [
   PAYMENT_STATUS.PAID,
   PAYMENT_STATUS.CONFIRMED,
   PAYMENT_STATUS.SUCCESS,
   PAYMENT_STATUS.ACTIVE,
 ]
 
-export const PENDING_STATUS_LIST = [
+const PENDING_STATUS_LIST = [
   PAYMENT_STATUS.PENDING,
   PAYMENT_STATUS.UNPAID,
   PAYMENT_STATUS.PARTIAL,

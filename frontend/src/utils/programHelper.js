@@ -104,12 +104,3 @@ export const getProgramDisplayStatus = (program) => {
   if (now > end) return 'Completed'
   return 'Ongoing'
 }
-export const isSessionInProgress = (classInstance) => {
-  if (!classInstance) return false
-  const now = new Date()
-  const classDate = new Date(classInstance.date)
-  const classStartTime = new Date(classInstance.startTime)
-  const classEndTime = new Date(classInstance.endTime)
-
-  return now >= classDate && now >= classStartTime && now <= classEndTime
-}
