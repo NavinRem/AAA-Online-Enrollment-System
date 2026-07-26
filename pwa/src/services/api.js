@@ -4,7 +4,7 @@ const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_UR
 
 export async function request(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`
-  const method = options.method || 'GET'
+
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,

@@ -32,7 +32,6 @@ const router = useRouter()
 const student = ref(null)
 const parent = ref(null)
 const enrollments = ref([])
-const attendanceHistory = ref([])
 const branches = ref([])
 const classAttendanceData = ref({}) // classId -> { sessionId -> { studentId -> status } }
 const selectedEnrollmentId = ref(null)
