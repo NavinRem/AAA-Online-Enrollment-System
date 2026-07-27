@@ -189,10 +189,7 @@ onUnmounted(() => {
                   v-if="item.profileURL"
                   class="w-10 h-10 rounded-full overflow-hidden border border-primary/30 bg-white shrink-0 shadow-sm"
                 >
-                  <img
-                    :src="item.profileURL"
-                    class="w-full h-full object-cover"
-                  />
+                  <img :src="item.profileURL" class="w-full h-full object-cover" />
                 </div>
                 <span class="text-sm font-bold text-primary truncate max-w-40">{{
                   item.name
@@ -225,15 +222,16 @@ onUnmounted(() => {
                 v-if="selectedItem.profileURL"
                 class="w-7 h-7 rounded-full border border-outline-std overflow-hidden bg-white shrink-0"
               >
-                <img
-                  :src="selectedItem.profileURL"
-                  class="w-full h-full object-cover"
-                />
+                <img :src="selectedItem.profileURL" class="w-full h-full object-cover" />
               </div>
               <span class="text-sm font-semibold text-content-dark truncate flex-1">{{
                 selectedItem.name
               }}</span>
-              <AppBadge v-if="selectedItem.badgeStatus" :status="selectedItem.badgeStatus" :type="selectedItem.type" />
+              <AppBadge
+                v-if="selectedItem.badgeStatus"
+                :status="selectedItem.badgeStatus"
+                :type="selectedItem.type"
+              />
               <slot name="selected-badge" :item="selectedItem"></slot>
             </div>
             <span v-else class="text-content-light text-sm italic opacity-70">{{
@@ -299,10 +297,7 @@ onUnmounted(() => {
                     v-if="item.profileURL"
                     class="w-8 h-8 rounded-md border border-outline-std overflow-hidden bg-white shrink-0 shadow-sm group-hover/item:scale-105 transition-transform"
                   >
-                    <img
-                      :src="item.profileURL"
-                      class="w-full h-full object-cover"
-                    />
+                    <img :src="item.profileURL" class="w-full h-full object-cover" />
                   </div>
                   <span
                     class="text-sm group-hover/item:translate-x-1 transition-transform duration-200 font-semibold flex-1"

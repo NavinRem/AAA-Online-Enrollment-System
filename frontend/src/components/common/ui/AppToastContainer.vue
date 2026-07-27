@@ -11,7 +11,8 @@ const adminFallback = getImageUrl('profiles/avatar-admin-female')
 const getActivityBadgeType = (activityVal) => {
   const v = String(activityVal || '').toLowerCase()
   if (v.includes('create') || v.includes('new')) return 'green'
-  if (v.includes('cancel') || v.includes('delete') || v.includes('drop') || v.includes('remove')) return 'red'
+  if (v.includes('cancel') || v.includes('delete') || v.includes('drop') || v.includes('remove'))
+    return 'red'
   if (v.includes('transfer')) return 'purple'
   if (v.includes('payment') || v.includes('paid') || v.includes('process')) return 'magenta'
   if (v.includes('update') || v.includes('edit') || v.includes('status')) return 'blue'
@@ -41,18 +42,28 @@ const typeStyles = {
   },
 }
 
-
 const handleToastClick = (toast) => {
   // Just dismiss on click instead of navigating
   notificationStore.removeToast(toast.id)
 }
 
 const getEnhancedDetails = (toast) => {
-  const list = toast.details && Array.isArray(toast.details)
-    ? toast.details.filter(d => d && d.label && !d.label.toLowerCase().includes('id') && !d.label.toLowerCase().includes('code'))
-    : []
+  const list =
+    toast.details && Array.isArray(toast.details)
+      ? toast.details.filter(
+          (d) =>
+            d &&
+            d.label &&
+            !d.label.toLowerCase().includes('id') &&
+            !d.label.toLowerCase().includes('code'),
+        )
+      : []
   list.forEach((d) => {
-    if (d.label && d.label.toLowerCase().includes('branch') && (d.value === 'Main Branch' || !d.value)) {
+    if (
+      d.label &&
+      d.label.toLowerCase().includes('branch') &&
+      (d.value === 'Main Branch' || !d.value)
+    ) {
       d.value = toast.adminBranch || d.value
     }
   })
@@ -100,12 +111,11 @@ const getEnhancedDetails = (toast) => {
         <div class="flex-1 flex flex-col gap-1 min-w-0 pr-4">
           <div class="flex items-center justify-between gap-1.5 flex-wrap">
             <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="text-xs font-bold text-content-dark">{{ toast.admin || 'System Admin' }}</span>
+              <span class="text-xs font-bold text-content-dark">{{
+                toast.admin || 'System Admin'
+              }}</span>
               <!-- Admin branch badge with centralized branch lookup -->
-              <AppBadge
-                v-if="toast.adminBranch"
-                :branch="toast.adminBranch"
-              />
+              <AppBadge v-if="toast.adminBranch" :branch="toast.adminBranch" />
             </div>
             <!-- Module badge identical to Notification Center -->
             <span
@@ -142,10 +152,7 @@ const getEnhancedDetails = (toast) => {
                 :type="getActivityBadgeType(detail.value)"
               />
               <!-- All other detail fields: auto-resolved by badgeUtils -->
-              <AppBadge
-                v-else
-                :status="detail.value"
-              />
+              <AppBadge v-else :status="detail.value" />
             </template>
           </div>
         </div>

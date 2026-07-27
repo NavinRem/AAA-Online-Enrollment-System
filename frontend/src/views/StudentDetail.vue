@@ -412,7 +412,6 @@ const fetchData = async (id) => {
       allPrograms,
       allClasses,
     )
-
   } catch (error) {
     console.error('Failed to load student details', error)
     errorMessage.value = error.message || 'Failed to load details'

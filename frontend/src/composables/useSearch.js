@@ -15,11 +15,14 @@ export function useSearch(listRef, customMapper = null) {
     watch(
       () => route.query,
       (newQuery) => {
-        if (newQuery && (newQuery.search !== undefined || newQuery.q !== undefined || newQuery.id !== undefined)) {
+        if (
+          newQuery &&
+          (newQuery.search !== undefined || newQuery.q !== undefined || newQuery.id !== undefined)
+        ) {
           searchQuery.value = String(newQuery.search || newQuery.q || newQuery.id || '')
         }
       },
-      { immediate: true, deep: true }
+      { immediate: true, deep: true },
     )
   }
 
@@ -45,8 +48,6 @@ export function useSearch(listRef, customMapper = null) {
 
   return { searchQuery, searchResults }
 }
-
-
 
 export const enrollmentSearchMapper = (r) =>
   [
@@ -118,8 +119,6 @@ export const parentSearchMapper = (p) =>
     .filter(Boolean)
     .join(' ')
     .toLowerCase()
-
-
 
 export const teacherSearchMapper = (t) =>
   [t.name, t.email, t.phone, t.id].filter(Boolean).join(' ').toLowerCase()

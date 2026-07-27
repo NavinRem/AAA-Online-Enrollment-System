@@ -5,7 +5,7 @@ import { formatPrice, formatDateOnly } from '@/utils/formatUtils'
 defineProps({
   selectedProgram: { type: Object, default: null },
   selectedOffering: { type: Object, required: true },
-  sessionInfo: { type: Object, default: null }
+  sessionInfo: { type: Object, default: null },
 })
 </script>
 
@@ -52,10 +52,7 @@ defineProps({
       </div>
       <div class="enroll-info-item">
         <span class="enroll-info-key">Base Price</span>
-        <AppBadge
-          :status="'$' + formatPrice(selectedProgram?.basePrice || 0)"
-          type="blue"
-        />
+        <AppBadge :status="'$' + formatPrice(selectedProgram?.basePrice || 0)" type="blue" />
       </div>
     </div>
   </div>

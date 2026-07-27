@@ -16,7 +16,7 @@ export function useDropdowns(dropdownKeys = [], ignoreSelectors = [], onOutsideC
 
   const toggleDropdown = (type, event) => {
     const isOpening = !dropdowns.value[type]
-    
+
     // Close all
     Object.keys(dropdowns.value).forEach((key) => {
       dropdowns.value[key] = false
@@ -42,7 +42,7 @@ export function useDropdowns(dropdownKeys = [], ignoreSelectors = [], onOutsideC
 
   const handleClickOutside = (e) => {
     if (ignoreSelectors.length === 0 && !onOutsideClick) return
-    const isIgnored = ignoreSelectors.some(selector => e.target.closest(selector))
+    const isIgnored = ignoreSelectors.some((selector) => e.target.closest(selector))
     if (!isIgnored) {
       closeAllDropdowns()
       if (onOutsideClick) onOutsideClick(e)
@@ -65,6 +65,6 @@ export function useDropdowns(dropdownKeys = [], ignoreSelectors = [], onOutsideC
     dropdowns,
     filterMenuStyles,
     toggleDropdown,
-    closeAllDropdowns
+    closeAllDropdowns,
   }
 }

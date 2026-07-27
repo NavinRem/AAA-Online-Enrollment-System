@@ -189,7 +189,10 @@ onUnmounted(() => {
       <img :src="adminFallback" alt="system" class="w-full h-full object-cover" />
     </div>
     <div class="ui-identity-info min-w-0">
-      <span class="font-bold text-sm text-content-dark truncate group-hover:text-primary transition-colors">System Initial</span>
+      <span
+        class="font-bold text-sm text-content-dark truncate group-hover:text-primary transition-colors"
+        >System Initial</span
+      >
       <span class="ui-cell-muted">Automated</span>
     </div>
   </div>

@@ -74,10 +74,9 @@ export const getSessionTime = (schedule) => {
     .trim()
 }
 
-
 /**
  * Calculates the actual date of a session based on the term start date, the schedule day, and the week index.
- * 
+ *
  * @param {string} startDate - The start date of the term (e.g. "2024-05-01")
  * @param {string} scheduleDay - The day of the week for the class (e.g. "Monday")
  * @param {number} sessionIndex - The 1-based index of the session (1 for week 1, 2 for week 2, etc.)
@@ -85,7 +84,7 @@ export const getSessionTime = (schedule) => {
  */
 export const calculateSessionDate = (startDate, scheduleDay, sessionIndex) => {
   if (!startDate || !scheduleDay) return ''
-  
+
   const start = new Date(startDate)
   if (isNaN(start.getTime())) return ''
 
@@ -96,7 +95,7 @@ export const calculateSessionDate = (startDate, scheduleDay, sessionIndex) => {
     wednesday: 3,
     thursday: 4,
     friday: 5,
-    saturday: 6
+    saturday: 6,
   }
 
   const targetDay = dayMap[scheduleDay.toLowerCase()]
@@ -105,7 +104,7 @@ export const calculateSessionDate = (startDate, scheduleDay, sessionIndex) => {
   // Find the first occurrence of targetDay on or after startDate
   let currentDay = start.getDay()
   let daysToAdd = (targetDay - currentDay + 7) % 7
-  
+
   // Calculate the specific session date by adding weeks
   const sessionDate = new Date(start)
   sessionDate.setDate(start.getDate() + daysToAdd + (sessionIndex - 1) * 7)
@@ -114,7 +113,7 @@ export const calculateSessionDate = (startDate, scheduleDay, sessionIndex) => {
     weekday: 'short',
     year: 'numeric',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
   })
 }
 
@@ -140,7 +139,7 @@ export const calculateTermEndDate = (startDate, totalSessions) => {
   // The term duration is exactly totalSessions * 7 days.
   // The end date is 1 day before the end of the final week, to create a strict week-aligned envelope.
   const lastSession = new Date(start)
-  lastSession.setDate(start.getDate() + (parseInt(totalSessions) * 7) - 1)
+  lastSession.setDate(start.getDate() + parseInt(totalSessions) * 7 - 1)
 
   return lastSession.toISOString().split('T')[0]
 }

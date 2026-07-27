@@ -10,7 +10,7 @@ const props = defineProps({
   statusOptions: { type: Array, default: () => [] },
   errors: { type: Object, default: () => ({}) },
   shaking: { type: Object, default: () => ({}) },
-  isEditMode: { type: Boolean, default: false }
+  isEditMode: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -21,7 +21,7 @@ const emit = defineEmits([
   'toggle-schedule-manage',
   'clear-error',
   'toggle-all-branches',
-  'remove-branch'
+  'remove-branch',
 ])
 
 const updateForm = (field, value) => {
@@ -31,7 +31,7 @@ const updateForm = (field, value) => {
 const getScheduleDuration = (timeRange) => {
   const range = (timeRange || '').split(' - ')
   if (range.length !== 2) return ''
-  
+
   // local parser for duration
   const parse12hToMinutesLocal = (time12h) => {
     const [time, period] = time12h.split(' ')
@@ -82,9 +82,7 @@ const getScheduleDuration = (timeRange) => {
                 <span class="text-sm font-semibold text-content-dark truncate">{{
                   item.name
                 }}</span>
-                <span class="text-3xs font-semibold text-content-muted">{{
-                  item.category
-                }}</span>
+                <span class="text-3xs font-semibold text-content-muted">{{ item.category }}</span>
               </div>
             </div>
             <AppBadge type="blue">{{ item.duration }} mn</AppBadge>
@@ -103,12 +101,8 @@ const getScheduleDuration = (timeRange) => {
               />
             </div>
             <div class="flex flex-col w-full">
-              <span class="text-sm font-semibold text-content-dark truncate">{{
-                item.name
-              }}</span>
-              <span class="text-3xs font-semibold text-content-muted">{{
-                item.category
-              }}</span>
+              <span class="text-sm font-semibold text-content-dark truncate">{{ item.name }}</span>
+              <span class="text-3xs font-semibold text-content-muted">{{ item.category }}</span>
             </div>
           </div>
         </template>
@@ -145,9 +139,7 @@ const getScheduleDuration = (timeRange) => {
         @change="$emit('clear-error', 'branchIds')"
       >
         <template #selected="{ items }">
-          <div v-if="!items?.length" class="text-content-muted/40 italic">
-            Choose branches...
-          </div>
+          <div v-if="!items?.length" class="text-content-muted/40 italic">Choose branches...</div>
           <div v-else class="flex items-center gap-2 overflow-hidden flex-wrap">
             <div
               v-for="item in items"
@@ -167,12 +159,7 @@ const getScheduleDuration = (timeRange) => {
         </template>
         <template #item="{ item }">
           <div class="flex items-center gap-3 w-full">
-            <AppBadge
-              :status="item.abbr"
-              :type="item.color"
-              size="sm"
-              class="w-12 text-center"
-            />
+            <AppBadge :status="item.abbr" :type="item.color" size="sm" class="w-12 text-center" />
             <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
           </div>
         </template>

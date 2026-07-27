@@ -56,8 +56,6 @@ const hasPaidToday = (parentId, enrollments = [], todayStart) => {
   }
 }
 
-
-
 export const calculateParentStats = (parents = [], enrollments = []) => {
   const now = new Date()
   const todayStart = new Date(now.setHours(0, 0, 0, 0)).getTime()

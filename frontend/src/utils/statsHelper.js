@@ -57,15 +57,14 @@ export const calculateDashboardStats = (
    * excluding transferred enrollments and counting only 1 new enrollment per student.
    */
   const countNewEnrollments = (list, startTime) => {
-    return countUniqueEnrollmentStudents(list, (r) => parseDate(r.enrollAt || r.createdAt).getTime() >= startTime)
+    return countUniqueEnrollmentStudents(
+      list,
+      (r) => parseDate(r.enrollAt || r.createdAt).getTime() >= startTime,
+    )
   }
 
-  const todayRegs = (parents || []).filter(
-    (u) => parseDate(u.createdAt).getTime() >= today,
-  )
-  const weekRegs = (parents || []).filter(
-    (u) => parseDate(u.createdAt).getTime() >= weekly,
-  )
+  const todayRegs = (parents || []).filter((u) => parseDate(u.createdAt).getTime() >= today)
+  const weekRegs = (parents || []).filter((u) => parseDate(u.createdAt).getTime() >= weekly)
 
   return {
     today: {

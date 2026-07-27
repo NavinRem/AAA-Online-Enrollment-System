@@ -15,7 +15,7 @@ import {
   formatDateOnly,
   calculateClassProgress,
   calculateOfferingStatus,
-  sortSchedulesChronologically
+  sortSchedulesChronologically,
 } from '@/utils/formatUtils'
 import { calculateTermEndDate } from '@/utils/sessionHelper'
 import TermActionModal from '@/components/terms/TermActionModal.vue'
@@ -24,7 +24,7 @@ import AppButton from '@/components/common/ui/AppButton.vue'
 import { teacherService } from '@/services/teacherService'
 import { useSearch, classSearchMapper, studentSearchMapper } from '@/composables/useSearch'
 import { useTableActions } from '@/composables/useTableActions'
-import {  resolveColor } from '@/utils/badgeUtils'
+import { resolveColor } from '@/utils/badgeUtils'
 import { useModalState } from '@/composables/useModalState'
 import { useDetailFetch } from '@/composables/useDetailFetch'
 
@@ -77,8 +77,9 @@ const initData = async () => {
     const prog = calculateClassProgress(term.value.startDate, term.value.endDate)
     const calculatedStatus = prog.status.toLowerCase()
     if (term.value.status !== calculatedStatus) {
-      termService.updateTerm(term.value.id, { status: calculatedStatus })
-        .catch(err => console.warn('[TermSync] Background sync failed', err))
+      termService
+        .updateTerm(term.value.id, { status: calculatedStatus })
+        .catch((err) => console.warn('[TermSync] Background sync failed', err))
     }
   } catch (err) {
     console.error('Error fetching term details:', err)
@@ -87,7 +88,6 @@ const initData = async () => {
     loading.value = false
   }
 }
-
 
 const termBranches = computed(() => {
   if (!term.value || !branches.value.length) return []
@@ -128,7 +128,7 @@ const branchData = computed(() => {
     students: [],
     enrollments: [],
     trialsCount: 0,
-    classFilterOptions: [{ label: 'All Programs', value: 'all', image: getActionIcon('filter') }]
+    classFilterOptions: [{ label: 'All Programs', value: 'all', image: getActionIcon('filter') }],
   }
 
   if (!term.value || !activeBranchId.value) return result
@@ -142,7 +142,8 @@ const branchData = computed(() => {
   // 1. Enrollments
   const enrollments = dataStore.enrollments.filter((e) => {
     const isSameTerm = String(e.termId) === String(term.value.id)
-    const isSameBranch = String(e?.['class']?.branch?.id || e?.branchId) === String(activeBranchId.value)
+    const isSameBranch =
+      String(e?.['class']?.branch?.id || e?.branchId) === String(activeBranchId.value)
     return isSameTerm && isSameBranch && !e.isDeleted
   })
   result.enrollments = enrollments
@@ -167,7 +168,10 @@ const branchData = computed(() => {
   rawOfferings.forEach((off) => {
     // Enrich Program
     const liveProgram = dataStore.programs.find(
-      (p) => String(p.id) === String(off.program?.id) || String(p.id) === String(off.classId) || String(p.id) === String(off.programId),
+      (p) =>
+        String(p.id) === String(off.program?.id) ||
+        String(p.id) === String(off.classId) ||
+        String(p.id) === String(off.programId),
     )
     const program = liveProgram || off.program
 
@@ -176,10 +180,11 @@ const branchData = computed(() => {
     ;(off.sessionTeachers || []).forEach((sessionData) => {
       if (!sessionData) return
       let sessionTeachersArray = []
-      if (sessionData.teachers && Array.isArray(sessionData.teachers)) sessionTeachersArray = sessionData.teachers
+      if (sessionData.teachers && Array.isArray(sessionData.teachers))
+        sessionTeachersArray = sessionData.teachers
       else if (Array.isArray(sessionData)) sessionTeachersArray = sessionData
       else if (sessionData.id) sessionTeachersArray = [sessionData]
-      
+
       sessionTeachersArray.forEach((t) => {
         if (t && t.id) responsibleTeacherIds.add(String(t.id))
       })
@@ -193,15 +198,24 @@ const branchData = computed(() => {
     const offeringEnrollments = enrollments.filter((e) => {
       const offId = e.termOfferingId || e.term?.offeringId
       if (offId) return String(offId) === String(off.offeringId)
-      
-      const isSameClass = String(e.classId) === String(off.classId) || String(e.programId) === String(off.programId)
+
+      const isSameClass =
+        String(e.classId) === String(off.classId) || String(e.programId) === String(off.programId)
       if (!isSameClass) return false
 
       const enrollDate = new Date(e.enrollAt || e.createdAt)
-      const matchesBranchAndDate = String(e.branchId || e.class?.branch?.id || e.branch?.id) === String(activeBranchId.value) && enrollDate >= startDate && enrollDate <= endDate
+      const matchesBranchAndDate =
+        String(e.branchId || e.class?.branch?.id || e.branch?.id) ===
+          String(activeBranchId.value) &&
+        enrollDate >= startDate &&
+        enrollDate <= endDate
       if (!matchesBranchAndDate) return false
 
-      const eSchedId = e.scheduleId || e.class?.schedule?.id || e.schedule?.id || (Array.isArray(e.class?.scheduleIds) ? e.class.scheduleIds[0] : null)
+      const eSchedId =
+        e.scheduleId ||
+        e.class?.schedule?.id ||
+        e.schedule?.id ||
+        (Array.isArray(e.class?.scheduleIds) ? e.class.scheduleIds[0] : null)
       const offSchedId = off.scheduleId || off.schedule?.id
       if (eSchedId && offSchedId) {
         return String(eSchedId) === String(offSchedId)
@@ -219,29 +233,40 @@ const branchData = computed(() => {
       }
 
       const firstOfferingOfClass = term.value.offerings.find(
-        (o) => String(o.branchId || o.branch?.id) === String(activeBranchId.value) && (String(o.classId) === String(off.classId) || String(o.programId) === String(off.programId)),
+        (o) =>
+          String(o.branchId || o.branch?.id) === String(activeBranchId.value) &&
+          (String(o.classId) === String(off.classId) ||
+            String(o.programId) === String(off.programId)),
       )
       return String(firstOfferingOfClass?.offeringId) === String(off.offeringId)
     })
 
-    const students = offeringEnrollments.map((e) => {
-      const student = dataStore.students.find((s) => String(s.id) === String(e.studentId))
-      if (!student) return null
-      return {
-        ...student,
-        paymentStatus: e.paymentStatus,
-        status: e.status,
-        enrollmentId: e.id,
-        revenue: Number(e.finalPrice || e.totalPrice || 0),
-        offeringName: `${program?.name || 'Program'} - ${off.schedule?.day || ''} ${off.schedule?.time || ''}`
-      }
-    }).filter(Boolean)
+    const students = offeringEnrollments
+      .map((e) => {
+        const student = dataStore.students.find((s) => String(s.id) === String(e.studentId))
+        if (!student) return null
+        return {
+          ...student,
+          paymentStatus: e.paymentStatus,
+          status: e.status,
+          enrollmentId: e.id,
+          revenue: Number(e.finalPrice || e.totalPrice || 0),
+          offeringName: `${program?.name || 'Program'} - ${off.schedule?.day || ''} ${off.schedule?.time || ''}`,
+        }
+      })
+      .filter(Boolean)
 
     students.forEach((s) => {
       if (!studentMap.has(s.id)) studentMap.set(s.id, s)
     })
 
-    const paidStudents = students.filter(s => ['paid', 'success', 'confirmed', 'active'].includes(String(s.status || '').toLowerCase()) || ['paid', 'success', 'confirmed', 'active'].includes(String(s.paymentStatus || '').toLowerCase()))
+    const paidStudents = students.filter(
+      (s) =>
+        ['paid', 'success', 'confirmed', 'active'].includes(String(s.status || '').toLowerCase()) ||
+        ['paid', 'success', 'confirmed', 'active'].includes(
+          String(s.paymentStatus || '').toLowerCase(),
+        ),
+    )
     const revenue = paidStudents.reduce((sum, s) => sum + (s.revenue || 0), 0)
 
     const processedOffering = {
@@ -250,7 +275,7 @@ const branchData = computed(() => {
       students,
       responsibleTeachers,
       currentCount: paidStudents.length,
-      revenue
+      revenue,
     }
     result.offerings.push(processedOffering)
 
@@ -265,7 +290,7 @@ const branchData = computed(() => {
         totalRevenue: 0,
         uniqueStudentCount: 0,
         status: off.status,
-        groupEnrollments: [] // temporarily store to calculate unique students later
+        groupEnrollments: [], // temporarily store to calculate unique students later
       })
       if (program?.name) programsInBranch.set(program.name, program)
     }
@@ -285,9 +310,9 @@ const branchData = computed(() => {
       status: computedStatus,
       offeringId: off.offeringId,
       revenue,
-      teachers: responsibleTeachers
+      teachers: responsibleTeachers,
     })
-    
+
     // Add offering enrollments to group enrollments
     group.groupEnrollments.push(...offeringEnrollments)
 
@@ -295,26 +320,47 @@ const branchData = computed(() => {
   })
 
   // Finalize Groups
-  result.groupedOfferings = Array.from(groupMap.values()).map(g => {
-    g.schedules = sortSchedulesChronologically(g.schedules)
-    
-    const paidEnrolls = g.groupEnrollments.filter(e => ['paid', 'success', 'confirmed', 'active'].includes(String(e.status || '').toLowerCase()) || ['paid', 'success', 'confirmed', 'active'].includes(String(e.paymentStatus || '').toLowerCase()))
-    g.totalRevenue = paidEnrolls.reduce((sum, e) => sum + Number(e.amount || e.finalPrice || e.totalPrice || 0), 0)
-    g.uniqueStudentCount = new Set(paidEnrolls.map(e => e.studentId)).size
-    delete g.groupEnrollments // clean up temp array
-    return g
-  }).sort((a, b) => (a.program?.name || '').localeCompare(b.program?.name || ''))
+  result.groupedOfferings = Array.from(groupMap.values())
+    .map((g) => {
+      g.schedules = sortSchedulesChronologically(g.schedules)
+
+      const paidEnrolls = g.groupEnrollments.filter(
+        (e) =>
+          ['paid', 'success', 'confirmed', 'active'].includes(
+            String(e.status || '').toLowerCase(),
+          ) ||
+          ['paid', 'success', 'confirmed', 'active'].includes(
+            String(e.paymentStatus || '').toLowerCase(),
+          ),
+      )
+      g.totalRevenue = paidEnrolls.reduce(
+        (sum, e) => sum + Number(e.amount || e.finalPrice || e.totalPrice || 0),
+        0,
+      )
+      g.uniqueStudentCount = new Set(paidEnrolls.map((e) => e.studentId)).size
+      delete g.groupEnrollments // clean up temp array
+      return g
+    })
+    .sort((a, b) => (a.program?.name || '').localeCompare(b.program?.name || ''))
 
   result.students = Array.from(studentMap.values())
 
   // Generate Filter Options
-  Array.from(programsInBranch.keys()).sort().forEach(name => {
-    const p = programsInBranch.get(name)
-    result.classFilterOptions.push({
-      label: name, value: name, color: 'green',
-      image: getProgramProfileURL(p.profileURL, p.category?.name || p.category, p.category?.profileURL)
+  Array.from(programsInBranch.keys())
+    .sort()
+    .forEach((name) => {
+      const p = programsInBranch.get(name)
+      result.classFilterOptions.push({
+        label: name,
+        value: name,
+        color: 'green',
+        image: getProgramProfileURL(
+          p.profileURL,
+          p.category?.name || p.category,
+          p.category?.profileURL,
+        ),
+      })
     })
-  })
 
   result.classFilterOptions.push({ isDivider: true })
   result.classFilterOptions.push({ isHeader: true, label: 'Filter by Day' })
@@ -322,7 +368,10 @@ const branchData = computed(() => {
   days.forEach((day) => {
     if (daysInBranch.has(day)) {
       result.classFilterOptions.push({
-        label: `${day} Classes`, value: `day-${day}`, color: resolveColor(day, 'day'), image: getActionIcon('calendar')
+        label: `${day} Classes`,
+        value: `day-${day}`,
+        color: resolveColor(day, 'day'),
+        image: getActionIcon('calendar'),
       })
     }
   })
@@ -330,17 +379,15 @@ const branchData = computed(() => {
   return result
 })
 
-
-
 const termDisplayData = computed(() => {
   if (!term.value) return null
-  
+
   const setting = activeBranchSetting.value || term.value
   const startDate = setting.startDate || term.value.startDate
   const endDate = setting.endDate || term.value.endDate
-  
+
   const progress = calculateClassProgress(startDate, endDate)
-  
+
   return {
     status: progress.status,
     startDate: startDate,
@@ -358,8 +405,6 @@ const { searchQuery: classSearchQuery, searchResults: classSearchResults } = use
   computed(() => branchData.value.groupedOfferings),
   classSearchMapper,
 )
-
-
 
 const filteredClasses = computed(() => {
   let list = classSearchResults.value
@@ -422,8 +467,6 @@ const paginatedStudents = computed(() => {
   const start = (studentCurrentPage.value - 1) * studentPageSize.value
   return filteredStudents.value.slice(start, start + studentPageSize.value)
 })
-
-
 
 const statsCards = computed(() => {
   if (!term.value) return []
@@ -543,8 +586,6 @@ const openSessionModal = async (item) => {
   }
 }
 
-
-
 const studentHeaders = [
   { label: 'No', width: '50px', align: 'center' },
   { label: 'Student Identity' },
@@ -553,7 +594,14 @@ const studentHeaders = [
   { label: 'Status', align: 'center', width: '120px' },
 ]
 
-const { actionModal: modal, openActionModal: openModal, closeActionModal: closeModal, setModalLoading, setModalError, setModalSuccess } = useModalState('edit')
+const {
+  actionModal: modal,
+  openActionModal: openModal,
+  closeActionModal: closeModal,
+  setModalLoading,
+  setModalError,
+  setModalSuccess,
+} = useModalState('edit')
 
 const updateSessionTeacher = async (offeringId, weekIndex, teacherIds) => {
   try {
@@ -619,7 +667,7 @@ const openAddClassModal = () => {
         .filter((o) => String(o.branchId) === String(activeBranchId.value))
         .map((o) => o.classId || o.programId),
       existingOfferings: (term.value.offerings || []).filter(
-        (o) => String(o.branchId) === String(activeBranchId.value)
+        (o) => String(o.branchId) === String(activeBranchId.value),
       ),
     },
     loading: false,

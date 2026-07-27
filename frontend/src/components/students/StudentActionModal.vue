@@ -297,10 +297,7 @@ watch(
 
     <form id="studentActionForm" @submit.prevent="requestConfirm" novalidate>
       <!-- Edit Profile / Override Form -->
-      <div
-        v-if="!type?.includes('delete')"
-        class="ui-form-grid-lg"
-      >
+      <div v-if="!type?.includes('delete')" class="ui-form-grid-lg">
         <AppInput
           v-model="localData.name"
           label="Full Name"
@@ -374,14 +371,23 @@ watch(
         />
 
         <div
-          v-if="!type?.includes('delete') && (student || enrollment) && (type === 'edit' || type?.includes('override'))"
+          v-if="
+            !type?.includes('delete') &&
+            (student || enrollment) &&
+            (type === 'edit' || type?.includes('override'))
+          "
           class="flex flex-col gap-xs text-left w-full"
         >
-          <label class="text-sm font-semibold text-content-muted flex items-center gap-1">Last Modified</label>
+          <label class="text-sm font-semibold text-content-muted flex items-center gap-1"
+            >Last Modified</label
+          >
           <div
             class="w-full px-4 py-2 border-2 border-outline-std rounded-sm bg-white flex items-center min-h-[50px]"
           >
-            <AuditBadge :meta="(student || enrollment)?.modifiedBy || (student || enrollment)?.createdBy" :item="student || enrollment" />
+            <AuditBadge
+              :meta="(student || enrollment)?.modifiedBy || (student || enrollment)?.createdBy"
+              :item="student || enrollment"
+            />
           </div>
         </div>
 

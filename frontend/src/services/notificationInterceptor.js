@@ -276,7 +276,7 @@ export function triggerSystemNotification(endpoint, method, responseData, option
                 : 'full'
               : cleanEndpoint.includes('/enrollments')
                 ? 'full'
-              : null)
+                : null)
           details.push({
             label: 'Amount',
             value: !isNaN(amtNum) ? `$${amtNum.toFixed(2)}` : String(responseData.amount),

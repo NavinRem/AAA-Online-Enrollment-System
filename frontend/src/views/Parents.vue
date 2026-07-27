@@ -32,7 +32,6 @@ const router = useRouter()
 const dataStore = useDataStore()
 const newlyCreatedId = ref(null)
 
-
 const parents = computed(() => {
   const allParents = dataStore.parents
   const allStudents = dataStore.students
@@ -95,7 +94,6 @@ onMounted(async () => {
     console.error('Failed to fetch initial data', error)
   }
 })
-
 
 const currentFilter = ref('all')
 

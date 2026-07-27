@@ -38,7 +38,7 @@ class ClassService {
     const branches = branchDocs.map((doc) =>
       profileHelper.getBranchSnapshot(doc.id, doc.data()),
     )
-    
+
     const newClass = {
       programId: validated.programId,
       program: profileHelper.getProgramSnapshot(
@@ -129,10 +129,9 @@ class ClassService {
         throw new Error('One or more branches not found')
       }
       updates.branches = branchDocs.map((branchDoc) =>
-        profileHelper.getBranchSnapshot(branchDoc.id, branchDoc.data())
+        profileHelper.getBranchSnapshot(branchDoc.id, branchDoc.data()),
       )
     }
-
 
     await ref.update(updates)
 

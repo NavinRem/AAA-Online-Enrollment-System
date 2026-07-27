@@ -92,8 +92,8 @@ const mapSourceToForm = () => {
       receiptId: props.enrollment.receiptId || '',
       transactionId: props.enrollment.transactionId || '',
       paymentMethod: props.enrollment.paymentMethod || 'online',
-      paymentStatus: props.type === 'pay' ? 'paid' : (props.enrollment.paymentStatus || 'paid'),
-      status: props.type === 'pay' ? 'paid' : (props.enrollment.status || 'paid'),
+      paymentStatus: props.type === 'pay' ? 'paid' : props.enrollment.paymentStatus || 'paid',
+      status: props.type === 'pay' ? 'paid' : props.enrollment.status || 'paid',
     }
   }
   return getInitialData()
@@ -114,7 +114,6 @@ const {
   sourceKey: 'enrollment',
   autoClear: 3000,
 })
-
 
 const showConfirm = ref(false)
 const isEditMode = computed(
@@ -184,11 +183,23 @@ const availableOfferings = computed(() => {
   const activeBranchIdentifiers = new Set()
 
   if (form.studentId && props.enrollments) {
-    const activeStatuses = ['paid', 'unpaid', 'active', 'confirmed', 'success', 'pending', 'partial']
+    const activeStatuses = [
+      'paid',
+      'unpaid',
+      'active',
+      'confirmed',
+      'success',
+      'pending',
+      'partial',
+    ]
     const studentEnrollments = props.enrollments.filter(
       (e) =>
         String(e.studentId) === String(form.studentId) &&
-        activeStatuses.includes(String(e.status || '').toLowerCase().trim()) &&
+        activeStatuses.includes(
+          String(e.status || '')
+            .toLowerCase()
+            .trim(),
+        ) &&
         e.isDeleted !== true &&
         String(e.id) !== String(props.enrollment?.id),
     )
@@ -273,13 +284,17 @@ const availableOfferings = computed(() => {
         // For new selections, enforce active term check
         if (!isCurrentSelection) {
           // In transfer mode, also skip the old class the student is coming FROM
-          if (isTransferMode.value && String(offering.offeringId) === String(props.enrollment?.termOfferingId)) return false
+          if (
+            isTransferMode.value &&
+            String(offering.offeringId) === String(props.enrollment?.termOfferingId)
+          )
+            return false
           if (term.isDeleted) return false
           if (term.endDate) {
-             const todayDate = new Date()
-             todayDate.setHours(0,0,0,0)
-             const tEnd = new Date(term.endDate)
-             if (tEnd < todayDate) return false
+            const todayDate = new Date()
+            todayDate.setHours(0, 0, 0, 0)
+            const tEnd = new Date(term.endDate)
+            if (tEnd < todayDate) return false
           }
         }
 
@@ -327,7 +342,7 @@ const availableOfferings = computed(() => {
         const currentCount = offering.currentCount || (offering.students || []).length || 0
 
         if (!isCurrentSelection && currentCount >= capacity && !disabledReason) {
-            disabledReason = 'Class Full'
+          disabledReason = 'Class Full'
         }
 
         let branchStartDate = term.startDate
@@ -363,7 +378,9 @@ const availableOfferings = computed(() => {
   )
 
   // Sort by schedule first (morning to evening, Monday to Sunday), then by active term start date
-  const sortedByDate = [...offerings].sort((a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0))
+  const sortedByDate = [...offerings].sort(
+    (a, b) => new Date(a.startDate || 0) - new Date(b.startDate || 0),
+  )
   return sortSchedulesChronologically(sortedByDate, 'schedule')
 })
 
@@ -383,24 +400,33 @@ const selectedOffering = computed(() => {
 const selectedOfferingConflict = computed(() => {
   if (props.success || !form.termOfferingId) return null
   const off = availableOfferings.value.find((item) => item.id === form.termOfferingId)
-  if (!off || (!off.disabledReason && off.capacity - off.studentCount > 0 && off.studentCount < off.capacity)) return null
+  if (
+    !off ||
+    (!off.disabledReason && off.capacity - off.studentCount > 0 && off.studentCount < off.capacity)
+  )
+    return null
 
   if (off.disabledReason === 'Branch Conflict') {
     return {
       title: 'Branch Conflict',
-      message: 'A student cannot enroll in programs across different branches. Ensure that all enrolled programs are studied in the same branch to prevent location conflicts.',
+      message:
+        'A student cannot enroll in programs across different branches. Ensure that all enrolled programs are studied in the same branch to prevent location conflicts.',
     }
-  }
-  else if (off.disabledReason === 'Schedule Conflict') {
+  } else if (off.disabledReason === 'Schedule Conflict') {
     return {
       title: 'Schedule Conflict',
-      message: 'The student is already enrolled in another program on this exact schedule day and time. Please choose a class with a different schedule to prevent time overlap.',
+      message:
+        'The student is already enrolled in another program on this exact schedule day and time. Please choose a class with a different schedule to prevent time overlap.',
     }
-  }
-  else if (off.disabledReason === 'Class Full' || off.capacity - off.studentCount <= 0 || off.studentCount >= off.capacity) {
+  } else if (
+    off.disabledReason === 'Class Full' ||
+    off.capacity - off.studentCount <= 0 ||
+    off.studentCount >= off.capacity
+  ) {
     return {
       title: 'Class Full',
-      message: 'This class is full and cannot be enrolled unless a student cancels their enrollment so a seat becomes available.',
+      message:
+        'This class is full and cannot be enrolled unless a student cancels their enrollment so a seat becomes available.',
     }
   }
   return {
@@ -570,10 +596,17 @@ const confirmRows = computed(() => {
   if (props.type === 'pay') {
     return [
       ...base,
-      { key: 'PaymentMethod', value: form.paymentMethod === 'online' ? 'Bakong KHQR (Online)' : 'Cash Payment' },
+      {
+        key: 'PaymentMethod',
+        value: form.paymentMethod === 'online' ? 'Bakong KHQR (Online)' : 'Cash Payment',
+      },
       ...(form.paymentMethod === 'online'
         ? [
-            { key: 'BankVerification', value: form.isBankVerified ? 'Verified by Bank API ✓' : 'KHQR Online Scan', valueClass: 'text-emerald-600 font-bold' },
+            {
+              key: 'BankVerification',
+              value: form.isBankVerified ? 'Verified by Bank API ✓' : 'KHQR Online Scan',
+              valueClass: 'text-emerald-600 font-bold',
+            },
             { key: 'TransactionRef', value: form.transactionId || 'AUTO-REF' },
           ]
         : []),
@@ -683,7 +716,8 @@ const requestConfirm = () => {
     return
   }
   if (['add', 'edit', 'transfer'].includes(props.type) && !selectedOffering.value) {
-    validationMessage.value = 'Please select a valid class without schedule or branch conflicts to proceed.'
+    validationMessage.value =
+      'Please select a valid class without schedule or branch conflicts to proceed.'
     triggerShake('termOfferingId')
     return
   }
@@ -710,15 +744,20 @@ const requestConfirm = () => {
 
   if (props.type === 'pay') {
     const targetOfferingId = form.termOfferingId || props.enrollment?.termOfferingId
-    const off = availableOfferings.value.find((item) => String(item.id) === String(targetOfferingId))
+    const off = availableOfferings.value.find(
+      (item) => String(item.id) === String(targetOfferingId),
+    )
     if (off && off.studentCount >= off.capacity) {
       validationMessage.value = `Cannot complete payment: This class/schedule is already full (${off.studentCount}/${off.capacity} seats taken). Please change the student's schedule to another class or cancel the enrollment.`
       return
     }
 
     if (form.paymentMethod === 'online') {
-      if (!form.transactionId) form.transactionId = Math.floor(10000000000 + Math.random() * 90000000000).toString()
-      if (!form.receiptId) form.receiptId = 'KHQR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000)
+      if (!form.transactionId)
+        form.transactionId = Math.floor(10000000000 + Math.random() * 90000000000).toString()
+      if (!form.receiptId)
+        form.receiptId =
+          'KHQR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000)
     } else {
       if (!form.receiptId) {
         validationMessage.value = 'Please provide a receipt ID.'
@@ -913,9 +952,13 @@ defineExpose({ setStudent })
             title="Different Term End Dates & Session Count"
             class="my-4"
           >
-            Transfer from <strong>{{ oldBranchName }}</strong>: Target branch ends later and has <strong>{{ sessionInfo?.remaining || 0 }}</strong> remaining sessions, compared to <strong>{{ oldSessionInfo?.remaining || enrollment?.enrolledSessions || 0 }}</strong> remaining paid session(s) from previous branch.
-            <br /><br />
-            <strong>Note:</strong> {{ extraSessionsToPay }} extra session(s) require additional payment in the new branch.
+            Transfer from <strong>{{ oldBranchName }}</strong
+            >: Target branch ends later and has
+            <strong>{{ sessionInfo?.remaining || 0 }}</strong> remaining sessions, compared to
+            <strong>{{ oldSessionInfo?.remaining || enrollment?.enrolledSessions || 0 }}</strong>
+            remaining paid session(s) from previous branch. <br /><br />
+            <strong>Note:</strong> {{ extraSessionsToPay }} extra session(s) require additional
+            payment in the new branch.
           </AppAlert>
 
           <EnrollmentPricingPanel
@@ -1038,7 +1081,9 @@ defineExpose({ setStudent })
               variant="primary"
               :loading="loading"
               :disabled="loading"
-              :class="{ 'opacity-60 grayscale-20': (type === 'edit' && !isChanged) || isFormInvalid }"
+              :class="{
+                'opacity-60 grayscale-20': (type === 'edit' && !isChanged) || isFormInvalid,
+              }"
               @click="requestConfirm"
             >
               {{ submitLabel }}

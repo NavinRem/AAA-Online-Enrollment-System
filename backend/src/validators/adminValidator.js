@@ -1,5 +1,12 @@
 function validateAdmin(adminData) {
-  const adminFields = ['name', 'email', 'profileURL', 'status', 'branch', 'phone']
+  const adminFields = [
+    'name',
+    'email',
+    'profileURL',
+    'status',
+    'branch',
+    'phone',
+  ]
   Object.keys(adminData).forEach((key) => {
     if (!adminFields.includes(key)) {
       throw new Error(`Invalid field: ${key}`)
@@ -34,7 +41,14 @@ function validateAdmin(adminData) {
 }
 
 function validateUpdateAdmin(updateData) {
-  const allowedFields = ['name', 'email', 'profileURL', 'status', 'branch', 'phone']
+  const allowedFields = [
+    'name',
+    'email',
+    'profileURL',
+    'status',
+    'branch',
+    'phone',
+  ]
   const cleanData = {}
 
   Object.keys(updateData).forEach((key) => {

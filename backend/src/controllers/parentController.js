@@ -205,22 +205,45 @@ exports.getMyProfile = async (req, res) => {
 exports.getMyChildren = async (req, res) => {
   try {
     const [snap, enrollSnap, branchesSnap, programsSnap] = await Promise.all([
-      db.collection(COLLECTIONS.STUDENT).where('parentId', '==', req.user.uid).get(),
-      db.collection(COLLECTIONS.ENROLLMENT).where('parentId', '==', req.user.uid).get(),
+      db
+        .collection(COLLECTIONS.STUDENT)
+        .where('parentId', '==', req.user.uid)
+        .get(),
+      db
+        .collection(COLLECTIONS.ENROLLMENT)
+        .where('parentId', '==', req.user.uid)
+        .get(),
       db.collection(COLLECTIONS.BRANCH).get(),
       db.collection(COLLECTIONS.PROGRAM).get(),
     ])
-    const branchesMap = new Map(branchesSnap.docs.map((d) => [d.id, d.data().name || d.data().code || d.id]))
-    const programsMap = new Map(programsSnap.docs.map((d) => [d.id, d.data().name || 'Program']))
-    const enrollments = enrollSnap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((e) => !e.isDeleted)
+    const branchesMap = new Map(
+      branchesSnap.docs.map((d) => [
+        d.id,
+        d.data().name || d.data().code || d.id,
+      ]),
+    )
+    const programsMap = new Map(
+      programsSnap.docs.map((d) => [d.id, d.data().name || 'Program']),
+    )
+    const enrollments = enrollSnap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((e) => !e.isDeleted)
 
     const children = snap.docs.map((d) => {
       const data = d.data()
       const studentId = d.id
-      const stEnrollments = enrollments.filter((e) => (e.studentId || e.student?.id) === studentId)
+      const stEnrollments = enrollments.filter(
+        (e) => (e.studentId || e.student?.id) === studentId,
+      )
       const activeCount = stEnrollments.filter((e) => {
         const st = (e.paymentStatus || e.status || '').toLowerCase()
-        return st === 'paid' || st === 'confirmed' || st === 'active' || st === 'verifying' || st === 'unpaid'
+        return (
+          st === 'paid' ||
+          st === 'confirmed' ||
+          st === 'active' ||
+          st === 'verifying' ||
+          st === 'unpaid'
+        )
       }).length
 
       return {
@@ -231,7 +254,14 @@ exports.getMyChildren = async (req, res) => {
         activeEnrollmentsCount: activeCount,
         programsList: [
           ...new Set(
-            stEnrollments.map((e) => e.programName || e.program?.name || programsMap.get(e.programId)).filter(Boolean)
+            stEnrollments
+              .map(
+                (e) =>
+                  e.programName ||
+                  e.program?.name ||
+                  programsMap.get(e.programId),
+              )
+              .filter(Boolean),
           ),
         ],
       }
@@ -244,8 +274,18 @@ exports.getMyChildren = async (req, res) => {
 
 exports.getMyEnrollments = async (req, res) => {
   try {
-    const [snap, studentsSnap, classesSnap, programsSnap, termsSnap, branchesSnap] = await Promise.all([
-      db.collection(COLLECTIONS.ENROLLMENT).where('parentId', '==', req.user.uid).get(),
+    const [
+      snap,
+      studentsSnap,
+      classesSnap,
+      programsSnap,
+      termsSnap,
+      branchesSnap,
+    ] = await Promise.all([
+      db
+        .collection(COLLECTIONS.ENROLLMENT)
+        .where('parentId', '==', req.user.uid)
+        .get(),
       db.collection(COLLECTIONS.STUDENT).get(),
       db.collection(COLLECTIONS.CLASS).get(),
       db.collection(COLLECTIONS.PROGRAM).get(),
@@ -253,11 +293,24 @@ exports.getMyEnrollments = async (req, res) => {
       db.collection(COLLECTIONS.BRANCH).get(),
     ])
 
-    const studentsMap = new Map(studentsSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))
-    const classesMap = new Map(classesSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))
-    const programsMap = new Map(programsSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))
-    const termsMap = new Map(termsSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))
-    const branchesMap = new Map(branchesSnap.docs.map((d) => [d.id, d.data().name || d.data().code || d.id]))
+    const studentsMap = new Map(
+      studentsSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]),
+    )
+    const classesMap = new Map(
+      classesSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]),
+    )
+    const programsMap = new Map(
+      programsSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]),
+    )
+    const termsMap = new Map(
+      termsSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]),
+    )
+    const branchesMap = new Map(
+      branchesSnap.docs.map((d) => [
+        d.id,
+        d.data().name || d.data().code || d.id,
+      ]),
+    )
 
     const enrollments = snap.docs.map((d) => {
       const {
@@ -281,42 +334,118 @@ exports.getMyEnrollments = async (req, res) => {
       const tmId = safe.termId || safe.term?.id || clObj.termId
       const tmObj = termsMap.get(tmId) || {}
 
-      const rawBranch = safe.branchId || clObj.branchId || clObj.branchIds?.[0] || stObj.branchId || 'AEON'
+      const rawBranch =
+        safe.branchId ||
+        clObj.branchId ||
+        clObj.branchIds?.[0] ||
+        stObj.branchId ||
+        'AEON'
       const branchVal = branchesMap.get(rawBranch) || rawBranch
-      const branchClean = typeof branchVal === 'object' ? (branchVal.abbr || branchVal.name || branchVal.id || 'AEON') : String(branchVal)
+      const branchClean =
+        typeof branchVal === 'object'
+          ? branchVal.abbr || branchVal.name || branchVal.id || 'AEON'
+          : String(branchVal)
       const branchName = branchClean.toUpperCase()
 
-      const programName = safe.programName || safe.program?.name || prObj.name || clObj.programName || clObj.name || 'Enrolled Class'
-      const scheduleStr = safe.schedule || clObj.schedule || safe.class?.schedule || 'Regular Schedule'
-      const schedule = typeof scheduleStr === 'object' ? `${scheduleStr.day || ''} @ ${scheduleStr.time || ''}`.trim() || 'Regular Schedule' : scheduleStr
+      const programName =
+        safe.programName ||
+        safe.program?.name ||
+        prObj.name ||
+        clObj.programName ||
+        clObj.name ||
+        'Enrolled Class'
+      const scheduleStr =
+        safe.schedule ||
+        clObj.schedule ||
+        safe.class?.schedule ||
+        'Regular Schedule'
+      const schedule =
+        typeof scheduleStr === 'object'
+          ? `${scheduleStr.day || ''} @ ${scheduleStr.time || ''}`.trim() ||
+            'Regular Schedule'
+          : scheduleStr
 
-      const rawInst = safe.instructor || clObj.instructor || clObj.teacherName || clObj.teachers || 'Faculty'
+      const rawInst =
+        safe.instructor ||
+        clObj.instructor ||
+        clObj.teacherName ||
+        clObj.teachers ||
+        'Faculty'
       const instructor = Array.isArray(rawInst)
-        ? rawInst.map(t => typeof t === 'object' ? (t.name || 'Faculty') : String(t)).join(', ') || 'Faculty'
-        : typeof rawInst === 'object' ? (rawInst.name || 'Faculty') : String(rawInst)
+        ? rawInst
+            .map((t) =>
+              typeof t === 'object' ? t.name || 'Faculty' : String(t),
+            )
+            .join(', ') || 'Faculty'
+        : typeof rawInst === 'object'
+          ? rawInst.name || 'Faculty'
+          : String(rawInst)
 
       const amount = safe.amount || prObj.fee || clObj.fee || safe.fee || 150
-      const studentName = safe.studentName || safe.student?.name || stObj.name || 'Student'
-      const termName = safe.termName || tmObj.name || tmObj.title || 'Academic Term'
-      const statusStr = (safe.paymentStatus || safe.status || 'unpaid').toLowerCase()
+      const studentName =
+        safe.studentName || safe.student?.name || stObj.name || 'Student'
+      const termName =
+        safe.termName || tmObj.name || tmObj.title || 'Academic Term'
+      const statusStr = (
+        safe.paymentStatus ||
+        safe.status ||
+        'unpaid'
+      ).toLowerCase()
 
-      const branchObj = typeof branchVal === 'object'
-        ? { id: rawBranch, name: branchVal.name || branchName, abbr: branchVal.abbr || branchName, color: branchVal.color || 'blue' }
-        : { id: branchName, name: branchName, abbr: branchName, color: branchName === 'FM' || branchName === 'SEN SOK' ? 'purple' : 'blue' }
+      const branchObj =
+        typeof branchVal === 'object'
+          ? {
+              id: rawBranch,
+              name: branchVal.name || branchName,
+              abbr: branchVal.abbr || branchName,
+              color: branchVal.color || 'blue',
+            }
+          : {
+              id: branchName,
+              name: branchName,
+              abbr: branchName,
+              color:
+                branchName === 'FM' || branchName === 'SEN SOK'
+                  ? 'purple'
+                  : 'blue',
+            }
       const branchColor = branchObj.color
-      const profileURL = prObj.profileURL || prObj.image || prObj.photoUrl || clObj.profileURL || safe.profileURL || ''
+      const profileURL =
+        prObj.profileURL ||
+        prObj.image ||
+        prObj.photoUrl ||
+        clObj.profileURL ||
+        safe.profileURL ||
+        ''
 
       return {
         id: d.id,
         ...safe,
         studentId: stId,
         studentName,
-        studentObj: { id: stId, name: studentName, level: stObj.level || '', profileURL: stObj.profileURL || '' },
+        studentObj: {
+          id: stId,
+          name: studentName,
+          level: stObj.level || '',
+          profileURL: stObj.profileURL || '',
+        },
         classId: clId,
-        classObj: { id: clId, name: clObj.name || programName, schedule, instructor, profileURL },
+        classObj: {
+          id: clId,
+          name: clObj.name || programName,
+          schedule,
+          instructor,
+          profileURL,
+        },
         programId: prId,
         programName,
-        programObj: { id: prId, name: programName, fee: amount, code: prObj.code || '', profileURL },
+        programObj: {
+          id: prId,
+          name: programName,
+          fee: amount,
+          code: prObj.code || '',
+          profileURL,
+        },
         termId: tmId,
         termName,
         branchId: branchName,
@@ -334,7 +463,9 @@ exports.getMyEnrollments = async (req, res) => {
 
     res.json(enrollments)
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Failed fetching enrollments' })
+    res
+      .status(500)
+      .json({ error: err.message || 'Failed fetching enrollments' })
   }
 }
 
@@ -387,12 +518,13 @@ exports.getMyChildAttendance = async (req, res) => {
 exports.getAvailableClasses = async (req, res) => {
   try {
     // Read-only browsing for self-enrollment — reuse existing class/term/branch/program data
-    const [classesSnap, termsSnap, branchesSnap, programsSnap] = await Promise.all([
-      db.collection(COLLECTIONS.CLASS).get(),
-      db.collection(COLLECTIONS.TERM).get(),
-      db.collection(COLLECTIONS.BRANCH).get(),
-      db.collection(COLLECTIONS.PROGRAM).get(),
-    ])
+    const [classesSnap, termsSnap, branchesSnap, programsSnap] =
+      await Promise.all([
+        db.collection(COLLECTIONS.CLASS).get(),
+        db.collection(COLLECTIONS.TERM).get(),
+        db.collection(COLLECTIONS.BRANCH).get(),
+        db.collection(COLLECTIONS.PROGRAM).get(),
+      ])
 
     const classes = classesSnap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
@@ -408,7 +540,13 @@ exports.getAvailableClasses = async (req, res) => {
       if (!val) return 'Faculty'
       if (typeof val === 'string') return val
       if (Array.isArray(val)) {
-        return val.map(t => typeof t === 'object' ? (t.name || 'Faculty') : String(t)).join(', ') || 'Faculty'
+        return (
+          val
+            .map((t) =>
+              typeof t === 'object' ? t.name || 'Faculty' : String(t),
+            )
+            .join(', ') || 'Faculty'
+        )
       }
       if (typeof val === 'object') return val.name || 'Faculty'
       return String(val)
@@ -418,20 +556,46 @@ exports.getAvailableClasses = async (req, res) => {
     const resolveBranchClean = (val) => {
       if (!val) return 'AEON'
       if (typeof val === 'string') return val.toUpperCase()
-      if (typeof val === 'object') return (val.abbr || val.name || val.id || 'AEON').toUpperCase()
+      if (typeof val === 'object')
+        return (val.abbr || val.name || val.id || 'AEON').toUpperCase()
       return String(val).toUpperCase()
     }
 
     // Helper to resolve branch obj cleanly
     const resolveBranchObj = (cleanBranch) => {
-      const match = branches.find(b => String(b.id).toUpperCase() === cleanBranch || (b.abbr || '').toUpperCase() === cleanBranch || (b.name || '').toUpperCase() === cleanBranch)
-      return match ? { id: match.id, name: match.name, abbr: match.abbr, color: match.color || 'blue' } : { id: cleanBranch, name: cleanBranch, abbr: cleanBranch, color: cleanBranch === 'FM' || cleanBranch === 'SEN SOK' ? 'purple' : 'blue' }
+      const match = branches.find(
+        (b) =>
+          String(b.id).toUpperCase() === cleanBranch ||
+          (b.abbr || '').toUpperCase() === cleanBranch ||
+          (b.name || '').toUpperCase() === cleanBranch,
+      )
+      return match
+        ? {
+            id: match.id,
+            name: match.name,
+            abbr: match.abbr,
+            color: match.color || 'blue',
+          }
+        : {
+            id: cleanBranch,
+            name: cleanBranch,
+            abbr: cleanBranch,
+            color:
+              cleanBranch === 'FM' || cleanBranch === 'SEN SOK'
+                ? 'purple'
+                : 'blue',
+          }
     }
 
     // Helper to resolve program profileURL
     const resolveProgramURL = (progId, progName, fallbackUrl) => {
       if (fallbackUrl) return fallbackUrl
-      const match = programs.find(p => p.id === progId || (p.name || '').toLowerCase().trim() === (progName || '').toLowerCase().trim())
+      const match = programs.find(
+        (p) =>
+          p.id === progId ||
+          (p.name || '').toLowerCase().trim() ===
+            (progName || '').toLowerCase().trim(),
+      )
       return match?.profileURL || match?.image || match?.photoUrl || ''
     }
 
@@ -453,13 +617,22 @@ exports.getAvailableClasses = async (req, res) => {
               ? `${off.schedule.day || ''} @ ${off.schedule.time || ''}`.trim()
               : ''
 
-        const cleanBranch = resolveBranchClean(off.branchId || off.branch || t.branchIds?.[0])
+        const cleanBranch = resolveBranchClean(
+          off.branchId || off.branch || t.branchIds?.[0],
+        )
         const branchObj = resolveBranchObj(cleanBranch)
-        const cleanInstructor = resolveInstructorName(off.instructor || off.teacherName || off.teachers || t.instructor)
+        const cleanInstructor = resolveInstructorName(
+          off.instructor || off.teacherName || off.teachers || t.instructor,
+        )
         const uniqueKey = `${t.id}_off_${idx}_${off.classId || off.id || 'cls'}_${(scheduleStr || '').replace(/[^a-zA-Z0-9]/g, '')}`
-        const programName = off.program?.name || off.programName || off.name || 'Enrolled Class'
+        const programName =
+          off.program?.name || off.programName || off.name || 'Enrolled Class'
         const programId = off.program?.id || off.programId || ''
-        const profileURL = resolveProgramURL(programId, programName, off.profileURL || off.program?.profileURL)
+        const profileURL = resolveProgramURL(
+          programId,
+          programName,
+          off.profileURL || off.program?.profileURL,
+        )
 
         offerings.push({
           id: uniqueKey,
@@ -491,12 +664,20 @@ exports.getAvailableClasses = async (req, res) => {
     )
     classes.forEach((c) => {
       if (termClassIds.has(c.id)) return
-      const cleanBranch = resolveBranchClean(c.branchIds?.[0] || c.branches?.[0] || c.branchId)
+      const cleanBranch = resolveBranchClean(
+        c.branchIds?.[0] || c.branches?.[0] || c.branchId,
+      )
       const branchObj = resolveBranchObj(cleanBranch)
-      const cleanInstructor = resolveInstructorName(c.instructor || c.teacherName || c.teachers)
+      const cleanInstructor = resolveInstructorName(
+        c.instructor || c.teacherName || c.teachers,
+      )
       const programId = c.programId || c.program?.id || ''
       const programName = c.program?.name || c.name || 'Class Program'
-      const profileURL = resolveProgramURL(programId, programName, c.profileURL || c.program?.profileURL)
+      const profileURL = resolveProgramURL(
+        programId,
+        programName,
+        c.profileURL || c.program?.profileURL,
+      )
 
       if (c.schedules && Array.isArray(c.schedules) && c.schedules.length > 0) {
         c.schedules.forEach((sched, idx) => {

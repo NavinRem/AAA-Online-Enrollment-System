@@ -1,4 +1,3 @@
-
 import { auth } from '../firebase'
 import { config } from '../config'
 import { triggerSystemNotification } from './notificationInterceptor'
@@ -32,8 +31,6 @@ export async function request(endpoint, options = {}) {
     const newQuery = cleanParams.toString()
     url = newQuery ? `${API_URL}${path}?${newQuery}` : `${API_URL}${path}`
   }
-
-
 
   let currentUser = auth.currentUser
   if (!currentUser) {

@@ -77,8 +77,8 @@ const updateForm = (field, value) => {
     >
       <template #label-extra>
         <span class="block text-2xs font-semibold mt-0.5">
-          Type <span class="text-error px-1 font-semibold">DELETE</span> to authorize this
-          permanent action
+          Type <span class="text-error px-1 font-semibold">DELETE</span> to authorize this permanent
+          action
         </span>
       </template>
     </AppInput>

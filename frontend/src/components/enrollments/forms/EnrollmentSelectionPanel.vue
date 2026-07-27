@@ -25,7 +25,7 @@ const emit = defineEmits([
   'parent-change',
   'student-change',
   'program-change',
-  'offering-change'
+  'offering-change',
 ])
 
 const updateForm = (field, value) => {
@@ -195,7 +195,9 @@ const handleOfferingSelection = (val) => {
       @update:modelValue="handleOfferingUpdate($event)"
       :items="offeringSelectItems"
       label="Available Classes"
-      :placeholder="isTransferMode ? 'Select new class to transfer into' : 'Select a class to enroll'"
+      :placeholder="
+        isTransferMode ? 'Select new class to transfer into' : 'Select a class to enroll'
+      "
       required
       :disabled="!form.programId && !isTransferMode"
       :error="offeringErrorLabel"

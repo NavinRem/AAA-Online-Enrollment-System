@@ -58,7 +58,7 @@ export function useActionModal(props, emit, options = {}) {
         resetOriginal()
       }
     },
-    { immediate: true }
+    { immediate: true },
   )
 
   // Optional: Watch for source changes if the source prop is provided

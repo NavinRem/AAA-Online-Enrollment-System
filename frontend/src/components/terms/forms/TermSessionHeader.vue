@@ -8,7 +8,7 @@ defineProps({
   programName: { type: String, default: '' },
   schedule: { type: Object, default: null },
   allSchedules: { type: Array, default: () => [] },
-  offeringId: { type: [String, Number], default: null }
+  offeringId: { type: [String, Number], default: null },
 })
 
 defineEmits(['switch-schedule'])
@@ -19,7 +19,6 @@ const schedDropdownRef = ref(null)
 const toggleScheduleDropdown = () => {
   scheduleDropdownOpen.value = !scheduleDropdownOpen.value
 }
-
 </script>
 
 <template>
@@ -103,10 +102,10 @@ const toggleScheduleDropdown = () => {
               "
             >
               <span class="text-base opacity-60">📅</span>
-                <div class="flex items-center gap-1.5">
-                  <AppBadge :status="sched.day" type="day" size="xs" />
-                  <span class="text-xs font-semibold text-content-dark">{{ sched.time }}</span>
-                </div>
+              <div class="flex items-center gap-1.5">
+                <AppBadge :status="sched.day" type="day" size="xs" />
+                <span class="text-xs font-semibold text-content-dark">{{ sched.time }}</span>
+              </div>
             </button>
           </div>
         </div>

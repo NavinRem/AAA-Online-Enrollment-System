@@ -8,7 +8,7 @@ const props = defineProps({
   errors: { type: Object, default: () => ({}) },
   shaking: { type: Object, default: () => ({}) },
   isEditMode: { type: Boolean, default: false },
-  finalAmount: { type: Number, default: 0 }
+  finalAmount: { type: Number, default: 0 },
 })
 
 const emit = defineEmits(['update:form', 'clear-error'])
@@ -144,9 +144,7 @@ const updateForm = (field, value) => {
         <div class="ui-summary-card">
           <div class="ui-summary-content">
             <span class="ui-summary-label">Total Price to Pay</span>
-            <div class="text-lg font-bold">
-              Billed Sessions: {{ form.enrolledSessions || 0 }}
-            </div>
+            <div class="text-lg font-bold">Billed Sessions: {{ form.enrolledSessions || 0 }}</div>
           </div>
           <span class="ui-summary-amount">
             {{ form.isSponsorship ? '$0.00' : '$' + formatPrice(finalAmount) }}

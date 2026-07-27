@@ -126,12 +126,17 @@ export const useNotificationStore = defineStore('notification', () => {
 
   function getUnreadCountByModule(moduleId) {
     if (moduleId === 'all') return unreadCount.value
-    return history.value.filter((i) => !i.read && String(i.module || '').toLowerCase() === String(moduleId || '').toLowerCase()).length
+    return history.value.filter(
+      (i) =>
+        !i.read && String(i.module || '').toLowerCase() === String(moduleId || '').toLowerCase(),
+    ).length
   }
 
   function getFilteredHistory(moduleId = 'all') {
     if (moduleId === 'all') return history.value
-    return history.value.filter((i) => String(i.module || '').toLowerCase() === String(moduleId || '').toLowerCase())
+    return history.value.filter(
+      (i) => String(i.module || '').toLowerCase() === String(moduleId || '').toLowerCase(),
+    )
   }
 
   /**
@@ -159,7 +164,8 @@ export const useNotificationStore = defineStore('notification', () => {
     if (!isInitialized.value) init()
 
     const rawMod = module || 'System'
-    const capitalizedModule = rawMod.toLowerCase() === 'khqr' ? 'KHQR' : rawMod.charAt(0).toUpperCase() + rawMod.slice(1)
+    const capitalizedModule =
+      rawMod.toLowerCase() === 'khqr' ? 'KHQR' : rawMod.charAt(0).toUpperCase() + rawMod.slice(1)
     const id = Date.now() + '-' + Math.random().toString(36).substring(2, 7)
     const timestamp = new Date().toISOString()
 

@@ -17,7 +17,7 @@ const props = defineProps({
   conflictMessage: { type: String, default: '' },
   responsibleTeachers: { type: Array, default: () => [] },
   localData: { type: Object, default: () => ({}) },
-  currentOffering: { type: Object, default: null }
+  currentOffering: { type: Object, default: null },
 })
 
 const emit = defineEmits(['teacher-change'])
@@ -95,9 +95,7 @@ const handleTeacherChange = (weekIndex, teacherIds) => {
                 :key="i"
                 class="w-4 h-2 rounded-full transition-all duration-700"
                 :class="
-                  i <= termProgress
-                    ? 'bg-primary shadow-sm shadow-primary/50'
-                    : 'bg-outline-std/40'
+                  i <= termProgress ? 'bg-primary shadow-sm shadow-primary/50' : 'bg-outline-std/40'
                 "
               ></div>
             </div>

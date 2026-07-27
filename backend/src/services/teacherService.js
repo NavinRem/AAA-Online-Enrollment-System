@@ -121,8 +121,9 @@ class TeacherService {
         const isAssigned = teachers.some((t) => t.id === teacherId)
         const isInSessions = (offering.sessionTeachers || []).some((st) => {
           if (!st) return false
-          if (st.teachers && Array.isArray(st.teachers)) return st.teachers.some(t => t && t.id === teacherId)
-          if (Array.isArray(st)) return st.some(t => t && t.id === teacherId)
+          if (st.teachers && Array.isArray(st.teachers))
+            return st.teachers.some((t) => t && t.id === teacherId)
+          if (Array.isArray(st)) return st.some((t) => t && t.id === teacherId)
           return st && st.id === teacherId
         })
 
@@ -192,7 +193,8 @@ class TeacherService {
       })
 
       const teacherRef = db.collection(COLLECTIONS.TEACHER).doc(teacherId)
-      const progName = offering.program?.name || offering.name || 'Class Offering'
+      const progName =
+        offering.program?.name || offering.name || 'Class Offering'
       transaction.update(teacherRef, {
         updatedAt: new Date().toISOString(),
         auditAction: `Assigned Class: ${progName}`,
@@ -239,7 +241,8 @@ class TeacherService {
       })
 
       const teacherRef = db.collection(COLLECTIONS.TEACHER).doc(teacherId)
-      const progName = offering.program?.name || offering.name || 'Class Offering'
+      const progName =
+        offering.program?.name || offering.name || 'Class Offering'
       transaction.update(teacherRef, {
         updatedAt: new Date().toISOString(),
         auditAction: `Unassigned Class: ${progName}`,

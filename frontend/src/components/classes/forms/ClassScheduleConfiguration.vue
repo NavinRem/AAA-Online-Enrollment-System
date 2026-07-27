@@ -27,7 +27,7 @@ const updateCapacity = (schedId, val) => {
 const getScheduleDuration = (timeRange) => {
   const range = (timeRange || '').split(' - ')
   if (range.length !== 2) return ''
-  
+
   // local parser for duration
   const parse12hToMinutesLocal = (time12h) => {
     const [time, period] = time12h.split(' ')
@@ -51,13 +51,9 @@ const getScheduleDuration = (timeRange) => {
     class="flex flex-col gap-4 mt-2 animate-in slide-in-from-top-2 duration-500"
   >
     <div class="flex items-center justify-between px-1">
-      <span class="text-sm font-semibold text-content-muted"
-        >Selected Sessions Configuration</span
-      >
+      <span class="text-sm font-semibold text-content-muted">Selected Sessions Configuration</span>
       <span class="text-sm font-bold text-content-muted"
-        >{{ previewSchedules.length }} session{{
-          previewSchedules.length === 1 ? '' : 's'
-        }}</span
+        >{{ previewSchedules.length }} session{{ previewSchedules.length === 1 ? '' : 's' }}</span
       >
     </div>
     <div class="grid grid-cols-1 gap-4 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
@@ -146,7 +142,11 @@ const getScheduleDuration = (timeRange) => {
 
           <button
             type="button"
-            @click="sched.isClassId ? $emit('remove-class', sched.id) : $emit('deselect-schedule', sched.id)"
+            @click="
+              sched.isClassId
+                ? $emit('remove-class', sched.id)
+                : $emit('deselect-schedule', sched.id)
+            "
             class="w-12 h-12 flex items-center justify-center hover:bg-error-soft text-content-muted hover:text-error rounded-xl transition-all border border-transparent hover:border-error/20 group/btn"
           >
             <img

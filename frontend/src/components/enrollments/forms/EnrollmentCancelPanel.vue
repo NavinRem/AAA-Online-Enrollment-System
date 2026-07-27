@@ -28,11 +28,11 @@ const selectPreset = (preset) => {
   <div class="flex flex-col gap-lg">
     <AppAlert type="warning">
       <div class="flex flex-col gap-0.5">
-        <strong class="text-sm font-semibold tracking-tight"
-          >Program Termination Warning</strong
-        >
+        <strong class="text-sm font-semibold tracking-tight">Program Termination Warning</strong>
         <span class="text-xs opacity-90 font-medium"
-          >Marking this enrollment as cancelled will release the reserved seat. Cancellation can be undone later. Paid enrollments will remain in historical records but will no longer be marked for future attendance.</span
+          >Marking this enrollment as cancelled will release the reserved seat. Cancellation can be
+          undone later. Paid enrollments will remain in historical records but will no longer be
+          marked for future attendance.</span
         >
       </div>
     </AppAlert>

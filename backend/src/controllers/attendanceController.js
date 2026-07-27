@@ -8,7 +8,7 @@ exports.recordAttendance = async (req, res) => {
       sessionId,
       statuses,
       termId,
-      scheduleId
+      scheduleId,
     )
     res.status(200).json(result)
   } catch (error) {

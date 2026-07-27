@@ -33,11 +33,17 @@ const {
 
 function injectAuditMetadata(data, isCreate = false) {
   const baseSnapshot = getAuditSnapshot()
-  if (!baseSnapshot || !data || typeof data !== 'object' || Array.isArray(data)) {
+  if (
+    !baseSnapshot ||
+    !data ||
+    typeof data !== 'object' ||
+    Array.isArray(data)
+  ) {
     return data
   }
   const copy = { ...data }
-  let action = baseSnapshot.action || (isCreate ? 'Created Record' : 'Edited Details')
+  let action =
+    baseSnapshot.action || (isCreate ? 'Created Record' : 'Edited Details')
   if (isCreate) {
     action = 'Created Record'
   } else if (copy.auditAction || copy.lastAssignedAction) {
@@ -60,7 +66,7 @@ function injectAuditMetadata(data, isCreate = false) {
   const snapshot = {
     ...baseSnapshot,
     action,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   }
   if (isCreate && !copy.createdBy) {
     copy.createdBy = snapshot
@@ -174,4 +180,3 @@ module.exports = {
   db,
   COLLECTIONS,
 }
-

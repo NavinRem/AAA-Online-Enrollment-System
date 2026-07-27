@@ -41,7 +41,7 @@ const activeQrImage = computed(() => {
 })
 
 const activeDisplayAmount = computed(() => {
-  if (isOneDollarDemo.value) return 1.00
+  if (isOneDollarDemo.value) return 1.0
   return props.displaySummary?.amount || 0
 })
 
@@ -74,7 +74,8 @@ const clearCustomQr = () => {
 // Secret Presentation Shortcut: Ctrl+Shift+B or double click QR to silently simulate bank webhook!
 const triggerBankVerificationDemo = () => {
   const realTransId = Math.floor(10000000000 + Math.random() * 90000000000).toString()
-  const realReceiptId = 'KHQR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000)
+  const realReceiptId =
+    'KHQR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000)
   updateForm('transactionId', realTransId)
   updateForm('receiptId', realReceiptId)
   updateForm('isBankVerified', true)
@@ -236,7 +237,9 @@ onUnmounted(() => {
       </div>
 
       <!-- Real KHQR Upload & $1 Test Toggle Toolbar -->
-      <div class="w-full flex flex-wrap items-center justify-between gap-2 p-2.5 bg-surface-subtle/80 rounded-xl border border-outline-std/40 text-xs">
+      <div
+        class="w-full flex flex-wrap items-center justify-between gap-2 p-2.5 bg-surface-subtle/80 rounded-xl border border-outline-std/40 text-xs"
+      >
         <div class="flex items-center gap-1.5">
           <input
             type="file"
@@ -266,10 +269,16 @@ onUnmounted(() => {
           type="button"
           @click="toggleOneDollarDemo"
           class="px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1 shadow-2xs border"
-          :class="isOneDollarDemo ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-white text-content-dark border-outline-std hover:bg-surface-subtle'"
+          :class="
+            isOneDollarDemo
+              ? 'bg-emerald-600 text-white border-emerald-700'
+              : 'bg-white text-content-dark border-outline-std hover:bg-surface-subtle'
+          "
           title="Switch between actual tuition fee and $1.00 test payment"
         >
-          <span>💵 $1.00 Test Mode: <strong>{{ isOneDollarDemo ? 'ON' : 'OFF' }}</strong></span>
+          <span
+            >💵 $1.00 Test Mode: <strong>{{ isOneDollarDemo ? 'ON' : 'OFF' }}</strong></span
+          >
         </button>
       </div>
 
@@ -279,16 +288,16 @@ onUnmounted(() => {
         class="p-4 bg-white rounded-2xl shadow-inner border-2 border-primary/20 relative group my-1 cursor-pointer transition-transform hover:scale-102"
         title="Double-click or press Ctrl+Shift+B to simulate Bank Webhook confirmation during demo"
       >
-        <img
-          :src="activeQrImage"
-          alt="Bakong KHQR"
-          class="w-48 h-48 object-contain"
-        />
+        <img :src="activeQrImage" alt="Bakong KHQR" class="w-48 h-48 object-contain" />
         <div
           class="absolute inset-0 flex items-center justify-center bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none rounded-xl"
         >
-          <span class="text-xs font-bold text-primary px-3 py-1.5 bg-surface-subtle rounded-full shadow-sm text-center"
-            >Scan with ABA / ACLEDA / Wing<br /><span class="text-2xs text-content-muted font-normal block mt-0.5">(Double-click to simulate Bank API)</span></span
+          <span
+            class="text-xs font-bold text-primary px-3 py-1.5 bg-surface-subtle rounded-full shadow-sm text-center"
+            >Scan with ABA / ACLEDA / Wing<br /><span
+              class="text-2xs text-content-muted font-normal block mt-0.5"
+              >(Double-click to simulate Bank API)</span
+            ></span
           >
         </div>
       </div>
@@ -302,14 +311,19 @@ onUnmounted(() => {
           <span class="text-3xl font-black text-primary"
             >${{ formatPrice(activeDisplayAmount) }}</span
           >
-          <span v-if="isOneDollarDemo" class="text-2xs font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse">
+          <span
+            v-if="isOneDollarDemo"
+            class="text-2xs font-extrabold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse"
+          >
             Live $1 Demo
           </span>
         </div>
       </div>
 
       <!-- Live Status Polling & Demo Webhook Trigger -->
-      <div class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-outline-std/50">
+      <div
+        class="w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-outline-std/50"
+      >
         <div
           class="flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-50 px-3.5 py-1.5 rounded-full border border-amber-200 animate-pulse"
         >

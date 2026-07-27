@@ -56,24 +56,38 @@ class TermService {
       updatedAt: new Date().toISOString(),
     }
 
-    const auditAction = updateData.actionLabel || (updateData.sessionTeachers
-      ? 'Updated Teacher Class Schedule'
-      : 'Updated Offering Details')
+    const auditAction =
+      updateData.actionLabel ||
+      (updateData.sessionTeachers
+        ? 'Updated Teacher Class Schedule'
+        : 'Updated Offering Details')
 
     await termRef.update({ offerings, auditAction })
 
-    const progName = offerings[offIdx]?.program?.name || offerings[offIdx]?.name || 'Class Offering'
+    const progName =
+      offerings[offIdx]?.program?.name ||
+      offerings[offIdx]?.name ||
+      'Class Offering'
     const teacherIds = new Set()
     if (updateData.targetTeacherId) {
       teacherIds.add(String(updateData.targetTeacherId))
     }
-    if (updateData.sessionTeachers && Array.isArray(updateData.sessionTeachers)) {
+    if (
+      updateData.sessionTeachers &&
+      Array.isArray(updateData.sessionTeachers)
+    ) {
       updateData.sessionTeachers.forEach((st) => {
         if (!st) return
         if (st.teachers && Array.isArray(st.teachers)) {
-          st.teachers.forEach((t) => t && (t.id || typeof t === 'string') && teacherIds.add(t.id || t))
+          st.teachers.forEach(
+            (t) =>
+              t && (t.id || typeof t === 'string') && teacherIds.add(t.id || t),
+          )
         } else if (Array.isArray(st)) {
-          st.forEach((t) => t && (t.id || typeof t === 'string') && teacherIds.add(t.id || t))
+          st.forEach(
+            (t) =>
+              t && (t.id || typeof t === 'string') && teacherIds.add(t.id || t),
+          )
         } else if (st.id) {
           teacherIds.add(st.id)
         }
@@ -83,14 +97,21 @@ class TermService {
     for (const tId of teacherIds) {
       const isTarget = String(tId) === String(updateData.targetTeacherId)
       try {
-        await db.collection(COLLECTIONS.TEACHER).doc(String(tId)).update({
-          updatedAt: new Date().toISOString(),
-          auditAction: isTarget && updateData.actionLabel
-            ? updateData.actionLabel
-            : `Assigned Class Sessions: ${progName}`,
-        })
+        await db
+          .collection(COLLECTIONS.TEACHER)
+          .doc(String(tId))
+          .update({
+            updatedAt: new Date().toISOString(),
+            auditAction:
+              isTarget && updateData.actionLabel
+                ? updateData.actionLabel
+                : `Assigned Class Sessions: ${progName}`,
+          })
       } catch (e) {
-        console.debug('[Audit] Failed to update teacher audit for session assignment:', e.message)
+        console.debug(
+          '[Audit] Failed to update teacher audit for session assignment:',
+          e.message,
+        )
       }
     }
 
@@ -141,7 +162,11 @@ class TermService {
           e.class?.schedule?.time || e.schedule?.time || e.scheduleTime
         const offDay = off.schedule?.day || off.scheduleDay
         const offTime = off.schedule?.time || off.scheduleTime
-        if (eDay && offDay && String(eDay).toLowerCase() === String(offDay).toLowerCase()) {
+        if (
+          eDay &&
+          offDay &&
+          String(eDay).toLowerCase() === String(offDay).toLowerCase()
+        ) {
           if (eTime && offTime) {
             return String(eTime).toLowerCase() === String(offTime).toLowerCase()
           }
@@ -152,7 +177,8 @@ class TermService {
           (o) =>
             (String(o.classId) === String(off.classId) ||
               String(o.programId) === String(off.programId)) &&
-            String(o.branchId || o.branch?.id) === String(off.branchId || off.branch?.id),
+            String(o.branchId || o.branch?.id) ===
+              String(off.branchId || off.branch?.id),
         )
         return firstOfferingOfClass?.offeringId === off.offeringId
       })
@@ -182,7 +208,10 @@ class TermService {
         paymentStatus: e.paymentStatus || 'unpaid',
         enrollmentId: e.id || '',
         enrolledAt:
-          e.enrollAt || e.createdAt || e.enrollmentDate || new Date().toISOString(),
+          e.enrollAt ||
+          e.createdAt ||
+          e.enrollmentDate ||
+          new Date().toISOString(),
       }))
 
       return {
@@ -246,7 +275,9 @@ class TermService {
         ) || e.isDeleted === true
       const pStatus = String(e.paymentStatus || '').toLowerCase()
       const sStatus = String(e.status || '').toLowerCase()
-      const isPaid = ['paid', 'confirmed', 'success'].includes(pStatus) || ['paid', 'confirmed', 'success'].includes(sStatus)
+      const isPaid =
+        ['paid', 'confirmed', 'success'].includes(pStatus) ||
+        ['paid', 'confirmed', 'success'].includes(sStatus)
       if (e.termId && !isCancelledOrDeleted && isPaid) {
         revenueMap[e.termId] =
           (revenueMap[e.termId] || 0) + (Number(e.amount) || 0)
@@ -339,33 +370,34 @@ class TermService {
         : oldBranchIds
 
     if (validatedData.newOfferingsRequest) {
-      const { branchIds, classIds, scheduleIds } = validatedData.newOfferingsRequest
+      const { branchIds, classIds, scheduleIds } =
+        validatedData.newOfferingsRequest
       const newOfferings = await this.buildOfferingsForClasses(
         branchIds,
         classIds,
-        scheduleIds
+        scheduleIds,
       )
-      
-      const currentOfferings = validatedData.offerings || existingTerm.offerings || []
-      
+
+      const currentOfferings =
+        validatedData.offerings || existingTerm.offerings || []
+
       // Filter out new offerings that already exist (same branch + class + schedule)
-      const uniqueNewOfferings = newOfferings.filter(newOff => {
-        return !currentOfferings.some(curr => 
-          String(curr.branchId) === String(newOff.branchId) && 
-          String(curr.classId) === String(newOff.classId) && 
-          String(curr.scheduleId) === String(newOff.scheduleId)
+      const uniqueNewOfferings = newOfferings.filter((newOff) => {
+        return !currentOfferings.some(
+          (curr) =>
+            String(curr.branchId) === String(newOff.branchId) &&
+            String(curr.classId) === String(newOff.classId) &&
+            String(curr.scheduleId) === String(newOff.scheduleId),
         )
       })
 
-      validatedData.offerings = [
-        ...currentOfferings,
-        ...uniqueNewOfferings,
-      ]
+      validatedData.offerings = [...currentOfferings, ...uniqueNewOfferings]
       delete validatedData.newOfferingsRequest
     }
 
     if (validatedData.deleteOfferingsRequest) {
-      const { branchId, programId, offeringId } = validatedData.deleteOfferingsRequest
+      const { branchId, programId, offeringId } =
+        validatedData.deleteOfferingsRequest
       validatedData.offerings = (
         validatedData.offerings ||
         existingTerm.offerings ||
@@ -376,7 +408,8 @@ class TermService {
         }
         return !(
           String(off.branchId) === String(branchId) &&
-          (String(off.classId) === String(programId) || String(off.program?.id) === String(programId))
+          (String(off.classId) === String(programId) ||
+            String(off.program?.id) === String(programId))
         )
       })
       delete validatedData.deleteOfferingsRequest
@@ -521,11 +554,16 @@ class TermService {
         return
       }
 
-      const classBranchIds = classData.branchIds || (classData.branches || []).map(b => String(b.id))
+      const classBranchIds =
+        classData.branchIds ||
+        (classData.branches || []).map((b) => String(b.id))
       const schedules = classData.schedules || []
-      
+
       branches.forEach((branch) => {
-        if (classBranchIds.length > 0 && !classBranchIds.includes(String(branch.id))) {
+        if (
+          classBranchIds.length > 0 &&
+          !classBranchIds.includes(String(branch.id))
+        ) {
           return
         }
 
@@ -557,7 +595,7 @@ class TermService {
 
     const branchesPromise = db.collection(COLLECTIONS.BRANCH).get()
     const classPromises = classIds.map((cid) =>
-      db.collection(COLLECTIONS.CLASS).doc(cid).get()
+      db.collection(COLLECTIONS.CLASS).doc(cid).get(),
     )
 
     const [branchesSnap, ...classDocs] = await Promise.all([
@@ -566,7 +604,7 @@ class TermService {
     ])
 
     const classesSnapDocs = classDocs.filter(
-      (doc) => doc.exists && !doc.data().isDeleted
+      (doc) => doc.exists && !doc.data().isDeleted,
     )
 
     const validBranches = branchesSnap.docs
@@ -582,13 +620,13 @@ class TermService {
 
     classesSnapDocs.forEach((classDoc) => {
       const classData = classDoc.data()
-      
+
       if (classData.status === 'upcoming') {
         updatePromises.push(
           db.collection(COLLECTIONS.CLASS).doc(classDoc.id).update({
             status: 'available',
-            updatedAt: new Date().toISOString()
-          })
+            updatedAt: new Date().toISOString(),
+          }),
         )
       }
 
@@ -596,7 +634,7 @@ class TermService {
 
       // Filter schedules if scheduleIds are explicitly provided
       if (scheduleIds && scheduleIds.length > 0) {
-        schedules = schedules.filter(s => scheduleIds.includes(s.id))
+        schedules = schedules.filter((s) => scheduleIds.includes(s.id))
       }
 
       validBranches.forEach((branch) => {
@@ -680,9 +718,12 @@ class TermService {
       let students = [...(offering.students || [])]
       const studentId = enrollment.studentId
 
-      const isPaid = ['paid', 'success'].includes(enrollment.paymentStatus) || ['paid', 'success'].includes(enrollment.status)
-      const isCancelled = enrollment.status === 'cancelled' || enrollment.status === 'deleted'
-      
+      const isPaid =
+        ['paid', 'success'].includes(enrollment.paymentStatus) ||
+        ['paid', 'success'].includes(enrollment.status)
+      const isCancelled =
+        enrollment.status === 'cancelled' || enrollment.status === 'deleted'
+
       let effectiveAction = 'upsert'
       if (action === 'remove' || enrollment.isDeleted) {
         effectiveAction = 'remove'

@@ -173,11 +173,10 @@ const sortedSchedules = computed(() => {
 
 const getScheduleById = (id) => schedules.value.find((s) => s.id === id)
 
-
 const getScheduleDurationMinutes = (timeRange) => {
   const range = (timeRange || '').split(' - ')
   if (range.length !== 2) return null
-  
+
   // local parser for duration
   const parse12hToMinutesLocal = (time12h) => {
     const [time, period] = time12h.split(' ')
@@ -283,7 +282,7 @@ const filteredPickerClasses = computed(() => {
 })
 
 const previewSchedules = computed(() => {
-  let result;
+  let result
   if (props.context && props.type === 'add') {
     result = form.classIds.map((id) => {
       const item = filteredPickerClasses.value.find((c) => c.id === id)
@@ -305,7 +304,7 @@ const previewSchedules = computed(() => {
       }
     })
   }
-  
+
   return sortSchedulesChronologically(result)
 })
 
@@ -637,7 +636,7 @@ const toggleAllBranches = () => {
             @toggle-schedule-manage="toggleScheduleManage"
             @clear-error="clearError"
             @toggle-all-branches="toggleAllBranches"
-            @remove-branch="(id) => form.branchIds = form.branchIds.filter(bid => bid !== id)"
+            @remove-branch="(id) => (form.branchIds = form.branchIds.filter((bid) => bid !== id))"
           />
         </div>
         <div v-else-if="context && type === 'add'" class="flex flex-col gap-5">
@@ -659,7 +658,7 @@ const toggleAllBranches = () => {
           :preview-schedules="previewSchedules"
           :teachers="teachers"
           @deselect-schedule="deselectSchedule"
-          @remove-class="(id) => form.classIds = form.classIds.filter(cid => cid !== id)"
+          @remove-class="(id) => (form.classIds = form.classIds.filter((cid) => cid !== id))"
         />
 
         <ClassScheduleManagePanel
@@ -816,7 +815,10 @@ const toggleAllBranches = () => {
           >
             <div class="flex flex-col items-end shrink-0 min-w-20 gap-1">
               <AppBadge
-                :status="filteredPickerClasses.find((c) => c.id === id)?.displaySchedule?.day || 'No Schedule'"
+                :status="
+                  filteredPickerClasses.find((c) => c.id === id)?.displaySchedule?.day ||
+                  'No Schedule'
+                "
                 type="day"
                 size="xs"
               />

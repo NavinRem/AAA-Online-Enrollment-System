@@ -34,10 +34,16 @@ const verifyToken = async (req, res, next) => {
       if (cached && Date.now() - cached.cachedAt < 5000) {
         docData = cached.data
       } else {
-        const doc = await db.collection(COLLECTIONS.ADMIN).doc(decodedToken.uid).get()
+        const doc = await db
+          .collection(COLLECTIONS.ADMIN)
+          .doc(decodedToken.uid)
+          .get()
         if (doc.exists) {
           docData = doc.data()
-          adminNameCache.set(decodedToken.uid, { data: docData, cachedAt: Date.now() })
+          adminNameCache.set(decodedToken.uid, {
+            data: docData,
+            cachedAt: Date.now(),
+          })
         }
       }
       if (docData) {

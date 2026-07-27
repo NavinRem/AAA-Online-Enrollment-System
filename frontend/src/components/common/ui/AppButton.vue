@@ -86,10 +86,7 @@ defineEmits(['click'])
       <slot name="icon-left"></slot>
     </span>
 
-    <span
-      v-if="icon && !loading"
-      class="flex items-center justify-center text-lg"
-    >
+    <span v-if="icon && !loading" class="flex items-center justify-center text-lg">
       <img v-if="icon.includes('/')" :src="icon" class="w-4 h-4 object-contain" />
       <span v-else>{{ icon }}</span>
     </span>

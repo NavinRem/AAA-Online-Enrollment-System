@@ -1,7 +1,9 @@
 function getUpcomingWeekendStr(dateStr) {
   if (!dateStr) {
     const d = new Date()
-    dateStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0]
+    dateStr = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+      .toISOString()
+      .split('T')[0]
   }
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return new Date().toISOString()

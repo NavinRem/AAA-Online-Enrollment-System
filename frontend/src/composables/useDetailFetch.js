@@ -21,6 +21,6 @@ export function useDetailFetch(fetchCallback, paramKey = 'id') {
       if (newId) {
         fetchCallback(newId)
       }
-    }
+    },
   )
 }

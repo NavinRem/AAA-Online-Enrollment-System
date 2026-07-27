@@ -48,8 +48,12 @@ class PaymentService {
         // Skip duplicate auto-created payment records for enrollments generated via class transfer
         const isTransferEnrollment =
           enrollment.isTransfer === true ||
-          (enrollment.remark && String(enrollment.remark).startsWith('Transfer from '))
-        if (isTransferEnrollment && p.remark === 'Automatically created during enrollment') {
+          (enrollment.remark &&
+            String(enrollment.remark).startsWith('Transfer from '))
+        if (
+          isTransferEnrollment &&
+          p.remark === 'Automatically created during enrollment'
+        ) {
           return false
         }
 
@@ -68,7 +72,8 @@ class PaymentService {
             p.class?.term?.status ||
             enrollment.class?.term?.status ||
             'unknown',
-          branchId: p.branchId || enrollment.branchId || enrollment.class?.branch?.id,
+          branchId:
+            p.branchId || enrollment.branchId || enrollment.class?.branch?.id,
           receiptId: p.receiptId || enrollment.receiptId,
         }
       })

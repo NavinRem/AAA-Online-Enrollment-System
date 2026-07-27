@@ -7,7 +7,7 @@ const props = defineProps({
   localData: { type: Object, required: true },
   errors: { type: Object, default: () => ({}) },
   shaking: { type: Object, default: () => ({}) },
-  branches: { type: Array, default: () => [] }
+  branches: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['update-form', 'clear-error', 'toggle-branches', 'update:localData'])
@@ -148,10 +148,9 @@ onUnmounted(() => {
                   ),
                 }"
               >
-                <span
-                  class="text-sm font-semibold text-content-dark truncate tracking-tight"
-                  >{{ branch.name }}</span
-                >
+                <span class="text-sm font-semibold text-content-dark truncate tracking-tight">{{
+                  branch.name
+                }}</span>
                 <div class="flex items-center gap-2 min-w-0">
                   <AppBadge :status="branch.abbr" :type="branch.color || 'blue'" />
                   <input
@@ -176,6 +175,8 @@ onUnmounted(() => {
     v-if="localData.branchIds.length === 0"
     class="p-4 bg-surface-subtle border border-outline-std rounded-md text-center animate-in fade-in slide-in-from-top-2 duration-300"
   >
-    <span class="text-sm font-bold text-content-muted">Please select at least one branch to configure term dates.</span>
+    <span class="text-sm font-bold text-content-muted"
+      >Please select at least one branch to configure term dates.</span
+    >
   </div>
 </template>

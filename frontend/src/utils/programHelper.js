@@ -85,8 +85,6 @@ export const getSessionCounts = (startDate, endDate, schedule, officialTotal = n
   }
 }
 
-
-
 export const getProgramDisplayStatus = (program) => {
   if (!program) return 'Unknown'
   const { status, startDate, endDate } = program

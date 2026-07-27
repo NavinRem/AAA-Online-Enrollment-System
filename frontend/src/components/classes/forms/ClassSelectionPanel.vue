@@ -7,15 +7,10 @@ const props = defineProps({
   programs: { type: Array, default: () => [] },
   filteredPickerClasses: { type: Array, default: () => [] },
   errors: { type: Object, default: () => ({}) },
-  shaking: { type: Object, default: () => ({}) }
+  shaking: { type: Object, default: () => ({}) },
 })
 
-const emit = defineEmits([
-  'update:form',
-  'program-change',
-  'click-disabled',
-  'clear-error'
-])
+const emit = defineEmits(['update:form', 'program-change', 'click-disabled', 'clear-error'])
 
 const updateForm = (field, value) => {
   emit('update:form', { ...props.form, [field]: value })
@@ -53,9 +48,7 @@ const updateForm = (field, value) => {
                 <span class="text-sm font-semibold text-content-dark truncate">{{
                   item.name
                 }}</span>
-                <span class="text-3xs font-semibold text-content-muted">{{
-                  item.category
-                }}</span>
+                <span class="text-3xs font-semibold text-content-muted">{{ item.category }}</span>
               </div>
             </div>
             <AppBadge type="blue">{{ item.duration }} mn</AppBadge>
@@ -74,12 +67,8 @@ const updateForm = (field, value) => {
               />
             </div>
             <div class="flex flex-col w-full">
-              <span class="text-sm font-semibold text-content-dark truncate">{{
-                item.name
-              }}</span>
-              <span class="text-3xs font-semibold text-content-muted">{{
-                item.category
-              }}</span>
+              <span class="text-sm font-semibold text-content-dark truncate">{{ item.name }}</span>
+              <span class="text-3xs font-semibold text-content-muted">{{ item.category }}</span>
             </div>
           </div>
         </template>
@@ -101,9 +90,7 @@ const updateForm = (field, value) => {
         @click-disabled="$emit('click-disabled', 'classIds')"
       >
         <template #selected="{ items }">
-          <span v-if="!items?.length" class="text-content-muted/40 italic"
-            >Choose classes...</span
-          >
+          <span v-if="!items?.length" class="text-content-muted/40 italic">Choose classes...</span>
           <span v-else class="text-sm font-semibold text-primary"
             >{{ items.length }} class{{ items.length === 1 ? '' : 'es' }} selected</span
           >
@@ -120,19 +107,12 @@ const updateForm = (field, value) => {
             <!-- Schedule (Day & Time in columns) -->
             <div style="flex: 2" class="flex flex-col gap-1 min-w-28">
               <template v-if="item.displaySchedule">
-                <AppBadge
-                  :status="item.displaySchedule.day"
-                  type="day"
-                  size="sm"
-                  class="w-fit"
-                />
+                <AppBadge :status="item.displaySchedule.day" type="day" size="sm" class="w-fit" />
                 <span class="text-xs font-semibold text-content-dark whitespace-nowrap">{{
                   item.displaySchedule.time
                 }}</span>
               </template>
-              <span v-else class="text-xs text-content-muted font-medium italic"
-                >No schedule</span
-              >
+              <span v-else class="text-xs text-content-muted font-medium italic">No schedule</span>
             </div>
 
             <!-- Branches -->

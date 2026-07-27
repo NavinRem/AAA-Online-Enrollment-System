@@ -51,11 +51,16 @@ class AttendanceService {
    * @param {string} termId - The term ID to associate the attendance record
    * @param {string} [scheduleId] - The optional schedule ID
    */
-  async recordAttendance(classId, sessionId, studentStatuses, termId, scheduleId) {
+  async recordAttendance(
+    classId,
+    sessionId,
+    studentStatuses,
+    termId,
+    scheduleId,
+  ) {
     if (!classId || !sessionId)
       throw new Error('Class ID and Session ID are required')
-    if (!termId)
-      throw new Error('Term ID is required')
+    if (!termId) throw new Error('Term ID is required')
 
     const batch = db.batch()
     const updatedAt = new Date().toISOString()
@@ -64,7 +69,11 @@ class AttendanceService {
     for (const [studentId, status] of Object.entries(studentStatuses)) {
       let resolvedScheduleId = scheduleId
       if (!resolvedScheduleId) {
-        resolvedScheduleId = await this._resolveScheduleId(classId, studentId, termId)
+        resolvedScheduleId = await this._resolveScheduleId(
+          classId,
+          studentId,
+          termId,
+        )
       }
 
       const docId = `${sessionId}_${studentId}`
@@ -77,7 +86,7 @@ class AttendanceService {
         .doc(resolvedScheduleId)
         .collection('attendance')
         .doc(docId)
-        
+
       const data = {
         classId,
         termId,
@@ -88,10 +97,10 @@ class AttendanceService {
         updatedAt,
         history: FieldValue.arrayUnion({
           status,
-          changedAt: updatedAt
-        })
+          changedAt: updatedAt,
+        }),
       }
-      
+
       batch.set(ref, data, { merge: true })
       resultList.push({ id: docId, ...data })
     }
@@ -116,15 +125,15 @@ class AttendanceService {
     const attendanceMap = {}
     snapshot.forEach((doc) => {
       const data = doc.data()
-      
+
       // Skip legacy documents that lack a scheduleId
       if (!data.scheduleId) return
 
       // Support format if it exists, alongside new format
       if (data.statuses) {
         attendanceMap[data.sessionId] = {
-           ...(attendanceMap[data.sessionId] || {}),
-           ...data.statuses
+          ...(attendanceMap[data.sessionId] || {}),
+          ...data.statuses,
         }
       } else if (data.studentId && data.status) {
         if (!attendanceMap[data.sessionId]) {
@@ -133,7 +142,11 @@ class AttendanceService {
         attendanceMap[data.sessionId][data.studentId] = data.status
         attendanceMap[data.sessionId][`${data.studentId}_meta`] = {
           status: data.status,
-          updatedAt: data.updatedAt || data.changedAt || data.modifiedBy?.timestamp || null,
+          updatedAt:
+            data.updatedAt ||
+            data.changedAt ||
+            data.modifiedBy?.timestamp ||
+            null,
           modifiedBy: data.modifiedBy || null,
           createdBy: data.createdBy || null,
           remark: data.remark || null,

@@ -1,6 +1,9 @@
 import { auth } from '@/firebase'
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://127.0.0.1:5001/aaa-online-registration-e3833/us-central1/api'
+const API_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  'http://127.0.0.1:5001/aaa-online-registration-e3833/us-central1/api'
 
 export async function request(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`
@@ -27,7 +30,9 @@ export async function request(endpoint, options = {}) {
     : { message: await response.text() }
 
   if (!response.ok) {
-    const error = new Error(responseData.error || responseData.message || `API Error: ${response.status}`)
+    const error = new Error(
+      responseData.error || responseData.message || `API Error: ${response.status}`,
+    )
     error.status = response.status
     throw error
   }

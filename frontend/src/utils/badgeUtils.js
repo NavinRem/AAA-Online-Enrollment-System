@@ -254,16 +254,7 @@ export const resolveBranchBadgeProps = (branchVal, branchesList = null) => {
   return { status: String(branchVal).trim(), type: 'gray' }
 }
 
-const TERM_COLORS = [
-  'blue',
-  'purple',
-  'green',
-  'orange',
-  'teal',
-  'indigo',
-  'rose',
-  'cyan',
-]
+const TERM_COLORS = ['blue', 'purple', 'green', 'orange', 'teal', 'indigo', 'rose', 'cyan']
 
 export const getTermColor = (termVal, termsList = null) => {
   if (termVal === null || termVal === undefined) return TERM_COLORS[0]

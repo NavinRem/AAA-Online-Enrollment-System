@@ -169,7 +169,7 @@ function validateUpdateEnrollment(updateData) {
     cleanData.status = String(cleanData.status).toLowerCase()
   if (cleanData.paymentStatus !== undefined)
     cleanData.paymentStatus = String(cleanData.paymentStatus).toLowerCase()
-  
+
   if (cleanData.hasPassedExam !== undefined)
     cleanData.hasPassedExam = !!cleanData.hasPassedExam
   if (cleanData.hasReceivedCertificate !== undefined)

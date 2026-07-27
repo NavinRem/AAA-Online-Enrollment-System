@@ -6,10 +6,15 @@ import AppBadge from '@/components/common/ui/AppBadge.vue'
 const props = defineProps({
   localData: { type: Object, required: true },
   errors: { type: Object, default: () => ({}) },
-  branches: { type: Array, default: () => [] }
+  branches: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['clear-error', 'apply-master-date', 'update-branch-start-date', 'update:localData'])
+const emit = defineEmits([
+  'clear-error',
+  'apply-master-date',
+  'update-branch-start-date',
+  'update:localData',
+])
 
 const updateField = (field, value) => {
   const newData = { ...props.localData, [field]: value }
@@ -17,7 +22,9 @@ const updateField = (field, value) => {
 }
 
 const calculateBranchEndDate = (branchId) => {
-  const setting = props.localData.branchSettings?.find((s) => String(s.branchId) === String(branchId))
+  const setting = props.localData.branchSettings?.find(
+    (s) => String(s.branchId) === String(branchId),
+  )
   return setting?.endDate || ''
 }
 

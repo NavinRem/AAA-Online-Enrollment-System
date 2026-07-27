@@ -5,7 +5,7 @@ import { formatDateOnly } from '@/utils/formatUtils'
 
 const props = defineProps({
   localData: { type: Object, required: true },
-  duplicateTermOptions: { type: Array, default: () => [] }
+  duplicateTermOptions: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['update:localData'])
@@ -33,7 +33,9 @@ const updateField = (field, value) => {
           <AppBadge :status="formatDateOnly(item.endDate)" type="red" />
         </div>
       </div>
-      <span v-else class="text-content-light text-sm italic opacity-70">Select a recent term to clone...</span>
+      <span v-else class="text-content-light text-sm italic opacity-70"
+        >Select a recent term to clone...</span
+      >
     </template>
     <template #item="{ item }">
       <div class="flex items-center justify-between w-full gap-4">

@@ -427,7 +427,9 @@ watch(
         />
 
         <div v-if="type === 'edit' && user" class="flex flex-col gap-xs text-left w-full">
-          <label class="text-sm font-semibold text-content-muted flex items-center gap-1">Last Modified</label>
+          <label class="text-sm font-semibold text-content-muted flex items-center gap-1"
+            >Last Modified</label
+          >
           <div
             class="w-full px-4 py-2 border-2 border-outline-std rounded-sm bg-white flex items-center min-h-[50px]"
           >
@@ -522,7 +524,6 @@ watch(
           />
         </div>
       </div>
-
     </form>
 
     <!-- Account Lifecycle Views -->

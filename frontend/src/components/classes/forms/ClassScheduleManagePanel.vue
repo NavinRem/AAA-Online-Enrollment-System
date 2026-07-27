@@ -14,7 +14,7 @@ const props = defineProps({
   sortedSchedules: { type: Array, default: () => [] },
   schedulesLength: { type: Number, default: 0 },
   justAddedId: { type: [String, Number], default: null },
-  dayOptions: { type: Array, default: () => [] }
+  dayOptions: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits([
@@ -23,7 +23,7 @@ const emit = defineEmits([
   'add-schedule',
   'delete-schedule',
   'clear-error',
-  'clear-success'
+  'clear-success',
 ])
 
 const updateSchedule = (field, value) => {
@@ -33,7 +33,7 @@ const updateSchedule = (field, value) => {
 const getScheduleDuration = (timeRange) => {
   const range = (timeRange || '').split(' - ')
   if (range.length !== 2) return ''
-  
+
   // local parser for duration
   const parse12hToMinutesLocal = (time12h) => {
     const [time, period] = time12h.split(' ')
@@ -52,7 +52,9 @@ const getScheduleDuration = (timeRange) => {
 </script>
 
 <template>
-  <div class="p-md bg-primary-soft/30 rounded-std border-2 border-dashed border-primary/20 flex flex-col gap-sm animate-in fade-in slide-in-from-top-2 duration-300">
+  <div
+    class="p-md bg-primary-soft/30 rounded-std border-2 border-dashed border-primary/20 flex flex-col gap-sm animate-in fade-in slide-in-from-top-2 duration-300"
+  >
     <div class="flex justify-between items-center">
       <span class="text-sm font-semibold text-primary flex items-center gap-xs">
         <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
@@ -80,7 +82,9 @@ const getScheduleDuration = (timeRange) => {
             :searchable="false"
           >
             <template #selected="{ item }">
-              <span v-if="item" class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
+              <span v-if="item" class="text-sm font-semibold text-content-dark">{{
+                item.name
+              }}</span>
             </template>
             <template #item="{ item }">
               <span class="text-sm font-semibold text-content-dark">{{ item.name }}</span>
@@ -97,7 +101,12 @@ const getScheduleDuration = (timeRange) => {
         </div>
 
         <div class="col-span-2 flex justify-end pt-2 border-t border-primary/10">
-          <AppButton size="md" type="button" @click="$emit('add-schedule')" :loading="lookupLoading">
+          <AppButton
+            size="md"
+            type="button"
+            @click="$emit('add-schedule')"
+            :loading="lookupLoading"
+          >
             Add Schedule
           </AppButton>
         </div>

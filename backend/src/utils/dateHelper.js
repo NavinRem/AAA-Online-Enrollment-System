@@ -32,7 +32,9 @@ class DateHelper {
       )
     }
 
-    const dateObj = dateStr.includes('T') ? new Date(dateStr) : new Date(year, month - 1, day)
+    const dateObj = dateStr.includes('T')
+      ? new Date(dateStr)
+      : new Date(year, month - 1, day)
 
     if (!options.allowFuture && dateObj > new Date()) {
       throw new Error(`${fieldName} "${dateStr}" cannot be in the future.`)
@@ -59,7 +61,7 @@ class DateHelper {
     const end = new Date(start)
     // A term week spans 7 days. E.g., if it starts on Saturday, it ends on Friday.
     // So sessionCount weeks is sessionCount * 7 days. We subtract 1 since start date is Day 1.
-    end.setDate(start.getDate() + (sessionCount * 7) - 1)
+    end.setDate(start.getDate() + sessionCount * 7 - 1)
     return this.formatDate(end)
   }
 

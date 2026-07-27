@@ -50,7 +50,6 @@ export const getParentProfileURL = (url) =>
 export const getStudentProfileURL = (url) =>
   resolveAsset('images', url) || resolveAsset('images', 'profiles/avatar-boy')
 
-
 const ACTION_ICONS = {
   edit: 'action/edit',
   pay: 'action/pay',
@@ -73,12 +72,10 @@ const ACTION_ICONS = {
   email: 'action/email',
   cash: 'action/cash',
   branch: 'navigation/branch',
-  time: 'filter/ongoing'
+  time: 'filter/ongoing',
 }
 
 export const getActionIcon = (name) => getIconUrl(ACTION_ICONS[normalize(name)] || name)
-
-
 
 export const isSameProfileAsset = (a, b) => {
   if (!a || !b) return a === b

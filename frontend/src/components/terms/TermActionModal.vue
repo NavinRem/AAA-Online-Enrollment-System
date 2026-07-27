@@ -191,11 +191,6 @@ const toggleAllBranches = () => {
   clearError('branchIds')
 }
 
-
-
-
-
-
 const customTitle = computed(() => {
   if (props.type === 'session') return `Session Management: ${props.programName}`
   return undefined
@@ -453,7 +448,6 @@ watch(
   { deep: true, immediate: true },
 )
 
-
 const updateBranchStartDate = (branchId, val) => {
   const setting = getBranchSetting(branchId)
   setting.startDate = val
@@ -531,11 +525,13 @@ watch(
           :errors="errors"
           :branches="branches"
           @clear-error="clearError"
-          @apply-master-date="() => {
-            if (localData.startDate) {
-              localData.branchSettings.forEach(s => s.startDate = localData.startDate)
+          @apply-master-date="
+            () => {
+              if (localData.startDate) {
+                localData.branchSettings.forEach((s) => (s.startDate = localData.startDate))
+              }
             }
-          }"
+          "
           @update-branch-start-date="updateBranchStartDate"
         />
 

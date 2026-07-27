@@ -91,41 +91,73 @@ class PerformanceService {
       )
     }
 
-    const [perfSnap, enrollSnap, classesSnap, programsSnap, branchesSnap, gradesSnap] = await Promise.all([
+    const [
+      perfSnap,
+      enrollSnap,
+      classesSnap,
+      programsSnap,
+      branchesSnap,
+      gradesSnap,
+    ] = await Promise.all([
       db
         .collection('academic_performances')
         .where('studentId', '==', studentId)
         .where('isDeleted', '==', false)
         .get(),
-      db.collection(COLLECTIONS.ENROLLMENT).where('studentId', '==', studentId).get(),
+      db
+        .collection(COLLECTIONS.ENROLLMENT)
+        .where('studentId', '==', studentId)
+        .get(),
       db.collection(COLLECTIONS.CLASS).get(),
       db.collection(COLLECTIONS.PROGRAM).get(),
       db.collection(COLLECTIONS.BRANCH).get(),
-      db.collection('student_grades').where('studentId', '==', studentId).get().catch(() => ({ docs: [] })),
+      db
+        .collection('student_grades')
+        .where('studentId', '==', studentId)
+        .get()
+        .catch(() => ({ docs: [] })),
     ])
 
-    const classesMap = new Map(classesSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))
-    const programsMap = new Map(programsSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))
-    const branchesMap = new Map(branchesSnap.docs.map((d) => [d.id, d.data().name || d.data().code || d.id]))
-    const gradesList = gradesSnap.docs?.map((d) => ({ id: d.id, ...d.data() })) || []
+    const classesMap = new Map(
+      classesSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]),
+    )
+    const programsMap = new Map(
+      programsSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]),
+    )
+    const branchesMap = new Map(
+      branchesSnap.docs.map((d) => [
+        d.id,
+        d.data().name || d.data().code || d.id,
+      ]),
+    )
+    const gradesList =
+      gradesSnap.docs?.map((d) => ({ id: d.id, ...d.data() })) || []
 
     const records = perfSnap.docs.map((doc) => {
       const data = doc.data()
       const clObj = classesMap.get(data.classId) || {}
       const prObj = programsMap.get(data.programId || clObj.programId) || {}
-      const branchId = data.branchId || clObj.branchId || clObj.branchIds?.[0] || studentData.branchId || 'AEON'
+      const branchId =
+        data.branchId ||
+        clObj.branchId ||
+        clObj.branchIds?.[0] ||
+        studentData.branchId ||
+        'AEON'
       const branchName = branchesMap.get(branchId) || branchId
 
       return {
         id: doc.id,
         ...data,
-        className: data.className || clObj.name || prObj.name || 'Enrolled Class',
+        className:
+          data.className || clObj.name || prObj.name || 'Enrolled Class',
         programName: prObj.name || data.className || 'Enrolled Program',
         branchId: branchName,
         branchName,
         instructor: clObj.instructor || clObj.teacherName || 'Faculty',
         schedule: clObj.schedule || 'Regular Schedule',
-        grades: gradesList.filter((g) => g.classId === data.classId || g.termId === data.termId),
+        grades: gradesList.filter(
+          (g) => g.classId === data.classId || g.termId === data.termId,
+        ),
       }
     })
 
@@ -136,7 +168,8 @@ class PerformanceService {
         if (enr.isDeleted) return
         const clObj = classesMap.get(enr.classId) || {}
         const prObj = programsMap.get(enr.programId || clObj.programId) || {}
-        const branchId = enr.branchId || clObj.branchId || studentData.branchId || 'AEON'
+        const branchId =
+          enr.branchId || clObj.branchId || studentData.branchId || 'AEON'
         const branchName = branchesMap.get(branchId) || branchId
 
         records.push({
@@ -144,16 +177,26 @@ class PerformanceService {
           studentId,
           classId: enr.classId || doc.id,
           termId: enr.termId || '',
-          className: enr.programName || clObj.name || prObj.name || 'Class Program',
+          className:
+            enr.programName || clObj.name || prObj.name || 'Class Program',
           programName: enr.programName || prObj.name || 'Academic Program',
           termName: enr.termName || 'Current Term',
           branchId: branchName,
           branchName,
-          instructor: enr.instructor || clObj.instructor || clObj.teacherName || 'Faculty',
+          instructor:
+            enr.instructor ||
+            clObj.instructor ||
+            clObj.teacherName ||
+            'Faculty',
           schedule: enr.schedule || clObj.schedule || 'Regular Schedule',
-          skillsMastered: ['Active Engagement', 'Core Competencies', 'Punctuality & Discipline'],
+          skillsMastered: [
+            'Active Engagement',
+            'Core Competencies',
+            'Punctuality & Discipline',
+          ],
           overallGrade: 'In Progress (Current Term)',
-          teacherRemarks: 'Student is currently enrolled and actively participating in class sessions.',
+          teacherRemarks:
+            'Student is currently enrolled and actively participating in class sessions.',
           evaluationDate: enr.enrollAt || new Date().toISOString(),
           isEnrollmentSummary: true,
           grades: gradesList.filter((g) => g.classId === enr.classId),

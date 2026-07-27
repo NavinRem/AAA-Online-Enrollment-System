@@ -116,4 +116,3 @@ export function saveAdminProfile(updatedProfile) {
   window.dispatchEvent(new CustomEvent('aaa-admin-profile-changed', { detail: next }))
   return next
 }
-

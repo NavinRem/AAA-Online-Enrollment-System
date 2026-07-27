@@ -11,22 +11,22 @@ export const filterDuplicatePrograms = (programs, context, type, existingClasses
 
   if (context && type === 'add') {
     let existingProgramIds = []
-    
+
     if (context.existingOfferings) {
       existingProgramIds = context.existingOfferings.map((o) => o.programId || o.program?.id)
     } else if (context.offeringIds) {
       existingProgramIds = context.offeringIds
     }
-    
+
     const validProgramIds = existingProgramIds.filter(Boolean).map(String)
-    
+
     if (validProgramIds.length > 0) {
       list = list.filter((p) => !validProgramIds.includes(String(p.id)))
     }
   } else if (!context && type === 'add') {
     const existingClassProgramIds = existingClasses.map((c) => c.programId || c.program?.id)
     const validProgramIds = existingClassProgramIds.filter(Boolean).map(String)
-    
+
     if (validProgramIds.length > 0) {
       list = list.filter((p) => !validProgramIds.includes(String(p.id)))
     }
@@ -44,11 +44,9 @@ export const filterDuplicatePrograms = (programs, context, type, existingClasses
  */
 export const filterDuplicateClasses = (classes, programId, existingOfferings) => {
   if (!programId) return []
-  
+
   const matches = classes.filter(
-    (c) =>
-      String(c.programId) === String(programId) ||
-      String(c.program?.id) === String(programId),
+    (c) => String(c.programId) === String(programId) || String(c.program?.id) === String(programId),
   )
 
   const flattened = []
@@ -59,7 +57,7 @@ export const filterDuplicateClasses = (classes, programId, existingOfferings) =>
           (o) => String(o.classId) === String(c.id) && String(o.scheduleId) === String(s.id),
         )
         if (isAlreadyAdded) return
-        
+
         flattened.push({
           ...c,
           id: `${c.id}_${s.id}`, // Unique ID for AppSelect
@@ -88,16 +86,25 @@ export const filterDuplicateClasses = (classes, programId, existingOfferings) =>
  * @param {String} excludeEnrollmentId - The ID of the enrollment currently being edited (so it isn't filtered out).
  * @returns {Array} - The filtered list of programs.
  */
-export const filterEnrolledPrograms = (programs, studentId, allEnrollments = [], excludeEnrollmentId = null) => {
+export const filterEnrolledPrograms = (
+  programs,
+  studentId,
+  allEnrollments = [],
+  excludeEnrollmentId = null,
+) => {
   if (!studentId) return []
-  
+
   const activeStatuses = ['paid', 'unpaid', 'active', 'confirmed', 'success', 'pending', 'partial']
   const studentEnrollments = allEnrollments.filter(
     (e) =>
       String(e.studentId) === String(studentId) &&
-      activeStatuses.includes(String(e.status || '').toLowerCase().trim()) &&
+      activeStatuses.includes(
+        String(e.status || '')
+          .toLowerCase()
+          .trim(),
+      ) &&
       e.isDeleted !== true &&
-      String(e.id) !== String(excludeEnrollmentId)
+      String(e.id) !== String(excludeEnrollmentId),
   )
   const enrolledProgramIds = new Set(studentEnrollments.map((e) => String(e.programId)))
 

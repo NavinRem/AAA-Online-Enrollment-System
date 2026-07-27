@@ -349,7 +349,7 @@ watch(
         }, 4000)
       }
     }
-  }
+  },
 )
 
 const { modalTitle, submitLabel, modalIcon } = useModalText(() => props.type, 'Trial')

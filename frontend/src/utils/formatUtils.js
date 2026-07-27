@@ -101,15 +101,19 @@ export const calculateAge = (val) => {
   return age
 }
 
-
-
 export const formatPrice = (val) => {
   const num = Number(val)
   if (isNaN(num) || val === '' || val === null) return '0'
   return Number(num.toFixed(2)).toString()
 }
 
-export const calculateClassProgress = (startDate, endDate, day = null, time = null, totalSessions = null) => {
+export const calculateClassProgress = (
+  startDate,
+  endDate,
+  day = null,
+  time = null,
+  totalSessions = null,
+) => {
   if (!startDate || !endDate)
     return {
       status: 'N/A',
@@ -155,7 +159,8 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
 
   const currentWeek = todayDate < startDateOnly ? 0 : sessionsCompleted
   const remainingSessions = Math.max(0, totalWeeks - sessionsCompleted)
-  const percentage = totalWeeks === 0 ? 0 : Math.min(100, Math.round((sessionsCompleted / totalWeeks) * 100))
+  const percentage =
+    totalWeeks === 0 ? 0 : Math.min(100, Math.round((sessionsCompleted / totalWeeks) * 100))
 
   // 4. Calculate ongoing status
   let isOngoing = false
@@ -286,12 +291,7 @@ export const calculateOfferingStatus = ({
   const currentCount = Number(offering.currentCount)
   const isFull = currentCount >= capacity
 
-  const progress = calculateClassProgress(
-    termStartDate,
-    termEndDate,
-    schedule.day,
-    schedule.time
-  )
+  const progress = calculateClassProgress(termStartDate, termEndDate, schedule.day, schedule.time)
   let fallbackStatus = progress.status
 
   if (!termStartDate || !termEndDate) {
@@ -341,13 +341,23 @@ export const sortSchedulesChronologically = (schedulesArray, nestedKey = null) =
   return [...schedulesArray].sort((a, b) => {
     const itemA = nestedKey ? a[nestedKey] : a
     const itemB = nestedKey ? b[nestedKey] : b
-    
+
     const minsA = parse12hToMinutes(itemA?.time)
     const minsB = parse12hToMinutes(itemB?.time)
     if (minsA !== minsB) return minsA - minsB
 
-    const dayA = dayOrder[String(itemA?.day || '').trim().toLowerCase()] || 99
-    const dayB = dayOrder[String(itemB?.day || '').trim().toLowerCase()] || 99
+    const dayA =
+      dayOrder[
+        String(itemA?.day || '')
+          .trim()
+          .toLowerCase()
+      ] || 99
+    const dayB =
+      dayOrder[
+        String(itemB?.day || '')
+          .trim()
+          .toLowerCase()
+      ] || 99
     return dayA - dayB
   })
 }

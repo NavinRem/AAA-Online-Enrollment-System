@@ -107,7 +107,13 @@ export const formatPrice = (val) => {
   return Number(num.toFixed(2)).toString()
 }
 
-export const calculateClassProgress = (startDate, endDate, day = null, time = null, totalSessions = null) => {
+export const calculateClassProgress = (
+  startDate,
+  endDate,
+  day = null,
+  time = null,
+  totalSessions = null,
+) => {
   if (!startDate || !endDate)
     return {
       status: 'N/A',
@@ -150,7 +156,8 @@ export const calculateClassProgress = (startDate, endDate, day = null, time = nu
 
   const currentWeek = todayDate < startDateOnly ? 0 : sessionsCompleted
   const remainingSessions = Math.max(0, totalWeeks - sessionsCompleted)
-  const percentage = totalWeeks === 0 ? 0 : Math.min(100, Math.round((sessionsCompleted / totalWeeks) * 100))
+  const percentage =
+    totalWeeks === 0 ? 0 : Math.min(100, Math.round((sessionsCompleted / totalWeeks) * 100))
 
   let status = 'active'
   if (todayDate > endDateOnly) {

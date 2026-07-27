@@ -236,14 +236,22 @@ const belongsToBranch = (item, branchId) => {
 
   if (item.class) {
     if (matchVal(item.class.branchId)) return true
-    if (item.class.branch && (matchVal(item.class.branch.id) || matchVal(item.class.branch.abbr) || matchVal(item.class.branch.name)))
+    if (
+      item.class.branch &&
+      (matchVal(item.class.branch.id) ||
+        matchVal(item.class.branch.abbr) ||
+        matchVal(item.class.branch.name))
+    )
       return true
   }
   if (item.classId) {
     const cls = dataStore.classes.find((c) => c.id === item.classId)
     if (cls) {
       if (matchVal(cls.branchId)) return true
-      if (cls.branch && (matchVal(cls.branch.id) || matchVal(cls.branch.abbr) || matchVal(cls.branch.name)))
+      if (
+        cls.branch &&
+        (matchVal(cls.branch.id) || matchVal(cls.branch.abbr) || matchVal(cls.branch.name))
+      )
         return true
     }
   }
@@ -315,7 +323,10 @@ const getBranchStats = (branchId) => {
   const programs = new Set(classes.map((c) => c.programId || c.program?.id)).size
   const studying = new Set(
     enrollments
-      .filter((e) => isEnrollmentPaid(e) && !['cancelled', 'deleted'].includes(String(e.status).toLowerCase()))
+      .filter(
+        (e) =>
+          isEnrollmentPaid(e) && !['cancelled', 'deleted'].includes(String(e.status).toLowerCase()),
+      )
       .map((e) => e.studentId),
   ).size
   const totalRev = enrollments

@@ -43,13 +43,13 @@ export const enrichStudents = (
         r.program ||
         r.programSnapshot ||
         programs.find((p) => p.id === (r.programId || r.program?.id))
-        
+
       let bId = r.branchId || r.class?.branch?.id || r.class?.branchId
       if (!bId && r.classId && classes.length) {
-        const cls = classes.find(c => c.id === r.classId)
+        const cls = classes.find((c) => c.id === r.classId)
         bId = cls?.branchId || cls?.branch?.id
       }
-      
+
       return { ...r, program: prog, branchId: bId }
     })
 

@@ -71,7 +71,8 @@ const topEnrolledProgram = computed(() => {
     return { name: 'No Enrollments', count: 0 }
   const counts = {}
   enrollments.value.forEach((e) => {
-    if (e.programId && !isTransferDestination(e)) counts[e.programId] = (counts[e.programId] || 0) + 1
+    if (e.programId && !isTransferDestination(e))
+      counts[e.programId] = (counts[e.programId] || 0) + 1
   })
   let maxCount = 0,
     maxPid = null
@@ -180,13 +181,13 @@ const getProgramMetrics = (programId, allEnrollments, allTrials) => {
 
 const statsCards = computed(() => {
   const totalProgramsCount = programs.value.length
-  
+
   const topTrialName = topTrialProgram.value.name
   const topTrialSubtitle = `${topTrialProgram.value.count} Trials`
-  
+
   const topEnrolledName = topEnrolledProgram.value.name
   const topEnrolledSubtitle = `${topEnrolledProgram.value.count} Enrollments`
-  
+
   const topRevenueName = topRevenueProgram.value.name
   const topRevenueSubtitle = `$${topRevenueProgram.value.revenue.toLocaleString()} Total`
 
@@ -220,7 +221,13 @@ const statsCards = computed(() => {
 const fetchPrograms = async (force = false) => {
   loading.value = true
   try {
-    await dataStore.fetchAllCommonData(force, ['programs', 'categories', 'levels', 'enrollments', 'trials'])
+    await dataStore.fetchAllCommonData(force, [
+      'programs',
+      'categories',
+      'levels',
+      'enrollments',
+      'trials',
+    ])
   } catch (error) {
     console.error('Failed to fetch programs', error)
   } finally {
