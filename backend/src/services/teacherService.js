@@ -179,8 +179,6 @@ class TeacherService {
         throw new Error('Teacher is already assigned to this class')
       }
 
-      // TODO: Add schedule conflict detection logic here if needed
-
       offerings[idx] = {
         ...offering,
         teachers: [...currentTeachers, teacherSnapshot],
