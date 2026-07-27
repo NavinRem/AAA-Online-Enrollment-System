@@ -12,7 +12,6 @@ export async function request(endpoint, options = {}) {
     'Content-Type': 'application/json',
     ...options.headers,
   }
-  // Global Parameter Sanitization for GET requests
   if (method === 'GET' && endpoint.includes('?')) {
     const [path, query] = endpoint.split('?')
     const params = new URLSearchParams(query)
@@ -36,13 +35,11 @@ export async function request(endpoint, options = {}) {
 
 
 
-  // Ensure auth is ready before checking currentUser
   let currentUser = auth.currentUser
   if (!currentUser) {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       currentUser = user
     })
-    // Small delay to allow Firebase to initialize if it hasn't yet
     await new Promise((resolve) => setTimeout(resolve, 50))
     unsubscribe()
   }
@@ -63,7 +60,7 @@ export async function request(endpoint, options = {}) {
   const fetchOptions = {
     ...options,
     headers,
-    ...(skipCache ? { cache: 'no-store' } : {}),
+    cache: 'no-store',
   }
 
   const response = await fetch(url, fetchOptions)

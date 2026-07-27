@@ -32,8 +32,6 @@ const router = useRouter()
 const dataStore = useDataStore()
 const newlyCreatedId = ref(null)
 
-// UI State
-// Dropdowns were removed
 
 const parents = computed(() => {
   const allParents = dataStore.parents
@@ -98,7 +96,6 @@ onMounted(async () => {
   }
 })
 
-// Component setup complete
 
 const currentFilter = ref('all')
 

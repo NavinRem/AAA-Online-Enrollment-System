@@ -2,17 +2,13 @@ import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { formatDateOnly, formatDate } from '@/utils/formatUtils'
 
-/**
- * A reusable composable for handling search filtering across lists.
- * Optimized to use a customMapper if provided, or otherwise fallback to top-level property matching.
- */
 export function useSearch(listRef, customMapper = null) {
   const searchQuery = ref('')
   let route = null
   try {
     route = useRoute()
   } catch (e) {
-    // Fallback if used outside router context
+    console.log(e)
   }
 
   if (route) {
@@ -35,12 +31,10 @@ export function useSearch(listRef, customMapper = null) {
     if (!q) return list
 
     return list.filter((item) => {
-      // If mapper is provided, use it as the highly optimized source of search text
       if (customMapper) {
         return customMapper(item).toLowerCase().includes(q)
       }
 
-      // Fallback: search all top-level string/number values (less efficient)
       return Object.values(item).some((v) =>
         String(v || '')
           .toLowerCase()
@@ -52,9 +46,7 @@ export function useSearch(listRef, customMapper = null) {
   return { searchQuery, searchResults }
 }
 
-/**
- * Entity-specific Search Mappers
- */
+
 
 export const enrollmentSearchMapper = (r) =>
   [
